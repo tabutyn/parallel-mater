@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// API proposal for review. This pull request intentionally provides contracts
-// and compile-time shape tests but no physics implementation.
+// Public CUDA physics API. Implementation milestones are tracked in
+// docs/ROADMAP.md; a declaration may precede its solver implementation.
 
 #include <cuda_runtime_api.h>
 
@@ -40,6 +40,7 @@ template <typename T> struct DeviceSpan {
 enum class StatusCode : std::uint8_t {
     success,
     invalid_argument,
+    not_supported,
     invalid_handle,
     capacity_exceeded,
     busy,
@@ -63,30 +64,40 @@ struct FluidId {
     std::uint32_t index{};
     std::uint32_t generation{};
 
-    [[nodiscard]] friend constexpr bool operator==(FluidId, FluidId) noexcept = default;
+    [[nodiscard]] friend constexpr bool operator==(FluidId left,
+                                                   FluidId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
 };
 
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
 
-    [[nodiscard]] friend constexpr bool operator==(RigidBodyId, RigidBodyId) noexcept = default;
+    [[nodiscard]] friend constexpr bool operator==(RigidBodyId left,
+                                                   RigidBodyId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
 };
 
 struct ParticleSpawnPlaneId {
     std::uint32_t index{};
     std::uint32_t generation{};
 
-    [[nodiscard]] friend constexpr bool operator==(ParticleSpawnPlaneId,
-                                                   ParticleSpawnPlaneId) noexcept = default;
+    [[nodiscard]] friend constexpr bool operator==(
+        ParticleSpawnPlaneId left, ParticleSpawnPlaneId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
 };
 
 struct ParticleDestroyPlaneId {
     std::uint32_t index{};
     std::uint32_t generation{};
 
-    [[nodiscard]] friend constexpr bool operator==(ParticleDestroyPlaneId,
-                                                   ParticleDestroyPlaneId) noexcept = default;
+    [[nodiscard]] friend constexpr bool operator==(
+        ParticleDestroyPlaneId left, ParticleDestroyPlaneId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
 };
 
 struct WorldOptions {

@@ -4,12 +4,12 @@ Every stage is a separate pull request. A stage is merged only after its public
 example, deterministic tests, sanitizer checks, and unprofiled measurements
 pass.
 
-## PR 1 — API review RFC (this pull request)
+## PR 1 — API review RFC (merged)
 
 - Agree on ownership, handles, stepping, views, contacts, and scope.
 - No physics implementation and no copied legacy source.
 
-## PR 2 — Core and rigid bodies
+## PR 2 — Core and rigid bodies (current)
 
 - Implement status, token, world lifetime, generation-checked handles, and
   CUDA stream behavior.

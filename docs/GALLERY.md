@@ -32,6 +32,11 @@ Headless server simulations build without OpenGL or OptiX.
 4. **Obstacle bowl** — gravity steering rolls the sphere through pegs while
    fluid remains contained.
 
+The first scene is available now as the headless
+`parallel-mater-rigid-sandbox` example. It launches a sphere across a
+high-friction plane into a static box and prints sampled device-simulated state.
+It intentionally has no renderer; rendering is a later gallery milestone.
+
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.
 
