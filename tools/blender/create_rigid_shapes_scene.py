@@ -128,6 +128,7 @@ def build_scene() -> None:
     red = material("SphereRed", (0.8, 0.12, 0.08, 1.0))
     blue = material("BoxBlue", (0.08, 0.3, 0.85, 1.0))
     green = material("CapsuleGreen", (0.1, 0.68, 0.3, 1.0))
+    gold = material("TriangleSoupGold", (0.86, 0.46, 0.08, 1.0))
 
     bpy.ops.mesh.primitive_plane_add(size=14.0, location=(0.0, 0.0, 0.0))
     floor = bpy.context.object
@@ -146,7 +147,7 @@ def build_scene() -> None:
     rigid_metadata(sphere, "dynamic", "sphere", mass=2.0,
                    friction=0.72, restitution=0.25)
 
-    bpy.ops.mesh.primitive_cube_add(size=1.4, location=(0.0, 0.0, 4.6),
+    bpy.ops.mesh.primitive_cube_add(size=1.4, location=(0.0, 0.0, 5.2),
                                     rotation=(0.18, 0.22, 0.1))
     box = bpy.context.object
     box.name = "DynamicBox"
@@ -160,6 +161,20 @@ def build_scene() -> None:
     capsule.data.materials.append(green)
     rigid_metadata(capsule, "dynamic", "capsule", mass=2.5,
                    friction=0.68, restitution=0.18)
+
+    bpy.ops.mesh.primitive_monkey_add(location=(0.0, 2.2, 1.05))
+    suzanne = bpy.context.object
+    suzanne.name = "StaticTriangleSuzanne"
+    suzanne.scale = (1.1, 1.1, 1.1)
+    apply_scale(suzanne)
+    triangulate = suzanne.modifiers.new("TriangulateForCollision", "TRIANGULATE")
+    bpy.context.view_layer.objects.active = suzanne
+    bpy.ops.object.modifier_apply(modifier=triangulate.name)
+    suzanne.data.materials.append(gold)
+    for polygon in suzanne.data.polygons:
+        polygon.use_smooth = True
+    rigid_metadata(suzanne, "static", "triangles", friction=0.78,
+                   restitution=0.08)
 
 
 def export_scene(output: pathlib.Path, blend_output: pathlib.Path | None) -> None:

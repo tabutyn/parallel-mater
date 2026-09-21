@@ -6,8 +6,8 @@ will be added only after the small public API is proven by gallery examples.
 
 The current implementation provides the `World` lifecycle and GPU rigid-body
 integration for static, kinematic, and dynamic spheres, boxes, capsules, and
-planes. Fluid declarations are present for API review but are implemented in
-the next milestone.
+planes, plus static or kinematic two-sided triangle soups. Fluid declarations
+are present for API review but are implemented in the next milestone.
 
 ## Design goals
 

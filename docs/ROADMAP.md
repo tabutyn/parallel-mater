@@ -25,8 +25,10 @@ pass.
   and dynamic rigid bodies.
 - Add a Blender Python authoring/export script and concise scene-authoring guide.
 - Render one Blender-authored scene containing a static plane plus dynamic
-  sphere, box, and capsule. The gallery source must not reconstruct that scene
-  procedurally.
+  sphere, box, and capsule, plus a static triangle-collider Suzanne. The gallery
+  source must not reconstruct that scene procedurally.
+- Complete resting contact points, deterministic dynamic–dynamic response, and
+  two-sided open triangle-soup collision before fluid work begins.
 - Add a headless image test and an interactive orbit-camera example.
 
 ## PR 4 — Isolated fluid and particle lifecycle

@@ -156,6 +156,20 @@ struct Contact {
     bool hit{};
 };
 
+struct ContactManifold {
+    Contact contacts[8]{};
+    std::uint32_t count{};
+};
+
+struct TriangleMeshResource {
+    Vec3 *vertices{};
+    std::uint32_t *indices{};
+    std::uint32_t vertex_count{};
+    std::uint32_t index_count{};
+    std::uint32_t generation{};
+    bool alive{};
+};
+
 __host__ __device__ Vec3 local_axis(Quaternion orientation,
                                    std::uint32_t axis) noexcept {
     if (axis == 0U) {
@@ -181,9 +195,46 @@ __host__ __device__ float shape_support(const CollisionShape &shape,
     case ShapeType::capsule:
         return shape.dimensions.x + fabsf(local.y) * shape.dimensions.y;
     case ShapeType::plane:
+    case ShapeType::triangle_mesh:
         return 0.0F;
     }
     return 0.0F;
+}
+
+__host__ __device__ Vec3 shape_support_point(
+    const BodyParameters &parameters, const RigidBodyState &state,
+    Vec3 direction) noexcept {
+    const Vec3 normal = normalized_or(direction, {1.0F, 0.0F, 0.0F});
+    switch (parameters.shape.type) {
+    case ShapeType::sphere:
+        return add(state.position,
+                   multiply(normal, parameters.shape.dimensions.x));
+    case ShapeType::box: {
+        Vec3 point = state.position;
+        for (std::uint32_t axis_index = 0; axis_index < 3U; ++axis_index) {
+            const Vec3 axis = local_axis(state.orientation, axis_index);
+            const float extent = axis_index == 0U
+                                     ? parameters.shape.dimensions.x
+                                     : (axis_index == 1U
+                                            ? parameters.shape.dimensions.y
+                                            : parameters.shape.dimensions.z);
+            const float sign = dot(axis, normal) >= 0.0F ? 1.0F : -1.0F;
+            point = add(point, multiply(axis, sign * extent));
+        }
+        return point;
+    }
+    case ShapeType::capsule: {
+        const Vec3 axis = local_axis(state.orientation, 1U);
+        const float endpoint_sign = dot(axis, normal) >= 0.0F ? 1.0F : -1.0F;
+        return add(add(state.position,
+                       multiply(axis, endpoint_sign * parameters.shape.dimensions.y)),
+                   multiply(normal, parameters.shape.dimensions.x));
+    }
+    case ShapeType::plane:
+    case ShapeType::triangle_mesh:
+        return state.position;
+    }
+    return state.position;
 }
 
 __host__ __device__ void capsule_segment(const BodyParameters &parameters,
@@ -246,6 +297,113 @@ __host__ __device__ void closest_segments(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2,
     }
     c1 = add(p1, multiply(d1, s));
     c2 = add(p2, multiply(d2, t));
+}
+
+__host__ __device__ Vec3 closest_on_triangle(Vec3 point, Vec3 a, Vec3 b,
+                                             Vec3 c) noexcept {
+    const Vec3 ab = subtract(b, a);
+    const Vec3 ac = subtract(c, a);
+    const Vec3 ap = subtract(point, a);
+    const float d1 = dot(ab, ap);
+    const float d2 = dot(ac, ap);
+    if (d1 <= 0.0F && d2 <= 0.0F) {
+        return a;
+    }
+    const Vec3 bp = subtract(point, b);
+    const float d3 = dot(ab, bp);
+    const float d4 = dot(ac, bp);
+    if (d3 >= 0.0F && d4 <= d3) {
+        return b;
+    }
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0F && d1 >= 0.0F && d3 <= 0.0F) {
+        return add(a, multiply(ab, d1 / (d1 - d3)));
+    }
+    const Vec3 cp = subtract(point, c);
+    const float d5 = dot(ab, cp);
+    const float d6 = dot(ac, cp);
+    if (d6 >= 0.0F && d5 <= d6) {
+        return c;
+    }
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0F && d2 >= 0.0F && d6 <= 0.0F) {
+        return add(a, multiply(ac, d2 / (d2 - d6)));
+    }
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0F && d4 - d3 >= 0.0F && d5 - d6 >= 0.0F) {
+        return add(b, multiply(subtract(c, b),
+                               (d4 - d3) / ((d4 - d3) + (d5 - d6))));
+    }
+    const float inverse = 1.0F / (va + vb + vc);
+    return add(a, add(multiply(ab, vb * inverse),
+                      multiply(ac, vc * inverse)));
+}
+
+__host__ __device__ bool point_in_triangle(Vec3 point, Vec3 a, Vec3 b,
+                                           Vec3 c, Vec3 normal) noexcept {
+    constexpr float tolerance = -1.0e-5F;
+    return dot(cross(subtract(b, a), subtract(point, a)), normal) >= tolerance &&
+           dot(cross(subtract(c, b), subtract(point, b)), normal) >= tolerance &&
+           dot(cross(subtract(a, c), subtract(point, c)), normal) >= tolerance;
+}
+
+__host__ __device__ void consider_closest_pair(
+    Vec3 on_segment, Vec3 on_triangle, float &best_squared,
+    Vec3 &segment_point, Vec3 &triangle_point) noexcept {
+    const float squared = length_squared(subtract(on_segment, on_triangle));
+    if (squared < best_squared) {
+        best_squared = squared;
+        segment_point = on_segment;
+        triangle_point = on_triangle;
+    }
+}
+
+__host__ __device__ void closest_segment_triangle(
+    Vec3 segment_a, Vec3 segment_b, Vec3 a, Vec3 b, Vec3 c,
+    Vec3 &segment_point, Vec3 &triangle_point) noexcept {
+    float best_squared = FLT_MAX;
+    consider_closest_pair(segment_a, closest_on_triangle(segment_a, a, b, c),
+                          best_squared, segment_point, triangle_point);
+    consider_closest_pair(segment_b, closest_on_triangle(segment_b, a, b, c),
+                          best_squared, segment_point, triangle_point);
+    consider_closest_pair(closest_on_segment(a, segment_a, segment_b), a,
+                          best_squared, segment_point, triangle_point);
+    consider_closest_pair(closest_on_segment(b, segment_a, segment_b), b,
+                          best_squared, segment_point, triangle_point);
+    consider_closest_pair(closest_on_segment(c, segment_a, segment_b), c,
+                          best_squared, segment_point, triangle_point);
+    Vec3 first{};
+    Vec3 second{};
+    closest_segments(segment_a, segment_b, a, b, first, second);
+    consider_closest_pair(first, second, best_squared, segment_point,
+                          triangle_point);
+    closest_segments(segment_a, segment_b, b, c, first, second);
+    consider_closest_pair(first, second, best_squared, segment_point,
+                          triangle_point);
+    closest_segments(segment_a, segment_b, c, a, first, second);
+    consider_closest_pair(first, second, best_squared, segment_point,
+                          triangle_point);
+
+    const Vec3 normal = cross(subtract(b, a), subtract(c, a));
+    const float normal_squared = length_squared(normal);
+    const Vec3 direction = subtract(segment_b, segment_a);
+    const float denominator = dot(normal, direction);
+    if (normal_squared > k_epsilon * k_epsilon &&
+        fabsf(denominator) > k_epsilon) {
+        const float amount = dot(normal, subtract(a, segment_a)) / denominator;
+        if (amount >= 0.0F && amount <= 1.0F) {
+            const Vec3 intersection = add(segment_a, multiply(direction, amount));
+            if (point_in_triangle(intersection, a, b, c, normal)) {
+                segment_point = intersection;
+                triangle_point = intersection;
+            }
+        }
+    }
+}
+
+__host__ __device__ Vec3 transform_point(const RigidBodyState &state,
+                                         Vec3 point) noexcept {
+    return add(state.position, rotate(state.orientation, point));
 }
 
 __host__ __device__ Contact sphere_box_contact(
@@ -363,11 +521,216 @@ __host__ __device__ Contact box_box_contact(
             best_normal = signed_distance >= 0.0F ? axis : multiply(axis, -1.0F);
         }
     }
-    const float support = shape_support(moving.shape, moving_state.orientation,
-                                        best_normal);
+    const Vec3 moving_point =
+        shape_support_point(moving, moving_state, multiply(best_normal, -1.0F));
+    const Vec3 collider_point =
+        shape_support_point(collider, collider_state, best_normal);
     return {best_normal,
-            subtract(moving_state.position, multiply(best_normal, support)),
+            multiply(add(moving_point, collider_point), 0.5F),
             least_overlap, true};
+}
+
+__device__ void add_plane_contact(ContactManifold &result, Vec3 point,
+                                  float radius, Vec3 plane_position,
+                                  Vec3 normal) noexcept {
+    const float distance = dot(subtract(point, plane_position), normal) - radius;
+    if (distance < 0.0F && result.count < 8U) {
+        result.contacts[result.count++] = {
+            normal, subtract(point, multiply(normal, radius)), -distance, true};
+    }
+}
+
+__device__ ContactManifold plane_contacts(
+    const BodyParameters &moving, const RigidBodyState &moving_state,
+    const RigidBodyState &plane_state) noexcept {
+    ContactManifold result{};
+    const Vec3 normal = local_axis(plane_state.orientation, 1U);
+
+    switch (moving.shape.type) {
+    case ShapeType::sphere:
+        add_plane_contact(result, moving_state.position, moving.shape.dimensions.x,
+                          plane_state.position, normal);
+        break;
+    case ShapeType::capsule: {
+        Vec3 a{};
+        Vec3 b{};
+        capsule_segment(moving, moving_state, a, b);
+        add_plane_contact(result, a, moving.shape.dimensions.x,
+                          plane_state.position, normal);
+        if (length_squared(subtract(a, b)) > k_epsilon * k_epsilon) {
+            add_plane_contact(result, b, moving.shape.dimensions.x,
+                              plane_state.position, normal);
+        }
+        break;
+    }
+    case ShapeType::box:
+        for (int x = -1; x <= 1; x += 2) {
+            for (int y = -1; y <= 1; y += 2) {
+                for (int z = -1; z <= 1; z += 2) {
+                    const Vec3 local{
+                        static_cast<float>(x) * moving.shape.dimensions.x,
+                        static_cast<float>(y) * moving.shape.dimensions.y,
+                        static_cast<float>(z) * moving.shape.dimensions.z};
+                    add_plane_contact(result, transform_point(moving_state, local),
+                                      0.0F, plane_state.position, normal);
+                }
+            }
+        }
+        break;
+    case ShapeType::plane:
+    case ShapeType::triangle_mesh:
+        break;
+    }
+    return result;
+}
+
+__host__ __device__ Contact sphere_triangle_contact(
+    Vec3 center, float radius, Vec3 a, Vec3 b, Vec3 c) noexcept {
+    const Vec3 closest = closest_on_triangle(center, a, b, c);
+    const Vec3 delta = subtract(center, closest);
+    const float squared = length_squared(delta);
+    if (squared >= radius * radius) {
+        return {};
+    }
+    const Vec3 triangle_normal = normalized_or(
+        cross(subtract(b, a), subtract(c, a)), {0.0F, 1.0F, 0.0F});
+    const Vec3 centroid = multiply(add(add(a, b), c), 1.0F / 3.0F);
+    const Vec3 fallback = dot(subtract(center, centroid), triangle_normal) >= 0.0F
+                              ? triangle_normal
+                              : multiply(triangle_normal, -1.0F);
+    const float distance = sqrtf(fmaxf(squared, 0.0F));
+    return {normalized_or(delta, fallback), closest, radius - distance, true};
+}
+
+__host__ __device__ Contact capsule_triangle_contact(
+    const BodyParameters &capsule, const RigidBodyState &state,
+    Vec3 a, Vec3 b, Vec3 c) noexcept {
+    Vec3 segment_a{};
+    Vec3 segment_b{};
+    capsule_segment(capsule, state, segment_a, segment_b);
+    Vec3 on_segment{};
+    Vec3 on_triangle{};
+    closest_segment_triangle(segment_a, segment_b, a, b, c, on_segment,
+                             on_triangle);
+    const Vec3 delta = subtract(on_segment, on_triangle);
+    const float squared = length_squared(delta);
+    const float radius = capsule.shape.dimensions.x;
+    if (squared >= radius * radius) {
+        return {};
+    }
+    const Vec3 triangle_normal = normalized_or(
+        cross(subtract(b, a), subtract(c, a)), {0.0F, 1.0F, 0.0F});
+    const Vec3 centroid = multiply(add(add(a, b), c), 1.0F / 3.0F);
+    const Vec3 fallback = dot(subtract(state.position, centroid), triangle_normal) >=
+                                  0.0F
+                              ? triangle_normal
+                              : multiply(triangle_normal, -1.0F);
+    const float distance = sqrtf(fmaxf(squared, 0.0F));
+    return {normalized_or(delta, fallback), on_triangle, radius - distance, true};
+}
+
+__host__ __device__ Contact box_triangle_contact(
+    const BodyParameters &box, const RigidBodyState &state,
+    Vec3 world_a, Vec3 world_b, Vec3 world_c) noexcept {
+    const Vec3 a = inverse_rotate(state.orientation,
+                                  subtract(world_a, state.position));
+    const Vec3 b = inverse_rotate(state.orientation,
+                                  subtract(world_b, state.position));
+    const Vec3 c = inverse_rotate(state.orientation,
+                                  subtract(world_c, state.position));
+    const Vec3 edges[3]{subtract(b, a), subtract(c, b), subtract(a, c)};
+    Vec3 axes[13]{{1.0F, 0.0F, 0.0F},
+                  {0.0F, 1.0F, 0.0F},
+                  {0.0F, 0.0F, 1.0F},
+                  cross(edges[0], subtract(c, a))};
+    int axis_count = 4;
+    const Vec3 box_axes[3]{{1.0F, 0.0F, 0.0F},
+                           {0.0F, 1.0F, 0.0F},
+                           {0.0F, 0.0F, 1.0F}};
+    for (int edge = 0; edge < 3; ++edge) {
+        for (int axis = 0; axis < 3; ++axis) {
+            axes[axis_count++] = cross(edges[edge], box_axes[axis]);
+        }
+    }
+
+    const Vec3 triangle_center = multiply(add(add(a, b), c), 1.0F / 3.0F);
+    float least_overlap = FLT_MAX;
+    Vec3 best_axis{0.0F, 1.0F, 0.0F};
+    for (int axis_index = 0; axis_index < axis_count; ++axis_index) {
+        const float squared = length_squared(axes[axis_index]);
+        if (squared <= k_epsilon * k_epsilon) {
+            continue;
+        }
+        Vec3 axis = multiply(axes[axis_index], rsqrtf(squared));
+        const float projection_a = dot(a, axis);
+        const float projection_b = dot(b, axis);
+        const float projection_c = dot(c, axis);
+        const float triangle_min = fminf(projection_a,
+                                         fminf(projection_b, projection_c));
+        const float triangle_max = fmaxf(projection_a,
+                                         fmaxf(projection_b, projection_c));
+        const float box_radius = fabsf(axis.x) * box.shape.dimensions.x +
+                                 fabsf(axis.y) * box.shape.dimensions.y +
+                                 fabsf(axis.z) * box.shape.dimensions.z;
+        const float overlap = fminf(triangle_max, box_radius) -
+                              fmaxf(triangle_min, -box_radius);
+        if (overlap < -1.0e-5F) {
+            return {};
+        }
+        float penetration = overlap;
+        if (triangle_max - triangle_min <= k_epsilon) {
+            const float plane = (projection_a + projection_b + projection_c) /
+                                3.0F;
+            penetration = box_radius - fabsf(plane);
+        }
+        if (penetration < least_overlap) {
+            least_overlap = penetration;
+            if (dot(axis, multiply(triangle_center, -1.0F)) < 0.0F) {
+                axis = multiply(axis, -1.0F);
+            }
+            best_axis = axis;
+        }
+    }
+    if (least_overlap <= 0.0F || least_overlap == FLT_MAX) {
+        return {};
+    }
+    const Vec3 world_normal = rotate(state.orientation, best_axis);
+    const Vec3 point = shape_support_point(box, state,
+                                           multiply(world_normal, -1.0F));
+    return {world_normal, point, least_overlap, true};
+}
+
+__device__ Contact collide_triangle_mesh(
+    const BodyParameters &moving, const RigidBodyState &moving_state,
+    const TriangleMeshResource &mesh, const RigidBodyState &mesh_state) noexcept {
+    Contact best{};
+    for (std::uint32_t index = 0; index < mesh.index_count; index += 3U) {
+        const Vec3 a = transform_point(mesh_state, mesh.vertices[mesh.indices[index]]);
+        const Vec3 b =
+            transform_point(mesh_state, mesh.vertices[mesh.indices[index + 1U]]);
+        const Vec3 c =
+            transform_point(mesh_state, mesh.vertices[mesh.indices[index + 2U]]);
+        Contact candidate{};
+        switch (moving.shape.type) {
+        case ShapeType::sphere:
+            candidate = sphere_triangle_contact(
+                moving_state.position, moving.shape.dimensions.x, a, b, c);
+            break;
+        case ShapeType::capsule:
+            candidate = capsule_triangle_contact(moving, moving_state, a, b, c);
+            break;
+        case ShapeType::box:
+            candidate = box_triangle_contact(moving, moving_state, a, b, c);
+            break;
+        case ShapeType::plane:
+        case ShapeType::triangle_mesh:
+            break;
+        }
+        if (candidate.hit && (!best.hit || candidate.penetration > best.penetration)) {
+            best = candidate;
+        }
+    }
+    return best;
 }
 
 __host__ __device__ Contact collide_shapes(
@@ -494,10 +857,8 @@ __host__ __device__ Contact collide_shapes(
                 return {};
             }
             reverse.normal = multiply(reverse.normal, -1.0F);
-            const float support =
-                shape_support(moving.shape, moving_state.orientation, reverse.normal);
-            reverse.point = subtract(moving_state.position,
-                                     multiply(reverse.normal, support));
+            reverse.point = shape_support_point(
+                moving, moving_state, multiply(reverse.normal, -1.0F));
             return reverse;
         }
         if (collider.shape.type == ShapeType::capsule) {
@@ -507,10 +868,8 @@ __host__ __device__ Contact collide_shapes(
                 return {};
             }
             reverse.normal = multiply(reverse.normal, -1.0F);
-            const float support =
-                shape_support(moving.shape, moving_state.orientation, reverse.normal);
-            reverse.point = subtract(moving_state.position,
-                                     multiply(reverse.normal, support));
+            reverse.point = shape_support_point(
+                moving, moving_state, multiply(reverse.normal, -1.0F));
             return reverse;
         }
     }
@@ -527,20 +886,17 @@ __host__ __device__ Vec3 inverse_inertia_world(
     return rotate(state.orientation, transformed);
 }
 
-__device__ void apply_contact_response(
+__device__ void apply_contact_impulse(
     const BodyParameters &body, RigidBodyState &state,
-    const BodyParameters &collider, const RigidBodyState &collider_state,
+    const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact &contact) noexcept {
-    state.position = add(state.position,
-                         multiply(contact.normal, contact.penetration + 1.0e-5F));
-
     const Vec3 body_arm = subtract(contact.point, state.position);
     const Vec3 collider_arm = subtract(contact.point, collider_state.position);
     const Vec3 body_velocity =
         add(state.linear_velocity, cross(state.angular_velocity, body_arm));
-    const Vec3 collider_velocity =
-        add(collider_state.linear_velocity,
-            cross(collider_state.angular_velocity, collider_arm));
+    const Vec3 collider_velocity = add(
+        collider_state.linear_velocity,
+        cross(collider_state.angular_velocity, collider_arm));
     Vec3 relative_velocity = subtract(body_velocity, collider_velocity);
     const float normal_speed = dot(relative_velocity, contact.normal);
     if (normal_speed >= 0.0F) {
@@ -550,7 +906,13 @@ __device__ void apply_contact_response(
     const Vec3 body_cross = cross(body_arm, contact.normal);
     const Vec3 angular_term =
         cross(inverse_inertia_world(body, state, body_cross), body_arm);
-    const float denominator = body.inverse_mass + dot(angular_term, contact.normal);
+    const Vec3 collider_cross = cross(collider_arm, contact.normal);
+    const Vec3 collider_angular_term = cross(
+        inverse_inertia_world(collider, collider_state, collider_cross),
+        collider_arm);
+    const float denominator =
+        body.inverse_mass + collider.inverse_mass +
+        dot(add(angular_term, collider_angular_term), contact.normal);
     if (denominator <= k_epsilon) {
         return;
     }
@@ -563,10 +925,20 @@ __device__ void apply_contact_response(
     state.angular_velocity =
         add(state.angular_velocity,
             inverse_inertia_world(body, state, cross(body_arm, normal_vector)));
+    if (collider.inverse_mass > 0.0F) {
+        collider_state.linear_velocity = subtract(
+            collider_state.linear_velocity,
+            multiply(normal_vector, collider.inverse_mass));
+        collider_state.angular_velocity = subtract(
+            collider_state.angular_velocity,
+            inverse_inertia_world(collider, collider_state,
+                                  cross(collider_arm, normal_vector)));
+    }
 
     relative_velocity = subtract(
         add(state.linear_velocity, cross(state.angular_velocity, body_arm)),
-        collider_velocity);
+        add(collider_state.linear_velocity,
+            cross(collider_state.angular_velocity, collider_arm)));
     Vec3 tangent = subtract(relative_velocity,
                             multiply(contact.normal,
                                      dot(relative_velocity, contact.normal)));
@@ -576,9 +948,12 @@ __device__ void apply_contact_response(
     }
     tangent = multiply(tangent, 1.0F / tangent_length);
     const Vec3 tangent_cross = cross(body_arm, tangent);
-    const float tangent_denominator =
-        body.inverse_mass +
-        dot(cross(inverse_inertia_world(body, state, tangent_cross), body_arm),
+    const Vec3 collider_tangent_cross = cross(collider_arm, tangent);
+    const float tangent_denominator = body.inverse_mass + collider.inverse_mass +
+        dot(add(cross(inverse_inertia_world(body, state, tangent_cross), body_arm),
+                cross(inverse_inertia_world(collider, collider_state,
+                                            collider_tangent_cross),
+                      collider_arm)),
             tangent);
     if (tangent_denominator <= k_epsilon) {
         return;
@@ -594,6 +969,48 @@ __device__ void apply_contact_response(
     state.angular_velocity =
         add(state.angular_velocity,
             inverse_inertia_world(body, state, cross(body_arm, tangent_vector)));
+    if (collider.inverse_mass > 0.0F) {
+        collider_state.linear_velocity = subtract(
+            collider_state.linear_velocity,
+            multiply(tangent_vector, collider.inverse_mass));
+        collider_state.angular_velocity = subtract(
+            collider_state.angular_velocity,
+            inverse_inertia_world(collider, collider_state,
+                                  cross(collider_arm, tangent_vector)));
+    }
+}
+
+__device__ void resolve_contacts(
+    const BodyParameters &body, RigidBodyState &state,
+    const BodyParameters &collider, RigidBodyState &collider_state,
+    const Contact *contacts, std::uint32_t contact_count) noexcept {
+    if (contact_count == 0U) {
+        return;
+    }
+    float maximum_penetration = 0.0F;
+    Vec3 correction_normal = contacts[0].normal;
+    for (std::uint32_t index = 0; index < contact_count; ++index) {
+        if (contacts[index].penetration > maximum_penetration) {
+            maximum_penetration = contacts[index].penetration;
+            correction_normal = contacts[index].normal;
+        }
+    }
+    const float inverse_mass_sum = body.inverse_mass + collider.inverse_mass;
+    if (inverse_mass_sum > k_epsilon) {
+        const Vec3 correction = multiply(
+            correction_normal, (maximum_penetration + 1.0e-5F) / inverse_mass_sum);
+        state.position = add(state.position,
+                             multiply(correction, body.inverse_mass));
+        if (collider.inverse_mass > 0.0F) {
+            collider_state.position = subtract(
+                collider_state.position,
+                multiply(correction, collider.inverse_mass));
+        }
+    }
+    for (std::uint32_t index = 0; index < contact_count; ++index) {
+        apply_contact_impulse(body, state, collider, collider_state,
+                              contacts[index]);
+    }
 }
 
 __device__ Vec3 quaternion_delta_velocity(Quaternion from, Quaternion to,
@@ -706,41 +1123,77 @@ __global__ void integrate_rigid_bodies_kernel(
 
 __global__ void resolve_rigid_contacts_kernel(
     const BodyParameters *parameters, RigidBodyState *states,
-    std::uint32_t count) {
-    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index >= count || parameters[index].motion != MotionType::dynamic) {
+    std::uint32_t count, const TriangleMeshResource *meshes,
+    std::uint32_t mesh_capacity) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) {
         return;
     }
-
-    RigidBodyState state = states[index];
-    for (int pass = 0; pass < 4; ++pass) {
+    for (int pass = 0; pass < 8; ++pass) {
         bool found_contact = false;
-        for (std::uint32_t collider_index = 0; collider_index < count;
-             ++collider_index) {
-            if (collider_index == index ||
-                parameters[collider_index].motion == MotionType::dynamic) {
+        for (std::uint32_t index = 0; index < count; ++index) {
+            if (parameters[index].motion != MotionType::dynamic ||
+                parameters[index].shape.type == ShapeType::triangle_mesh) {
                 continue;
             }
-            const Contact contact = collide_shapes(
-                parameters[index], state, parameters[collider_index],
-                states[collider_index]);
-            if (!contact.hit) {
-                continue;
+            for (std::uint32_t collider_index = 0; collider_index < count;
+                 ++collider_index) {
+                if (collider_index == index ||
+                    (parameters[collider_index].motion == MotionType::dynamic &&
+                     collider_index < index)) {
+                    continue;
+                }
+                const BodyParameters &collider = parameters[collider_index];
+                if (collider.shape.type == ShapeType::triangle_mesh) {
+                    const TriangleMeshId mesh_id = collider.shape.mesh;
+                    if (mesh_id.index >= mesh_capacity) {
+                        continue;
+                    }
+                    const TriangleMeshResource &mesh = meshes[mesh_id.index];
+                    if (!mesh.alive || mesh.generation != mesh_id.generation) {
+                        continue;
+                    }
+                    const Contact contact = collide_triangle_mesh(
+                        parameters[index], states[index], mesh,
+                        states[collider_index]);
+                    if (contact.hit) {
+                        resolve_contacts(parameters[index], states[index], collider,
+                                         states[collider_index], &contact, 1U);
+                        found_contact = true;
+                    }
+                } else if (collider.shape.type == ShapeType::plane) {
+                    const ContactManifold manifold = plane_contacts(
+                        parameters[index], states[index], states[collider_index]);
+                    if (manifold.count > 0U) {
+                        resolve_contacts(parameters[index], states[index], collider,
+                                         states[collider_index], manifold.contacts,
+                                         manifold.count);
+                        found_contact = true;
+                    }
+                } else {
+                    const Contact contact = collide_shapes(
+                        parameters[index], states[index], collider,
+                        states[collider_index]);
+                    if (contact.hit) {
+                        resolve_contacts(parameters[index], states[index], collider,
+                                         states[collider_index], &contact, 1U);
+                        found_contact = true;
+                    }
+                }
             }
-            apply_contact_response(parameters[index], state,
-                                   parameters[collider_index],
-                                   states[collider_index], contact);
-            found_contact = true;
         }
         if (!found_contact) {
             break;
         }
     }
-    state.linear_velocity =
-        clamp_length(state.linear_velocity, parameters[index].maximum_linear_speed);
-    state.angular_velocity =
-        clamp_length(state.angular_velocity, parameters[index].maximum_angular_speed);
-    states[index] = state;
+    for (std::uint32_t index = 0; index < count; ++index) {
+        if (parameters[index].motion != MotionType::dynamic) {
+            continue;
+        }
+        states[index].linear_velocity = clamp_length(
+            states[index].linear_velocity, parameters[index].maximum_linear_speed);
+        states[index].angular_velocity = clamp_length(
+            states[index].angular_velocity, parameters[index].maximum_angular_speed);
+    }
 }
 
 __global__ void clear_rigid_inputs_kernel(BodyAccumulator *accumulators,
@@ -834,6 +1287,12 @@ struct CompletionState {
                            "plane bodies cannot be dynamic");
         }
         break;
+    case ShapeType::triangle_mesh:
+        if (options.motion == MotionType::dynamic) {
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh bodies cannot be dynamic");
+        }
+        break;
     }
     return success();
 }
@@ -921,6 +1380,7 @@ struct CompletionState {
         return {transverse, axial, transverse};
     }
     case ShapeType::plane:
+    case ShapeType::triangle_mesh:
         return {1.0F, 1.0F, 1.0F};
     }
     return {1.0F, 1.0F, 1.0F};
@@ -989,6 +1449,7 @@ struct World::Impl {
     WorldOptions options{};
     int device_ordinal{-1};
     std::uint32_t rigid_body_count{};
+    std::uint32_t triangle_mesh_count{};
     std::uint32_t current_state{};
     std::uint64_t frame_index{};
     std::uint64_t revision{};
@@ -998,12 +1459,21 @@ struct World::Impl {
     KinematicTarget *targets{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
+    TriangleMeshResource *meshes{};
     std::shared_ptr<CompletionState> frame{};
 
     ~Impl() {
         if (frame && !frame->acknowledged) {
             (void)wait_for_completion(frame);
         }
+        if (meshes != nullptr) {
+            for (std::uint32_t index = 0;
+                 index < options.triangle_mesh_capacity; ++index) {
+                release_managed(meshes[index].indices);
+                release_managed(meshes[index].vertices);
+            }
+        }
+        release_managed(meshes);
         release_managed(states[1]);
         release_managed(states[0]);
         release_managed(ids);
@@ -1050,6 +1520,19 @@ struct World::Impl {
                            "rigid body handle is stale");
         }
         dense = slot.dense_index;
+        return success();
+    }
+
+    [[nodiscard]] Status validate_handle(TriangleMeshId id) const noexcept {
+        if (id.index >= options.triangle_mesh_capacity || meshes == nullptr) {
+            return failure(StatusCode::invalid_handle,
+                           "triangle mesh handle index is invalid");
+        }
+        const TriangleMeshResource &mesh = meshes[id.index];
+        if (!mesh.alive || mesh.generation != id.generation) {
+            return failure(StatusCode::invalid_handle,
+                           "triangle mesh handle is stale");
+        }
         return success();
     }
 };
@@ -1153,6 +1636,11 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->meshes,
+                              options.triangle_mesh_capacity);
+    if (!status) {
+        return status;
+    }
 
     std::fill_n(implementation->parameters, options.rigid_body_capacity,
                 BodyParameters{});
@@ -1165,6 +1653,12 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->states[1], options.rigid_body_capacity,
                 RigidBodyState{});
+    std::fill_n(implementation->meshes, options.triangle_mesh_capacity,
+                TriangleMeshResource{});
+    for (std::uint32_t index = 0; index < options.triangle_mesh_capacity;
+         ++index) {
+        implementation->meshes[index].generation = 1U;
+    }
 
     output.impl_ = std::move(implementation);
     return success();
@@ -1173,51 +1667,193 @@ Status World::create(WorldOptions options, World &output,
 Status World::add_fluid(FluidOptions, DeviceSpan<const FluidParticle>, FluidId &,
                         cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 3");
+                   "fluid implementation is scheduled for PR 4");
 }
 
 Status World::remove_fluid(FluidId, cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 3");
+                   "fluid implementation is scheduled for PR 4");
 }
 
 Status World::fluid_view(FluidId, FluidDeviceView &) const noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 3");
+                   "fluid implementation is scheduled for PR 4");
 }
 
 Status World::add_particle_spawn_plane(ParticleSpawnPlaneOptions,
                                        ParticleSpawnPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
 }
 
 Status World::update_particle_spawn_plane(ParticleSpawnPlaneId,
                                           ParticleSpawnPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
 }
 
 Status World::remove_particle_spawn_plane(ParticleSpawnPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
 }
 
 Status World::add_particle_destroy_plane(ParticleDestroyPlaneOptions,
                                          ParticleDestroyPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
 }
 
 Status World::update_particle_destroy_plane(ParticleDestroyPlaneId,
                                             ParticleDestroyPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
 }
 
 Status World::remove_particle_destroy_plane(ParticleDestroyPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 3");
+                   "particle lifecycle implementation is scheduled for PR 4");
+}
+
+Status World::add_triangle_mesh(
+    DeviceSpan<const Vec3> vertices,
+    DeviceSpan<const std::uint32_t> triangle_indices, TriangleMeshId &output,
+    cudaStream_t stream) noexcept {
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_idle();
+    if (!status) {
+        return status;
+    }
+    if (vertices.data == nullptr || triangle_indices.data == nullptr ||
+        vertices.size < 3U || triangle_indices.size < 3U ||
+        triangle_indices.size % 3U != 0U ||
+        vertices.size > std::numeric_limits<std::uint32_t>::max() ||
+        triangle_indices.size > std::numeric_limits<std::uint32_t>::max()) {
+        return failure(StatusCode::invalid_argument,
+                       "triangle mesh requires device vertices and triangle indices");
+    }
+    if (impl_->triangle_mesh_count >= impl_->options.triangle_mesh_capacity) {
+        return failure(StatusCode::capacity_exceeded,
+                       "triangle mesh capacity is exhausted");
+    }
+    std::uint32_t slot = k_invalid_dense;
+    for (std::uint32_t index = 0;
+         index < impl_->options.triangle_mesh_capacity; ++index) {
+        if (!impl_->meshes[index].alive) {
+            slot = index;
+            break;
+        }
+    }
+    if (slot == k_invalid_dense) {
+        return failure(StatusCode::internal_error,
+                       "no free triangle mesh slot was found");
+    }
+
+    Vec3 *owned_vertices = nullptr;
+    std::uint32_t *owned_indices = nullptr;
+    status = allocate_managed(owned_vertices,
+                              static_cast<std::size_t>(vertices.size));
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(owned_indices,
+                              static_cast<std::size_t>(triangle_indices.size));
+    if (!status) {
+        release_managed(owned_vertices);
+        return status;
+    }
+    cudaError_t error = cudaMemcpyAsync(
+        owned_vertices, vertices.data, sizeof(Vec3) * vertices.size,
+        cudaMemcpyDefault, stream);
+    if (error == cudaSuccess) {
+        error = cudaMemcpyAsync(owned_indices, triangle_indices.data,
+                                sizeof(std::uint32_t) * triangle_indices.size,
+                                cudaMemcpyDefault, stream);
+    }
+    if (error == cudaSuccess) {
+        error = cudaStreamSynchronize(stream);
+    }
+    if (error != cudaSuccess) {
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return cuda_failure(error, "triangle mesh upload failed");
+    }
+    for (std::uint64_t index = 0; index < vertices.size; ++index) {
+        if (!finite(owned_vertices[index])) {
+            release_managed(owned_indices);
+            release_managed(owned_vertices);
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh contains a non-finite vertex");
+        }
+    }
+    for (std::uint64_t index = 0; index < triangle_indices.size; index += 3U) {
+        const std::uint32_t first = owned_indices[index];
+        const std::uint32_t second = owned_indices[index + 1U];
+        const std::uint32_t third = owned_indices[index + 2U];
+        if (first >= vertices.size || second >= vertices.size ||
+            third >= vertices.size) {
+            release_managed(owned_indices);
+            release_managed(owned_vertices);
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh index is outside the vertex buffer");
+        }
+        const Vec3 area = cross(subtract(owned_vertices[second],
+                                         owned_vertices[first]),
+                                subtract(owned_vertices[third],
+                                         owned_vertices[first]));
+        if (length_squared(area) <= k_epsilon * k_epsilon) {
+            release_managed(owned_indices);
+            release_managed(owned_vertices);
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh contains a degenerate triangle");
+        }
+    }
+
+    TriangleMeshResource &mesh = impl_->meshes[slot];
+    mesh.vertices = owned_vertices;
+    mesh.indices = owned_indices;
+    mesh.vertex_count = static_cast<std::uint32_t>(vertices.size);
+    mesh.index_count = static_cast<std::uint32_t>(triangle_indices.size);
+    mesh.alive = true;
+    ++impl_->triangle_mesh_count;
+    ++impl_->revision;
+    output = {slot, mesh.generation};
+    return success();
+}
+
+Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_idle();
+    if (!status) {
+        return status;
+    }
+    status = impl_->validate_handle(mesh_id);
+    if (!status) {
+        return status;
+    }
+    for (std::uint32_t index = 0; index < impl_->rigid_body_count; ++index) {
+        if (impl_->parameters[index].shape.type == ShapeType::triangle_mesh &&
+            impl_->parameters[index].shape.mesh == mesh_id) {
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh is still referenced by a rigid body");
+        }
+    }
+    TriangleMeshResource &mesh = impl_->meshes[mesh_id.index];
+    release_managed(mesh.indices);
+    release_managed(mesh.vertices);
+    mesh.vertex_count = 0U;
+    mesh.index_count = 0U;
+    mesh.alive = false;
+    ++mesh.generation;
+    if (mesh.generation == 0U) {
+        mesh.generation = 1U;
+    }
+    --impl_->triangle_mesh_count;
+    ++impl_->revision;
+    return success();
 }
 
 Status World::add_rigid_body(RigidBodyOptions options,
@@ -1232,6 +1868,12 @@ Status World::add_rigid_body(RigidBodyOptions options,
     status = validate_body_options(options);
     if (!status) {
         return status;
+    }
+    if (options.shape.type == ShapeType::triangle_mesh) {
+        status = impl_->validate_handle(options.shape.mesh);
+        if (!status) {
+            return status;
+        }
     }
     if (impl_->rigid_body_count >= impl_->options.rigid_body_capacity) {
         return failure(StatusCode::capacity_exceeded,
@@ -1554,9 +2196,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid integration kernel launch failed");
         }
-        resolve_rigid_contacts_kernel<<<block_count, block_size, 0, stream>>>(
+        resolve_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
-            impl_->rigid_body_count);
+            impl_->rigid_body_count, impl_->meshes,
+            impl_->options.triangle_mesh_capacity);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -1624,10 +2267,20 @@ Status World::collect_statistics(WorldStatistics &output,
     output = {};
     output.frame_index = impl_->frame_index;
     output.rigid_body_count = impl_->rigid_body_count;
+    output.triangle_mesh_count = impl_->triangle_mesh_count;
     output.allocated_bytes =
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
-                    2U * sizeof(RigidBodyState));
+                    2U * sizeof(RigidBodyState)) +
+        impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
+    for (std::uint32_t index = 0;
+         index < impl_->options.triangle_mesh_capacity; ++index) {
+        if (impl_->meshes[index].alive) {
+            output.allocated_bytes +=
+                impl_->meshes[index].vertex_count * sizeof(Vec3) +
+                impl_->meshes[index].index_count * sizeof(std::uint32_t);
+        }
+    }
     return success();
 }
 

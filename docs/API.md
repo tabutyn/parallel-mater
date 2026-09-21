@@ -14,12 +14,12 @@ The installed API initially consists of one header:
 ## Current implementation status
 
 The core and rigid-body milestone implements world ownership, asynchronous
-completion, generation-checked rigid handles, forces, impulses, kinematic
-targets, device views, and GPU integration. Rigid contact in this milestone is
-discrete and resolves dynamic bodies against static or kinematic bodies.
-Dynamic–dynamic and continuous rigid collision remain deferred. Fluid and
-particle-lifecycle declarations currently return `StatusCode::not_supported`
-status and are implemented in PR 3.
+completion, generation-checked rigid and triangle-mesh handles, forces,
+impulses, kinematic targets, device views, and GPU integration. Discrete rigid
+contact includes dynamic–dynamic analytic shapes and dynamic analytic shapes
+against two-sided static or kinematic triangle soups. Continuous rigid
+collision remains deferred. Fluid and particle-lifecycle declarations
+currently return `StatusCode::not_supported` and are implemented in PR 4.
 
 ## Minimal use
 
@@ -163,8 +163,8 @@ can be enabled, moved, updated, and removed without rebuilding the fluid.
 
 ## Rigid-body contract
 
-The first release supports spheres, boxes, local-Y capsules, and local +Y
-planes. A body is static, kinematic, or dynamic:
+The first release supports spheres, boxes, local-Y capsules, local +Y planes,
+and World-owned indexed triangle soups. A body is static, kinematic, or dynamic:
 
 - static bodies never move;
 - kinematic bodies follow explicit targets and impart their velocity to fluid;
@@ -173,10 +173,29 @@ planes. A body is static, kinematic, or dynamic:
 
 Dynamic mass must be positive. A zero inertia diagonal requests an analytic
 value derived from mass and shape. Plane bodies must be static or kinematic.
-Triangle meshes, compound shapes, joints, sleeping, and continuous rigid–rigid
-collision are deferred. Dynamic–dynamic rigid collision is also deferred from
-the core milestone; fluid–dynamic-body momentum exchange arrives with the
-fluid-coupling milestone.
+Triangle soups are two-sided and need not be closed, connected, manifold, or
+consistently wound. Their vertex and index data is copied from device spans.
+They are static or kinematic; dynamic mesh mass properties and mesh–mesh
+collision remain deferred. Compound shapes, joints, sleeping, and continuous
+rigid collision are also deferred. Fluid–dynamic-body momentum exchange arrives
+with the fluid-coupling milestone.
+
+```cpp
+TriangleMeshId terrain_mesh;
+status = world.add_triangle_mesh(device_vertices, device_triangle_indices,
+                                 terrain_mesh);
+if (!status) return report(status);
+
+RigidBodyId terrain;
+status = world.add_rigid_body(
+    {.motion = MotionType::static_body,
+     .shape = CollisionShape::triangle_mesh(terrain_mesh)},
+    terrain);
+```
+
+The World copies both device spans, so callers may release their upload buffers
+after `add_triangle_mesh` returns. A mesh cannot be removed while a body still
+references it.
 
 ## Contacts are the application extension point
 
@@ -213,7 +232,8 @@ These omissions are the main defense against another application-shaped API.
 - A capacity-bounded contact stream is retained as the input to painting and
   other application effects.
 - One frame may be in flight per world.
-- Sphere, box, capsule, and plane are the initial rigid shapes.
+- Sphere, box, capsule, plane, and static/kinematic triangle soup are the
+  initial rigid shapes.
 - Deterministic particle spawn and destroy planes are part of the initial
   resource model.
 - The gallery boundary and staged roadmap are approved.

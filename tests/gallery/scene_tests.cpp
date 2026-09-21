@@ -37,11 +37,11 @@ int main() {
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_RIGID_SCENE_PATH, scene, error),
           error.empty() ? "load rigid GLB scene" : error.c_str());
-    check(scene.rigid_bodies.size() == 4U,
-          "authored scene must contain four rigid bodies");
-    check(scene.meshes.size() == 4U,
-          "authored scene must contain four render meshes");
-    if (scene.rigid_bodies.size() == 4U) {
+    check(scene.rigid_bodies.size() == 5U,
+          "authored scene must contain five rigid bodies");
+    check(scene.meshes.size() == 5U,
+          "authored scene must contain five render meshes");
+    if (scene.rigid_bodies.size() == 5U) {
         check(scene.rigid_bodies[0].options.motion == MotionType::static_body &&
                   scene.rigid_bodies[0].options.shape.type == ShapeType::plane,
               "first authored body must be the static plane");
@@ -52,6 +52,10 @@ int main() {
               "third authored body must be the dynamic box");
         check(scene.rigid_bodies[3].options.shape.type == ShapeType::capsule,
               "fourth authored body must be the dynamic capsule");
+        check(scene.rigid_bodies[4].options.motion == MotionType::static_body &&
+                  scene.rigid_bodies[4].options.shape.type ==
+                      ShapeType::triangle_mesh,
+              "fifth authored body must be triangle-collider Suzanne");
         check(std::fabs(scene.rigid_bodies[1].options.shape.dimensions.x - 0.7F) <
                   1.0e-3F,
               "sphere collider radius must be derived from GLB geometry");
@@ -76,6 +80,13 @@ int main() {
                  "instantiate authored scene");
     check(instance.rigid_bodies.size() == scene.rigid_bodies.size(),
           "every authored body must receive a runtime handle");
+    check(instance.collision_meshes.size() == 1U,
+          "Suzanne must create one World-owned collision mesh");
+    WorldStatistics statistics{};
+    check_status(world.collect_statistics(statistics),
+                 "collect authored scene statistics");
+    check(statistics.triangle_mesh_count == 1U,
+          "authored scene must own one triangle collision resource");
     if (instance.rigid_bodies.size() == scene.rigid_bodies.size()) {
         RigidBodyState before{};
         RigidBodyState after{};

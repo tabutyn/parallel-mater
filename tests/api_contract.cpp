@@ -10,6 +10,7 @@ static_assert(std::is_trivially_copyable_v<Vec3>);
 static_assert(std::is_trivially_copyable_v<Quaternion>);
 static_assert(std::is_trivially_copyable_v<FluidId>);
 static_assert(std::is_trivially_copyable_v<RigidBodyId>);
+static_assert(std::is_trivially_copyable_v<TriangleMeshId>);
 static_assert(std::is_trivially_copyable_v<ParticleSpawnPlaneId>);
 static_assert(std::is_trivially_copyable_v<ParticleDestroyPlaneId>);
 static_assert(std::is_trivially_copyable_v<FluidParticle>);
@@ -23,7 +24,10 @@ static_assert(std::is_move_constructible_v<FrameToken>);
 
 constexpr auto sphere = CollisionShape::sphere(0.5F);
 constexpr auto box = CollisionShape::box({1.0F, 2.0F, 3.0F});
+constexpr auto triangles = CollisionShape::triangle_mesh({2U, 3U});
 static_assert(sphere.type == ShapeType::sphere && sphere.dimensions.x == 0.5F);
 static_assert(box.type == ShapeType::box && box.dimensions.y == 2.0F);
+static_assert(triangles.type == ShapeType::triangle_mesh &&
+              triangles.mesh == TriangleMeshId{2U, 3U});
 
 int main() { return 0; }

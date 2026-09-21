@@ -80,6 +80,16 @@ struct RigidBodyId {
     }
 };
 
+struct TriangleMeshId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        TriangleMeshId left, TriangleMeshId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct ParticleSpawnPlaneId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -103,6 +113,7 @@ struct ParticleDestroyPlaneId {
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
+    std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_spawn_plane_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
     std::uint32_t contact_capacity{65'536U};
@@ -173,6 +184,7 @@ enum class ShapeType : std::uint8_t {
     box,
     capsule,
     plane,
+    triangle_mesh,
 };
 
 // Shape dimensions are radius in x for a sphere, half-extents for a box,
@@ -181,6 +193,7 @@ enum class ShapeType : std::uint8_t {
 struct CollisionShape {
     ShapeType type{ShapeType::sphere};
     Vec3 dimensions{0.5F, 0.0F, 0.0F};
+    TriangleMeshId mesh{};
 
     [[nodiscard]] static constexpr CollisionShape sphere(float radius) noexcept {
         return {ShapeType::sphere, {radius, 0.0F, 0.0F}};
@@ -194,6 +207,10 @@ struct CollisionShape {
     }
     [[nodiscard]] static constexpr CollisionShape plane() noexcept {
         return {ShapeType::plane, {}};
+    }
+    [[nodiscard]] static constexpr CollisionShape
+    triangle_mesh(TriangleMeshId mesh) noexcept {
+        return {ShapeType::triangle_mesh, {}, mesh};
     }
 };
 
@@ -256,6 +273,7 @@ struct WorldStatistics {
     std::uint32_t fluid_count{};
     std::uint32_t particle_count{};
     std::uint32_t rigid_body_count{};
+    std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
     std::uint64_t emitted_particle_count{};
@@ -332,6 +350,14 @@ class World {
     [[nodiscard]] Status read_rigid_body_state(
         RigidBodyId body, RigidBodyState &output,
         cudaStream_t stream = nullptr) const noexcept;
+
+    // Copies an indexed two-sided triangle soup into World-owned CUDA memory.
+    // Triangles need not form a closed, manifold, or consistently wound mesh.
+    [[nodiscard]] Status add_triangle_mesh(
+        DeviceSpan<const Vec3> vertices,
+        DeviceSpan<const std::uint32_t> triangle_indices,
+        TriangleMeshId &output, cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status remove_triangle_mesh(TriangleMeshId mesh) noexcept;
 
     // Only one frame may be in flight per World in the initial release.
     [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,

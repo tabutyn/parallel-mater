@@ -29,7 +29,7 @@ when **Include → Custom Properties** is enabled.
 | `pm_schema` | integer `1` | Metadata schema version. |
 | `pm_system` | `rigid_body` | Solver that owns this object. |
 | `pm_motion` | `static`, `kinematic`, `dynamic` | Rigid-body motion type. |
-| `pm_collider` | `sphere`, `box`, `capsule`, `plane` | Analytic collision shape. |
+| `pm_collider` | `sphere`, `box`, `capsule`, `plane`, `triangles` | Collision representation. |
 | `pm_mass` | positive number | Required for dynamic objects; kilograms. |
 | `pm_friction` | nonnegative number | Optional; defaults to `0.5`. |
 | `pm_restitution` | number from `0` to `1` | Optional; defaults to `0`. |
@@ -48,7 +48,8 @@ blender --background \
   --output examples/assets/rigid_shapes.glb
 ```
 
-It produces a static checkerboard plane and dynamic sphere, box, and capsule.
+It produces a static checkerboard plane, dynamic sphere, box, and capsule, and
+a static Suzanne using her actual triangles as the collider.
 The generated `.glb` is committed so users can run the gallery without Blender;
 the Python script is its reviewable source of truth.
 
@@ -75,3 +76,17 @@ The `pm_system` discriminator reserves a clean extension point for `fluid`,
 `cloth`, `soft_body`, `rope`, and `smoke`. Each system will receive a reviewed
 schema only when its public physics API exists. Unknown systems or schema
 versions are errors; the loader does not silently create a different scene.
+
+## Triangle colliders
+
+`pm_collider = "triangles"` uploads every triangle primitive on that node into
+one World-owned collision resource. It is a two-sided triangle soup: meshes may
+be open, disconnected, non-manifold, or inconsistently wound. Degenerate
+triangles, invalid indices, and non-finite vertices are rejected. Triangle
+colliders are static or kinematic in this release; dynamic triangle meshes need
+defined mass properties and mesh–mesh collision and are intentionally rejected.
+
+Triangle collision is currently exact but brute force. This favors a small,
+reviewable correctness baseline for authored obstacles such as Suzanne. A
+deterministic acceleration structure is required before large environment
+meshes become a supported performance target.

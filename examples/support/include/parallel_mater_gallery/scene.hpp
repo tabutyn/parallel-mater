@@ -35,6 +35,7 @@ struct SceneDefinition {
 };
 
 struct SceneInstance {
+    std::vector<TriangleMeshId> collision_meshes{};
     std::vector<RigidBodyId> rigid_bodies{};
 };
 
