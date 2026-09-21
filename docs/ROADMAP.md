@@ -16,10 +16,12 @@ pass.
 - Implement static, kinematic, and dynamic sphere/box/capsule/plane bodies.
 - Add the rigid-sandbox gallery scene and CPU-reference integration tests.
 
-## PR 3 — Isolated fluid
+## PR 3 — Isolated fluid and particle lifecycle
 
 - Implement owned particle storage and deterministic sorted-cell neighbors.
 - Implement fluid forces/constraints without rigid coupling.
+- Implement deterministic device-side spawn planes, swept destroy planes, and
+  stable compaction without allocations during stepping.
 - Add the fluid-tank scene and brute-force neighbor reference tests.
 
 ## PR 4 — Fluid–rigid coupling

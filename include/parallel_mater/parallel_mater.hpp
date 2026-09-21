@@ -9,9 +9,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <span>
 
 namespace parallel_mater {
+
+struct Vec2 {
+    float x{};
+    float y{};
+};
 
 struct Vec3 {
     float x{};
@@ -69,9 +73,27 @@ struct RigidBodyId {
     [[nodiscard]] friend constexpr bool operator==(RigidBodyId, RigidBodyId) noexcept = default;
 };
 
+struct ParticleSpawnPlaneId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(ParticleSpawnPlaneId,
+                                                   ParticleSpawnPlaneId) noexcept = default;
+};
+
+struct ParticleDestroyPlaneId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(ParticleDestroyPlaneId,
+                                                   ParticleDestroyPlaneId) noexcept = default;
+};
+
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
+    std::uint32_t particle_spawn_plane_capacity{8U};
+    std::uint32_t particle_destroy_plane_capacity{8U};
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
 };
@@ -97,6 +119,36 @@ struct FluidOptions {
     float viscosity{0.02F};
     float velocity_damping{0.2F};
     float maximum_speed{8.0F};
+};
+
+// A finite rectangle. orientation rotates local +Y into the plane normal;
+// half_extents are measured along local X and Z.
+struct ParticlePlane {
+    Vec3 center{};
+    Quaternion orientation{};
+    Vec2 half_extents{0.5F, 0.5F};
+};
+
+struct ParticleSpawnPlaneOptions {
+    FluidId fluid{};
+    ParticlePlane plane{};
+    float particles_per_second{};
+    Vec3 initial_velocity{};
+    std::uint32_t sequence_seed{};
+    bool enabled{true};
+};
+
+enum class CrossingDirection : std::uint8_t {
+    along_normal,
+    against_normal,
+    either,
+};
+
+struct ParticleDestroyPlaneOptions {
+    FluidId fluid{};
+    ParticlePlane plane{};
+    CrossingDirection crossing{CrossingDirection::either};
+    bool enabled{true};
 };
 
 enum class MotionType : std::uint8_t {
@@ -195,6 +247,9 @@ struct WorldStatistics {
     std::uint32_t rigid_body_count{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
+    std::uint64_t emitted_particle_count{};
+    std::uint64_t destroyed_particle_count{};
+    std::uint64_t spawn_capacity_miss_count{};
     std::size_t allocated_bytes{};
 };
 
@@ -230,12 +285,25 @@ class World {
                                        cudaStream_t stream = nullptr) noexcept;
 
     [[nodiscard]] Status add_fluid(FluidOptions options,
-                                   std::span<const FluidParticle> initial_particles,
+                                   DeviceSpan<const FluidParticle> initial_particles,
                                    FluidId &output,
                                    cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status remove_fluid(FluidId fluid,
                                       cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_particle_spawn_plane(
+        ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;
+    [[nodiscard]] Status update_particle_spawn_plane(
+        ParticleSpawnPlaneId plane, ParticleSpawnPlaneOptions options) noexcept;
+    [[nodiscard]] Status remove_particle_spawn_plane(
+        ParticleSpawnPlaneId plane) noexcept;
+    [[nodiscard]] Status add_particle_destroy_plane(
+        ParticleDestroyPlaneOptions options, ParticleDestroyPlaneId &output) noexcept;
+    [[nodiscard]] Status update_particle_destroy_plane(
+        ParticleDestroyPlaneId plane, ParticleDestroyPlaneOptions options) noexcept;
+    [[nodiscard]] Status remove_particle_destroy_plane(
+        ParticleDestroyPlaneId plane) noexcept;
 
     [[nodiscard]] Status add_rigid_body(RigidBodyOptions options,
                                         RigidBodyId &output) noexcept;

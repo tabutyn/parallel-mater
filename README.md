@@ -17,6 +17,8 @@ implementation yet.
   solver-internal phases.
 - CUDA allocations remain owned by the library while renderers borrow explicit
   device views.
+- Fluids accept device-resident initial particles and can own deterministic,
+  capacity-bounded particle spawn and destroy planes.
 - Synchronous convenience calls and stream-ordered asynchronous calls share the
   same semantics.
 - The gallery is simultaneously the example suite, visual regression surface,

@@ -37,10 +37,29 @@ status = world.add_rigid_body(
     ball);
 if (!status) return report(status);
 
-std::vector<FluidParticle> particles = make_particles();
+DeviceSpan<const FluidParticle> particles = make_device_particles();
 FluidId water;
 status = world.add_fluid(
     {.capacity = 20'000, .particle_radius = 0.0225F}, particles, water);
+if (!status) return report(status);
+
+ParticleSpawnPlaneId inlet;
+status = world.add_particle_spawn_plane(
+    {.fluid = water,
+     .plane = {.center = {0.0F, 2.0F, 0.0F},
+               .half_extents = {0.4F, 0.4F}},
+     .particles_per_second = 2'000.0F,
+     .initial_velocity = {0.0F, -1.0F, 0.0F}},
+    inlet);
+if (!status) return report(status);
+
+ParticleDestroyPlaneId drain;
+status = world.add_particle_destroy_plane(
+    {.fluid = water,
+     .plane = {.center = {0.0F, -2.0F, 0.0F},
+               .half_extents = {1.0F, 1.0F}},
+     .crossing = CrossingDirection::against_normal},
+    drain);
 if (!status) return report(status);
 
 status = world.step({.timestep = 1.0F / 60.0F, .substeps = 4});
@@ -57,8 +76,10 @@ status = world.fluid_view(water, water_view);
 - `FluidId` and `RigidBodyId` contain an index and generation. Removing an
   object invalidates its old handle; reusing the slot cannot make the old
   handle valid again.
-- Input particle spans are host memory copied during `add_fluid` in the initial
-  release and may be released when that call returns.
+- Initial particles are supplied as a device span. `add_fluid` enqueues a
+  device-to-device copy on the supplied stream; the source must remain valid
+  until that stream reaches the copy. An empty span creates an emitter-only
+  fluid.
 - Device views borrow library memory and are never host-dereferenceable.
 - A view must be reacquired after a step, add/remove operation, or capacity
   change. `revision` makes accidental caching detectable.
@@ -91,7 +112,7 @@ frame.
 The first fluid is a fixed-radius particle fluid with deterministic neighbor
 ordering. `FluidOptions` deliberately exposes physical/solver quantities—not
 gallery presets or render settings. Capacity is separate from initial count so
-runtime emission/removal can be added without changing the resource model.
+emitters can add particles without allocating during a step.
 
 Initial implementation requirements:
 
@@ -104,8 +125,29 @@ Initial implementation requirements:
   shape;
 - reaction impulses applied to dynamic bodies.
 
-Cross-fluid interaction, phase changes, foam, surface reconstruction, and
-particle emission/removal are deferred.
+Cross-fluid interaction, phase changes, foam, and surface reconstruction are
+deferred.
+
+## Spawn and destroy planes
+
+A spawn plane emits into one existing fluid at a rate measured in particles
+per second. It is a finite oriented rectangle with an initial world-space
+velocity. A deterministic fractional accumulator carries the un-emitted part
+of the rate between frames, and a seeded sequence distributes new particles
+over the rectangle. New stable particle IDs increase monotonically and never
+alias a surviving particle. Emission happens before neighbor construction.
+
+A destroy plane removes a particle when its swept path crosses the finite
+rectangle in the selected normal direction. Using the swept path avoids
+missing a plane when a fast particle moves from one side to the other in one
+substep. Compaction is stable, so surviving particles retain deterministic
+order and IDs.
+
+Spawn and destroy capacity is fixed in `WorldOptions`; neither feature may
+allocate during stepping. If a fluid is full, emission pauses rather than
+overwriting particles, and `spawn_capacity_miss_count` reports how many
+particles could not be created. Planes are generation-checked resources that
+can be enabled, moved, updated, and removed without rebuilding the fluid.
 
 ## Rigid-body contract
 
@@ -125,9 +167,12 @@ collision are deferred.
 ## Contacts are the application extension point
 
 The optional contact buffer reports fluid-particle/rigid-body contacts in a
-stable order. Gallery code can use it for paint, sound, objectives, foam
-emission, or debugging without putting those concepts into the physics API.
-Overflow is explicit in `ContactDeviceView` and statistics.
+stable order. These are the physics-side input for painting: stable particle
+and body IDs, contact position, normal, and impulse let gallery code update its
+own color fields or textures. The physics API does not own paint pixels,
+materials, UVs, or textures. The same records can drive sound, objectives,
+foam emission, or debugging. Overflow is explicit in `ContactDeviceView` and
+statistics.
 
 ## Errors and validation
 
@@ -147,13 +192,14 @@ original `cudaError_t`.
 
 These omissions are the main defense against another application-shaped API.
 
-## Review questions
+## Decisions from the first review
 
-1. Should `World` remain the only stepping interface, or is independent solver
-   advancement a real requirement for the first release?
-2. Are host particle spans sufficient initially, or must device-side creation
-   be part of v0.1?
-3. Should contacts be enabled by capacity as proposed, or omitted until a
-   gallery scene needs them?
-4. Is one in-flight frame per world acceptable?
-5. Are sphere, box, capsule, and plane the right initial rigid shapes?
+- `World` is the only stepping interface in v0.1.
+- Initial fluid data is device-resident.
+- A capacity-bounded contact stream is retained as the input to painting and
+  other application effects.
+- One frame may be in flight per world.
+- Sphere, box, capsule, and plane are the initial rigid shapes.
+- Deterministic particle spawn and destroy planes are part of the initial
+  resource model.
+- The gallery boundary and staged roadmap are approved.
