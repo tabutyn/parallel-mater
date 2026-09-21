@@ -40,7 +40,6 @@ cmake -S . -B build \
   -DBUILD_TESTING=ON
 cmake --build build
 ctest --test-dir build --output-on-failure
-./build/parallel-mater-rigid-sandbox
 ```
 
 The runtime test skips with code 77 when no CUDA device is available. Compute
@@ -66,8 +65,11 @@ ctest --test-dir build-gallery --output-on-failure
 
 Left-drag orbits, the wheel zooms, and `R` restores the authored poses. The
 arrow keys move the authored kinematic Cube in world X/Z while tilting gravity
-in the same direction for the dynamic Icosphere and Suzanne. Escape quits. A
-display-free render is also available:
+in the same direction for the dynamic Icosphere and Suzanne. `F` toggles
+per-kernel GPU timings, `V` toggles rigid contact points plus normal and
+friction-impulse arrows, and `Tab` opens the example context selector. The blue
+Fluid entry remains unavailable until its Blender-authored acceptance scene is
+provided. Escape quits. A display-free render is also available:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

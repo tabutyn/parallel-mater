@@ -19,7 +19,7 @@ impulses, kinematic targets, device views, GPU integration, and deterministic
 triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid collision remains deferred. Fluid and particle-lifecycle declarations
-currently return `StatusCode::not_supported` and are implemented in PR 4.
+currently return `StatusCode::not_supported` and are implemented in PR 5.
 
 ## Minimal use
 
@@ -101,6 +101,12 @@ for the next frame. `read_rigid_body_state` and `collect_statistics` are
 explicit synchronous readbacks; ordinary stepping performs no telemetry
 readback. Device views and contacts describe the most recently completed
 frame.
+
+Kernel timing is opt-in per `StepOptions`. When requested, CUDA events measure
+the aggregate time and launch count for rigid integration, contact generation,
+contact solving, and input clearing. `collect_step_timings` reads those events
+after frame completion. Timing is diagnostic data rather than solver input and
+is unavailable for frames that did not request it.
 
 ## Fluid contract
 
@@ -190,6 +196,13 @@ own color fields or textures. The physics API does not own paint pixels,
 materials, UVs, or textures. The same records can drive sound, objectives,
 foam emission, or debugging. Overflow is explicit in `ContactDeviceView` and
 statistics.
+
+Rigid–rigid diagnostics are a separate opt-in stream. `RigidContactEvent`
+reports the two handles, contact point, normal, penetration, accumulated normal
+impulse, and accumulated tangential friction impulse. Requesting the stream in
+`StepOptions` makes `rigid_contacts` describe the most recently completed
+frame. It exists for visualization and analysis; applications must not feed it
+back into the solver.
 
 ## Errors and validation
 

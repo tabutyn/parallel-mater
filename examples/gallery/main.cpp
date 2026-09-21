@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <GLFW/glfw3.h>
@@ -311,6 +312,13 @@ int main(int argc, char **argv) {
     }
 
     bool reset_was_down = false;
+    bool timing_was_down = false;
+    bool debug_was_down = false;
+    bool tab_was_down = false;
+    bool timing_visible = false;
+    bool debug_visible = false;
+    bool context_visible = false;
+    WorldStepTimings timings{};
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -327,6 +335,22 @@ int main(int argc, char **argv) {
         }
         reset_was_down = reset_down;
 
+        const bool timing_down = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
+        if (timing_down && !timing_was_down) {
+            timing_visible = !timing_visible;
+        }
+        timing_was_down = timing_down;
+        const bool debug_down = glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS;
+        if (debug_down && !debug_was_down) {
+            debug_visible = !debug_visible;
+        }
+        debug_was_down = debug_down;
+        const bool tab_down = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+        if (tab_down && !tab_was_down) {
+            context_visible = !context_visible;
+        }
+        tab_was_down = tab_down;
+
         const DirectionalInput input = directional_input(window);
         if (kinematic_index < instance.rigid_bodies.size()) {
             kinematic_target.position.x +=
@@ -342,12 +366,33 @@ int main(int argc, char **argv) {
         }
         StepOptions interactive_step = step_options;
         interactive_step.gravity = gravity_for(input);
+        interactive_step.collect_kernel_timings = timing_visible;
+        interactive_step.collect_rigid_contacts = debug_visible;
         if (!require(world.step(interactive_step), "step gallery")) {
             break;
         }
-        if (!renderer.render(world, instance, camera(orbit), pixels, error)) {
+        if (timing_visible &&
+            !require(world.collect_step_timings(timings), "collect timings")) {
+            break;
+        }
+        const Camera current_camera = camera(orbit);
+        if (!renderer.render(world, instance, current_camera, pixels, error)) {
             std::cerr << "Render failed: " << error << '\n';
             break;
+        }
+        if (debug_visible &&
+            !draw_rigid_contact_overlay(pixels, renderer.width(),
+                                        renderer.height(), world.rigid_contacts(),
+                                        current_camera, error)) {
+            std::cerr << "Debug overlay failed: " << error << '\n';
+            break;
+        }
+        if (timing_visible) {
+            draw_timing_overlay(pixels, renderer.width(), renderer.height(),
+                                timings);
+        }
+        if (context_visible) {
+            draw_context_overlay(pixels, renderer.width(), renderer.height());
         }
 
         glViewport(0, 0, static_cast<int>(options.width),
