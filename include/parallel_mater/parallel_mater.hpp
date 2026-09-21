@@ -80,6 +80,16 @@ struct RigidBodyId {
     }
 };
 
+struct TriangleMeshId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        TriangleMeshId left, TriangleMeshId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct ParticleSpawnPlaneId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -103,6 +113,7 @@ struct ParticleDestroyPlaneId {
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
+    std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_spawn_plane_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
     std::uint32_t contact_capacity{65'536U};
@@ -168,35 +179,6 @@ enum class MotionType : std::uint8_t {
     dynamic,
 };
 
-enum class ShapeType : std::uint8_t {
-    sphere,
-    box,
-    capsule,
-    plane,
-};
-
-// Shape dimensions are radius in x for a sphere, half-extents for a box,
-// (radius, half-height, 0) for a local-Y capsule, and unused for a local +Y
-// plane. Static constructors make call sites self-documenting.
-struct CollisionShape {
-    ShapeType type{ShapeType::sphere};
-    Vec3 dimensions{0.5F, 0.0F, 0.0F};
-
-    [[nodiscard]] static constexpr CollisionShape sphere(float radius) noexcept {
-        return {ShapeType::sphere, {radius, 0.0F, 0.0F}};
-    }
-    [[nodiscard]] static constexpr CollisionShape box(Vec3 half_extents) noexcept {
-        return {ShapeType::box, half_extents};
-    }
-    [[nodiscard]] static constexpr CollisionShape capsule(float radius,
-                                                          float half_height) noexcept {
-        return {ShapeType::capsule, {radius, half_height, 0.0F}};
-    }
-    [[nodiscard]] static constexpr CollisionShape plane() noexcept {
-        return {ShapeType::plane, {}};
-    }
-};
-
 struct RigidBodyState {
     Vec3 position{};
     Quaternion orientation{};
@@ -206,10 +188,10 @@ struct RigidBodyState {
 
 struct RigidBodyOptions {
     MotionType motion{MotionType::dynamic};
-    CollisionShape shape{};
+    TriangleMeshId mesh{};
     RigidBodyState initial_state{};
     float mass{1.0F};
-    // Zero requests an inertia diagonal derived from mass and shape.
+    // Zero requests an AABB inertia approximation derived from the mesh.
     Vec3 inertia_diagonal{};
     float friction{0.5F};
     float restitution{};
@@ -217,6 +199,7 @@ struct RigidBodyOptions {
     float angular_damping{0.05F};
     float maximum_linear_speed{100.0F};
     float maximum_angular_speed{100.0F};
+    float collision_margin{0.005F};
     std::uint64_t user_data{};
 };
 
@@ -256,6 +239,7 @@ struct WorldStatistics {
     std::uint32_t fluid_count{};
     std::uint32_t particle_count{};
     std::uint32_t rigid_body_count{};
+    std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
     std::uint64_t emitted_particle_count{};
@@ -332,6 +316,14 @@ class World {
     [[nodiscard]] Status read_rigid_body_state(
         RigidBodyId body, RigidBodyState &output,
         cudaStream_t stream = nullptr) const noexcept;
+
+    // Copies an indexed two-sided triangle soup into World-owned CUDA memory.
+    // Triangles need not form a closed, manifold, or consistently wound mesh.
+    [[nodiscard]] Status add_triangle_mesh(
+        DeviceSpan<const Vec3> vertices,
+        DeviceSpan<const std::uint32_t> triangle_indices,
+        TriangleMeshId &output, cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status remove_triangle_mesh(TriangleMeshId mesh) noexcept;
 
     // Only one frame may be in flight per World in the initial release.
     [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,

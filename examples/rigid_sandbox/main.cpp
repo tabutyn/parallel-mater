@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.hpp>
 
+#include <cuda_runtime_api.h>
+
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
 namespace {
 
@@ -15,49 +18,66 @@ bool require(parallel_mater::Status status, const char *operation) {
     return false;
 }
 
+parallel_mater::TriangleMeshId upload_mesh(
+    parallel_mater::World &world,
+    const std::vector<parallel_mater::Vec3> &vertices,
+    const std::vector<std::uint32_t> &indices) {
+    using namespace parallel_mater;
+    Vec3 *device_vertices = nullptr;
+    std::uint32_t *device_indices = nullptr;
+    cudaMalloc(reinterpret_cast<void **>(&device_vertices),
+               vertices.size() * sizeof(Vec3));
+    cudaMalloc(reinterpret_cast<void **>(&device_indices),
+               indices.size() * sizeof(std::uint32_t));
+    cudaMemcpy(device_vertices, vertices.data(), vertices.size() * sizeof(Vec3),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(device_indices, indices.data(),
+               indices.size() * sizeof(std::uint32_t), cudaMemcpyHostToDevice);
+    TriangleMeshId mesh{};
+    require(world.add_triangle_mesh({device_vertices, vertices.size()},
+                                    {device_indices, indices.size()}, mesh),
+            "add triangle mesh");
+    cudaFree(device_indices);
+    cudaFree(device_vertices);
+    return mesh;
+}
+
 } // namespace
 
 int main() {
     using namespace parallel_mater;
     World world;
-    if (!require(World::create({.rigid_body_capacity = 8U}, world),
+    if (!require(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U},
+                               world),
                  "World::create")) {
         return 1;
     }
-
+    const TriangleMeshId floor_mesh = upload_mesh(
+        world,
+        {{-5.0F, 0.0F, -5.0F}, {5.0F, 0.0F, -5.0F},
+         {5.0F, 0.0F, 5.0F}, {-5.0F, 0.0F, 5.0F}},
+        {0, 2, 1, 0, 3, 2});
+    const TriangleMeshId tetrahedron = upload_mesh(
+        world,
+        {{0.0F, 0.55F, 0.0F}, {-0.5F, -0.35F, -0.35F},
+         {0.5F, -0.35F, -0.35F}, {0.0F, -0.35F, 0.55F}},
+        {0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2});
     RigidBodyId floor{};
-    if (!require(world.add_rigid_body(
-                     {.motion = MotionType::static_body,
-                      .shape = CollisionShape::plane(),
-                      .friction = 0.9F},
-                     floor),
-                 "add floor")) {
-        return 1;
-    }
-    RigidBodyId obstacle{};
-    if (!require(world.add_rigid_body(
-                     {.motion = MotionType::static_body,
-                      .shape = CollisionShape::box({0.25F, 0.75F, 1.0F}),
-                      .initial_state = {.position = {2.0F, 0.75F, 0.0F}},
-                      .friction = 0.8F},
-                     obstacle),
-                 "add obstacle")) {
-        return 1;
-    }
-    RigidBodyId ball{};
-    if (!require(world.add_rigid_body(
-                     {.motion = MotionType::dynamic,
-                      .shape = CollisionShape::sphere(0.35F),
-                      .initial_state = {.position = {-2.0F, 1.5F, 0.0F}},
+    RigidBodyId body{};
+    if (!require(world.add_rigid_body({.motion = MotionType::static_body,
+                                       .mesh = floor_mesh,
+                                       .friction = 0.9F},
+                                      floor),
+                 "add floor") ||
+        !require(world.add_rigid_body(
+                     {.mesh = tetrahedron,
+                      .initial_state = {.position = {0.0F, 2.5F, 0.0F},
+                                        .angular_velocity = {0.0F, 0.0F, 1.0F}},
                       .mass = 2.0F,
-                      .friction = 0.9F},
-                     ball),
-                 "add ball")) {
-        return 1;
-    }
-    if (!require(world.apply_impulse(ball, {7.0F, 0.0F, 0.0F},
-                                     {-2.0F, 1.5F, 0.0F}),
-                 "launch ball")) {
+                      .friction = 0.8F},
+                     body),
+                 "add body")) {
         return 1;
     }
 
@@ -71,7 +91,7 @@ int main() {
         }
         if (frame % 30 == 0 || frame == 179) {
             RigidBodyState state{};
-            if (!require(world.read_rigid_body_state(ball, state), "read ball")) {
+            if (!require(world.read_rigid_body_state(body, state), "read body")) {
                 return 1;
             }
             std::cout << std::setw(5) << frame << std::fixed
