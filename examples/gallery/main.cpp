@@ -34,6 +34,42 @@ struct OrbitState {
     double previous_y{};
 };
 
+struct DirectionalInput {
+    float x{};
+    float z{};
+};
+
+constexpr float k_timestep = 1.0F / 60.0F;
+constexpr float k_kinematic_speed = 2.0F;
+constexpr float k_gravity = 9.81F;
+constexpr float k_gravity_tilt_tangent = 0.577350269F; // 30 degrees.
+
+[[nodiscard]] DirectionalInput directional_input(GLFWwindow *window) {
+    DirectionalInput input{
+        static_cast<float>(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) -
+            static_cast<float>(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS),
+        static_cast<float>(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) -
+            static_cast<float>(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)};
+    const float length = std::sqrt(input.x * input.x + input.z * input.z);
+    if (length > 1.0F) {
+        input.x /= length;
+        input.z /= length;
+    }
+    return input;
+}
+
+[[nodiscard]] parallel_mater::Vec3 gravity_for(DirectionalInput input) {
+    const float horizontal_squared = input.x * input.x + input.z * input.z;
+    if (horizontal_squared == 0.0F) {
+        return {0.0F, -k_gravity, 0.0F};
+    }
+    const float inverse = 1.0F /
+        std::sqrt(1.0F + k_gravity_tilt_tangent * k_gravity_tilt_tangent);
+    return {input.x * k_gravity * k_gravity_tilt_tangent * inverse,
+            -k_gravity * inverse,
+            input.z * k_gravity * k_gravity_tilt_tangent * inverse};
+}
+
 [[nodiscard]] bool parse_positive(std::string_view value, int &output) {
     char *end = nullptr;
     const long parsed = std::strtol(value.data(), &end, 10);
@@ -212,7 +248,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    constexpr StepOptions step_options{.timestep = 1.0F / 60.0F,
+    constexpr StepOptions step_options{.timestep = k_timestep,
                                        .substeps = 4U,
                                        .gravity = {0.0F, -9.81F, 0.0F}};
     std::vector<std::uint32_t> pixels;
@@ -264,6 +300,16 @@ int main(int argc, char **argv) {
     glDisable(GL_DEPTH_TEST);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
+    std::size_t kinematic_index = scene.rigid_bodies.size();
+    RigidBodyState kinematic_target{};
+    for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+        if (scene.rigid_bodies[index].options.motion == MotionType::kinematic) {
+            kinematic_index = index;
+            kinematic_target = scene.rigid_bodies[index].options.initial_state;
+            break;
+        }
+    }
+
     bool reset_was_down = false;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
@@ -274,8 +320,29 @@ int main(int argc, char **argv) {
         if (reset_down && !reset_was_down && !reset_scene(scene, instance, world)) {
             break;
         }
+        if (reset_down && !reset_was_down &&
+            kinematic_index < scene.rigid_bodies.size()) {
+            kinematic_target =
+                scene.rigid_bodies[kinematic_index].options.initial_state;
+        }
         reset_was_down = reset_down;
-        if (!require(world.step(step_options), "step gallery")) {
+
+        const DirectionalInput input = directional_input(window);
+        if (kinematic_index < instance.rigid_bodies.size()) {
+            kinematic_target.position.x +=
+                input.x * k_kinematic_speed * k_timestep;
+            kinematic_target.position.z +=
+                input.z * k_kinematic_speed * k_timestep;
+            if (!require(world.set_kinematic_target(
+                             instance.rigid_bodies[kinematic_index],
+                             kinematic_target),
+                         "move kinematic body")) {
+                break;
+            }
+        }
+        StepOptions interactive_step = step_options;
+        interactive_step.gravity = gravity_for(input);
+        if (!require(world.step(interactive_step), "step gallery")) {
             break;
         }
         if (!renderer.render(world, instance, camera(orbit), pixels, error)) {

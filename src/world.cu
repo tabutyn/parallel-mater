@@ -340,6 +340,21 @@ __host__ __device__ Vec3 transform_point(const RigidBodyState &state,
     return add(state.position, rotate(state.orientation, point));
 }
 
+struct BoundsTransform {
+    Vec3 position{};
+    Vec3 axis_x{};
+    Vec3 axis_y{};
+    Vec3 axis_z{};
+};
+
+__device__ BoundsTransform bounds_transform(
+    const RigidBodyState &state) noexcept {
+    return {state.position,
+            rotate(state.orientation, {1.0F, 0.0F, 0.0F}),
+            rotate(state.orientation, {0.0F, 1.0F, 0.0F}),
+            rotate(state.orientation, {0.0F, 0.0F, 1.0F})};
+}
+
 __host__ __device__ Vec3 component_min(Vec3 first, Vec3 second) noexcept {
     return {fminf(first.x, second.x), fminf(first.y, second.y),
             fminf(first.z, second.z)};
@@ -351,32 +366,28 @@ __host__ __device__ Vec3 component_max(Vec3 first, Vec3 second) noexcept {
 }
 
 __device__ void transformed_bounds(Vec3 local_minimum, Vec3 local_maximum,
-                                   const RigidBodyState &state, float margin,
+                                   const BoundsTransform &transform, float margin,
                                    Vec3 &minimum, Vec3 &maximum) noexcept {
-    minimum = {FLT_MAX, FLT_MAX, FLT_MAX};
-    maximum = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
-    for (int x = 0; x < 2; ++x) {
-        for (int y = 0; y < 2; ++y) {
-            for (int z = 0; z < 2; ++z) {
-                const Vec3 local{x == 0 ? local_minimum.x : local_maximum.x,
-                                 y == 0 ? local_minimum.y : local_maximum.y,
-                                 z == 0 ? local_minimum.z : local_maximum.z};
-                const Vec3 world = transform_point(state, local);
-                minimum = component_min(minimum, world);
-                maximum = component_max(maximum, world);
-            }
-        }
-    }
+    const Vec3 local_center = multiply(add(local_minimum, local_maximum), 0.5F);
+    const Vec3 local_half = multiply(subtract(local_maximum, local_minimum), 0.5F);
+    const Vec3 world_center =
+        add(transform.position,
+            add(multiply(transform.axis_x, local_center.x),
+                add(multiply(transform.axis_y, local_center.y),
+                    multiply(transform.axis_z, local_center.z))));
+    const Vec3 world_half{
+        fabsf(transform.axis_x.x) * local_half.x +
+            fabsf(transform.axis_y.x) * local_half.y +
+            fabsf(transform.axis_z.x) * local_half.z,
+        fabsf(transform.axis_x.y) * local_half.x +
+            fabsf(transform.axis_y.y) * local_half.y +
+            fabsf(transform.axis_z.y) * local_half.z,
+        fabsf(transform.axis_x.z) * local_half.x +
+            fabsf(transform.axis_y.z) * local_half.y +
+            fabsf(transform.axis_z.z) * local_half.z};
     const Vec3 expansion{margin, margin, margin};
-    minimum = subtract(minimum, expansion);
-    maximum = add(maximum, expansion);
-}
-
-__device__ void transformed_bounds(const TriangleMeshResource &mesh,
-                                   const RigidBodyState &state, float margin,
-                                   Vec3 &minimum, Vec3 &maximum) noexcept {
-    transformed_bounds(mesh.minimum, mesh.maximum, state, margin, minimum,
-                       maximum);
+    minimum = subtract(subtract(world_center, world_half), expansion);
+    maximum = add(add(world_center, world_half), expansion);
 }
 
 __host__ __device__ bool bounds_overlap(Vec3 minimum_a, Vec3 maximum_a,
@@ -494,8 +505,7 @@ __device__ void collide_triangle_ranges(
             const Vec3 collider_normal = normalized_or(
                 cross(subtract(b1, b0), subtract(b2, b0)),
                 {0.0F, 1.0F, 0.0F});
-            const Vec3 center_delta =
-                subtract(body_state.position, collider_state.position);
+            const Vec3 center_delta = subtract(body_state.position, point_b);
             const Vec3 fallback =
                 dot(collider_normal, center_delta) >= 0.0F
                     ? collider_normal
@@ -522,8 +532,12 @@ __device__ ContactManifold collide_meshes(
     Vec3 body_maximum{};
     Vec3 collider_minimum{};
     Vec3 collider_maximum{};
-    transformed_bounds(body_mesh, body_state, margin, body_minimum, body_maximum);
-    transformed_bounds(collider_mesh, collider_state, 0.0F, collider_minimum,
+    const BoundsTransform body_transform = bounds_transform(body_state);
+    const BoundsTransform collider_transform = bounds_transform(collider_state);
+    transformed_bounds(body_mesh.minimum, body_mesh.maximum, body_transform,
+                       margin, body_minimum, body_maximum);
+    transformed_bounds(collider_mesh.minimum, collider_mesh.maximum,
+                       collider_transform, 0.0F, collider_minimum,
                        collider_maximum);
     if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
                         collider_maximum)) {
@@ -542,10 +556,10 @@ __device__ ContactManifold collide_meshes(
         const NodePair pair = stack[--stack_size];
         const BvhNode &body_node = body_mesh.bvh_nodes[pair.body];
         const BvhNode &collider_node = collider_mesh.bvh_nodes[pair.collider];
-        transformed_bounds(body_node.minimum, body_node.maximum, body_state,
+        transformed_bounds(body_node.minimum, body_node.maximum, body_transform,
                            margin, body_minimum, body_maximum);
         transformed_bounds(collider_node.minimum, collider_node.maximum,
-                           collider_state, 0.0F, collider_minimum,
+                           collider_transform, 0.0F, collider_minimum,
                            collider_maximum);
         if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
                             collider_maximum)) {
@@ -696,12 +710,13 @@ __device__ void apply_contact_impulse(
 __device__ void resolve_contacts(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
-    const Contact *contacts, std::uint32_t contact_count) noexcept {
+    const Contact *contacts, std::uint32_t contact_count,
+    bool correct_position) noexcept {
     if (contact_count == 0U) {
         return;
     }
     const float inverse_mass_sum = body.inverse_mass + collider.inverse_mass;
-    if (inverse_mass_sum > k_epsilon) {
+    if (correct_position && inverse_mass_sum > k_epsilon) {
         const float contact_weight = 1.0F / static_cast<float>(contact_count);
         for (std::uint32_t index = 0; index < contact_count; ++index) {
             const Vec3 correction = multiply(
@@ -831,26 +846,54 @@ __global__ void integrate_rigid_bodies_kernel(
     output[index] = next;
 }
 
-__global__ void resolve_rigid_contacts_kernel(
+__global__ void generate_rigid_contacts_kernel(
     const BodyParameters *parameters, RigidBodyState *states,
     std::uint32_t count, const TriangleMeshResource *meshes,
-    std::uint32_t mesh_capacity) {
+    std::uint32_t mesh_capacity, ContactManifold *manifolds,
+    std::uint32_t manifold_stride) {
+    const std::uint32_t pair = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pair >= count * count) {
+        return;
+    }
+    const std::uint32_t index = pair / count;
+    const std::uint32_t collider_index = pair % count;
+    ContactManifold &manifold =
+        manifolds[index * manifold_stride + collider_index];
+    manifold = {};
+    if (parameters[index].motion != MotionType::dynamic ||
+        collider_index == index ||
+        (parameters[collider_index].motion == MotionType::dynamic &&
+         collider_index < index)) {
+        return;
+    }
+    const TriangleMeshId body_mesh_id = parameters[index].mesh;
+    const TriangleMeshId collider_mesh_id = parameters[collider_index].mesh;
+    if (body_mesh_id.index >= mesh_capacity ||
+        collider_mesh_id.index >= mesh_capacity) {
+        return;
+    }
+    const TriangleMeshResource &body_mesh = meshes[body_mesh_id.index];
+    const TriangleMeshResource &collider_mesh = meshes[collider_mesh_id.index];
+    if (!body_mesh.alive || body_mesh.generation != body_mesh_id.generation ||
+        !collider_mesh.alive ||
+        collider_mesh.generation != collider_mesh_id.generation) {
+        return;
+    }
+    manifold = collide_meshes(parameters[index], states[index], body_mesh,
+                              parameters[collider_index],
+                              states[collider_index], collider_mesh);
+}
+
+__global__ void resolve_cached_rigid_contacts_kernel(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    std::uint32_t manifold_stride) {
     if (blockIdx.x != 0U || threadIdx.x != 0U) {
         return;
     }
     for (int pass = 0; pass < 8; ++pass) {
-        bool found_contact = false;
         for (std::uint32_t index = 0; index < count; ++index) {
             if (parameters[index].motion != MotionType::dynamic) {
-                continue;
-            }
-            const TriangleMeshId body_mesh_id = parameters[index].mesh;
-            if (body_mesh_id.index >= mesh_capacity) {
-                continue;
-            }
-            const TriangleMeshResource &body_mesh = meshes[body_mesh_id.index];
-            if (!body_mesh.alive ||
-                body_mesh.generation != body_mesh_id.generation) {
                 continue;
             }
             for (std::uint32_t collider_index = 0; collider_index < count;
@@ -860,30 +903,15 @@ __global__ void resolve_rigid_contacts_kernel(
                      collider_index < index)) {
                     continue;
                 }
-                const BodyParameters &collider = parameters[collider_index];
-                const TriangleMeshId collider_mesh_id = collider.mesh;
-                if (collider_mesh_id.index >= mesh_capacity) {
-                    continue;
-                }
-                const TriangleMeshResource &collider_mesh =
-                    meshes[collider_mesh_id.index];
-                if (!collider_mesh.alive ||
-                    collider_mesh.generation != collider_mesh_id.generation) {
-                    continue;
-                }
-                const ContactManifold manifold = collide_meshes(
-                    parameters[index], states[index], body_mesh, collider,
-                    states[collider_index], collider_mesh);
+                const ContactManifold &manifold =
+                    manifolds[index * manifold_stride + collider_index];
                 if (manifold.count > 0U) {
-                    resolve_contacts(parameters[index], states[index], collider,
+                    resolve_contacts(parameters[index], states[index],
+                                     parameters[collider_index],
                                      states[collider_index], manifold.contacts,
-                                     manifold.count);
-                    found_contact = true;
+                                     manifold.count, pass == 0);
                 }
             }
-        }
-        if (!found_contact) {
-            break;
         }
     }
     for (std::uint32_t index = 0; index < count; ++index) {
@@ -1073,6 +1101,7 @@ struct World::Impl {
     KinematicTarget *targets{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
+    ContactManifold *rigid_manifolds{};
     TriangleMeshResource *meshes{};
     std::shared_ptr<CompletionState> frame{};
 
@@ -1089,6 +1118,7 @@ struct World::Impl {
             }
         }
         release_managed(meshes);
+        release_managed(rigid_manifolds);
         release_managed(states[1]);
         release_managed(states[0]);
         release_managed(ids);
@@ -1221,6 +1251,14 @@ Status World::create(WorldOptions options, World &output,
     }
     implementation->options = options;
     implementation->device_ordinal = device;
+    const std::size_t manifold_count =
+        static_cast<std::size_t>(options.rigid_body_capacity) *
+        options.rigid_body_capacity;
+    if (manifold_count >
+        std::numeric_limits<std::size_t>::max() / sizeof(ContactManifold)) {
+        return failure(StatusCode::invalid_argument,
+                       "rigid body capacity exceeds contact cache range");
+    }
 
     Status status = allocate_managed(implementation->parameters,
                                      options.rigid_body_capacity);
@@ -1252,6 +1290,10 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_manifolds, manifold_count);
+    if (!status) {
+        return status;
+    }
     status = allocate_managed(implementation->meshes,
                               options.triangle_mesh_capacity);
     if (!status) {
@@ -1269,6 +1311,8 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->states[1], options.rigid_body_capacity,
                 RigidBodyState{});
+    std::fill_n(implementation->rigid_manifolds, manifold_count,
+                ContactManifold{});
     std::fill_n(implementation->meshes, options.triangle_mesh_capacity,
                 TriangleMeshResource{});
     for (std::uint32_t index = 0; index < options.triangle_mesh_capacity;
@@ -1924,14 +1968,31 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid integration kernel launch failed");
         }
-        resolve_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+        const std::uint32_t pair_count =
+            impl_->rigid_body_count * impl_->rigid_body_count;
+        const std::uint32_t pair_block_count =
+            (pair_count + block_size - 1U) / block_size;
+        generate_rigid_contacts_kernel<<<pair_block_count, block_size, 0,
+                                         stream>>>(
             impl_->parameters, impl_->states[output_state],
             impl_->rigid_body_count, impl_->meshes,
-            impl_->options.triangle_mesh_capacity);
+            impl_->options.triangle_mesh_capacity, impl_->rigid_manifolds,
+            impl_->options.rigid_body_capacity);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
-            return cuda_failure(error, "rigid contact kernel launch failed");
+            return cuda_failure(error,
+                                "rigid contact generation kernel launch failed");
+        }
+        resolve_cached_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+            impl_->parameters, impl_->states[output_state],
+            impl_->rigid_body_count, impl_->rigid_manifolds,
+            impl_->options.rigid_body_capacity);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(error,
+                                "rigid contact solve kernel launch failed");
         }
         impl_->current_state = output_state;
     }
@@ -2000,6 +2061,7 @@ Status World::collect_statistics(WorldStatistics &output,
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
                     2U * sizeof(RigidBodyState)) +
+        capacity * capacity * sizeof(ContactManifold) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {

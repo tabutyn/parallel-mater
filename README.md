@@ -64,8 +64,10 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
-Left-drag orbits, the wheel zooms, `R` restores the authored poses, and Escape
-quits. A display-free render is also available:
+Left-drag orbits, the wheel zooms, and `R` restores the authored poses. The
+arrow keys move the authored kinematic Cube in world X/Z while tilting gravity
+in the same direction for the dynamic Icosphere and Suzanne. Escape quits. A
+display-free render is also available:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

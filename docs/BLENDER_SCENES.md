@@ -12,7 +12,8 @@ sphere, box, capsule, or plane collider types.
 2. Use one Blender unit as one metre and keep simulated objects at the scene
    root.
 3. Select each object and choose **Object → Rigid Body → Add Active** or
-   **Add Passive**. Blender `ACTIVE` maps to `MotionType::dynamic`; `PASSIVE`
+   **Add Passive**. Blender `ACTIVE` maps to `MotionType::dynamic`; an ACTIVE
+   body with **Animated** enabled maps to `MotionType::kinematic`; `PASSIVE`
    maps to `MotionType::static_body`.
 4. Set mass, friction, restitution, linear damping, angular damping, and an
    optional collision margin in Blender's Rigid Body panel.
@@ -66,10 +67,11 @@ physics behavior comes from Blender's Rigid Body settings.
   --frames 180
 ```
 
-The committed `PassiveActive.blend` contains a scaled passive ground plane and
-active cube, icosphere, and Suzanne. Its regression checks that scale was
-baked, polygons became triangles, all four objects use World-owned collision
-meshes, gravity advances every ACTIVE object, and Suzanne topples and remains
+The committed `PassiveActive.blend` contains a scaled passive ground plane, an
+ACTIVE Animated cube, and dynamic ACTIVE icosphere and Suzanne meshes. Its
+regression checks that scale was baked, polygons became triangles, all four
+objects use World-owned collision meshes, the cube follows a kinematic target,
+tilted gravity advances dynamic objects, and Suzanne topples and remains
 supported.
 
 ## Collision behavior
