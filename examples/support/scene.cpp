@@ -158,7 +158,7 @@ class FlatJson {
         return false;
     }
     const std::string node_name = node.name != nullptr ? node.name : "unnamed node";
-    if (!schema || *schema != 1.0) {
+    if (!schema || *schema != 2.0) {
         error = node_name + ": unsupported or missing pm_schema";
         return false;
     }
@@ -167,9 +167,8 @@ class FlatJson {
         return false;
     }
     const std::optional<std::string> motion = extras.string("pm_motion");
-    const std::optional<std::string> collider = extras.string("pm_collider");
-    if (!motion || !collider) {
-        error = node_name + ": pm_motion and pm_collider are required";
+    if (!motion) {
+        error = node_name + ": pm_motion is required";
         return false;
     }
     if (*motion == "static") {
@@ -180,21 +179,6 @@ class FlatJson {
         options.motion = MotionType::dynamic;
     } else {
         error = node_name + ": invalid pm_motion";
-        return false;
-    }
-
-    if (*collider == "sphere") {
-        options.shape.type = ShapeType::sphere;
-    } else if (*collider == "box") {
-        options.shape.type = ShapeType::box;
-    } else if (*collider == "capsule") {
-        options.shape.type = ShapeType::capsule;
-    } else if (*collider == "plane") {
-        options.shape.type = ShapeType::plane;
-    } else if (*collider == "triangles") {
-        options.shape.type = ShapeType::triangle_mesh;
-    } else {
-        error = node_name + ": invalid pm_collider";
         return false;
     }
 
@@ -211,6 +195,18 @@ class FlatJson {
     if (const std::optional<double> restitution =
             extras.number("pm_restitution")) {
         options.restitution = static_cast<float>(*restitution);
+    }
+    if (const std::optional<double> damping =
+            extras.number("pm_linear_damping")) {
+        options.linear_damping = static_cast<float>(*damping);
+    }
+    if (const std::optional<double> damping =
+            extras.number("pm_angular_damping")) {
+        options.angular_damping = static_cast<float>(*damping);
+    }
+    if (const std::optional<double> margin =
+            extras.number("pm_collision_margin")) {
+        options.collision_margin = static_cast<float>(*margin);
     }
     checkerboard = extras.boolean("pm_checkerboard").value_or(false);
     return true;
@@ -370,37 +366,6 @@ class FlatJson {
         body.options.initial_state.position,
         rotate(body.options.initial_state.orientation, center));
 
-    switch (body.options.shape.type) {
-    case ShapeType::sphere: {
-        const float largest = std::max({half.x, half.y, half.z});
-        const float smallest = std::min({half.x, half.y, half.z});
-        if (largest - smallest > largest * 0.02F) {
-            error = body.name + ": sphere scale must be uniform";
-            return false;
-        }
-        body.options.shape = CollisionShape::sphere(largest);
-        break;
-    }
-    case ShapeType::box:
-        body.options.shape = CollisionShape::box(half);
-        break;
-    case ShapeType::capsule: {
-        const float radius = std::max(half.x, half.z);
-        if (std::fabs(half.x - half.z) > radius * 0.02F ||
-            half.y + k_bounds_epsilon < radius) {
-            error = body.name + ": capsule must be local-Y with circular XZ radius";
-            return false;
-        }
-        body.options.shape = CollisionShape::capsule(radius, half.y - radius);
-        break;
-    }
-    case ShapeType::plane:
-        body.options.shape = CollisionShape::plane();
-        break;
-    case ShapeType::triangle_mesh:
-        // The World-owned mesh handle is created during scene instantiation.
-        break;
-    }
     return true;
 }
 
@@ -449,6 +414,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             return false;
         }
+        const FlatJson extras(node.extras.data);
+        body.name = extras.string("pm_name").value_or(body.name);
         if (node.parent != nullptr) {
             error = body.name + ": physics objects must be scene-root nodes";
             return false;
@@ -505,76 +472,73 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     for (const RigidBodyDefinition &definition : scene.rigid_bodies) {
         RigidBodyOptions options = definition.options;
-        if (options.shape.type == ShapeType::triangle_mesh) {
-            std::vector<Vec3> vertices;
-            std::vector<std::uint32_t> indices;
-            try {
-                std::size_t vertex_count = 0U;
-                std::size_t index_count = 0U;
-                for (const std::uint32_t mesh_index : definition.mesh_indices) {
-                    vertex_count += scene.meshes[mesh_index].vertices.size();
-                    index_count += scene.meshes[mesh_index].indices.size();
-                }
-                if (vertex_count > std::numeric_limits<std::uint32_t>::max() ||
-                    index_count > std::numeric_limits<std::uint32_t>::max()) {
-                    return {StatusCode::capacity_exceeded, cudaSuccess,
-                            "gallery triangle collider exceeds uint32 range"};
-                }
-                vertices.reserve(vertex_count);
-                indices.reserve(index_count);
-                for (const std::uint32_t mesh_index : definition.mesh_indices) {
-                    const TriangleMesh &mesh = scene.meshes[mesh_index];
-                    const std::uint32_t base =
-                        static_cast<std::uint32_t>(vertices.size());
-                    for (const Vertex &vertex : mesh.vertices) {
-                        vertices.push_back(vertex.position);
-                    }
-                    for (const std::uint32_t index : mesh.indices) {
-                        indices.push_back(base + index);
-                    }
-                }
-            } catch (...) {
-                return {StatusCode::out_of_memory, cudaSuccess,
-                        "failed to assemble gallery triangle collider"};
+        std::vector<Vec3> vertices;
+        std::vector<std::uint32_t> indices;
+        try {
+            std::size_t vertex_count = 0U;
+            std::size_t index_count = 0U;
+            for (const std::uint32_t mesh_index : definition.mesh_indices) {
+                vertex_count += scene.meshes[mesh_index].vertices.size();
+                index_count += scene.meshes[mesh_index].indices.size();
             }
+            if (vertex_count > std::numeric_limits<std::uint32_t>::max() ||
+                index_count > std::numeric_limits<std::uint32_t>::max()) {
+                return {StatusCode::capacity_exceeded, cudaSuccess,
+                        "gallery triangle mesh exceeds uint32 range"};
+            }
+            vertices.reserve(vertex_count);
+            indices.reserve(index_count);
+            for (const std::uint32_t mesh_index : definition.mesh_indices) {
+                const TriangleMesh &mesh = scene.meshes[mesh_index];
+                const std::uint32_t base =
+                    static_cast<std::uint32_t>(vertices.size());
+                for (const Vertex &vertex : mesh.vertices) {
+                    vertices.push_back(vertex.position);
+                }
+                for (const std::uint32_t index : mesh.indices) {
+                    indices.push_back(base + index);
+                }
+            }
+        } catch (...) {
+            return {StatusCode::out_of_memory, cudaSuccess,
+                    "failed to assemble gallery triangle mesh"};
+        }
 
-            Vec3 *device_vertices = nullptr;
-            std::uint32_t *device_indices = nullptr;
-            cudaError_t error = cudaMalloc(
-                reinterpret_cast<void **>(&device_vertices),
-                vertices.size() * sizeof(Vec3));
-            if (error == cudaSuccess) {
-                error = cudaMalloc(reinterpret_cast<void **>(&device_indices),
-                                   indices.size() * sizeof(std::uint32_t));
-            }
-            if (error == cudaSuccess) {
-                error = cudaMemcpy(device_vertices, vertices.data(),
-                                   vertices.size() * sizeof(Vec3),
-                                   cudaMemcpyHostToDevice);
-            }
-            if (error == cudaSuccess) {
-                error = cudaMemcpy(device_indices, indices.data(),
-                                   indices.size() * sizeof(std::uint32_t),
-                                   cudaMemcpyHostToDevice);
-            }
-            if (error != cudaSuccess) {
-                cudaFree(device_indices);
-                cudaFree(device_vertices);
-                return {StatusCode::cuda_failure, error,
-                        "failed to upload gallery triangle collider"};
-            }
-            TriangleMeshId mesh_id{};
-            const Status mesh_status = world.add_triangle_mesh(
-                {device_vertices, vertices.size()},
-                {device_indices, indices.size()}, mesh_id);
+        Vec3 *device_vertices = nullptr;
+        std::uint32_t *device_indices = nullptr;
+        cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_vertices),
+                                       vertices.size() * sizeof(Vec3));
+        if (error == cudaSuccess) {
+            error = cudaMalloc(reinterpret_cast<void **>(&device_indices),
+                               indices.size() * sizeof(std::uint32_t));
+        }
+        if (error == cudaSuccess) {
+            error = cudaMemcpy(device_vertices, vertices.data(),
+                               vertices.size() * sizeof(Vec3),
+                               cudaMemcpyHostToDevice);
+        }
+        if (error == cudaSuccess) {
+            error = cudaMemcpy(device_indices, indices.data(),
+                               indices.size() * sizeof(std::uint32_t),
+                               cudaMemcpyHostToDevice);
+        }
+        if (error != cudaSuccess) {
             cudaFree(device_indices);
             cudaFree(device_vertices);
-            if (!mesh_status) {
-                return mesh_status;
-            }
-            output.collision_meshes.push_back(mesh_id);
-            options.shape = CollisionShape::triangle_mesh(mesh_id);
+            return {StatusCode::cuda_failure, error,
+                    "failed to upload gallery triangle mesh"};
         }
+        TriangleMeshId mesh_id{};
+        const Status mesh_status = world.add_triangle_mesh(
+            {device_vertices, vertices.size()}, {device_indices, indices.size()},
+            mesh_id);
+        cudaFree(device_indices);
+        cudaFree(device_vertices);
+        if (!mesh_status) {
+            return mesh_status;
+        }
+        output.collision_meshes.push_back(mesh_id);
+        options.mesh = mesh_id;
         RigidBodyId body{};
         const Status status = world.add_rigid_body(options, body);
         if (!status) {

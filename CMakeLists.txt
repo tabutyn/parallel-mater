@@ -136,7 +136,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_definitions(
         parallel-mater-gallery
         PRIVATE
-            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/rigid_shapes.glb"
+            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -162,7 +162,7 @@ if(BUILD_TESTING)
         target_compile_definitions(
             parallel-mater-gallery-scene-tests
             PRIVATE
-                PARALLEL_MATER_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/rigid_shapes.glb")
+                PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb")
         add_test(NAME parallel-mater-gallery-scene-tests
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests

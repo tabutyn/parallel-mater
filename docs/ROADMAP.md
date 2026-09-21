@@ -9,11 +9,11 @@ pass.
 - Agree on ownership, handles, stepping, views, contacts, and scope.
 - No physics implementation and no copied legacy source.
 
-## PR 2 — Core and rigid bodies (merged)
+## PR 2 — Core and initial rigid bodies (merged)
 
 - Implement status, token, world lifetime, generation-checked handles, and
   CUDA stream behavior.
-- Implement static, kinematic, and dynamic sphere/box/capsule/plane bodies.
+- Establish static, kinematic, and dynamic rigid integration.
 - Add the rigid-sandbox gallery scene and CPU-reference integration tests.
 
 ## PR 3 — OptiX gallery and Blender-authored scenes
@@ -24,11 +24,13 @@ pass.
 - Define a versioned Blender custom-property convention for static, kinematic,
   and dynamic rigid bodies.
 - Add a Blender Python authoring/export script and concise scene-authoring guide.
-- Render one Blender-authored scene containing a static plane plus dynamic
-  sphere, box, and capsule, plus a static triangle-collider Suzanne. The gallery
-  source must not reconstruct that scene procedurally.
-- Complete resting contact points, deterministic dynamic–dynamic response, and
-  two-sided open triangle-soup collision before fluid work begins.
+- Replace the analytic shape family with one indexed-triangle representation
+  for all static, kinematic, and dynamic rigid bodies.
+- Export one Blender-authored scene containing a PASSIVE ground plus ACTIVE
+  cube, icosphere, and Suzanne. Apply scale and triangulation in a
+  non-destructive exporter; the gallery must not reconstruct the scene.
+- Complete deterministic BVH-accelerated mesh contact, dynamic–dynamic
+  response, and two-sided open-surface collision before fluid work begins.
 - Add a headless image test and an interactive orbit-camera example.
 
 ## PR 4 — Isolated fluid and particle lifecycle
@@ -41,7 +43,7 @@ pass.
 
 ## PR 5 — Fluid–rigid coupling
 
-- Add analytic contacts, friction, restitution, projection, and balanced
+- Add particle/triangle contacts, friction, restitution, projection, and balanced
   reactions on dynamic bodies.
 - Add deterministic contact events and the heavy-sphere scene.
 - Validate momentum exchange, containment, high-speed impact, and overflow.

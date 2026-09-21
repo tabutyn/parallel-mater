@@ -29,7 +29,7 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 ## First gallery sequence
 
-1. **Rigid sandbox** — a dynamic sphere rolls and collides with static boxes.
+1. **Rigid sandbox** — a dynamic triangle mesh falls onto a triangle floor.
 2. **Fluid tank** — particle water settles inside static rigid boundaries.
 3. **Heavy sphere** — a dynamic sphere enters the fluid and receives visible
    two-way reaction forces.
@@ -38,9 +38,9 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 The procedural `parallel-mater-rigid-sandbox` remains a minimal headless API
 example. The visible `parallel-mater-gallery` instead loads
-`examples/assets/rigid_shapes.glb`, instantiates its plane, sphere, cube, and
-capsule through `World`, and ray traces the same authored meshes. C++ does not
-restate that scene's body list or transforms.
+`examples/assets/PassiveActive.glb`, instantiates its passive ground and active
+cube, icosphere, and Suzanne through `World`, and ray traces the same authored
+triangles. C++ does not restate that scene's body list or transforms.
 
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.

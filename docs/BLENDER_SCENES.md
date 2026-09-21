@@ -1,92 +1,86 @@
-# Blender-authored gallery scenes
+# Blender-authored triangle scenes
 
-Gallery scenes are `.glb` assets, not C++ recipes. The gallery loader translates
-authored node metadata into public `parallel_mater::World` calls, while rendering
-geometry and materials remain example-owned data.
+Gallery scenes are `.glb` assets, not C++ recipes. The same exported triangles
+drive OptiX rendering and rigid collision; ParallelMater has no separate
+sphere, box, capsule, or plane collider types.
 
-## Coordinate and modeling rules
+## Authoring contract
 
-- Use Blender's default metric convention: one Blender unit is one metre.
-- Keep every simulated object at the scene root and give it a centered origin.
-- Apply mesh edits in Edit Mode. Object translation and rotation become the
-  initial rigid-body pose; object scale is baked into render geometry and the
-  collider dimensions by the loader.
-- Use uniform scale for spheres. Capsules use local Z as their long axis in
-  Blender, which the glTF exporter converts to local Y.
-- A plane collider is mathematically infinite. Its mesh should therefore be
-  large enough that the visible boundary is not reached in the example.
-- Use triangle geometry. The loader rejects unsupported primitive modes and
-  malformed or non-finite data instead of guessing.
+1. Model every rigid object as a Blender mesh. Open, disconnected,
+   non-manifold, and inconsistently wound surfaces are accepted; every triangle
+   collides from both sides.
+2. Use one Blender unit as one metre and keep simulated objects at the scene
+   root.
+3. Select each object and choose **Object → Rigid Body → Add Active** or
+   **Add Passive**. Blender `ACTIVE` maps to `MotionType::dynamic`; `PASSIVE`
+   maps to `MotionType::static_body`.
+4. Set mass, friction, restitution, linear damping, angular damping, and an
+   optional collision margin in Blender's Rigid Body panel.
+5. Put the object origin near its intended center of mass. The current loader
+   recenters local geometry from its AABB and preserves the resulting world
+   pose. A zero API inertia uses the mesh AABB approximation; an application
+   can supply a measured inertia diagonal later.
 
-## Required custom properties
+The exporter rejects parented rigid bodies for now. Continuous collision,
+compound bodies, and automatic convex decomposition are not part of this
+milestone.
 
-Select an object and use **Object Properties → Custom Properties**. Blender's
-glTF exporter writes these properties to the node's standard `extras` object
-when **Include → Custom Properties** is enabled.
+## Export the open `.blend`
 
-| Property | Values | Meaning |
-|---|---|---|
-| `pm_schema` | integer `1` | Metadata schema version. |
-| `pm_system` | `rigid_body` | Solver that owns this object. |
-| `pm_motion` | `static`, `kinematic`, `dynamic` | Rigid-body motion type. |
-| `pm_collider` | `sphere`, `box`, `capsule`, `plane`, `triangles` | Collision representation. |
-| `pm_mass` | positive number | Required for dynamic objects; kilograms. |
-| `pm_friction` | nonnegative number | Optional; defaults to `0.5`. |
-| `pm_restitution` | number from `0` to `1` | Optional; defaults to `0`. |
-| `pm_checkerboard` | Boolean | Optional example-renderer material effect. |
-
-Names are labels only. Physics behavior never depends on an object being named
-"Floor" or "Sphere".
-
-## Scripted example
-
-The repository script creates and exports the canonical rigid scene:
+Run this inside Blender's Scripting workspace, or from a shell:
 
 ```bash
-blender --background \
-  --python tools/blender/create_rigid_shapes_scene.py -- \
-  --output examples/assets/rigid_shapes.glb
+blender --background examples/assets/PassiveActive.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/PassiveActive.glb
 ```
 
-It produces a static checkerboard plane, dynamic sphere, box, and capsule, and
-a static Suzanne using her actual triangles as the collider.
-The generated `.glb` is committed so users can run the gallery without Blender;
-the Python script is its reviewable source of truth.
+When `--output` is omitted, the script writes a `.glb` beside the currently
+open `.blend` using the same filename stem. The script is non-destructive:
+it exports evaluated temporary copies, bakes each object's scale into its
+vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
+the temporary data. The source `.blend` is not saved or changed.
 
-For a hand-authored scene, set the same properties, then choose **File → Export
-→ glTF 2.0**, select **glTF Binary (.glb)**, enable **Custom Properties**, and
-export. Use the repository validator before adding the asset to the gallery.
+The generated metadata is:
 
-Validate an exported scene by loading and rendering it without opening a
-window:
+| Property | Source |
+|---|---|
+| `pm_schema = 2` | Exporter version |
+| `pm_system = "rigid_body"` | Exporter |
+| `pm_motion` | Blender ACTIVE/PASSIVE setting |
+| `pm_mass` | Blender rigid-body mass |
+| `pm_friction`, `pm_restitution` | Blender rigid-body material |
+| `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
+| `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
+| `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
+
+Users do not need to type these properties by hand. Names are labels only;
+physics behavior comes from Blender's Rigid Body settings.
+
+## Validate the result
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
-  --scene path/to/scene.glb \
+  --scene examples/assets/PassiveActive.glb \
   --headless /tmp/parallel-mater-scene-check.ppm \
-  --frames 1
+  --frames 180
 ```
 
-The command fails on malformed geometry, unsupported metadata, invalid
-colliders, world-capacity errors, OptiX setup errors, or a black/uniform frame.
+The committed `PassiveActive.blend` contains a scaled passive ground plane and
+active cube, icosphere, and Suzanne. Its regression checks that scale was
+baked, polygons became triangles, all four objects use World-owned collision
+meshes, gravity advances every ACTIVE object, and Suzanne topples and remains
+supported.
 
-## Future systems
+## Collision behavior
 
-The `pm_system` discriminator reserves a clean extension point for `fluid`,
-`cloth`, `soft_body`, `rope`, and `smoke`. Each system will receive a reviewed
-schema only when its public physics API exists. Unknown systems or schema
-versions are errors; the loader does not silently create a different scene.
+`World::add_triangle_mesh` copies device vertices and indices, validates them,
+and builds a deterministic private BVH. Mesh–mesh narrow phase uses exact
+edge/triangle closest features with a small two-sided shell. This is a discrete
+solver: sufficiently fast motion can tunnel, so applications must choose a
+substep count appropriate for speed and triangle scale. The collision margin
+is numerical thickness, not a replacement for continuous collision detection.
 
-## Triangle colliders
-
-`pm_collider = "triangles"` uploads every triangle primitive on that node into
-one World-owned collision resource. It is a two-sided triangle soup: meshes may
-be open, disconnected, non-manifold, or inconsistently wound. Degenerate
-triangles, invalid indices, and non-finite vertices are rejected. Triangle
-colliders are static or kinematic in this release; dynamic triangle meshes need
-defined mass properties and mesh–mesh collision and are intentionally rejected.
-
-Triangle collision is currently exact but brute force. This favors a small,
-reviewable correctness baseline for authored obstacles such as Suzanne. A
-deterministic acceleration structure is required before large environment
-meshes become a supported performance target.
+Future fluid, cloth, soft-body, rope, and smoke schemas will be introduced only
+with their reviewed public APIs. Unknown systems and schema versions fail
+explicitly rather than silently changing scene meaning.

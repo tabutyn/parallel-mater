@@ -15,10 +15,10 @@ The installed API initially consists of one header:
 
 The core and rigid-body milestone implements world ownership, asynchronous
 completion, generation-checked rigid and triangle-mesh handles, forces,
-impulses, kinematic targets, device views, and GPU integration. Discrete rigid
-contact includes dynamic–dynamic analytic shapes and dynamic analytic shapes
-against two-sided static or kinematic triangle soups. Continuous rigid
-collision remains deferred. Fluid and particle-lifecycle declarations
+impulses, kinematic targets, device views, GPU integration, and deterministic
+triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
+kinematic, static, open, and two-sided meshes share one code path. Continuous
+rigid collision remains deferred. Fluid and particle-lifecycle declarations
 currently return `StatusCode::not_supported` and are implemented in PR 4.
 
 ## Minimal use
@@ -27,57 +27,40 @@ currently return `StatusCode::not_supported` and are implemented in PR 4.
 using namespace parallel_mater;
 
 World world;
-Status status = World::create({.fluid_capacity = 1, .rigid_body_capacity = 8}, world);
+Status status = World::create({.rigid_body_capacity = 8,
+                               .triangle_mesh_capacity = 8}, world);
+if (!status) return report(status);
+
+// These spans point to CUDA memory. Geometry is body-local.
+TriangleMeshId floor_mesh;
+status = world.add_triangle_mesh(floor_vertices, floor_triangle_indices,
+                                 floor_mesh);
 if (!status) return report(status);
 
 RigidBodyId floor;
 status = world.add_rigid_body(
     {.motion = MotionType::static_body,
-     .shape = CollisionShape::plane(),
+     .mesh = floor_mesh,
      .friction = 0.6F},
     floor);
 if (!status) return report(status);
 
-RigidBodyId ball;
+TriangleMeshId object_mesh;
+status = world.add_triangle_mesh(object_vertices, object_triangle_indices,
+                                 object_mesh);
+if (!status) return report(status);
+
+RigidBodyId object;
 status = world.add_rigid_body(
     {.motion = MotionType::dynamic,
-     .shape = CollisionShape::sphere(0.35F),
+     .mesh = object_mesh,
      .initial_state = {.position = {0.0F, 2.0F, 0.0F}},
      .mass = 12.0F},
-    ball);
-if (!status) return report(status);
-
-DeviceSpan<const FluidParticle> particles = make_device_particles();
-FluidId water;
-status = world.add_fluid(
-    {.capacity = 20'000, .particle_radius = 0.0225F}, particles, water);
-if (!status) return report(status);
-
-ParticleSpawnPlaneId inlet;
-status = world.add_particle_spawn_plane(
-    {.fluid = water,
-     .plane = {.center = {0.0F, 2.0F, 0.0F},
-               .half_extents = {0.4F, 0.4F}},
-     .particles_per_second = 2'000.0F,
-     .initial_velocity = {0.0F, -1.0F, 0.0F}},
-    inlet);
-if (!status) return report(status);
-
-ParticleDestroyPlaneId drain;
-status = world.add_particle_destroy_plane(
-    {.fluid = water,
-     .plane = {.center = {0.0F, -2.0F, 0.0F},
-               .half_extents = {1.0F, 1.0F}},
-     .crossing = CrossingDirection::against_normal},
-    drain);
+    object);
 if (!status) return report(status);
 
 status = world.step({.timestep = 1.0F / 60.0F, .substeps = 4});
 if (!status) return report(status);
-
-FluidDeviceView water_view;
-status = world.fluid_view(water, water_view);
-// A CUDA/OptiX renderer can consume water_view.positions directly.
 ```
 
 ## Ownership and handles
@@ -108,9 +91,9 @@ frame. `step` is the convenience wrapper that enqueues and waits.
 
 The fixed frame duration and substep count are explicit. A slow application
 lags physical time; the physics layer never invents, drops, or catches up
-ticks. Every substep performs fluid neighborhood construction, fluid solve,
-rigid integration, fluid–rigid contacts, and equal-and-opposite dynamic-body
-reactions in a documented fixed order.
+ticks. Every implemented rigid substep performs integration followed by
+deterministic triangle-mesh contact resolution. Fluid ordering will be
+documented when that solver is implemented.
 
 `apply_force` and `apply_impulse` queue contributions for the next submitted
 frame and consume them exactly once. `set_kinematic_target` replaces the target
@@ -163,22 +146,23 @@ can be enabled, moved, updated, and removed without rebuilding the fluid.
 
 ## Rigid-body contract
 
-The first release supports spheres, boxes, local-Y capsules, local +Y planes,
-and World-owned indexed triangle soups. A body is static, kinematic, or dynamic:
+The first release has one rigid representation: a World-owned indexed triangle
+mesh. Spheres, boxes, capsules, planes, Suzanne, and arbitrary Blender meshes
+are all ordinary triangle data. A body is static, kinematic, or dynamic:
 
 - static bodies never move;
 - kinematic bodies follow explicit targets and impart their velocity to fluid;
 - dynamic bodies integrate gravity, forces, impulses, damping, and contact
   reactions.
 
-Dynamic mass must be positive. A zero inertia diagonal requests an analytic
-value derived from mass and shape. Plane bodies must be static or kinematic.
-Triangle soups are two-sided and need not be closed, connected, manifold, or
-consistently wound. Their vertex and index data is copied from device spans.
-They are static or kinematic; dynamic mesh mass properties and mesh–mesh
-collision remain deferred. Compound shapes, joints, sleeping, and continuous
-rigid collision are also deferred. Fluid–dynamic-body momentum exchange arrives
-with the fluid-coupling milestone.
+Dynamic mass must be positive. A zero inertia diagonal requests a box-inertia
+approximation derived from the mesh's local AABB; callers with known mass
+properties can provide an exact diagonal. Triangle meshes are two-sided and
+need not be closed, connected, manifold, or consistently wound. Their vertex
+and index data is copied from device spans and organized into a deterministic
+private BVH. Degenerate triangles are rejected. Compound bodies, joints,
+sleeping, and continuous collision are deferred. Fluid–dynamic-body momentum
+exchange arrives with the fluid-coupling milestone.
 
 ```cpp
 TriangleMeshId terrain_mesh;
@@ -189,7 +173,7 @@ if (!status) return report(status);
 RigidBodyId terrain;
 status = world.add_rigid_body(
     {.motion = MotionType::static_body,
-     .shape = CollisionShape::triangle_mesh(terrain_mesh)},
+     .mesh = terrain_mesh},
     terrain);
 ```
 
@@ -232,8 +216,8 @@ These omissions are the main defense against another application-shaped API.
 - A capacity-bounded contact stream is retained as the input to painting and
   other application effects.
 - One frame may be in flight per world.
-- Sphere, box, capsule, plane, and static/kinematic triangle soup are the
-  initial rigid shapes.
+- Indexed triangles are the only rigid representation; Blender primitives are
+  triangulated during export instead of creating parallel collider types.
 - Deterministic particle spawn and destroy planes are part of the initial
   resource model.
 - The gallery boundary and staged roadmap are approved.

@@ -1,13 +1,14 @@
 # ParallelMater
 
 ParallelMater is an MIT-licensed CUDA C++ physics library. The first complete
-milestone will couple particle fluid with analytic rigid bodies; later solvers
+milestone will couple particle fluid with triangle rigid bodies; later solvers
 will be added only after the small public API is proven by gallery examples.
 
 The current implementation provides the `World` lifecycle and GPU rigid-body
-integration for static, kinematic, and dynamic spheres, boxes, capsules, and
-planes, plus static or kinematic two-sided triangle soups. Fluid declarations
-are present for API review but are implemented in the next milestone.
+integration for static, kinematic, and dynamic indexed triangle meshes. Every
+surface is two-sided; open and disconnected meshes are accepted. A
+deterministic private BVH accelerates mesh contact. Fluid declarations are
+present for API review but are implemented in the next milestone.
 
 ## Design goals
 

@@ -7,8 +7,10 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -108,13 +110,6 @@ __host__ __device__ Vec3 inverse_rotate(Quaternion orientation,
     return rotate(conjugate(orientation), value);
 }
 
-__host__ __device__ Vec3 clamp_components(Vec3 value, Vec3 minimum,
-                                          Vec3 maximum) noexcept {
-    return {clamp_scalar(value.x, minimum.x, maximum.x),
-            clamp_scalar(value.y, minimum.y, maximum.y),
-            clamp_scalar(value.z, minimum.z, maximum.z)};
-}
-
 __host__ __device__ Vec3 clamp_length(Vec3 value, float maximum) noexcept {
     const float squared = length_squared(value);
     if (squared <= maximum * maximum || squared <= k_epsilon * k_epsilon) {
@@ -125,7 +120,7 @@ __host__ __device__ Vec3 clamp_length(Vec3 value, float maximum) noexcept {
 
 struct BodyParameters {
     MotionType motion{};
-    CollisionShape shape{};
+    TriangleMeshId mesh{};
     float inverse_mass{};
     Vec3 inverse_inertia_local{};
     float friction{};
@@ -134,6 +129,7 @@ struct BodyParameters {
     float angular_damping{};
     float maximum_linear_speed{};
     float maximum_angular_speed{};
+    float collision_margin{};
     std::uint64_t user_data{};
 };
 
@@ -161,6 +157,15 @@ struct ContactManifold {
     std::uint32_t count{};
 };
 
+struct BvhNode {
+    Vec3 minimum{};
+    Vec3 maximum{};
+    std::uint32_t left{};
+    std::uint32_t right{};
+    std::uint32_t first_triangle{};
+    std::uint32_t triangle_count{};
+};
+
 struct TriangleMeshResource {
     Vec3 *vertices{};
     std::uint32_t *indices{};
@@ -168,83 +173,12 @@ struct TriangleMeshResource {
     std::uint32_t index_count{};
     std::uint32_t generation{};
     bool alive{};
+    Vec3 minimum{};
+    Vec3 maximum{};
+    Vec3 unit_inertia{};
+    BvhNode *bvh_nodes{};
+    std::uint32_t bvh_node_count{};
 };
-
-__host__ __device__ Vec3 local_axis(Quaternion orientation,
-                                   std::uint32_t axis) noexcept {
-    if (axis == 0U) {
-        return rotate(orientation, {1.0F, 0.0F, 0.0F});
-    }
-    if (axis == 1U) {
-        return rotate(orientation, {0.0F, 1.0F, 0.0F});
-    }
-    return rotate(orientation, {0.0F, 0.0F, 1.0F});
-}
-
-__host__ __device__ float shape_support(const CollisionShape &shape,
-                                        Quaternion orientation,
-                                        Vec3 direction) noexcept {
-    const Vec3 local = inverse_rotate(orientation, direction);
-    switch (shape.type) {
-    case ShapeType::sphere:
-        return shape.dimensions.x;
-    case ShapeType::box:
-        return fabsf(local.x) * shape.dimensions.x +
-               fabsf(local.y) * shape.dimensions.y +
-               fabsf(local.z) * shape.dimensions.z;
-    case ShapeType::capsule:
-        return shape.dimensions.x + fabsf(local.y) * shape.dimensions.y;
-    case ShapeType::plane:
-    case ShapeType::triangle_mesh:
-        return 0.0F;
-    }
-    return 0.0F;
-}
-
-__host__ __device__ Vec3 shape_support_point(
-    const BodyParameters &parameters, const RigidBodyState &state,
-    Vec3 direction) noexcept {
-    const Vec3 normal = normalized_or(direction, {1.0F, 0.0F, 0.0F});
-    switch (parameters.shape.type) {
-    case ShapeType::sphere:
-        return add(state.position,
-                   multiply(normal, parameters.shape.dimensions.x));
-    case ShapeType::box: {
-        Vec3 point = state.position;
-        for (std::uint32_t axis_index = 0; axis_index < 3U; ++axis_index) {
-            const Vec3 axis = local_axis(state.orientation, axis_index);
-            const float extent = axis_index == 0U
-                                     ? parameters.shape.dimensions.x
-                                     : (axis_index == 1U
-                                            ? parameters.shape.dimensions.y
-                                            : parameters.shape.dimensions.z);
-            const float sign = dot(axis, normal) >= 0.0F ? 1.0F : -1.0F;
-            point = add(point, multiply(axis, sign * extent));
-        }
-        return point;
-    }
-    case ShapeType::capsule: {
-        const Vec3 axis = local_axis(state.orientation, 1U);
-        const float endpoint_sign = dot(axis, normal) >= 0.0F ? 1.0F : -1.0F;
-        return add(add(state.position,
-                       multiply(axis, endpoint_sign * parameters.shape.dimensions.y)),
-                   multiply(normal, parameters.shape.dimensions.x));
-    }
-    case ShapeType::plane:
-    case ShapeType::triangle_mesh:
-        return state.position;
-    }
-    return state.position;
-}
-
-__host__ __device__ void capsule_segment(const BodyParameters &parameters,
-                                         const RigidBodyState &state, Vec3 &a,
-                                         Vec3 &b) noexcept {
-    const Vec3 offset = multiply(local_axis(state.orientation, 1U),
-                                 parameters.shape.dimensions.y);
-    a = subtract(state.position, offset);
-    b = add(state.position, offset);
-}
 
 __host__ __device__ Vec3 closest_on_segment(Vec3 point, Vec3 a, Vec3 b) noexcept {
     const Vec3 segment = subtract(b, a);
@@ -406,474 +340,253 @@ __host__ __device__ Vec3 transform_point(const RigidBodyState &state,
     return add(state.position, rotate(state.orientation, point));
 }
 
-__host__ __device__ Contact sphere_box_contact(
-    Vec3 sphere_center, float sphere_radius, const BodyParameters &box,
-    const RigidBodyState &box_state) noexcept {
-    const Vec3 local_center =
-        inverse_rotate(box_state.orientation, subtract(sphere_center, box_state.position));
-    const Vec3 half = box.shape.dimensions;
-    const Vec3 closest = clamp_components(local_center, multiply(half, -1.0F), half);
-    const Vec3 local_delta = subtract(local_center, closest);
-    const float squared = length_squared(local_delta);
-
-    Vec3 local_normal{};
-    float penetration = 0.0F;
-    Vec3 local_point = closest;
-    if (squared > k_epsilon * k_epsilon) {
-        const float distance = sqrtf(squared);
-        penetration = sphere_radius - distance;
-        if (penetration <= 0.0F) {
-            return {};
-        }
-        local_normal = multiply(local_delta, 1.0F / distance);
-    } else {
-        const float dx = half.x - fabsf(local_center.x);
-        const float dy = half.y - fabsf(local_center.y);
-        const float dz = half.z - fabsf(local_center.z);
-        if (dx <= dy && dx <= dz) {
-            local_normal = {local_center.x >= 0.0F ? 1.0F : -1.0F, 0.0F, 0.0F};
-            local_point.x = local_normal.x * half.x;
-            penetration = sphere_radius + dx;
-        } else if (dy <= dz) {
-            local_normal = {0.0F, local_center.y >= 0.0F ? 1.0F : -1.0F, 0.0F};
-            local_point.y = local_normal.y * half.y;
-            penetration = sphere_radius + dy;
-        } else {
-            local_normal = {0.0F, 0.0F, local_center.z >= 0.0F ? 1.0F : -1.0F};
-            local_point.z = local_normal.z * half.z;
-            penetration = sphere_radius + dz;
-        }
-    }
-    return {rotate(box_state.orientation, local_normal),
-            add(box_state.position, rotate(box_state.orientation, local_point)),
-            penetration, true};
+__host__ __device__ Vec3 component_min(Vec3 first, Vec3 second) noexcept {
+    return {fminf(first.x, second.x), fminf(first.y, second.y),
+            fminf(first.z, second.z)};
 }
 
-__host__ __device__ float point_box_squared(Vec3 point,
-                                            const BodyParameters &box,
-                                            const RigidBodyState &state) noexcept {
-    const Vec3 local =
-        inverse_rotate(state.orientation, subtract(point, state.position));
-    const Vec3 closest = clamp_components(local, multiply(box.shape.dimensions, -1.0F),
-                                          box.shape.dimensions);
-    return length_squared(subtract(local, closest));
+__host__ __device__ Vec3 component_max(Vec3 first, Vec3 second) noexcept {
+    return {fmaxf(first.x, second.x), fmaxf(first.y, second.y),
+            fmaxf(first.z, second.z)};
 }
 
-__host__ __device__ Contact capsule_box_contact(
-    const BodyParameters &capsule, const RigidBodyState &capsule_state,
-    const BodyParameters &box, const RigidBodyState &box_state) noexcept {
-    Vec3 a{};
-    Vec3 b{};
-    capsule_segment(capsule, capsule_state, a, b);
-    float low = 0.0F;
-    float high = 1.0F;
-    for (int iteration = 0; iteration < 20; ++iteration) {
-        const float left = (2.0F * low + high) / 3.0F;
-        const float right = (low + 2.0F * high) / 3.0F;
-        const Vec3 left_point = add(a, multiply(subtract(b, a), left));
-        const Vec3 right_point = add(a, multiply(subtract(b, a), right));
-        if (point_box_squared(left_point, box, box_state) <
-            point_box_squared(right_point, box, box_state)) {
-            high = right;
-        } else {
-            low = left;
-        }
-    }
-    const Vec3 centerline = add(a, multiply(subtract(b, a), 0.5F * (low + high)));
-    return sphere_box_contact(centerline, capsule.shape.dimensions.x, box, box_state);
-}
-
-__host__ __device__ Contact box_box_contact(
-    const BodyParameters &moving, const RigidBodyState &moving_state,
-    const BodyParameters &collider, const RigidBodyState &collider_state) noexcept {
-    Vec3 axes[15]{};
-    axes[0] = local_axis(moving_state.orientation, 0U);
-    axes[1] = local_axis(moving_state.orientation, 1U);
-    axes[2] = local_axis(moving_state.orientation, 2U);
-    axes[3] = local_axis(collider_state.orientation, 0U);
-    axes[4] = local_axis(collider_state.orientation, 1U);
-    axes[5] = local_axis(collider_state.orientation, 2U);
-    int axis_count = 6;
-    for (int first = 0; first < 3; ++first) {
-        for (int second = 3; second < 6; ++second) {
-            axes[axis_count++] = cross(axes[first], axes[second]);
-        }
-    }
-
-    const Vec3 center_delta = subtract(moving_state.position, collider_state.position);
-    float least_overlap = FLT_MAX;
-    Vec3 best_normal{0.0F, 1.0F, 0.0F};
-    for (int axis_index = 0; axis_index < axis_count; ++axis_index) {
-        const float squared = length_squared(axes[axis_index]);
-        if (squared <= k_epsilon * k_epsilon) {
-            continue;
-        }
-        const Vec3 axis = multiply(axes[axis_index], rsqrtf(squared));
-        const float radius_a = shape_support(moving.shape, moving_state.orientation, axis);
-        const float radius_b = shape_support(collider.shape, collider_state.orientation, axis);
-        const float signed_distance = dot(center_delta, axis);
-        const float overlap = radius_a + radius_b - fabsf(signed_distance);
-        if (overlap <= 0.0F) {
-            return {};
-        }
-        if (overlap < least_overlap) {
-            least_overlap = overlap;
-            best_normal = signed_distance >= 0.0F ? axis : multiply(axis, -1.0F);
-        }
-    }
-    const Vec3 moving_point =
-        shape_support_point(moving, moving_state, multiply(best_normal, -1.0F));
-    const Vec3 collider_point =
-        shape_support_point(collider, collider_state, best_normal);
-    return {best_normal,
-            multiply(add(moving_point, collider_point), 0.5F),
-            least_overlap, true};
-}
-
-__device__ void add_plane_contact(ContactManifold &result, Vec3 point,
-                                  float radius, Vec3 plane_position,
-                                  Vec3 normal) noexcept {
-    const float distance = dot(subtract(point, plane_position), normal) - radius;
-    if (distance < 0.0F && result.count < 8U) {
-        result.contacts[result.count++] = {
-            normal, subtract(point, multiply(normal, radius)), -distance, true};
-    }
-}
-
-__device__ ContactManifold plane_contacts(
-    const BodyParameters &moving, const RigidBodyState &moving_state,
-    const RigidBodyState &plane_state) noexcept {
-    ContactManifold result{};
-    const Vec3 normal = local_axis(plane_state.orientation, 1U);
-
-    switch (moving.shape.type) {
-    case ShapeType::sphere:
-        add_plane_contact(result, moving_state.position, moving.shape.dimensions.x,
-                          plane_state.position, normal);
-        break;
-    case ShapeType::capsule: {
-        Vec3 a{};
-        Vec3 b{};
-        capsule_segment(moving, moving_state, a, b);
-        add_plane_contact(result, a, moving.shape.dimensions.x,
-                          plane_state.position, normal);
-        if (length_squared(subtract(a, b)) > k_epsilon * k_epsilon) {
-            add_plane_contact(result, b, moving.shape.dimensions.x,
-                              plane_state.position, normal);
-        }
-        break;
-    }
-    case ShapeType::box:
-        for (int x = -1; x <= 1; x += 2) {
-            for (int y = -1; y <= 1; y += 2) {
-                for (int z = -1; z <= 1; z += 2) {
-                    const Vec3 local{
-                        static_cast<float>(x) * moving.shape.dimensions.x,
-                        static_cast<float>(y) * moving.shape.dimensions.y,
-                        static_cast<float>(z) * moving.shape.dimensions.z};
-                    add_plane_contact(result, transform_point(moving_state, local),
-                                      0.0F, plane_state.position, normal);
-                }
+__device__ void transformed_bounds(Vec3 local_minimum, Vec3 local_maximum,
+                                   const RigidBodyState &state, float margin,
+                                   Vec3 &minimum, Vec3 &maximum) noexcept {
+    minimum = {FLT_MAX, FLT_MAX, FLT_MAX};
+    maximum = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+    for (int x = 0; x < 2; ++x) {
+        for (int y = 0; y < 2; ++y) {
+            for (int z = 0; z < 2; ++z) {
+                const Vec3 local{x == 0 ? local_minimum.x : local_maximum.x,
+                                 y == 0 ? local_minimum.y : local_maximum.y,
+                                 z == 0 ? local_minimum.z : local_maximum.z};
+                const Vec3 world = transform_point(state, local);
+                minimum = component_min(minimum, world);
+                maximum = component_max(maximum, world);
             }
         }
-        break;
-    case ShapeType::plane:
-    case ShapeType::triangle_mesh:
-        break;
     }
-    return result;
+    const Vec3 expansion{margin, margin, margin};
+    minimum = subtract(minimum, expansion);
+    maximum = add(maximum, expansion);
 }
 
-__host__ __device__ Contact sphere_triangle_contact(
-    Vec3 center, float radius, Vec3 a, Vec3 b, Vec3 c) noexcept {
-    const Vec3 closest = closest_on_triangle(center, a, b, c);
-    const Vec3 delta = subtract(center, closest);
-    const float squared = length_squared(delta);
-    if (squared >= radius * radius) {
-        return {};
-    }
-    const Vec3 triangle_normal = normalized_or(
-        cross(subtract(b, a), subtract(c, a)), {0.0F, 1.0F, 0.0F});
-    const Vec3 centroid = multiply(add(add(a, b), c), 1.0F / 3.0F);
-    const Vec3 fallback = dot(subtract(center, centroid), triangle_normal) >= 0.0F
-                              ? triangle_normal
-                              : multiply(triangle_normal, -1.0F);
-    const float distance = sqrtf(fmaxf(squared, 0.0F));
-    return {normalized_or(delta, fallback), closest, radius - distance, true};
+__device__ void transformed_bounds(const TriangleMeshResource &mesh,
+                                   const RigidBodyState &state, float margin,
+                                   Vec3 &minimum, Vec3 &maximum) noexcept {
+    transformed_bounds(mesh.minimum, mesh.maximum, state, margin, minimum,
+                       maximum);
 }
 
-__host__ __device__ Contact capsule_triangle_contact(
-    const BodyParameters &capsule, const RigidBodyState &state,
-    Vec3 a, Vec3 b, Vec3 c) noexcept {
-    Vec3 segment_a{};
-    Vec3 segment_b{};
-    capsule_segment(capsule, state, segment_a, segment_b);
-    Vec3 on_segment{};
+__host__ __device__ bool bounds_overlap(Vec3 minimum_a, Vec3 maximum_a,
+                                        Vec3 minimum_b,
+                                        Vec3 maximum_b) noexcept {
+    return minimum_a.x <= maximum_b.x && maximum_a.x >= minimum_b.x &&
+           minimum_a.y <= maximum_b.y && maximum_a.y >= minimum_b.y &&
+           minimum_a.z <= maximum_b.z && maximum_a.z >= minimum_b.z;
+}
+
+__host__ __device__ bool triangle_bounds_overlap(
+    Vec3 a0, Vec3 a1, Vec3 a2, Vec3 b0, Vec3 b1, Vec3 b2,
+    float margin) noexcept {
+    const Vec3 expansion{margin, margin, margin};
+    const Vec3 minimum_a =
+        subtract(component_min(a0, component_min(a1, a2)), expansion);
+    const Vec3 maximum_a =
+        add(component_max(a0, component_max(a1, a2)), expansion);
+    const Vec3 minimum_b = component_min(b0, component_min(b1, b2));
+    const Vec3 maximum_b = component_max(b0, component_max(b1, b2));
+    return bounds_overlap(minimum_a, maximum_a, minimum_b, maximum_b);
+}
+
+__host__ __device__ void closest_triangle_pair(
+    Vec3 a0, Vec3 a1, Vec3 a2, Vec3 b0, Vec3 b1, Vec3 b2,
+    Vec3 &point_a, Vec3 &point_b) noexcept {
+    float best_squared = FLT_MAX;
+    Vec3 on_edge{};
     Vec3 on_triangle{};
-    closest_segment_triangle(segment_a, segment_b, a, b, c, on_segment,
-                             on_triangle);
-    const Vec3 delta = subtract(on_segment, on_triangle);
-    const float squared = length_squared(delta);
-    const float radius = capsule.shape.dimensions.x;
-    if (squared >= radius * radius) {
-        return {};
-    }
-    const Vec3 triangle_normal = normalized_or(
-        cross(subtract(b, a), subtract(c, a)), {0.0F, 1.0F, 0.0F});
-    const Vec3 centroid = multiply(add(add(a, b), c), 1.0F / 3.0F);
-    const Vec3 fallback = dot(subtract(state.position, centroid), triangle_normal) >=
-                                  0.0F
-                              ? triangle_normal
-                              : multiply(triangle_normal, -1.0F);
-    const float distance = sqrtf(fmaxf(squared, 0.0F));
-    return {normalized_or(delta, fallback), on_triangle, radius - distance, true};
+    closest_segment_triangle(a0, a1, b0, b1, b2, on_edge, on_triangle);
+    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
+    closest_segment_triangle(a1, a2, b0, b1, b2, on_edge, on_triangle);
+    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
+    closest_segment_triangle(a2, a0, b0, b1, b2, on_edge, on_triangle);
+    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
+
+    closest_segment_triangle(b0, b1, a0, a1, a2, on_edge, on_triangle);
+    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
+    closest_segment_triangle(b1, b2, a0, a1, a2, on_edge, on_triangle);
+    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
+    closest_segment_triangle(b2, b0, a0, a1, a2, on_edge, on_triangle);
+    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
 }
 
-__host__ __device__ Contact box_triangle_contact(
-    const BodyParameters &box, const RigidBodyState &state,
-    Vec3 world_a, Vec3 world_b, Vec3 world_c) noexcept {
-    const Vec3 a = inverse_rotate(state.orientation,
-                                  subtract(world_a, state.position));
-    const Vec3 b = inverse_rotate(state.orientation,
-                                  subtract(world_b, state.position));
-    const Vec3 c = inverse_rotate(state.orientation,
-                                  subtract(world_c, state.position));
-    const Vec3 edges[3]{subtract(b, a), subtract(c, b), subtract(a, c)};
-    Vec3 axes[13]{{1.0F, 0.0F, 0.0F},
-                  {0.0F, 1.0F, 0.0F},
-                  {0.0F, 0.0F, 1.0F},
-                  cross(edges[0], subtract(c, a))};
-    int axis_count = 4;
-    const Vec3 box_axes[3]{{1.0F, 0.0F, 0.0F},
-                           {0.0F, 1.0F, 0.0F},
-                           {0.0F, 0.0F, 1.0F}};
-    for (int edge = 0; edge < 3; ++edge) {
-        for (int axis = 0; axis < 3; ++axis) {
-            axes[axis_count++] = cross(edges[edge], box_axes[axis]);
+__device__ void add_manifold_contact(ContactManifold &manifold,
+                                     Contact candidate,
+                                     float separation) noexcept {
+    const float minimum_spacing_squared = separation * separation;
+    for (std::uint32_t index = 0; index < manifold.count; ++index) {
+        if (length_squared(subtract(candidate.point,
+                                    manifold.contacts[index].point)) <
+            minimum_spacing_squared) {
+            if (candidate.penetration > manifold.contacts[index].penetration) {
+                manifold.contacts[index] = candidate;
+            }
+            return;
         }
     }
+    if (manifold.count < 8U) {
+        manifold.contacts[manifold.count++] = candidate;
+        return;
+    }
+    std::uint32_t shallowest = 0U;
+    for (std::uint32_t index = 1; index < manifold.count; ++index) {
+        if (manifold.contacts[index].penetration <
+            manifold.contacts[shallowest].penetration) {
+            shallowest = index;
+        }
+    }
+    if (candidate.penetration > manifold.contacts[shallowest].penetration) {
+        manifold.contacts[shallowest] = candidate;
+    }
+}
 
-    const Vec3 triangle_center = multiply(add(add(a, b), c), 1.0F / 3.0F);
-    float least_overlap = FLT_MAX;
-    Vec3 best_axis{0.0F, 1.0F, 0.0F};
-    for (int axis_index = 0; axis_index < axis_count; ++axis_index) {
-        const float squared = length_squared(axes[axis_index]);
-        if (squared <= k_epsilon * k_epsilon) {
+__device__ void collide_triangle_ranges(
+    const RigidBodyState &body_state, const TriangleMeshResource &body_mesh,
+    std::uint32_t body_first, std::uint32_t body_count,
+    const RigidBodyState &collider_state,
+    const TriangleMeshResource &collider_mesh, std::uint32_t collider_first,
+    std::uint32_t collider_count, float margin,
+    ContactManifold &manifold) noexcept {
+    for (std::uint32_t body_triangle = body_first;
+         body_triangle < body_first + body_count; ++body_triangle) {
+        const std::uint32_t body_index = body_triangle * 3U;
+        const Vec3 a0 = transform_point(
+            body_state, body_mesh.vertices[body_mesh.indices[body_index]]);
+        const Vec3 a1 = transform_point(
+            body_state, body_mesh.vertices[body_mesh.indices[body_index + 1U]]);
+        const Vec3 a2 = transform_point(
+            body_state, body_mesh.vertices[body_mesh.indices[body_index + 2U]]);
+        for (std::uint32_t collider_triangle = collider_first;
+             collider_triangle < collider_first + collider_count;
+             ++collider_triangle) {
+            const std::uint32_t collider_index = collider_triangle * 3U;
+            const Vec3 b0 = transform_point(
+                collider_state,
+                collider_mesh.vertices[collider_mesh.indices[collider_index]]);
+            const Vec3 b1 = transform_point(
+                collider_state,
+                collider_mesh.vertices[collider_mesh.indices[collider_index + 1U]]);
+            const Vec3 b2 = transform_point(
+                collider_state,
+                collider_mesh.vertices[collider_mesh.indices[collider_index + 2U]]);
+            if (!triangle_bounds_overlap(a0, a1, a2, b0, b1, b2, margin)) {
+                continue;
+            }
+            Vec3 point_a{};
+            Vec3 point_b{};
+            closest_triangle_pair(a0, a1, a2, b0, b1, b2, point_a, point_b);
+            const Vec3 delta = subtract(point_a, point_b);
+            const float squared = length_squared(delta);
+            if (squared > margin * margin) {
+                continue;
+            }
+            const Vec3 collider_normal = normalized_or(
+                cross(subtract(b1, b0), subtract(b2, b0)),
+                {0.0F, 1.0F, 0.0F});
+            const Vec3 center_delta =
+                subtract(body_state.position, collider_state.position);
+            const Vec3 fallback =
+                dot(collider_normal, center_delta) >= 0.0F
+                    ? collider_normal
+                    : multiply(collider_normal, -1.0F);
+            const float distance = sqrtf(fmaxf(squared, 0.0F));
+            const Contact contact{
+                normalized_or(delta, fallback),
+                multiply(add(point_a, point_b), 0.5F),
+                margin - distance + 1.0e-5F,
+                true};
+            add_manifold_contact(manifold, contact, fmaxf(margin * 2.0F, 1.0e-4F));
+        }
+    }
+}
+
+__device__ ContactManifold collide_meshes(
+    const BodyParameters &body, const RigidBodyState &body_state,
+    const TriangleMeshResource &body_mesh, const BodyParameters &collider,
+    const RigidBodyState &collider_state,
+    const TriangleMeshResource &collider_mesh) noexcept {
+    ContactManifold manifold{};
+    const float margin = body.collision_margin + collider.collision_margin;
+    Vec3 body_minimum{};
+    Vec3 body_maximum{};
+    Vec3 collider_minimum{};
+    Vec3 collider_maximum{};
+    transformed_bounds(body_mesh, body_state, margin, body_minimum, body_maximum);
+    transformed_bounds(collider_mesh, collider_state, 0.0F, collider_minimum,
+                       collider_maximum);
+    if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
+                        collider_maximum)) {
+        return manifold;
+    }
+
+    struct NodePair {
+        std::uint32_t body{};
+        std::uint32_t collider{};
+    };
+    NodePair stack[256]{{0U, 0U}};
+    std::uint32_t stack_size = 1U;
+    bool overflow = body_mesh.bvh_node_count == 0U ||
+                    collider_mesh.bvh_node_count == 0U;
+    while (stack_size > 0U && !overflow) {
+        const NodePair pair = stack[--stack_size];
+        const BvhNode &body_node = body_mesh.bvh_nodes[pair.body];
+        const BvhNode &collider_node = collider_mesh.bvh_nodes[pair.collider];
+        transformed_bounds(body_node.minimum, body_node.maximum, body_state,
+                           margin, body_minimum, body_maximum);
+        transformed_bounds(collider_node.minimum, collider_node.maximum,
+                           collider_state, 0.0F, collider_minimum,
+                           collider_maximum);
+        if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
+                            collider_maximum)) {
             continue;
         }
-        Vec3 axis = multiply(axes[axis_index], rsqrtf(squared));
-        const float projection_a = dot(a, axis);
-        const float projection_b = dot(b, axis);
-        const float projection_c = dot(c, axis);
-        const float triangle_min = fminf(projection_a,
-                                         fminf(projection_b, projection_c));
-        const float triangle_max = fmaxf(projection_a,
-                                         fmaxf(projection_b, projection_c));
-        const float box_radius = fabsf(axis.x) * box.shape.dimensions.x +
-                                 fabsf(axis.y) * box.shape.dimensions.y +
-                                 fabsf(axis.z) * box.shape.dimensions.z;
-        const float overlap = fminf(triangle_max, box_radius) -
-                              fmaxf(triangle_min, -box_radius);
-        if (overlap < -1.0e-5F) {
-            return {};
+        const bool body_leaf = body_node.triangle_count != 0U;
+        const bool collider_leaf = collider_node.triangle_count != 0U;
+        if (body_leaf && collider_leaf) {
+            collide_triangle_ranges(
+                body_state, body_mesh, body_node.first_triangle,
+                body_node.triangle_count, collider_state, collider_mesh,
+                collider_node.first_triangle, collider_node.triangle_count,
+                margin, manifold);
+            continue;
         }
-        float penetration = overlap;
-        if (triangle_max - triangle_min <= k_epsilon) {
-            const float plane = (projection_a + projection_b + projection_c) /
-                                3.0F;
-            penetration = box_radius - fabsf(plane);
-        }
-        if (penetration < least_overlap) {
-            least_overlap = penetration;
-            if (dot(axis, multiply(triangle_center, -1.0F)) < 0.0F) {
-                axis = multiply(axis, -1.0F);
-            }
-            best_axis = axis;
-        }
-    }
-    if (least_overlap <= 0.0F || least_overlap == FLT_MAX) {
-        return {};
-    }
-    const Vec3 world_normal = rotate(state.orientation, best_axis);
-    const Vec3 point = shape_support_point(box, state,
-                                           multiply(world_normal, -1.0F));
-    return {world_normal, point, least_overlap, true};
-}
 
-__device__ Contact collide_triangle_mesh(
-    const BodyParameters &moving, const RigidBodyState &moving_state,
-    const TriangleMeshResource &mesh, const RigidBodyState &mesh_state) noexcept {
-    Contact best{};
-    for (std::uint32_t index = 0; index < mesh.index_count; index += 3U) {
-        const Vec3 a = transform_point(mesh_state, mesh.vertices[mesh.indices[index]]);
-        const Vec3 b =
-            transform_point(mesh_state, mesh.vertices[mesh.indices[index + 1U]]);
-        const Vec3 c =
-            transform_point(mesh_state, mesh.vertices[mesh.indices[index + 2U]]);
-        Contact candidate{};
-        switch (moving.shape.type) {
-        case ShapeType::sphere:
-            candidate = sphere_triangle_contact(
-                moving_state.position, moving.shape.dimensions.x, a, b, c);
-            break;
-        case ShapeType::capsule:
-            candidate = capsule_triangle_contact(moving, moving_state, a, b, c);
-            break;
-        case ShapeType::box:
-            candidate = box_triangle_contact(moving, moving_state, a, b, c);
-            break;
-        case ShapeType::plane:
-        case ShapeType::triangle_mesh:
+        const std::uint32_t required = body_leaf || collider_leaf ? 2U : 4U;
+        if (stack_size + required > 256U) {
+            overflow = true;
             break;
         }
-        if (candidate.hit && (!best.hit || candidate.penetration > best.penetration)) {
-            best = candidate;
+        if (body_leaf) {
+            stack[stack_size++] = {pair.body, collider_node.right};
+            stack[stack_size++] = {pair.body, collider_node.left};
+        } else if (collider_leaf) {
+            stack[stack_size++] = {body_node.right, pair.collider};
+            stack[stack_size++] = {body_node.left, pair.collider};
+        } else {
+            stack[stack_size++] = {body_node.right, collider_node.right};
+            stack[stack_size++] = {body_node.right, collider_node.left};
+            stack[stack_size++] = {body_node.left, collider_node.right};
+            stack[stack_size++] = {body_node.left, collider_node.left};
         }
     }
-    return best;
-}
-
-__host__ __device__ Contact collide_shapes(
-    const BodyParameters &moving, const RigidBodyState &moving_state,
-    const BodyParameters &collider, const RigidBodyState &collider_state) noexcept {
-    if (collider.shape.type == ShapeType::plane) {
-        const Vec3 normal = local_axis(collider_state.orientation, 1U);
-        const float center_distance =
-            dot(subtract(moving_state.position, collider_state.position), normal);
-        const float radius =
-            shape_support(moving.shape, moving_state.orientation, normal);
-        const float penetration = radius - center_distance;
-        if (penetration <= 0.0F) {
-            return {};
-        }
-        return {normal,
-                subtract(moving_state.position, multiply(normal, radius)),
-                penetration, true};
+    if (overflow) {
+        collide_triangle_ranges(
+            body_state, body_mesh, 0U, body_mesh.index_count / 3U,
+            collider_state, collider_mesh, 0U,
+            collider_mesh.index_count / 3U, margin, manifold);
     }
-
-    if (moving.shape.type == ShapeType::sphere) {
-        const float moving_radius = moving.shape.dimensions.x;
-        if (collider.shape.type == ShapeType::sphere) {
-            const Vec3 delta = subtract(moving_state.position, collider_state.position);
-            const float distance = vector_length(delta);
-            const float radius_sum = moving_radius + collider.shape.dimensions.x;
-            if (distance >= radius_sum) {
-                return {};
-            }
-            const Vec3 normal = normalized_or(delta, {1.0F, 0.0F, 0.0F});
-            return {normal,
-                    subtract(moving_state.position, multiply(normal, moving_radius)),
-                    radius_sum - distance, true};
-        }
-        if (collider.shape.type == ShapeType::box) {
-            return sphere_box_contact(moving_state.position, moving_radius, collider,
-                                      collider_state);
-        }
-        if (collider.shape.type == ShapeType::capsule) {
-            Vec3 a{};
-            Vec3 b{};
-            capsule_segment(collider, collider_state, a, b);
-            const Vec3 closest = closest_on_segment(moving_state.position, a, b);
-            const Vec3 delta = subtract(moving_state.position, closest);
-            const float distance = vector_length(delta);
-            const float radius_sum = moving_radius + collider.shape.dimensions.x;
-            if (distance >= radius_sum) {
-                return {};
-            }
-            const Vec3 normal = normalized_or(
-                delta, normalized_or(subtract(moving_state.position,
-                                              collider_state.position),
-                                     {1.0F, 0.0F, 0.0F}));
-            return {normal,
-                    subtract(moving_state.position, multiply(normal, moving_radius)),
-                    radius_sum - distance, true};
-        }
-    }
-
-    if (moving.shape.type == ShapeType::capsule) {
-        if (collider.shape.type == ShapeType::sphere) {
-            Vec3 a{};
-            Vec3 b{};
-            capsule_segment(moving, moving_state, a, b);
-            const Vec3 closest = closest_on_segment(collider_state.position, a, b);
-            const Vec3 delta = subtract(closest, collider_state.position);
-            const float distance = vector_length(delta);
-            const float radius_sum = moving.shape.dimensions.x +
-                                     collider.shape.dimensions.x;
-            if (distance >= radius_sum) {
-                return {};
-            }
-            const Vec3 normal = normalized_or(
-                delta, normalized_or(subtract(moving_state.position,
-                                              collider_state.position),
-                                     {1.0F, 0.0F, 0.0F}));
-            return {normal,
-                    subtract(closest,
-                             multiply(normal, moving.shape.dimensions.x)),
-                    radius_sum - distance, true};
-        }
-        if (collider.shape.type == ShapeType::capsule) {
-            Vec3 moving_a{};
-            Vec3 moving_b{};
-            Vec3 collider_a{};
-            Vec3 collider_b{};
-            capsule_segment(moving, moving_state, moving_a, moving_b);
-            capsule_segment(collider, collider_state, collider_a, collider_b);
-            Vec3 moving_point{};
-            Vec3 collider_point{};
-            closest_segments(moving_a, moving_b, collider_a, collider_b,
-                             moving_point, collider_point);
-            const Vec3 delta = subtract(moving_point, collider_point);
-            const float distance = vector_length(delta);
-            const float radius_sum = moving.shape.dimensions.x +
-                                     collider.shape.dimensions.x;
-            if (distance >= radius_sum) {
-                return {};
-            }
-            const Vec3 normal = normalized_or(
-                delta, normalized_or(subtract(moving_state.position,
-                                              collider_state.position),
-                                     {1.0F, 0.0F, 0.0F}));
-            return {normal,
-                    subtract(moving_point,
-                             multiply(normal, moving.shape.dimensions.x)),
-                    radius_sum - distance, true};
-        }
-        if (collider.shape.type == ShapeType::box) {
-            return capsule_box_contact(moving, moving_state, collider,
-                                       collider_state);
-        }
-    }
-
-    if (moving.shape.type == ShapeType::box) {
-        if (collider.shape.type == ShapeType::box) {
-            return box_box_contact(moving, moving_state, collider, collider_state);
-        }
-        if (collider.shape.type == ShapeType::sphere) {
-            Contact reverse = sphere_box_contact(
-                collider_state.position, collider.shape.dimensions.x, moving,
-                moving_state);
-            if (!reverse.hit) {
-                return {};
-            }
-            reverse.normal = multiply(reverse.normal, -1.0F);
-            reverse.point = shape_support_point(
-                moving, moving_state, multiply(reverse.normal, -1.0F));
-            return reverse;
-        }
-        if (collider.shape.type == ShapeType::capsule) {
-            Contact reverse = capsule_box_contact(collider, collider_state, moving,
-                                                  moving_state);
-            if (!reverse.hit) {
-                return {};
-            }
-            reverse.normal = multiply(reverse.normal, -1.0F);
-            reverse.point = shape_support_point(
-                moving, moving_state, multiply(reverse.normal, -1.0F));
-            return reverse;
-        }
-    }
-    return {};
+    return manifold;
 }
 
 __host__ __device__ Vec3 inverse_inertia_world(
@@ -987,24 +700,21 @@ __device__ void resolve_contacts(
     if (contact_count == 0U) {
         return;
     }
-    float maximum_penetration = 0.0F;
-    Vec3 correction_normal = contacts[0].normal;
-    for (std::uint32_t index = 0; index < contact_count; ++index) {
-        if (contacts[index].penetration > maximum_penetration) {
-            maximum_penetration = contacts[index].penetration;
-            correction_normal = contacts[index].normal;
-        }
-    }
     const float inverse_mass_sum = body.inverse_mass + collider.inverse_mass;
     if (inverse_mass_sum > k_epsilon) {
-        const Vec3 correction = multiply(
-            correction_normal, (maximum_penetration + 1.0e-5F) / inverse_mass_sum);
-        state.position = add(state.position,
-                             multiply(correction, body.inverse_mass));
-        if (collider.inverse_mass > 0.0F) {
-            collider_state.position = subtract(
-                collider_state.position,
-                multiply(correction, collider.inverse_mass));
+        const float contact_weight = 1.0F / static_cast<float>(contact_count);
+        for (std::uint32_t index = 0; index < contact_count; ++index) {
+            const Vec3 correction = multiply(
+                contacts[index].normal,
+                (contacts[index].penetration + 1.0e-5F) * contact_weight /
+                    inverse_mass_sum);
+            state.position = add(state.position,
+                                 multiply(correction, body.inverse_mass));
+            if (collider.inverse_mass > 0.0F) {
+                collider_state.position = subtract(
+                    collider_state.position,
+                    multiply(correction, collider.inverse_mass));
+            }
         }
     }
     for (std::uint32_t index = 0; index < contact_count; ++index) {
@@ -1131,8 +841,16 @@ __global__ void resolve_rigid_contacts_kernel(
     for (int pass = 0; pass < 8; ++pass) {
         bool found_contact = false;
         for (std::uint32_t index = 0; index < count; ++index) {
-            if (parameters[index].motion != MotionType::dynamic ||
-                parameters[index].shape.type == ShapeType::triangle_mesh) {
+            if (parameters[index].motion != MotionType::dynamic) {
+                continue;
+            }
+            const TriangleMeshId body_mesh_id = parameters[index].mesh;
+            if (body_mesh_id.index >= mesh_capacity) {
+                continue;
+            }
+            const TriangleMeshResource &body_mesh = meshes[body_mesh_id.index];
+            if (!body_mesh.alive ||
+                body_mesh.generation != body_mesh_id.generation) {
                 continue;
             }
             for (std::uint32_t collider_index = 0; collider_index < count;
@@ -1143,41 +861,24 @@ __global__ void resolve_rigid_contacts_kernel(
                     continue;
                 }
                 const BodyParameters &collider = parameters[collider_index];
-                if (collider.shape.type == ShapeType::triangle_mesh) {
-                    const TriangleMeshId mesh_id = collider.shape.mesh;
-                    if (mesh_id.index >= mesh_capacity) {
-                        continue;
-                    }
-                    const TriangleMeshResource &mesh = meshes[mesh_id.index];
-                    if (!mesh.alive || mesh.generation != mesh_id.generation) {
-                        continue;
-                    }
-                    const Contact contact = collide_triangle_mesh(
-                        parameters[index], states[index], mesh,
-                        states[collider_index]);
-                    if (contact.hit) {
-                        resolve_contacts(parameters[index], states[index], collider,
-                                         states[collider_index], &contact, 1U);
-                        found_contact = true;
-                    }
-                } else if (collider.shape.type == ShapeType::plane) {
-                    const ContactManifold manifold = plane_contacts(
-                        parameters[index], states[index], states[collider_index]);
-                    if (manifold.count > 0U) {
-                        resolve_contacts(parameters[index], states[index], collider,
-                                         states[collider_index], manifold.contacts,
-                                         manifold.count);
-                        found_contact = true;
-                    }
-                } else {
-                    const Contact contact = collide_shapes(
-                        parameters[index], states[index], collider,
-                        states[collider_index]);
-                    if (contact.hit) {
-                        resolve_contacts(parameters[index], states[index], collider,
-                                         states[collider_index], &contact, 1U);
-                        found_contact = true;
-                    }
+                const TriangleMeshId collider_mesh_id = collider.mesh;
+                if (collider_mesh_id.index >= mesh_capacity) {
+                    continue;
+                }
+                const TriangleMeshResource &collider_mesh =
+                    meshes[collider_mesh_id.index];
+                if (!collider_mesh.alive ||
+                    collider_mesh.generation != collider_mesh_id.generation) {
+                    continue;
+                }
+                const ContactManifold manifold = collide_meshes(
+                    parameters[index], states[index], body_mesh, collider,
+                    states[collider_index], collider_mesh);
+                if (manifold.count > 0U) {
+                    resolve_contacts(parameters[index], states[index], collider,
+                                     states[collider_index], manifold.contacts,
+                                     manifold.count);
+                    found_contact = true;
                 }
             }
         }
@@ -1255,48 +956,6 @@ struct CompletionState {
     return value.x == 0.0F && value.y == 0.0F && value.z == 0.0F;
 }
 
-[[nodiscard]] Status validate_shape(const RigidBodyOptions &options) noexcept {
-    const Vec3 dimensions = options.shape.dimensions;
-    if (!finite(dimensions)) {
-        return failure(StatusCode::invalid_argument,
-                       "collision shape dimensions must be finite");
-    }
-    switch (options.shape.type) {
-    case ShapeType::sphere:
-        if (dimensions.x <= 0.0F) {
-            return failure(StatusCode::invalid_argument,
-                           "sphere radius must be positive");
-        }
-        break;
-    case ShapeType::box:
-        if (dimensions.x <= 0.0F || dimensions.y <= 0.0F ||
-            dimensions.z <= 0.0F) {
-            return failure(StatusCode::invalid_argument,
-                           "box half extents must be positive");
-        }
-        break;
-    case ShapeType::capsule:
-        if (dimensions.x <= 0.0F || dimensions.y < 0.0F) {
-            return failure(StatusCode::invalid_argument,
-                           "capsule radius must be positive and half-height nonnegative");
-        }
-        break;
-    case ShapeType::plane:
-        if (options.motion == MotionType::dynamic) {
-            return failure(StatusCode::invalid_argument,
-                           "plane bodies cannot be dynamic");
-        }
-        break;
-    case ShapeType::triangle_mesh:
-        if (options.motion == MotionType::dynamic) {
-            return failure(StatusCode::invalid_argument,
-                           "triangle mesh bodies cannot be dynamic");
-        }
-        break;
-    }
-    return success();
-}
-
 [[nodiscard]] Status validate_body_options(const RigidBodyOptions &options) noexcept {
     if (!finite(options.initial_state)) {
         return failure(StatusCode::invalid_argument,
@@ -1310,10 +969,6 @@ struct CompletionState {
     if (quaternion_size <= k_epsilon * k_epsilon) {
         return failure(StatusCode::invalid_argument,
                        "rigid body orientation must be nonzero");
-    }
-    Status shape_status = validate_shape(options);
-    if (!shape_status) {
-        return shape_status;
     }
     if (options.motion == MotionType::dynamic &&
         (!finite(options.mass) || options.mass <= 0.0F)) {
@@ -1336,60 +991,18 @@ struct CompletionState {
         !finite(options.maximum_linear_speed) ||
         options.maximum_linear_speed <= 0.0F ||
         !finite(options.maximum_angular_speed) ||
-        options.maximum_angular_speed <= 0.0F) {
+        options.maximum_angular_speed <= 0.0F ||
+        !finite(options.collision_margin) || options.collision_margin <= 0.0F) {
         return failure(StatusCode::invalid_argument,
                        "rigid body material and limits are invalid");
     }
     return success();
 }
 
-[[nodiscard]] Vec3 derived_inertia(const RigidBodyOptions &options) noexcept {
-    const float mass = options.mass;
-    const Vec3 dimensions = options.shape.dimensions;
-    switch (options.shape.type) {
-    case ShapeType::sphere: {
-        const float moment = 0.4F * mass * dimensions.x * dimensions.x;
-        return {moment, moment, moment};
-    }
-    case ShapeType::box:
-        return {mass * (dimensions.y * dimensions.y +
-                        dimensions.z * dimensions.z) /
-                    3.0F,
-                mass * (dimensions.x * dimensions.x +
-                        dimensions.z * dimensions.z) /
-                    3.0F,
-                mass * (dimensions.x * dimensions.x +
-                        dimensions.y * dimensions.y) /
-                    3.0F};
-    case ShapeType::capsule: {
-        const float radius = dimensions.x;
-        const float half_height = dimensions.y;
-        const float cylinder_volume = 2.0F * half_height * radius * radius;
-        const float sphere_volume = 4.0F * radius * radius * radius / 3.0F;
-        const float total_volume = cylinder_volume + sphere_volume;
-        const float cylinder_mass = mass * cylinder_volume / total_volume;
-        const float cap_mass = mass - cylinder_mass;
-        const float axial = 0.5F * cylinder_mass * radius * radius +
-                            0.4F * cap_mass * radius * radius;
-        const float transverse =
-            cylinder_mass * (3.0F * radius * radius +
-                             4.0F * half_height * half_height) /
-                12.0F +
-            cap_mass * (0.4F * radius * radius +
-                        half_height * half_height);
-        return {transverse, axial, transverse};
-    }
-    case ShapeType::plane:
-    case ShapeType::triangle_mesh:
-        return {1.0F, 1.0F, 1.0F};
-    }
-    return {1.0F, 1.0F, 1.0F};
-}
-
 [[nodiscard]] BodyParameters make_parameters(
-    const RigidBodyOptions &options) noexcept {
+    const RigidBodyOptions &options, const TriangleMeshResource &mesh) noexcept {
     const Vec3 inertia = zero(options.inertia_diagonal)
-                             ? derived_inertia(options)
+                             ? multiply(mesh.unit_inertia, options.mass)
                              : options.inertia_diagonal;
     const float inverse_mass =
         options.motion == MotionType::dynamic ? 1.0F / options.mass : 0.0F;
@@ -1398,7 +1011,7 @@ struct CompletionState {
                                             1.0F / inertia.z}
                                      : Vec3{};
     return {options.motion,
-            options.shape,
+            options.mesh,
             inverse_mass,
             inverse_inertia,
             options.friction,
@@ -1407,6 +1020,7 @@ struct CompletionState {
             options.angular_damping,
             options.maximum_linear_speed,
             options.maximum_angular_speed,
+            options.collision_margin,
             options.user_data};
 }
 
@@ -1469,6 +1083,7 @@ struct World::Impl {
         if (meshes != nullptr) {
             for (std::uint32_t index = 0;
                  index < options.triangle_mesh_capacity; ++index) {
+                release_managed(meshes[index].bvh_nodes);
                 release_managed(meshes[index].indices);
                 release_managed(meshes[index].vertices);
             }
@@ -1585,9 +1200,10 @@ World &World::operator=(World &&) noexcept = default;
 Status World::create(WorldOptions options, World &output,
                      cudaStream_t stream) noexcept {
     (void)stream;
-    if (options.rigid_body_capacity == 0U) {
+    if (options.rigid_body_capacity == 0U ||
+        options.triangle_mesh_capacity == 0U) {
         return failure(StatusCode::invalid_argument,
-                       "rigid body capacity must be positive");
+                       "rigid body and triangle mesh capacities must be positive");
     }
     int device = -1;
     cudaError_t error = cudaGetDevice(&device);
@@ -1787,6 +1403,13 @@ Status World::add_triangle_mesh(
                            "triangle mesh contains a non-finite vertex");
         }
     }
+
+    Vec3 minimum = owned_vertices[0];
+    Vec3 maximum = owned_vertices[0];
+    for (std::uint64_t index = 1; index < vertices.size; ++index) {
+        minimum = component_min(minimum, owned_vertices[index]);
+        maximum = component_max(maximum, owned_vertices[index]);
+    }
     for (std::uint64_t index = 0; index < triangle_indices.size; index += 3U) {
         const std::uint32_t first = owned_indices[index];
         const std::uint32_t second = owned_indices[index + 1U];
@@ -1810,11 +1433,116 @@ Status World::add_triangle_mesh(
         }
     }
 
+    std::vector<std::uint32_t> triangle_order;
+    std::vector<BvhNode> bvh_nodes;
+    std::vector<std::uint32_t> reordered_indices;
+    try {
+        const std::uint32_t triangle_count =
+            static_cast<std::uint32_t>(triangle_indices.size / 3U);
+        triangle_order.resize(triangle_count);
+        std::iota(triangle_order.begin(), triangle_order.end(), 0U);
+        bvh_nodes.reserve(triangle_count * 2U);
+        const auto coordinate = [](Vec3 value, int axis) {
+            return axis == 0 ? value.x : (axis == 1 ? value.y : value.z);
+        };
+        const auto centroid = [&](std::uint32_t triangle) {
+            const std::uint32_t offset = triangle * 3U;
+            return multiply(
+                add(add(owned_vertices[owned_indices[offset]],
+                        owned_vertices[owned_indices[offset + 1U]]),
+                    owned_vertices[owned_indices[offset + 2U]]),
+                1.0F / 3.0F);
+        };
+        std::function<std::uint32_t(std::uint32_t, std::uint32_t)> build =
+            [&](std::uint32_t begin, std::uint32_t end) {
+                BvhNode node{};
+                node.minimum = {FLT_MAX, FLT_MAX, FLT_MAX};
+                node.maximum = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+                for (std::uint32_t item = begin; item < end; ++item) {
+                    const std::uint32_t offset = triangle_order[item] * 3U;
+                    for (std::uint32_t corner = 0; corner < 3U; ++corner) {
+                        const Vec3 vertex =
+                            owned_vertices[owned_indices[offset + corner]];
+                        node.minimum = component_min(node.minimum, vertex);
+                        node.maximum = component_max(node.maximum, vertex);
+                    }
+                }
+                const std::uint32_t node_index =
+                    static_cast<std::uint32_t>(bvh_nodes.size());
+                bvh_nodes.push_back(node);
+                if (end - begin <= 4U) {
+                    bvh_nodes[node_index].first_triangle = begin;
+                    bvh_nodes[node_index].triangle_count = end - begin;
+                    return node_index;
+                }
+                const Vec3 extent = subtract(node.maximum, node.minimum);
+                const int axis = extent.x >= extent.y && extent.x >= extent.z
+                                     ? 0
+                                     : (extent.y >= extent.z ? 1 : 2);
+                std::stable_sort(
+                    triangle_order.begin() + begin, triangle_order.begin() + end,
+                    [&](std::uint32_t first, std::uint32_t second) {
+                        const float first_value = coordinate(centroid(first), axis);
+                        const float second_value = coordinate(centroid(second), axis);
+                        return first_value < second_value ||
+                               (first_value == second_value && first < second);
+                    });
+                const std::uint32_t middle = begin + (end - begin) / 2U;
+                const std::uint32_t left = build(begin, middle);
+                const std::uint32_t right = build(middle, end);
+                bvh_nodes[node_index].left = left;
+                bvh_nodes[node_index].right = right;
+                return node_index;
+            };
+        (void)build(0U, triangle_count);
+        reordered_indices.resize(triangle_indices.size);
+        for (std::uint32_t triangle = 0; triangle < triangle_count; ++triangle) {
+            const std::uint32_t source = triangle_order[triangle] * 3U;
+            const std::uint32_t destination = triangle * 3U;
+            reordered_indices[destination] = owned_indices[source];
+            reordered_indices[destination + 1U] = owned_indices[source + 1U];
+            reordered_indices[destination + 2U] = owned_indices[source + 2U];
+        }
+    } catch (...) {
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return failure(StatusCode::out_of_memory,
+                       "failed to build triangle mesh acceleration data");
+    }
+
+    BvhNode *owned_bvh_nodes = nullptr;
+    status = allocate_managed(owned_bvh_nodes, bvh_nodes.size());
+    if (!status) {
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return status;
+    }
+    std::copy(reordered_indices.begin(), reordered_indices.end(), owned_indices);
+    std::copy(bvh_nodes.begin(), bvh_nodes.end(), owned_bvh_nodes);
+
     TriangleMeshResource &mesh = impl_->meshes[slot];
     mesh.vertices = owned_vertices;
     mesh.indices = owned_indices;
     mesh.vertex_count = static_cast<std::uint32_t>(vertices.size);
     mesh.index_count = static_cast<std::uint32_t>(triangle_indices.size);
+    mesh.minimum = minimum;
+    mesh.maximum = maximum;
+    const Vec3 half_extents = multiply(subtract(maximum, minimum), 0.5F);
+    mesh.unit_inertia = {
+        fmaxf((half_extents.y * half_extents.y +
+               half_extents.z * half_extents.z) /
+                  3.0F,
+              k_epsilon),
+        fmaxf((half_extents.x * half_extents.x +
+               half_extents.z * half_extents.z) /
+                  3.0F,
+              k_epsilon),
+        fmaxf((half_extents.x * half_extents.x +
+               half_extents.y * half_extents.y) /
+                  3.0F,
+              k_epsilon)};
+    mesh.bvh_nodes = owned_bvh_nodes;
+    mesh.bvh_node_count = static_cast<std::uint32_t>(bvh_nodes.size());
     mesh.alive = true;
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
@@ -1835,17 +1563,18 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
         return status;
     }
     for (std::uint32_t index = 0; index < impl_->rigid_body_count; ++index) {
-        if (impl_->parameters[index].shape.type == ShapeType::triangle_mesh &&
-            impl_->parameters[index].shape.mesh == mesh_id) {
+        if (impl_->parameters[index].mesh == mesh_id) {
             return failure(StatusCode::invalid_argument,
                            "triangle mesh is still referenced by a rigid body");
         }
     }
     TriangleMeshResource &mesh = impl_->meshes[mesh_id.index];
+    release_managed(mesh.bvh_nodes);
     release_managed(mesh.indices);
     release_managed(mesh.vertices);
     mesh.vertex_count = 0U;
     mesh.index_count = 0U;
+    mesh.bvh_node_count = 0U;
     mesh.alive = false;
     ++mesh.generation;
     if (mesh.generation == 0U) {
@@ -1869,11 +1598,9 @@ Status World::add_rigid_body(RigidBodyOptions options,
     if (!status) {
         return status;
     }
-    if (options.shape.type == ShapeType::triangle_mesh) {
-        status = impl_->validate_handle(options.shape.mesh);
-        if (!status) {
-            return status;
-        }
+    status = impl_->validate_handle(options.mesh);
+    if (!status) {
+        return status;
     }
     if (impl_->rigid_body_count >= impl_->options.rigid_body_capacity) {
         return failure(StatusCode::capacity_exceeded,
@@ -1903,7 +1630,8 @@ Status World::add_rigid_body(RigidBodyOptions options,
     RigidBodyState normalized_state = options.initial_state;
     normalized_state.orientation =
         normalized_quaternion(normalized_state.orientation);
-    impl_->parameters[dense] = make_parameters(options);
+    impl_->parameters[dense] =
+        make_parameters(options, impl_->meshes[options.mesh.index]);
     impl_->accumulators[dense] = {};
     impl_->targets[dense] = {};
     impl_->ids[dense] = id;
@@ -2278,7 +2006,8 @@ Status World::collect_statistics(WorldStatistics &output,
         if (impl_->meshes[index].alive) {
             output.allocated_bytes +=
                 impl_->meshes[index].vertex_count * sizeof(Vec3) +
-                impl_->meshes[index].index_count * sizeof(std::uint32_t);
+                impl_->meshes[index].index_count * sizeof(std::uint32_t) +
+                impl_->meshes[index].bvh_node_count * sizeof(BvhNode);
         }
     }
     return success();

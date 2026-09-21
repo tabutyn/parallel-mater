@@ -179,41 +179,6 @@ enum class MotionType : std::uint8_t {
     dynamic,
 };
 
-enum class ShapeType : std::uint8_t {
-    sphere,
-    box,
-    capsule,
-    plane,
-    triangle_mesh,
-};
-
-// Shape dimensions are radius in x for a sphere, half-extents for a box,
-// (radius, half-height, 0) for a local-Y capsule, and unused for a local +Y
-// plane. Static constructors make call sites self-documenting.
-struct CollisionShape {
-    ShapeType type{ShapeType::sphere};
-    Vec3 dimensions{0.5F, 0.0F, 0.0F};
-    TriangleMeshId mesh{};
-
-    [[nodiscard]] static constexpr CollisionShape sphere(float radius) noexcept {
-        return {ShapeType::sphere, {radius, 0.0F, 0.0F}};
-    }
-    [[nodiscard]] static constexpr CollisionShape box(Vec3 half_extents) noexcept {
-        return {ShapeType::box, half_extents};
-    }
-    [[nodiscard]] static constexpr CollisionShape capsule(float radius,
-                                                          float half_height) noexcept {
-        return {ShapeType::capsule, {radius, half_height, 0.0F}};
-    }
-    [[nodiscard]] static constexpr CollisionShape plane() noexcept {
-        return {ShapeType::plane, {}};
-    }
-    [[nodiscard]] static constexpr CollisionShape
-    triangle_mesh(TriangleMeshId mesh) noexcept {
-        return {ShapeType::triangle_mesh, {}, mesh};
-    }
-};
-
 struct RigidBodyState {
     Vec3 position{};
     Quaternion orientation{};
@@ -223,10 +188,10 @@ struct RigidBodyState {
 
 struct RigidBodyOptions {
     MotionType motion{MotionType::dynamic};
-    CollisionShape shape{};
+    TriangleMeshId mesh{};
     RigidBodyState initial_state{};
     float mass{1.0F};
-    // Zero requests an inertia diagonal derived from mass and shape.
+    // Zero requests an AABB inertia approximation derived from the mesh.
     Vec3 inertia_diagonal{};
     float friction{0.5F};
     float restitution{};
@@ -234,6 +199,7 @@ struct RigidBodyOptions {
     float angular_damping{0.05F};
     float maximum_linear_speed{100.0F};
     float maximum_angular_speed{100.0F};
+    float collision_margin{0.005F};
     std::uint64_t user_data{};
 };
 
