@@ -86,3 +86,25 @@ is numerical thickness, not a replacement for continuous collision detection.
 Future fluid, cloth, soft-body, rope, and smoke schemas will be introduced only
 with their reviewed public APIs. Unknown systems and schema versions fail
 explicitly rather than silently changing scene meaning.
+
+## Gate for the isolated-fluid milestone
+
+PR 5 does not start—and no fluid kernels are run—until the authored source file
+`examples/assets/FluidLifecycle.blend` is supplied. That file should contain:
+
+- one mesh object named `FluidSeed` whose vertices, with no faces required,
+  define the initial particle positions;
+- one rectangular mesh named `SpawnPlane` defining the finite emission area;
+- one rectangular mesh named `DestroyPlane` below it, positioned so particles
+  must cross it during the example;
+- a visible but non-colliding backdrop that makes the particle motion readable;
+- enough separation between the two planes to observe neighbor rebuilding,
+  fluid advancement, deterministic spawning, and swept destruction.
+
+The initial review will agree on fluid capacity, particle radius, emission
+rate, initial velocity, destroy direction, and custom-property names before the
+exporter or loader is changed. Do not manually add provisional `pm_*` fluid
+properties: the schema must follow the reviewed public API rather than define
+it accidentally. Rigid containment belongs to the following coupling
+milestone, so this first scene should demonstrate a free particle stream, not a
+tank that depends on unimplemented fluid–rigid contacts.

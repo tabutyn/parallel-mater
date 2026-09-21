@@ -197,7 +197,11 @@ void test_floor_contact_and_async_contract() {
                  "add contacting box");
     FrameToken token;
     check_status(world.step_async(
-                     {.timestep = 1.0F / 60.0F, .substeps = 4U, .gravity = {}},
+                     {.timestep = 1.0F / 60.0F,
+                      .substeps = 4U,
+                      .gravity = {},
+                      .collect_kernel_timings = true,
+                      .collect_rigid_contacts = true},
                      token),
                  "enqueue asynchronous contact frame");
     check(token.pending(), "frame token must remain pending until acknowledged");
@@ -210,6 +214,38 @@ void test_floor_contact_and_async_contract() {
           "triangle mesh contact must project the box above the plane");
     check(state.linear_velocity.y >= -1.0e-3F,
           "triangle mesh contact must remove inward velocity");
+
+    const RigidContactDeviceView contact_view = world.rigid_contacts();
+    check(contact_view.event_count > 0U &&
+              contact_view.events.size == contact_view.event_count,
+          "requested rigid contact diagnostics must be available");
+    if (contact_view.event_count > 0U) {
+        RigidContactEvent contact{};
+        check(cudaMemcpy(&contact, contact_view.events.data, sizeof(contact),
+                         cudaMemcpyDeviceToHost) == cudaSuccess,
+              "download rigid contact diagnostic");
+        check(std::isfinite(contact.position.y) &&
+                  std::isfinite(contact.normal.y) &&
+                  contact.penetration > 0.0F && contact.normal_impulse >= 0.0F,
+              "rigid contact diagnostic must contain finite solver values");
+    }
+
+    WorldStepTimings timings{};
+    check_status(world.collect_step_timings(timings),
+                 "collect rigid kernel timings");
+    check(timings.available && timings.rigid_integration.launch_count == 4U &&
+              timings.rigid_contact_generation.launch_count == 4U &&
+              timings.rigid_contact_solve.launch_count == 4U &&
+              timings.rigid_input_clear.launch_count == 1U &&
+              timings.total_gpu_milliseconds > 0.0F,
+          "requested timings must report every rigid kernel launch");
+
+    check_status(world.remove_rigid_body(box), "remove diagnostic box");
+    check_status(world.remove_rigid_body(floor), "remove diagnostic floor");
+    check_status(world.step({.collect_rigid_contacts = true}),
+                 "step empty diagnostic world");
+    check(world.rigid_contacts().event_count == 0U,
+          "an empty frame must clear stale rigid contacts");
 }
 
 void test_open_two_sided_surface() {

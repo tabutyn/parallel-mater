@@ -157,6 +157,11 @@ struct ContactManifold {
     std::uint32_t count{};
 };
 
+struct AppliedContactImpulse {
+    float normal{};
+    Vec3 friction{};
+};
+
 struct BvhNode {
     Vec3 minimum{};
     Vec3 maximum{};
@@ -613,10 +618,11 @@ __host__ __device__ Vec3 inverse_inertia_world(
     return rotate(state.orientation, transformed);
 }
 
-__device__ void apply_contact_impulse(
+__device__ AppliedContactImpulse apply_contact_impulse(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact &contact) noexcept {
+    AppliedContactImpulse applied{};
     const Vec3 body_arm = subtract(contact.point, state.position);
     const Vec3 collider_arm = subtract(contact.point, collider_state.position);
     const Vec3 body_velocity =
@@ -627,7 +633,7 @@ __device__ void apply_contact_impulse(
     Vec3 relative_velocity = subtract(body_velocity, collider_velocity);
     const float normal_speed = dot(relative_velocity, contact.normal);
     if (normal_speed >= 0.0F) {
-        return;
+        return applied;
     }
 
     const Vec3 body_cross = cross(body_arm, contact.normal);
@@ -641,11 +647,12 @@ __device__ void apply_contact_impulse(
         body.inverse_mass + collider.inverse_mass +
         dot(add(angular_term, collider_angular_term), contact.normal);
     if (denominator <= k_epsilon) {
-        return;
+        return applied;
     }
 
     const float restitution = fminf(body.restitution, collider.restitution);
     const float normal_impulse = -(1.0F + restitution) * normal_speed / denominator;
+    applied.normal = normal_impulse;
     const Vec3 normal_vector = multiply(contact.normal, normal_impulse);
     state.linear_velocity =
         add(state.linear_velocity, multiply(normal_vector, body.inverse_mass));
@@ -671,7 +678,7 @@ __device__ void apply_contact_impulse(
                                      dot(relative_velocity, contact.normal)));
     const float tangent_length = vector_length(tangent);
     if (tangent_length <= k_epsilon) {
-        return;
+        return applied;
     }
     tangent = multiply(tangent, 1.0F / tangent_length);
     const Vec3 tangent_cross = cross(body_arm, tangent);
@@ -683,7 +690,7 @@ __device__ void apply_contact_impulse(
                       collider_arm)),
             tangent);
     if (tangent_denominator <= k_epsilon) {
-        return;
+        return applied;
     }
     float tangent_impulse = -dot(relative_velocity, tangent) / tangent_denominator;
     const float friction_limit =
@@ -691,6 +698,7 @@ __device__ void apply_contact_impulse(
     tangent_impulse =
         clamp_scalar(tangent_impulse, -friction_limit, friction_limit);
     const Vec3 tangent_vector = multiply(tangent, tangent_impulse);
+    applied.friction = tangent_vector;
     state.linear_velocity =
         add(state.linear_velocity, multiply(tangent_vector, body.inverse_mass));
     state.angular_velocity =
@@ -705,13 +713,14 @@ __device__ void apply_contact_impulse(
             inverse_inertia_world(collider, collider_state,
                                   cross(collider_arm, tangent_vector)));
     }
+    return applied;
 }
 
 __device__ void resolve_contacts(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact *contacts, std::uint32_t contact_count,
-    bool correct_position) noexcept {
+    bool correct_position, RigidContactEvent *debug_events) noexcept {
     if (contact_count == 0U) {
         return;
     }
@@ -733,8 +742,13 @@ __device__ void resolve_contacts(
         }
     }
     for (std::uint32_t index = 0; index < contact_count; ++index) {
-        apply_contact_impulse(body, state, collider, collider_state,
-                              contacts[index]);
+        const AppliedContactImpulse applied = apply_contact_impulse(
+            body, state, collider, collider_state, contacts[index]);
+        if (debug_events != nullptr) {
+            debug_events[index].normal_impulse += applied.normal;
+            debug_events[index].friction_impulse =
+                add(debug_events[index].friction_impulse, applied.friction);
+        }
     }
 }
 
@@ -886,12 +900,18 @@ __global__ void generate_rigid_contacts_kernel(
 
 __global__ void resolve_cached_rigid_contacts_kernel(
     const BodyParameters *parameters, RigidBodyState *states,
-    std::uint32_t count, const ContactManifold *manifolds,
-    std::uint32_t manifold_stride) {
+    const RigidBodyId *ids, std::uint32_t count,
+    const ContactManifold *manifolds, std::uint32_t manifold_stride,
+    RigidContactEvent *debug_events, std::uint32_t debug_capacity,
+    std::uint32_t *debug_count, bool reset_debug) {
     if (blockIdx.x != 0U || threadIdx.x != 0U) {
         return;
     }
+    if (reset_debug) {
+        *debug_count = 0U;
+    }
     for (int pass = 0; pass < 8; ++pass) {
+        std::uint32_t event_cursor = 0U;
         for (std::uint32_t index = 0; index < count; ++index) {
             if (parameters[index].motion != MotionType::dynamic) {
                 continue;
@@ -906,12 +926,34 @@ __global__ void resolve_cached_rigid_contacts_kernel(
                 const ContactManifold &manifold =
                     manifolds[index * manifold_stride + collider_index];
                 if (manifold.count > 0U) {
+                    RigidContactEvent *events = nullptr;
+                    if (event_cursor <= debug_capacity &&
+                        manifold.count <= debug_capacity - event_cursor) {
+                        events = debug_events + event_cursor;
+                        if (pass == 0) {
+                            for (std::uint32_t contact_index = 0;
+                                 contact_index < manifold.count;
+                                 ++contact_index) {
+                                const Contact &contact =
+                                    manifold.contacts[contact_index];
+                                events[contact_index] = {
+                                    ids[index], ids[collider_index],
+                                    contact.point, contact.normal,
+                                    contact.penetration, 0.0F, {}};
+                            }
+                        }
+                    }
                     resolve_contacts(parameters[index], states[index],
                                      parameters[collider_index],
                                      states[collider_index], manifold.contacts,
-                                     manifold.count, pass == 0);
+                                     manifold.count, pass == 0, events);
+                    event_cursor += manifold.count;
                 }
             }
+        }
+        if (pass == 0 && event_cursor > 0U) {
+            *debug_count = event_cursor < debug_capacity ? event_cursor
+                                                         : debug_capacity;
         }
     }
     for (std::uint32_t index = 0; index < count; ++index) {
@@ -946,6 +988,13 @@ struct CompletionState {
             cudaEventDestroy(event);
         }
     }
+};
+
+enum class TimingStage : std::uint8_t {
+    rigid_integration,
+    rigid_contact_generation,
+    rigid_contact_solve,
+    rigid_input_clear,
 };
 
 [[nodiscard]] Status wait_for_completion(
@@ -1102,8 +1151,16 @@ struct World::Impl {
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
     ContactManifold *rigid_manifolds{};
+    RigidContactEvent *rigid_contact_events{};
+    std::uint32_t *rigid_contact_count{};
+    std::uint32_t rigid_contact_capacity{};
     TriangleMeshResource *meshes{};
     std::shared_ptr<CompletionState> frame{};
+    std::vector<cudaEvent_t> timing_events{};
+    std::vector<TimingStage> timing_stages{};
+    std::size_t timing_boundary_count{};
+    std::uint64_t timing_frame_index{};
+    bool timing_available{};
 
     ~Impl() {
         if (frame && !frame->acknowledged) {
@@ -1117,7 +1174,12 @@ struct World::Impl {
                 release_managed(meshes[index].vertices);
             }
         }
+        for (cudaEvent_t event : timing_events) {
+            cudaEventDestroy(event);
+        }
         release_managed(meshes);
+        release_managed(rigid_contact_count);
+        release_managed(rigid_contact_events);
         release_managed(rigid_manifolds);
         release_managed(states[1]);
         release_managed(states[0]);
@@ -1125,6 +1187,34 @@ struct World::Impl {
         release_managed(targets);
         release_managed(accumulators);
         release_managed(parameters);
+    }
+
+    [[nodiscard]] Status prepare_timing_events(
+        std::size_t boundary_count) noexcept {
+        try {
+            timing_events.reserve(boundary_count);
+            timing_stages.clear();
+            timing_stages.reserve(boundary_count > 0U ? boundary_count - 1U
+                                                       : 0U);
+        } catch (...) {
+            return failure(StatusCode::out_of_memory,
+                           "failed to allocate timing event storage");
+        }
+        while (timing_events.size() < boundary_count) {
+            cudaEvent_t event = nullptr;
+            const cudaError_t error = cudaEventCreate(&event);
+            if (error != cudaSuccess) {
+                return cuda_failure(error, "failed to create CUDA timing event");
+            }
+            try {
+                timing_events.push_back(event);
+            } catch (...) {
+                cudaEventDestroy(event);
+                return failure(StatusCode::out_of_memory,
+                               "failed to retain CUDA timing event");
+            }
+        }
+        return success();
     }
 
     [[nodiscard]] Status require_current_device() const noexcept {
@@ -1259,6 +1349,14 @@ Status World::create(WorldOptions options, World &output,
         return failure(StatusCode::invalid_argument,
                        "rigid body capacity exceeds contact cache range");
     }
+    constexpr std::size_t contacts_per_manifold = 8U;
+    if (manifold_count >
+        std::numeric_limits<std::uint32_t>::max() / contacts_per_manifold) {
+        return failure(StatusCode::invalid_argument,
+                       "rigid body capacity exceeds contact event range");
+    }
+    implementation->rigid_contact_capacity = static_cast<std::uint32_t>(
+        manifold_count * contacts_per_manifold);
 
     Status status = allocate_managed(implementation->parameters,
                                      options.rigid_body_capacity);
@@ -1294,6 +1392,15 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_contact_events,
+                              implementation->rigid_contact_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_contact_count, 1U);
+    if (!status) {
+        return status;
+    }
     status = allocate_managed(implementation->meshes,
                               options.triangle_mesh_capacity);
     if (!status) {
@@ -1313,6 +1420,9 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->rigid_manifolds, manifold_count,
                 ContactManifold{});
+    std::fill_n(implementation->rigid_contact_events,
+                implementation->rigid_contact_capacity, RigidContactEvent{});
+    *implementation->rigid_contact_count = 0U;
     std::fill_n(implementation->meshes, options.triangle_mesh_capacity,
                 TriangleMeshResource{});
     for (std::uint32_t index = 0; index < options.triangle_mesh_capacity;
@@ -1327,51 +1437,51 @@ Status World::create(WorldOptions options, World &output,
 Status World::add_fluid(FluidOptions, DeviceSpan<const FluidParticle>, FluidId &,
                         cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 4");
+                   "fluid implementation is scheduled for PR 5");
 }
 
 Status World::remove_fluid(FluidId, cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 4");
+                   "fluid implementation is scheduled for PR 5");
 }
 
 Status World::fluid_view(FluidId, FluidDeviceView &) const noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 4");
+                   "fluid implementation is scheduled for PR 5");
 }
 
 Status World::add_particle_spawn_plane(ParticleSpawnPlaneOptions,
                                        ParticleSpawnPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::update_particle_spawn_plane(ParticleSpawnPlaneId,
                                           ParticleSpawnPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::remove_particle_spawn_plane(ParticleSpawnPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::add_particle_destroy_plane(ParticleDestroyPlaneOptions,
                                          ParticleDestroyPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::update_particle_destroy_plane(ParticleDestroyPlaneId,
                                             ParticleDestroyPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::remove_particle_destroy_plane(ParticleDestroyPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 4");
+                   "particle lifecycle implementation is scheduled for PR 5");
 }
 
 Status World::add_triangle_mesh(
@@ -1922,6 +2032,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         return failure(StatusCode::invalid_argument,
                        "step timestep, substeps, or gravity is invalid");
     }
+    if (impl_->rigid_body_count == 0U) {
+        *impl_->rigid_contact_count = 0U;
+    }
 
     std::unique_ptr<FrameToken::Impl> token_impl;
     if (completion.impl_) {
@@ -1948,6 +2061,34 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         return cuda_failure(error, "failed to create frame completion event");
     }
 
+    impl_->timing_available = false;
+    impl_->timing_boundary_count = 0U;
+    std::size_t timing_boundary = 0U;
+    if (options.collect_kernel_timings) {
+        status = impl_->prepare_timing_events(
+            static_cast<std::size_t>(options.substeps) * 3U + 2U);
+        if (!status) {
+            return status;
+        }
+        error = cudaEventRecord(impl_->timing_events[timing_boundary++], stream);
+        if (error != cudaSuccess) {
+            return cuda_failure(error, "failed to begin kernel timing");
+        }
+    }
+
+    const auto record_timing_stage = [&](TimingStage stage) noexcept -> Status {
+        if (!options.collect_kernel_timings) {
+            return success();
+        }
+        impl_->timing_stages.push_back(stage);
+        const cudaError_t timing_error =
+            cudaEventRecord(impl_->timing_events[timing_boundary++], stream);
+        return timing_error == cudaSuccess
+                   ? success()
+                   : cuda_failure(timing_error,
+                                  "failed to record kernel timing boundary");
+    };
+
     constexpr std::uint32_t block_size = 128U;
     const std::uint32_t block_count =
         (impl_->rigid_body_count + block_size - 1U) / block_size;
@@ -1968,6 +2109,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid integration kernel launch failed");
         }
+        status = record_timing_stage(TimingStage::rigid_integration);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
         const std::uint32_t pair_count =
             impl_->rigid_body_count * impl_->rigid_body_count;
         const std::uint32_t pair_block_count =
@@ -1984,15 +2130,27 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return cuda_failure(error,
                                 "rigid contact generation kernel launch failed");
         }
+        status = record_timing_stage(TimingStage::rigid_contact_generation);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
         resolve_cached_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
-            impl_->rigid_body_count, impl_->rigid_manifolds,
-            impl_->options.rigid_body_capacity);
+            impl_->ids, impl_->rigid_body_count, impl_->rigid_manifolds,
+            impl_->options.rigid_body_capacity, impl_->rigid_contact_events,
+            options.collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
+            impl_->rigid_contact_count, substep == 0U);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
                                 "rigid contact solve kernel launch failed");
+        }
+        status = record_timing_stage(TimingStage::rigid_contact_solve);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
         }
         impl_->current_state = output_state;
     }
@@ -2005,6 +2163,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid input-clear kernel launch failed");
         }
+        status = record_timing_stage(TimingStage::rigid_input_clear);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
+    } else if (options.collect_kernel_timings) {
+        error = cudaEventRecord(impl_->timing_events[timing_boundary++], stream);
+        if (error != cudaSuccess) {
+            return cuda_failure(error, "failed to finish empty kernel timing");
+        }
     }
     error = cudaEventRecord(frame->event, stream);
     if (error != cudaSuccess) {
@@ -2014,6 +2182,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
 
     ++impl_->frame_index;
     ++impl_->revision;
+    if (options.collect_kernel_timings) {
+        impl_->timing_available = true;
+        impl_->timing_boundary_count = timing_boundary;
+        impl_->timing_frame_index = impl_->frame_index;
+    }
     impl_->frame = frame;
     token_impl->completion = std::move(frame);
     completion.impl_ = std::move(token_impl);
@@ -2034,6 +2207,70 @@ ContactDeviceView World::contacts() const noexcept {
         return {};
     }
     return {{}, 0U, false, impl_->frame_index};
+}
+
+RigidContactDeviceView World::rigid_contacts() const noexcept {
+    if (!impl_ || (impl_->frame && !impl_->frame->acknowledged)) {
+        return {};
+    }
+    return {{impl_->rigid_contact_events, *impl_->rigid_contact_count},
+            *impl_->rigid_contact_count, impl_->frame_index};
+}
+
+Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
+    output = {};
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_current_device();
+    if (!status) {
+        return status;
+    }
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        status = wait_for_completion(impl_->frame);
+        if (!status) {
+            return status;
+        }
+    }
+    if (!impl_->timing_available || impl_->timing_boundary_count < 2U) {
+        output.frame_index = impl_->frame_index;
+        return success();
+    }
+
+    output.frame_index = impl_->timing_frame_index;
+    output.available = true;
+    cudaError_t error = cudaEventElapsedTime(
+        &output.total_gpu_milliseconds, impl_->timing_events[0],
+        impl_->timing_events[impl_->timing_boundary_count - 1U]);
+    if (error != cudaSuccess) {
+        return cuda_failure(error, "failed to collect total kernel timing");
+    }
+    for (std::size_t index = 0; index < impl_->timing_stages.size(); ++index) {
+        float milliseconds = 0.0F;
+        error = cudaEventElapsedTime(&milliseconds, impl_->timing_events[index],
+                                     impl_->timing_events[index + 1U]);
+        if (error != cudaSuccess) {
+            return cuda_failure(error, "failed to collect kernel stage timing");
+        }
+        KernelTiming *timing = nullptr;
+        switch (impl_->timing_stages[index]) {
+        case TimingStage::rigid_integration:
+            timing = &output.rigid_integration;
+            break;
+        case TimingStage::rigid_contact_generation:
+            timing = &output.rigid_contact_generation;
+            break;
+        case TimingStage::rigid_contact_solve:
+            timing = &output.rigid_contact_solve;
+            break;
+        case TimingStage::rigid_input_clear:
+            timing = &output.rigid_input_clear;
+            break;
+        }
+        timing->total_milliseconds += milliseconds;
+        ++timing->launch_count;
+    }
+    return success();
 }
 
 Status World::collect_statistics(WorldStatistics &output,
@@ -2062,6 +2299,8 @@ Status World::collect_statistics(WorldStatistics &output,
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
                     2U * sizeof(RigidBodyState)) +
         capacity * capacity * sizeof(ContactManifold) +
+        impl_->rigid_contact_capacity * sizeof(RigidContactEvent) +
+        sizeof(std::uint32_t) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {

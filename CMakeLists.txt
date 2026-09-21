@@ -15,7 +15,6 @@ if(NOT TARGET CUDA::nvToolsExt)
 endif()
 find_package(CUDAToolkit REQUIRED)
 
-option(PARALLEL_MATER_BUILD_EXAMPLES "Build ParallelMater examples" ON)
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 
@@ -43,12 +42,6 @@ target_compile_options(
     PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall,-Wextra>)
-
-if(PARALLEL_MATER_BUILD_EXAMPLES)
-    add_executable(parallel-mater-rigid-sandbox examples/rigid_sandbox/main.cpp)
-    target_link_libraries(
-        parallel-mater-rigid-sandbox PRIVATE ParallelMater::parallel_mater)
-endif()
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     FetchContent_Declare(
@@ -110,7 +103,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                       DEPENDS ${PARALLEL_MATER_OPTIX_PTX})
 
     add_library(parallel-mater-gallery-renderer STATIC
-                examples/support/optix_renderer.cpp)
+                examples/support/optix_renderer.cpp
+                examples/support/overlay.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     target_include_directories(

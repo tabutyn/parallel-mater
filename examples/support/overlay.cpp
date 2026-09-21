@@ -1,0 +1,360 @@
+// SPDX-License-Identifier: MIT
+#include <parallel_mater_gallery/overlay.hpp>
+
+#include <cuda_runtime_api.h>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <string_view>
+
+namespace parallel_mater::gallery {
+namespace {
+
+struct Color {
+    std::uint8_t red{};
+    std::uint8_t green{};
+    std::uint8_t blue{};
+    std::uint8_t alpha{255U};
+};
+
+[[nodiscard]] std::uint32_t packed(Color color) {
+    return static_cast<std::uint32_t>(color.red) |
+           static_cast<std::uint32_t>(color.green) << 8U |
+           static_cast<std::uint32_t>(color.blue) << 16U | 0xff000000U;
+}
+
+void pixel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+           std::uint32_t height, int x, int y, Color color) {
+    if (x < 0 || y < 0 || x >= static_cast<int>(width) ||
+        y >= static_cast<int>(height)) {
+        return;
+    }
+    const std::size_t index =
+        static_cast<std::size_t>(height - 1U - static_cast<std::uint32_t>(y)) *
+            width +
+        static_cast<std::uint32_t>(x);
+    if (color.alpha == 255U) {
+        rgba[index] = packed(color);
+        return;
+    }
+    const std::uint32_t old = rgba[index];
+    const unsigned inverse = 255U - color.alpha;
+    const auto blend = [&](unsigned source, unsigned destination) {
+        return (source * color.alpha + destination * inverse) / 255U;
+    };
+    rgba[index] = static_cast<std::uint32_t>(
+                      blend(color.red, old & 0xffU)) |
+                  static_cast<std::uint32_t>(
+                      blend(color.green, (old >> 8U) & 0xffU))
+                      << 8U |
+                  static_cast<std::uint32_t>(
+                      blend(color.blue, (old >> 16U) & 0xffU))
+                      << 16U |
+                  0xff000000U;
+}
+
+void rectangle(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+               std::uint32_t height, int left, int top, int right, int bottom,
+               Color color) {
+    for (int y = top; y < bottom; ++y) {
+        for (int x = left; x < right; ++x) {
+            pixel(rgba, width, height, x, y, color);
+        }
+    }
+}
+
+void line(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+          std::uint32_t height, int x0, int y0, int x1, int y1, Color color) {
+    const int dx = std::abs(x1 - x0);
+    const int sx = x0 < x1 ? 1 : -1;
+    const int dy = -std::abs(y1 - y0);
+    const int sy = y0 < y1 ? 1 : -1;
+    int error = dx + dy;
+    for (;;) {
+        pixel(rgba, width, height, x0, y0, color);
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+        const int twice = 2 * error;
+        if (twice >= dy) {
+            error += dy;
+            x0 += sx;
+        }
+        if (twice <= dx) {
+            error += dx;
+            y0 += sy;
+        }
+    }
+}
+
+[[nodiscard]] std::array<std::uint8_t, 7> glyph(char character) {
+    switch (character) {
+    case 'A': return {14, 17, 17, 31, 17, 17, 17};
+    case 'B': return {30, 17, 17, 30, 17, 17, 30};
+    case 'C': return {14, 17, 16, 16, 16, 17, 14};
+    case 'D': return {30, 17, 17, 17, 17, 17, 30};
+    case 'E': return {31, 16, 16, 30, 16, 16, 31};
+    case 'F': return {31, 16, 16, 30, 16, 16, 16};
+    case 'G': return {14, 17, 16, 23, 17, 17, 14};
+    case 'H': return {17, 17, 17, 31, 17, 17, 17};
+    case 'I': return {14, 4, 4, 4, 4, 4, 14};
+    case 'J': return {7, 2, 2, 2, 18, 18, 12};
+    case 'K': return {17, 18, 20, 24, 20, 18, 17};
+    case 'L': return {16, 16, 16, 16, 16, 16, 31};
+    case 'M': return {17, 27, 21, 21, 17, 17, 17};
+    case 'N': return {17, 25, 21, 19, 17, 17, 17};
+    case 'O': return {14, 17, 17, 17, 17, 17, 14};
+    case 'P': return {30, 17, 17, 30, 16, 16, 16};
+    case 'Q': return {14, 17, 17, 17, 21, 18, 13};
+    case 'R': return {30, 17, 17, 30, 20, 18, 17};
+    case 'S': return {15, 16, 16, 14, 1, 1, 30};
+    case 'T': return {31, 4, 4, 4, 4, 4, 4};
+    case 'U': return {17, 17, 17, 17, 17, 17, 14};
+    case 'V': return {17, 17, 17, 17, 17, 10, 4};
+    case 'W': return {17, 17, 17, 21, 21, 21, 10};
+    case 'X': return {17, 17, 10, 4, 10, 17, 17};
+    case 'Y': return {17, 17, 10, 4, 4, 4, 4};
+    case 'Z': return {31, 1, 2, 4, 8, 16, 31};
+    case '0': return {14, 17, 19, 21, 25, 17, 14};
+    case '1': return {4, 12, 4, 4, 4, 4, 14};
+    case '2': return {14, 17, 1, 2, 4, 8, 31};
+    case '3': return {30, 1, 1, 14, 1, 1, 30};
+    case '4': return {2, 6, 10, 18, 31, 2, 2};
+    case '5': return {31, 16, 16, 30, 1, 1, 30};
+    case '6': return {14, 16, 16, 30, 17, 17, 14};
+    case '7': return {31, 1, 2, 4, 8, 8, 8};
+    case '8': return {14, 17, 17, 14, 17, 17, 14};
+    case '9': return {14, 17, 17, 15, 1, 1, 14};
+    case '.': return {0, 0, 0, 0, 0, 12, 12};
+    case ':': return {0, 12, 12, 0, 12, 12, 0};
+    case '-': return {0, 0, 0, 31, 0, 0, 0};
+    case '/': return {1, 2, 2, 4, 8, 8, 16};
+    default: return {};
+    }
+}
+
+void text(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+          std::uint32_t height, int x, int y, std::string_view value,
+          Color color, int scale = 2) {
+    for (const char character : value) {
+        const auto rows = glyph(character >= 'a' && character <= 'z'
+                                    ? static_cast<char>(character - 'a' + 'A')
+                                    : character);
+        for (int row = 0; row < 7; ++row) {
+            for (int column = 0; column < 5; ++column) {
+                if ((rows[row] & (1U << (4 - column))) == 0U) {
+                    continue;
+                }
+                rectangle(rgba, width, height, x + column * scale,
+                          y + row * scale, x + (column + 1) * scale,
+                          y + (row + 1) * scale, color);
+            }
+        }
+        x += 6 * scale;
+    }
+}
+
+[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
+    return {first.x - second.x, first.y - second.y, first.z - second.z};
+}
+
+[[nodiscard]] Vec3 add(Vec3 first, Vec3 second) {
+    return {first.x + second.x, first.y + second.y, first.z + second.z};
+}
+
+[[nodiscard]] Vec3 multiply(Vec3 value, float scalar) {
+    return {value.x * scalar, value.y * scalar, value.z * scalar};
+}
+
+[[nodiscard]] float dot(Vec3 first, Vec3 second) {
+    return first.x * second.x + first.y * second.y + first.z * second.z;
+}
+
+[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
+    return {first.y * second.z - first.z * second.y,
+            first.z * second.x - first.x * second.z,
+            first.x * second.y - first.y * second.x};
+}
+
+[[nodiscard]] float length(Vec3 value) {
+    return std::sqrt(std::max(dot(value, value), 0.0F));
+}
+
+[[nodiscard]] Vec3 normalized(Vec3 value) {
+    const float size = length(value);
+    return size > 1.0e-6F ? multiply(value, 1.0F / size) : Vec3{};
+}
+
+struct ScreenPoint {
+    int x{};
+    int y{};
+    bool visible{};
+};
+
+[[nodiscard]] ScreenPoint project(Vec3 point, Camera camera,
+                                  std::uint32_t width,
+                                  std::uint32_t height) {
+    const Vec3 forward = normalized(subtract(camera.target, camera.eye));
+    const Vec3 right = normalized(cross(forward, camera.up));
+    const Vec3 up = normalized(cross(right, forward));
+    const Vec3 relative = subtract(point, camera.eye);
+    const float depth = dot(relative, forward);
+    if (depth <= 0.01F) {
+        return {};
+    }
+    constexpr float radians = 3.14159265358979323846F / 180.0F;
+    const float vertical =
+        std::tan(camera.vertical_field_of_view_degrees * radians * 0.5F);
+    const float horizontal = vertical * static_cast<float>(width) /
+                             static_cast<float>(height);
+    const float ndc_x = dot(relative, right) / (depth * horizontal);
+    const float ndc_y = dot(relative, up) / (depth * vertical);
+    if (std::fabs(ndc_x) > 1.2F || std::fabs(ndc_y) > 1.2F) {
+        return {};
+    }
+    return {static_cast<int>((ndc_x * 0.5F + 0.5F) * width),
+            static_cast<int>((0.5F - ndc_y * 0.5F) * height), true};
+}
+
+void arrow(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+           std::uint32_t height, ScreenPoint start, ScreenPoint end,
+           Color color) {
+    if (!start.visible || !end.visible) {
+        return;
+    }
+    line(rgba, width, height, start.x, start.y, end.x, end.y, color);
+    const float dx = static_cast<float>(end.x - start.x);
+    const float dy = static_cast<float>(end.y - start.y);
+    const float size = std::sqrt(dx * dx + dy * dy);
+    if (size <= 1.0F) {
+        return;
+    }
+    const float ux = dx / size;
+    const float uy = dy / size;
+    const int left_x = static_cast<int>(end.x - ux * 8.0F + uy * 4.0F);
+    const int left_y = static_cast<int>(end.y - uy * 8.0F - ux * 4.0F);
+    const int right_x = static_cast<int>(end.x - ux * 8.0F - uy * 4.0F);
+    const int right_y = static_cast<int>(end.y - uy * 8.0F + ux * 4.0F);
+    line(rgba, width, height, end.x, end.y, left_x, left_y, color);
+    line(rgba, width, height, end.x, end.y, right_x, right_y, color);
+}
+
+void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+                std::uint32_t height, int y, const char *label,
+                KernelTiming timing) {
+    char value[96]{};
+    std::snprintf(value, sizeof(value), "%-12s %7.3f MS  %u X", label,
+                  timing.total_milliseconds, timing.launch_count);
+    text(rgba, width, height, 32, y, value, {225, 235, 242, 255}, 2);
+}
+
+} // namespace
+
+void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
+                         std::uint32_t width, std::uint32_t height,
+                         const WorldStepTimings &timings) {
+    rectangle(rgba, width, height, 18, 18, 390, 174, {5, 12, 18, 215});
+    text(rgba, width, height, 32, 30, "GPU KERNELS", {80, 220, 255, 255}, 2);
+    if (!timings.available) {
+        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE", {255, 190, 70, 255},
+             2);
+        return;
+    }
+    timing_row(rgba, width, height, 58, "INTEGRATE",
+               timings.rigid_integration);
+    timing_row(rgba, width, height, 78, "CONTACTS",
+               timings.rigid_contact_generation);
+    timing_row(rgba, width, height, 98, "SOLVE",
+               timings.rigid_contact_solve);
+    timing_row(rgba, width, height, 118, "CLEAR",
+               timings.rigid_input_clear);
+    char total[96]{};
+    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
+                  timings.total_gpu_milliseconds);
+    text(rgba, width, height, 32, 144, total, {100, 255, 155, 255}, 2);
+}
+
+bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
+                                std::uint32_t width, std::uint32_t height,
+                                RigidContactDeviceView contacts, Camera camera,
+                                std::string &error) {
+    error.clear();
+    std::vector<RigidContactEvent> host(contacts.event_count);
+    if (!host.empty()) {
+        const cudaError_t copy = cudaMemcpy(
+            host.data(), contacts.events.data,
+            host.size() * sizeof(RigidContactEvent), cudaMemcpyDeviceToHost);
+        if (copy != cudaSuccess) {
+            error = std::string("copy rigid contacts: ") + cudaGetErrorString(copy);
+            return false;
+        }
+    }
+    for (const RigidContactEvent &contact : host) {
+        const ScreenPoint origin = project(contact.position, camera, width, height);
+        if (!origin.visible) {
+            continue;
+        }
+        for (int offset = -3; offset <= 3; ++offset) {
+            pixel(rgba, width, height, origin.x + offset, origin.y,
+                  {255, 70, 70, 255});
+            pixel(rgba, width, height, origin.x, origin.y + offset,
+                  {255, 70, 70, 255});
+        }
+        const float normal_length =
+            std::clamp(0.16F + contact.normal_impulse * 0.04F, 0.16F, 0.45F);
+        arrow(rgba, width, height, origin,
+              project(add(contact.position,
+                          multiply(contact.normal, normal_length)),
+                      camera, width, height),
+              {70, 255, 110, 255});
+        const float friction_size = length(contact.friction_impulse);
+        if (friction_size > 1.0e-6F) {
+            const float arrow_length =
+                std::clamp(0.12F + friction_size * 0.08F, 0.12F, 0.4F);
+            arrow(rgba, width, height, origin,
+                  project(add(contact.position,
+                              multiply(normalized(contact.friction_impulse),
+                                       arrow_length)),
+                          camera, width, height),
+                  {255, 190, 45, 255});
+        }
+    }
+    rectangle(rgba, width, height, 18, static_cast<int>(height) - 42, 520,
+              static_cast<int>(height) - 14, {5, 12, 18, 205});
+    text(rgba, width, height, 28, static_cast<int>(height) - 35,
+         "RED CONTACT  GREEN NORMAL  ORANGE FRICTION", {235, 240, 245, 255},
+         1);
+    return true;
+}
+
+void draw_context_overlay(std::vector<std::uint32_t> &rgba,
+                          std::uint32_t width, std::uint32_t height) {
+    const int center = static_cast<int>(width) / 2;
+    const int top = std::max(40, static_cast<int>(height) / 2 - 145);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 290,
+              {4, 10, 16, 230});
+    text(rgba, width, height, center - 225, top + 24, "SCENES",
+         {110, 225, 255, 255}, 3);
+
+    rectangle(rgba, width, height, center - 220, top + 82, center + 220,
+              top + 160, {48, 55, 63, 235});
+    rectangle(rgba, width, height, center - 198, top + 103, center - 160,
+              top + 141, {170, 176, 184, 255});
+    text(rgba, width, height, center - 135, top + 100, "RIGID BODY",
+         {245, 247, 250, 255}, 2);
+    text(rgba, width, height, center - 135, top + 126, "ACTIVE",
+         {105, 255, 155, 255}, 1);
+
+    rectangle(rgba, width, height, center - 220, top + 178, center + 220,
+              top + 256, {12, 42, 65, 235});
+    rectangle(rgba, width, height, center - 198, top + 199, center - 160,
+              top + 237, {35, 150, 255, 255});
+    text(rgba, width, height, center - 135, top + 196, "FLUID",
+         {215, 240, 255, 255}, 2);
+    text(rgba, width, height, center - 135, top + 222,
+         "WAITING FOR BLENDER SCENE", {120, 180, 215, 255}, 1);
+}
+
+} // namespace parallel_mater::gallery

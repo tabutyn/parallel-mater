@@ -14,7 +14,7 @@ pass.
 - Implement status, token, world lifetime, generation-checked handles, and
   CUDA stream behavior.
 - Establish static, kinematic, and dynamic rigid integration.
-- Add the rigid-sandbox gallery scene and CPU-reference integration tests.
+- Add CPU-reference integration tests.
 
 ## PR 3 — OptiX gallery and Blender-authored scenes
 
@@ -33,28 +33,39 @@ pass.
   response, and two-sided open-surface collision before fluid work begins.
 - Add a headless image test and an interactive orbit-camera example.
 
-## PR 4 — Isolated fluid and particle lifecycle
+## PR 4 — Rigid observability and gallery navigation
 
+- Remove the procedural rigid sandbox so the Blender-authored gallery remains
+  the only example surface.
+- Add opt-in per-kernel GPU timings and rigid contact diagnostics.
+- Add the examples-only `Tab` selector with grey Rigid Body and blue Fluid
+  identities. Fluid remains unavailable until its acceptance scene exists.
+
+## PR 5 — Isolated fluid and particle lifecycle
+
+- Do not implement or execute this stage until its Blender-authored acceptance
+  scene has been supplied and reviewed. The scene, rather than procedural C++,
+  defines the feature demonstration.
 - Implement owned particle storage and deterministic sorted-cell neighbors.
 - Implement fluid forces/constraints without rigid coupling.
 - Implement deterministic device-side spawn planes, swept destroy planes, and
   stable compaction without allocations during stepping.
 - Add the fluid-tank scene and brute-force neighbor reference tests.
 
-## PR 5 — Fluid–rigid coupling
+## PR 6 — Fluid–rigid coupling
 
 - Add particle/triangle contacts, friction, restitution, projection, and balanced
   reactions on dynamic bodies.
 - Add deterministic contact events and the heavy-sphere scene.
 - Validate momentum exchange, containment, high-speed impact, and overflow.
 
-## PR 6 — Gallery game shell
+## PR 7 — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
 - Add objectives, scene selection, controls, and save data outside the library.
 - Add the obstacle-bowl scene.
 
-## PR 7 — Water rendering
+## PR 8 — Water rendering
 
 - Add debug particle rendering first.
 - Evaluate reconstructed raster water and OptiX water as example-only renderer

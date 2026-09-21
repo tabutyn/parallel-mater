@@ -124,6 +124,12 @@ struct StepOptions {
     float timestep{1.0F / 60.0F};
     std::uint32_t substeps{4U};
     Vec3 gravity{0.0F, -9.81F, 0.0F};
+    // Records CUDA-event timings for this frame. Disabled by default so
+    // production stepping does not pay profiling overhead.
+    bool collect_kernel_timings{};
+    // Retains the frame's deterministic rigid contact diagnostics for a
+    // renderer or inspection tool. Disabled by default.
+    bool collect_rigid_contacts{};
 };
 
 struct FluidParticle {
@@ -234,6 +240,37 @@ struct ContactDeviceView {
     std::uint64_t frame_index{};
 };
 
+struct RigidContactEvent {
+    RigidBodyId body{};
+    RigidBodyId collider{};
+    Vec3 position{};
+    Vec3 normal{}; // Points from collider toward body.
+    float penetration{};
+    float normal_impulse{};
+    Vec3 friction_impulse{}; // Tangential impulse applied to body.
+};
+
+struct RigidContactDeviceView {
+    DeviceSpan<const RigidContactEvent> events{};
+    std::uint32_t event_count{};
+    std::uint64_t frame_index{};
+};
+
+struct KernelTiming {
+    float total_milliseconds{};
+    std::uint32_t launch_count{};
+};
+
+struct WorldStepTimings {
+    std::uint64_t frame_index{};
+    bool available{};
+    KernelTiming rigid_integration{};
+    KernelTiming rigid_contact_generation{};
+    KernelTiming rigid_contact_solve{};
+    KernelTiming rigid_input_clear{};
+    float total_gpu_milliseconds{};
+};
+
 struct WorldStatistics {
     std::uint64_t frame_index{};
     std::uint32_t fluid_count{};
@@ -332,6 +369,9 @@ class World {
                               cudaStream_t stream = nullptr) noexcept;
 
     [[nodiscard]] ContactDeviceView contacts() const noexcept;
+    [[nodiscard]] RigidContactDeviceView rigid_contacts() const noexcept;
+    [[nodiscard]] Status collect_step_timings(
+        WorldStepTimings &output) const noexcept;
     [[nodiscard]] Status collect_statistics(WorldStatistics &output,
                                             cudaStream_t stream = nullptr) const noexcept;
     [[nodiscard]] int device_ordinal() const noexcept;

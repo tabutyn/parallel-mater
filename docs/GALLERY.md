@@ -29,19 +29,26 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 ## First gallery sequence
 
-1. **Rigid sandbox** — a dynamic triangle mesh falls onto a triangle floor.
+1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
+   meshes collide inside a concave bowl.
 2. **Fluid tank** — particle water settles inside static rigid boundaries.
 3. **Heavy sphere** — a dynamic sphere enters the fluid and receives visible
    two-way reaction forces.
 4. **Obstacle bowl** — gravity steering rolls the sphere through pegs while
    fluid remains contained.
 
-The procedural `parallel-mater-rigid-sandbox` remains a minimal headless API
-example. The visible `parallel-mater-gallery` instead loads
-`examples/assets/PassiveActive.glb`, instantiates its passive ground, kinematic
-Cube, and dynamic Icosphere and Suzanne through `World`, and ray traces the same
-authored triangles. Arrow input moves the Cube and tilts gravity for the two
-dynamic bodies. C++ does not restate that scene's body list or transforms.
+The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
+instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
+Suzanne through `World`, and ray traces the same authored triangles. Arrow
+input moves the Cube and tilts gravity for the dynamic bodies. C++ does not
+restate that scene's body list or transforms.
+
+`Tab` opens an examples-only context selector. Rigid Body uses the grey system
+icon and is runnable now. Fluid uses the blue system icon but remains visibly
+unavailable until its Blender-authored acceptance scene is supplied; the
+gallery must not substitute a procedural scene. `F` displays opt-in CUDA-event
+timings for each physics kernel stage. `V` requests and renders the latest rigid
+contact points, normals, and friction impulses.
 
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.
