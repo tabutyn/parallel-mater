@@ -1,13 +1,13 @@
 # ParallelMater
 
-ParallelMater is a planned MIT-licensed CUDA C++ physics library. The first
-implementation milestone couples particle fluid with analytic rigid bodies;
-later solvers will be added only after the small public API is proven by the
-gallery application.
+ParallelMater is an MIT-licensed CUDA C++ physics library. The first complete
+milestone will couple particle fluid with analytic rigid bodies; later solvers
+will be added only after the small public API is proven by gallery examples.
 
-This branch is an **API review RFC**. It contains exact C++ declarations,
-contracts, and implementation stages, but intentionally contains no physics
-implementation yet.
+The current implementation provides the `World` lifecycle and GPU rigid-body
+integration for static, kinematic, and dynamic spheres, boxes, capsules, and
+planes. Fluid declarations are present for API review but are implemented in
+the next milestone.
 
 ## Design goals
 
@@ -30,13 +30,18 @@ Start with [the proposed API](docs/API.md), then review
 [the gallery boundary](docs/GALLERY.md) and [the staged implementation
 plan](docs/ROADMAP.md).
 
-## Configure the proposal checks
+## Build and test
 
 ```bash
-cmake -S . -B build -DBUILD_TESTING=ON
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_ARCHITECTURES=86 \
+  -DBUILD_TESTING=ON
 cmake --build build
 ctest --test-dir build --output-on-failure
+./build/parallel-mater-rigid-sandbox
 ```
 
-The current test validates header shape only. Passing it does not imply that a
-physics implementation exists.
+The runtime test skips with code 77 when no CUDA device is available. Compute
+capability `86` is the local RTX 3050 Ti setting; consumers should select the
+architectures they ship.

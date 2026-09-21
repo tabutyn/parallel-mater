@@ -11,6 +11,16 @@ order.
 The installed API initially consists of one header:
 [`parallel_mater.hpp`](../include/parallel_mater/parallel_mater.hpp).
 
+## Current implementation status
+
+The core and rigid-body milestone implements world ownership, asynchronous
+completion, generation-checked rigid handles, forces, impulses, kinematic
+targets, device views, and GPU integration. Rigid contact in this milestone is
+discrete and resolves dynamic bodies against static or kinematic bodies.
+Dynamic–dynamic and continuous rigid collision remain deferred. Fluid and
+particle-lifecycle declarations currently return `StatusCode::not_supported`
+status and are implemented in PR 3.
+
 ## Minimal use
 
 ```cpp
@@ -91,8 +101,10 @@ status = world.fluid_view(water, water_view);
 `step_async` enqueues a complete frame on the caller's CUDA stream and records
 a `FrameToken`. The initial release permits one frame in flight per world.
 `ready` polls without blocking; `wait` establishes completion and reports
-deferred CUDA failures. `step` is the convenience wrapper that enqueues and
-waits.
+deferred CUDA failures. A ready token must still be acknowledged with `wait`
+before mutating or stepping that world again. Destroying an unacknowledged
+token waits automatically so the world cannot retain an unreachable pending
+frame. `step` is the convenience wrapper that enqueues and waits.
 
 The fixed frame duration and substep count are explicit. A slow application
 lags physical time; the physics layer never invents, drops, or catches up
@@ -162,7 +174,9 @@ planes. A body is static, kinematic, or dynamic:
 Dynamic mass must be positive. A zero inertia diagonal requests an analytic
 value derived from mass and shape. Plane bodies must be static or kinematic.
 Triangle meshes, compound shapes, joints, sleeping, and continuous rigid–rigid
-collision are deferred.
+collision are deferred. Dynamic–dynamic rigid collision is also deferred from
+the core milestone; fluid–dynamic-body momentum exchange arrives with the
+fluid-coupling milestone.
 
 ## Contacts are the application extension point
 
