@@ -45,3 +45,33 @@ ctest --test-dir build --output-on-failure
 The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
+
+## Blender and OptiX gallery
+
+The optional gallery loads a committed Blender-authored `.glb`, creates its
+rigid bodies through the public API, and ray traces its render meshes with
+OptiX. It is deliberately separate from the installed physics library.
+
+```bash
+cmake -S . -B build-gallery \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_ARCHITECTURES=86 \
+  -DPARALLEL_MATER_BUILD_OPTIX_GALLERY=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-gallery
+ctest --test-dir build-gallery --output-on-failure
+./build-gallery/parallel-mater-gallery
+```
+
+Left-drag orbits, the wheel zooms, `R` restores the authored poses, and Escape
+quits. A display-free render is also available:
+
+```bash
+./build-gallery/parallel-mater-gallery \
+  --headless /tmp/parallel-mater-gallery.ppm --frames 120
+```
+
+The gallery currently requires an NVIDIA driver supported by OptiX 9.1,
+OpenGL, and GLFW. CMake fetches pinned cgltf and OptiX header revisions only
+when the optional gallery is enabled. See [the Blender scene contract](docs/BLENDER_SCENES.md)
+before authoring or exporting another scene.
