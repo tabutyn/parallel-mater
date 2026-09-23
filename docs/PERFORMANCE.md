@@ -164,9 +164,10 @@ degenerate triangles, found a maximum squared-distance discrepancy of
 `1.43e-6` versus the prior routine. No analytic sphere or convex contact path
 was substituted.
 
-For worlds of at least 256 bodies, deterministic parallel matching colors
-independent contact pairs; the existing serial greedy coloring remains for
-128–255 bodies, and the serial contact path for smaller worlds. A shuffled,
+At the time of this measurement, worlds of at least 256 bodies used
+deterministic parallel matching; 128–255 bodies used serial greedy coloring,
+and smaller worlds used serial contact resolution. These size branches were
+subsequently removed in the unified-solver follow-up below. A shuffled,
 unique per-pair priority prevented the high-degree graph from collapsing into
 the serial overflow fallback. The 480-frame DUMP run ended with zero invalid
 states and zero sphere centers outside the receiver; linear RMS speed was
@@ -185,3 +186,29 @@ left 1,408 of 1,850 contacts in the serial overflow at frame 60; compact
 per-color solver worklists increased early total from 20.7 to 22.1 ms, peak
 from 25.0 to 25.8 ms, and allocation by about 2 MB. Only the faster and stable
 variants were retained.
+
+## Unified parallel rigid solver, 2026-09-23
+
+All non-empty rigid worlds now use the same matching/coloring and contact
+resolution kernels. The serial small-world solver and serial greedy colorer
+were removed. For fewer than nine bodies, the maximum color-round count is
+the number of possible unordered body pairs (at least one); each round
+colors the lowest-priority remaining pair, so this limit cannot discard a
+contact. Larger worlds retain the 32-round cap and serial overflow fallback.
+Contact physics and triangle geometry are unchanged.
+
+With the gallery closed, the five-body `PassiveActive.glb` benchmark measured
+2.116 ms median GPU time, versus 1.506 ms with the previous serial small-world
+path. A fixed 32-round parallel schedule had measured 3.423 ms; bounding the
+small-world rounds recovered most of that overhead. A 10-sphere DUMP run
+averaged 2.942 ms over frames 451–480 and finished with all spheres inside the
+receiver. The 128-sphere run averaged 6.651 ms over frames 31–60; this is an
+absolute measurement, not a before/after claim for that size.
+
+The 1,000-sphere path is unchanged: frames 31–60, 211–240, and 451–480
+averaged 20.588, 24.909, and 15.100 ms. Its 480-frame final state hash was
+again `4a016b8258d02a31`, with no invalid or escaped spheres. All five tests
+passed, including the two-body timing/diagnostic contract, deterministic
+contact fixtures (including eight overlapping dynamic bodies), and both
+gallery headless scenes. The unified path also
+preserves contact events from earlier substeps when a later substep has none.

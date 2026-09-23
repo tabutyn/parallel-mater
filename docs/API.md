@@ -111,6 +111,12 @@ broad/narrow-phase fields. `collect_step_timings` reads those events after
 frame completion. Timing is diagnostic data rather than solver input and is
 unavailable for frames that did not request it.
 
+Every non-empty rigid world uses the same deterministic parallel contact
+coloring and resolution path. Small worlds launch no more color rounds than
+their possible unordered body pairs; large worlds cap coloring at 32 rounds
+and resolve any remaining conflicting contacts serially. This scheduling
+choice does not change the triangle-mesh contact API.
+
 Rigid contact diagnostics retain at most `WorldOptions::contact_capacity`
 events. Contact solving remains complete when diagnostic storage is capped.
 

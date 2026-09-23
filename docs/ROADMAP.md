@@ -66,7 +66,7 @@ pass.
 - Add pair-relative swept gating, conservative shape and triangle bounds,
   compact manifolds, and a deterministic parallel contact solver.
 - Reduce exact triangle-pair distance work, isolate rare BVH overflow, tighten
-  conservative sweep bounds, and color high-body-count contacts with
+  conservative sweep bounds, and color contacts at all body counts with
   deterministic parallel matching; keep authored triangles as contacts.
 - Retain only measured stress-scene gains and publish a reproducible DUMP
   benchmark with 1,000-sphere containment, repeatable state hashes, and

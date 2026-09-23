@@ -240,7 +240,10 @@ void test_floor_contact_and_async_contract() {
               timings.rigid_leaf_pair_generation.launch_count == 4U &&
               timings.rigid_contact_evaluation.launch_count == 8U &&
               timings.rigid_contact_generation.launch_count == 24U &&
-              timings.rigid_contact_solve.launch_count == 4U &&
+              // Two bodies need one parallel color round and eight
+              // color/overflow solve passes per substep.
+              timings.rigid_contact_solve.launch_count ==
+                  4U * (3U + 3U + 8U * 2U) &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
@@ -510,9 +513,10 @@ void test_swept_contact_when_leaf_cache_overflows() {
           "overflow projectile must remain above the surface");
 }
 
-void test_parallel_contact_color_overflow(std::uint32_t body_count) {
+void test_parallel_contact_coloring(std::uint32_t body_count) {
     using namespace parallel_mater;
-    constexpr std::uint32_t overlapping_bodies = 36U;
+    const std::uint32_t overlapping_bodies =
+        body_count < 36U ? body_count : 36U;
     World world;
     check_status(World::create({.rigid_body_capacity = body_count,
                                 .triangle_mesh_capacity = 1U,
@@ -604,8 +608,9 @@ int main() {
     test_rotation_dynamic_coupling_and_determinism();
     test_high_speed_swept_triangle_contact();
     test_swept_contact_when_leaf_cache_overflows();
-    test_parallel_contact_color_overflow(128U);
-    test_parallel_contact_color_overflow(256U);
+    test_parallel_contact_coloring(8U);
+    test_parallel_contact_coloring(128U);
+    test_parallel_contact_coloring(256U);
     test_invalid_triangle_indices();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";

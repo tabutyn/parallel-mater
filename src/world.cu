@@ -1505,152 +1505,6 @@ __global__ void evaluate_overflow_rigid_pairs_kernel(
     }
 }
 
-__global__ void resolve_cached_rigid_contacts_kernel(
-    const BodyParameters *parameters, RigidBodyState *states,
-    const RigidBodyId *ids, std::uint32_t count,
-    const ContactManifold *manifolds,
-    const std::uint32_t *active_pairs,
-    const std::uint32_t *active_pair_count,
-    RigidContactEvent *debug_events, std::uint32_t debug_capacity,
-    std::uint32_t *debug_count, bool reset_debug) {
-    if (blockIdx.x != 0U || threadIdx.x != 0U) {
-        return;
-    }
-    if (reset_debug) {
-        *debug_count = 0U;
-    }
-    for (int pass = 0; pass < 8; ++pass) {
-        std::uint32_t event_cursor = 0U;
-        for (std::uint32_t active_index = 0U;
-             active_index < *active_pair_count; ++active_index) {
-            const std::uint32_t pair = active_pairs[active_index];
-            const std::uint32_t index = pair / count;
-            const std::uint32_t collider_index = pair % count;
-            const ContactManifold &manifold = manifolds[active_index];
-            if (manifold.count > 0U) {
-                RigidContactEvent *events = nullptr;
-                const std::uint32_t remaining = event_cursor < debug_capacity
-                    ? debug_capacity - event_cursor : 0U;
-                const std::uint32_t retained = manifold.count < remaining
-                    ? manifold.count : remaining;
-                if (retained > 0U) {
-                    events = debug_events + event_cursor;
-                    if (pass == 0) {
-                        for (std::uint32_t contact_index = 0;
-                             contact_index < retained;
-                             ++contact_index) {
-                            const Contact &contact =
-                                manifold.contacts[contact_index];
-                            events[contact_index] = {
-                                ids[index], ids[collider_index], contact.point,
-                                contact.normal, contact.penetration, 0.0F, {}};
-                        }
-                    }
-                }
-                resolve_contacts(parameters[index], states[index],
-                                 parameters[collider_index],
-                                 states[collider_index], manifold.contacts,
-                                 manifold.count, pass == 0, events, retained);
-                event_cursor += manifold.count;
-            }
-        }
-        if (pass == 0 && event_cursor > 0U) {
-            *debug_count = event_cursor < debug_capacity ? event_cursor
-                                                         : debug_capacity;
-        }
-    }
-    for (std::uint32_t index = 0; index < count; ++index) {
-        if (parameters[index].motion != MotionType::dynamic) {
-            continue;
-        }
-        states[index].linear_velocity = clamp_length(
-            states[index].linear_velocity, parameters[index].maximum_linear_speed);
-        states[index].angular_velocity = clamp_length(
-            states[index].angular_velocity, parameters[index].maximum_angular_speed);
-    }
-}
-
-// Stable pair order makes the greedy colors deterministic. A dynamic body is
-// written by at most one pair in each color; static and kinematic bodies are
-// read-only and may appear in many pairs of the same color.
-__global__ void color_rigid_contacts_kernel(
-    const BodyParameters *parameters, std::uint32_t count,
-    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
-    const std::uint32_t *active_pair_count, std::uint32_t *body_color_masks,
-    std::uint8_t *pair_colors, std::uint32_t *color_state,
-    const RigidBodyId *ids, std::uint32_t *event_offsets,
-    RigidContactEvent *events, std::uint32_t event_capacity,
-    std::uint32_t *event_count, bool collect_events, bool reset_events) {
-    if (blockIdx.x != 0U || threadIdx.x != 0U) {
-        return;
-    }
-    for (std::uint32_t index = 0U; index < count; ++index) {
-        body_color_masks[index] = 0U;
-    }
-    color_state[0] = 0U;
-    color_state[1] = 0U;
-    if (reset_events) {
-        *event_count = 0U;
-    }
-    std::uint32_t event_cursor = 0U;
-    for (std::uint32_t active_index = 0U;
-         active_index < *active_pair_count; ++active_index) {
-        const ContactManifold &manifold = manifolds[active_index];
-        if (collect_events) {
-            event_offsets[active_index] = event_cursor;
-            const std::uint32_t remaining = event_cursor < event_capacity
-                ? event_capacity - event_cursor : 0U;
-            const std::uint32_t retained = manifold.count < remaining
-                ? manifold.count : remaining;
-            if (retained > 0U) {
-                const std::uint32_t event_pair = active_pairs[active_index];
-                const std::uint32_t body_index = event_pair / count;
-                const std::uint32_t collider_index = event_pair % count;
-                for (std::uint32_t contact_index = 0U;
-                     contact_index < retained; ++contact_index) {
-                    const Contact &contact = manifold.contacts[contact_index];
-                    events[event_cursor + contact_index] = {
-                        ids[body_index], ids[collider_index], contact.point,
-                        contact.normal, contact.penetration, 0.0F, {}};
-                }
-            }
-            event_cursor += manifold.count;
-        }
-        if (manifold.count == 0U) {
-            pair_colors[active_index] = k_contact_color_overflow;
-            continue;
-        }
-        const std::uint32_t pair = active_pairs[active_index];
-        const std::uint32_t index = pair / count;
-        const std::uint32_t collider_index = pair % count;
-        const bool dynamic_collider =
-            parameters[collider_index].motion == MotionType::dynamic;
-        const std::uint32_t occupied = body_color_masks[index] |
-            (dynamic_collider ? body_color_masks[collider_index] : 0U);
-        const int first_available = __ffs(~occupied);
-        if (first_available == 0 ||
-            first_available > static_cast<int>(k_contact_color_count)) {
-            pair_colors[active_index] = k_contact_color_overflow;
-            ++color_state[1];
-            continue;
-        }
-        const std::uint32_t color =
-            static_cast<std::uint32_t>(first_available - 1);
-        pair_colors[active_index] = static_cast<std::uint8_t>(color);
-        body_color_masks[index] |= 1U << color;
-        if (dynamic_collider) {
-            body_color_masks[collider_index] |= 1U << color;
-        }
-        if (color + 1U > color_state[0]) {
-            color_state[0] = color + 1U;
-        }
-    }
-    if (collect_events && event_cursor > 0U) {
-        *event_count = event_cursor < event_capacity
-            ? event_cursor : event_capacity;
-    }
-}
-
 __global__ void prepare_parallel_contact_events_kernel(
     std::uint32_t count, const ContactManifold *manifolds,
     const std::uint32_t *active_pairs,
@@ -1690,7 +1544,11 @@ __global__ void prepare_parallel_contact_events_kernel(
         }
         cursor += manifold.count;
     }
-    *event_count = cursor < event_capacity ? cursor : event_capacity;
+    // A later substep with no contacts must not erase an earlier event from
+    // this frame; the original serial path retained it as well.
+    if (cursor > 0U) {
+        *event_count = cursor < event_capacity ? cursor : event_capacity;
+    }
 }
 
 __global__ void initialize_parallel_colors_kernel(
@@ -1753,7 +1611,7 @@ __global__ void assign_parallel_contact_colors_kernel(
     const ContactManifold *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const std::uint32_t *owners,
     std::uint8_t *pair_colors, std::uint32_t *color_state,
-    std::uint32_t color) {
+    std::uint32_t color, std::uint32_t color_round_count) {
     for (std::uint32_t active_index =
              blockIdx.x * blockDim.x + threadIdx.x;
          active_index < *active_pair_count;
@@ -1772,7 +1630,7 @@ __global__ void assign_parallel_contact_colors_kernel(
             (!dynamic_collider || owners[collider_index] == priority)) {
             pair_colors[active_index] = static_cast<std::uint8_t>(color);
             atomicMax(&color_state[0], color + 1U);
-        } else if (color + 1U == k_contact_color_count) {
+        } else if (color + 1U == color_round_count) {
             atomicAdd(&color_state[1], 1U);
         }
     }
@@ -2061,7 +1919,7 @@ struct World::Impl {
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
     ContactManifold *rigid_manifolds{};
-    std::uint32_t *rigid_body_color_masks{};
+    std::uint32_t *rigid_color_owners{};
     std::uint8_t *rigid_pair_colors{};
     std::uint32_t *rigid_color_state{};
     std::uint32_t *rigid_contact_event_offsets{};
@@ -2115,7 +1973,7 @@ struct World::Impl {
         release_managed(rigid_contact_event_offsets);
         release_managed(rigid_color_state);
         release_managed(rigid_pair_colors);
-        release_managed(rigid_body_color_masks);
+        release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
         release_managed(states[1]);
         release_managed(states[0]);
@@ -2343,7 +2201,7 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
-    status = allocate_managed(implementation->rigid_body_color_masks,
+    status = allocate_managed(implementation->rigid_color_owners,
                               options.rigid_body_capacity);
     if (!status) {
         return status;
@@ -3159,14 +3017,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         (impl_->rigid_body_count + block_size - 1U) / block_size;
     const float substep_timestep =
         options.timestep / static_cast<float>(options.substeps);
-    const bool parallel_contact_solve =
-        impl_->rigid_body_count >= 128U;
-    const bool parallel_coloring = impl_->rigid_body_count >= 256U;
-    impl_->rigid_solve_kernels_per_substep = parallel_contact_solve
-        ? (parallel_coloring ? 3U + 3U * k_contact_color_count
-                             : 2U) +
-              8U * (k_contact_color_count + 1U)
-        : 1U;
+    // The lowest-priority remaining pair colors every round, so no small
+    // world needs more rounds than its number of unordered body pairs.
+    const std::uint32_t color_round_count =
+        impl_->rigid_body_count <= 1U ? 1U
+        : impl_->rigid_body_count < 9U
+            ? impl_->rigid_body_count * (impl_->rigid_body_count - 1U) / 2U
+            : k_contact_color_count;
+    impl_->rigid_solve_kernels_per_substep =
+        3U + 3U * color_round_count +
+        8U * (color_round_count + 1U);
     for (std::uint32_t substep = 0; substep < options.substeps; ++substep) {
         if (impl_->rigid_body_count == 0U) {
             break;
@@ -3295,71 +3155,44 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        if (parallel_contact_solve) {
-            if (parallel_coloring) {
-                prepare_parallel_contact_events_kernel<<<1U, 1U, 0,
-                                                          stream>>>(
-                    impl_->rigid_body_count, impl_->rigid_manifolds,
-                    impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
-                    impl_->ids, impl_->rigid_contact_event_offsets,
-                    impl_->rigid_contact_events, impl_->rigid_contact_capacity,
-                    impl_->rigid_contact_count,
-                    options.collect_rigid_contacts, substep == 0U);
-                initialize_parallel_colors_kernel<<<
-                    contact_block_count, block_size, 0, stream>>>(
-                        impl_->rigid_active_pair_count,
-                        impl_->rigid_pair_colors, impl_->rigid_color_state);
-                for (std::uint32_t color = 0U;
-                     color < k_contact_color_count; ++color) {
-                    reset_parallel_color_owners_kernel<<<block_count,
-                        block_size, 0, stream>>>(
-                            impl_->rigid_body_color_masks,
-                            impl_->rigid_body_count);
-                    find_parallel_color_owners_kernel<<<
-                        contact_block_count, block_size, 0, stream>>>(
-                            impl_->parameters, impl_->rigid_body_count,
-                            impl_->rigid_manifolds, impl_->rigid_active_pairs,
-                            impl_->rigid_active_pair_count,
-                            impl_->rigid_pair_colors,
-                            impl_->rigid_body_color_masks);
-                    assign_parallel_contact_colors_kernel<<<
-                        contact_block_count, block_size, 0, stream>>>(
-                            impl_->parameters, impl_->rigid_body_count,
-                            impl_->rigid_manifolds, impl_->rigid_active_pairs,
-                            impl_->rigid_active_pair_count,
-                            impl_->rigid_body_color_masks,
-                            impl_->rigid_pair_colors,
-                            impl_->rigid_color_state, color);
-                }
-            } else {
-                color_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+        prepare_parallel_contact_events_kernel<<<1U, 1U, 0, stream>>>(
+            impl_->rigid_body_count, impl_->rigid_manifolds,
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->ids, impl_->rigid_contact_event_offsets,
+            impl_->rigid_contact_events, impl_->rigid_contact_capacity,
+            impl_->rigid_contact_count,
+            options.collect_rigid_contacts, substep == 0U);
+        initialize_parallel_colors_kernel<<<
+            contact_block_count, block_size, 0, stream>>>(
+                impl_->rigid_active_pair_count,
+                impl_->rigid_pair_colors, impl_->rigid_color_state);
+        for (std::uint32_t color = 0U;
+             color < color_round_count; ++color) {
+            reset_parallel_color_owners_kernel<<<block_count,
+                block_size, 0, stream>>>(
+                    impl_->rigid_color_owners,
+                    impl_->rigid_body_count);
+            find_parallel_color_owners_kernel<<<
+                contact_block_count, block_size, 0, stream>>>(
                     impl_->parameters, impl_->rigid_body_count,
                     impl_->rigid_manifolds, impl_->rigid_active_pairs,
                     impl_->rigid_active_pair_count,
-                    impl_->rigid_body_color_masks, impl_->rigid_pair_colors,
-                    impl_->rigid_color_state, impl_->ids,
-                    impl_->rigid_contact_event_offsets,
-                    impl_->rigid_contact_events, impl_->rigid_contact_capacity,
-                    impl_->rigid_contact_count,
-                    options.collect_rigid_contacts, substep == 0U);
-            }
-            for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
-                for (std::uint32_t color = 0U;
-                     color < k_contact_color_count; ++color) {
-                    resolve_colored_rigid_contacts_kernel<<<
-                        contact_block_count, block_size, 0, stream>>>(
-                        impl_->parameters, impl_->states[output_state],
-                        impl_->rigid_body_count, impl_->rigid_manifolds,
-                        impl_->rigid_active_pairs,
-                        impl_->rigid_active_pair_count,
-                        impl_->rigid_pair_colors, impl_->rigid_color_state,
-                        impl_->rigid_contact_event_offsets,
-                        impl_->rigid_contact_events,
-                        options.collect_rigid_contacts
-                            ? impl_->rigid_contact_capacity : 0U,
-                        color, pass == 0U);
-                }
-                resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+                    impl_->rigid_pair_colors,
+                    impl_->rigid_color_owners);
+            assign_parallel_contact_colors_kernel<<<
+                contact_block_count, block_size, 0, stream>>>(
+                    impl_->parameters, impl_->rigid_body_count,
+                    impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                    impl_->rigid_active_pair_count,
+                    impl_->rigid_color_owners,
+                    impl_->rigid_pair_colors,
+                    impl_->rigid_color_state, color, color_round_count);
+        }
+        for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+            for (std::uint32_t color = 0U;
+                 color < color_round_count; ++color) {
+                resolve_colored_rigid_contacts_kernel<<<
+                    contact_block_count, block_size, 0, stream>>>(
                     impl_->parameters, impl_->states[output_state],
                     impl_->rigid_body_count, impl_->rigid_manifolds,
                     impl_->rigid_active_pairs,
@@ -3369,21 +3202,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_contact_events,
                     options.collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
-                    pass == 0U);
+                    color, pass == 0U);
             }
-            clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
+            resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
                 impl_->parameters, impl_->states[output_state],
-                impl_->rigid_body_count);
-        } else {
-            resolve_cached_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
-                impl_->parameters, impl_->states[output_state],
-                impl_->ids, impl_->rigid_body_count, impl_->rigid_manifolds,
+                impl_->rigid_body_count, impl_->rigid_manifolds,
                 impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+                impl_->rigid_pair_colors, impl_->rigid_color_state,
+                impl_->rigid_contact_event_offsets,
                 impl_->rigid_contact_events,
                 options.collect_rigid_contacts
                     ? impl_->rigid_contact_capacity : 0U,
-                impl_->rigid_contact_count, substep == 0U);
+                pass == 0U);
         }
+        clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
+            impl_->parameters, impl_->states[output_state],
+            impl_->rigid_body_count);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
