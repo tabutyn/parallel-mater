@@ -27,10 +27,14 @@ struct RigidBodyDefinition {
     std::string name{};
     RigidBodyOptions options{};
     std::vector<std::uint32_t> mesh_indices{};
+    // Empty means the render triangles also drive collision. Otherwise these
+    // indices address SceneDefinition::collision_meshes.
+    std::vector<std::uint32_t> collision_mesh_indices{};
 };
 
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
+    std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
 };
 

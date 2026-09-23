@@ -39,9 +39,11 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
-Suzanne through `World`, and ray traces the same authored triangles. Arrow
-input moves the Cube and tilts gravity for the dynamic bodies. C++ does not
-restate that scene's body list or transforms.
+Suzanne through `World`, and ray traces their authored render triangles. The
+three detailed dynamic meshes use separate Blender-authored collision proxies;
+the bowl retains its detailed collision surface. Arrow input moves the Cube
+and tilts gravity for the dynamic bodies. C++ does not restate that scene's
+body list or transforms.
 
 `Tab` opens an examples-only context selector. Rigid Body uses the grey system
 icon and is runnable now. Fluid uses the blue system icon but remains visibly

@@ -17,6 +17,13 @@ find_package(CUDAToolkit REQUIRED)
 
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
+option(PARALLEL_MATER_BUILD_BENCHMARKS
+       "Build local performance benchmark executables" OFF)
+if(PARALLEL_MATER_BUILD_BENCHMARKS AND
+   NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    message(FATAL_ERROR
+            "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
+endif()
 
 add_library(parallel-mater STATIC src/world.cu)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
@@ -64,6 +71,17 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery-scene PUBLIC ParallelMater::parallel_mater)
     target_compile_options(
         parallel-mater-gallery-scene PRIVATE -Wall -Wextra -Wpedantic)
+
+    if(PARALLEL_MATER_BUILD_BENCHMARKS)
+        add_executable(parallel-mater-rigid-scene-benchmark
+                       benchmarks/rigid_scene.cpp)
+        target_link_libraries(
+            parallel-mater-rigid-scene-benchmark
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_options(
+            parallel-mater-rigid-scene-benchmark
+            PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 
     FetchContent_Declare(
         parallel_mater_optix_dev

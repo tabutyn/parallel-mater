@@ -234,7 +234,12 @@ void test_floor_contact_and_async_contract() {
     check_status(world.collect_step_timings(timings),
                  "collect rigid kernel timings");
     check(timings.available && timings.rigid_integration.launch_count == 4U &&
-              timings.rigid_contact_generation.launch_count == 4U &&
+              timings.rigid_world_bounds.launch_count == 4U &&
+              timings.rigid_pair_filter.launch_count == 4U &&
+              timings.rigid_pair_compaction.launch_count == 4U &&
+              timings.rigid_leaf_pair_generation.launch_count == 4U &&
+              timings.rigid_contact_evaluation.launch_count == 4U &&
+              timings.rigid_contact_generation.launch_count == 20U &&
               timings.rigid_contact_solve.launch_count == 4U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
@@ -395,6 +400,61 @@ void test_rotation_dynamic_coupling_and_determinism() {
           "dynamic triangle collision must preserve linear momentum");
 }
 
+void test_high_speed_swept_triangle_contact() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U},
+                               world),
+                 "create swept-contact world");
+    const TriangleMeshId surface = upload_mesh(
+        world,
+        {{-5.0F, 0.0F, -5.0F}, {5.0F, 0.0F, -5.0F},
+         {5.0F, 0.0F, 5.0F}, {-5.0F, 0.0F, 5.0F}},
+        {0U, 2U, 1U, 0U, 3U, 2U}, "add swept surface");
+    const TriangleMeshId projectile_mesh =
+        add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId floor{};
+    RigidBodyId projectile{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body, .mesh = surface},
+                     floor),
+                 "add swept floor");
+    const RigidBodyState initial{
+        .position = {0.0F, 1.5F, 0.0F},
+        .linear_velocity = {0.0F, -120.0F, 0.0F}};
+    check_status(world.add_rigid_body(
+                     {.mesh = projectile_mesh,
+                      .initial_state = initial,
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F,
+                      .maximum_linear_speed = 200.0F},
+                     projectile),
+                 "add swept projectile");
+
+    RigidBodyState reference{};
+    for (int repetition = 0; repetition < 20; ++repetition) {
+        check_status(world.set_rigid_body_state(projectile, initial),
+                     "reset swept projectile");
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 1U,
+                                 .gravity = {}}),
+                     "step swept projectile");
+        RigidBodyState result{};
+        check_status(world.read_rigid_body_state(projectile, result),
+                     "read swept projectile");
+        check(result.position.y >= 0.099F &&
+                  result.linear_velocity.y >= -1.0e-3F,
+              "one swept substep must stop a fast mesh above the surface");
+        if (repetition == 0) {
+            reference = result;
+        } else {
+            check(std::memcmp(&reference, &result, sizeof(result)) == 0,
+                  "swept triangle contacts must be bit-identical");
+        }
+    }
+}
+
 void test_invalid_triangle_indices() {
     using namespace parallel_mater;
     World world;
@@ -432,6 +492,7 @@ int main() {
     test_floor_contact_and_async_contract();
     test_open_two_sided_surface();
     test_rotation_dynamic_coupling_and_determinism();
+    test_high_speed_swept_triangle_contact();
     test_invalid_triangle_indices();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";

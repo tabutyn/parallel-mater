@@ -13,6 +13,8 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace parallel_mater::gallery {
@@ -362,11 +364,39 @@ class FlatJson {
             vertex.position = subtract(vertex.position, center);
         }
     }
+    for (const std::uint32_t mesh_index : body.collision_mesh_indices) {
+        for (Vertex &vertex : scene.collision_meshes[mesh_index].vertices) {
+            vertex.position = subtract(vertex.position, center);
+        }
+    }
     body.options.initial_state.position = add(
         body.options.initial_state.position,
         rotate(body.options.initial_state.orientation, center));
 
     return true;
+}
+
+struct CollisionProxy {
+    RigidBodyState state{};
+    std::vector<std::uint32_t> mesh_indices{};
+};
+
+[[nodiscard]] bool same_transform(const RigidBodyState &first,
+                                  const RigidBodyState &second) {
+    constexpr float tolerance = 1.0e-5F;
+    const auto near = [](float left, float right) {
+        return std::fabs(left - right) <= tolerance;
+    };
+    const bool same_position = near(first.position.x, second.position.x) &&
+                               near(first.position.y, second.position.y) &&
+                               near(first.position.z, second.position.z);
+    const float orientation_dot =
+        first.orientation.x * second.orientation.x +
+        first.orientation.y * second.orientation.y +
+        first.orientation.z * second.orientation.z +
+        first.orientation.w * second.orientation.w;
+    return same_position && std::fabs(std::fabs(orientation_dot) - 1.0F) <=
+                                tolerance;
 }
 
 } // namespace
@@ -399,9 +429,68 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         return false;
     }
 
+    std::unordered_map<std::string, CollisionProxy> collision_proxies;
     for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
         const cgltf_node &node = data->nodes[node_index];
         if (node.extras.data == nullptr) {
+            continue;
+        }
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "collision_mesh") {
+            continue;
+        }
+        const std::string node_name =
+            extras.string("pm_name")
+                .value_or(node.name != nullptr
+                              ? node.name
+                              : "collision_node_" + std::to_string(node_index));
+        if (extras.number("pm_schema").value_or(0.0) != 2.0) {
+            error = node_name + ": unsupported or missing pm_schema";
+            return false;
+        }
+        if (node.parent != nullptr || node.has_matrix) {
+            error = node_name +
+                    ": collision proxies must be scene-root TRS nodes";
+            return false;
+        }
+        if (node.mesh == nullptr || node.mesh->primitives_count == 0U) {
+            error = node_name + ": collision proxy requires geometry";
+            return false;
+        }
+        const Vec3 scale = node_scale(node);
+        if (!finite(scale) || scale.x < k_bounds_epsilon ||
+            scale.y < k_bounds_epsilon || scale.z < k_bounds_epsilon) {
+            error = node_name + ": collision proxy scale is invalid";
+            return false;
+        }
+        CollisionProxy proxy{.state = node_state(node)};
+        for (cgltf_size primitive_index = 0;
+             primitive_index < node.mesh->primitives_count; ++primitive_index) {
+            TriangleMesh mesh{};
+            const std::string mesh_name =
+                node_name + "/primitive_" + std::to_string(primitive_index);
+            if (!append_primitive(node.mesh->primitives[primitive_index], scale,
+                                  false, mesh_name, mesh, error)) {
+                return false;
+            }
+            proxy.mesh_indices.push_back(
+                static_cast<std::uint32_t>(output.collision_meshes.size()));
+            output.collision_meshes.push_back(std::move(mesh));
+        }
+        if (!collision_proxies.emplace(node_name, std::move(proxy)).second) {
+            error = node_name + ": duplicate collision proxy name";
+            return false;
+        }
+    }
+
+    std::unordered_set<std::string> used_collision_proxies;
+    for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) {
+            continue;
+        }
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "rigid_body") {
             continue;
         }
         RigidBodyDefinition body{};
@@ -414,7 +503,6 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             return false;
         }
-        const FlatJson extras(node.extras.data);
         body.name = extras.string("pm_name").value_or(body.name);
         if (node.parent != nullptr) {
             error = body.name + ": physics objects must be scene-root nodes";
@@ -448,6 +536,27 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 static_cast<std::uint32_t>(output.meshes.size()));
             output.meshes.push_back(std::move(mesh));
         }
+        if (const std::optional<std::string> collision_name =
+                extras.string("pm_collision_proxy")) {
+            const auto proxy = collision_proxies.find(*collision_name);
+            if (proxy == collision_proxies.end()) {
+                error = body.name + ": collision proxy '" + *collision_name +
+                        "' was not exported";
+                return false;
+            }
+            if (!used_collision_proxies.insert(*collision_name).second) {
+                error = body.name + ": collision proxy '" + *collision_name +
+                        "' is already assigned to another body";
+                return false;
+            }
+            if (!same_transform(body.options.initial_state,
+                                proxy->second.state)) {
+                error = body.name +
+                        ": collision proxy must share the rigid-body transform";
+                return false;
+            }
+            body.collision_mesh_indices = proxy->second.mesh_indices;
+        }
         if (!finalize_body_geometry(output, body, error)) {
             return false;
         }
@@ -474,12 +583,19 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         RigidBodyOptions options = definition.options;
         std::vector<Vec3> vertices;
         std::vector<std::uint32_t> indices;
+        const std::vector<TriangleMesh> &source_meshes =
+            definition.collision_mesh_indices.empty() ? scene.meshes
+                                                      : scene.collision_meshes;
+        const std::vector<std::uint32_t> &source_indices =
+            definition.collision_mesh_indices.empty()
+                ? definition.mesh_indices
+                : definition.collision_mesh_indices;
         try {
             std::size_t vertex_count = 0U;
             std::size_t index_count = 0U;
-            for (const std::uint32_t mesh_index : definition.mesh_indices) {
-                vertex_count += scene.meshes[mesh_index].vertices.size();
-                index_count += scene.meshes[mesh_index].indices.size();
+            for (const std::uint32_t mesh_index : source_indices) {
+                vertex_count += source_meshes[mesh_index].vertices.size();
+                index_count += source_meshes[mesh_index].indices.size();
             }
             if (vertex_count > std::numeric_limits<std::uint32_t>::max() ||
                 index_count > std::numeric_limits<std::uint32_t>::max()) {
@@ -488,8 +604,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             }
             vertices.reserve(vertex_count);
             indices.reserve(index_count);
-            for (const std::uint32_t mesh_index : definition.mesh_indices) {
-                const TriangleMesh &mesh = scene.meshes[mesh_index];
+            for (const std::uint32_t mesh_index : source_indices) {
+                const TriangleMesh &mesh = source_meshes[mesh_index];
                 const std::uint32_t base =
                     static_cast<std::uint32_t>(vertices.size());
                 for (const Vertex &vertex : mesh.vertices) {

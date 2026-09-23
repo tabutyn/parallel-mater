@@ -10,6 +10,12 @@ surface is two-sided; open and disconnected meshes are accepted. A
 deterministic private BVH accelerates mesh contact. Fluid declarations are
 present for API review but are implemented in the next milestone.
 
+The current rigid pipeline reduced the measured five-body Blender scene from
+24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
+rejected experiments, sparse-world result, and high-speed fixture are recorded
+in [the rigid performance report](docs/PERFORMANCE.md); these are project
+measurements, not general hardware claims.
+
 ## Design goals
 
 - One owning `World` coordinates simulation and cross-system coupling.

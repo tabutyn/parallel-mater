@@ -265,6 +265,12 @@ struct WorldStepTimings {
     std::uint64_t frame_index{};
     bool available{};
     KernelTiming rigid_integration{};
+    KernelTiming rigid_world_bounds{};
+    KernelTiming rigid_pair_filter{};
+    KernelTiming rigid_pair_compaction{};
+    KernelTiming rigid_leaf_pair_generation{};
+    KernelTiming rigid_contact_evaluation{};
+    // Aggregate of the five broad/narrow-phase stages above.
     KernelTiming rigid_contact_generation{};
     KernelTiming rigid_contact_solve{};
     KernelTiming rigid_input_clear{};

@@ -56,6 +56,7 @@ def fallback_material(index: int, passive: bool) -> bpy.types.Material:
 def copy_for_export(
     source: bpy.types.Object,
     index: int,
+    collision_proxy_name: str | None,
     collection: bpy.types.Collection,
     depsgraph: bpy.types.Depsgraph,
     created_meshes: list[bpy.types.Mesh],
@@ -100,14 +101,53 @@ def copy_for_export(
     exported["pm_collision_margin"] = (
         float(rigid.collision_margin) if rigid.use_margin else 0.005
     )
-    exported["pm_checkerboard"] = bool(
-        source.get("pm_checkerboard", passive)
-    )
+    exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
+    if collision_proxy_name is not None:
+        exported["pm_collision_proxy"] = collision_proxy_name
 
     if len(mesh.materials) == 0:
         material = fallback_material(index, passive)
         created_materials.append(material)
         mesh.materials.append(material)
+    return exported
+
+
+def copy_collision_for_export(
+    source: bpy.types.Object,
+    proxy: bpy.types.Object,
+    exported_name: str,
+    collection: bpy.types.Collection,
+    depsgraph: bpy.types.Depsgraph,
+    created_meshes: list[bpy.types.Mesh],
+) -> bpy.types.Object:
+    evaluated = proxy.evaluated_get(depsgraph)
+    mesh = bpy.data.meshes.new_from_object(
+        evaluated, preserve_all_data_layers=False, depsgraph=depsgraph
+    )
+    created_meshes.append(mesh)
+
+    # Store proxy vertices in the rigid body's local frame. This permits an
+    # independently positioned Blender proxy while exporting both nodes with
+    # exactly the same world-space rigid transform.
+    location, rotation, _ = source.matrix_world.decompose()
+    rigid_frame = Matrix.LocRotScale(location, rotation, None)
+    relative = rigid_frame.inverted_safe() @ proxy.matrix_world
+    geometry = bmesh.new()
+    geometry.from_mesh(mesh)
+    bmesh.ops.transform(geometry, matrix=relative, verts=geometry.verts)
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.normal_update()
+    geometry.to_mesh(mesh)
+    geometry.free()
+    mesh.validate(clean_customdata=False)
+    mesh.update()
+
+    exported = bpy.data.objects.new(exported_name, mesh)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    exported["pm_schema"] = 2
+    exported["pm_system"] = "collision_mesh"
+    exported["pm_name"] = exported_name
     return exported
 
 
@@ -131,17 +171,54 @@ def export(output: pathlib.Path) -> None:
     created_materials: list[bpy.types.Material] = []
     try:
         depsgraph = bpy.context.evaluated_depsgraph_get()
+        used_proxies: set[str] = set()
         for index, source in enumerate(sources):
+            proxy = None
+            proxy_export_name = None
+            requested_proxy = source.get("pm_collision_proxy")
+            if requested_proxy is not None:
+                if not isinstance(requested_proxy, str) or not requested_proxy:
+                    raise RuntimeError(
+                        f"{source.name}: pm_collision_proxy must be an object name"
+                    )
+                proxy = bpy.data.objects.get(requested_proxy)
+                if proxy is None or proxy.type != "MESH":
+                    raise RuntimeError(
+                        f"{source.name}: collision proxy '{requested_proxy}' "
+                        "is not a mesh object"
+                    )
+                if proxy.rigid_body is not None:
+                    raise RuntimeError(
+                        f"{source.name}: collision proxy must not be a rigid body"
+                    )
+                if proxy.name in used_proxies:
+                    raise RuntimeError(
+                        f"{source.name}: collision proxy is already in use"
+                    )
+                used_proxies.add(proxy.name)
+                proxy_export_name = f"{source.name}__PM_COLLISION"
             created_objects.append(
                 copy_for_export(
                     source,
                     index,
+                    proxy_export_name,
                     collection,
                     depsgraph,
                     created_meshes,
                     created_materials,
                 )
             )
+            if proxy is not None and proxy_export_name is not None:
+                created_objects.append(
+                    copy_collision_for_export(
+                        source,
+                        proxy,
+                        proxy_export_name,
+                        collection,
+                        depsgraph,
+                        created_meshes,
+                    )
+                )
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:
@@ -172,7 +249,10 @@ def export(output: pathlib.Path) -> None:
         for obj in previous_selection:
             if obj.name in bpy.context.scene.objects:
                 obj.select_set(True)
-        if previous_active is not None and previous_active.name in bpy.context.scene.objects:
+        if (
+            previous_active is not None
+            and previous_active.name in bpy.context.scene.objects
+        ):
             bpy.context.view_layer.objects.active = previous_active
 
 

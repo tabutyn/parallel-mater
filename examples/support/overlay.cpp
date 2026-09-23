@@ -255,7 +255,7 @@ void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings) {
-    rectangle(rgba, width, height, 18, 18, 390, 174, {5, 12, 18, 215});
+    rectangle(rgba, width, height, 18, 18, 390, 274, {5, 12, 18, 215});
     text(rgba, width, height, 32, 30, "GPU KERNELS", {80, 220, 255, 255}, 2);
     if (!timings.available) {
         text(rgba, width, height, 32, 58, "NO TIMING SAMPLE", {255, 190, 70, 255},
@@ -264,16 +264,24 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
     }
     timing_row(rgba, width, height, 58, "INTEGRATE",
                timings.rigid_integration);
-    timing_row(rgba, width, height, 78, "CONTACTS",
-               timings.rigid_contact_generation);
-    timing_row(rgba, width, height, 98, "SOLVE",
+    timing_row(rgba, width, height, 78, "BOUNDS",
+               timings.rigid_world_bounds);
+    timing_row(rgba, width, height, 98, "PAIR FILTER",
+               timings.rigid_pair_filter);
+    timing_row(rgba, width, height, 118, "PAIR COMPACT",
+               timings.rigid_pair_compaction);
+    timing_row(rgba, width, height, 138, "LEAF PAIRS",
+               timings.rigid_leaf_pair_generation);
+    timing_row(rgba, width, height, 158, "TRI CONTACT",
+               timings.rigid_contact_evaluation);
+    timing_row(rgba, width, height, 178, "SOLVE",
                timings.rigid_contact_solve);
-    timing_row(rgba, width, height, 118, "CLEAR",
+    timing_row(rgba, width, height, 198, "CLEAR",
                timings.rigid_input_clear);
     char total[96]{};
     std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
                   timings.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 144, total, {100, 255, 155, 255}, 2);
+    text(rgba, width, height, 32, 224, total, {100, 255, 155, 255}, 2);
 }
 
 bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,

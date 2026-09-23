@@ -41,6 +41,18 @@ pass.
 - Add the examples-only `Tab` selector with grey Rigid Body and blue Fluid
   identities. Fluid remains unavailable until its acceptance scene exists.
 
+## Rigid performance pass — before PR 5
+
+- Parallelize deterministic BVH leaf-pair contact evaluation.
+- Compact GPU broad-phase results so the solver visits only potentially
+  overlapping body pairs.
+- Support explicit Blender collision proxies without changing detailed render
+  geometry.
+- Add velocity-gated conservative swept triangle contacts and a high-speed
+  tunneling regression.
+- Publish retained and rejected hypotheses with reproducible timing settings in
+  [the performance report](PERFORMANCE.md).
+
 ## PR 5 — Isolated fluid and particle lifecycle
 
 - Do not implement or execute this stage until its Blender-authored acceptance

@@ -42,6 +42,8 @@ int main() {
           "PassiveActive must contain the bowl and four test bodies");
     check(scene.meshes.size() == 5U,
           "PassiveActive must contain five render meshes");
+    check(scene.collision_meshes.size() == 3U,
+          "three dynamic bodies must carry authored collision proxies");
     if (scene.rigid_bodies.size() == 5U) {
         check(scene.rigid_bodies[0].name == "Plane" &&
                   scene.rigid_bodies[0].options.motion ==
@@ -68,6 +70,20 @@ int main() {
         }
         check(scene.meshes[0].indices.size() == 2'048U * 3U,
               "the Blender bowl quads must export as 2,048 triangles");
+        check(scene.rigid_bodies[0].collision_mesh_indices.empty() &&
+                  scene.rigid_bodies[1].collision_mesh_indices.empty(),
+              "the detailed bowl and cube must use their render triangles");
+        for (std::size_t index = 2U; index < 5U; ++index) {
+            check(!scene.rigid_bodies[index].collision_mesh_indices.empty(),
+                  "each detailed dynamic body must select a collision proxy");
+            if (!scene.rigid_bodies[index].collision_mesh_indices.empty()) {
+                const TriangleMesh &proxy = scene.collision_meshes[
+                    scene.rigid_bodies[index].collision_mesh_indices.front()];
+                check(proxy.indices.size() <
+                          scene.meshes[index].indices.size(),
+                      "a collision proxy must contain fewer triangles than its render mesh");
+            }
+        }
         float cube_extent = 0.0F;
         for (const Vertex &vertex : scene.meshes[1].vertices) {
             cube_extent = std::fmax(cube_extent, std::fabs(vertex.position.x));
@@ -97,7 +113,7 @@ int main() {
                  "instantiate PassiveActive scene");
     check(instance.rigid_bodies.size() == 5U &&
               instance.collision_meshes.size() == 5U,
-          "render and collision must share one triangle mesh per body");
+          "each rigid body must instantiate one selected collision mesh");
     WorldStatistics statistics{};
     check_status(world.collect_statistics(statistics), "collect scene statistics");
     check(statistics.rigid_body_count == 5U &&
