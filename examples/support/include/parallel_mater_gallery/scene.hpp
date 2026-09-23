@@ -39,13 +39,16 @@ struct SceneDefinition {
 };
 
 struct SceneInstance {
-    std::vector<TriangleMeshId> collision_meshes{};
     std::vector<RigidBodyId> rigid_bodies{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,
                                   SceneDefinition &output,
                                   std::string &error);
+
+// Examples-only rigid stress scene. The installed physics API has no scene
+// concepts; DUMP builds reusable triangle meshes through SceneDefinition.
+[[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
 
 [[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
                                        World &world,

@@ -81,6 +81,15 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_options(
             parallel-mater-rigid-scene-benchmark
             PRIVATE -Wall -Wextra -Wpedantic)
+
+        add_executable(parallel-mater-dump-benchmark
+                       benchmarks/dump_scene.cpp)
+        target_link_libraries(
+            parallel-mater-dump-benchmark
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_options(
+            parallel-mater-dump-benchmark
+            PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
     FetchContent_Declare(
@@ -186,6 +195,13 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-optix-test.ppm
                     --frames 30)
+        add_test(
+            NAME parallel-mater-dump-headless-test
+            COMMAND parallel-mater-gallery
+                    --dump-spheres 10
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-dump-test.ppm
+                    --frames 150)
     endif()
 endif()
 

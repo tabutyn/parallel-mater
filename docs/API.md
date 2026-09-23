@@ -20,7 +20,7 @@ triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid contact is velocity-gated through conservative swept triangle-pair
 tests. Fluid and particle-lifecycle declarations currently return
-`StatusCode::not_supported` and are implemented in PR 6.
+`StatusCode::not_supported` and are implemented in PR 7.
 
 ## Minimal use
 
@@ -110,6 +110,9 @@ and input clearing. `rigid_contact_generation` remains the sum of the five
 broad/narrow-phase fields. `collect_step_timings` reads those events after
 frame completion. Timing is diagnostic data rather than solver input and is
 unavailable for frames that did not request it.
+
+Rigid contact diagnostics retain at most `WorldOptions::contact_capacity`
+events. Contact solving remains complete when diagnostic storage is capped.
 
 ## Fluid contract
 

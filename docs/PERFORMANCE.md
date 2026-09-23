@@ -80,8 +80,108 @@ same state across 20 resets.
 
 Leaf-pair generation and triangle evaluation now dominate. Candidate order is
 deterministic: each body pair uses a cooperative fixed-order leaf scan and a
-fixed thread-order manifold reduction. The 512-candidate fallback buffer costs
-32 MiB at the default 64-body capacity; overflow retains correctness through
-the exact serial path but can be slower. Future work should reduce that storage
-or improve overflow handling only with a new measured fixture—neither is a
-fluid-milestone prerequisite.
+fixed thread-order manifold reduction. The 512-candidate fast cache costs about
+15.8 MiB at the default 64-body capacity. For larger worlds it caches eight
+compacted active-pair slots per body rather than every possible pair. Additional active
+pairs retain swept-contact correctness through the serial path but can be slower.
+
+## DUMP stress follow-up, 2026-09-23
+
+The 1,000-sphere DUMP scene exposed two correctness bugs and a different
+performance profile: the solver ran on one GPU thread, and sphere pairs spent
+most of their time in triangle contact evaluation. Contact generation wrote
+manifolds at capacity stride while the solver read them at live-count stride;
+with spare capacity, bodies could fall through the receiver. Leaf-cache overflow
+also lost swept contacts. Both paths now have GPU regressions.
+
+Retained changes: pair-relative swept gating, compact active-pair manifold
+indexing, a deterministic conflict-free parallel solver for worlds with at least
+128 bodies, conservative swept bounding-sphere rejection, swept-triangle bounds
+rejection, and a contact allocation sized for the maximum number of eligible
+pairs rather than all directed pairs. Exact authored triangles remain the
+collision representation. Parallel diagnostics use stable pair-order event
+offsets and the same solver path, so enabling them does not change body states.
+
+Reproduce the stress run with
+`./build-gallery/parallel-mater-dump-benchmark 1000 480`. It rotates the hopper
+at 45 degrees per simulated second, uses `1/60 s` frames and four substeps, and
+prints 30-frame stage averages, memory, and final containment. Rendering is
+excluded. This local run used the same RTX 3050 Ti Laptop GPU; an interactive
+gallery was also open on that GPU, so times include contention and are not an
+isolated throughput claim.
+
+| Configuration | Frames | Triangle evaluation | Solve | GPU total | Allocated |
+|---|---:|---:|---:|---:|---:|
+| Before stress pass | 31–60 | 319 ms | 673 ms | 997 ms | 340.0 MB |
+| Retained changes | 31–60 | 43.2 ms | 12.4 ms | 57.0 ms | 211.9 MB |
+| Retained changes | 451–480 | 23.9 ms | 9.7 ms | 34.9 ms | 211.9 MB |
+
+After 480 frames, all 1,000 sphere positions and velocities were finite; none
+was below the receiver, and maximum sphere speed was 0.581 m/s. The checked-in
+gallery test repeats the 128-sphere parallel solver bit-identically. The rigid
+tests exercise spare capacity, a high-speed leaf-cache overflow, and a
+high-degree contact graph that exceeds the solver's 32 parallel colors.
+
+An accumulated-impulse variant was rejected: it raised allocation to 258.0 MB,
+slightly increased frame time, and ended the same 480-frame fixture at 0.674
+m/s maximum speed. Sleeping and a spatial broad phase remain candidates for
+separate measured changes; this scene deliberately keeps triangle contacts.
+
+## DUMP triangle-pipeline follow-up, 2026-09-23
+
+With the gallery closed, both configurations were measured on the same RTX
+3050 Ti Laptop GPU: 1,000 authored triangle spheres, 480 frames, four
+substeps, no rendering. Times below are GPU-event averages over each 30-frame
+window. The new configuration was run twice; its final 13-component-per-sphere
+state hash matched bit for bit (`4a016b8258d02a31`).
+
+| Frames | Previous GPU total | Retained GPU total | Triangle evaluation, before → after | Contact solve, before → after |
+|---|---:|---:|---:|---:|
+| 31–60 | 56.99 ms | 20.71 ms (−64%) | 43.11 → 13.12 ms | 12.41 → 6.07 ms |
+| 211–240 | 86.29 ms | 24.86 ms (−71%) | 75.86 → 18.52 ms | 9.25 → 5.16 ms |
+| 451–480 | 35.34 ms | 15.11 ms (−57%) | 24.20 → 9.25 ms | 9.87 → 4.65 ms |
+
+An intermediate isolated build with the triangle-pipeline changes but the
+prior serial greedy color assignment measured 26.65, 28.37, and 20.46 ms in
+the same three windows. The parallel matcher reduced those to 20.71, 24.86,
+and 15.11 ms; the remaining reduction comes from the triangle-pipeline bundle.
+Individual contact-kernel changes were also A/B tested, but several of those
+earlier measurements had gallery GPU contention, so they are not used to
+assign isolated speedup percentages to each kernel change.
+
+The existing five-body `PassiveActive.glb` benchmark also improved: median GPU
+time measured 1.506 ms here versus the previous documented 1.797 ms, with
+triangle evaluation 0.652 versus 0.905 ms. This checks that the shared
+triangle changes did not trade away the smaller rigid-scene path.
+
+The retained changes split the rare BVH-overflow fallback out of the main
+contact-evaluation kernel, use 64-thread contact blocks, tighten the
+conservative pair-relative swept-triangle speed bound, and eliminate repeated
+segment/triangle distance work. Triangle-pair distance now checks segment
+intersections, vertex/triangle distances, and edge/edge distances. A
+100,000-pair deterministic random differential check, including near and
+degenerate triangles, found a maximum squared-distance discrepancy of
+`1.43e-6` versus the prior routine. No analytic sphere or convex contact path
+was substituted.
+
+For worlds of at least 256 bodies, deterministic parallel matching colors
+independent contact pairs; the existing serial greedy coloring remains for
+128–255 bodies, and the serial contact path for smaller worlds. A shuffled,
+unique per-pair priority prevented the high-degree graph from collapsing into
+the serial overflow fallback. The 480-frame DUMP run ended with zero invalid
+states and zero sphere centers outside the receiver; linear RMS speed was
+0.161 m/s and maximum speed 0.582 m/s. Allocation remained 211,851,112
+bytes. All five tests passed, including high-degree graphs at 128 and 256
+bodies, a 256-sphere diagnostic-neutrality test, and high-speed BVH-cache
+overflow containment. An additional 900-frame run also ended with zero invalid
+states and zero centers outside the receiver; its final maximum speed was
+0.508 m/s.
+
+Rejected measured variants: marking collision helpers `__noinline__` raised
+stack usage and did not help; shared per-pair transformed vertices did not
+improve timing; a 16-color limit offered a small isolated speed gain but risked
+serial fallback on higher-degree graphs; ordered-priority parallel matching
+left 1,408 of 1,850 contacts in the serial overflow at frame 60; compact
+per-color solver worklists increased early total from 20.7 to 22.1 ms, peak
+from 25.0 to 25.8 ms, and allocation by about 2 MB. Only the faster and stable
+variants were retained.

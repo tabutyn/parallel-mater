@@ -69,17 +69,22 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
-Left-drag orbits, the wheel zooms, and `R` restores the authored poses. The
-arrow keys move the authored kinematic Cube in world X/Z while tilting gravity
-in the same direction for the dynamic Icosphere and Suzanne. `F` toggles
-per-kernel GPU timings, `V` toggles rigid contact points plus normal and
-friction-impulse arrows, and `Tab` opens the example context selector. The blue
-Fluid entry remains unavailable until its Blender-authored acceptance scene is
-provided. Escape quits. A display-free render is also available:
+Left-drag orbits, the wheel zooms, and `R` resets the active scene. `Tab` opens
+the selector for Rigid Body, DUMP, and Fluid; use Up/Down and Enter to switch.
+In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
+DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
+10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
+GPU timings and `V` toggles rigid contact diagnostics. Fluid remains unavailable
+until its Blender-authored acceptance scene is provided. Escape quits. A
+display-free DUMP render is also available with `--dump-spheres N`:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
   --headless /tmp/parallel-mater-gallery.ppm --frames 120
+
+./build-gallery/parallel-mater-gallery \
+  --dump-spheres 100 \
+  --headless /tmp/parallel-mater-dump.ppm --frames 120
 ```
 
 The gallery currently requires an NVIDIA driver supported by OptiX 9.1,

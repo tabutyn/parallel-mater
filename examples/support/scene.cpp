@@ -399,6 +399,85 @@ struct CollisionProxy {
                                 tolerance;
 }
 
+[[nodiscard]] Quaternion rotation_z(float radians) {
+    return {0.0F, 0.0F, std::sin(radians * 0.5F),
+            std::cos(radians * 0.5F)};
+}
+
+void append_quad(std::vector<std::uint32_t> &indices, std::uint32_t first,
+                 std::uint32_t second, std::uint32_t third,
+                 std::uint32_t fourth) {
+    indices.insert(indices.end(), {first, second, third, first, third, fourth});
+}
+
+[[nodiscard]] TriangleMesh make_open_cube(std::string name, float half_extent,
+                                          bool remove_right, Vec3 color,
+                                          bool checkerboard) {
+    const std::array<Vec3, 8> corners{{
+        {-half_extent, -half_extent, -half_extent},
+        {half_extent, -half_extent, -half_extent},
+        {half_extent, half_extent, -half_extent},
+        {-half_extent, half_extent, -half_extent},
+        {-half_extent, -half_extent, half_extent},
+        {half_extent, -half_extent, half_extent},
+        {half_extent, half_extent, half_extent},
+        {-half_extent, half_extent, half_extent},
+    }};
+    TriangleMesh result{};
+    result.name = std::move(name);
+    result.base_color = color;
+    result.checkerboard = checkerboard;
+    result.vertices.reserve(corners.size());
+    for (const Vec3 corner : corners) {
+        result.vertices.push_back({corner, normalize(corner)});
+    }
+
+    // Bottom, front, back, and left are always present. Top is open.
+    append_quad(result.indices, 0U, 1U, 5U, 4U);
+    append_quad(result.indices, 0U, 3U, 2U, 1U);
+    append_quad(result.indices, 4U, 5U, 6U, 7U);
+    append_quad(result.indices, 0U, 4U, 7U, 3U);
+    if (!remove_right) {
+        append_quad(result.indices, 1U, 2U, 6U, 5U);
+    }
+    return result;
+}
+
+[[nodiscard]] TriangleMesh make_cube_projected_sphere(float radius) {
+    const std::array<Vec3, 14> cube_vertices{{
+        {-1.0F, -1.0F, -1.0F}, {1.0F, -1.0F, -1.0F},
+        {1.0F, 1.0F, -1.0F},   {-1.0F, 1.0F, -1.0F},
+        {-1.0F, -1.0F, 1.0F},  {1.0F, -1.0F, 1.0F},
+        {1.0F, 1.0F, 1.0F},    {-1.0F, 1.0F, 1.0F},
+        {0.0F, -1.0F, 0.0F},   {0.0F, 1.0F, 0.0F},
+        {0.0F, 0.0F, -1.0F},   {0.0F, 0.0F, 1.0F},
+        {-1.0F, 0.0F, 0.0F},   {1.0F, 0.0F, 0.0F},
+    }};
+    TriangleMesh result{};
+    result.name = "dump_sphere";
+    result.base_color = {0.98F, 0.48F, 0.12F};
+    result.vertices.reserve(cube_vertices.size());
+    for (const Vec3 cube_vertex : cube_vertices) {
+        const Vec3 position = multiply(normalize(cube_vertex), radius);
+        result.vertices.push_back({position, normalize(position)});
+    }
+    const auto append_face = [&](std::uint32_t center,
+                                 std::array<std::uint32_t, 4> corners) {
+        for (std::size_t index = 0U; index < corners.size(); ++index) {
+            result.indices.insert(result.indices.end(),
+                                  {center, corners[index],
+                                   corners[(index + 1U) % corners.size()]});
+        }
+    };
+    append_face(8U, {0U, 1U, 5U, 4U});
+    append_face(9U, {3U, 7U, 6U, 2U});
+    append_face(10U, {0U, 3U, 2U, 1U});
+    append_face(11U, {4U, 5U, 6U, 7U});
+    append_face(12U, {0U, 4U, 7U, 3U});
+    append_face(13U, {1U, 2U, 6U, 5U});
+    return result;
+}
+
 } // namespace
 
 bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
@@ -569,27 +648,97 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
     return true;
 }
 
+SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
+    constexpr std::uint32_t minimum_spheres = 10U;
+    constexpr std::uint32_t maximum_spheres = 1'000U;
+    constexpr float sphere_radius = 0.1F;
+    constexpr float sphere_spacing = sphere_radius * 2.15F;
+    constexpr float source_half_extent = 1.3F;
+    constexpr float pi = 3.14159265358979323846F;
+    sphere_count = std::clamp(sphere_count, minimum_spheres, maximum_spheres);
+
+    SceneDefinition result{};
+    result.meshes.reserve(3U);
+    result.rigid_bodies.reserve(static_cast<std::size_t>(sphere_count) + 2U);
+    result.meshes.push_back(make_open_cube("dump_hopper", source_half_extent,
+                                           true, {0.42F, 0.48F, 0.56F}, false));
+    result.meshes.push_back(make_open_cube("dump_receiver", 2.5F, false,
+                                           {0.22F, 0.31F, 0.42F}, true));
+    result.meshes.push_back(make_cube_projected_sphere(sphere_radius));
+
+    const RigidBodyState hopper_state{
+        .position = {0.0F, 4.5F, 0.0F},
+        .orientation = rotation_z(pi * 0.25F),
+    };
+    result.rigid_bodies.push_back(
+        {"Dump hopper", {.motion = MotionType::kinematic,
+                          .initial_state = hopper_state,
+                          .friction = 0.65F,
+                          .restitution = 0.02F,
+                          .collision_margin = 0.01F},
+         {0U}});
+    result.rigid_bodies.push_back(
+        {"Dump receiver", {.motion = MotionType::static_body,
+                            .initial_state = {.position = {1.5F, 0.0F, 0.0F}},
+                            .friction = 0.7F,
+                            .restitution = 0.02F,
+                            .collision_margin = 0.01F},
+         {1U}});
+
+    std::uint32_t width = 1U;
+    while (width * width * width < sphere_count) {
+        ++width;
+    }
+    for (std::uint32_t index = 0U; index < sphere_count; ++index) {
+        const std::uint32_t x = index % width;
+        const std::uint32_t y = (index / width) % width;
+        const std::uint32_t z = index / (width * width);
+        const Vec3 local{
+            (static_cast<float>(x) - static_cast<float>(width - 1U) * 0.5F) *
+                sphere_spacing,
+            (static_cast<float>(y) - static_cast<float>(width - 1U) * 0.5F) *
+                sphere_spacing,
+            (static_cast<float>(z) - static_cast<float>(width - 1U) * 0.5F) *
+                sphere_spacing,
+        };
+        const RigidBodyState initial{
+            .position = add(hopper_state.position,
+                            rotate(hopper_state.orientation, local)),
+        };
+        result.rigid_bodies.push_back(
+            {"Dump sphere " + std::to_string(index + 1U),
+             {.motion = MotionType::dynamic,
+              .initial_state = initial,
+              .mass = 0.06F,
+              .friction = 0.5F,
+              .restitution = 0.04F,
+              .linear_damping = 0.01F,
+              .angular_damping = 0.01F,
+              .maximum_linear_speed = 40.0F,
+              .maximum_angular_speed = 80.0F,
+              .collision_margin = 0.004F},
+             {2U}});
+    }
+    return result;
+}
+
 Status instantiate_scene(const SceneDefinition &scene, World &world,
                          SceneInstance &output) noexcept {
     output = {};
+    std::unordered_map<std::string, TriangleMeshId> mesh_cache;
     try {
         output.rigid_bodies.reserve(scene.rigid_bodies.size());
-        output.collision_meshes.reserve(scene.rigid_bodies.size());
+        mesh_cache.reserve(scene.meshes.size() + scene.collision_meshes.size());
     } catch (...) {
         return {StatusCode::out_of_memory, cudaSuccess,
                 "failed to allocate gallery body bindings"};
     }
-    for (const RigidBodyDefinition &definition : scene.rigid_bodies) {
-        RigidBodyOptions options = definition.options;
+
+    const auto upload_mesh = [&](const std::vector<TriangleMesh> &source_meshes,
+                                 const std::vector<std::uint32_t> &source_indices,
+                                 TriangleMeshId &mesh_id) -> Status {
         std::vector<Vec3> vertices;
         std::vector<std::uint32_t> indices;
-        const std::vector<TriangleMesh> &source_meshes =
-            definition.collision_mesh_indices.empty() ? scene.meshes
-                                                      : scene.collision_meshes;
-        const std::vector<std::uint32_t> &source_indices =
-            definition.collision_mesh_indices.empty()
-                ? definition.mesh_indices
-                : definition.collision_mesh_indices;
         try {
             std::size_t vertex_count = 0U;
             std::size_t index_count = 0U;
@@ -644,7 +793,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return {StatusCode::cuda_failure, error,
                     "failed to upload gallery triangle mesh"};
         }
-        TriangleMeshId mesh_id{};
         const Status mesh_status = world.add_triangle_mesh(
             {device_vertices, vertices.size()}, {device_indices, indices.size()},
             mesh_id);
@@ -653,7 +801,46 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         if (!mesh_status) {
             return mesh_status;
         }
-        output.collision_meshes.push_back(mesh_id);
+        return {};
+    };
+
+    for (const RigidBodyDefinition &definition : scene.rigid_bodies) {
+        RigidBodyOptions options = definition.options;
+        const bool uses_collision_proxy =
+            !definition.collision_mesh_indices.empty();
+        const std::vector<TriangleMesh> &source_meshes =
+            uses_collision_proxy ? scene.collision_meshes : scene.meshes;
+        const std::vector<std::uint32_t> &source_indices =
+            uses_collision_proxy ? definition.collision_mesh_indices
+                                 : definition.mesh_indices;
+        std::string cache_key = uses_collision_proxy ? "collision" : "render";
+        try {
+            for (const std::uint32_t mesh_index : source_indices) {
+                cache_key.push_back(':');
+                cache_key.append(std::to_string(mesh_index));
+            }
+        } catch (...) {
+            return {StatusCode::out_of_memory, cudaSuccess,
+                    "failed to identify shared gallery mesh"};
+        }
+
+        TriangleMeshId mesh_id{};
+        const auto cached = mesh_cache.find(cache_key);
+        if (cached != mesh_cache.end()) {
+            mesh_id = cached->second;
+        } else {
+            const Status mesh_status =
+                upload_mesh(source_meshes, source_indices, mesh_id);
+            if (!mesh_status) {
+                return mesh_status;
+            }
+            try {
+                mesh_cache.emplace(std::move(cache_key), mesh_id);
+            } catch (...) {
+                return {StatusCode::out_of_memory, cudaSuccess,
+                        "failed to cache shared gallery mesh"};
+            }
+        }
         options.mesh = mesh_id;
         RigidBodyId body{};
         const Status status = world.add_rigid_body(options, body);

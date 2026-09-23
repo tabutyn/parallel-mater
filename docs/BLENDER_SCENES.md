@@ -106,7 +106,7 @@ explicitly rather than silently changing scene meaning.
 
 ## Gate for the isolated-fluid milestone
 
-PR 6 does not start—and no fluid kernels are run—until the authored source file
+PR 7 does not start—and no fluid kernels are run—until the authored source file
 `examples/assets/FluidLifecycle.blend` is supplied. That file should contain:
 
 - one mesh object named `FluidSeed` whose vertices, with no faces required,

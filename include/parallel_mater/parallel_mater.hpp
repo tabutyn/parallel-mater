@@ -116,6 +116,7 @@ struct WorldOptions {
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_spawn_plane_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
+    // Maximum diagnostic contact events retained for a requested frame.
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
 };

@@ -338,31 +338,61 @@ bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
 }
 
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
-                          std::uint32_t width, std::uint32_t height) {
+                          std::uint32_t width, std::uint32_t height,
+                          GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(40, static_cast<int>(height) / 2 - 145);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 290,
+    const int top = std::max(24, static_cast<int>(height) / 2 - 174);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 348,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
 
-    rectangle(rgba, width, height, center - 220, top + 82, center + 220,
-              top + 160, {48, 55, 63, 235});
-    rectangle(rgba, width, height, center - 198, top + 103, center - 160,
-              top + 141, {170, 176, 184, 255});
-    text(rgba, width, height, center - 135, top + 100, "RIGID BODY",
-         {245, 247, 250, 255}, 2);
-    text(rgba, width, height, center - 135, top + 126, "ACTIVE",
-         {105, 255, 155, 255}, 1);
+    const auto row = [&](int y, GalleryContext context, Color background,
+                         Color icon, std::string_view name,
+                         std::string_view state, Color state_color) {
+        if (selection == context) {
+            rectangle(rgba, width, height, center - 226, y - 6, center + 226,
+                      y + 72, {105, 255, 155, 255});
+        }
+        rectangle(rgba, width, height, center - 220, y, center + 220, y + 66,
+                  background);
+        rectangle(rgba, width, height, center - 198, y + 14, center - 160,
+                  y + 52, icon);
+        text(rgba, width, height, center - 135, y + 11, name,
+             {245, 247, 250, 255}, 2);
+        text(rgba, width, height, center - 135, y + 37, state, state_color, 1);
+    };
 
-    rectangle(rgba, width, height, center - 220, top + 178, center + 220,
-              top + 256, {12, 42, 65, 235});
-    rectangle(rgba, width, height, center - 198, top + 199, center - 160,
-              top + 237, {35, 150, 255, 255});
-    text(rgba, width, height, center - 135, top + 196, "FLUID",
-         {215, 240, 255, 255}, 2);
-    text(rgba, width, height, center - 135, top + 222,
-         "WAITING FOR BLENDER SCENE", {120, 180, 215, 255}, 1);
+    row(top + 78, GalleryContext::rigid_body, {48, 55, 63, 235},
+        {170, 176, 184, 255}, "RIGID BODY", "AVAILABLE",
+        {105, 255, 155, 255});
+    row(top + 160, GalleryContext::dump, {62, 38, 22, 235},
+        {245, 130, 45, 255}, "DUMP", "AVAILABLE  P EDITS SPHERES",
+        {105, 255, 155, 255});
+    row(top + 242, GalleryContext::fluid, {12, 42, 65, 235},
+        {35, 150, 255, 255}, "FLUID", "WAITING FOR BLENDER SCENE",
+        {120, 180, 215, 255});
+}
+
+void draw_dump_count_overlay(std::vector<std::uint32_t> &rgba,
+                             std::uint32_t width, std::uint32_t height,
+                             const std::string &value, bool invalid) {
+    const int center_x = static_cast<int>(width) / 2;
+    const int center_y = static_cast<int>(height) / 2;
+    rectangle(rgba, width, height, center_x - 260, center_y - 118,
+              center_x + 260, center_y + 118, {4, 10, 16, 242});
+    text(rgba, width, height, center_x - 220, center_y - 88,
+         "DUMP SPHERES", {245, 130, 45, 255}, 3);
+    rectangle(rgba, width, height, center_x - 220, center_y - 30,
+              center_x + 220, center_y + 20,
+              invalid ? Color{105, 20, 20, 255} : Color{27, 38, 48, 255});
+    text(rgba, width, height, center_x - 198, center_y - 17,
+         "COUNT " + value, {245, 247, 250, 255}, 2);
+    text(rgba, width, height, center_x - 220, center_y + 42,
+         invalid ? "USE 10-1000" : "MIN 10  MAX 1000",
+         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
+    text(rgba, width, height, center_x - 220, center_y + 72,
+         "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);
 }
 
 } // namespace parallel_mater::gallery
