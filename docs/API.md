@@ -20,7 +20,7 @@ triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid contact is velocity-gated through conservative swept triangle-pair
 tests. Fluid and particle-lifecycle declarations currently return
-`StatusCode::not_supported` and are implemented in PR 5.
+`StatusCode::not_supported` and are implemented in PR 6.
 
 ## Minimal use
 

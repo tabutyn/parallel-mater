@@ -41,7 +41,7 @@ pass.
 - Add the examples-only `Tab` selector with grey Rigid Body and blue Fluid
   identities. Fluid remains unavailable until its acceptance scene exists.
 
-## Rigid performance pass — before PR 5
+## PR 5 — Rigid performance pass (in review)
 
 - Parallelize deterministic BVH leaf-pair contact evaluation.
 - Compact GPU broad-phase results so the solver visits only potentially
@@ -53,7 +53,7 @@ pass.
 - Publish retained and rejected hypotheses with reproducible timing settings in
   [the performance report](PERFORMANCE.md).
 
-## PR 5 — Isolated fluid and particle lifecycle
+## PR 6 — Isolated fluid and particle lifecycle
 
 - Do not implement or execute this stage until its Blender-authored acceptance
   scene has been supplied and reviewed. The scene, rather than procedural C++,
@@ -64,20 +64,20 @@ pass.
   stable compaction without allocations during stepping.
 - Add the fluid-tank scene and brute-force neighbor reference tests.
 
-## PR 6 — Fluid–rigid coupling
+## PR 7 — Fluid–rigid coupling
 
 - Add particle/triangle contacts, friction, restitution, projection, and balanced
   reactions on dynamic bodies.
 - Add deterministic contact events and the heavy-sphere scene.
 - Validate momentum exchange, containment, high-speed impact, and overflow.
 
-## PR 7 — Gallery game shell
+## PR 8 — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
 - Add objectives, scene selection, controls, and save data outside the library.
 - Add the obstacle-bowl scene.
 
-## PR 8 — Water rendering
+## PR 9 — Water rendering
 
 - Add debug particle rendering first.
 - Evaluate reconstructed raster water and OptiX water as example-only renderer
