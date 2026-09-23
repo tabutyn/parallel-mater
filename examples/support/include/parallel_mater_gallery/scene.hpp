@@ -27,21 +27,28 @@ struct RigidBodyDefinition {
     std::string name{};
     RigidBodyOptions options{};
     std::vector<std::uint32_t> mesh_indices{};
+    // Empty means the render triangles also drive collision. Otherwise these
+    // indices address SceneDefinition::collision_meshes.
+    std::vector<std::uint32_t> collision_mesh_indices{};
 };
 
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
+    std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
 };
 
 struct SceneInstance {
-    std::vector<TriangleMeshId> collision_meshes{};
     std::vector<RigidBodyId> rigid_bodies{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,
                                   SceneDefinition &output,
                                   std::string &error);
+
+// Examples-only rigid stress scene. The installed physics API has no scene
+// concepts; DUMP builds reusable triangle meshes through SceneDefinition.
+[[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
 
 [[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
                                        World &world,

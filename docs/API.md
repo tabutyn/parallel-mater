@@ -18,8 +18,9 @@ completion, generation-checked rigid and triangle-mesh handles, forces,
 impulses, kinematic targets, device views, GPU integration, and deterministic
 triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
-rigid collision remains deferred. Fluid and particle-lifecycle declarations
-currently return `StatusCode::not_supported` and are implemented in PR 5.
+rigid contact is velocity-gated through conservative swept triangle-pair
+tests. Fluid and particle-lifecycle declarations currently return
+`StatusCode::not_supported` and are implemented in PR 7.
 
 ## Minimal use
 
@@ -103,10 +104,21 @@ readback. Device views and contacts describe the most recently completed
 frame.
 
 Kernel timing is opt-in per `StepOptions`. When requested, CUDA events measure
-the aggregate time and launch count for rigid integration, contact generation,
-contact solving, and input clearing. `collect_step_timings` reads those events
-after frame completion. Timing is diagnostic data rather than solver input and
-is unavailable for frames that did not request it.
+rigid integration, world bounds, GPU pair filtering, deterministic pair
+compaction, leaf-pair generation, triangle contact evaluation, contact solving,
+and input clearing. `rigid_contact_generation` remains the sum of the five
+broad/narrow-phase fields. `collect_step_timings` reads those events after
+frame completion. Timing is diagnostic data rather than solver input and is
+unavailable for frames that did not request it.
+
+Every non-empty rigid world uses the same deterministic parallel contact
+coloring and resolution path. Small worlds launch no more color rounds than
+their possible unordered body pairs; large worlds cap coloring at 32 rounds
+and resolve any remaining conflicting contacts serially. This scheduling
+choice does not change the triangle-mesh contact API.
+
+Rigid contact diagnostics retain at most `WorldOptions::contact_capacity`
+events. Contact solving remains complete when diagnostic storage is capped.
 
 ## Fluid contract
 
@@ -166,9 +178,12 @@ approximation derived from the mesh's local AABB; callers with known mass
 properties can provide an exact diagonal. Triangle meshes are two-sided and
 need not be closed, connected, manifold, or consistently wound. Their vertex
 and index data is copied from device spans and organized into a deterministic
-private BVH. Degenerate triangles are rejected. Compound bodies, joints,
-sleeping, and continuous collision are deferred. Fluid–dynamic-body momentum
-exchange arrives with the fluid-coupling milestone.
+private BVH. Degenerate triangles are rejected. Motion beyond the collision
+shell activates conservative swept triangle-pair testing over linearized
+vertex paths; this prevents the tested fast-body tunneling case without making
+ordinary resting contacts pay the full cost. Compound bodies, joints, and
+sleeping are deferred. Fluid–dynamic-body momentum exchange arrives with the
+fluid-coupling milestone.
 
 ```cpp
 TriangleMeshId terrain_mesh;

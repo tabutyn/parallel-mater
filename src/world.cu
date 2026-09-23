@@ -3,6 +3,9 @@
 
 #include <cuda_runtime.h>
 
+#include <cub/device/device_select.cuh>
+#include <thrust/iterator/counting_iterator.h>
+
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -157,6 +160,24 @@ struct ContactManifold {
     std::uint32_t count{};
 };
 
+struct LeafPair {
+    std::uint32_t body_first{};
+    std::uint32_t body_count{};
+    std::uint32_t collider_first{};
+    std::uint32_t collider_count{};
+};
+
+constexpr std::uint32_t k_max_leaf_pairs_per_body_pair = 512U;
+// Keep the fast leaf-pair cache proportional to body capacity. Dense worlds
+// retain exact contacts through the serial fallback instead of reserving one
+// 512-entry cache for every possible body pair.
+constexpr std::uint32_t k_leaf_pair_cache_slots_per_body = 8U;
+constexpr std::uint32_t k_minimum_leaf_pair_cache_slots = 4'096U;
+constexpr std::uint32_t k_leaf_pair_overflow =
+    std::numeric_limits<std::uint32_t>::max();
+constexpr std::uint32_t k_contact_color_count = 32U;
+constexpr std::uint8_t k_contact_color_overflow = 0xffU;
+
 struct AppliedContactImpulse {
     float normal{};
     Vec3 friction{};
@@ -171,6 +192,11 @@ struct BvhNode {
     std::uint32_t triangle_count{};
 };
 
+struct WorldAabb {
+    Vec3 minimum{};
+    Vec3 maximum{};
+};
+
 struct TriangleMeshResource {
     Vec3 *vertices{};
     std::uint32_t *indices{};
@@ -180,20 +206,87 @@ struct TriangleMeshResource {
     bool alive{};
     Vec3 minimum{};
     Vec3 maximum{};
+    Vec3 bounding_center{};
+    float bounding_radius{};
     Vec3 unit_inertia{};
     BvhNode *bvh_nodes{};
     std::uint32_t bvh_node_count{};
+    std::uint32_t *bvh_leaves{};
+    std::uint32_t bvh_leaf_count{};
 };
 
-__host__ __device__ Vec3 closest_on_segment(Vec3 point, Vec3 a, Vec3 b) noexcept {
-    const Vec3 segment = subtract(b, a);
-    const float denominator = length_squared(segment);
-    if (denominator <= k_epsilon * k_epsilon) {
-        return a;
-    }
-    const float t = clamp_scalar(dot(subtract(point, a), segment) / denominator,
-                                 0.0F, 1.0F);
-    return add(a, multiply(segment, t));
+__device__ float rotational_motion_bound(
+    const RigidBodyState &previous, const RigidBodyState &current,
+    const TriangleMeshResource &mesh) noexcept {
+    const float orientation_dot = clamp_scalar(
+        fabsf(previous.orientation.x * current.orientation.x +
+              previous.orientation.y * current.orientation.y +
+              previous.orientation.z * current.orientation.z +
+              previous.orientation.w * current.orientation.w),
+        0.0F, 1.0F);
+    const float sine_half_angle =
+        sqrtf(fmaxf(0.0F, 1.0F - orientation_dot * orientation_dot));
+    const Vec3 maximum_absolute{
+        fmaxf(fabsf(mesh.minimum.x), fabsf(mesh.maximum.x)),
+        fmaxf(fabsf(mesh.minimum.y), fabsf(mesh.maximum.y)),
+        fmaxf(fabsf(mesh.minimum.z), fabsf(mesh.maximum.z))};
+    return 2.0F * vector_length(maximum_absolute) * sine_half_angle;
+}
+
+__device__ bool requires_swept_contact(
+    const RigidBodyState &previous, const RigidBodyState &current,
+    const TriangleMeshResource &mesh, float threshold) noexcept {
+    const float translation =
+        vector_length(subtract(current.position, previous.position));
+    return translation + rotational_motion_bound(previous, current, mesh) >
+           threshold;
+}
+
+__device__ bool requires_swept_pair_contact(
+    const RigidBodyState &previous_body, const RigidBodyState &body,
+    const TriangleMeshResource &body_mesh,
+    const RigidBodyState &previous_collider,
+    const RigidBodyState &collider,
+    const TriangleMeshResource &collider_mesh, float threshold) noexcept {
+    const Vec3 relative_translation = subtract(
+        subtract(body.position, previous_body.position),
+        subtract(collider.position, previous_collider.position));
+    const float body_rotation =
+        rotational_motion_bound(previous_body, body, body_mesh);
+    const float collider_rotation = rotational_motion_bound(
+        previous_collider, collider, collider_mesh);
+    return vector_length(relative_translation) + body_rotation +
+               collider_rotation > threshold;
+}
+
+__device__ bool bounding_spheres_may_contact(
+    const RigidBodyState &previous_body, const RigidBodyState &body,
+    const TriangleMeshResource &body_mesh,
+    const RigidBodyState &previous_collider,
+    const RigidBodyState &collider,
+    const TriangleMeshResource &collider_mesh, float margin) noexcept {
+    const Vec3 previous_relative = subtract(
+        add(previous_body.position,
+            rotate(previous_body.orientation, body_mesh.bounding_center)),
+        add(previous_collider.position,
+            rotate(previous_collider.orientation,
+                   collider_mesh.bounding_center)));
+    const Vec3 current_relative = subtract(
+        add(body.position, rotate(body.orientation, body_mesh.bounding_center)),
+        add(collider.position,
+            rotate(collider.orientation, collider_mesh.bounding_center)));
+    const Vec3 movement = subtract(current_relative, previous_relative);
+    const float squared_movement = length_squared(movement);
+    const float time = squared_movement > k_epsilon * k_epsilon
+        ? clamp_scalar(-dot(previous_relative, movement) / squared_movement,
+                       0.0F, 1.0F)
+        : 0.0F;
+    const Vec3 nearest = add(previous_relative, multiply(movement, time));
+    const float radius = body_mesh.bounding_radius +
+        collider_mesh.bounding_radius + margin + 1.0e-5F +
+        rotational_motion_bound(previous_body, body, body_mesh) +
+        rotational_motion_bound(previous_collider, collider, collider_mesh);
+    return length_squared(nearest) <= radius * radius;
 }
 
 __host__ __device__ void closest_segments(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2,
@@ -297,49 +390,6 @@ __host__ __device__ void consider_closest_pair(
     }
 }
 
-__host__ __device__ void closest_segment_triangle(
-    Vec3 segment_a, Vec3 segment_b, Vec3 a, Vec3 b, Vec3 c,
-    Vec3 &segment_point, Vec3 &triangle_point) noexcept {
-    float best_squared = FLT_MAX;
-    consider_closest_pair(segment_a, closest_on_triangle(segment_a, a, b, c),
-                          best_squared, segment_point, triangle_point);
-    consider_closest_pair(segment_b, closest_on_triangle(segment_b, a, b, c),
-                          best_squared, segment_point, triangle_point);
-    consider_closest_pair(closest_on_segment(a, segment_a, segment_b), a,
-                          best_squared, segment_point, triangle_point);
-    consider_closest_pair(closest_on_segment(b, segment_a, segment_b), b,
-                          best_squared, segment_point, triangle_point);
-    consider_closest_pair(closest_on_segment(c, segment_a, segment_b), c,
-                          best_squared, segment_point, triangle_point);
-    Vec3 first{};
-    Vec3 second{};
-    closest_segments(segment_a, segment_b, a, b, first, second);
-    consider_closest_pair(first, second, best_squared, segment_point,
-                          triangle_point);
-    closest_segments(segment_a, segment_b, b, c, first, second);
-    consider_closest_pair(first, second, best_squared, segment_point,
-                          triangle_point);
-    closest_segments(segment_a, segment_b, c, a, first, second);
-    consider_closest_pair(first, second, best_squared, segment_point,
-                          triangle_point);
-
-    const Vec3 normal = cross(subtract(b, a), subtract(c, a));
-    const float normal_squared = length_squared(normal);
-    const Vec3 direction = subtract(segment_b, segment_a);
-    const float denominator = dot(normal, direction);
-    if (normal_squared > k_epsilon * k_epsilon &&
-        fabsf(denominator) > k_epsilon) {
-        const float amount = dot(normal, subtract(a, segment_a)) / denominator;
-        if (amount >= 0.0F && amount <= 1.0F) {
-            const Vec3 intersection = add(segment_a, multiply(direction, amount));
-            if (point_in_triangle(intersection, a, b, c, normal)) {
-                segment_point = intersection;
-                triangle_point = intersection;
-            }
-        }
-    }
-}
-
 __host__ __device__ Vec3 transform_point(const RigidBodyState &state,
                                          Vec3 point) noexcept {
     return add(state.position, rotate(state.orientation, point));
@@ -395,6 +445,24 @@ __device__ void transformed_bounds(Vec3 local_minimum, Vec3 local_maximum,
     maximum = add(add(world_center, world_half), expansion);
 }
 
+__device__ void transformed_motion_bounds(
+    Vec3 local_minimum, Vec3 local_maximum,
+    const BoundsTransform &previous_transform,
+    const BoundsTransform &current_transform, bool swept, float margin,
+    Vec3 &minimum, Vec3 &maximum) noexcept {
+    transformed_bounds(local_minimum, local_maximum, current_transform, margin,
+                       minimum, maximum);
+    if (!swept) {
+        return;
+    }
+    Vec3 previous_minimum{};
+    Vec3 previous_maximum{};
+    transformed_bounds(local_minimum, local_maximum, previous_transform, margin,
+                       previous_minimum, previous_maximum);
+    minimum = component_min(minimum, previous_minimum);
+    maximum = component_max(maximum, previous_maximum);
+}
+
 __host__ __device__ bool bounds_overlap(Vec3 minimum_a, Vec3 maximum_a,
                                         Vec3 minimum_b,
                                         Vec3 maximum_b) noexcept {
@@ -416,25 +484,71 @@ __host__ __device__ bool triangle_bounds_overlap(
     return bounds_overlap(minimum_a, maximum_a, minimum_b, maximum_b);
 }
 
+__host__ __device__ bool segment_hits_triangle(
+    Vec3 first, Vec3 second, Vec3 a, Vec3 b, Vec3 c,
+    Vec3 &intersection) noexcept {
+    const Vec3 normal = cross(subtract(b, a), subtract(c, a));
+    const Vec3 direction = subtract(second, first);
+    const float denominator = dot(normal, direction);
+    if (length_squared(normal) <= k_epsilon * k_epsilon ||
+        fabsf(denominator) <= k_epsilon) {
+        return false;
+    }
+    const float amount = dot(normal, subtract(a, first)) / denominator;
+    if (amount < 0.0F || amount > 1.0F) {
+        return false;
+    }
+    intersection = add(first, multiply(direction, amount));
+    return point_in_triangle(intersection, a, b, c, normal);
+}
+
 __host__ __device__ void closest_triangle_pair(
     Vec3 a0, Vec3 a1, Vec3 a2, Vec3 b0, Vec3 b1, Vec3 b2,
     Vec3 &point_a, Vec3 &point_b) noexcept {
-    float best_squared = FLT_MAX;
-    Vec3 on_edge{};
-    Vec3 on_triangle{};
-    closest_segment_triangle(a0, a1, b0, b1, b2, on_edge, on_triangle);
-    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
-    closest_segment_triangle(a1, a2, b0, b1, b2, on_edge, on_triangle);
-    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
-    closest_segment_triangle(a2, a0, b0, b1, b2, on_edge, on_triangle);
-    consider_closest_pair(on_edge, on_triangle, best_squared, point_a, point_b);
+    const Vec3 a[3]{a0, a1, a2};
+    const Vec3 b[3]{b0, b1, b2};
+    Vec3 intersection{};
+    for (std::uint32_t edge = 0U; edge < 3U; ++edge) {
+        if (segment_hits_triangle(
+                a[edge], a[(edge + 1U) % 3U], b0, b1, b2,
+                intersection)) {
+            point_a = point_b = intersection;
+            return;
+        }
+    }
+    for (std::uint32_t edge = 0U; edge < 3U; ++edge) {
+        if (segment_hits_triangle(
+                b[edge], b[(edge + 1U) % 3U], a0, a1, a2,
+                intersection)) {
+            point_a = point_b = intersection;
+            return;
+        }
+    }
 
-    closest_segment_triangle(b0, b1, a0, a1, a2, on_edge, on_triangle);
-    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
-    closest_segment_triangle(b1, b2, a0, a1, a2, on_edge, on_triangle);
-    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
-    closest_segment_triangle(b2, b0, a0, a1, a2, on_edge, on_triangle);
-    consider_closest_pair(on_triangle, on_edge, best_squared, point_a, point_b);
+    float best_squared = FLT_MAX;
+    for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+        const Vec3 on_triangle =
+            closest_on_triangle(a[vertex], b0, b1, b2);
+        consider_closest_pair(a[vertex], on_triangle, best_squared,
+                              point_a, point_b);
+    }
+    for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+        const Vec3 on_triangle =
+            closest_on_triangle(b[vertex], a0, a1, a2);
+        consider_closest_pair(on_triangle, b[vertex], best_squared,
+                              point_a, point_b);
+    }
+    for (std::uint32_t edge_a = 0U; edge_a < 3U; ++edge_a) {
+        for (std::uint32_t edge_b = 0U; edge_b < 3U; ++edge_b) {
+            Vec3 on_a{};
+            Vec3 on_b{};
+            closest_segments(a[edge_a], a[(edge_a + 1U) % 3U],
+                             b[edge_b], b[(edge_b + 1U) % 3U],
+                             on_a, on_b);
+            consider_closest_pair(on_a, on_b, best_squared,
+                                  point_a, point_b);
+        }
+    }
 }
 
 __device__ void add_manifold_contact(ContactManifold &manifold,
@@ -526,24 +640,206 @@ __device__ void collide_triangle_ranges(
     }
 }
 
+__device__ void collide_triangle_ranges_swept(
+    const RigidBodyState &previous_body_state,
+    const RigidBodyState &body_state,
+    const TriangleMeshResource &body_mesh, std::uint32_t body_first,
+    std::uint32_t body_count,
+    const RigidBodyState &previous_collider_state,
+    const RigidBodyState &collider_state,
+    const TriangleMeshResource &collider_mesh,
+    std::uint32_t collider_first, std::uint32_t collider_count, float margin,
+    bool body_moves, bool collider_moves,
+    ContactManifold &manifold) noexcept {
+    if (!body_moves && !collider_moves) {
+        return;
+    }
+    for (std::uint32_t body_triangle = body_first;
+         body_triangle < body_first + body_count; ++body_triangle) {
+        const std::uint32_t body_index = body_triangle * 3U;
+        Vec3 previous_a[3]{};
+        Vec3 current_a[3]{};
+        for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+            const Vec3 local =
+                body_mesh.vertices[body_mesh.indices[body_index + vertex]];
+            previous_a[vertex] = transform_point(previous_body_state, local);
+            current_a[vertex] = transform_point(body_state, local);
+        }
+        Vec3 swept_a_minimum = component_min(previous_a[0], current_a[0]);
+        Vec3 swept_a_maximum = component_max(previous_a[0], current_a[0]);
+        for (std::uint32_t vertex = 1U; vertex < 3U; ++vertex) {
+            swept_a_minimum = component_min(
+                swept_a_minimum,
+                component_min(previous_a[vertex], current_a[vertex]));
+            swept_a_maximum = component_max(
+                swept_a_maximum,
+                component_max(previous_a[vertex], current_a[vertex]));
+        }
+        for (std::uint32_t collider_triangle = collider_first;
+             collider_triangle < collider_first + collider_count;
+             ++collider_triangle) {
+            const std::uint32_t collider_index = collider_triangle * 3U;
+            Vec3 previous_b[3]{};
+            Vec3 current_b[3]{};
+            for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+                const Vec3 local = collider_mesh.vertices[
+                    collider_mesh.indices[collider_index + vertex]];
+                previous_b[vertex] =
+                    transform_point(previous_collider_state, local);
+                current_b[vertex] = transform_point(collider_state, local);
+            }
+            Vec3 swept_b_minimum = component_min(previous_b[0], current_b[0]);
+            Vec3 swept_b_maximum = component_max(previous_b[0], current_b[0]);
+            for (std::uint32_t vertex = 1U; vertex < 3U; ++vertex) {
+                swept_b_minimum = component_min(
+                    swept_b_minimum,
+                    component_min(previous_b[vertex], current_b[vertex]));
+                swept_b_maximum = component_max(
+                    swept_b_maximum,
+                    component_max(previous_b[vertex], current_b[vertex]));
+            }
+            if (!bounds_overlap(
+                    {swept_a_minimum.x - margin,
+                     swept_a_minimum.y - margin,
+                     swept_a_minimum.z - margin},
+                    {swept_a_maximum.x + margin,
+                     swept_a_maximum.y + margin,
+                     swept_a_maximum.z + margin},
+                    swept_b_minimum, swept_b_maximum)) {
+                continue;
+            }
+            Vec3 delta_a[3]{};
+            Vec3 delta_b[3]{};
+            float speed_bound = 0.0F;
+            for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+                delta_a[vertex] = subtract(current_a[vertex], previous_a[vertex]);
+                delta_b[vertex] = subtract(current_b[vertex], previous_b[vertex]);
+                speed_bound = fmaxf(speed_bound,
+                                    vector_length(delta_a[vertex]));
+            }
+            float collider_speed = 0.0F;
+            for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+                collider_speed = fmaxf(collider_speed,
+                                        vector_length(delta_b[vertex]));
+            }
+            speed_bound += collider_speed;
+            // Distance between moving triangles depends on their relative
+            // motion. Subtracting any common translation preserves a safe
+            // Lipschitz bound for all barycentric point pairs.
+            const Vec3 common_motion = delta_b[0];
+            float relative_body_speed = 0.0F;
+            float relative_collider_speed = 0.0F;
+            for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+                relative_body_speed = fmaxf(
+                    relative_body_speed,
+                    vector_length(subtract(delta_a[vertex], common_motion)));
+                relative_collider_speed = fmaxf(
+                    relative_collider_speed,
+                    vector_length(subtract(delta_b[vertex], common_motion)));
+            }
+            speed_bound = fminf(speed_bound,
+                                relative_body_speed + relative_collider_speed);
+            if (speed_bound <= k_epsilon) {
+                continue;
+            }
+
+            float time = 0.0F;
+            for (std::uint32_t iteration = 0U; iteration < 32U;
+                 ++iteration) {
+                Vec3 a[3]{};
+                Vec3 b[3]{};
+                for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+                    a[vertex] = add(previous_a[vertex],
+                                    multiply(delta_a[vertex], time));
+                    b[vertex] = add(previous_b[vertex],
+                                    multiply(delta_b[vertex], time));
+                }
+                Vec3 point_a{};
+                Vec3 point_b{};
+                closest_triangle_pair(a[0], a[1], a[2], b[0], b[1], b[2],
+                                      point_a, point_b);
+                const Vec3 delta = subtract(point_a, point_b);
+                const float distance =
+                    sqrtf(fmaxf(0.0F, length_squared(delta)));
+                if (distance <= margin + 1.0e-5F) {
+                    if (iteration == 0U) {
+                        break;
+                    }
+                    const Vec3 collider_normal = normalized_or(
+                        cross(subtract(b[1], b[0]), subtract(b[2], b[0])),
+                        {0.0F, 1.0F, 0.0F});
+                    const Vec3 body_center = add(
+                        previous_body_state.position,
+                        multiply(subtract(body_state.position,
+                                          previous_body_state.position),
+                                 time));
+                    const Vec3 collider_center = add(
+                        previous_collider_state.position,
+                        multiply(subtract(collider_state.position,
+                                          previous_collider_state.position),
+                                 time));
+                    const Vec3 fallback =
+                        dot(collider_normal,
+                            subtract(body_center, collider_center)) >= 0.0F
+                            ? collider_normal
+                            : multiply(collider_normal, -1.0F);
+                    const Vec3 normal = normalized_or(delta, fallback);
+                    const Vec3 relative_movement = subtract(
+                        subtract(body_state.position,
+                                 previous_body_state.position),
+                        subtract(collider_state.position,
+                                 previous_collider_state.position));
+                    const float remaining = fmaxf(
+                        0.0F,
+                        -dot(multiply(relative_movement, 1.0F - time),
+                             normal));
+                    add_manifold_contact(
+                        manifold,
+                        {normal, multiply(add(point_a, point_b), 0.5F),
+                         remaining + margin + 1.0e-5F, true},
+                        fmaxf(margin * 2.0F, 1.0e-4F));
+                    break;
+                }
+                float advancement =
+                    (distance - margin) / (speed_bound + k_epsilon) * 0.9F;
+                advancement = fmaxf(advancement, 1.0e-5F);
+                time += advancement;
+                if (time > 1.0F) {
+                    break;
+                }
+            }
+        }
+    }
+}
+
 __device__ ContactManifold collide_meshes(
-    const BodyParameters &body, const RigidBodyState &body_state,
+    const BodyParameters &body, const RigidBodyState &previous_body_state,
+    const RigidBodyState &body_state,
     const TriangleMeshResource &body_mesh, const BodyParameters &collider,
+    const RigidBodyState &previous_collider_state,
     const RigidBodyState &collider_state,
     const TriangleMeshResource &collider_mesh) noexcept {
     ContactManifold manifold{};
     const float margin = body.collision_margin + collider.collision_margin;
+    const bool swept = requires_swept_pair_contact(
+        previous_body_state, body_state, body_mesh,
+        previous_collider_state, collider_state, collider_mesh, margin);
+    const BoundsTransform previous_body_transform =
+        swept ? bounds_transform(previous_body_state) : BoundsTransform{};
+    const BoundsTransform previous_collider_transform =
+        swept ? bounds_transform(previous_collider_state) : BoundsTransform{};
     Vec3 body_minimum{};
     Vec3 body_maximum{};
     Vec3 collider_minimum{};
     Vec3 collider_maximum{};
     const BoundsTransform body_transform = bounds_transform(body_state);
     const BoundsTransform collider_transform = bounds_transform(collider_state);
-    transformed_bounds(body_mesh.minimum, body_mesh.maximum, body_transform,
-                       margin, body_minimum, body_maximum);
-    transformed_bounds(collider_mesh.minimum, collider_mesh.maximum,
-                       collider_transform, 0.0F, collider_minimum,
-                       collider_maximum);
+    transformed_motion_bounds(body_mesh.minimum, body_mesh.maximum,
+                              previous_body_transform, body_transform, swept,
+                              margin, body_minimum, body_maximum);
+    transformed_motion_bounds(collider_mesh.minimum, collider_mesh.maximum,
+                              previous_collider_transform, collider_transform,
+                              swept, 0.0F, collider_minimum, collider_maximum);
     if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
                         collider_maximum)) {
         return manifold;
@@ -561,11 +857,13 @@ __device__ ContactManifold collide_meshes(
         const NodePair pair = stack[--stack_size];
         const BvhNode &body_node = body_mesh.bvh_nodes[pair.body];
         const BvhNode &collider_node = collider_mesh.bvh_nodes[pair.collider];
-        transformed_bounds(body_node.minimum, body_node.maximum, body_transform,
-                           margin, body_minimum, body_maximum);
-        transformed_bounds(collider_node.minimum, collider_node.maximum,
-                           collider_transform, 0.0F, collider_minimum,
-                           collider_maximum);
+        transformed_motion_bounds(
+            body_node.minimum, body_node.maximum, previous_body_transform,
+            body_transform, swept, margin, body_minimum, body_maximum);
+        transformed_motion_bounds(
+            collider_node.minimum, collider_node.maximum,
+            previous_collider_transform, collider_transform, swept, 0.0F,
+            collider_minimum, collider_maximum);
         if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
                             collider_maximum)) {
             continue;
@@ -578,6 +876,14 @@ __device__ ContactManifold collide_meshes(
                 body_node.triangle_count, collider_state, collider_mesh,
                 collider_node.first_triangle, collider_node.triangle_count,
                 margin, manifold);
+            if (swept) {
+                collide_triangle_ranges_swept(
+                    previous_body_state, body_state, body_mesh,
+                    body_node.first_triangle, body_node.triangle_count,
+                    previous_collider_state, collider_state, collider_mesh,
+                    collider_node.first_triangle, collider_node.triangle_count,
+                    margin, true, true, manifold);
+            }
             continue;
         }
 
@@ -600,10 +906,18 @@ __device__ ContactManifold collide_meshes(
         }
     }
     if (overflow) {
+        manifold = {};
         collide_triangle_ranges(
             body_state, body_mesh, 0U, body_mesh.index_count / 3U,
             collider_state, collider_mesh, 0U,
             collider_mesh.index_count / 3U, margin, manifold);
+        if (swept) {
+            collide_triangle_ranges_swept(
+                previous_body_state, body_state, body_mesh, 0U,
+                body_mesh.index_count / 3U, previous_collider_state,
+                collider_state, collider_mesh, 0U,
+                collider_mesh.index_count / 3U, margin, true, true, manifold);
+        }
     }
     return manifold;
 }
@@ -720,7 +1034,8 @@ __device__ void resolve_contacts(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact *contacts, std::uint32_t contact_count,
-    bool correct_position, RigidContactEvent *debug_events) noexcept {
+    bool correct_position, RigidContactEvent *debug_events,
+    std::uint32_t debug_event_count) noexcept {
     if (contact_count == 0U) {
         return;
     }
@@ -744,7 +1059,7 @@ __device__ void resolve_contacts(
     for (std::uint32_t index = 0; index < contact_count; ++index) {
         const AppliedContactImpulse applied = apply_contact_impulse(
             body, state, collider, collider_state, contacts[index]);
-        if (debug_events != nullptr) {
+        if (debug_events != nullptr && index < debug_event_count) {
             debug_events[index].normal_impulse += applied.normal;
             debug_events[index].friction_impulse =
                 add(debug_events[index].friction_impulse, applied.friction);
@@ -860,111 +1175,559 @@ __global__ void integrate_rigid_bodies_kernel(
     output[index] = next;
 }
 
-__global__ void generate_rigid_contacts_kernel(
-    const BodyParameters *parameters, RigidBodyState *states,
+__global__ void compute_rigid_world_bounds_kernel(
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    const RigidBodyState *states,
     std::uint32_t count, const TriangleMeshResource *meshes,
-    std::uint32_t mesh_capacity, ContactManifold *manifolds,
-    std::uint32_t manifold_stride) {
+    WorldAabb *world_bounds) {
+    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count) {
+        return;
+    }
+    const TriangleMeshResource &mesh = meshes[parameters[index].mesh.index];
+    const bool swept = requires_swept_contact(
+        previous_states[index], states[index], mesh,
+        parameters[index].collision_margin);
+    const BoundsTransform current_transform = bounds_transform(states[index]);
+    BoundsTransform previous_transform{};
+    if (swept) {
+        previous_transform = bounds_transform(previous_states[index]);
+    }
+    transformed_motion_bounds(
+        mesh.minimum, mesh.maximum, previous_transform, current_transform,
+        swept, 0.0F,
+        world_bounds[index].minimum, world_bounds[index].maximum);
+}
+
+__global__ void broad_phase_rigid_pairs_kernel(
+    const BodyParameters *parameters, const WorldAabb *world_bounds,
+    const RigidBodyState *previous_states, const RigidBodyState *states,
+    const TriangleMeshResource *meshes,
+    std::uint32_t count, std::uint8_t *active_flags) {
     const std::uint32_t pair = blockIdx.x * blockDim.x + threadIdx.x;
     if (pair >= count * count) {
         return;
     }
     const std::uint32_t index = pair / count;
     const std::uint32_t collider_index = pair % count;
-    ContactManifold &manifold =
-        manifolds[index * manifold_stride + collider_index];
-    manifold = {};
-    if (parameters[index].motion != MotionType::dynamic ||
-        collider_index == index ||
-        (parameters[collider_index].motion == MotionType::dynamic &&
-         collider_index < index)) {
-        return;
+    bool active = parameters[index].motion == MotionType::dynamic &&
+                  index != collider_index;
+    if (active && parameters[collider_index].motion == MotionType::dynamic &&
+        collider_index < index) {
+        active = false;
     }
-    const TriangleMeshId body_mesh_id = parameters[index].mesh;
-    const TriangleMeshId collider_mesh_id = parameters[collider_index].mesh;
-    if (body_mesh_id.index >= mesh_capacity ||
-        collider_mesh_id.index >= mesh_capacity) {
-        return;
+    if (active) {
+        const float margin = parameters[index].collision_margin +
+                             parameters[collider_index].collision_margin;
+        const WorldAabb body = world_bounds[index];
+        const WorldAabb collider = world_bounds[collider_index];
+        active = bounds_overlap(
+            {body.minimum.x - margin, body.minimum.y - margin,
+             body.minimum.z - margin},
+            {body.maximum.x + margin, body.maximum.y + margin,
+             body.maximum.z + margin},
+            collider.minimum, collider.maximum);
+        if (active) {
+            active = bounding_spheres_may_contact(
+                previous_states[index], states[index],
+                meshes[parameters[index].mesh.index],
+                previous_states[collider_index], states[collider_index],
+                meshes[parameters[collider_index].mesh.index], margin);
+        }
     }
-    const TriangleMeshResource &body_mesh = meshes[body_mesh_id.index];
-    const TriangleMeshResource &collider_mesh = meshes[collider_mesh_id.index];
-    if (!body_mesh.alive || body_mesh.generation != body_mesh_id.generation ||
-        !collider_mesh.alive ||
-        collider_mesh.generation != collider_mesh_id.generation) {
-        return;
-    }
-    manifold = collide_meshes(parameters[index], states[index], body_mesh,
-                              parameters[collider_index],
-                              states[collider_index], collider_mesh);
+    active_flags[pair] = active ? 1U : 0U;
 }
 
-__global__ void resolve_cached_rigid_contacts_kernel(
-    const BodyParameters *parameters, RigidBodyState *states,
-    const RigidBodyId *ids, std::uint32_t count,
-    const ContactManifold *manifolds, std::uint32_t manifold_stride,
-    RigidContactEvent *debug_events, std::uint32_t debug_capacity,
-    std::uint32_t *debug_count, bool reset_debug) {
+__global__ void generate_rigid_leaf_pairs_kernel(
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    const RigidBodyState *states, std::uint32_t count,
+    const TriangleMeshResource *meshes,
+    std::uint32_t mesh_capacity, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, LeafPair *leaf_pairs,
+    std::uint32_t *leaf_pair_counts,
+    std::uint32_t leaf_pair_cache_slot_capacity) {
+    for (std::uint32_t active_index = blockIdx.x;
+         active_index < *active_pair_count; active_index += gridDim.x) {
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        if (threadIdx.x == 0U) {
+            leaf_pair_counts[pair] = 0U;
+        }
+        __syncthreads();
+        if (active_index >= leaf_pair_cache_slot_capacity) {
+            if (threadIdx.x == 0U) {
+                leaf_pair_counts[pair] = k_leaf_pair_overflow;
+            }
+            __syncthreads();
+            continue;
+        }
+        const TriangleMeshId body_mesh_id = parameters[index].mesh;
+        const TriangleMeshId collider_mesh_id =
+            parameters[collider_index].mesh;
+        if (body_mesh_id.index >= mesh_capacity ||
+            collider_mesh_id.index >= mesh_capacity) {
+            continue;
+        }
+        const TriangleMeshResource &body_mesh = meshes[body_mesh_id.index];
+        const TriangleMeshResource &collider_mesh =
+            meshes[collider_mesh_id.index];
+        if (!body_mesh.alive ||
+            body_mesh.generation != body_mesh_id.generation ||
+            !collider_mesh.alive ||
+            collider_mesh.generation != collider_mesh_id.generation) {
+            continue;
+        }
+
+        const float margin = parameters[index].collision_margin +
+                             parameters[collider_index].collision_margin;
+        const BoundsTransform body_transform = bounds_transform(states[index]);
+        const BoundsTransform collider_transform =
+            bounds_transform(states[collider_index]);
+        const bool swept = requires_swept_pair_contact(
+            previous_states[index], states[index], body_mesh,
+            previous_states[collider_index], states[collider_index],
+            collider_mesh, margin);
+        BoundsTransform previous_body_transform{};
+        BoundsTransform previous_collider_transform{};
+        if (swept) {
+            previous_body_transform = bounds_transform(previous_states[index]);
+            previous_collider_transform =
+                bounds_transform(previous_states[collider_index]);
+        }
+        Vec3 body_minimum{};
+        Vec3 body_maximum{};
+        Vec3 collider_minimum{};
+        Vec3 collider_maximum{};
+        const std::uint64_t leaf_pair_count =
+            static_cast<std::uint64_t>(body_mesh.bvh_leaf_count) *
+            collider_mesh.bvh_leaf_count;
+        std::uint32_t local_count = 0U;
+        for (std::uint64_t leaf_pair = threadIdx.x;
+             leaf_pair < leaf_pair_count; leaf_pair += blockDim.x) {
+            const std::uint32_t body_leaf = static_cast<std::uint32_t>(
+                leaf_pair / collider_mesh.bvh_leaf_count);
+            const std::uint32_t collider_leaf = static_cast<std::uint32_t>(
+                leaf_pair % collider_mesh.bvh_leaf_count);
+            const BvhNode &body_node =
+                body_mesh.bvh_nodes[body_mesh.bvh_leaves[body_leaf]];
+            const BvhNode &collider_node = collider_mesh.bvh_nodes[
+                collider_mesh.bvh_leaves[collider_leaf]];
+            transformed_motion_bounds(
+                body_node.minimum, body_node.maximum, previous_body_transform,
+                body_transform, swept, margin, body_minimum,
+                body_maximum);
+            transformed_motion_bounds(
+                collider_node.minimum, collider_node.maximum,
+                previous_collider_transform, collider_transform,
+                swept, 0.0F, collider_minimum, collider_maximum);
+            if (bounds_overlap(body_minimum, body_maximum, collider_minimum,
+                               collider_maximum)) {
+                ++local_count;
+            }
+        }
+
+        __shared__ std::uint32_t offsets[128];
+        __shared__ std::uint32_t candidate_count;
+        offsets[threadIdx.x] = local_count;
+        __syncthreads();
+        if (threadIdx.x == 0U) {
+            std::uint32_t prefix = 0U;
+            for (std::uint32_t thread = 0U; thread < blockDim.x; ++thread) {
+                const std::uint32_t count_for_thread = offsets[thread];
+                offsets[thread] = prefix;
+                prefix += count_for_thread;
+            }
+            candidate_count = prefix;
+            leaf_pair_counts[pair] =
+                prefix > k_max_leaf_pairs_per_body_pair ? k_leaf_pair_overflow
+                                                        : prefix;
+        }
+        __syncthreads();
+        if (candidate_count > k_max_leaf_pairs_per_body_pair) {
+            continue;
+        }
+
+        LeafPair *pair_candidates =
+            leaf_pairs + static_cast<std::size_t>(active_index) *
+                             k_max_leaf_pairs_per_body_pair;
+        std::uint32_t output_index = offsets[threadIdx.x];
+        for (std::uint64_t leaf_pair = threadIdx.x;
+             leaf_pair < leaf_pair_count; leaf_pair += blockDim.x) {
+            const std::uint32_t body_leaf = static_cast<std::uint32_t>(
+                leaf_pair / collider_mesh.bvh_leaf_count);
+            const std::uint32_t collider_leaf = static_cast<std::uint32_t>(
+                leaf_pair % collider_mesh.bvh_leaf_count);
+            const BvhNode &body_node =
+                body_mesh.bvh_nodes[body_mesh.bvh_leaves[body_leaf]];
+            const BvhNode &collider_node = collider_mesh.bvh_nodes[
+                collider_mesh.bvh_leaves[collider_leaf]];
+            transformed_motion_bounds(
+                body_node.minimum, body_node.maximum, previous_body_transform,
+                body_transform, swept, margin, body_minimum,
+                body_maximum);
+            transformed_motion_bounds(
+                collider_node.minimum, collider_node.maximum,
+                previous_collider_transform, collider_transform,
+                swept, 0.0F, collider_minimum, collider_maximum);
+            if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
+                                collider_maximum)) {
+                continue;
+            }
+            pair_candidates[output_index++] = {
+                body_node.first_triangle, body_node.triangle_count,
+                collider_node.first_triangle, collider_node.triangle_count};
+        }
+        __syncthreads();
+    }
+}
+
+__global__ void evaluate_rigid_leaf_pairs_kernel(
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    RigidBodyState *states, std::uint32_t count,
+    const TriangleMeshResource *meshes, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const LeafPair *leaf_pairs, const std::uint32_t *leaf_pair_counts,
+    ContactManifold *manifolds) {
+    for (std::uint32_t active_index = blockIdx.x;
+         active_index < *active_pair_count; active_index += gridDim.x) {
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        ContactManifold &output = manifolds[active_index];
+        const std::uint32_t candidate_count = leaf_pair_counts[pair];
+        if (candidate_count == 0U) {
+            if (threadIdx.x == 0U) {
+                output = {};
+            }
+            __syncthreads();
+            continue;
+        }
+        const TriangleMeshResource &body_mesh =
+            meshes[parameters[index].mesh.index];
+        const TriangleMeshResource &collider_mesh =
+            meshes[parameters[collider_index].mesh.index];
+        if (candidate_count == k_leaf_pair_overflow) {
+            if (threadIdx.x == 0U) {
+                output = {};
+            }
+            __syncthreads();
+            continue;
+        }
+
+        extern __shared__ ContactManifold partials[];
+        __shared__ ContactManifold reduced;
+        if (threadIdx.x == 0U) {
+            reduced = {};
+        }
+        __syncthreads();
+        const LeafPair *pair_candidates =
+            leaf_pairs + static_cast<std::size_t>(active_index) *
+                             k_max_leaf_pairs_per_body_pair;
+        const float separation = fmaxf(
+            (parameters[index].collision_margin +
+             parameters[collider_index].collision_margin) *
+                2.0F,
+            1.0e-4F);
+        const float collision_margin =
+            parameters[index].collision_margin +
+            parameters[collider_index].collision_margin;
+        const bool swept = requires_swept_pair_contact(
+            previous_states[index], states[index], body_mesh,
+            previous_states[collider_index], states[collider_index],
+            collider_mesh, collision_margin);
+        for (std::uint32_t wave = 0U; wave < candidate_count;
+             wave += blockDim.x) {
+            ContactManifold local{};
+            const std::uint32_t candidate_index = wave + threadIdx.x;
+            if (candidate_index < candidate_count) {
+                const LeafPair candidate = pair_candidates[candidate_index];
+                collide_triangle_ranges(
+                    states[index], body_mesh, candidate.body_first,
+                    candidate.body_count, states[collider_index],
+                    collider_mesh, candidate.collider_first,
+                    candidate.collider_count, collision_margin, local);
+                if (swept) {
+                    collide_triangle_ranges_swept(
+                        previous_states[index], states[index], body_mesh,
+                        candidate.body_first, candidate.body_count,
+                        previous_states[collider_index],
+                        states[collider_index], collider_mesh,
+                        candidate.collider_first, candidate.collider_count,
+                        collision_margin, true, true, local);
+                }
+            }
+            partials[threadIdx.x] = local;
+            __syncthreads();
+            if (threadIdx.x == 0U) {
+                const std::uint32_t remaining = candidate_count - wave;
+                const std::uint32_t wave_count =
+                    blockDim.x < remaining ? blockDim.x : remaining;
+                for (std::uint32_t item = 0U; item < wave_count; ++item) {
+                    for (std::uint32_t contact = 0U;
+                         contact < partials[item].count; ++contact) {
+                        add_manifold_contact(reduced,
+                                             partials[item].contacts[contact],
+                                             separation);
+                    }
+                }
+            }
+            __syncthreads();
+        }
+        if (threadIdx.x == 0U) {
+            output = reduced;
+        }
+        __syncthreads();
+    }
+}
+
+// Serial BVH traversal needs a large stack. Isolate it from normal pair work.
+__global__ void evaluate_overflow_rigid_pairs_kernel(
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    const RigidBodyState *states, std::uint32_t count,
+    const TriangleMeshResource *meshes, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const std::uint32_t *leaf_pair_counts, ContactManifold *manifolds) {
+    for (std::uint32_t active_index = blockIdx.x * blockDim.x + threadIdx.x;
+         active_index < *active_pair_count;
+         active_index += gridDim.x * blockDim.x) {
+        const std::uint32_t pair = active_pairs[active_index];
+        if (leaf_pair_counts[pair] != k_leaf_pair_overflow) {
+            continue;
+        }
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        manifolds[active_index] = collide_meshes(
+            parameters[index], previous_states[index], states[index],
+            meshes[parameters[index].mesh.index], parameters[collider_index],
+            previous_states[collider_index], states[collider_index],
+            meshes[parameters[collider_index].mesh.index]);
+    }
+}
+
+__global__ void prepare_parallel_contact_events_kernel(
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, const RigidBodyId *ids,
+    std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity, std::uint32_t *event_count,
+    bool collect_events, bool reset_events) {
     if (blockIdx.x != 0U || threadIdx.x != 0U) {
         return;
     }
-    if (reset_debug) {
-        *debug_count = 0U;
+    if (reset_events) {
+        *event_count = 0U;
     }
-    for (int pass = 0; pass < 8; ++pass) {
-        std::uint32_t event_cursor = 0U;
-        for (std::uint32_t index = 0; index < count; ++index) {
-            if (parameters[index].motion != MotionType::dynamic) {
-                continue;
-            }
-            for (std::uint32_t collider_index = 0; collider_index < count;
-                 ++collider_index) {
-                if (collider_index == index ||
-                    (parameters[collider_index].motion == MotionType::dynamic &&
-                     collider_index < index)) {
-                    continue;
-                }
-                const ContactManifold &manifold =
-                    manifolds[index * manifold_stride + collider_index];
-                if (manifold.count > 0U) {
-                    RigidContactEvent *events = nullptr;
-                    if (event_cursor <= debug_capacity &&
-                        manifold.count <= debug_capacity - event_cursor) {
-                        events = debug_events + event_cursor;
-                        if (pass == 0) {
-                            for (std::uint32_t contact_index = 0;
-                                 contact_index < manifold.count;
-                                 ++contact_index) {
-                                const Contact &contact =
-                                    manifold.contacts[contact_index];
-                                events[contact_index] = {
-                                    ids[index], ids[collider_index],
-                                    contact.point, contact.normal,
-                                    contact.penetration, 0.0F, {}};
-                            }
-                        }
-                    }
-                    resolve_contacts(parameters[index], states[index],
-                                     parameters[collider_index],
-                                     states[collider_index], manifold.contacts,
-                                     manifold.count, pass == 0, events);
-                    event_cursor += manifold.count;
-                }
+    if (!collect_events) {
+        return;
+    }
+    std::uint32_t cursor = 0U;
+    for (std::uint32_t active_index = 0U;
+         active_index < *active_pair_count; ++active_index) {
+        const ContactManifold &manifold = manifolds[active_index];
+        event_offsets[active_index] = cursor;
+        const std::uint32_t remaining = cursor < event_capacity
+            ? event_capacity - cursor : 0U;
+        const std::uint32_t retained = manifold.count < remaining
+            ? manifold.count : remaining;
+        if (retained > 0U) {
+            const std::uint32_t pair = active_pairs[active_index];
+            const std::uint32_t body_index = pair / count;
+            const std::uint32_t collider_index = pair % count;
+            for (std::uint32_t contact_index = 0U;
+                 contact_index < retained; ++contact_index) {
+                const Contact &contact = manifold.contacts[contact_index];
+                events[cursor + contact_index] = {
+                    ids[body_index], ids[collider_index], contact.point,
+                    contact.normal, contact.penetration, 0.0F, {}};
             }
         }
-        if (pass == 0 && event_cursor > 0U) {
-            *debug_count = event_cursor < debug_capacity ? event_cursor
-                                                         : debug_capacity;
-        }
+        cursor += manifold.count;
     }
-    for (std::uint32_t index = 0; index < count; ++index) {
-        if (parameters[index].motion != MotionType::dynamic) {
+    // A later substep with no contacts must not erase an earlier event from
+    // this frame; the original serial path retained it as well.
+    if (cursor > 0U) {
+        *event_count = cursor < event_capacity ? cursor : event_capacity;
+    }
+}
+
+__global__ void initialize_parallel_colors_kernel(
+    const std::uint32_t *active_pair_count, std::uint8_t *pair_colors,
+    std::uint32_t *color_state) {
+    if (blockIdx.x == 0U && threadIdx.x == 0U) {
+        color_state[0] = 0U;
+        color_state[1] = 0U;
+    }
+    for (std::uint32_t active_index =
+             blockIdx.x * blockDim.x + threadIdx.x;
+         active_index < *active_pair_count;
+         active_index += gridDim.x * blockDim.x) {
+        pair_colors[active_index] = k_contact_color_overflow;
+    }
+}
+
+__global__ void reset_parallel_color_owners_kernel(
+    std::uint32_t *owners, std::uint32_t count) {
+    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < count) {
+        owners[index] = 0xffffffffU;
+    }
+}
+
+// Each body's lowest-priority uncolored contact wins this color round.
+__host__ __device__ std::uint32_t contact_color_priority(
+    std::uint32_t pair) noexcept {
+    // Odd multiplication permutes uint32 values; nearby body IDs do not
+    // monopolize all rounds, and priorities remain deterministic and unique.
+    return pair * 2654435761U + 1013904223U;
+}
+
+__global__ void find_parallel_color_owners_kernel(
+    const BodyParameters *parameters, std::uint32_t count,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, const std::uint8_t *pair_colors,
+    std::uint32_t *owners) {
+    for (std::uint32_t active_index =
+             blockIdx.x * blockDim.x + threadIdx.x;
+         active_index < *active_pair_count;
+         active_index += gridDim.x * blockDim.x) {
+        if (pair_colors[active_index] != k_contact_color_overflow ||
+            manifolds[active_index].count == 0U) {
             continue;
         }
-        states[index].linear_velocity = clamp_length(
-            states[index].linear_velocity, parameters[index].maximum_linear_speed);
-        states[index].angular_velocity = clamp_length(
-            states[index].angular_velocity, parameters[index].maximum_angular_speed);
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        const std::uint32_t priority = contact_color_priority(pair);
+        atomicMin(&owners[index], priority);
+        if (parameters[collider_index].motion == MotionType::dynamic) {
+            atomicMin(&owners[collider_index], priority);
+        }
     }
+}
+
+__global__ void assign_parallel_contact_colors_kernel(
+    const BodyParameters *parameters, std::uint32_t count,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, const std::uint32_t *owners,
+    std::uint8_t *pair_colors, std::uint32_t *color_state,
+    std::uint32_t color, std::uint32_t color_round_count) {
+    for (std::uint32_t active_index =
+             blockIdx.x * blockDim.x + threadIdx.x;
+         active_index < *active_pair_count;
+         active_index += gridDim.x * blockDim.x) {
+        if (pair_colors[active_index] != k_contact_color_overflow ||
+            manifolds[active_index].count == 0U) {
+            continue;
+        }
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        const bool dynamic_collider =
+            parameters[collider_index].motion == MotionType::dynamic;
+        const std::uint32_t priority = contact_color_priority(pair);
+        if (owners[index] == priority &&
+            (!dynamic_collider || owners[collider_index] == priority)) {
+            pair_colors[active_index] = static_cast<std::uint8_t>(color);
+            atomicMax(&color_state[0], color + 1U);
+        } else if (color + 1U == color_round_count) {
+            atomicAdd(&color_state[1], 1U);
+        }
+    }
+}
+
+__global__ void resolve_colored_rigid_contacts_kernel(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const std::uint8_t *pair_colors, const std::uint32_t *color_state,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity,
+    std::uint32_t color, bool correct_position) {
+    if (color >= color_state[0]) {
+        return;
+    }
+    for (std::uint32_t active_index =
+             blockIdx.x * blockDim.x + threadIdx.x;
+         active_index < *active_pair_count;
+         active_index += gridDim.x * blockDim.x) {
+        if (pair_colors[active_index] != color) {
+            continue;
+        }
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        const ContactManifold &manifold = manifolds[active_index];
+        RigidContactEvent *pair_events = nullptr;
+        std::uint32_t retained = 0U;
+        if (event_capacity > 0U) {
+            const std::uint32_t offset = event_offsets[active_index];
+            if (offset < event_capacity) {
+                pair_events = events + offset;
+                const std::uint32_t remaining = event_capacity - offset;
+                retained = manifold.count < remaining
+                    ? manifold.count : remaining;
+            }
+        }
+        resolve_contacts(parameters[index], states[index],
+                         parameters[collider_index], states[collider_index],
+                         manifold.contacts, manifold.count, correct_position,
+                         pair_events, retained);
+    }
+}
+
+__global__ void resolve_uncolored_rigid_contacts_kernel(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const std::uint8_t *pair_colors, const std::uint32_t *color_state,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity,
+    bool correct_position) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U || color_state[1] == 0U) {
+        return;
+    }
+    for (std::uint32_t active_index = 0U;
+         active_index < *active_pair_count; ++active_index) {
+        if (pair_colors[active_index] != k_contact_color_overflow ||
+            manifolds[active_index].count == 0U) {
+            continue;
+        }
+        const std::uint32_t pair = active_pairs[active_index];
+        const std::uint32_t index = pair / count;
+        const std::uint32_t collider_index = pair % count;
+        const ContactManifold &manifold = manifolds[active_index];
+        RigidContactEvent *pair_events = nullptr;
+        std::uint32_t retained = 0U;
+        if (event_capacity > 0U) {
+            const std::uint32_t offset = event_offsets[active_index];
+            if (offset < event_capacity) {
+                pair_events = events + offset;
+                const std::uint32_t remaining = event_capacity - offset;
+                retained = manifold.count < remaining
+                    ? manifold.count : remaining;
+            }
+        }
+        resolve_contacts(parameters[index], states[index],
+                         parameters[collider_index], states[collider_index],
+                         manifold.contacts, manifold.count, correct_position,
+                         pair_events, retained);
+    }
+}
+
+__global__ void clamp_rigid_speeds_kernel(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count) {
+    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count || parameters[index].motion != MotionType::dynamic) {
+        return;
+    }
+    states[index].linear_velocity = clamp_length(
+        states[index].linear_velocity, parameters[index].maximum_linear_speed);
+    states[index].angular_velocity = clamp_length(
+        states[index].angular_velocity, parameters[index].maximum_angular_speed);
 }
 
 __global__ void clear_rigid_inputs_kernel(BodyAccumulator *accumulators,
@@ -992,7 +1755,11 @@ struct CompletionState {
 
 enum class TimingStage : std::uint8_t {
     rigid_integration,
-    rigid_contact_generation,
+    rigid_world_bounds,
+    rigid_pair_filter,
+    rigid_pair_compaction,
+    rigid_leaf_pair_generation,
+    rigid_contact_evaluation,
     rigid_contact_solve,
     rigid_input_clear,
 };
@@ -1144,6 +1911,7 @@ struct World::Impl {
     std::uint32_t current_state{};
     std::uint64_t frame_index{};
     std::uint64_t revision{};
+    std::uint32_t rigid_solve_kernels_per_substep{1U};
     std::vector<Slot> slots{};
     BodyParameters *parameters{};
     BodyAccumulator *accumulators{};
@@ -1151,6 +1919,20 @@ struct World::Impl {
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
     ContactManifold *rigid_manifolds{};
+    std::uint32_t *rigid_color_owners{};
+    std::uint8_t *rigid_pair_colors{};
+    std::uint32_t *rigid_color_state{};
+    std::uint32_t *rigid_contact_event_offsets{};
+    WorldAabb *rigid_world_bounds{};
+    std::uint8_t *rigid_active_pair_flags{};
+    std::uint32_t *rigid_active_pairs{};
+    std::uint32_t *rigid_active_pair_count{};
+    std::uint8_t *rigid_broad_phase_workspace{};
+    std::size_t rigid_broad_phase_workspace_size{};
+    LeafPair *rigid_leaf_pairs{};
+    std::uint32_t *rigid_leaf_pair_counts{};
+    std::uint32_t rigid_leaf_pair_slot_capacity{};
+    std::size_t rigid_leaf_pair_capacity{};
     RigidContactEvent *rigid_contact_events{};
     std::uint32_t *rigid_contact_count{};
     std::uint32_t rigid_contact_capacity{};
@@ -1170,6 +1952,7 @@ struct World::Impl {
             for (std::uint32_t index = 0;
                  index < options.triangle_mesh_capacity; ++index) {
                 release_managed(meshes[index].bvh_nodes);
+                release_managed(meshes[index].bvh_leaves);
                 release_managed(meshes[index].indices);
                 release_managed(meshes[index].vertices);
             }
@@ -1180,6 +1963,17 @@ struct World::Impl {
         release_managed(meshes);
         release_managed(rigid_contact_count);
         release_managed(rigid_contact_events);
+        release_managed(rigid_leaf_pair_counts);
+        release_managed(rigid_leaf_pairs);
+        release_managed(rigid_broad_phase_workspace);
+        release_managed(rigid_active_pair_count);
+        release_managed(rigid_active_pairs);
+        release_managed(rigid_active_pair_flags);
+        release_managed(rigid_world_bounds);
+        release_managed(rigid_contact_event_offsets);
+        release_managed(rigid_color_state);
+        release_managed(rigid_pair_colors);
+        release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
         release_managed(states[1]);
         release_managed(states[0]);
@@ -1341,22 +2135,37 @@ Status World::create(WorldOptions options, World &output,
     }
     implementation->options = options;
     implementation->device_ordinal = device;
-    const std::size_t manifold_count =
+    const std::size_t pair_capacity =
         static_cast<std::size_t>(options.rigid_body_capacity) *
         options.rigid_body_capacity;
+    // At most n(n-1)/2 pairs can involve a dynamic body: dynamic/dynamic
+    // pairs are unique, and every other pair needs exactly one dynamic body.
+    const std::size_t manifold_count =
+        static_cast<std::size_t>(options.rigid_body_capacity) *
+        (options.rigid_body_capacity - 1U) / 2U;
     if (manifold_count >
         std::numeric_limits<std::size_t>::max() / sizeof(ContactManifold)) {
         return failure(StatusCode::invalid_argument,
                        "rigid body capacity exceeds contact cache range");
     }
-    constexpr std::size_t contacts_per_manifold = 8U;
-    if (manifold_count >
-        std::numeric_limits<std::uint32_t>::max() / contacts_per_manifold) {
+    const std::size_t requested_leaf_pair_slots = std::max(
+        static_cast<std::size_t>(k_minimum_leaf_pair_cache_slots),
+        static_cast<std::size_t>(options.rigid_body_capacity) *
+            k_leaf_pair_cache_slots_per_body);
+    const std::size_t leaf_pair_slot_capacity =
+        std::min(manifold_count, requested_leaf_pair_slots);
+    if (leaf_pair_slot_capacity > std::numeric_limits<std::size_t>::max() /
+                                      k_max_leaf_pairs_per_body_pair ||
+        leaf_pair_slot_capacity >
+            std::numeric_limits<std::uint32_t>::max()) {
         return failure(StatusCode::invalid_argument,
-                       "rigid body capacity exceeds contact event range");
+                       "rigid body capacity exceeds leaf-pair cache range");
     }
-    implementation->rigid_contact_capacity = static_cast<std::uint32_t>(
-        manifold_count * contacts_per_manifold);
+    implementation->rigid_leaf_pair_slot_capacity =
+        static_cast<std::uint32_t>(leaf_pair_slot_capacity);
+    implementation->rigid_leaf_pair_capacity =
+        leaf_pair_slot_capacity * k_max_leaf_pairs_per_body_pair;
+    implementation->rigid_contact_capacity = options.contact_capacity;
 
     Status status = allocate_managed(implementation->parameters,
                                      options.rigid_body_capacity);
@@ -1392,6 +2201,74 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_color_owners,
+                              options.rigid_body_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_pair_colors, manifold_count);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_color_state, 2U);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_contact_event_offsets,
+                              manifold_count);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_world_bounds,
+                              options.rigid_body_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_active_pair_flags,
+                              pair_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_active_pairs,
+                              pair_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_active_pair_count, 1U);
+    if (!status) {
+        return status;
+    }
+    if (pair_capacity > static_cast<std::size_t>(
+                             std::numeric_limits<int>::max())) {
+        return failure(StatusCode::invalid_argument,
+                       "rigid body capacity exceeds broad-phase range");
+    }
+    const auto pair_indices = thrust::make_counting_iterator<std::uint32_t>(0U);
+    cudaError_t broad_phase_error = cub::DeviceSelect::Flagged(
+        nullptr, implementation->rigid_broad_phase_workspace_size,
+        pair_indices, implementation->rigid_active_pair_flags,
+        implementation->rigid_active_pairs,
+        implementation->rigid_active_pair_count,
+        static_cast<int>(pair_capacity));
+    if (broad_phase_error != cudaSuccess) {
+        return cuda_failure(broad_phase_error,
+                            "failed to size broad-phase workspace");
+    }
+    status = allocate_managed(implementation->rigid_broad_phase_workspace,
+                              implementation->rigid_broad_phase_workspace_size);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_leaf_pairs,
+                              implementation->rigid_leaf_pair_capacity);
+    if (!status) {
+        return status;
+    }
+    status = allocate_managed(implementation->rigid_leaf_pair_counts,
+                              pair_capacity);
+    if (!status) {
+        return status;
+    }
     status = allocate_managed(implementation->rigid_contact_events,
                               implementation->rigid_contact_capacity);
     if (!status) {
@@ -1420,6 +2297,14 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->rigid_manifolds, manifold_count,
                 ContactManifold{});
+    std::fill_n(implementation->rigid_world_bounds,
+                options.rigid_body_capacity, WorldAabb{});
+    std::fill_n(implementation->rigid_active_pair_flags, pair_capacity, 0U);
+    std::fill_n(implementation->rigid_active_pairs, pair_capacity, 0U);
+    *implementation->rigid_active_pair_count = 0U;
+    std::fill_n(implementation->rigid_leaf_pairs,
+                implementation->rigid_leaf_pair_capacity, LeafPair{});
+    std::fill_n(implementation->rigid_leaf_pair_counts, pair_capacity, 0U);
     std::fill_n(implementation->rigid_contact_events,
                 implementation->rigid_contact_capacity, RigidContactEvent{});
     *implementation->rigid_contact_count = 0U;
@@ -1437,51 +2322,51 @@ Status World::create(WorldOptions options, World &output,
 Status World::add_fluid(FluidOptions, DeviceSpan<const FluidParticle>, FluidId &,
                         cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 5");
+                   "fluid implementation is scheduled for PR 7");
 }
 
 Status World::remove_fluid(FluidId, cudaStream_t) noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 5");
+                   "fluid implementation is scheduled for PR 7");
 }
 
 Status World::fluid_view(FluidId, FluidDeviceView &) const noexcept {
     return failure(StatusCode::not_supported,
-                   "fluid implementation is scheduled for PR 5");
+                   "fluid implementation is scheduled for PR 7");
 }
 
 Status World::add_particle_spawn_plane(ParticleSpawnPlaneOptions,
                                        ParticleSpawnPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::update_particle_spawn_plane(ParticleSpawnPlaneId,
                                           ParticleSpawnPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::remove_particle_spawn_plane(ParticleSpawnPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::add_particle_destroy_plane(ParticleDestroyPlaneOptions,
                                          ParticleDestroyPlaneId &) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::update_particle_destroy_plane(ParticleDestroyPlaneId,
                                             ParticleDestroyPlaneOptions) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::remove_particle_destroy_plane(ParticleDestroyPlaneId) noexcept {
     return failure(StatusCode::not_supported,
-                   "particle lifecycle implementation is scheduled for PR 5");
+                   "particle lifecycle implementation is scheduled for PR 7");
 }
 
 Status World::add_triangle_mesh(
@@ -1664,6 +2549,20 @@ Status World::add_triangle_mesh(
                        "failed to build triangle mesh acceleration data");
     }
 
+    std::vector<std::uint32_t> bvh_leaves;
+    try {
+        for (std::uint32_t index = 0U; index < bvh_nodes.size(); ++index) {
+            if (bvh_nodes[index].triangle_count != 0U) {
+                bvh_leaves.push_back(index);
+            }
+        }
+    } catch (...) {
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return failure(StatusCode::out_of_memory,
+                       "failed to index triangle mesh BVH leaves");
+    }
+
     BvhNode *owned_bvh_nodes = nullptr;
     status = allocate_managed(owned_bvh_nodes, bvh_nodes.size());
     if (!status) {
@@ -1671,8 +2570,17 @@ Status World::add_triangle_mesh(
         release_managed(owned_vertices);
         return status;
     }
+    std::uint32_t *owned_bvh_leaves = nullptr;
+    status = allocate_managed(owned_bvh_leaves, bvh_leaves.size());
+    if (!status) {
+        release_managed(owned_bvh_nodes);
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return status;
+    }
     std::copy(reordered_indices.begin(), reordered_indices.end(), owned_indices);
     std::copy(bvh_nodes.begin(), bvh_nodes.end(), owned_bvh_nodes);
+    std::copy(bvh_leaves.begin(), bvh_leaves.end(), owned_bvh_leaves);
 
     TriangleMeshResource &mesh = impl_->meshes[slot];
     mesh.vertices = owned_vertices;
@@ -1681,6 +2589,15 @@ Status World::add_triangle_mesh(
     mesh.index_count = static_cast<std::uint32_t>(triangle_indices.size);
     mesh.minimum = minimum;
     mesh.maximum = maximum;
+    mesh.bounding_center = multiply(add(minimum, maximum), 0.5F);
+    float squared_radius = 0.0F;
+    for (std::uint64_t index = 0U; index < vertices.size; ++index) {
+        squared_radius = fmaxf(
+            squared_radius,
+            length_squared(subtract(owned_vertices[index],
+                                    mesh.bounding_center)));
+    }
+    mesh.bounding_radius = sqrtf(squared_radius);
     const Vec3 half_extents = multiply(subtract(maximum, minimum), 0.5F);
     mesh.unit_inertia = {
         fmaxf((half_extents.y * half_extents.y +
@@ -1697,6 +2614,8 @@ Status World::add_triangle_mesh(
               k_epsilon)};
     mesh.bvh_nodes = owned_bvh_nodes;
     mesh.bvh_node_count = static_cast<std::uint32_t>(bvh_nodes.size());
+    mesh.bvh_leaves = owned_bvh_leaves;
+    mesh.bvh_leaf_count = static_cast<std::uint32_t>(bvh_leaves.size());
     mesh.alive = true;
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
@@ -1723,12 +2642,14 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
         }
     }
     TriangleMeshResource &mesh = impl_->meshes[mesh_id.index];
+    release_managed(mesh.bvh_leaves);
     release_managed(mesh.bvh_nodes);
     release_managed(mesh.indices);
     release_managed(mesh.vertices);
     mesh.vertex_count = 0U;
     mesh.index_count = 0U;
     mesh.bvh_node_count = 0U;
+    mesh.bvh_leaf_count = 0U;
     mesh.alive = false;
     ++mesh.generation;
     if (mesh.generation == 0U) {
@@ -1773,6 +2694,11 @@ Status World::add_rigid_body(RigidBodyOptions options,
                        "no free rigid body handle slot was found");
     }
 
+    RigidBodyState normalized_state = options.initial_state;
+    normalized_state.orientation =
+        normalized_quaternion(normalized_state.orientation);
+    const TriangleMeshResource &mesh = impl_->meshes[options.mesh.index];
+
     Impl::Slot &slot = impl_->slots[slot_index];
     const std::uint32_t dense = impl_->rigid_body_count;
     slot.alive = true;
@@ -1781,11 +2707,8 @@ Status World::add_rigid_body(RigidBodyOptions options,
         slot.generation = 1U;
     }
     const RigidBodyId id{slot_index, slot.generation};
-    RigidBodyState normalized_state = options.initial_state;
-    normalized_state.orientation =
-        normalized_quaternion(normalized_state.orientation);
     impl_->parameters[dense] =
-        make_parameters(options, impl_->meshes[options.mesh.index]);
+        make_parameters(options, mesh);
     impl_->accumulators[dense] = {};
     impl_->targets[dense] = {};
     impl_->ids[dense] = id;
@@ -2066,7 +2989,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     std::size_t timing_boundary = 0U;
     if (options.collect_kernel_timings) {
         status = impl_->prepare_timing_events(
-            static_cast<std::size_t>(options.substeps) * 3U + 2U);
+            static_cast<std::size_t>(options.substeps) * 7U + 2U);
         if (!status) {
             return status;
         }
@@ -2094,6 +3017,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         (impl_->rigid_body_count + block_size - 1U) / block_size;
     const float substep_timestep =
         options.timestep / static_cast<float>(options.substeps);
+    // The lowest-priority remaining pair colors every round, so no small
+    // world needs more rounds than its number of unordered body pairs.
+    const std::uint32_t color_round_count =
+        impl_->rigid_body_count <= 1U ? 1U
+        : impl_->rigid_body_count < 9U
+            ? impl_->rigid_body_count * (impl_->rigid_body_count - 1U) / 2U
+            : k_contact_color_count;
+    impl_->rigid_solve_kernels_per_substep =
+        3U + 3U * color_round_count +
+        8U * (color_round_count + 1U);
     for (std::uint32_t substep = 0; substep < options.substeps; ++substep) {
         if (impl_->rigid_body_count == 0U) {
             break;
@@ -2118,29 +3051,173 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_body_count * impl_->rigid_body_count;
         const std::uint32_t pair_block_count =
             (pair_count + block_size - 1U) / block_size;
-        generate_rigid_contacts_kernel<<<pair_block_count, block_size, 0,
-                                         stream>>>(
-            impl_->parameters, impl_->states[output_state],
+        const std::uint32_t contact_block_count =
+            std::min(pair_count, 128U);
+        compute_rigid_world_bounds_kernel<<<block_count, block_size, 0, stream>>>(
+            impl_->parameters, impl_->states[impl_->current_state],
+            impl_->states[output_state],
             impl_->rigid_body_count, impl_->meshes,
-            impl_->options.triangle_mesh_capacity, impl_->rigid_manifolds,
-            impl_->options.rigid_body_capacity);
+            impl_->rigid_world_bounds);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
-                                "rigid contact generation kernel launch failed");
+                                "rigid world-bounds kernel launch failed");
         }
-        status = record_timing_stage(TimingStage::rigid_contact_generation);
+        status = record_timing_stage(TimingStage::rigid_world_bounds);
         if (!status) {
             cudaStreamSynchronize(stream);
             return status;
         }
-        resolve_cached_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+        broad_phase_rigid_pairs_kernel<<<pair_block_count, block_size, 0,
+                                         stream>>>(
+            impl_->parameters, impl_->rigid_world_bounds,
+            impl_->states[impl_->current_state], impl_->states[output_state],
+            impl_->meshes,
+            impl_->rigid_body_count, impl_->rigid_active_pair_flags);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(error,
+                                "rigid broad-phase kernel launch failed");
+        }
+        status = record_timing_stage(TimingStage::rigid_pair_filter);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
+        const auto pair_indices =
+            thrust::make_counting_iterator<std::uint32_t>(0U);
+        error = cub::DeviceSelect::Flagged(
+            impl_->rigid_broad_phase_workspace,
+            impl_->rigid_broad_phase_workspace_size, pair_indices,
+            impl_->rigid_active_pair_flags, impl_->rigid_active_pairs,
+            impl_->rigid_active_pair_count, static_cast<int>(pair_count),
+            stream);
+        if (error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(error,
+                                "rigid broad-phase compaction failed");
+        }
+        status = record_timing_stage(TimingStage::rigid_pair_compaction);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
+        generate_rigid_leaf_pairs_kernel<<<contact_block_count, block_size, 0,
+                                           stream>>>(
+            impl_->parameters, impl_->states[impl_->current_state],
+            impl_->states[output_state],
+            impl_->rigid_body_count, impl_->meshes,
+            impl_->options.triangle_mesh_capacity,
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->rigid_leaf_pairs,
+            impl_->rigid_leaf_pair_counts,
+            impl_->rigid_leaf_pair_slot_capacity);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(error,
+                                "rigid leaf-pair kernel launch failed");
+        }
+        status = record_timing_stage(TimingStage::rigid_leaf_pair_generation);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
+        constexpr std::uint32_t contact_evaluation_threads = 64U;
+        evaluate_rigid_leaf_pairs_kernel<<<
+            contact_block_count, contact_evaluation_threads,
+            contact_evaluation_threads * sizeof(ContactManifold),
+            stream>>>(impl_->parameters,
+                      impl_->states[impl_->current_state],
+                      impl_->states[output_state],
+                      impl_->rigid_body_count, impl_->meshes,
+                      impl_->rigid_active_pairs,
+                      impl_->rigid_active_pair_count,
+                      impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
+                      impl_->rigid_manifolds);
+        evaluate_overflow_rigid_pairs_kernel<<<
+            contact_block_count, block_size, 0, stream>>>(
+                impl_->parameters, impl_->states[impl_->current_state],
+                impl_->states[output_state], impl_->rigid_body_count,
+                impl_->meshes, impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count,
+                impl_->rigid_leaf_pair_counts, impl_->rigid_manifolds);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(error,
+                                "rigid leaf contact kernel launch failed");
+        }
+        status = record_timing_stage(TimingStage::rigid_contact_evaluation);
+        if (!status) {
+            cudaStreamSynchronize(stream);
+            return status;
+        }
+        prepare_parallel_contact_events_kernel<<<1U, 1U, 0, stream>>>(
+            impl_->rigid_body_count, impl_->rigid_manifolds,
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->ids, impl_->rigid_contact_event_offsets,
+            impl_->rigid_contact_events, impl_->rigid_contact_capacity,
+            impl_->rigid_contact_count,
+            options.collect_rigid_contacts, substep == 0U);
+        initialize_parallel_colors_kernel<<<
+            contact_block_count, block_size, 0, stream>>>(
+                impl_->rigid_active_pair_count,
+                impl_->rigid_pair_colors, impl_->rigid_color_state);
+        for (std::uint32_t color = 0U;
+             color < color_round_count; ++color) {
+            reset_parallel_color_owners_kernel<<<block_count,
+                block_size, 0, stream>>>(
+                    impl_->rigid_color_owners,
+                    impl_->rigid_body_count);
+            find_parallel_color_owners_kernel<<<
+                contact_block_count, block_size, 0, stream>>>(
+                    impl_->parameters, impl_->rigid_body_count,
+                    impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                    impl_->rigid_active_pair_count,
+                    impl_->rigid_pair_colors,
+                    impl_->rigid_color_owners);
+            assign_parallel_contact_colors_kernel<<<
+                contact_block_count, block_size, 0, stream>>>(
+                    impl_->parameters, impl_->rigid_body_count,
+                    impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                    impl_->rigid_active_pair_count,
+                    impl_->rigid_color_owners,
+                    impl_->rigid_pair_colors,
+                    impl_->rigid_color_state, color, color_round_count);
+        }
+        for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+            for (std::uint32_t color = 0U;
+                 color < color_round_count; ++color) {
+                resolve_colored_rigid_contacts_kernel<<<
+                    contact_block_count, block_size, 0, stream>>>(
+                    impl_->parameters, impl_->states[output_state],
+                    impl_->rigid_body_count, impl_->rigid_manifolds,
+                    impl_->rigid_active_pairs,
+                    impl_->rigid_active_pair_count,
+                    impl_->rigid_pair_colors, impl_->rigid_color_state,
+                    impl_->rigid_contact_event_offsets,
+                    impl_->rigid_contact_events,
+                    options.collect_rigid_contacts
+                        ? impl_->rigid_contact_capacity : 0U,
+                    color, pass == 0U);
+            }
+            resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count, impl_->rigid_manifolds,
+                impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+                impl_->rigid_pair_colors, impl_->rigid_color_state,
+                impl_->rigid_contact_event_offsets,
+                impl_->rigid_contact_events,
+                options.collect_rigid_contacts
+                    ? impl_->rigid_contact_capacity : 0U,
+                pass == 0U);
+        }
+        clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
-            impl_->ids, impl_->rigid_body_count, impl_->rigid_manifolds,
-            impl_->options.rigid_body_capacity, impl_->rigid_contact_events,
-            options.collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
-            impl_->rigid_contact_count, substep == 0U);
+            impl_->rigid_body_count);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -2253,12 +3330,30 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
             return cuda_failure(error, "failed to collect kernel stage timing");
         }
         KernelTiming *timing = nullptr;
+        bool contact_generation_stage = false;
         switch (impl_->timing_stages[index]) {
         case TimingStage::rigid_integration:
             timing = &output.rigid_integration;
             break;
-        case TimingStage::rigid_contact_generation:
-            timing = &output.rigid_contact_generation;
+        case TimingStage::rigid_world_bounds:
+            timing = &output.rigid_world_bounds;
+            contact_generation_stage = true;
+            break;
+        case TimingStage::rigid_pair_filter:
+            timing = &output.rigid_pair_filter;
+            contact_generation_stage = true;
+            break;
+        case TimingStage::rigid_pair_compaction:
+            timing = &output.rigid_pair_compaction;
+            contact_generation_stage = true;
+            break;
+        case TimingStage::rigid_leaf_pair_generation:
+            timing = &output.rigid_leaf_pair_generation;
+            contact_generation_stage = true;
+            break;
+        case TimingStage::rigid_contact_evaluation:
+            timing = &output.rigid_contact_evaluation;
+            contact_generation_stage = true;
             break;
         case TimingStage::rigid_contact_solve:
             timing = &output.rigid_contact_solve;
@@ -2268,7 +3363,17 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
             break;
         }
         timing->total_milliseconds += milliseconds;
-        ++timing->launch_count;
+        const std::uint32_t launches =
+            impl_->timing_stages[index] == TimingStage::rigid_contact_solve
+                ? impl_->rigid_solve_kernels_per_substep
+                : impl_->timing_stages[index] ==
+                          TimingStage::rigid_contact_evaluation
+                    ? 2U : 1U;
+        timing->launch_count += launches;
+        if (contact_generation_stage) {
+            output.rigid_contact_generation.total_milliseconds += milliseconds;
+            output.rigid_contact_generation.launch_count += launches;
+        }
     }
     return success();
 }
@@ -2298,7 +3403,17 @@ Status World::collect_statistics(WorldStatistics &output,
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
                     2U * sizeof(RigidBodyState)) +
-        capacity * capacity * sizeof(ContactManifold) +
+        capacity * (capacity - 1U) / 2U * sizeof(ContactManifold) +
+        capacity * sizeof(std::uint32_t) +
+        capacity * (capacity - 1U) / 2U * sizeof(std::uint8_t) +
+        2U * sizeof(std::uint32_t) +
+        capacity * (capacity - 1U) / 2U * sizeof(std::uint32_t) +
+        capacity * sizeof(WorldAabb) +
+        capacity * capacity *
+            (sizeof(std::uint8_t) + sizeof(std::uint32_t)) +
+        sizeof(std::uint32_t) + impl_->rigid_broad_phase_workspace_size +
+        impl_->rigid_leaf_pair_capacity * sizeof(LeafPair) +
+        capacity * capacity * sizeof(std::uint32_t) +
         impl_->rigid_contact_capacity * sizeof(RigidContactEvent) +
         sizeof(std::uint32_t) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
@@ -2308,7 +3423,8 @@ Status World::collect_statistics(WorldStatistics &output,
             output.allocated_bytes +=
                 impl_->meshes[index].vertex_count * sizeof(Vec3) +
                 impl_->meshes[index].index_count * sizeof(std::uint32_t) +
-                impl_->meshes[index].bvh_node_count * sizeof(BvhNode);
+                impl_->meshes[index].bvh_node_count * sizeof(BvhNode) +
+                impl_->meshes[index].bvh_leaf_count * sizeof(std::uint32_t);
         }
     }
     return success();

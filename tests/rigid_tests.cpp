@@ -173,7 +173,7 @@ void test_generation_and_kinematics() {
 void test_floor_contact_and_async_contract() {
     using namespace parallel_mater;
     World world;
-    check_status(World::create({.rigid_body_capacity = 2U,
+    check_status(World::create({.rigid_body_capacity = 8U,
                                 .triangle_mesh_capacity = 2U},
                                world),
                  "create contact world");
@@ -211,7 +211,7 @@ void test_floor_contact_and_async_contract() {
     RigidBodyState state{};
     check_status(world.read_rigid_body_state(box, state), "read contact box");
     check(state.position.y >= 0.499F,
-          "triangle mesh contact must project the box above the plane");
+          "contact cache must work when body capacity exceeds body count");
     check(state.linear_velocity.y >= -1.0e-3F,
           "triangle mesh contact must remove inward velocity");
 
@@ -234,8 +234,16 @@ void test_floor_contact_and_async_contract() {
     check_status(world.collect_step_timings(timings),
                  "collect rigid kernel timings");
     check(timings.available && timings.rigid_integration.launch_count == 4U &&
-              timings.rigid_contact_generation.launch_count == 4U &&
-              timings.rigid_contact_solve.launch_count == 4U &&
+              timings.rigid_world_bounds.launch_count == 4U &&
+              timings.rigid_pair_filter.launch_count == 4U &&
+              timings.rigid_pair_compaction.launch_count == 4U &&
+              timings.rigid_leaf_pair_generation.launch_count == 4U &&
+              timings.rigid_contact_evaluation.launch_count == 8U &&
+              timings.rigid_contact_generation.launch_count == 24U &&
+              // Two bodies need one parallel color round and eight
+              // color/overflow solve passes per substep.
+              timings.rigid_contact_solve.launch_count ==
+                  4U * (3U + 3U + 8U * 2U) &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
@@ -395,6 +403,172 @@ void test_rotation_dynamic_coupling_and_determinism() {
           "dynamic triangle collision must preserve linear momentum");
 }
 
+void test_high_speed_swept_triangle_contact() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U},
+                               world),
+                 "create swept-contact world");
+    const TriangleMeshId surface = upload_mesh(
+        world,
+        {{-5.0F, 0.0F, -5.0F}, {5.0F, 0.0F, -5.0F},
+         {5.0F, 0.0F, 5.0F}, {-5.0F, 0.0F, 5.0F}},
+        {0U, 2U, 1U, 0U, 3U, 2U}, "add swept surface");
+    const TriangleMeshId projectile_mesh =
+        add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId floor{};
+    RigidBodyId projectile{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body, .mesh = surface},
+                     floor),
+                 "add swept floor");
+    const RigidBodyState initial{
+        .position = {0.0F, 1.5F, 0.0F},
+        .linear_velocity = {0.0F, -120.0F, 0.0F}};
+    check_status(world.add_rigid_body(
+                     {.mesh = projectile_mesh,
+                      .initial_state = initial,
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F,
+                      .maximum_linear_speed = 200.0F},
+                     projectile),
+                 "add swept projectile");
+
+    RigidBodyState reference{};
+    for (int repetition = 0; repetition < 20; ++repetition) {
+        check_status(world.set_rigid_body_state(projectile, initial),
+                     "reset swept projectile");
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 1U,
+                                 .gravity = {}}),
+                     "step swept projectile");
+        RigidBodyState result{};
+        check_status(world.read_rigid_body_state(projectile, result),
+                     "read swept projectile");
+        check(result.position.y >= 0.099F &&
+                  result.linear_velocity.y >= -1.0e-3F,
+              "one swept substep must stop a fast mesh above the surface");
+        if (repetition == 0) {
+            reference = result;
+        } else {
+            check(std::memcmp(&reference, &result, sizeof(result)) == 0,
+                  "swept triangle contacts must be bit-identical");
+        }
+    }
+}
+
+void test_swept_contact_when_leaf_cache_overflows() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U}, world),
+                 "create overflow contact world");
+    std::vector<std::uint32_t> floor_indices;
+    floor_indices.reserve(516U * 3U);
+    for (std::uint32_t index = 0U; index < 516U; ++index) {
+        floor_indices.insert(floor_indices.end(), {0U, 1U, 2U});
+    }
+    const TriangleMeshId floor_mesh = upload_mesh(
+        world, {{-5.0F, 0.0F, -5.0F}, {0.0F, 0.0F, 5.0F},
+                {5.0F, 0.0F, -5.0F}}, floor_indices,
+        "add duplicated floor exceeding leaf cache");
+    const TriangleMeshId projectile_mesh =
+        add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId floor{};
+    RigidBodyId projectile{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body, .mesh = floor_mesh},
+                     floor),
+                 "add overflow floor");
+    check_status(world.add_rigid_body(
+                     {.mesh = projectile_mesh,
+                      .initial_state = {
+                          .position = {0.0F, 1.5F, 0.0F},
+                          .linear_velocity = {0.0F, -120.0F, 0.0F}},
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F,
+                      .maximum_linear_speed = 200.0F},
+                     projectile),
+                 "add overflow projectile");
+    check_status(world.step({.timestep = 1.0F / 60.0F,
+                             .substeps = 1U, .gravity = {}}),
+                 "step overflow contact world");
+    RigidBodyState result{};
+    check_status(world.read_rigid_body_state(projectile, result),
+                 "read overflow projectile");
+    if (result.position.y < 0.099F || result.linear_velocity.y < -1.0F) {
+        std::cerr << "overflow projectile: y=" << result.position.y
+                  << " velocity=" << result.linear_velocity.y << '\n';
+    }
+    check(result.position.y >= 0.099F &&
+              result.linear_velocity.y >= -1.0F,
+          "overflow fallback must preserve swept collision");
+    check_status(world.step({.timestep = 1.0F / 60.0F,
+                             .substeps = 1U, .gravity = {}}),
+                 "step overflow contact world again");
+    check_status(world.read_rigid_body_state(projectile, result),
+                 "read overflow projectile after follow-up step");
+    check(result.position.y >= 0.099F,
+          "overflow projectile must remain above the surface");
+}
+
+void test_parallel_contact_coloring(std::uint32_t body_count) {
+    using namespace parallel_mater;
+    const std::uint32_t overlapping_bodies =
+        body_count < 36U ? body_count : 36U;
+    World world;
+    check_status(World::create({.rigid_body_capacity = body_count,
+                                .triangle_mesh_capacity = 1U,
+                                .contact_capacity = 1U}, world),
+                 "create contact-color overflow world");
+    const TriangleMeshId mesh = add_box(world, {0.1F, 0.1F, 0.1F});
+    std::vector<RigidBodyId> bodies;
+    bodies.reserve(body_count);
+    for (std::uint32_t index = 0U; index < body_count; ++index) {
+        RigidBodyId body{};
+        const bool dynamic = index < overlapping_bodies;
+        check_status(world.add_rigid_body(
+                         {.motion = dynamic ? MotionType::dynamic
+                                            : MotionType::static_body,
+                          .mesh = mesh,
+                          .initial_state = {
+                              .position = dynamic
+                                  ? Vec3{}
+                                  : Vec3{100.0F + index * 10.0F, 0.0F, 0.0F}}},
+                         body),
+                     "add contact-color overflow body");
+        bodies.push_back(body);
+    }
+    RigidBodyState reference{};
+    for (int repetition = 0; repetition < 2; ++repetition) {
+        for (std::uint32_t index = 0U; index < overlapping_bodies; ++index) {
+            check_status(world.set_rigid_body_state(bodies[index], {}),
+                         "reset contact-color overflow body");
+        }
+        check_status(world.step({.timestep = 1.0F / 240.0F,
+                                 .substeps = 1U,
+                                 .gravity = {},
+                                 .collect_rigid_contacts = repetition != 0}),
+                     "step contact-color overflow world");
+        RigidBodyState result{};
+        check_status(world.read_rigid_body_state(bodies[0], result),
+                     "read contact-color overflow body");
+        check(std::isfinite(result.position.x) &&
+                  std::isfinite(result.position.y) &&
+                  std::isfinite(result.position.z),
+              "high-degree contact graph must remain finite");
+        if (repetition == 0) {
+            reference = result;
+        } else {
+            check(world.rigid_contacts().event_count == 1U,
+                  "parallel contacts must respect diagnostic capacity");
+            check(std::memcmp(&reference, &result, sizeof(result)) == 0,
+                  "contact-color overflow diagnostics must preserve motion");
+        }
+    }
+}
+
 void test_invalid_triangle_indices() {
     using namespace parallel_mater;
     World world;
@@ -432,6 +606,11 @@ int main() {
     test_floor_contact_and_async_contract();
     test_open_two_sided_surface();
     test_rotation_dynamic_coupling_and_determinism();
+    test_high_speed_swept_triangle_contact();
+    test_swept_contact_when_leaf_cache_overflows();
+    test_parallel_contact_coloring(8U);
+    test_parallel_contact_coloring(128U);
+    test_parallel_contact_coloring(256U);
     test_invalid_triangle_indices();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";

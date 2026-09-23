@@ -1,7 +1,8 @@
 # Blender-authored triangle scenes
 
-Gallery scenes are `.glb` assets, not C++ recipes. The same exported triangles
-drive OptiX rendering and rigid collision; ParallelMater has no separate
+Gallery scenes are `.glb` assets, not C++ recipes. Render triangles drive
+collision by default, while an optional Blender-authored lower-resolution mesh
+can be selected per body as its collision proxy. ParallelMater has no separate
 sphere, box, capsule, or plane collider types.
 
 ## Authoring contract
@@ -21,6 +22,12 @@ sphere, box, capsule, or plane collider types.
    recenters local geometry from its AABB and preserves the resulting world
    pose. A zero API inertia uses the mesh AABB approximation; an application
    can supply a measured inertia diagonal later.
+6. For a detailed object, optionally create a separate low-resolution mesh and
+   set the rigid object's custom string property `pm_collision_proxy` to that
+   object's Blender name. The proxy may have its own transform and modifiers;
+   the exporter evaluates it into the rigid body's local frame. Do not add a
+   Blender Rigid Body to the proxy. Keep silhouettes and support surfaces close
+   enough that the physical approximation remains intentional.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -54,6 +61,12 @@ The generated metadata is:
 | `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
 | `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
+| `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
+
+When a proxy is selected, the exporter adds a non-rendered
+`pm_system = "collision_mesh"` glTF node and references it from the rigid-body
+node. The gallery still renders the detailed mesh. Proxies are explicit
+authored data: the loader does not decimate or invent collision geometry.
 
 Users do not need to type these properties by hand. Names are labels only;
 physics behavior comes from Blender's Rigid Body settings.
@@ -67,21 +80,25 @@ physics behavior comes from Blender's Rigid Body settings.
   --frames 180
 ```
 
-The committed `PassiveActive.blend` contains a scaled passive ground plane, an
-ACTIVE Animated cube, and dynamic ACTIVE icosphere and Suzanne meshes. Its
-regression checks that scale was baked, polygons became triangles, all four
-objects use World-owned collision meshes, the cube follows a kinematic target,
-tilted gravity advances dynamic objects, and Suzanne topples and remains
-supported.
+The committed `PassiveActive.blend` contains a scaled passive bowl, an ACTIVE
+Animated cube, and dynamic ACTIVE icosphere and Suzanne meshes. The detailed
+bowl remains its own collision mesh; the three detailed dynamic objects carry
+authored decimated proxies. Regression checks cover scale baking,
+triangulation, proxy selection, kinematic targets, tilted gravity, toppling,
+and containment.
 
 ## Collision behavior
 
 `World::add_triangle_mesh` copies device vertices and indices, validates them,
 and builds a deterministic private BVH. Mesh–mesh narrow phase uses exact
-edge/triangle closest features with a small two-sided shell. This is a discrete
-solver: sufficiently fast motion can tunnel, so applications must choose a
-substep count appropriate for speed and triangle scale. The collision margin
-is numerical thickness, not a replacement for continuous collision detection.
+edge/triangle closest features with a small two-sided shell. When motion over a
+substep exceeds that shell, conservative swept triangle-pair tests cover the
+linearized previous-to-current vertex paths before the discrete solve. This
+handles fast translation, rotation, open surfaces, and contacts from either
+side, but it is not an exact analytic time-of-impact solution for curved
+rotational trajectories. Substeps remain the accuracy control for extreme
+angular motion and multiple impacts. The collision margin remains numerical
+thickness rather than visible geometry.
 
 Future fluid, cloth, soft-body, rope, and smoke schemas will be introduced only
 with their reviewed public APIs. Unknown systems and schema versions fail
@@ -89,7 +106,7 @@ explicitly rather than silently changing scene meaning.
 
 ## Gate for the isolated-fluid milestone
 
-PR 5 does not start—and no fluid kernels are run—until the authored source file
+PR 7 does not start—and no fluid kernels are run—until the authored source file
 `examples/assets/FluidLifecycle.blend` is supplied. That file should contain:
 
 - one mesh object named `FluidSeed` whose vertices, with no faces required,

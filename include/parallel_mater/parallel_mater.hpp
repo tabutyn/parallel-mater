@@ -116,6 +116,7 @@ struct WorldOptions {
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_spawn_plane_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
+    // Maximum diagnostic contact events retained for a requested frame.
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
 };
@@ -265,6 +266,12 @@ struct WorldStepTimings {
     std::uint64_t frame_index{};
     bool available{};
     KernelTiming rigid_integration{};
+    KernelTiming rigid_world_bounds{};
+    KernelTiming rigid_pair_filter{};
+    KernelTiming rigid_pair_compaction{};
+    KernelTiming rigid_leaf_pair_generation{};
+    KernelTiming rigid_contact_evaluation{};
+    // Aggregate of the five broad/narrow-phase stages above.
     KernelTiming rigid_contact_generation{};
     KernelTiming rigid_contact_solve{};
     KernelTiming rigid_input_clear{};
