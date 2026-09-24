@@ -90,11 +90,13 @@ pass.
 - Test a brute-force neighbor pair, lifecycle, passive high-speed impact,
   authored-scene loading, and a headless fluid image.
 
-## PR 8 — Dynamic fluid–rigid coupling
+## PR 8 — Dynamic fluid–rigid coupling (implemented in this branch)
 
 - Extend the PR 7 passive particle/triangle path to moving and dynamic bodies,
   including friction, restitution, projection, and balanced reactions.
-- Add deterministic contact events and the heavy-sphere scene.
+- Retain bounded, deterministic per-particle contact events and add the
+  Blender-authored `FluidRigid.blend` scene: three Array modifiers detach into
+  64 independently simulated, shared-mesh dynamic spheres.
 - Validate momentum exchange, containment, high-speed impact, and overflow.
 
 ## PR 9 — Gallery game shell

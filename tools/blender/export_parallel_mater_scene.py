@@ -53,6 +53,33 @@ def fallback_material(index: int, passive: bool) -> bpy.types.Material:
     return material
 
 
+def rigid_metadata(
+    source: bpy.types.Object,
+    exported: bpy.types.Object,
+    collision_proxy_name: str | None,
+) -> None:
+    rigid = source.rigid_body
+    passive = rigid.type == "PASSIVE"
+    motion = "static" if passive else "dynamic"
+    if not passive and getattr(rigid, "kinematic", False):
+        motion = "kinematic"
+    exported["pm_schema"] = 2
+    exported["pm_system"] = "rigid_body"
+    exported["pm_name"] = exported.name
+    exported["pm_motion"] = motion
+    exported["pm_mass"] = float(rigid.mass)
+    exported["pm_friction"] = float(rigid.friction)
+    exported["pm_restitution"] = float(rigid.restitution)
+    exported["pm_linear_damping"] = float(rigid.linear_damping)
+    exported["pm_angular_damping"] = float(rigid.angular_damping)
+    exported["pm_collision_margin"] = (
+        float(rigid.collision_margin) if rigid.use_margin else 0.005
+    )
+    exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
+    if collision_proxy_name is not None:
+        exported["pm_collision_proxy"] = collision_proxy_name
+
+
 def copy_for_export(
     source: bpy.types.Object,
     index: int,
@@ -84,32 +111,111 @@ def copy_for_export(
     collection.objects.link(exported)
     exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
 
-    rigid = source.rigid_body
-    passive = rigid.type == "PASSIVE"
-    motion = "static" if passive else "dynamic"
-    if not passive and getattr(rigid, "kinematic", False):
-        motion = "kinematic"
-    exported["pm_schema"] = 2
-    exported["pm_system"] = "rigid_body"
-    exported["pm_name"] = source.name
-    exported["pm_motion"] = motion
-    exported["pm_mass"] = float(rigid.mass)
-    exported["pm_friction"] = float(rigid.friction)
-    exported["pm_restitution"] = float(rigid.restitution)
-    exported["pm_linear_damping"] = float(rigid.linear_damping)
-    exported["pm_angular_damping"] = float(rigid.angular_damping)
-    exported["pm_collision_margin"] = (
-        float(rigid.collision_margin) if rigid.use_margin else 0.005
-    )
-    exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
-    if collision_proxy_name is not None:
-        exported["pm_collision_proxy"] = collision_proxy_name
+    rigid_metadata(source, exported, collision_proxy_name)
 
     if len(mesh.materials) == 0:
-        material = fallback_material(index, passive)
+        material = fallback_material(index, source.rigid_body.type == "PASSIVE")
         created_materials.append(material)
         mesh.materials.append(material)
     return exported
+
+
+def copy_array_rigid_for_export(
+    source: bpy.types.Object,
+    index: int,
+    collection: bpy.types.Collection,
+    depsgraph: bpy.types.Depsgraph,
+    created_meshes: list[bpy.types.Mesh],
+    created_materials: list[bpy.types.Material],
+) -> list[bpy.types.Object]:
+    """Turn disconnected Array copies into independently simulated bodies."""
+    evaluated = source.evaluated_get(depsgraph)
+    mesh = bpy.data.meshes.new_from_object(
+        evaluated, preserve_all_data_layers=True, depsgraph=depsgraph
+    )
+    created_meshes.append(mesh)
+    parent = list(range(len(mesh.vertices)))
+
+    def root(vertex: int) -> int:
+        while parent[vertex] != vertex:
+            parent[vertex] = parent[parent[vertex]]
+            vertex = parent[vertex]
+        return vertex
+
+    for edge in mesh.edges:
+        first, second = edge.vertices
+        parent[root(second)] = root(first)
+    components: dict[int, list[int]] = {}
+    for vertex in range(len(mesh.vertices)):
+        components.setdefault(root(vertex), []).append(vertex)
+    groups = sorted(components.values(), key=lambda group: group[0])
+    expected = 1
+    for modifier in source.modifiers:
+        if modifier.type == "ARRAY":
+            expected *= modifier.count
+    if len(groups) != expected or expected < 2:
+        raise RuntimeError(
+            f"{source.name}: Array rigid body needs {expected} disconnected "
+            f"copies, found {len(groups)}"
+        )
+
+    centers = []
+    for group in groups:
+        coordinates = [mesh.vertices[vertex].co for vertex in group]
+        centers.append((
+            Vector(tuple(min(point[axis] for point in coordinates) for axis in range(3)))
+            + Vector(tuple(max(point[axis] for point in coordinates) for axis in range(3)))
+        ) * 0.5)
+    first = groups[0]
+    reference = [mesh.vertices[vertex].co - centers[0] for vertex in first]
+    for group, center in zip(groups[1:], centers[1:]):
+        if len(group) != len(first) or any(
+            (mesh.vertices[vertex].co - center - shape).length > 1.0e-4
+            for vertex, shape in zip(group, reference)
+        ):
+            raise RuntimeError(f"{source.name}: Array copies have different geometry")
+
+    vertex_map = {vertex: local for local, vertex in enumerate(first)}
+    faces = [polygon for polygon in mesh.polygons
+             if polygon.vertices[0] in vertex_map]
+    copy_mesh = bpy.data.meshes.new(f"{source.name}_ArrayBody")
+    created_meshes.append(copy_mesh)
+    copy_mesh.from_pydata(reference, [], [
+        tuple(vertex_map[vertex] for vertex in polygon.vertices)
+        for polygon in faces
+    ])
+    for material in mesh.materials:
+        copy_mesh.materials.append(material)
+    for face, polygon in zip(copy_mesh.polygons, faces):
+        face.material_index = polygon.material_index
+    if len(copy_mesh.materials) == 0:
+        material = fallback_material(index, False)
+        created_materials.append(material)
+        copy_mesh.materials.append(material)
+    _, rotation, scale = source.matrix_world.decompose()
+    geometry = bmesh.new()
+    geometry.from_mesh(copy_mesh)
+    bmesh.ops.transform(
+        geometry,
+        matrix=Matrix.Diagonal(Vector((scale.x, scale.y, scale.z, 1.0))),
+        verts=geometry.verts,
+    )
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.to_mesh(copy_mesh)
+    geometry.free()
+    copy_mesh.validate(clean_customdata=False)
+    copy_mesh.update()
+
+    result = []
+    for number, center in enumerate(centers):
+        exported = bpy.data.objects.new(f"{source.name}_{number:03d}", copy_mesh)
+        collection.objects.link(exported)
+        exported.matrix_world = Matrix.LocRotScale(
+            source.matrix_world @ center, rotation, None
+        )
+        rigid_metadata(source, exported, None)
+        result.append(exported)
+    return result
 
 
 def copy_collision_for_export(
@@ -221,6 +327,18 @@ def export(output: pathlib.Path) -> None:
         depsgraph = bpy.context.evaluated_depsgraph_get()
         used_proxies: set[str] = set()
         for index, source in enumerate(sources):
+            if source.rigid_body.type == "ACTIVE" and any(
+                modifier.type == "ARRAY" for modifier in source.modifiers
+            ):
+                if source.get("pm_collision_proxy") is not None:
+                    raise RuntimeError(
+                        f"{source.name}: Array bodies cannot share a collision proxy"
+                    )
+                created_objects.extend(copy_array_rigid_for_export(
+                    source, index, collection, depsgraph,
+                    created_meshes, created_materials,
+                ))
+                continue
             proxy = None
             proxy_export_name = None
             requested_proxy = source.get("pm_collision_proxy")

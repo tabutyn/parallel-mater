@@ -173,8 +173,8 @@ mesh. Spheres, boxes, capsules, planes, Suzanne, and arbitrary Blender meshes
 are all ordinary triangle data. A body is static, kinematic, or dynamic:
 
 - static bodies never move;
-- kinematic bodies follow explicit targets; fluid coupling to their motion is
-  scheduled for PR 8;
+- kinematic bodies follow explicit targets and transfer momentum to fluid
+  particles on moving triangle contacts;
 - dynamic bodies integrate gravity, forces, impulses, damping, and contact
   reactions.
 
@@ -187,8 +187,10 @@ private BVH. Degenerate triangles are rejected. Motion beyond the collision
 shell activates conservative swept triangle-pair testing over linearized
 vertex paths; this prevents the tested fast-body tunneling case without making
 ordinary resting contacts pay the full cost. Compound bodies, joints, and
-sleeping are deferred. Fluid–dynamic-body momentum exchange arrives with the
-fluid-coupling milestone.
+sleeping are deferred. Fluid particles collide with static, kinematic, and
+dynamic triangles. Dynamic impacts exchange equal-and-opposite linear and
+angular impulse with the body; the moving-body path uses swept triangle
+contacts and a spatial body index.
 
 ```cpp
 TriangleMeshId terrain_mesh;
@@ -209,9 +211,12 @@ references it.
 
 ## Contacts are the application extension point
 
-The reserved optional contact buffer will report fluid-particle/rigid-body
-contacts in a stable order once PR 8 implements moving-body coupling. These
-are the physics-side input for painting: stable particle
+Set `StepOptions::collect_fluid_contacts` to retain one representative
+fluid-particle/rigid-body contact per surviving particle per frame. Moving
+body contacts take priority over static contacts, and the strongest normal
+impulse wins within each class. Events appear in fluid order, then stable
+particle order. Collection is disabled by default. These are the physics-side
+input for painting: stable particle
 and body IDs, contact position, normal, and impulse let gallery code update its
 own color fields or textures. The physics API does not own paint pixels,
 materials, UVs, or textures. The same records can drive sound, objectives,

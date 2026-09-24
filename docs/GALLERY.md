@@ -35,8 +35,8 @@ Headless physics builds remain free of OpenGL and OptiX.
    into a larger static receiver.
 3. **Fluid flow** — Blender Inflow emits repelling particles over a passive
    triangle surface; Outflow removes them and impact agitation shows as foam.
-4. **Heavy sphere** — a dynamic sphere enters the fluid and receives visible
-   two-way reaction forces.
+4. **Fluid + rigid** — 64 independently simulated dynamic spheres from a
+   Blender 4×4×4 array fall into the fluid and receive two-way impulses.
 5. **Obstacle bowl** — gravity steering rolls the sphere through pegs while
    fluid remains contained.
 
@@ -48,7 +48,8 @@ the bowl retains its detailed collision surface. Arrow input moves the Cube
 and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
-`Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid.
+`Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
+Fluid + Rigid.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all three scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -71,7 +72,8 @@ mesh's overall bottom or more than 1 mm below its local floor surface,
 including its stable ID and recent positions, and exits nonzero on penetration.
 `F` shows Fluid solver stages, surface-build GPU time, OptiX/render wall time,
 and live/emitted/outflow/capacity-miss counts. It shows rigid solver stages in
-the other scenes.
+the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
+Fluid, or `--fluid-rigid` for a headless run.
 
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.

@@ -336,7 +336,8 @@ class FlatJson {
 
 [[nodiscard]] bool finalize_body_geometry(SceneDefinition &scene,
                                           RigidBodyDefinition &body,
-                                          std::string &error) {
+                                          std::string &error,
+                                          Vec3 *local_center = nullptr) {
     Vec3 minimum{std::numeric_limits<float>::max(),
                  std::numeric_limits<float>::max(),
                  std::numeric_limits<float>::max()};
@@ -354,6 +355,7 @@ class FlatJson {
         }
     }
     const Vec3 center = multiply(add(minimum, maximum), 0.5F);
+    if (local_center != nullptr) *local_center = center;
     const Vec3 half = multiply(subtract(maximum, minimum), 0.5F);
     if (!finite(center) || !finite(half) || half.x < k_bounds_epsilon ||
         half.z < k_bounds_epsilon) {
@@ -564,6 +566,13 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
     }
 
     std::unordered_set<std::string> used_collision_proxies;
+    struct SharedRenderMesh {
+        Vec3 scale{};
+        bool checkerboard{};
+        std::vector<std::uint32_t> indices{};
+        Vec3 center{};
+    };
+    std::unordered_map<const cgltf_mesh *, SharedRenderMesh> shared_render_meshes;
     for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
         const cgltf_node &node = data->nodes[node_index];
         if (node.extras.data == nullptr) {
@@ -603,18 +612,29 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             return false;
         }
         body.options.initial_state = node_state(node);
-        for (cgltf_size primitive_index = 0;
-             primitive_index < node.mesh->primitives_count; ++primitive_index) {
-            TriangleMesh mesh{};
-            const std::string mesh_name =
-                body.name + "/primitive_" + std::to_string(primitive_index);
-            if (!append_primitive(node.mesh->primitives[primitive_index], scale,
-                                  checkerboard, mesh_name, mesh, error)) {
-                return false;
+        const bool has_proxy = extras.string("pm_collision_proxy").has_value();
+        const auto cached = shared_render_meshes.find(node.mesh);
+        const bool reuse = !has_proxy && cached != shared_render_meshes.end() &&
+            cached->second.scale.x == scale.x &&
+            cached->second.scale.y == scale.y &&
+            cached->second.scale.z == scale.z &&
+            cached->second.checkerboard == checkerboard;
+        if (reuse) {
+            body.mesh_indices = cached->second.indices;
+        } else {
+            for (cgltf_size primitive_index = 0;
+                 primitive_index < node.mesh->primitives_count; ++primitive_index) {
+                TriangleMesh mesh{};
+                const std::string mesh_name =
+                    body.name + "/primitive_" + std::to_string(primitive_index);
+                if (!append_primitive(node.mesh->primitives[primitive_index], scale,
+                                      checkerboard, mesh_name, mesh, error)) {
+                    return false;
+                }
+                body.mesh_indices.push_back(
+                    static_cast<std::uint32_t>(output.meshes.size()));
+                output.meshes.push_back(std::move(mesh));
             }
-            body.mesh_indices.push_back(
-                static_cast<std::uint32_t>(output.meshes.size()));
-            output.meshes.push_back(std::move(mesh));
         }
         if (const std::optional<std::string> collision_name =
                 extras.string("pm_collision_proxy")) {
@@ -637,8 +657,19 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             body.collision_mesh_indices = proxy->second.mesh_indices;
         }
-        if (!finalize_body_geometry(output, body, error)) {
-            return false;
+        if (reuse) {
+            body.options.initial_state.position = add(
+                body.options.initial_state.position,
+                rotate(body.options.initial_state.orientation,
+                       cached->second.center));
+        } else {
+            Vec3 center{};
+            if (!finalize_body_geometry(output, body, error, &center))
+                return false;
+            if (!has_proxy)
+                shared_render_meshes.emplace(node.mesh,
+                    SharedRenderMesh{scale, checkerboard, body.mesh_indices,
+                                     center});
         }
         output.rigid_bodies.push_back(std::move(body));
     }

@@ -4,10 +4,12 @@
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -98,6 +100,31 @@ int main() {
               fluid_scene.spawn_planes[0].plane.half_extents.y > 0.9F,
               "inflow dimensions must survive Blender export");
     }
+    SceneDefinition fluid_rigid_scene;
+    std::string fluid_rigid_error;
+    check(load_glb_scene(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH,
+                         fluid_rigid_scene, fluid_rigid_error),
+          fluid_rigid_error.empty() ? "load FluidRigid GLB scene"
+                                     : fluid_rigid_error.c_str());
+    std::set<std::array<int, 3>> sphere_centers;
+    std::size_t dynamic_spheres = 0U;
+    for (const auto &body : fluid_rigid_scene.rigid_bodies) {
+        if (body.options.motion != MotionType::dynamic) continue;
+        ++dynamic_spheres;
+        const auto p = body.options.initial_state.position;
+        sphere_centers.insert({static_cast<int>(std::lround(p.x * 1'000.0F)),
+                               static_cast<int>(std::lround(p.y * 1'000.0F)),
+                               static_cast<int>(std::lround(p.z * 1'000.0F))});
+        check(body.mesh_indices.size() == 1U &&
+              fluid_rigid_scene.meshes[body.mesh_indices[0]].indices.size() == 60U,
+              "each Array sphere is one 20-triangle rigid mesh");
+    }
+    check(fluid_rigid_scene.rigid_bodies.size() == 65U &&
+          dynamic_spheres == 64U && sphere_centers.size() == 64U &&
+          fluid_rigid_scene.meshes.size() == 2U &&
+          fluid_rigid_scene.spawn_planes.size() == 1U &&
+          fluid_rigid_scene.destroy_planes.size() == 1U,
+          "FluidRigid exports 64 detached shared-mesh spheres and flow planes");
 
     SceneDefinition scene;
     std::string error;

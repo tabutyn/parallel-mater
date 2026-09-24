@@ -131,6 +131,9 @@ struct StepOptions {
     // Retains the frame's deterministic rigid contact diagnostics for a
     // renderer or inspection tool. Disabled by default.
     bool collect_rigid_contacts{};
+    // Retains the strongest contact per surviving fluid particle in stable
+    // particle order; moving-body contacts take priority over static ones.
+    bool collect_fluid_contacts{};
 };
 
 struct FluidParticle {
@@ -284,6 +287,9 @@ struct WorldStepTimings {
     KernelTiming fluid_neighbor_forces{};
     KernelTiming fluid_integration{};
     KernelTiming fluid_static_contacts{};
+    KernelTiming fluid_body_index{};
+    KernelTiming fluid_moving_contacts{};
+    KernelTiming fluid_contact_events{};
     KernelTiming fluid_outflow_compaction{};
     float total_gpu_milliseconds{};
 };

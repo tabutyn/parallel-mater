@@ -13,7 +13,13 @@ enum class GalleryContext : std::uint8_t {
     rigid_body,
     dump,
     fluid,
+    fluid_rigid,
 };
+
+[[nodiscard]] constexpr bool is_fluid_context(GalleryContext context) noexcept {
+    return context == GalleryContext::fluid ||
+           context == GalleryContext::fluid_rigid;
+}
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,

@@ -90,6 +90,18 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_options(
             parallel-mater-dump-benchmark
             PRIVATE -Wall -Wextra -Wpedantic)
+
+        add_executable(parallel-mater-fluid-rigid-benchmark
+                       benchmarks/fluid_rigid_scene.cpp)
+        target_link_libraries(
+            parallel-mater-fluid-rigid-benchmark
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(
+            parallel-mater-fluid-rigid-benchmark PRIVATE
+            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
+        target_compile_options(
+            parallel-mater-fluid-rigid-benchmark
+            PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
     FetchContent_Declare(
@@ -160,6 +172,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
             PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
+            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -204,6 +217,10 @@ if(BUILD_TESTING)
             parallel-mater-gallery-scene-tests
             PRIVATE
                 PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb")
+        target_compile_definitions(
+            parallel-mater-gallery-scene-tests
+            PRIVATE
+                PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
         add_test(NAME parallel-mater-gallery-scene-tests
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests
@@ -242,6 +259,13 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-test.ppm
                     --frames 30)
+        add_test(
+            NAME parallel-mater-fluid-rigid-headless-test
+            COMMAND parallel-mater-gallery
+                    --fluid-rigid
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-rigid-test.ppm
+                    --frames 120)
         add_test(
             NAME parallel-mater-fluid-containment-test
             COMMAND parallel-mater-gallery
