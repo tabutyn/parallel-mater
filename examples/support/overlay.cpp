@@ -290,7 +290,7 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                const RendererTimings &renderer,
                                const WorldStatistics &statistics,
                                std::uint32_t capacity) {
-    rectangle(rgba, width, height, 18, 18, 480, 402,
+    rectangle(rgba, width, height, 18, 18, 480, 482,
               {5, 12, 18, 225});
     text(rgba, width, height, 32, 30,
          renderer.particle_view ? "FLUID PARTICLE TIMINGS"
@@ -310,44 +310,55 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                physics.fluid_integration);
     timing_row(rgba, width, height, 138, "TRI COLLIDE",
                physics.fluid_static_contacts);
-    timing_row(rgba, width, height, 158, "OUTFLOW",
+    timing_row(rgba, width, height, 158, "BODY INDEX",
+               physics.fluid_body_index);
+    timing_row(rgba, width, height, 178, "MOVING TRI",
+               physics.fluid_moving_contacts);
+    timing_row(rgba, width, height, 198, "EVENTS",
+               physics.fluid_contact_events);
+    timing_row(rgba, width, height, 218, "OUTFLOW",
                physics.fluid_outflow_compaction);
     char line[128]{};
     std::snprintf(line, sizeof(line), "PHYSICS GPU    %7.3f MS",
                   physics.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 184, line, {100, 255, 155, 255}, 2);
+    text(rgba, width, height, 32, 244, line, {100, 255, 155, 255}, 2);
     if (renderer.particle_view)
         std::snprintf(line, sizeof(line), "SURFACE GPU       OFF");
     else
         std::snprintf(line, sizeof(line), "SURFACE GPU    %7.3f MS",
                       renderer.surface_gpu_milliseconds);
-    text(rgba, width, height, 32, 208, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 268, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
                   renderer.raytrace_wall_milliseconds);
-    text(rgba, width, height, 32, 228, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 288, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "%s %7.3f MS",
                   renderer.particle_view ? "SPRITES CPU   " : "FOAM CPU      ",
                   renderer.foam_wall_milliseconds);
-    text(rgba, width, height, 32, 248, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 308, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
                   renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, 272, line, {100, 255, 155, 255}, 2);
+    text(rgba, width, height, 32, 332, line, {100, 255, 155, 255}, 2);
     std::snprintf(line, sizeof(line), "LIVE %u / MAX %u",
                   statistics.particle_count, capacity);
-    text(rgba, width, height, 32, 304, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 364, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
                   static_cast<unsigned long long>(statistics.emitted_particle_count),
                   static_cast<unsigned long long>(statistics.destroyed_particle_count));
-    text(rgba, width, height, 32, 324, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 384, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
                   static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
-    text(rgba, width, height, 32, 344, line,
+    text(rgba, width, height, 32, 404, line,
          statistics.spawn_capacity_miss_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
                   renderer.surface_excluded_particle_count);
-    text(rgba, width, height, 32, 368, line,
+    text(rgba, width, height, 32, 428, line,
          renderer.surface_excluded_particle_count
+             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "CONTACTS %u  OVERFLOW %u",
+                  statistics.contact_count, statistics.contact_overflow_count);
+    text(rgba, width, height, 32, 452, line,
+         statistics.contact_overflow_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
 }
 
@@ -408,8 +419,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(24, static_cast<int>(height) / 2 - 174);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 348,
+    const int top = std::max(24, static_cast<int>(height) / 2 - 215);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 430,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
@@ -439,13 +450,16 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
     row(top + 242, GalleryContext::fluid, {12, 42, 65, 235},
         {35, 150, 255, 255}, "FLUID", "P CAP  V PARTICLES  R RESET",
         {105, 255, 155, 255});
+    row(top + 324, GalleryContext::fluid_rigid, {25, 52, 64, 235},
+        {35, 190, 230, 255}, "FLUID RIGID", "64 FREE SPHERES  P CAP",
+        {105, 255, 155, 255});
 }
 
 void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
                         bool invalid) {
-    const bool fluid = context == GalleryContext::fluid;
+    const bool fluid = is_fluid_context(context);
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
     rectangle(rgba, width, height, center_x - 260, center_y - 118,

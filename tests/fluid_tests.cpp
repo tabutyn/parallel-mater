@@ -255,6 +255,205 @@ int main() {
     check(recovered_position.y >= 0.099F,
           "embedded inflow starts above floor regardless of triangle winding");
 
+    // Repeated resting contacts in four substeps retain one event, not four.
+    World resting_events;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U,
+                         .contact_capacity = 1U}, resting_events),
+          "create per-frame contact world");
+    device_vertices = upload(vertices.data(), vertices.size());
+    device_triangles = upload(triangles.data(), triangles.size());
+    TriangleMeshId resting_mesh{};
+    check(resting_events.add_triangle_mesh(
+        {device_vertices, vertices.size()},
+        {device_triangles, triangles.size()}, resting_mesh),
+        "add resting triangle mesh");
+    cudaFree(device_vertices);
+    cudaFree(device_triangles);
+    RigidBodyId resting_body{};
+    check(resting_events.add_rigid_body(
+        {.motion = MotionType::static_body, .mesh = resting_mesh},
+        resting_body), "add resting floor");
+    const FluidParticle resting_particle{{0.0F, 0.1F, 0.0F}, {}};
+    FluidParticle *resting_input = upload(&resting_particle, 1U);
+    FluidId resting_fluid{};
+    check(resting_events.add_fluid({.capacity = 1U,
+                                    .particle_radius = 0.1F,
+                                    .support_radius = 0.2F,
+                                    .solver_iterations = 1U},
+                                   {resting_input, 1U}, resting_fluid),
+          "add resting particle");
+    cudaFree(resting_input);
+    check(resting_events.step({.timestep = 0.1F, .substeps = 4U,
+                               .collect_fluid_contacts = true}),
+          "step four resting contacts");
+    check(resting_events.contacts().event_count == 1U &&
+          resting_events.contacts().overflowed == 0U,
+          "one particle produces at most one event per frame");
+
+    // A swept particle impact transfers equal and opposite normal impulse
+    // to a dynamic triangle body, without an analytic shape shortcut.
+    World coupled_world;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, coupled_world),
+          "create coupled world");
+    Vec3 *coupled_vertices = upload(vertices.data(), vertices.size());
+    std::uint32_t *coupled_indices = upload(triangles.data(), triangles.size());
+    TriangleMeshId coupled_mesh{};
+    check(coupled_world.add_triangle_mesh(
+        {coupled_vertices, vertices.size()},
+        {coupled_indices, triangles.size()}, coupled_mesh),
+        "add dynamic triangle mesh");
+    cudaFree(coupled_vertices);
+    cudaFree(coupled_indices);
+    RigidBodyId coupled_body{};
+    check(coupled_world.add_rigid_body(
+        {.motion = MotionType::dynamic, .mesh = coupled_mesh,
+         .linear_damping = 0.0F, .angular_damping = 0.0F},
+        coupled_body), "add dynamic triangle body");
+    FluidParticle *coupled_input = upload(&drop, 1U);
+    FluidId coupled_fluid{};
+    check(coupled_world.add_fluid({.capacity = 1U,
+                                   .particle_radius = 0.1F,
+                                   .rest_density = 125.0F,
+                                   .support_radius = 0.2F,
+                                   .solver_iterations = 1U,
+                                   .velocity_damping = 0.0F,
+                                   .maximum_speed = 100.0F},
+                                  {coupled_input, 1U}, coupled_fluid),
+          "add unit-mass impact particle");
+    cudaFree(coupled_input);
+    check(coupled_world.step({.timestep = 0.1F, .substeps = 1U,
+                              .gravity = {}, .collect_kernel_timings = true,
+                              .collect_fluid_contacts = true}),
+          "step dynamic fluid impact");
+    WorldStepTimings coupled_timings{};
+    check(coupled_world.collect_step_timings(coupled_timings),
+          "collect moving contact timing");
+    check(coupled_timings.fluid_moving_contacts.launch_count == 1U,
+          "moving contacts have their own timing stage");
+    FluidDeviceView coupled_view{};
+    check(coupled_world.fluid_view(coupled_fluid, coupled_view),
+          "view coupled fluid");
+    Vec3 coupled_velocity{};
+    check(cudaMemcpy(&coupled_velocity, coupled_view.velocities.data,
+                     sizeof(Vec3), cudaMemcpyDeviceToHost) == cudaSuccess,
+          "read coupled particle velocity");
+    RigidBodyState coupled_state{};
+    check(coupled_world.read_rigid_body_state(coupled_body, coupled_state),
+          "read coupled body state");
+    check(coupled_velocity.y > -4.0F && coupled_state.linear_velocity.y < -1.0F &&
+          std::fabs(coupled_velocity.y + coupled_state.linear_velocity.y + 5.0F)
+              < 0.05F,
+          "particle and body exchange balanced normal momentum");
+    const ContactDeviceView coupled_events = coupled_world.contacts();
+    ContactEvent coupled_event{};
+    check(coupled_events.event_count == 1U && !coupled_events.overflowed &&
+          cudaMemcpy(&coupled_event, coupled_events.events.data,
+                     sizeof(ContactEvent), cudaMemcpyDeviceToHost) == cudaSuccess,
+          "retain deterministic fluid-rigid impact event");
+    check(coupled_event.fluid == coupled_fluid &&
+          coupled_event.rigid_body == coupled_body &&
+          coupled_event.stable_particle_id == 0U &&
+          coupled_event.normal.y > 0.9F &&
+          coupled_event.normal_impulse > 1.0F,
+          "contact event names the particle, body, normal, and impulse");
+
+    World limited_events;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U,
+                         .contact_capacity = 1U}, limited_events),
+          "create limited-contact world");
+    coupled_vertices = upload(vertices.data(), vertices.size());
+    coupled_indices = upload(triangles.data(), triangles.size());
+    TriangleMeshId limited_mesh{};
+    check(limited_events.add_triangle_mesh(
+        {coupled_vertices, vertices.size()},
+        {coupled_indices, triangles.size()}, limited_mesh),
+        "add limited-contact triangle mesh");
+    cudaFree(coupled_vertices);
+    cudaFree(coupled_indices);
+    RigidBodyId limited_body{};
+    check(limited_events.add_rigid_body(
+        {.motion = MotionType::dynamic, .mesh = limited_mesh}, limited_body),
+        "add limited-contact body");
+    const std::array<FluidParticle, 2> twin_impacts{{
+        {{-1.0F, 0.2F, 0.0F}, {0.0F, -5.0F, 0.0F}},
+        {{1.0F, 0.2F, 0.0F}, {0.0F, -5.0F, 0.0F}}}};
+    FluidParticle *twin_input = upload(twin_impacts.data(), twin_impacts.size());
+    FluidId twin_fluid{};
+    check(limited_events.add_fluid({.capacity = 2U,
+                                    .particle_radius = 0.1F,
+                                    .rest_density = 125.0F,
+                                    .support_radius = 0.2F,
+                                    .solver_iterations = 1U,
+                                    .maximum_speed = 100.0F},
+                                   {twin_input, twin_impacts.size()}, twin_fluid),
+          "add twin impacts");
+    cudaFree(twin_input);
+    check(limited_events.step({.timestep = 0.1F, .substeps = 1U,
+                               .gravity = {}, .collect_fluid_contacts = true}),
+          "step overflowing contacts");
+    const ContactDeviceView limited_view = limited_events.contacts();
+    ContactEvent retained{};
+    check(limited_view.event_count == 1U && limited_view.overflowed &&
+          cudaMemcpy(&retained, limited_view.events.data,
+                     sizeof(ContactEvent), cudaMemcpyDeviceToHost) == cudaSuccess &&
+          retained.stable_particle_id == 0U,
+          "contact capacity retains first stable particle and reports overflow");
+    WorldStatistics limited_stats{};
+    check(limited_events.collect_statistics(limited_stats) &&
+          limited_stats.contact_count == 1U &&
+          limited_stats.contact_overflow_count == 1U,
+          "contact statistics report retained and dropped events");
+
+    World moving_plane;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, moving_plane),
+          "create moving-plane world");
+    coupled_vertices = upload(vertices.data(), vertices.size());
+    coupled_indices = upload(triangles.data(), triangles.size());
+    TriangleMeshId moving_mesh{};
+    check(moving_plane.add_triangle_mesh(
+        {coupled_vertices, vertices.size()},
+        {coupled_indices, triangles.size()}, moving_mesh),
+        "add kinematic triangle mesh");
+    cudaFree(coupled_vertices);
+    cudaFree(coupled_indices);
+    RigidBodyId moving_body{};
+    check(moving_plane.add_rigid_body(
+        {.motion = MotionType::kinematic, .mesh = moving_mesh,
+         .initial_state = {.position = {0.0F, 1.0F, 0.0F}}},
+        moving_body), "add kinematic triangle body");
+    const FluidParticle stationary{{0.0F, 0.2F, 0.0F}, {}};
+    FluidParticle *stationary_input = upload(&stationary, 1U);
+    FluidId stationary_fluid{};
+    check(moving_plane.add_fluid({.capacity = 1U,
+                                  .particle_radius = 0.1F,
+                                  .support_radius = 0.2F,
+                                  .solver_iterations = 1U,
+                                  .maximum_speed = 100.0F},
+                                 {stationary_input, 1U}, stationary_fluid),
+          "add stationary particle");
+    cudaFree(stationary_input);
+    check(moving_plane.set_kinematic_target(moving_body,
+        {.position = {0.0F, -1.0F, 0.0F}}), "sweep kinematic plane");
+    check(moving_plane.step({.timestep = 0.1F, .substeps = 1U,
+                             .gravity = {}, .collect_fluid_contacts = true}),
+          "step moving plane through particle");
+    FluidDeviceView stationary_view{};
+    check(moving_plane.fluid_view(stationary_fluid, stationary_view),
+          "view kinematic-contact particle");
+    Vec3 swept_position{}, swept_velocity{};
+    check(cudaMemcpy(&swept_position, stationary_view.positions.data,
+                     sizeof(Vec3), cudaMemcpyDeviceToHost) == cudaSuccess &&
+          cudaMemcpy(&swept_velocity, stationary_view.velocities.data,
+                     sizeof(Vec3), cudaMemcpyDeviceToHost) == cudaSuccess,
+          "read kinematic-contact particle");
+    check(swept_position.y < -1.05F && swept_velocity.y < -10.0F &&
+          moving_plane.contacts().event_count == 1U,
+          "swept moving triangle carries a particle and reports contact");
+
     // The same authored-triangle path must work on curved fixtures; there is
     // no special analytic-cylinder collision API in ParallelMater.
     constexpr std::uint32_t sides = 16U;

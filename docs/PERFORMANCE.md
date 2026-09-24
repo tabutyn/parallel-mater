@@ -212,3 +212,35 @@ passed, including the two-body timing/diagnostic contract, deterministic
 contact fixtures (including eight overlapping dynamic bodies), and both
 gallery headless scenes. The unified path also
 preserves contact events from earlier substeps when a later substep has none.
+
+## Fluid + rigid coupling: 64 spheres, 30,000 particles
+
+The `FluidRigid.blend` scene exports 64 separate ACTIVE triangle spheres from
+three Array modifiers, plus one passive terrain body. All spheres reuse one
+20-triangle mesh. The benchmark can be reproduced with
+`./build-gallery/parallel-mater-fluid-rigid-benchmark 2000` on the local RTX
+3050 Ti. Every tenth frame collects CUDA stage timings and optional contact
+events; each 100-frame row reports the mean of those ten samples. The other
+frames run without diagnostic collection.
+
+At frame 2,000, the scene had 29,993 live particles, zero non-finite body or
+particle states, zero particles below the terrain's global bottom, and zero
+contact-event overflows in all sampled windows. Frames 1,901–2,000 averaged
+16.49 ms/frame wall time and 16.76 ms/frame GPU time. Moving-triangle contacts
+averaged 1.45 ms, body indexing 0.012 ms, static triangle contacts 1.49 ms,
+neighbor forces 6.51 ms, and rigid contact solving 4.23 ms. Event collection
+averaged 0.025 ms per sampled frame. The diagnostic stream retains at most one
+contact per surviving particle per frame, prioritizing moving bodies; this
+prevents ordinary resting floor contacts from saturating the default 65,536
+event buffer at 30,000 particles.
+
+An independent 1,000-frame gallery run with `--fluid-rigid
+--fluid-particle-view --trace-fluid-escapes` found zero particles below the
+authored terrain, both by its global bottom and by the local floor-triangle
+check. The post-rotation-bound 1,000-frame benchmark also finished with zero
+invalid states and zero event overflows.
+
+The first unindexed moving-body implementation approximately doubled the
+120-frame wall time (2.9 s versus 1.4 s uncoupled). The spatial body index
+reduced the coupled 120-frame run to about 1.42 s. These are local project
+measurements, not general hardware guarantees.

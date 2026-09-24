@@ -28,6 +28,11 @@ sphere, box, capsule, or plane collider types.
    the exporter evaluates it into the rigid body's local frame. Do not add a
    Blender Rigid Body to the proxy. Keep silhouettes and support surfaces close
    enough that the physical approximation remains intentional.
+7. To author a grid of independent identical rigid bodies, add Array modifiers
+   to one ACTIVE mesh and keep the evaluated copies disconnected. The exporter
+   splits each copy into its own rigid node with a shared triangle mesh. It
+   rejects arrays with overlapping or non-identical copies rather than
+   silently simulating them as one compound body.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -118,9 +123,8 @@ property `pm_particles_per_second` on the inflow object to change it. The
 gallery uses a 30,000-particle capacity, 0.045 m particle radius, and 0.18 m
 support radius; those are example settings, not hidden physics-world defaults.
 The passive surface is exported as its authored triangles and collides on both
-sides. The current fluid response does not push dynamic rigid bodies; that is
-PR 8. Bright agitated surface particles visualize foam. A continuous water surface is
-still scheduled for PR 10.
+sides. Bright agitated surface particles visualize foam; the gallery also
+reconstructs a continuous, example-only water surface.
 
 Export with:
 
@@ -130,3 +134,11 @@ blender --background examples/assets/Fluid.blend \
   --output examples/assets/Fluid.glb
 ./build-gallery/parallel-mater-gallery --fluid
 ```
+
+`examples/assets/FluidRigid.blend` adds a 4×4×4 Array of ACTIVE icospheres to
+the same inflow, outflow, and passive triangle terrain. Export it with the
+same script to `FluidRigid.glb`, then run the gallery with `--fluid-rigid`.
+The 64 spheres are separate dynamic bodies, not one compound mesh; they share
+one uploaded triangle mesh. Particle impacts change their linear and angular
+velocity, while their moving triangles push particles and produce opt-in
+contact events.

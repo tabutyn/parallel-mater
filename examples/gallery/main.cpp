@@ -31,6 +31,7 @@ using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::CameraPreset;
 using parallel_mater::gallery::GalleryContext;
+using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::OptixRenderer;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
@@ -502,18 +503,24 @@ struct FluidEscapeTrace {
             if (!parse_count(argv[++index], k_minimum_fluid_particles,
                              k_maximum_fluid_particles,
                              output.fluid_particles)) return false;
-            output.initial_context = GalleryContext::fluid;
+            if (output.initial_context != GalleryContext::fluid_rigid)
+                output.initial_context = GalleryContext::fluid;
         } else if (argument == "--fluid") {
             output.initial_context = GalleryContext::fluid;
+        } else if (argument == "--fluid-rigid") {
+            output.initial_context = GalleryContext::fluid_rigid;
         } else if (argument == "--fluid-particle-view") {
-            output.initial_context = GalleryContext::fluid;
+            if (output.initial_context != GalleryContext::fluid_rigid)
+                output.initial_context = GalleryContext::fluid;
             output.fluid_particle_view = true;
         } else if (argument == "--trace-fluid-escapes") {
-            output.initial_context = GalleryContext::fluid;
+            if (output.initial_context != GalleryContext::fluid_rigid)
+                output.initial_context = GalleryContext::fluid;
             output.trace_fluid_escapes = true;
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid] [--fluid-particles N] "
+                         "[--dump-spheres N] [--fluid|--fluid-rigid] "
+                         "[--fluid-particles N] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
@@ -538,7 +545,7 @@ struct FluidEscapeTrace {
 [[nodiscard]] CameraPreset camera_preset(GalleryContext context) {
     if (context == GalleryContext::dump)
         return {.target = {0.5F, 2.2F, 0.0F}};
-    if (context == GalleryContext::fluid)
+    if (is_fluid_context(context))
         return {.target = {-2.0F, -1.0F, -2.0F},
                 .distance_scale = 1.6F};
     return {};
@@ -650,17 +657,19 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     if (context == GalleryContext::dump) {
         next.scene = parallel_mater::gallery::make_dump_scene(dump_spheres);
     } else if (context == GalleryContext::rigid_body ||
-               context == GalleryContext::fluid) {
+               is_fluid_context(context)) {
         const std::filesystem::path scene_path =
             context == GalleryContext::fluid
                 ? std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH)
-                : options.scene;
+                : context == GalleryContext::fluid_rigid
+                    ? std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH)
+                    : options.scene;
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
             error = "scene load failed: " + error;
             return false;
         }
-        if (context == GalleryContext::fluid)
+        if (is_fluid_context(context))
             next.scene.fluid_options.capacity = fluid_particles;
     }
 
@@ -717,14 +726,16 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case GalleryContext::rigid_body: return 0;
     case GalleryContext::dump: return 1;
     case GalleryContext::fluid: return 2;
+    case GalleryContext::fluid_rigid: return 3;
     }
     return 0;
 }
 
 [[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 2)) {
+    switch (std::clamp(index, 0, 3)) {
     case 1: return GalleryContext::dump;
     case 2: return GalleryContext::fluid;
+    case 3: return GalleryContext::fluid_rigid;
     default: return GalleryContext::rigid_body;
     }
 }
@@ -979,7 +990,7 @@ int main(int argc, char **argv) {
             }
             if (enter_down && !enter_was_down) {
                 std::uint32_t requested = 0U;
-                const bool fluid_dialog = runtime.context == GalleryContext::fluid;
+                const bool fluid_dialog = is_fluid_context(runtime.context);
                 const std::uint32_t minimum = fluid_dialog
                     ? k_minimum_fluid_particles : k_minimum_dump_spheres;
                 const std::uint32_t maximum = fluid_dialog
@@ -1024,7 +1035,7 @@ int main(int argc, char **argv) {
                     selected = std::max(0, selected - 1);
                 }
                 if (down_down && !down_was_down) {
-                    selected = std::min(2, selected + 1);
+                    selected = std::min(3, selected + 1);
                 }
                 context_selection = context_from_index(selected);
                 if (enter_down && !enter_was_down) {
@@ -1049,7 +1060,7 @@ int main(int argc, char **argv) {
                        p_down && !p_was_down) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(
-                    runtime.context == GalleryContext::fluid
+                    is_fluid_context(runtime.context)
                         ? fluid_particles : dump_spheres);
                 input_state.replace_count_value = true;
                 input_state.count_value_invalid = false;
@@ -1071,7 +1082,7 @@ int main(int argc, char **argv) {
                 timing_visible = !timing_visible;
             }
             if (debug_down && !debug_was_down) {
-                if (runtime.context == GalleryContext::fluid)
+                if (is_fluid_context(runtime.context))
                     fluid_particle_view = !fluid_particle_view;
                 else
                     debug_visible = !debug_visible;
@@ -1122,7 +1133,9 @@ int main(int argc, char **argv) {
             }
             interactive_step.collect_kernel_timings = timing_visible;
             interactive_step.collect_rigid_contacts =
-                debug_visible && runtime.context != GalleryContext::fluid;
+                debug_visible && !is_fluid_context(runtime.context);
+            interactive_step.collect_fluid_contacts =
+                timing_visible && is_fluid_context(runtime.context);
             if (!require(runtime.world.step(interactive_step), "step gallery")) {
                 break;
             }
@@ -1131,7 +1144,7 @@ int main(int argc, char **argv) {
                          "collect timings")) {
                 break;
             }
-            if (timing_visible && runtime.context == GalleryContext::fluid &&
+            if (timing_visible && is_fluid_context(runtime.context) &&
                 !require(runtime.world.collect_statistics(statistics),
                          "collect fluid statistics")) break;
         }
@@ -1146,7 +1159,7 @@ int main(int argc, char **argv) {
             std::cerr << "Render failed: " << error << '\n';
             break;
         }
-        if (debug_visible && runtime.context != GalleryContext::fluid &&
+        if (debug_visible && !is_fluid_context(runtime.context) &&
             !draw_rigid_contact_overlay(
                                  pixels, runtime.renderer.width(),
                                  runtime.renderer.height(),
@@ -1156,7 +1169,7 @@ int main(int argc, char **argv) {
             break;
         }
         if (timing_visible) {
-            if (runtime.context == GalleryContext::fluid)
+            if (is_fluid_context(runtime.context))
                 draw_fluid_timing_overlay(
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     timings, renderer_timings, statistics, fluid_particles);

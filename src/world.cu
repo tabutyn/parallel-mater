@@ -1771,6 +1771,9 @@ enum class TimingStage : std::uint8_t {
     fluid_neighbor_forces,
     fluid_integration,
     fluid_static_contacts,
+    fluid_body_index,
+    fluid_moving_contacts,
+    fluid_contact_events,
     fluid_outflow_compaction,
 };
 
@@ -1909,6 +1912,29 @@ template <typename T> void release_managed(T *&pointer) noexcept {
 
 constexpr std::uint64_t k_fluid_empty_cell = ~std::uint64_t{0};
 constexpr int k_fluid_cell_bias = 1 << 20;
+constexpr std::uint32_t k_fluid_body_buckets = 4096U;
+
+__host__ __device__ std::uint32_t fluid_body_bucket(
+    int x, int y, int z) noexcept {
+    const std::uint32_t hash =
+        static_cast<std::uint32_t>(x) * 73856093U ^
+        static_cast<std::uint32_t>(y) * 19349663U ^
+        static_cast<std::uint32_t>(z) * 83492791U;
+    return hash & (k_fluid_body_buckets - 1U);
+}
+
+struct FluidBodyImpulse {
+    Vec3 linear{};
+    Vec3 angular{};
+    std::uint32_t body{k_invalid_dense};
+};
+
+struct FluidContactSample {
+    Vec3 position{};
+    Vec3 normal{};
+    float normal_impulse{};
+    std::uint32_t body{k_invalid_dense};
+};
 
 struct FluidStorage {
     FluidOptions options{};
@@ -1930,6 +1956,13 @@ struct FluidStorage {
     std::uint64_t *keys[2]{};
     std::uint32_t *indices[2]{};
     Vec3 *forces{};
+    FluidBodyImpulse *body_impulses{};
+    FluidContactSample *contact_samples{};
+    std::uint8_t *contact_flags{};
+    FluidContactSample *next_contact_samples{};
+    std::uint8_t *next_contact_flags{};
+    std::uint32_t *contact_count{};
+    std::uint32_t *contact_offset{};
     std::uint8_t *sort_workspace{};
     std::size_t sort_workspace_size{};
     std::uint8_t *select_workspace{};
@@ -1957,6 +1990,13 @@ struct FluidStorage {
         release_managed(indices[0]);
         release_managed(indices[1]);
         release_managed(forces);
+        release_managed(body_impulses);
+        release_managed(contact_samples);
+        release_managed(contact_flags);
+        release_managed(next_contact_samples);
+        release_managed(next_contact_flags);
+        release_managed(contact_count);
+        release_managed(contact_offset);
         release_managed(sort_workspace);
         release_managed(select_workspace);
     }
@@ -2166,7 +2206,9 @@ __global__ void fluid_static_contacts(
     const std::uint32_t *count, float radius, float spawn_clearance,
     std::uint32_t first_spawned, bool recover_spawn, Vec3 up,
     const BodyParameters *parameters, const RigidBodyState *states,
-    const TriangleMeshResource *meshes, std::uint32_t body_index) {
+    const TriangleMeshResource *meshes, std::uint32_t body_index,
+    float particle_mass, bool collect_contacts,
+    FluidContactSample *samples, std::uint8_t *contact_flags) {
     const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
     const BodyParameters body = parameters[body_index];
     const RigidBodyState state = states[body_index];
@@ -2184,6 +2226,7 @@ __global__ void fluid_static_contacts(
         ? inverse_rotate(state.orientation, up) : Vec3{};
     float best_penetration = 0.0F;
     Vec3 best_normal{};
+    Vec3 best_contact{};
     std::uint32_t stack[64]{};
     int pending = 1;
     while (pending != 0) {
@@ -2243,12 +2286,15 @@ __global__ void fluid_static_contacts(
             if (penetration > best_penetration) {
                 best_penetration = penetration;
                 best_normal = normal;
+                best_contact = closest;
             }
         }
     }
     if (best_penetration > 0.0F) {
         position = add(position, multiply(best_normal, best_penetration));
         const float incoming = dot(velocity, best_normal);
+        const float normal_impulse = incoming < 0.0F
+            ? -incoming * (1.0F + body.restitution) * particle_mass : 0.0F;
         if (incoming < 0.0F) {
             velocity = subtract(velocity,
                 multiply(best_normal, incoming * (1.0F + body.restitution)));
@@ -2262,7 +2308,293 @@ __global__ void fluid_static_contacts(
         positions[particle] = add(state.position,
                                   rotate(state.orientation, position));
         velocities[particle] = rotate(state.orientation, velocity);
+        if (collect_contacts &&
+            (contact_flags[particle] == 0U ||
+             (contact_flags[particle] == 1U &&
+              normal_impulse > samples[particle].normal_impulse))) {
+            samples[particle] = {
+                transform_point(state, best_contact),
+                rotate(state.orientation, best_normal),
+                normal_impulse, body_index};
+            contact_flags[particle] = 1U;
+        }
     }
+}
+
+__global__ void fluid_body_bounds_kernel(
+    const BodyParameters *parameters, const RigidBodyState *previous,
+    const RigidBodyState *current, const TriangleMeshResource *meshes,
+    std::uint32_t count, WorldAabb *bounds) {
+    const std::uint32_t body = blockIdx.x * blockDim.x + threadIdx.x;
+    if (body >= count || parameters[body].motion == MotionType::static_body)
+        return;
+    const TriangleMeshResource mesh = meshes[parameters[body].mesh.index];
+    Vec3 minimum{}, maximum{};
+    transformed_motion_bounds(mesh.minimum, mesh.maximum,
+        bounds_transform(previous[body]), bounds_transform(current[body]),
+        true, parameters[body].collision_margin, minimum, maximum);
+    // Endpoint AABBs alone can miss the middle of a fast rotation.
+    const float rotation_reach = rotational_motion_bound(
+        previous[body], current[body], mesh);
+    const Vec3 expansion{rotation_reach, rotation_reach, rotation_reach};
+    minimum = subtract(minimum, expansion);
+    maximum = add(maximum, expansion);
+    bounds[body] = {minimum, maximum};
+}
+
+__global__ void fluid_index_body_cells(
+    const BodyParameters *parameters, const WorldAabb *bounds,
+    std::uint32_t body_count, std::uint32_t words, float padding,
+    unsigned long long *masks, unsigned long long *global_masks) {
+    const std::uint32_t body = blockIdx.x * blockDim.x + threadIdx.x;
+    if (body >= body_count || parameters[body].motion == MotionType::static_body)
+        return;
+    const WorldAabb box = bounds[body];
+    const int x0 = __float2int_rd(box.minimum.x - padding);
+    const int y0 = __float2int_rd(box.minimum.y - padding);
+    const int z0 = __float2int_rd(box.minimum.z - padding);
+    const int x1 = __float2int_rd(box.maximum.x + padding);
+    const int y1 = __float2int_rd(box.maximum.y + padding);
+    const int z1 = __float2int_rd(box.maximum.z + padding);
+    const unsigned long long bit = 1ULL << (body & 63U);
+    const std::uint32_t word = body / 64U;
+    if (static_cast<std::int64_t>(x1) - x0 > 3 ||
+        static_cast<std::int64_t>(y1) - y0 > 3 ||
+        static_cast<std::int64_t>(z1) - z0 > 3) {
+        atomicOr(global_masks + word, bit);
+        return;
+    }
+    for (int z = z0; z <= z1; ++z)
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                atomicOr(masks + fluid_body_bucket(x, y, z) * words + word,
+                         bit);
+}
+
+__global__ void fluid_moving_contacts(
+    Vec3 *positions, Vec3 *velocities, const Vec3 *previous, float *foam,
+    const std::uint32_t *count, float radius, float particle_mass,
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    const RigidBodyState *states, const TriangleMeshResource *meshes,
+    const WorldAabb *bounds, std::uint32_t body_count,
+    const unsigned long long *masks, const unsigned long long *global_masks,
+    std::uint32_t words, bool first_iteration, FluidBodyImpulse *impulses,
+    std::uint32_t *contact_flags, bool collect_contacts,
+    FluidContactSample *samples, std::uint8_t *particle_contact_flags) {
+    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= *count) return;
+    impulses[particle] = {};
+    const Vec3 start = previous[particle];
+    const Vec3 end = positions[particle];
+    float best_penetration = 0.0F;
+    Vec3 best_normal{}, best_contact{};
+    std::uint32_t best_body = k_invalid_dense;
+    const std::uint32_t bucket = fluid_body_bucket(
+        __float2int_rd(end.x), __float2int_rd(end.y),
+        __float2int_rd(end.z));
+    for (std::uint32_t word = 0U; word < words; ++word) {
+        unsigned long long candidates =
+            masks[bucket * words + word] | global_masks[word];
+        while (candidates != 0ULL) {
+            const std::uint32_t bit =
+                static_cast<std::uint32_t>(__ffsll(candidates) - 1);
+            candidates &= candidates - 1ULL;
+            const std::uint32_t body_index = word * 64U + bit;
+            if (body_index >= body_count) continue;
+            const BodyParameters body = parameters[body_index];
+            if (body.motion == MotionType::static_body) continue;
+            const WorldAabb box = bounds[body_index];
+            if (fmaxf(start.x, end.x) + radius < box.minimum.x ||
+                fminf(start.x, end.x) - radius > box.maximum.x ||
+                fmaxf(start.y, end.y) + radius < box.minimum.y ||
+                fminf(start.y, end.y) - radius > box.maximum.y ||
+                fmaxf(start.z, end.z) + radius < box.minimum.z ||
+                fminf(start.z, end.z) - radius > box.maximum.z) continue;
+            const RigidBodyState state = states[body_index];
+            const RigidBodyState old = first_iteration
+                ? previous_states[body_index] : state;
+            const Vec3 origin = inverse_rotate(old.orientation,
+                subtract(start, old.position));
+        const Vec3 position = inverse_rotate(state.orientation,
+            subtract(end, state.position));
+        const TriangleMeshResource mesh = meshes[body.mesh.index];
+        if (mesh.bvh_node_count == 0U) continue;
+        std::uint32_t stack[64]{};
+        int pending = 1;
+        while (pending != 0) {
+            const BvhNode &node = mesh.bvh_nodes[stack[--pending]];
+            if (!fluid_segment_bounds(origin, position, node, radius))
+                continue;
+            if (node.triangle_count == 0U) {
+                if (pending + 2 > 64) continue;
+                stack[pending++] = node.right;
+                stack[pending++] = node.left;
+                continue;
+            }
+            for (std::uint32_t item = 0U; item < node.triangle_count;
+                 ++item) {
+                const std::uint32_t triangle =
+                    (node.first_triangle + item) * 3U;
+                const Vec3 a = mesh.vertices[mesh.indices[triangle]];
+                const Vec3 b = mesh.vertices[mesh.indices[triangle + 1U]];
+                const Vec3 c = mesh.vertices[mesh.indices[triangle + 2U]];
+                const Vec3 face = normalized_or(cross(subtract(b, a),
+                    subtract(c, a)), {0.0F, 1.0F, 0.0F});
+                const Vec3 closest = fluid_closest_triangle(position, a, b, c);
+                const Vec3 delta = subtract(position, closest);
+                const float distance = vector_length(delta);
+                Vec3 normal = distance > 1.0e-6F
+                    ? multiply(delta, 1.0F / distance)
+                    : multiply(face, dot(subtract(origin, a), face) >= 0.0F
+                                         ? 1.0F : -1.0F);
+                float penetration = radius - distance;
+                const float before = dot(subtract(origin, a), face);
+                const float after = dot(subtract(position, a), face);
+                if (before * after < 0.0F) {
+                    const float fraction = before / (before - after);
+                    const Vec3 crossing = add(origin,
+                        multiply(subtract(position, origin), fraction));
+                    if (length_squared(subtract(fluid_closest_triangle(
+                            crossing, a, b, c), crossing)) < radius * radius) {
+                        normal = multiply(face, before > 0.0F ? 1.0F : -1.0F);
+                        penetration = fmaxf(penetration,
+                                            radius + fabsf(after));
+                    }
+                }
+                if (penetration > best_penetration) {
+                    best_penetration = penetration;
+                    best_normal = rotate(state.orientation, normal);
+                    best_contact = transform_point(state, closest);
+                    best_body = body_index;
+                }
+            }
+        }
+        }
+    }
+    if (best_body == k_invalid_dense) return;
+    const BodyParameters body = parameters[best_body];
+    const RigidBodyState state = states[best_body];
+    positions[particle] = add(end, multiply(best_normal, best_penetration));
+    if (collect_contacts && particle_contact_flags[particle] != 2U) {
+        samples[particle] = {best_contact, best_normal, 0.0F, best_body};
+        particle_contact_flags[particle] = 2U;
+    }
+    Vec3 velocity = velocities[particle];
+    const Vec3 arm = subtract(best_contact, state.position);
+    const Vec3 body_velocity = add(state.linear_velocity,
+        cross(state.angular_velocity, arm));
+    const Vec3 relative = subtract(velocity, body_velocity);
+    const float incoming = dot(relative, best_normal);
+    if (incoming >= 0.0F) return;
+    const Vec3 normal_cross = cross(arm, best_normal);
+    const float normal_denominator = 1.0F / particle_mass +
+        body.inverse_mass + dot(cross(inverse_inertia_world(body, state,
+            normal_cross), arm), best_normal);
+    if (normal_denominator <= k_epsilon) return;
+    const float normal_impulse = -incoming / normal_denominator;
+    if (collect_contacts &&
+        (particle_contact_flags[particle] != 2U ||
+         normal_impulse > samples[particle].normal_impulse)) {
+        samples[particle] = {best_contact, best_normal, normal_impulse,
+                             best_body};
+        particle_contact_flags[particle] = 2U;
+    }
+    Vec3 impulse = multiply(best_normal, normal_impulse);
+    velocity = add(velocity, multiply(impulse, 1.0F / particle_mass));
+    const Vec3 tangent_velocity = subtract(relative,
+        multiply(best_normal, incoming));
+    const float tangent_speed = vector_length(tangent_velocity);
+    if (tangent_speed > k_epsilon) {
+        const Vec3 tangent = multiply(tangent_velocity, 1.0F / tangent_speed);
+        const float tangent_denominator = 1.0F / particle_mass +
+            body.inverse_mass + dot(cross(inverse_inertia_world(body, state,
+                cross(arm, tangent)), arm), tangent);
+        if (tangent_denominator > k_epsilon) {
+            const float tangent_impulse = fminf(
+                tangent_speed / tangent_denominator,
+                body.friction * normal_impulse);
+            const Vec3 friction = multiply(tangent, -tangent_impulse);
+            impulse = add(impulse, friction);
+            velocity = add(velocity, multiply(friction,
+                                              1.0F / particle_mass));
+        }
+    }
+    velocities[particle] = velocity;
+    foam[particle] = fmaxf(foam[particle],
+                          fminf(1.0F, -incoming * 0.35F));
+    impulses[particle] = {multiply(impulse, -1.0F),
+                          multiply(cross(arm, impulse), -1.0F), best_body};
+    atomicExch(contact_flags + best_body, 1U);
+}
+
+__global__ void fluid_reduce_body_impulses(
+    const FluidBodyImpulse *impulses, const std::uint32_t *particle_count,
+    const BodyParameters *parameters, RigidBodyState *states,
+    const std::uint32_t *contact_flags, std::uint32_t body_count) {
+    const std::uint32_t body = blockIdx.x;
+    if (body >= body_count || contact_flags[body] == 0U ||
+        parameters[body].motion != MotionType::dynamic)
+        return;
+    __shared__ Vec3 linear[128];
+    __shared__ Vec3 angular[128];
+    Vec3 local_linear{}, local_angular{};
+    for (std::uint32_t particle = threadIdx.x; particle < *particle_count;
+         particle += blockDim.x) {
+        const FluidBodyImpulse impulse = impulses[particle];
+        if (impulse.body != body) continue;
+        local_linear = add(local_linear, impulse.linear);
+        local_angular = add(local_angular, impulse.angular);
+    }
+    linear[threadIdx.x] = local_linear;
+    angular[threadIdx.x] = local_angular;
+    __syncthreads();
+    for (std::uint32_t stride = blockDim.x / 2U; stride != 0U; stride /= 2U) {
+        if (threadIdx.x < stride) {
+            linear[threadIdx.x] = add(linear[threadIdx.x],
+                                     linear[threadIdx.x + stride]);
+            angular[threadIdx.x] = add(angular[threadIdx.x],
+                                       angular[threadIdx.x + stride]);
+        }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0U) {
+        RigidBodyState state = states[body];
+        const BodyParameters options = parameters[body];
+        state.linear_velocity = clamp_length(add(state.linear_velocity,
+            multiply(linear[0], options.inverse_mass)),
+            options.maximum_linear_speed);
+        state.angular_velocity = clamp_length(add(state.angular_velocity,
+            inverse_inertia_world(options, state, angular[0])),
+            options.maximum_angular_speed);
+        states[body] = state;
+    }
+}
+
+__global__ void fluid_reserve_contact_events(
+    const std::uint32_t *selected_count, std::uint32_t *offset,
+    std::uint32_t *world_count, std::uint32_t *overflow,
+    std::uint32_t capacity) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    const std::uint32_t used = *world_count;
+    const std::uint32_t available = capacity - used;
+    const std::uint32_t retained = min(*selected_count, available);
+    *offset = used;
+    *world_count = used + retained;
+    *overflow += *selected_count - retained;
+}
+
+__global__ void fluid_gather_contact_events(
+    const std::uint32_t *selected, const std::uint32_t *selected_count,
+    const std::uint32_t *offset, const FluidContactSample *samples,
+    const std::uint32_t *stable_ids, const RigidBodyId *body_ids,
+    FluidId fluid, ContactEvent *events, std::uint32_t capacity) {
+    const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
+    if (item >= *selected_count || *offset + item >= capacity) return;
+    const std::uint32_t particle = selected[item];
+    const FluidContactSample sample = samples[particle];
+    events[*offset + item] = {fluid, stable_ids[particle],
+        body_ids[sample.body], sample.position, sample.normal,
+        sample.normal_impulse};
 }
 
 __device__ float fluid_radical_inverse(std::uint32_t index,
@@ -2326,11 +2658,16 @@ __global__ void fluid_destroy_flags(const Vec3 *positions,
 
 __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
                              const std::uint32_t *ids, const float *foam,
+                             const FluidContactSample *contact_samples,
+                             const std::uint8_t *contact_flags,
+                             bool copy_contacts,
                              const std::uint32_t *selected,
                              const std::uint32_t *count,
                              std::uint32_t capacity, Vec3 *next_positions,
                              Vec3 *next_velocities, std::uint32_t *next_ids,
-                             float *next_foam) {
+                             float *next_foam,
+                             FluidContactSample *next_contact_samples,
+                             std::uint8_t *next_contact_flags) {
     const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
     if (item >= capacity || item >= *count) return;
     const std::uint32_t source = selected[item];
@@ -2338,6 +2675,10 @@ __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
     next_velocities[item] = velocities[source];
     next_ids[item] = ids[source];
     next_foam[item] = foam[source];
+    if (copy_contacts) {
+        next_contact_samples[item] = contact_samples[source];
+        next_contact_flags[item] = contact_flags[source];
+    }
 }
 
 __global__ void fluid_copy_initial(const FluidParticle *input,
@@ -2396,12 +2737,20 @@ struct World::Impl {
     KinematicTarget *targets{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
+    RigidBodyState *fluid_previous_states{};
     ContactManifold *rigid_manifolds{};
     std::uint32_t *rigid_color_owners{};
     std::uint8_t *rigid_pair_colors{};
     std::uint32_t *rigid_color_state{};
     std::uint32_t *rigid_contact_event_offsets{};
     WorldAabb *rigid_world_bounds{};
+    WorldAabb *fluid_body_bounds{};
+    unsigned long long *fluid_body_masks{};
+    unsigned long long *fluid_global_body_masks{};
+    std::uint32_t *fluid_body_contact_flags{};
+    ContactEvent *fluid_contact_events{};
+    std::uint32_t *fluid_contact_count{};
+    std::uint32_t *fluid_contact_overflow{};
     std::uint8_t *rigid_active_pair_flags{};
     std::uint32_t *rigid_active_pairs{};
     std::uint32_t *rigid_active_pair_count{};
@@ -2449,12 +2798,20 @@ struct World::Impl {
         release_managed(rigid_active_pairs);
         release_managed(rigid_active_pair_flags);
         release_managed(rigid_world_bounds);
+        release_managed(fluid_body_bounds);
+        release_managed(fluid_body_masks);
+        release_managed(fluid_global_body_masks);
+        release_managed(fluid_body_contact_flags);
+        release_managed(fluid_contact_events);
+        release_managed(fluid_contact_count);
+        release_managed(fluid_contact_overflow);
         release_managed(rigid_contact_event_offsets);
         release_managed(rigid_color_state);
         release_managed(rigid_pair_colors);
         release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
         release_managed(states[1]);
+        release_managed(fluid_previous_states);
         release_managed(states[0]);
         release_managed(ids);
         release_managed(targets);
@@ -2694,6 +3051,9 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->fluid_previous_states,
+                              options.rigid_body_capacity);
+    if (!status) return status;
     status = allocate_managed(implementation->rigid_manifolds, manifold_count);
     if (!status) {
         return status;
@@ -2721,6 +3081,29 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->fluid_body_bounds,
+                              options.rigid_body_capacity);
+    if (!status) return status;
+    const std::size_t fluid_body_words =
+        (static_cast<std::size_t>(options.rigid_body_capacity) + 63U) / 64U;
+    status = allocate_managed(implementation->fluid_body_masks,
+                              k_fluid_body_buckets * fluid_body_words);
+    if (!status) return status;
+    status = allocate_managed(implementation->fluid_global_body_masks,
+                              fluid_body_words);
+    if (!status) return status;
+    status = allocate_managed(implementation->fluid_body_contact_flags,
+                              options.rigid_body_capacity);
+    if (!status) return status;
+    status = allocate_managed(implementation->fluid_contact_events,
+                              options.contact_capacity);
+    if (!status) return status;
+    status = allocate_managed(implementation->fluid_contact_count, 1U);
+    if (!status) return status;
+    status = allocate_managed(implementation->fluid_contact_overflow, 1U);
+    if (!status) return status;
+    *implementation->fluid_contact_count = 0U;
+    *implementation->fluid_contact_overflow = 0U;
     status = allocate_managed(implementation->rigid_active_pair_flags,
                               pair_capacity);
     if (!status) {
@@ -2866,7 +3249,14 @@ Status World::add_fluid(FluidOptions options,
         !(status = allocate_managed(fluid->keys[1], capacity)) ||
         !(status = allocate_managed(fluid->indices[0], capacity)) ||
         !(status = allocate_managed(fluid->indices[1], capacity)) ||
-        !(status = allocate_managed(fluid->forces, capacity))) return status;
+        !(status = allocate_managed(fluid->forces, capacity)) ||
+        !(status = allocate_managed(fluid->body_impulses, capacity)) ||
+        !(status = allocate_managed(fluid->contact_samples, capacity)) ||
+        !(status = allocate_managed(fluid->contact_flags, capacity)) ||
+        !(status = allocate_managed(fluid->next_contact_samples, capacity)) ||
+        !(status = allocate_managed(fluid->next_contact_flags, capacity)) ||
+        !(status = allocate_managed(fluid->contact_count, 1U)) ||
+        !(status = allocate_managed(fluid->contact_offset, 1U))) return status;
     cudaError_t error = cub::DeviceRadixSort::SortPairs(
         nullptr, fluid->sort_workspace_size, fluid->keys[0], fluid->keys[1],
         fluid->indices[0], fluid->indices[1], options.capacity);
@@ -3664,6 +4054,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         *impl_->rigid_contact_count = 0U;
     }
     *impl_->fluid_neighbor_overflow = 0U;
+    *impl_->fluid_contact_count = 0U;
+    *impl_->fluid_contact_overflow = 0U;
 
     std::unique_ptr<FrameToken::Impl> token_impl;
     if (completion.impl_) {
@@ -3699,9 +4091,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             static_cast<std::size_t>(options.substeps) * 7U + 1U;
         for (const auto &fluid : impl_->fluids) {
             if (fluid && fluid->alive) {
-                maximum_stages += 1U +
+                maximum_stages += 2U +
                     static_cast<std::size_t>(options.substeps) *
-                        fluid->options.solver_iterations * 5U;
+                        fluid->options.solver_iterations * 7U;
             }
         }
         status = impl_->prepare_timing_events(
@@ -3731,6 +4123,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     constexpr std::uint32_t block_size = 128U;
     const std::uint32_t block_count =
         (impl_->rigid_body_count + block_size - 1U) / block_size;
+    bool any_moving_body = false;
+    if (impl_->fluid_count != 0U) {
+        for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
+            any_moving_body |= impl_->parameters[body].motion !=
+                               MotionType::static_body;
+        if (any_moving_body) {
+            error = cudaMemcpyAsync(impl_->fluid_previous_states,
+                impl_->states[impl_->current_state],
+                impl_->rigid_body_count * sizeof(RigidBodyState),
+                cudaMemcpyDeviceToDevice, stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error, "fluid body state copy failed");
+        }
+    }
     const float substep_timestep =
         options.timestep / static_cast<float>(options.substeps);
     // The lowest-priority remaining pair colors every round, so no small
@@ -3963,6 +4369,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
+    if (any_moving_body) {
+        fluid_body_bounds_kernel<<<block_count, block_size, 0, stream>>>(
+            impl_->parameters, impl_->fluid_previous_states,
+            impl_->states[impl_->current_state], impl_->meshes,
+            impl_->rigid_body_count, impl_->fluid_body_bounds);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess)
+            return cuda_failure(error, "fluid body bounds launch failed");
+    }
+
     // Fluid storage is capacity-sized and all sort/selection workspaces were
     // reserved at creation. No CUDA allocations occur during a frame.
     for (std::uint32_t fluid_index = 0U;
@@ -4014,6 +4430,34 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         const std::uint32_t iterations =
             options.substeps * fluid.options.solver_iterations;
         const float dt = options.timestep / static_cast<float>(iterations);
+        const float diameter = 2.0F * fluid.options.particle_radius;
+        const float particle_mass = fluid.options.rest_density *
+            diameter * diameter * diameter;
+        const std::uint32_t body_words =
+            (impl_->options.rigid_body_capacity + 63U) / 64U;
+        if (any_moving_body) {
+            error = cudaMemsetAsync(impl_->fluid_body_masks, 0,
+                k_fluid_body_buckets * body_words * sizeof(unsigned long long),
+                stream);
+            if (error == cudaSuccess)
+                error = cudaMemsetAsync(impl_->fluid_global_body_masks, 0,
+                    body_words * sizeof(unsigned long long), stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error, "fluid body index clear failed");
+            fluid_index_body_cells<<<block_count, block_size, 0, stream>>>(
+                impl_->parameters, impl_->fluid_body_bounds,
+                impl_->rigid_body_count, body_words,
+                fluid.options.particle_radius + fluid.options.maximum_speed * dt,
+                impl_->fluid_body_masks, impl_->fluid_global_body_masks);
+            status = record_timing_stage(TimingStage::fluid_body_index);
+            if (!status) return status;
+        }
+        if (options.collect_fluid_contacts) {
+            error = cudaMemsetAsync(fluid.contact_flags, 0,
+                fluid.options.capacity * sizeof(std::uint8_t), stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error, "fluid event flags clear failed");
+        }
         for (std::uint32_t iteration = 0U; iteration < iterations;
              ++iteration) {
             fluid_emit_cells<<<blocks, block_size, 0, stream>>>(
@@ -4046,6 +4490,32 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 options.gravity, dt);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
+            if (any_moving_body) {
+                error = cudaMemsetAsync(impl_->fluid_body_contact_flags, 0,
+                    impl_->rigid_body_count * sizeof(std::uint32_t), stream);
+                if (error != cudaSuccess)
+                    return cuda_failure(error, "fluid contact flags clear failed");
+                fluid_moving_contacts<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.previous,
+                    fluid.foam, fluid.count, fluid.options.particle_radius,
+                    particle_mass, impl_->parameters,
+                    impl_->fluid_previous_states,
+                    impl_->states[impl_->current_state], impl_->meshes,
+                    impl_->fluid_body_bounds, impl_->rigid_body_count,
+                    impl_->fluid_body_masks, impl_->fluid_global_body_masks,
+                    body_words, iteration == 0U, fluid.body_impulses,
+                    impl_->fluid_body_contact_flags,
+                    options.collect_fluid_contacts, fluid.contact_samples,
+                    fluid.contact_flags);
+                fluid_reduce_body_impulses<<<impl_->rigid_body_count,
+                                             block_size, 0, stream>>>(
+                    fluid.body_impulses, fluid.count, impl_->parameters,
+                    impl_->states[impl_->current_state],
+                    impl_->fluid_body_contact_flags,
+                    impl_->rigid_body_count);
+                status = record_timing_stage(TimingStage::fluid_moving_contacts);
+                if (!status) return status;
+            }
             bool any_static_body = false;
             for (std::uint32_t body = 0U; body < impl_->rigid_body_count;
                  ++body) {
@@ -4060,7 +4530,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     normalized_or(multiply(options.gravity, -1.0F),
                                   {0.0F, 1.0F, 0.0F}),
                     impl_->parameters, impl_->states[impl_->current_state],
-                    impl_->meshes, body);
+                    impl_->meshes, body, particle_mass,
+                    options.collect_fluid_contacts, fluid.contact_samples,
+                    fluid.contact_flags);
             }
             if (any_static_body) {
                 status = record_timing_stage(TimingStage::fluid_static_contacts);
@@ -4089,17 +4561,42 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 }
                 fluid_gather<<<blocks, block_size, 0, stream>>>(
                     fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
+                    fluid.contact_samples, fluid.contact_flags,
+                    options.collect_fluid_contacts,
                     fluid.selected, fluid.count, fluid.options.capacity,
                     fluid.next_positions, fluid.next_velocities,
-                    fluid.next_ids, fluid.next_foam);
+                    fluid.next_ids, fluid.next_foam,
+                    fluid.next_contact_samples, fluid.next_contact_flags);
                 std::swap(fluid.positions, fluid.next_positions);
                 std::swap(fluid.velocities, fluid.next_velocities);
                 std::swap(fluid.ids, fluid.next_ids);
                 std::swap(fluid.foam, fluid.next_foam);
+                std::swap(fluid.contact_samples, fluid.next_contact_samples);
+                std::swap(fluid.contact_flags, fluid.next_contact_flags);
                 status = record_timing_stage(
                     TimingStage::fluid_outflow_compaction);
                 if (!status) return status;
             }
+        }
+        if (options.collect_fluid_contacts) {
+            const auto sequence =
+                thrust::make_counting_iterator<std::uint32_t>(0U);
+            error = cub::DeviceSelect::Flagged(
+                fluid.select_workspace, fluid.select_workspace_size,
+                sequence, fluid.contact_flags, fluid.selected,
+                fluid.contact_count, fluid.options.capacity, stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error, "fluid contact selection failed");
+            fluid_reserve_contact_events<<<1U, 1U, 0, stream>>>(
+                fluid.contact_count, fluid.contact_offset,
+                impl_->fluid_contact_count, impl_->fluid_contact_overflow,
+                impl_->options.contact_capacity);
+            fluid_gather_contact_events<<<blocks, block_size, 0, stream>>>(
+                fluid.selected, fluid.contact_count, fluid.contact_offset,
+                fluid.contact_samples, fluid.ids, impl_->ids, fluid_id,
+                impl_->fluid_contact_events, impl_->options.contact_capacity);
+            status = record_timing_stage(TimingStage::fluid_contact_events);
+            if (!status) return status;
         }
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
@@ -4141,10 +4638,10 @@ Status World::step(StepOptions options, cudaStream_t stream) noexcept {
 }
 
 ContactDeviceView World::contacts() const noexcept {
-    if (!impl_) {
-        return {};
-    }
-    return {{}, 0U, false, impl_->frame_index};
+    if (!impl_ || (impl_->frame && !impl_->frame->acknowledged)) return {};
+    const std::uint32_t count = *impl_->fluid_contact_count;
+    return {{impl_->fluid_contact_events, count}, count,
+            *impl_->fluid_contact_overflow != 0U, impl_->frame_index};
 }
 
 RigidContactDeviceView World::rigid_contacts() const noexcept {
@@ -4237,6 +4734,15 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::fluid_static_contacts:
             timing = &output.fluid_static_contacts;
             break;
+        case TimingStage::fluid_body_index:
+            timing = &output.fluid_body_index;
+            break;
+        case TimingStage::fluid_moving_contacts:
+            timing = &output.fluid_moving_contacts;
+            break;
+        case TimingStage::fluid_contact_events:
+            timing = &output.fluid_contact_events;
+            break;
         case TimingStage::fluid_outflow_compaction:
             timing = &output.fluid_outflow_compaction;
             break;
@@ -4280,6 +4786,8 @@ Status World::collect_statistics(WorldStatistics &output,
     output.emitted_particle_count = impl_->emitted_particle_count;
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;
+    output.contact_count = *impl_->fluid_contact_count;
+    output.contact_overflow_count = *impl_->fluid_contact_overflow;
     for (const auto &fluid : impl_->fluids) {
         if (!fluid || !fluid->alive) continue;
         const std::uint32_t live = *fluid->count;
@@ -4288,31 +4796,36 @@ Status World::collect_statistics(WorldStatistics &output,
             fluid->initial_count + fluid->emitted_count - live;
         const std::size_t capacity = fluid->options.capacity;
         output.allocated_bytes += capacity *
-            (7U * sizeof(Vec3) + 5U * sizeof(std::uint32_t) +
-             3U * sizeof(float) + sizeof(std::uint8_t) +
-             2U * sizeof(std::uint64_t)) +
+            (6U * sizeof(Vec3) + 5U * sizeof(std::uint32_t) +
+             3U * sizeof(float) + 2U * sizeof(std::uint8_t) +
+             2U * sizeof(std::uint64_t) + sizeof(FluidBodyImpulse) +
+             2U * sizeof(FluidContactSample)) +
              fluid->sort_workspace_size + fluid->select_workspace_size +
-             sizeof(std::uint32_t);
+             3U * sizeof(std::uint32_t);
     }
     output.rigid_body_count = impl_->rigid_body_count;
     output.triangle_mesh_count = impl_->triangle_mesh_count;
-    output.allocated_bytes =
+    output.allocated_bytes +=
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
-                    2U * sizeof(RigidBodyState)) +
+                    3U * sizeof(RigidBodyState)) +
         capacity * (capacity - 1U) / 2U * sizeof(ContactManifold) +
         capacity * sizeof(std::uint32_t) +
         capacity * (capacity - 1U) / 2U * sizeof(std::uint8_t) +
         2U * sizeof(std::uint32_t) +
         capacity * (capacity - 1U) / 2U * sizeof(std::uint32_t) +
-        capacity * sizeof(WorldAabb) +
+        capacity * (2U * sizeof(WorldAabb) + sizeof(std::uint32_t)) +
         capacity * capacity *
             (sizeof(std::uint8_t) + sizeof(std::uint32_t)) +
         sizeof(std::uint32_t) + impl_->rigid_broad_phase_workspace_size +
         impl_->rigid_leaf_pair_capacity * sizeof(LeafPair) +
         capacity * capacity * sizeof(std::uint32_t) +
         impl_->rigid_contact_capacity * sizeof(RigidContactEvent) +
-        sizeof(std::uint32_t) +
+        impl_->options.contact_capacity * sizeof(ContactEvent) +
+        k_fluid_body_buckets *
+            ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
+        ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
+        3U * sizeof(std::uint32_t) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {
