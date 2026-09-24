@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Export Blender rigid bodies as a triangle-only ParallelMater GLB scene.
+"""Export Blender rigid bodies and liquid flow planes as a ParallelMater GLB.
 
 The source .blend is never modified. Evaluated mesh copies are triangulated,
 object scale is baked into their vertices, and Blender ACTIVE/PASSIVE settings
@@ -151,6 +151,50 @@ def copy_collision_for_export(
     return exported
 
 
+def copy_flow_for_export(
+    source: bpy.types.Object,
+    collection: bpy.types.Collection,
+    created_meshes: list[bpy.types.Mesh],
+) -> bpy.types.Object:
+    fluid_modifiers = [m for m in source.modifiers if m.type == "FLUID"]
+    if len(fluid_modifiers) != 1 or fluid_modifiers[0].fluid_type != "FLOW":
+        raise RuntimeError(f"{source.name}: expected one Fluid Flow modifier")
+    flow = fluid_modifiers[0].flow_settings
+    if flow.flow_type != "LIQUID" or flow.flow_behavior not in {"INFLOW", "OUTFLOW"}:
+        raise RuntimeError(f"{source.name}: only Liquid Inflow/Outflow is supported")
+    if source.parent is not None:
+        raise RuntimeError(f"{source.name}: fluid flow plane must be a scene-root object")
+
+    mesh = source.data.copy()
+    created_meshes.append(mesh)
+    location, rotation, scale = source.matrix_world.decompose()
+    geometry = bmesh.new()
+    geometry.from_mesh(mesh)
+    geometry.transform(Matrix.Diagonal(Vector((scale.x, scale.y, scale.z, 1.0))))
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.to_mesh(mesh)
+    geometry.free()
+    mesh.validate(clean_customdata=False)
+    mesh.update()
+    exported = bpy.data.objects.new(source.name, mesh)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    exported["pm_schema"] = 2
+    exported["pm_system"] = (
+        "fluid_inflow" if flow.flow_behavior == "INFLOW" else "fluid_outflow"
+    )
+    if flow.flow_behavior == "INFLOW":
+        exported["pm_particles_per_second"] = float(
+            source.get("pm_particles_per_second", 2400.0)
+        )
+        velocity = flow.velocity_coord if flow.use_initial_velocity else Vector((0, 0, 0))
+        # glTF export changes Blender Z-up into Y-up.
+        exported["pm_velocity_x"] = float(velocity.x)
+        exported["pm_velocity_y"] = float(velocity.z)
+        exported["pm_velocity_z"] = float(-velocity.y)
+    return exported
+
+
 def export(output: pathlib.Path) -> None:
     sources = [
         obj
@@ -161,6 +205,10 @@ def export(output: pathlib.Path) -> None:
         raise RuntimeError("the scene contains no mesh objects with Rigid Body enabled")
     if any(obj.parent is not None for obj in sources):
         raise RuntimeError("rigid-body export currently requires scene-root objects")
+    flows = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == "MESH" and any(mod.type == "FLUID" for mod in obj.modifiers)
+    ]
 
     previous_selection = list(bpy.context.selected_objects)
     previous_active = bpy.context.view_layer.objects.active
@@ -219,6 +267,10 @@ def export(output: pathlib.Path) -> None:
                         created_meshes,
                     )
                 )
+        for source in flows:
+            created_objects.append(
+                copy_flow_for_export(source, collection, created_meshes)
+            )
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:

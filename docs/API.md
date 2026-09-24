@@ -19,8 +19,8 @@ impulses, kinematic targets, device views, GPU integration, and deterministic
 triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid contact is velocity-gated through conservative swept triangle-pair
-tests. Fluid and particle-lifecycle declarations currently return
-`StatusCode::not_supported` and are implemented in PR 7.
+tests. Fluid and particle-lifecycle calls are implemented in PR 7, including
+passive triangle contacts; balanced reactions on dynamic bodies remain PR 8.
 
 ## Minimal use
 
@@ -107,7 +107,10 @@ Kernel timing is opt-in per `StepOptions`. When requested, CUDA events measure
 rigid integration, world bounds, GPU pair filtering, deterministic pair
 compaction, leaf-pair generation, triangle contact evaluation, contact solving,
 and input clearing. `rigid_contact_generation` remains the sum of the five
-broad/narrow-phase fields. `collect_step_timings` reads those events after
+broad/narrow-phase fields. Fluid frames additionally measure spawn, cell
+sorting, neighbor forces, integration, static triangle contacts, and outflow
+compaction. `total_gpu_milliseconds` covers both solvers in the frame.
+`collect_step_timings` reads those events after
 frame completion. Timing is diagnostic data rather than solver input and is
 unavailable for frames that did not request it.
 
@@ -131,15 +134,16 @@ Initial implementation requirements:
 
 - finite positions and velocities;
 - no duplicate neighbor IDs or self-neighbors;
-- bounded neighbor overflow reported as an error, never silently truncated;
+- neighbor overflow reported as `capacity_exceeded`, without truncating forces;
 - identical same-GPU particle/contact ordering for identical input;
 - no non-finite state;
-- collision projection plus velocity response against every supported rigid
-  shape;
-- reaction impulses applied to dynamic bodies.
+- collision projection plus velocity response against passive triangle meshes;
+- reaction impulses on dynamic bodies are deferred to PR 8.
 
-Cross-fluid interaction, phase changes, foam, and surface reconstruction are
-deferred.
+Cross-fluid interaction and phase changes are deferred. Continuous surface
+reconstruction stays outside the public API in the example renderer.
+`FluidDeviceView::foam` exposes a short-lived impact/surface signal for the
+examples-only renderer; it is not a separate foam fluid.
 
 ## Spawn and destroy planes
 
@@ -169,7 +173,8 @@ mesh. Spheres, boxes, capsules, planes, Suzanne, and arbitrary Blender meshes
 are all ordinary triangle data. A body is static, kinematic, or dynamic:
 
 - static bodies never move;
-- kinematic bodies follow explicit targets and impart their velocity to fluid;
+- kinematic bodies follow explicit targets; fluid coupling to their motion is
+  scheduled for PR 8;
 - dynamic bodies integrate gravity, forces, impulses, damping, and contact
   reactions.
 
@@ -204,8 +209,9 @@ references it.
 
 ## Contacts are the application extension point
 
-The optional contact buffer reports fluid-particle/rigid-body contacts in a
-stable order. These are the physics-side input for painting: stable particle
+The reserved optional contact buffer will report fluid-particle/rigid-body
+contacts in a stable order once PR 8 implements moving-body coupling. These
+are the physics-side input for painting: stable particle
 and body IDs, contact position, normal, and impulse let gallery code update its
 own color fields or textures. The physics API does not own paint pixels,
 materials, UVs, or textures. The same records can drive sound, objectives,
@@ -231,7 +237,8 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- cloth, rope, soft body, smoke, foam, paint storage, or fracture;
+- cloth, rope, soft body, smoke, a separate foam-particle simulation, paint
+  storage, or fracture;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.
 

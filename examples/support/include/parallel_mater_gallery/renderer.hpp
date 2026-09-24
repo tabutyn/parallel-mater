@@ -18,6 +18,21 @@ struct Camera {
     float vertical_field_of_view_degrees{48.0F};
 };
 
+struct RendererTimings {
+    float surface_gpu_milliseconds{};
+    float raytrace_wall_milliseconds{};
+    float foam_wall_milliseconds{};
+    float total_wall_milliseconds{};
+    std::uint32_t particle_count{};
+    std::uint32_t surface_excluded_particle_count{};
+    bool particle_view{};
+};
+
+enum class FluidRenderMode : std::uint8_t {
+    surface,
+    particles,
+};
+
 class OptixRenderer {
   public:
     OptixRenderer() noexcept;
@@ -38,7 +53,10 @@ class OptixRenderer {
                               const SceneInstance &instance,
                               Camera camera,
                               std::vector<std::uint32_t> &rgba,
-                              std::string &error);
+                              std::string &error,
+                              RendererTimings *timings = nullptr,
+                              FluidRenderMode fluid_mode =
+                                  FluidRenderMode::surface);
 
     [[nodiscard]] std::uint32_t width() const noexcept;
     [[nodiscard]] std::uint32_t height() const noexcept;

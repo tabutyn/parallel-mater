@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/scene.hpp>
+#include "support.hpp"
 
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <array>
 #include <bit>
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -17,17 +16,6 @@
 #include <vector>
 
 namespace {
-
-[[nodiscard]] bool require(parallel_mater::Status status,
-                           const char *operation) {
-    if (status) {
-        return true;
-    }
-    std::cerr << operation << ": "
-              << (status.message != nullptr ? status.message : "unknown")
-              << '\n';
-    return false;
-}
 
 [[nodiscard]] bool parse_count(const char *text, std::uint32_t minimum,
                                std::uint32_t maximum, std::uint32_t &value) {
@@ -44,6 +32,7 @@ namespace {
 
 int main(int argc, char **argv) {
     using namespace parallel_mater;
+    using namespace parallel_mater::benchmark;
     using namespace parallel_mater::gallery;
 
     std::uint32_t sphere_count = 1'000U;
@@ -58,17 +47,9 @@ int main(int argc, char **argv) {
 
     const SceneDefinition scene = make_dump_scene(sphere_count);
     World world;
-    if (!require(World::create(
-                     {.rigid_body_capacity =
-                          static_cast<std::uint32_t>(scene.rigid_bodies.size()),
-                      .triangle_mesh_capacity =
-                          static_cast<std::uint32_t>(scene.meshes.size())},
-                     world), "create DUMP world")) {
-        return 1;
-    }
     SceneInstance instance;
-    if (!require(instantiate_scene(scene, world, instance),
-                 "instantiate DUMP scene")) {
+    if (!prepare_world(scene, static_cast<std::uint32_t>(scene.meshes.size()),
+                       world, instance)) {
         return 1;
     }
     WorldStatistics statistics{};
@@ -83,12 +64,8 @@ int main(int argc, char **argv) {
     constexpr float pi = 3.14159265358979323846F;
     float hopper_angle = pi * 0.25F;
     RigidBodyState hopper_target = scene.rigid_bodies[0].options.initial_state;
-    const StepOptions options{.timestep = 1.0F / 60.0F,
-                              .substeps = 4U,
-                              .gravity = {0.0F, -9.81F, 0.0F},
-                              .collect_kernel_timings = true};
-    std::array<double, 10> sums{};
-    std::vector<float> gpu_samples;
+    const StepOptions options = standard_step_options(true);
+    TimingSamples samples{};
     std::uint32_t interval_start = 1U;
     std::cout << std::fixed << std::setprecision(3);
     for (std::uint32_t frame = 1U; frame <= frame_count; ++frame) {
@@ -102,44 +79,25 @@ int main(int argc, char **argv) {
                      "rotate hopper")) {
             return 1;
         }
-        const auto begin = std::chrono::steady_clock::now();
-        if (!require(world.step(options), "step DUMP world")) {
-            return 1;
-        }
-        const double wall = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - begin).count();
         WorldStepTimings timing{};
-        if (!require(world.collect_step_timings(timing), "collect timings") ||
-            !timing.available) {
+        double wall_milliseconds = 0.0;
+        if (!measure_step(world, options, "step DUMP world", timing,
+                          wall_milliseconds)) {
             return 1;
         }
-        const std::array<double, 10> values{
-            timing.rigid_integration.total_milliseconds,
-            timing.rigid_world_bounds.total_milliseconds,
-            timing.rigid_pair_filter.total_milliseconds,
-            timing.rigid_pair_compaction.total_milliseconds,
-            timing.rigid_leaf_pair_generation.total_milliseconds,
-            timing.rigid_contact_evaluation.total_milliseconds,
-            timing.rigid_contact_solve.total_milliseconds,
-            timing.rigid_input_clear.total_milliseconds,
-            timing.total_gpu_milliseconds, wall};
-        for (std::size_t index = 0U; index < values.size(); ++index) {
-            sums[index] += values[index];
-        }
-        gpu_samples.push_back(timing.total_gpu_milliseconds);
+        add_timing_samples(samples, timing, wall_milliseconds);
         if (frame % 30U == 0U || frame == frame_count) {
-            std::sort(gpu_samples.begin(), gpu_samples.end());
-            const double count = static_cast<double>(gpu_samples.size());
             std::cout << interval_start << '-' << frame;
-            for (const double sum : sums) {
-                std::cout << ',' << sum / count;
+            for (const Samples &stage : samples) {
+                std::cout << ',' << stage.mean();
             }
-            const std::size_t percentile = static_cast<std::size_t>(
-                std::ceil(count * 0.95)) - 1U;
-            std::cout << ',' << gpu_samples[percentile] << '\n';
+            std::cout << ',' << samples[k_gpu_total_stage]
+                                    .percentile(0.95, PercentileMode::nearest_rank)
+                      << '\n';
             interval_start = frame + 1U;
-            sums = {};
-            gpu_samples.clear();
+            for (Samples &stage : samples) {
+                stage.clear();
+            }
         }
     }
 

@@ -36,10 +36,15 @@ struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
+    FluidOptions fluid_options{};
+    std::vector<ParticleSpawnPlaneOptions> spawn_planes{};
+    std::vector<ParticleDestroyPlaneOptions> destroy_planes{};
 };
 
 struct SceneInstance {
     std::vector<RigidBodyId> rigid_bodies{};
+    FluidId fluid{};
+    bool has_fluid{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,

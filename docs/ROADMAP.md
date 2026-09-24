@@ -73,21 +73,27 @@ pass.
   128/256-body coloring regressions. Record rejected variants and isolated
   before/after timings in [the performance report](PERFORMANCE.md).
 
-## PR 7 — Isolated fluid and particle lifecycle
+## PR 7 — Blender-authored liquid flow and passive collision
 
-- Do not implement or execute this stage until its Blender-authored acceptance
-  scene has been supplied and reviewed. The scene, rather than procedural C++,
-  defines the feature demonstration.
-- Implement owned particle storage and deterministic sorted-cell neighbors.
-- Implement fluid forces/constraints without rigid coupling.
-- Implement deterministic device-side spawn planes, swept destroy planes, and
-  stable compaction without allocations during stepping.
-- Add the fluid-tank scene and brute-force neighbor reference tests.
+- Use the supplied `examples/assets/Fluid.blend` as the acceptance scene. Its
+  native Liquid Inflow and Outflow planes define particle lifecycle, and its
+  passive triangle mesh defines the collision surface. No Blender Fluid Domain
+  is needed by ParallelMater.
+- Implement owned particles, deterministic sorted-cell repulsion and viscosity,
+  and explicit neighbor-overflow errors.
+- Implement deterministic device-side inflow, swept outflow, and stable
+  compaction without CUDA allocations during stepping.
+- Collide particles with passive authored triangles, including swept crossing
+  of open surfaces. Keep reaction forces on dynamic rigid bodies in PR 8.
+- Show blue debug particles and short-lived white agitation foam in the gallery;
+  reconstruct an example-only OptiX water surface from the particles.
+- Test a brute-force neighbor pair, lifecycle, passive high-speed impact,
+  authored-scene loading, and a headless fluid image.
 
-## PR 8 — Fluid–rigid coupling
+## PR 8 — Dynamic fluid–rigid coupling
 
-- Add particle/triangle contacts, friction, restitution, projection, and balanced
-  reactions on dynamic bodies.
+- Extend the PR 7 passive particle/triangle path to moving and dynamic bodies,
+  including friction, restitution, projection, and balanced reactions.
 - Add deterministic contact events and the heavy-sphere scene.
 - Validate momentum exchange, containment, high-speed impact, and overflow.
 
@@ -97,11 +103,10 @@ pass.
 - Add objectives, scene selection, controls, and save data outside the library.
 - Add the obstacle-bowl scene.
 
-## PR 10 — Water rendering
+## PR 10 — Water rendering portability
 
-- Add debug particle rendering first.
-- Evaluate reconstructed raster water and OptiX water as example-only renderer
-  modules.
+- Build a raster fallback for the PR 7 OptiX surface renderer, without changing
+  the installed physics API.
 - Select by GPU capability without changing or conditionally compiling the
   installed physics API.
 

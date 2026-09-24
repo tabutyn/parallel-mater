@@ -131,6 +131,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     add_library(parallel-mater-gallery-renderer STATIC
                 examples/support/optix_renderer.cpp
+                examples/support/fluid_surface.cu
                 examples/support/overlay.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
@@ -158,6 +159,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
+            PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -174,7 +176,21 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-rigid-tests COMMAND parallel-mater-rigid-tests)
     set_tests_properties(parallel-mater-rigid-tests PROPERTIES SKIP_RETURN_CODE 77)
 
+    add_executable(parallel-mater-fluid-tests tests/fluid_tests.cpp)
+    target_link_libraries(
+        parallel-mater-fluid-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-fluid-tests COMMAND parallel-mater-fluid-tests)
+    set_tests_properties(parallel-mater-fluid-tests PROPERTIES SKIP_RETURN_CODE 77)
+
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+        add_executable(parallel-mater-camera-controller-tests
+                       tests/gallery/camera_controller_tests.cpp)
+        target_link_libraries(
+            parallel-mater-camera-controller-tests
+            PRIVATE parallel-mater-gallery-scene)
+        add_test(NAME parallel-mater-camera-controller-tests
+                 COMMAND parallel-mater-camera-controller-tests)
+
         add_executable(parallel-mater-gallery-scene-tests
                        tests/gallery/scene_tests.cpp)
         target_link_libraries(
@@ -184,9 +200,26 @@ if(BUILD_TESTING)
             parallel-mater-gallery-scene-tests
             PRIVATE
                 PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb")
+        target_compile_definitions(
+            parallel-mater-gallery-scene-tests
+            PRIVATE
+                PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb")
         add_test(NAME parallel-mater-gallery-scene-tests
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests
+                             PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-fluid-surface-tests
+                       tests/gallery/fluid_surface_tests.cpp)
+        target_include_directories(parallel-mater-fluid-surface-tests PRIVATE
+            examples/support ${parallel_mater_optix_dev_SOURCE_DIR}/include)
+        target_link_libraries(parallel-mater-fluid-surface-tests PRIVATE
+            parallel-mater-gallery-renderer CUDA::cudart)
+        target_compile_definitions(parallel-mater-fluid-surface-tests PRIVATE
+            PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb")
+        add_test(NAME parallel-mater-fluid-surface-tests
+                 COMMAND parallel-mater-fluid-surface-tests)
+        set_tests_properties(parallel-mater-fluid-surface-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
 
         add_test(
@@ -202,6 +235,37 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-dump-test.ppm
                     --frames 150)
+        add_test(
+            NAME parallel-mater-fluid-headless-test
+            COMMAND parallel-mater-gallery
+                    --fluid
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-test.ppm
+                    --frames 30)
+        add_test(
+            NAME parallel-mater-fluid-containment-test
+            COMMAND parallel-mater-gallery
+                    --fluid
+                    --trace-fluid-escapes
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-containment-test.ppm
+                    --frames 120)
+        add_test(
+            NAME parallel-mater-fluid-cap-headless-test
+            COMMAND parallel-mater-gallery
+                    --fluid-particles 100
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-cap-test.ppm
+                    --frames 30)
+        set_tests_properties(parallel-mater-fluid-cap-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Fluid particles=100 ")
+        add_test(
+            NAME parallel-mater-fluid-particle-view-test
+            COMMAND parallel-mater-gallery
+                    --fluid-particle-view
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-particles-test.ppm
+                    --frames 30)
     endif()
 endif()
 

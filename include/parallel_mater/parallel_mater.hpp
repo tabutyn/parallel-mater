@@ -145,6 +145,7 @@ struct FluidOptions {
     float support_radius{0.09F};
     std::uint32_t solver_iterations{4U};
     std::uint32_t maximum_neighbors{128U};
+    float repulsion{50.0F};
     float viscosity{0.02F};
     float velocity_damping{0.2F};
     float maximum_speed{8.0F};
@@ -214,8 +215,11 @@ struct FluidDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const std::uint32_t> stable_particle_ids{};
+    // Short-lived impact/exposed-surface agitation for renderers; [0, 1].
+    DeviceSpan<const float> foam{};
     std::uint32_t particle_count{};
     float particle_radius{};
+    float support_radius{};
     std::uint64_t revision{};
 };
 
@@ -275,6 +279,12 @@ struct WorldStepTimings {
     KernelTiming rigid_contact_generation{};
     KernelTiming rigid_contact_solve{};
     KernelTiming rigid_input_clear{};
+    KernelTiming fluid_spawn{};
+    KernelTiming fluid_neighbor_sort{};
+    KernelTiming fluid_neighbor_forces{};
+    KernelTiming fluid_integration{};
+    KernelTiming fluid_static_contacts{};
+    KernelTiming fluid_outflow_compaction{};
     float total_gpu_milliseconds{};
 };
 
