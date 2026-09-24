@@ -3,6 +3,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -78,6 +79,25 @@ int main() {
     }
     check(make_dump_scene(1'000U).rigid_bodies.size() == 1'002U,
           "DUMP must support the 1,000-sphere maximum");
+
+    SceneDefinition fluid_scene;
+    std::string fluid_error;
+    check(load_glb_scene(PARALLEL_MATER_FLUID_SCENE_PATH,
+                         fluid_scene, fluid_error),
+          fluid_error.empty() ? "load Fluid GLB scene" : fluid_error.c_str());
+    check(fluid_scene.rigid_bodies.size() == 1U &&
+          fluid_scene.rigid_bodies[0].options.motion == MotionType::static_body,
+          "Fluid scene must retain its passive triangle collider");
+    check(fluid_scene.spawn_planes.size() == 1U &&
+          fluid_scene.destroy_planes.size() == 1U,
+          "Blender Liquid Inflow and Outflow must export as lifecycle planes");
+    if (fluid_scene.spawn_planes.size() == 1U) {
+        check(fluid_scene.spawn_planes[0].initial_velocity.y < -0.9F,
+              "Blender downward flow velocity must become gallery -Y");
+        check(fluid_scene.spawn_planes[0].plane.half_extents.x > 0.9F &&
+              fluid_scene.spawn_planes[0].plane.half_extents.y > 0.9F,
+              "inflow dimensions must survive Blender export");
+    }
 
     SceneDefinition scene;
     std::string error;
@@ -178,6 +198,42 @@ int main() {
     check(dump_statistics.rigid_body_count == 12U &&
               dump_statistics.triangle_mesh_count == 3U,
           "DUMP bodies must reuse three uploaded triangle meshes");
+
+    World fluid_world;
+    check_status(World::create({.fluid_capacity = 1U,
+                                .rigid_body_capacity = 1U,
+                                .triangle_mesh_capacity = 1U},
+                               fluid_world), "create Fluid world");
+    SceneInstance fluid_instance;
+    check_status(instantiate_scene(fluid_scene, fluid_world, fluid_instance),
+                 "instantiate Blender Fluid scene");
+    check(fluid_instance.has_fluid,
+          "Fluid scene must instantiate a live fluid owner");
+    for (int frame = 0; frame < 30; ++frame) {
+        check_status(fluid_world.step({.timestep = 1.0F / 60.0F,
+                                       .substeps = 4U,
+                                       .gravity = {0.0F, -9.81F, 0.0F}}),
+                     "step authored Fluid scene");
+    }
+    WorldStatistics fluid_stats{};
+    check_status(fluid_world.collect_statistics(fluid_stats),
+                 "collect Fluid statistics");
+    check(fluid_stats.fluid_count == 1U &&
+          fluid_stats.particle_count > 0U &&
+          fluid_stats.emitted_particle_count >= fluid_stats.particle_count,
+          "inflow must emit live, owned particles");
+    FluidDeviceView fluid_view{};
+    check_status(fluid_world.fluid_view(fluid_instance.fluid, fluid_view),
+                 "borrow Fluid particle view");
+    std::vector<float> fluid_foam(fluid_view.particle_count);
+    if (!fluid_foam.empty()) {
+        check(cudaMemcpy(fluid_foam.data(), fluid_view.foam.data,
+                         fluid_foam.size() * sizeof(float),
+                         cudaMemcpyDeviceToHost) == cudaSuccess,
+              "copy Fluid foam signal");
+        check(*std::max_element(fluid_foam.begin(), fluid_foam.end()) > 0.05F,
+              "authored passive-surface impacts must generate visible foam");
+    }
     constexpr float pi = 3.14159265358979323846F;
     RigidBodyState hopper_target =
         minimum_dump.rigid_bodies[0].options.initial_state;

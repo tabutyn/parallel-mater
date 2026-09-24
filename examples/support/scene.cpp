@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -641,6 +642,93 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         }
         output.rigid_bodies.push_back(std::move(body));
     }
+    for (cgltf_size node_index = 0; node_index < data->nodes_count;
+         ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) continue;
+        const FlatJson extras(node.extras.data);
+        const std::string system = extras.string("pm_system").value_or("");
+        if (system != "fluid_inflow" && system != "fluid_outflow") continue;
+        const std::string name = node.name != nullptr ? node.name : "fluid plane";
+        if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
+            node.parent != nullptr || node.has_matrix || node.mesh == nullptr ||
+            node.mesh->primitives_count == 0U) {
+            error = name + ": fluid plane needs schema 2 and root TRS mesh";
+            return false;
+        }
+        const Vec3 scale = node_scale(node);
+        if (!finite(scale) || scale.x <= 0.0F || scale.y <= 0.0F ||
+            scale.z <= 0.0F) {
+            error = name + ": fluid plane scale is invalid";
+            return false;
+        }
+        Vec3 minimum{FLT_MAX, FLT_MAX, FLT_MAX};
+        Vec3 maximum{-FLT_MAX, -FLT_MAX, -FLT_MAX};
+        for (cgltf_size primitive_index = 0U;
+             primitive_index < node.mesh->primitives_count; ++primitive_index) {
+            const cgltf_accessor *positions = cgltf_find_accessor(
+                &node.mesh->primitives[primitive_index],
+                cgltf_attribute_type_position, 0);
+            if (positions == nullptr || positions->type != cgltf_type_vec3) {
+                error = name + ": fluid plane needs POSITION vec3 data";
+                return false;
+            }
+            for (cgltf_size vertex = 0U; vertex < positions->count; ++vertex) {
+                std::array<cgltf_float, 3> value{};
+                if (!cgltf_accessor_read_float(positions, vertex,
+                                               value.data(), value.size())) {
+                    error = name + ": cannot read fluid plane vertex";
+                    return false;
+                }
+                const Vec3 p{value[0] * scale.x, value[1] * scale.y,
+                             value[2] * scale.z};
+                minimum = {std::min(minimum.x, p.x),
+                           std::min(minimum.y, p.y),
+                           std::min(minimum.z, p.z)};
+                maximum = {std::max(maximum.x, p.x),
+                           std::max(maximum.y, p.y),
+                           std::max(maximum.z, p.z)};
+            }
+        }
+        const Vec3 extent = subtract(maximum, minimum);
+        if (!finite(minimum) || !finite(maximum) ||
+            extent.x <= 0.0F || extent.z <= 0.0F || extent.y > 1.0e-3F) {
+            error = name + ": fluid mesh must be a local XZ rectangle";
+            return false;
+        }
+        const RigidBodyState transform = node_state(node);
+        const Vec3 local_center = multiply(add(minimum, maximum), 0.5F);
+        ParticlePlane plane{
+            .center = add(transform.position,
+                          rotate(transform.orientation, local_center)),
+            .orientation = transform.orientation,
+            .half_extents = {extent.x * 0.5F, extent.z * 0.5F}};
+        if (system == "fluid_inflow") {
+            const float rate = static_cast<float>(
+                extras.number("pm_particles_per_second").value_or(2400.0));
+            const Vec3 velocity{
+                static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_z").value_or(0.0))};
+            if (!finite(rate) || rate < 0.0F || !finite(velocity)) {
+                error = name + ": invalid fluid inflow rate or velocity";
+                return false;
+            }
+            output.spawn_planes.push_back({.plane = plane,
+                                           .particles_per_second = rate,
+                                           .initial_velocity = velocity});
+        } else {
+            output.destroy_planes.push_back({.plane = plane});
+        }
+    }
+    if (!output.spawn_planes.empty()) {
+        output.fluid_options = {.capacity = 30'000U,
+                                .particle_radius = 0.045F,
+                                .support_radius = 0.18F,
+                                .solver_iterations = 2U,
+                                .maximum_neighbors = 128U,
+                                .repulsion = 50.0F};
+    }
     if (output.rigid_bodies.empty()) {
         error = "GLB contains no ParallelMater rigid bodies";
         return false;
@@ -848,6 +936,23 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return status;
         }
         output.rigid_bodies.push_back(body);
+    }
+    if (scene.fluid_options.capacity != 0U) {
+        Status status = world.add_fluid(scene.fluid_options, {}, output.fluid);
+        if (!status) return status;
+        output.has_fluid = true;
+        for (ParticleSpawnPlaneOptions options : scene.spawn_planes) {
+            options.fluid = output.fluid;
+            ParticleSpawnPlaneId id{};
+            status = world.add_particle_spawn_plane(options, id);
+            if (!status) return status;
+        }
+        for (ParticleDestroyPlaneOptions options : scene.destroy_planes) {
+            options.fluid = output.fluid;
+            ParticleDestroyPlaneId id{};
+            status = world.add_particle_destroy_plane(options, id);
+            if (!status) return status;
+        }
     }
     return {};
 }

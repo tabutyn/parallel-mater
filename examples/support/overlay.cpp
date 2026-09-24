@@ -284,6 +284,73 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, 32, 224, total, {100, 255, 155, 255}, 2);
 }
 
+void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &physics,
+                               const RendererTimings &renderer,
+                               const WorldStatistics &statistics,
+                               std::uint32_t capacity) {
+    rectangle(rgba, width, height, 18, 18, 480, 402,
+              {5, 12, 18, 225});
+    text(rgba, width, height, 32, 30,
+         renderer.particle_view ? "FLUID PARTICLE TIMINGS"
+                                : "FLUID SURFACE TIMINGS",
+         {80, 220, 255, 255}, 2);
+    if (!physics.available) {
+        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
+             {255, 190, 70, 255}, 2);
+        return;
+    }
+    timing_row(rgba, width, height, 58, "SPAWN", physics.fluid_spawn);
+    timing_row(rgba, width, height, 78, "CELL SORT",
+               physics.fluid_neighbor_sort);
+    timing_row(rgba, width, height, 98, "NEIGHBORS",
+               physics.fluid_neighbor_forces);
+    timing_row(rgba, width, height, 118, "INTEGRATE",
+               physics.fluid_integration);
+    timing_row(rgba, width, height, 138, "TRI COLLIDE",
+               physics.fluid_static_contacts);
+    timing_row(rgba, width, height, 158, "OUTFLOW",
+               physics.fluid_outflow_compaction);
+    char line[128]{};
+    std::snprintf(line, sizeof(line), "PHYSICS GPU    %7.3f MS",
+                  physics.total_gpu_milliseconds);
+    text(rgba, width, height, 32, 184, line, {100, 255, 155, 255}, 2);
+    if (renderer.particle_view)
+        std::snprintf(line, sizeof(line), "SURFACE GPU       OFF");
+    else
+        std::snprintf(line, sizeof(line), "SURFACE GPU    %7.3f MS",
+                      renderer.surface_gpu_milliseconds);
+    text(rgba, width, height, 32, 208, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
+                  renderer.raytrace_wall_milliseconds);
+    text(rgba, width, height, 32, 228, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "%s %7.3f MS",
+                  renderer.particle_view ? "SPRITES CPU   " : "FOAM CPU      ",
+                  renderer.foam_wall_milliseconds);
+    text(rgba, width, height, 32, 248, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
+                  renderer.total_wall_milliseconds);
+    text(rgba, width, height, 32, 272, line, {100, 255, 155, 255}, 2);
+    std::snprintf(line, sizeof(line), "LIVE %u / MAX %u",
+                  statistics.particle_count, capacity);
+    text(rgba, width, height, 32, 304, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
+                  static_cast<unsigned long long>(statistics.emitted_particle_count),
+                  static_cast<unsigned long long>(statistics.destroyed_particle_count));
+    text(rgba, width, height, 32, 324, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
+                  static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
+    text(rgba, width, height, 32, 344, line,
+         statistics.spawn_capacity_miss_count
+             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
+                  renderer.surface_excluded_particle_count);
+    text(rgba, width, height, 32, 368, line,
+         renderer.surface_excluded_particle_count
+             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
+}
+
 bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
                                 std::uint32_t width, std::uint32_t height,
                                 RigidContactDeviceView contacts, Camera camera,
@@ -370,26 +437,30 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         {245, 130, 45, 255}, "DUMP", "AVAILABLE  P EDITS SPHERES",
         {105, 255, 155, 255});
     row(top + 242, GalleryContext::fluid, {12, 42, 65, 235},
-        {35, 150, 255, 255}, "FLUID", "WAITING FOR BLENDER SCENE",
-        {120, 180, 215, 255});
+        {35, 150, 255, 255}, "FLUID", "P CAP  V PARTICLES  R RESET",
+        {105, 255, 155, 255});
 }
 
-void draw_dump_count_overlay(std::vector<std::uint32_t> &rgba,
-                             std::uint32_t width, std::uint32_t height,
-                             const std::string &value, bool invalid) {
+void draw_count_overlay(std::vector<std::uint32_t> &rgba,
+                        std::uint32_t width, std::uint32_t height,
+                        GalleryContext context, const std::string &value,
+                        bool invalid) {
+    const bool fluid = context == GalleryContext::fluid;
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
     rectangle(rgba, width, height, center_x - 260, center_y - 118,
               center_x + 260, center_y + 118, {4, 10, 16, 242});
     text(rgba, width, height, center_x - 220, center_y - 88,
-         "DUMP SPHERES", {245, 130, 45, 255}, 3);
+         fluid ? "FLUID PARTICLE CAP" : "DUMP SPHERES",
+         fluid ? Color{35, 150, 255, 255} : Color{245, 130, 45, 255}, 2);
     rectangle(rgba, width, height, center_x - 220, center_y - 30,
               center_x + 220, center_y + 20,
               invalid ? Color{105, 20, 20, 255} : Color{27, 38, 48, 255});
     text(rgba, width, height, center_x - 198, center_y - 17,
-         "COUNT " + value, {245, 247, 250, 255}, 2);
+         (fluid ? "MAX " : "COUNT ") + value, {245, 247, 250, 255}, 2);
     text(rgba, width, height, center_x - 220, center_y + 42,
-         invalid ? "USE 10-1000" : "MIN 10  MAX 1000",
+         fluid ? (invalid ? "USE 100-100000" : "MIN 100  MAX 100000")
+               : (invalid ? "USE 10-1000" : "MIN 10  MAX 1000"),
          invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
     text(rgba, width, height, center_x - 220, center_y + 72,
          "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);

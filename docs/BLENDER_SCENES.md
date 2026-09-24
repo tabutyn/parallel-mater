@@ -100,28 +100,33 @@ rotational trajectories. Substeps remain the accuracy control for extreme
 angular motion and multiple impacts. The collision margin remains numerical
 thickness rather than visible geometry.
 
-Future fluid, cloth, soft-body, rope, and smoke schemas will be introduced only
+Future cloth, soft-body, rope, and smoke schemas will be introduced only
 with their reviewed public APIs. Unknown systems and schema versions fail
 explicitly rather than silently changing scene meaning.
 
-## Gate for the isolated-fluid milestone
+## Liquid Flow scene
 
-PR 7 does not start—and no fluid kernels are run—until the authored source file
-`examples/assets/FluidLifecycle.blend` is supplied. That file should contain:
+`examples/assets/Fluid.blend` is the PR 7 source. It contains `Inflow` with
+Blender **Fluid → Flow → Liquid → Inflow**, `Outflow` with Liquid Outflow, and a
+sculpted `Plane` with **Rigid Body → Passive**. The exporter maps the Flow
+modifiers to `pm_system = "fluid_inflow"` and `"fluid_outflow"` glTF nodes.
+Plane geometry, transform, initial velocity, and flow behavior come from the
+authored file. Blender's fluid solver and Domain are not used at runtime.
 
-- one mesh object named `FluidSeed` whose vertices, with no faces required,
-  define the initial particle positions;
-- one rectangular mesh named `SpawnPlane` defining the finite emission area;
-- one rectangular mesh named `DestroyPlane` below it, positioned so particles
-  must cross it during the example;
-- a visible but non-colliding backdrop that makes the particle motion readable;
-- enough separation between the two planes to observe neighbor rebuilding,
-  fluid advancement, deterministic spawning, and swept destruction.
+By default an inflow emits 2,400 particles/s. Set the optional Blender custom
+property `pm_particles_per_second` on the inflow object to change it. The
+gallery uses a 30,000-particle capacity, 0.045 m particle radius, and 0.18 m
+support radius; those are example settings, not hidden physics-world defaults.
+The passive surface is exported as its authored triangles and collides on both
+sides. The current fluid response does not push dynamic rigid bodies; that is
+PR 8. Bright agitated surface particles visualize foam. A continuous water surface is
+still scheduled for PR 10.
 
-The initial review will agree on fluid capacity, particle radius, emission
-rate, initial velocity, destroy direction, and custom-property names before the
-exporter or loader is changed. Do not manually add provisional `pm_*` fluid
-properties: the schema must follow the reviewed public API rather than define
-it accidentally. Rigid containment belongs to the following coupling
-milestone, so this first scene should demonstrate a free particle stream, not a
-tank that depends on unimplemented fluid–rigid contacts.
+Export with:
+
+```bash
+blender --background examples/assets/Fluid.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/Fluid.glb
+./build-gallery/parallel-mater-gallery --fluid
+```

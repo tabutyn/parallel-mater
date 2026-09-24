@@ -7,8 +7,9 @@ will be added only after the small public API is proven by gallery examples.
 The current implementation provides the `World` lifecycle and GPU rigid-body
 integration for static, kinematic, and dynamic indexed triangle meshes. Every
 surface is two-sided; open and disconnected meshes are accepted. A
-deterministic private BVH accelerates mesh contact. Fluid declarations are
-present for API review but are implemented in the next milestone.
+deterministic private BVH accelerates mesh contact. Particle fluid, Blender
+Liquid Inflow/Outflow, passive triangle collision, and agitation foam are also
+available through the same `World`.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
 24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
@@ -69,14 +70,14 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
-Left-drag orbits, the wheel zooms, and `R` resets the active scene. `Tab` opens
+Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, DUMP, and Fluid; use Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
-GPU timings and `V` toggles rigid contact diagnostics. Fluid remains unavailable
-until its Blender-authored acceptance scene is provided. Escape quits. A
-display-free DUMP render is also available with `--dump-spheres N`:
+GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
+`Fluid.blend` scene and displays blue particles with white surface foam. Escape
+quits. Display-free DUMP and Fluid renders are available through CLI flags:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
@@ -85,6 +86,9 @@ display-free DUMP render is also available with `--dump-spheres N`:
 ./build-gallery/parallel-mater-gallery \
   --dump-spheres 100 \
   --headless /tmp/parallel-mater-dump.ppm --frames 120
+
+./build-gallery/parallel-mater-gallery \
+  --fluid --headless /tmp/parallel-mater-fluid.ppm --frames 120
 ```
 
 The gallery currently requires an NVIDIA driver supported by OptiX 9.1,

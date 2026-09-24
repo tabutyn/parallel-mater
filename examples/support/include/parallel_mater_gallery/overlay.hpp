@@ -19,19 +19,27 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings);
 
+void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &physics,
+                               const RendererTimings &renderer,
+                               const WorldStatistics &statistics,
+                               std::uint32_t capacity);
+
 [[nodiscard]] bool draw_rigid_contact_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, RigidContactDeviceView contacts, Camera camera,
     std::string &error);
 
-// Fluid is intentionally shown as unavailable until its Blender-authored
-// acceptance scene exists. Gallery navigation belongs to examples, not World.
+// Fluid loads the Blender-authored Flow scene. Gallery navigation belongs to
+// examples, not World.
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection);
 
-void draw_dump_count_overlay(std::vector<std::uint32_t> &rgba,
-                             std::uint32_t width, std::uint32_t height,
-                             const std::string &value, bool invalid);
+void draw_count_overlay(std::vector<std::uint32_t> &rgba,
+                        std::uint32_t width, std::uint32_t height,
+                        GalleryContext context, const std::string &value,
+                        bool invalid);
 
 } // namespace parallel_mater::gallery

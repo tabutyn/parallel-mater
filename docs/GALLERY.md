@@ -33,7 +33,8 @@ Headless physics builds remain free of OpenGL and OptiX.
    meshes collide inside a concave bowl.
 2. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
    into a larger static receiver.
-3. **Fluid tank** — particle water settles inside static rigid boundaries.
+3. **Fluid flow** — Blender Inflow emits repelling particles over a passive
+   triangle surface; Outflow removes them and impact agitation shows as foam.
 4. **Heavy sphere** — a dynamic sphere enters the fluid and receives visible
    two-way reaction forces.
 5. **Obstacle bowl** — gravity steering rolls the sphere through pegs while
@@ -48,15 +49,29 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid.
-Up/Down changes selection and Enter activates an available scene. DUMP uses one
+Up/Down changes selection and Enter activates an available scene. A shared
+camera controller works in all three scenes: left-drag orbits,
+Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
+the new scene's target while preserving orbit and zoom. The Fluid camera can
+also move beneath the level for inspection. DUMP uses one
 procedural sphere mesh—eight cube corners plus six face centers, projected to a
 radius and joined as four triangles per face—and instances it for every body.
 Its hopper omits top and right faces; Left Arrow rotates the hopper clockwise.
 `P` opens a 10–1,000 sphere-count editor and applying a value rebuilds the DUMP
-runtime. Fluid remains unavailable until its Blender-authored acceptance scene
-is supplied; DUMP does not substitute for that required scene. `F` displays
-opt-in CUDA-event timings. `V` renders rigid contacts, normals, and friction
-impulses.
+runtime. Fluid loads the supplied Blender-authored `Fluid.blend` via its GLB
+export. In Fluid, `P` edits the particle cap (100–100,000; default 30,000)
+and restarts the scene. `--fluid-particles N` sets the cap for a headless run.
+`R` rebuilds the active scene from its initial state, clearing particles and
+emitter history. In Fluid, `V` toggles between the continuous surface and
+individual particles; `--fluid-particle-view` selects particles in headless
+mode. In other scenes, `V` retains the rigid-contact debug view.
+For containment debugging, run the headless Fluid scene with
+`--trace-fluid-escapes`. It reports the first particle below the passive
+mesh's overall bottom or more than 1 mm below its local floor surface,
+including its stable ID and recent positions, and exits nonzero on penetration.
+`F` shows Fluid solver stages, surface-build GPU time, OptiX/render wall time,
+and live/emitted/outflow/capacity-miss counts. It shows rigid solver stages in
+the other scenes.
 
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.
@@ -77,12 +92,16 @@ considered reusable until a scene can express it through the installed API.
 
 ## Visual quality
 
-Physics particles and rendering are separate. Rigid meshes are rendered now;
-continuous water is a later renderer milestone with two implementations
-evaluated independently:
-
-- screen-space or scalar-field reconstruction for broad compatibility;
-- OptiX ray tracing on supported NVIDIA desktop/server GPUs.
-
-The gallery chooses a renderer at runtime. Neither implementation changes
-fluid stepping or the public physics API.
+Physics particles and rendering are separate. The gallery ray traces rigid
+meshes and reconstructs a continuous fluid surface from a weighted local
+particle-center field on an adaptive GPU grid. OptiX traces that field and
+shades water with Fresnel reflection, refraction, absorption, and glints.
+Sparse depth-tested foam flecks come from the particle foam signal. The
+surface renderer now uses the solver's particle-neighbor reach and caps its
+lower envelope near the particle radius, preventing the reconstructed water
+from bulging through the underside of the terrain. Stronger absorption avoids
+a noisy checkerboard transmission over the test terrain. Meshing is
+example-only; fluid stepping stays in the public API. The adaptive surface
+grid ignores isolated distant particle
+outliers so escaped droplets cannot consume the grid resolution needed by the
+main stream; `F` reports how many particles fell outside its render bounds.
