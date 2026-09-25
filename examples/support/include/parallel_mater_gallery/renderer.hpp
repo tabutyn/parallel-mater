@@ -25,6 +25,7 @@ struct RendererTimings {
     float total_wall_milliseconds{};
     std::uint32_t particle_count{};
     std::uint32_t surface_excluded_particle_count{};
+    std::uint32_t foam_patch_count{};
     bool particle_view{};
 };
 
@@ -43,6 +44,8 @@ class OptixRenderer {
     OptixRenderer &operator=(const OptixRenderer &) = delete;
 
     [[nodiscard]] static bool create(const SceneDefinition &scene,
+                                     const World &world,
+                                     const SceneInstance &instance,
                                      const std::filesystem::path &ptx_path,
                                      std::uint32_t width,
                                      std::uint32_t height,
@@ -57,6 +60,13 @@ class OptixRenderer {
                               RendererTimings *timings = nullptr,
                               FluidRenderMode fluid_mode =
                                   FluidRenderMode::surface);
+
+    // Advance render-only foam during unrendered headless steps.
+    [[nodiscard]] bool advance_visuals(const World &world,
+                                       const SceneInstance &instance,
+                                       std::string &error);
+    [[nodiscard]] bool paint_coverage(std::uint64_t &painted_texels,
+                                      std::string &error) const;
 
     [[nodiscard]] std::uint32_t width() const noexcept;
     [[nodiscard]] std::uint32_t height() const noexcept;

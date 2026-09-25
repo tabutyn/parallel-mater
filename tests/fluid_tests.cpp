@@ -103,6 +103,71 @@ int main() {
               "sorted-cell repulsion matches brute-force pair");
     }
 
+    // Radial damping matches the old Water solver's pairwise approach term
+    // without removing tangential relative velocity like viscosity does.
+    World damped_world;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, damped_world),
+          "create damped-pair world");
+    const std::array<FluidParticle, 2> approaching{{
+        {{0.0F, 0.0F, 0.0F}, {0.1F, 0.0F, 0.0F}},
+        {{0.5F, 0.0F, 0.0F}, {-0.1F, 0.0F, 0.0F}}}};
+    FluidParticle *damped_input = upload(approaching.data(), approaching.size());
+    FluidId damped_id{};
+    check(damped_world.add_fluid({.capacity = 2U,
+                                  .particle_radius = 0.1F,
+                                  .support_radius = 1.0F,
+                                  .solver_iterations = 1U,
+                                  .repulsion = 0.0F,
+                                  .viscosity = 0.0F,
+                                  .velocity_damping = 0.0F,
+                                  .maximum_speed = 100.0F,
+                                  .normal_damping = 2.0F},
+                                 {damped_input, approaching.size()}, damped_id),
+          "add approaching pair");
+    cudaFree(damped_input);
+    check(damped_world.step({.timestep = 0.1F, .substeps = 1U,
+                             .gravity = {}}), "step damped pair");
+    FluidDeviceView damped_view{};
+    check(damped_world.fluid_view(damped_id, damped_view),
+          "view damped pair");
+    std::array<Vec3, 2> damped_velocities{};
+    check(cudaMemcpy(damped_velocities.data(), damped_view.velocities.data,
+                     sizeof(damped_velocities), cudaMemcpyDeviceToHost) ==
+              cudaSuccess, "read damped pair velocities");
+    check(std::fabs(damped_velocities[0].x - 0.06F) < 0.01F &&
+          std::fabs(damped_velocities[1].x + 0.06F) < 0.01F,
+          "normal damping opposes pairwise approach symmetrically");
+
+    World capped_world;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, capped_world),
+          "create capped-pair world");
+    FluidParticle *capped_input = upload(pair.data(), pair.size());
+    FluidId capped_id{};
+    check(capped_world.add_fluid({.capacity = 2U,
+                                  .particle_radius = 0.1F,
+                                  .support_radius = 1.0F,
+                                  .solver_iterations = 1U,
+                                  .repulsion = 20.0F,
+                                  .viscosity = 0.0F,
+                                  .velocity_damping = 0.0F,
+                                  .maximum_pair_acceleration = 1.0F},
+                                 {capped_input, pair.size()}, capped_id),
+          "add capped pair fluid");
+    cudaFree(capped_input);
+    check(capped_world.step({.timestep = 0.1F, .substeps = 1U,
+                             .gravity = {}}), "step capped pair");
+    FluidDeviceView capped_view{};
+    check(capped_world.fluid_view(capped_id, capped_view), "view capped pair");
+    std::array<Vec3, 2> capped_velocities{};
+    check(cudaMemcpy(capped_velocities.data(), capped_view.velocities.data,
+                     sizeof(capped_velocities), cudaMemcpyDeviceToHost) ==
+              cudaSuccess, "read capped pair velocities");
+    check(std::fabs(capped_velocities[0].x + 0.1F) < 0.01F &&
+          std::fabs(capped_velocities[1].x - 0.1F) < 0.01F,
+          "pair acceleration cap bounds the initial packing response");
+
     World overflow_world;
     check(World::create({.rigid_body_capacity = 1U,
                          .triangle_mesh_capacity = 1U}, overflow_world),
@@ -358,6 +423,54 @@ int main() {
           coupled_event.normal.y > 0.9F &&
           coupled_event.normal_impulse > 1.0F,
           "contact event names the particle, body, normal, and impulse");
+
+    World overlap_world;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, overlap_world),
+          "create resting-overlap world");
+    Vec3 *overlap_vertices = upload(vertices.data(), vertices.size());
+    std::uint32_t *overlap_indices = upload(triangles.data(), triangles.size());
+    TriangleMeshId overlap_mesh{};
+    check(overlap_world.add_triangle_mesh(
+        {overlap_vertices, vertices.size()},
+        {overlap_indices, triangles.size()}, overlap_mesh),
+        "add resting-overlap triangle mesh");
+    cudaFree(overlap_vertices);
+    cudaFree(overlap_indices);
+    RigidBodyId overlap_body{};
+    check(overlap_world.add_rigid_body(
+        {.motion = MotionType::dynamic, .mesh = overlap_mesh,
+         .linear_damping = 0.0F, .angular_damping = 0.0F}, overlap_body),
+        "add resting-overlap body");
+    const FluidParticle overlapping{{0.0F, 0.05F, 0.0F}, {}};
+    FluidParticle *overlap_input = upload(&overlapping, 1U);
+    FluidId overlap_fluid{};
+    check(overlap_world.add_fluid({.capacity = 1U,
+                                   .particle_radius = 0.1F,
+                                   .rest_density = 125.0F,
+                                   .support_radius = 0.2F,
+                                   .solver_iterations = 1U,
+                                   .velocity_damping = 0.0F},
+                                  {overlap_input, 1U}, overlap_fluid),
+          "add resting-overlap particle");
+    cudaFree(overlap_input);
+    check(overlap_world.step({.timestep = 0.1F, .substeps = 1U,
+                              .gravity = {}}), "resolve resting overlap");
+    FluidDeviceView overlap_view{};
+    check(overlap_world.fluid_view(overlap_fluid, overlap_view),
+          "view resting-overlap fluid");
+    Vec3 overlap_particle_velocity{};
+    check(cudaMemcpy(&overlap_particle_velocity, overlap_view.velocities.data,
+                     sizeof(Vec3), cudaMemcpyDeviceToHost) == cudaSuccess,
+          "read resting-overlap particle velocity");
+    RigidBodyState overlap_state{};
+    check(overlap_world.read_rigid_body_state(overlap_body, overlap_state),
+          "read resting-overlap body");
+    check(overlap_particle_velocity.y > 0.01F &&
+          overlap_state.linear_velocity.y < -0.01F &&
+          std::fabs(overlap_particle_velocity.y +
+                    overlap_state.linear_velocity.y) < 0.01F,
+          "resting overlap shares recovery impulse with the rigid body");
 
     World limited_events;
     check(World::create({.rigid_body_capacity = 1U,

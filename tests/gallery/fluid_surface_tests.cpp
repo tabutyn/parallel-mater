@@ -282,6 +282,12 @@ int main() {
                 const float interpolated = values[first] + fraction *
                     (values[first + grid.dimensions.x] - values[first]);
                 below_interpolated_floor += interpolated < 0.0F;
+                if (interpolated < 0.0F && below_interpolated_floor <= 3U)
+                    std::cout << "Below interpolated floor x=" <<
+                        grid.minimum.x + x * grid.cell_size.x
+                        << " z=" << grid.minimum.z + z * grid.cell_size.z
+                        << " floor=" << floor
+                        << " field=" << interpolated << '\n';
             }
         std::cout << "Fluid scene interpolated water below terrain="
                   << below_interpolated_floor << '\n';

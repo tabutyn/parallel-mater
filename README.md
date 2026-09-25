@@ -11,6 +11,9 @@ deterministic private BVH accelerates mesh contact. Particle fluid, Blender
 Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
 momentum exchange, and agitation foam are also available through the same
 `World`.
+One-shot Blender Geometry flows use the public volume sampler. Opt-in
+fluid-to-rigid contact paint fields are also owned by `World`; the gallery
+supplies UVs and chooses their display color and filtering.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
 24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
@@ -26,8 +29,8 @@ measurements, not general hardware claims.
   solver-internal phases.
 - CUDA allocations remain owned by the library while renderers borrow explicit
   device views.
-- Fluids accept device-resident initial particles and can own deterministic,
-  capacity-bounded particle spawn and destroy planes.
+- Fluids accept device-resident initial particles or one-shot host geometry
+  volumes, and can own deterministic, capacity-bounded inflow/outflow planes.
 - Synchronous convenience calls and stream-ordered asynchronous calls share the
   same semantics.
 - The gallery is simultaneously the example suite, visual regression surface,
@@ -72,13 +75,16 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, DUMP, and Fluid; use Up/Down and Enter to switch.
+the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, and Peg Paint; use
+Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
 GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
-quits. Display-free DUMP and Fluid renders are available through CLI flags:
+quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
+camera; release them to return it smoothly to vertical. Display-free scene
+renders are available through CLI flags:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

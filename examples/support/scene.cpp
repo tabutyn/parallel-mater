@@ -243,6 +243,17 @@ class FlatJson {
     return {color[0], color[1], color[2]};
 }
 
+[[nodiscard]] bool material_visible(const cgltf_material *material) {
+    if (material == nullptr || !material->has_pbr_metallic_roughness ||
+        material->alpha_mode == cgltf_alpha_mode_opaque) {
+        return true;
+    }
+    const float alpha = material->pbr_metallic_roughness.base_color_factor[3];
+    if (material->alpha_mode == cgltf_alpha_mode_mask)
+        return alpha >= material->alpha_cutoff;
+    return alpha > 0.0F;
+}
+
 [[nodiscard]] bool append_primitive(const cgltf_primitive &primitive,
                                     Vec3 scale, bool checkerboard,
                                     std::string_view name,
@@ -256,6 +267,8 @@ class FlatJson {
         cgltf_find_accessor(&primitive, cgltf_attribute_type_position, 0);
     const cgltf_accessor *normals =
         cgltf_find_accessor(&primitive, cgltf_attribute_type_normal, 0);
+    const cgltf_accessor *uvs =
+        cgltf_find_accessor(&primitive, cgltf_attribute_type_texcoord, 0);
     if (positions == nullptr || positions->type != cgltf_type_vec3) {
         error = std::string(name) + ": POSITION vec3 data is required";
         return false;
@@ -267,6 +280,7 @@ class FlatJson {
 
     mesh.name = std::string(name);
     mesh.base_color = material_color(primitive.material);
+    mesh.visible = material_visible(primitive.material);
     mesh.checkerboard = checkerboard;
     mesh.vertices.resize(positions->count);
     const Vec3 inverse_scale{1.0F / scale.x, 1.0F / scale.y, 1.0F / scale.z};
@@ -292,6 +306,16 @@ class FlatJson {
             }
             mesh.vertices[index].normal = normalize(
                 multiply({normal[0], normal[1], normal[2]}, inverse_scale));
+        }
+        if (uvs != nullptr) {
+            std::array<cgltf_float, 2> uv{};
+            if (uvs->type != cgltf_type_vec2 ||
+                !cgltf_accessor_read_float(uvs, index, uv.data(), uv.size()) ||
+                !std::isfinite(uv[0]) || !std::isfinite(uv[1])) {
+                error = std::string(name) + ": invalid TEXCOORD_0";
+                return false;
+            }
+            mesh.vertices[index].uv = {uv[0], uv[1]};
         }
     }
 
@@ -332,6 +356,32 @@ class FlatJson {
         }
     }
     return true;
+}
+
+[[nodiscard]] bool sample_initial_volume(
+    const cgltf_node &node, Vec3 scale, Vec3 velocity, float spacing,
+    std::vector<FluidParticle> &particles, std::string &error) {
+    std::vector<Vec3> vertices;
+    std::vector<std::uint32_t> indices;
+    for (cgltf_size primitive_index = 0U;
+         primitive_index < node.mesh->primitives_count; ++primitive_index) {
+        TriangleMesh mesh{};
+        if (!append_primitive(node.mesh->primitives[primitive_index], scale,
+                              false, "fluid initial volume", mesh, error))
+            return false;
+        const auto base = static_cast<std::uint32_t>(vertices.size());
+        for (const Vertex &vertex : mesh.vertices)
+            vertices.push_back(vertex.position);
+        for (const std::uint32_t index : mesh.indices)
+            indices.push_back(base + index);
+    }
+    const FluidGeometrySource source{{vertices.data(), vertices.size()},
+        {indices.data(), indices.size()}, node_state(node), velocity, spacing};
+    const Status status = sample_fluid_geometry(source, particles);
+    if (!status)
+        error = status.message != nullptr ? status.message :
+            "fluid geometry sampling failed";
+    return status.ok();
 }
 
 [[nodiscard]] bool finalize_body_geometry(SceneDefinition &scene,
@@ -593,6 +643,15 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             return false;
         }
         body.name = extras.string("pm_name").value_or(body.name);
+        body.paintable = extras.boolean("pm_paintable").value_or(false);
+        if (const auto resolution = extras.number("pm_paint_resolution")) {
+            if (!std::isfinite(*resolution) || *resolution < 32.0 ||
+                *resolution > 2048.0 || std::floor(*resolution) != *resolution) {
+                error = body.name + ": pm_paint_resolution must be an integer from 32 to 2048";
+                return false;
+            }
+            body.paint_resolution = static_cast<std::uint32_t>(*resolution);
+        }
         if (node.parent != nullptr) {
             error = body.name + ": physics objects must be scene-root nodes";
             return false;
@@ -673,13 +732,16 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         }
         output.rigid_bodies.push_back(std::move(body));
     }
+    std::optional<float> initial_spacing;
+    std::optional<float> initial_gravity_scale;
     for (cgltf_size node_index = 0; node_index < data->nodes_count;
          ++node_index) {
         const cgltf_node &node = data->nodes[node_index];
         if (node.extras.data == nullptr) continue;
         const FlatJson extras(node.extras.data);
         const std::string system = extras.string("pm_system").value_or("");
-        if (system != "fluid_inflow" && system != "fluid_outflow") continue;
+        if (system != "fluid_inflow" && system != "fluid_outflow" &&
+            system != "fluid_initial_volume") continue;
         const std::string name = node.name != nullptr ? node.name : "fluid plane";
         if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
             node.parent != nullptr || node.has_matrix || node.mesh == nullptr ||
@@ -692,6 +754,33 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             scale.z <= 0.0F) {
             error = name + ": fluid plane scale is invalid";
             return false;
+        }
+        if (system == "fluid_initial_volume") {
+            const float spacing = static_cast<float>(
+                extras.number("pm_particle_spacing").value_or(0.06));
+            const float gravity_scale = static_cast<float>(
+                extras.number("pm_gravity_scale").value_or(1.0));
+            const Vec3 velocity{
+                static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_z").value_or(0.0))};
+            if (!finite(velocity) || !std::isfinite(spacing) ||
+                spacing < 0.01F || spacing > 0.2F ||
+                !std::isfinite(gravity_scale) ||
+                gravity_scale <= 0.0F || gravity_scale > 10.0F ||
+                (initial_spacing && std::fabs(*initial_spacing - spacing) > 1.0e-5F) ||
+                (initial_gravity_scale &&
+                 std::fabs(*initial_gravity_scale - gravity_scale) > 1.0e-5F)) {
+                error = name + ": invalid or inconsistent initial fluid settings";
+                return false;
+            }
+            initial_spacing = spacing;
+            initial_gravity_scale = gravity_scale;
+            if (!sample_initial_volume(node, scale, velocity, spacing,
+                                       output.initial_particles, error)) {
+                return false;
+            }
+            continue;
         }
         Vec3 minimum{FLT_MAX, FLT_MAX, FLT_MAX};
         Vec3 maximum{-FLT_MAX, -FLT_MAX, -FLT_MAX};
@@ -759,6 +848,23 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                 .solver_iterations = 2U,
                                 .maximum_neighbors = 128U,
                                 .repulsion = 50.0F};
+    } else if (!output.initial_particles.empty()) {
+        const float spacing = *initial_spacing;
+        const float radius = 0.5F * spacing;
+        output.gravity_scale = *initial_gravity_scale;
+        output.fluid_options = {.capacity = 30'000U,
+                                .particle_radius = radius,
+                                .support_radius = std::max(0.12F, spacing),
+                                .solver_iterations = 2U,
+                                .maximum_neighbors = 256U,
+                                .repulsion = 30.0F,
+                                .viscosity = 0.0F,
+                                .velocity_damping = 0.4F,
+                                .maximum_speed = 3.0F,
+                                .normal_damping = 2.0F,
+                                .rest_particle_volume =
+                                    std::sqrt(0.5F) * spacing * spacing * spacing,
+                                .maximum_pair_acceleration = 55.0F};
     }
     if (output.rigid_bodies.empty()) {
         error = "GLB contains no ParallelMater rigid bodies";
@@ -969,7 +1075,37 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         output.rigid_bodies.push_back(body);
     }
     if (scene.fluid_options.capacity != 0U) {
-        Status status = world.add_fluid(scene.fluid_options, {}, output.fluid);
+        const std::size_t requested = std::min<std::size_t>(
+            scene.fluid_options.capacity, scene.initial_particles.size());
+        std::vector<FluidParticle> initial;
+        try {
+            initial.reserve(requested);
+            for (std::size_t index = 0U; index < requested; ++index) {
+                const std::size_t source = index * scene.initial_particles.size() /
+                                           requested;
+                initial.push_back(scene.initial_particles[source]);
+            }
+        } catch (...) {
+            return {StatusCode::out_of_memory, cudaSuccess,
+                    "failed to select initial gallery particles"};
+        }
+        FluidParticle *device_initial = nullptr;
+        if (!initial.empty()) {
+            cudaError_t error = cudaMalloc(
+                reinterpret_cast<void **>(&device_initial),
+                initial.size() * sizeof(FluidParticle));
+            if (error == cudaSuccess)
+                error = cudaMemcpy(device_initial, initial.data(),
+                    initial.size() * sizeof(FluidParticle), cudaMemcpyHostToDevice);
+            if (error != cudaSuccess) {
+                cudaFree(device_initial);
+                return {StatusCode::cuda_failure, error,
+                        "failed to upload initial gallery particles"};
+            }
+        }
+        Status status = world.add_fluid(scene.fluid_options,
+            {device_initial, initial.size()}, output.fluid);
+        cudaFree(device_initial);
         if (!status) return status;
         output.has_fluid = true;
         for (ParticleSpawnPlaneOptions options : scene.spawn_planes) {
@@ -984,6 +1120,67 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             status = world.add_particle_destroy_plane(options, id);
             if (!status) return status;
         }
+    }
+    try {
+    for (std::uint32_t body_index = 0;
+         body_index < scene.rigid_bodies.size(); ++body_index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
+        if (!body.paintable) continue;
+        if (!output.has_fluid)
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "paintable gallery body needs a fluid source"};
+        for (const std::uint32_t mesh_index : body.mesh_indices) {
+            const TriangleMesh &mesh = scene.meshes[mesh_index];
+            const std::string key = "paint:" + std::to_string(mesh_index);
+            TriangleMeshId mesh_id{};
+            const auto cached = mesh_cache.find(key);
+            if (cached != mesh_cache.end()) {
+                mesh_id = cached->second;
+            } else {
+                Status status = upload_mesh(scene.meshes, {mesh_index}, mesh_id);
+                if (!status) return status;
+                mesh_cache.emplace(key, mesh_id);
+            }
+            std::vector<Vec2> uvs;
+            try {
+                uvs.reserve(mesh.vertices.size());
+                for (const Vertex &vertex : mesh.vertices)
+                    uvs.push_back(vertex.uv);
+            } catch (...) {
+                return {StatusCode::out_of_memory, cudaSuccess,
+                        "failed to assemble paint UVs"};
+            }
+            Vec2 *device_uvs = nullptr;
+            cudaError_t error = cudaMalloc(
+                reinterpret_cast<void **>(&device_uvs),
+                uvs.size() * sizeof(Vec2));
+            if (error == cudaSuccess)
+                error = cudaMemcpy(device_uvs, uvs.data(),
+                    uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice);
+            if (error != cudaSuccess) {
+                cudaFree(device_uvs);
+                return {StatusCode::cuda_failure, error,
+                        "failed to upload paint UVs"};
+            }
+            PaintFieldId field{};
+            Status status = world.add_paint_field(
+                {.body = output.rigid_bodies[body_index],
+                 .mesh = mesh_id,
+                 .vertex_uvs = {device_uvs, uvs.size()},
+                 .width = body.paint_resolution,
+                 .height = body.paint_resolution}, field);
+            cudaFree(device_uvs);
+            if (!status) return status;
+            PaintRuleId rule{};
+            status = world.add_paint_rule(
+                {.source = output.fluid, .target = field}, rule);
+            if (!status) return status;
+            output.paint_bindings.push_back({body_index, mesh_index, field});
+        }
+    }
+    } catch (...) {
+        return {StatusCode::out_of_memory, cudaSuccess,
+                "failed to assemble gallery paint bindings"};
     }
     return {};
 }

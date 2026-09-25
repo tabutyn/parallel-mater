@@ -9,6 +9,7 @@ namespace parallel_mater::gallery::optix_shared {
 struct Vertex {
     float3 position{};
     float3 normal{};
+    float2 uv{};
 };
 
 struct FluidSurfaceGrid {
@@ -27,6 +28,7 @@ struct FluidSurfaceView {
 struct LaunchParameters {
     uchar4 *image{};
     float *depth{};
+    float *rigid_depth{};
     unsigned int width{};
     unsigned int height{};
     OptixTraversableHandle scene{};
@@ -40,6 +42,9 @@ struct LaunchParameters {
 struct HitData {
     const Vertex *vertices{};
     const uint3 *triangles{};
+    const unsigned int *paint_pixels{};
+    unsigned int paint_width{};
+    unsigned int paint_height{};
     float3 base_color{};
     unsigned int checkerboard{};
 };

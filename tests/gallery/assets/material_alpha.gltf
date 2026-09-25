@@ -1,0 +1,44 @@
+{
+  "asset": {"version": "2.0"},
+  "scene": 0,
+  "scenes": [{"nodes": [0]}],
+  "nodes": [{
+    "name": "Mixed materials",
+    "mesh": 0,
+    "extras": {"pm_schema": 2, "pm_system": "rigid_body", "pm_motion": "static"}
+  }],
+  "buffers": [{
+    "byteLength": 60,
+    "uri": "data:application/octet-stream;base64,AAAAwAAAAAAAAADAAAAAQAAAAAAAAADAAAAAQAAAAAAAAABAAAAAwAAAAAAAAABAAAACAAEAAAADAAIA"
+  }],
+  "bufferViews": [
+    {"buffer": 0, "byteOffset": 0, "byteLength": 48},
+    {"buffer": 0, "byteOffset": 48, "byteLength": 12}
+  ],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 4, "type": "VEC3",
+     "min": [-2, 0, -2], "max": [2, 0, 2]},
+    {"bufferView": 1, "componentType": 5123, "count": 6, "type": "SCALAR"}
+  ],
+  "materials": [
+    {"alphaMode": "MASK", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0]}},
+    {"alphaMode": "MASK", "alphaCutoff": 0.25,
+     "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.2]}},
+    {"alphaMode": "MASK", "alphaCutoff": 0.25,
+     "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.25]}},
+    {"alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0]}},
+    {"alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.4]}},
+    {"alphaMode": "OPAQUE", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0]}},
+    {}
+  ],
+  "meshes": [{"primitives": [
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 0},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 1},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 2},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 3},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 4},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 5},
+    {"attributes": {"POSITION": 0}, "indices": 1, "material": 6},
+    {"attributes": {"POSITION": 0}, "indices": 1}
+  ]}]
+}

@@ -107,13 +107,22 @@ __global__ void build_field(const Vec3 *positions, std::uint32_t count,
         const float x = offset.x / weight;
         const float y = offset.y / weight;
         const float z = offset.z / weight;
+        // Keep the original broad Zhu-Bridson surface on top, but use the
+        // physical particle radius below the weighted center. A broad lower
+        // lobe can reappear under sloped terrain even with a vertical clamp.
+        const float upper_radius = grid.support_radius / 3.0F;
+        const float lower_radius = fminf(upper_radius,
+                                         grid.particle_radius * 0.8F);
+        const float upper_weight = fminf(1.0F,
+            fmaxf(0.0F, y / grid.particle_radius));
         const float smooth_surface = sqrtf(x * x + y * y + z * z) -
-            fminf(grid.support_radius / 3.0F,
-                  grid.particle_radius * 0.8F);
+            (lower_radius + (upper_radius - lower_radius) * upper_weight);
         // The weighted-center field can bulge far below a particle layer.
         // Keep its lower boundary within one physical particle radius of
-        // the local weighted particle center.
-        value = fmaxf(smooth_surface, -y - grid.particle_radius * 0.9F);
+        // the local weighted particle center. A 2 mm field clearance also
+        // survives grid interpolation against sloped triangle terrain.
+        value = fmaxf(smooth_surface, -y - grid.particle_radius * 0.9F)
+            + 0.002F;
     }
     values[i] = value;
 }

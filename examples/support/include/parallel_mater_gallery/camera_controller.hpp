@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace parallel_mater::gallery {
 
@@ -13,12 +14,54 @@ enum class CameraDragMode { orbit, pan };
 struct CameraPreset {
     Vec3 target{0.0F, 1.8F, 0.0F};
     float distance_scale{1.0F};
+    std::optional<float> pitch{};
 };
+
+// Camera-relative gravity steering shared by scenes with a tiltable course.
+// Input is right/forward on the horizontal camera plane, each in [-1, 1].
+inline constexpr float peg_paint_gravity_tilt_degrees = 50.0F;
+
+[[nodiscard]] inline Vec3 steer_gravity(Vec3 current, Camera camera,
+                                         float right_input, float forward_input,
+                                         float magnitude, float tilt_degrees,
+                                         float timestep) noexcept {
+    constexpr float radians = 0.017453292519943295F;
+    Vec3 forward{camera.target.x - camera.eye.x, 0.0F,
+                 camera.target.z - camera.eye.z};
+    const float forward_length = std::hypot(forward.x, forward.z);
+    if (forward_length > 1.0e-6F) {
+        forward.x /= forward_length;
+        forward.z /= forward_length;
+    } else {
+        forward = {0.0F, 0.0F, -1.0F};
+    }
+    const Vec3 right{-forward.z, 0.0F, forward.x};
+    Vec3 steering{right.x * right_input + forward.x * forward_input, 0.0F,
+                  right.z * right_input + forward.z * forward_input};
+    const float length = std::hypot(steering.x, steering.z);
+    const float tilt = std::clamp(tilt_degrees, 0.0F, 89.0F) * radians;
+    Vec3 desired{0.0F, -magnitude, 0.0F};
+    if (length > 1.0e-6F) {
+        const float horizontal = magnitude * std::sin(tilt) / length;
+        desired = {steering.x * horizontal, -magnitude * std::cos(tilt),
+                   steering.z * horizontal};
+    }
+    const float blend = 1.0F - std::exp(-timestep / 0.16F);
+    Vec3 result{current.x + (desired.x - current.x) * blend,
+                current.y + (desired.y - current.y) * blend,
+                current.z + (desired.z - current.z) * blend};
+    const float result_length = std::sqrt(result.x * result.x +
+        result.y * result.y + result.z * result.z);
+    if (result_length <= 1.0e-6F) return desired;
+    const float scale = magnitude / result_length;
+    return {result.x * scale, result.y * scale, result.z * scale};
+}
 
 class CameraController {
   public:
     void set_preset(CameraPreset preset) noexcept {
         preset_ = preset;
+        if (preset.pitch) pitch_ = std::clamp(*preset.pitch, -1.35F, 1.35F);
         pan_ = {};
         dragging_ = false;
     }

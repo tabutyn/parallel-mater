@@ -3,6 +3,7 @@
 
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
+#include "foam_visuals.hpp"
 
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
@@ -12,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -22,6 +24,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -34,6 +37,7 @@ using optix_shared::LaunchParameters;
 static_assert(sizeof(Vertex) == sizeof(optix_shared::Vertex));
 static_assert(offsetof(Vertex, position) == offsetof(optix_shared::Vertex, position));
 static_assert(offsetof(Vertex, normal) == offsetof(optix_shared::Vertex, normal));
+static_assert(offsetof(Vertex, uv) == offsetof(optix_shared::Vertex, uv));
 
 [[noreturn]] void fail(const std::string &message) {
     throw std::runtime_error(message);
@@ -43,6 +47,25 @@ void check_cuda(cudaError_t result, const char *operation) {
     if (result != cudaSuccess) {
         fail(std::string(operation) + ": " + cudaGetErrorString(result));
     }
+}
+
+void read_fluid_visual_samples(const FluidDeviceView &view,
+                               std::vector<Vec3> &positions,
+                               std::vector<float> &foam,
+                               std::vector<std::uint32_t> &ids) {
+    positions.resize(view.particle_count);
+    foam.resize(view.particle_count);
+    ids.resize(view.particle_count);
+    if (view.particle_count == 0U) return;
+    check_cuda(cudaMemcpy(positions.data(), view.positions.data,
+                          positions.size() * sizeof(Vec3),
+                          cudaMemcpyDeviceToHost), "copy fluid positions");
+    check_cuda(cudaMemcpy(foam.data(), view.foam.data,
+                          foam.size() * sizeof(float),
+                          cudaMemcpyDeviceToHost), "copy foam signal");
+    check_cuda(cudaMemcpy(ids.data(), view.stable_particle_ids.data,
+                          ids.size() * sizeof(std::uint32_t),
+                          cudaMemcpyDeviceToHost), "copy fluid IDs");
 }
 
 void check_driver(CUresult result, const char *operation) {
@@ -163,6 +186,7 @@ struct Geometry {
 struct RenderBinding {
     std::uint32_t body_index{};
     std::uint32_t mesh_index{};
+    unsigned int visibility_mask{255U};
 };
 
 [[nodiscard]] float3 make_float(Vec3 value) {
@@ -190,6 +214,55 @@ struct RenderBinding {
 [[nodiscard]] Vec3 normalize(Vec3 value) {
     const float length = std::sqrt(std::max(dot(value, value), 1.0e-20F));
     return multiply(value, 1.0F / length);
+}
+
+struct PositionKey {
+    std::array<std::uint32_t, 3> bits{};
+    [[nodiscard]] bool operator==(const PositionKey &) const = default;
+};
+
+struct PositionHash {
+    [[nodiscard]] std::size_t operator()(PositionKey key) const noexcept {
+        std::size_t result = key.bits[0];
+        result = result * 0x9e3779b1U + key.bits[1];
+        return result * 0x9e3779b1U + key.bits[2];
+    }
+};
+
+[[nodiscard]] PositionKey position_key(Vec3 position) noexcept {
+    return {{std::bit_cast<std::uint32_t>(position.x),
+             std::bit_cast<std::uint32_t>(position.y),
+             std::bit_cast<std::uint32_t>(position.z)}};
+}
+
+// Render normals only: weld duplicated GLTF/UV vertices on gentle curves,
+// while keeping cylinder caps and other sharp (>60 degree) edges intact.
+void smooth_render_normals(const TriangleMesh &mesh,
+                           std::vector<Vertex> &vertices) {
+    std::unordered_map<PositionKey, std::vector<Vec3>, PositionHash> faces;
+    faces.reserve(vertices.size());
+    for (std::size_t i = 0; i < mesh.indices.size(); i += 3U) {
+        const std::uint32_t a = mesh.indices[i];
+        const std::uint32_t b = mesh.indices[i + 1U];
+        const std::uint32_t c = mesh.indices[i + 2U];
+        const Vec3 face = cross(subtract(vertices[b].position,
+                                         vertices[a].position),
+                                subtract(vertices[c].position,
+                                         vertices[a].position));
+        if (dot(face, face) < 1.0e-16F) continue;
+        faces[position_key(vertices[a].position)].push_back(face);
+        faces[position_key(vertices[b].position)].push_back(face);
+        faces[position_key(vertices[c].position)].push_back(face);
+    }
+    for (Vertex &vertex : vertices) {
+        Vec3 sum{};
+        const auto found = faces.find(position_key(vertex.position));
+        if (found == faces.end()) continue;
+        for (Vec3 face : found->second)
+            if (dot(normalize(face), vertex.normal) > 0.5F)
+                sum = {sum.x + face.x, sum.y + face.y, sum.z + face.z};
+        if (dot(sum, sum) > 1.0e-16F) vertex.normal = normalize(sum);
+    }
 }
 
 void write_transform(const RigidBodyState &state, float output[12]) {
@@ -239,6 +312,7 @@ struct OptixRenderer::Impl {
     OptixShaderBindingTable shader_binding_table{};
     std::vector<Geometry> geometry{};
     std::vector<RenderBinding> bindings{};
+    std::vector<PaintFieldDeviceView> paint_views{};
     DeviceBuffer raygen_record{};
     DeviceBuffer miss_record{};
     DeviceBuffer hit_records{};
@@ -248,8 +322,11 @@ struct OptixRenderer::Impl {
     DeviceBuffer launch_parameters{};
     DeviceBuffer image{};
     DeviceBuffer depth{};
+    DeviceBuffer rigid_depth{};
     std::vector<float> host_depth{};
+    std::vector<float> host_rigid_depth{};
     std::unique_ptr<FluidSurface> fluid_surface{};
+    FoamVisuals foam_visuals{};
     OptixTraversableHandle scene_handle{};
     std::size_t instance_scratch_build_size{};
     std::size_t instance_scratch_update_size{};
@@ -365,7 +442,9 @@ struct OptixRenderer::Impl {
         for (std::size_t index = 0; index < scene.meshes.size(); ++index) {
             const TriangleMesh &mesh = scene.meshes[index];
             Geometry &gpu = geometry[index];
-            gpu.vertices.upload(mesh.vertices);
+            std::vector<Vertex> vertices = mesh.vertices;
+            smooth_render_normals(mesh, vertices);
+            gpu.vertices.upload(vertices);
             gpu.triangles.upload(mesh.indices);
             CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
             std::uint32_t geometry_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
@@ -413,7 +492,7 @@ struct OptixRenderer::Impl {
             write_transform(states[binding.body_index], instance.transform);
             instance.instanceId = static_cast<unsigned int>(index);
             instance.sbtOffset = static_cast<unsigned int>(index);
-            instance.visibilityMask = 255U;
+            instance.visibilityMask = binding.visibility_mask;
             instance.flags = OPTIX_INSTANCE_FLAG_NONE;
             instance.traversableHandle = geometry[binding.mesh_index].handle;
         }
@@ -428,7 +507,8 @@ struct OptixRenderer::Impl {
             const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
             states.push_back(body.options.initial_state);
             for (const std::uint32_t mesh_index : body.mesh_indices) {
-                bindings.push_back({body_index, mesh_index});
+                bindings.push_back({body_index, mesh_index,
+                    scene.meshes[mesh_index].visible ? 255U : 0U});
             }
         }
         std::vector<OptixInstance> authored_instances = make_instances(states);
@@ -462,6 +542,24 @@ struct OptixRenderer::Impl {
         check_cuda(cudaDeviceSynchronize(), "synchronize instance build");
     }
 
+    void create_paint(const World &world, const SceneInstance &instance) {
+        paint_views.resize(bindings.size());
+        for (std::size_t index = 0; index < bindings.size(); ++index) {
+            const RenderBinding binding = bindings[index];
+            for (const SceneInstance::PaintBinding &paint :
+                 instance.paint_bindings) {
+                if (paint.body_index != binding.body_index ||
+                    paint.mesh_index != binding.mesh_index) continue;
+                const Status status = world.paint_field_view(
+                    paint.field, paint_views[index]);
+                if (!status)
+                    fail(status.message != nullptr ? status.message :
+                         "cannot borrow paint field");
+                break;
+            }
+        }
+    }
+
     void create_shader_binding_table(const SceneDefinition &scene) {
         RaygenRecord raygen{};
         check_optix(optixSbtRecordPackHeader(raygen_group, &raygen),
@@ -482,6 +580,13 @@ struct OptixRenderer::Impl {
                     geometry[mesh_index].vertices.device_pointer());
             hits[index].data.triangles = reinterpret_cast<const uint3 *>(
                 geometry[mesh_index].triangles.device_pointer());
+            if (paint_views[index].pixels.size != 0U) {
+                hits[index].data.paint_pixels =
+                    reinterpret_cast<const std::uint32_t *>(
+                        paint_views[index].pixels.data);
+                hits[index].data.paint_width = paint_views[index].width;
+                hits[index].data.paint_height = paint_views[index].height;
+            }
             hits[index].data.base_color = make_float(mesh.base_color);
             hits[index].data.checkerboard = mesh.checkerboard ? 1U : 0U;
         }
@@ -561,6 +666,8 @@ struct OptixRenderer::Impl {
         LaunchParameters parameters{};
         parameters.image = reinterpret_cast<uchar4 *>(image.pointer());
         parameters.depth = reinterpret_cast<float *>(depth.pointer());
+        parameters.rigid_depth =
+            reinterpret_cast<float *>(rigid_depth.pointer());
         parameters.width = width;
         parameters.height = height;
         parameters.scene = scene_handle;
@@ -584,18 +691,21 @@ struct OptixRenderer::Impl {
         check_cuda(cudaMemcpy(host_depth.data(), depth.pointer(), depth.size(),
                               cudaMemcpyDeviceToHost),
                    "copy OptiX depth");
+        host_rigid_depth.resize(static_cast<std::size_t>(width) * height);
+        check_cuda(cudaMemcpy(host_rigid_depth.data(), rigid_depth.pointer(),
+                              rigid_depth.size(), cudaMemcpyDeviceToHost),
+                   "copy rigid occlusion depth");
     }
 };
 
-void paint_fluid_particles(const std::vector<Vec3> &positions,
-                           const std::vector<float> &foam,
-                           const std::vector<std::uint32_t> &ids,
-                           float radius, Camera camera,
-                           std::uint32_t width, std::uint32_t height,
-                           std::vector<float> &depth,
-                           FluidRenderMode mode,
-                           std::vector<std::uint32_t> &rgba) {
-    const bool particle_view = mode == FluidRenderMode::particles;
+void paint_fluid_particle_view(const std::vector<Vec3> &positions,
+                               const std::vector<float> &foam,
+                               const std::vector<std::uint32_t> &ids,
+                               float radius, Camera camera,
+                               std::uint32_t width, std::uint32_t height,
+                               std::vector<float> &depth,
+                               const std::vector<float> &rigid_depth,
+                               std::vector<std::uint32_t> &rgba) {
     const Vec3 forward = normalize(subtract(camera.target, camera.eye));
     const Vec3 right = normalize(cross(forward, camera.up));
     const Vec3 up = normalize(cross(right, forward));
@@ -604,10 +714,8 @@ void paint_fluid_particles(const std::vector<Vec3> &positions,
         camera.vertical_field_of_view_degrees * radians * 0.5F);
     const float aspect = static_cast<float>(width) / static_cast<float>(height);
     for (std::size_t particle = 0U; particle < positions.size(); ++particle) {
-        if (!particle_view && foam[particle] < 0.25F) continue;
-        const std::uint32_t foam_hash =
+        const std::uint32_t highlight_hash =
             (ids[particle] ^ (ids[particle] >> 16U)) * 0x7feb352dU;
-        if (!particle_view && foam_hash % 9U != 0U) continue;
         const Vec3 offset = subtract(positions[particle], camera.eye);
         const float forward_distance = dot(offset, forward);
         if (forward_distance <= radius) continue;
@@ -618,9 +726,7 @@ void paint_fluid_particles(const std::vector<Vec3> &positions,
         const float center_x = (normalized_x + 1.0F) * 0.5F * width;
         const float center_y = (normalized_y + 1.0F) * 0.5F * height;
         const float pixel_radius = std::max(
-            particle_view ? 1.2F : 1.0F,
-            radius * (particle_view ? 1.0F : 0.65F) * height /
-                (2.0F * forward_distance * tangent));
+            1.2F, radius * height / (2.0F * forward_distance * tangent));
         if (center_x + pixel_radius < 0.0F || center_x - pixel_radius >= width ||
             center_y + pixel_radius < 0.0F || center_y - pixel_radius >= height)
             continue;
@@ -641,17 +747,16 @@ void paint_fluid_particles(const std::vector<Vec3> &positions,
                 const std::size_t index = static_cast<std::size_t>(y) * width + x;
                 const float surface_depth = center_depth -
                     radius * std::sqrt(1.0F - squared);
-                if (surface_depth > depth[index] +
-                    (particle_view ? 0.01F : 0.12F)) continue;
-                if (particle_view) depth[index] = surface_depth;
-                const float highlight = particle_view && foam_hash % 9U != 0U
+                if (surface_depth > rigid_depth[index] + 0.01F) continue;
+                if (surface_depth > depth[index] + 0.01F) continue;
+                depth[index] = surface_depth;
+                const float highlight = highlight_hash % 9U != 0U
                     ? std::clamp(source * 0.25F, 0.0F, 0.2F)
                     : std::clamp(source * 4.0F, 0.0F, 1.0F);
                 const float shading = 0.65F + 0.35F *
                     std::sqrt(1.0F - squared);
                 const std::uint32_t old = rgba[index];
-                const float alpha = particle_view ? 0.78F + 0.18F * highlight
-                                                  : 0.25F + 0.65F * source;
+                const float alpha = 0.78F + 0.18F * highlight;
                 const auto blend = [&](std::uint32_t original,
                                        float water, float white) {
                     const float target = (water * (1.0F - highlight) +
@@ -660,12 +765,9 @@ void paint_fluid_particles(const std::vector<Vec3> &positions,
                         original * (1.0F - alpha) + target * alpha,
                         0.0F, 255.0F));
                 };
-                const std::uint32_t red = blend(old & 255U,
-                                                particle_view ? 25.0F : 190.0F,
-                                                245.0F);
-                const std::uint32_t green = blend((old >> 8U) & 255U,
-                                                  particle_view ? 125.0F : 215.0F,
-                                                  250.0F);
+                const std::uint32_t red = blend(old & 255U, 25.0F, 245.0F);
+                const std::uint32_t green =
+                    blend((old >> 8U) & 255U, 125.0F, 250.0F);
                 const std::uint32_t blue = blend((old >> 16U) & 255U,
                                                  245.0F, 255.0F);
                 rgba[index] = 0xff000000U | (blue << 16U) |
@@ -681,6 +783,8 @@ OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
 OptixRenderer &OptixRenderer::operator=(OptixRenderer &&) noexcept = default;
 
 bool OptixRenderer::create(const SceneDefinition &scene,
+                           const World &world,
+                           const SceneInstance &instance,
                            const std::filesystem::path &ptx_path,
                            std::uint32_t width, std::uint32_t height,
                            OptixRenderer &output, std::string &error) {
@@ -698,13 +802,16 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         implementation->create_pipeline(ptx_path);
         implementation->create_geometry(scene);
         implementation->create_instances(scene);
+        implementation->create_paint(world, instance);
         implementation->create_shader_binding_table(scene);
         implementation->image.resize(static_cast<std::size_t>(width) * height *
                                      sizeof(std::uint32_t));
         implementation->depth.resize(static_cast<std::size_t>(width) * height *
                                      sizeof(float));
+        implementation->rigid_depth.resize(
+            static_cast<std::size_t>(width) * height * sizeof(float));
         implementation->launch_parameters.resize(sizeof(LaunchParameters));
-        if (!scene.spawn_planes.empty())
+        if (scene.fluid_options.capacity != 0U)
             implementation->fluid_surface =
                 std::make_unique<FluidSurface>(scene.fluid_options.capacity);
         output.impl_ = std::move(implementation);
@@ -735,31 +842,17 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         std::vector<Vec3> positions;
         std::vector<float> foam;
         std::vector<std::uint32_t> ids;
-        float particle_radius = 0.0F;
+        FluidDeviceView fluid_view{};
         optix_shared::FluidSurfaceView surface{};
         if (instance.has_fluid) {
             FluidDeviceView view{};
             const Status status = world.fluid_view(instance.fluid, view);
             if (!status) fail(status.message != nullptr ? status.message
                                                        : "cannot borrow fluid view");
+            fluid_view = view;
             sample.particle_count = view.particle_count;
-            particle_radius = view.particle_radius;
-            positions.resize(view.particle_count);
-            foam.resize(view.particle_count);
-            ids.resize(view.particle_count);
+            read_fluid_visual_samples(view, positions, foam, ids);
             if (view.particle_count != 0U) {
-                check_cuda(cudaMemcpy(positions.data(), view.positions.data,
-                                      positions.size() * sizeof(Vec3),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid positions for rendering");
-                check_cuda(cudaMemcpy(foam.data(), view.foam.data,
-                                      foam.size() * sizeof(float),
-                                      cudaMemcpyDeviceToHost),
-                           "copy foam signal for rendering");
-                check_cuda(cudaMemcpy(ids.data(), view.stable_particle_ids.data,
-                                      ids.size() * sizeof(std::uint32_t),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid IDs for rendering");
                 if (impl_->fluid_surface &&
                     fluid_mode == FluidRenderMode::surface) {
                     sample.surface_gpu_milliseconds =
@@ -774,11 +867,22 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         impl_->render(camera, surface, rgba);
         const auto foam_begin = clock::now();
         if (instance.has_fluid && !positions.empty()) {
-            paint_fluid_particles(positions, foam, ids,
-                                  particle_radius,
-                                  camera, impl_->width, impl_->height,
-                                  impl_->host_depth, fluid_mode, rgba);
+            if (fluid_mode == FluidRenderMode::particles) {
+                paint_fluid_particle_view(
+                    positions, foam, ids, fluid_view.particle_radius,
+                    camera, impl_->width, impl_->height,
+                    impl_->host_depth, impl_->host_rigid_depth, rgba);
+            } else {
+                impl_->foam_visuals.advance(
+                    positions, foam, ids, fluid_view.particle_radius);
+                impl_->foam_visuals.paint(
+                    fluid_view.support_radius, camera, impl_->width,
+                    impl_->height, impl_->host_depth,
+                    impl_->host_rigid_depth, rgba);
+            }
         }
+        sample.foam_patch_count = static_cast<std::uint32_t>(
+            impl_->foam_visuals.patch_count());
         const auto finish = clock::now();
         const auto milliseconds = [](auto start, auto end) {
             return std::chrono::duration<float, std::milli>(end - start).count();
@@ -787,6 +891,64 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         sample.foam_wall_milliseconds = milliseconds(foam_begin, finish);
         sample.total_wall_milliseconds = milliseconds(total_begin, finish);
         if (timings) *timings = sample;
+        return true;
+    } catch (const std::exception &exception) {
+        error = exception.what();
+        return false;
+    }
+}
+
+bool OptixRenderer::advance_visuals(const World &world,
+                                    const SceneInstance &instance,
+                                    std::string &error) {
+    error.clear();
+    if (!impl_) {
+        error = "renderer is not initialized";
+        return false;
+    }
+    try {
+        FluidDeviceView fluid{};
+        if (instance.has_fluid) {
+            const Status status = world.fluid_view(instance.fluid, fluid);
+            if (!status) fail(status.message != nullptr ? status.message
+                                                       : "cannot borrow fluid view");
+            if (fluid.particle_count != 0U) {
+                std::vector<Vec3> positions;
+                std::vector<float> foam;
+                std::vector<std::uint32_t> ids;
+                read_fluid_visual_samples(fluid, positions, foam, ids);
+                impl_->foam_visuals.advance(
+                    positions, foam, ids, fluid.particle_radius);
+            }
+        }
+        return true;
+    } catch (const std::exception &exception) {
+        error = exception.what();
+        return false;
+    }
+}
+
+bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
+                                   std::string &error) const {
+    error.clear();
+    painted_texels = 0U;
+    if (!impl_) {
+        error = "renderer is not initialized";
+        return false;
+    }
+    try {
+        for (const PaintFieldDeviceView &mask : impl_->paint_views) {
+            if (mask.pixels.size == 0U) continue;
+            std::vector<std::uint32_t> pixels(
+                mask.pixels.size);
+            check_cuda(cudaMemcpy(pixels.data(), mask.pixels.data,
+                                  mask.pixels.size * sizeof(std::uint32_t),
+                                  cudaMemcpyDeviceToHost),
+                       "read contact paint coverage");
+            painted_texels += static_cast<std::uint64_t>(std::count_if(
+                pixels.begin(), pixels.end(),
+                [](std::uint32_t value) { return value != 0U; }));
+        }
         return true;
     } catch (const std::exception &exception) {
         error = exception.what();

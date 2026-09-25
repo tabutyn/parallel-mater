@@ -11,7 +11,8 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, device views, contacts
+  World, FluidId, RigidBodyId, geometry sampling, inflow/outflow,
+  paint fields and rules, device views, contacts
 
 examples/gallery (not installed)
   .glb assets, scene loader, renderer adapters, controls, objectives
@@ -37,8 +38,9 @@ Headless physics builds remain free of OpenGL and OptiX.
    triangle surface; Outflow removes them and impact agitation shows as foam.
 4. **Fluid + rigid** — 64 independently simulated dynamic spheres from a
    Blender 4×4×4 array fall into the fluid and receive two-way impulses.
-5. **Obstacle bowl** — gravity steering rolls the sphere through pegs while
-   fluid remains contained.
+5. **Peg Paint** — a Blender Geometry flow seeds water once into a bowl with
+   four static pegs and one dynamic sphere; fluid contacts persistently paint
+   the authored UV surfaces blue.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -49,9 +51,9 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
-Fluid + Rigid.
+Fluid + Rigid, Peg Paint.
 Up/Down changes selection and Enter activates an available scene. A shared
-camera controller works in all three scenes: left-drag orbits,
+camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
 the new scene's target while preserving orbit and zoom. The Fluid camera can
 also move beneath the level for inspection. DUMP uses one
@@ -74,6 +76,25 @@ including its stable ID and recent positions, and exits nonzero on penetration.
 and live/emitted/outflow/capacity-miss counts. It shows rigid solver stages in
 the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
 Fluid, or `--fluid-rigid` for a headless run.
+Peg Paint uses the same fluid controls and can be selected with `--peg-paint`.
+In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
+to 50 degrees relative to the camera. The tilt eases in and returns to
+vertical when released. Static fluid contacts use impulse-limited friction,
+so reversing direction can build a wave instead of stopping at the wall.
+Unlike Inflow, its Blender Flow/Geometry cylinder is sampled into particles
+on an HCP lattice once at scene creation; it does not keep emitting. The
+authored sphere starts above the bowl and falls through the water. The gallery
+registers the bowl's render triangles and UVs as a `World` paint field; the
+physics contact path stamps its persistent two-sided mask. The renderer only
+samples that mask and applies blue color with cubic filtering. The sphere and
+pegs remain unpainted. `World` owns no renderer or paint color.
+The shared water shader reflects authored geometry and uses the original
+course's lighter absorption and haze. All three fluid scenes use the shared
+render-only foam module: foam signals seed bounded, short-lived multi-bubble
+patches that follow stable water-particle IDs. Patch size follows particle
+scale so Fluid and Fluid + Rigid remain visible from their wider camera. Foam
+uses the rigid-body depth buffer for occlusion, so splashes behind the thin
+bowl wall do not appear on its exterior.
 
 Each scene adds one capability and becomes its regression example. The game
 can present the same scenes in order and layer objectives on top.

@@ -76,6 +76,9 @@ def rigid_metadata(
         float(rigid.collision_margin) if rigid.use_margin else 0.005
     )
     exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
+    exported["pm_paintable"] = bool(source.get("pm_paintable", False))
+    if "pm_paint_resolution" in source:
+        exported["pm_paint_resolution"] = float(source["pm_paint_resolution"])
     if collision_proxy_name is not None:
         exported["pm_collision_proxy"] = collision_proxy_name
 
@@ -266,8 +269,12 @@ def copy_flow_for_export(
     if len(fluid_modifiers) != 1 or fluid_modifiers[0].fluid_type != "FLOW":
         raise RuntimeError(f"{source.name}: expected one Fluid Flow modifier")
     flow = fluid_modifiers[0].flow_settings
-    if flow.flow_type != "LIQUID" or flow.flow_behavior not in {"INFLOW", "OUTFLOW"}:
-        raise RuntimeError(f"{source.name}: only Liquid Inflow/Outflow is supported")
+    if flow.flow_type != "LIQUID" or flow.flow_behavior not in {
+        "INFLOW", "OUTFLOW", "GEOMETRY"
+    }:
+        raise RuntimeError(
+            f"{source.name}: only Liquid Inflow/Outflow/Geometry is supported"
+        )
     if source.parent is not None:
         raise RuntimeError(f"{source.name}: fluid flow plane must be a scene-root object")
 
@@ -286,18 +293,25 @@ def copy_flow_for_export(
     collection.objects.link(exported)
     exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
     exported["pm_schema"] = 2
-    exported["pm_system"] = (
-        "fluid_inflow" if flow.flow_behavior == "INFLOW" else "fluid_outflow"
-    )
-    if flow.flow_behavior == "INFLOW":
-        exported["pm_particles_per_second"] = float(
-            source.get("pm_particles_per_second", 2400.0)
-        )
+    exported["pm_system"] = {
+        "INFLOW": "fluid_inflow",
+        "OUTFLOW": "fluid_outflow",
+        "GEOMETRY": "fluid_initial_volume",
+    }[flow.flow_behavior]
+    if flow.flow_behavior in {"INFLOW", "GEOMETRY"}:
         velocity = flow.velocity_coord if flow.use_initial_velocity else Vector((0, 0, 0))
         # glTF export changes Blender Z-up into Y-up.
         exported["pm_velocity_x"] = float(velocity.x)
         exported["pm_velocity_y"] = float(velocity.z)
         exported["pm_velocity_z"] = float(-velocity.y)
+    if flow.flow_behavior == "GEOMETRY":
+        for name in ("pm_particle_spacing", "pm_gravity_scale"):
+            if name in source:
+                exported[name] = float(source[name])
+    if flow.flow_behavior == "INFLOW":
+        exported["pm_particles_per_second"] = float(
+            source.get("pm_particles_per_second", 2400.0)
+        )
     return exported
 
 

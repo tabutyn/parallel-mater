@@ -126,6 +126,52 @@ int main() {
           fluid_rigid_scene.destroy_planes.size() == 1U,
           "FluidRigid exports 64 detached shared-mesh spheres and flow planes");
 
+    SceneDefinition pegs_scene;
+    std::string pegs_error;
+    check(load_glb_scene(PARALLEL_MATER_PEGS_SCENE_PATH,
+                         pegs_scene, pegs_error),
+          pegs_error.empty() ? "load Pegs GLB scene" : pegs_error.c_str());
+    std::size_t passive_peg_bodies = 0U, active_peg_bodies = 0U;
+    std::size_t paintable_peg_bodies = 0U;
+    for (const auto &peg_body : pegs_scene.rigid_bodies) {
+        passive_peg_bodies +=
+            peg_body.options.motion == MotionType::static_body;
+        active_peg_bodies +=
+            peg_body.options.motion == MotionType::dynamic;
+        paintable_peg_bodies += peg_body.paintable;
+        if (peg_body.paintable)
+            check(peg_body.name.starts_with("Sphere") &&
+                      peg_body.options.motion == MotionType::static_body,
+                  "only the passive Peg bowl receives paint");
+        if (peg_body.name.starts_with("Sphere") &&
+            peg_body.options.motion == MotionType::static_body) {
+            check(std::fabs(peg_body.options.collision_margin - 0.02F) < 0.001F,
+                  "authored bowl skin keeps resting sphere contacts continuous");
+            check(std::fabs(peg_body.options.friction - 0.05F) < 0.001F,
+                  "authored bowl friction lets water drain down the wall");
+            check(peg_body.paint_resolution == 64U,
+                  "authored Peg paint grid matches the smaller bowl");
+        }
+        if (peg_body.options.motion == MotionType::dynamic) {
+            check(std::fabs(peg_body.options.mass - 125.0F) < 0.01F,
+                  "authored Peg sphere mass is heavy enough to sink");
+            check(peg_body.options.initial_state.position.y > 0.3F,
+                  "authored Peg sphere starts above the bowl");
+        }
+    }
+    check(passive_peg_bodies == 6U && active_peg_bodies == 1U &&
+          paintable_peg_bodies == 1U &&
+          pegs_scene.spawn_planes.empty() &&
+          pegs_scene.destroy_planes.empty() &&
+          pegs_scene.initial_particles.size() > 500U &&
+          pegs_scene.initial_particles.size() < 10'000U,
+          "Pegs Geometry flow creates one finite initial fill, not an emitter");
+    check(std::fabs(pegs_scene.gravity_scale - 2.0F) < 0.01F &&
+          std::fabs(pegs_scene.fluid_options.particle_radius - 0.026F) < 0.001F &&
+          pegs_scene.fluid_options.rest_particle_volume > 0.0F &&
+          pegs_scene.fluid_options.normal_damping > 0.0F,
+          "authored Geometry flow carries scale-aware generic fluid settings");
+
     SceneDefinition scene;
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH, scene, error),
