@@ -12,7 +12,7 @@ Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
 momentum exchange, and agitation foam are also available through the same
 `World`.
 One-shot Blender Geometry flows use the public volume sampler. Opt-in
-fluid-to-rigid and fluid-to-cloth contact paint fields are owned by `World`; the gallery
+fluid-to-rigid and rigid-to-cloth contact paint fields are owned by `World`; the gallery
 supplies UVs and chooses their display color and filtering.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
@@ -90,8 +90,8 @@ two `FixedVertices` rows pinned, and starts with gravity straight down. Arrow
 keys steer Cloth gravity relative to the camera within a 45-degree tilt;
 releasing them restores straight-down gravity.
 `--cloth-tear` demonstrates contact-armed triangle tearing while a heavy sphere
-passes through. `--cloth-paint` samples an authored one-shot water volume and
-paints the deforming cloth through the public paint-field API.
+passes through. `--cloth-paint` keeps the cloth intact while the active sphere
+presses and paints it through the public paint-field API.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

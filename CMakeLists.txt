@@ -381,7 +381,7 @@ if(BUILD_TESTING)
                     --cloth-paint
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-paint-test.ppm
-                    --frames 90)
+                    --frames 180)
         set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
         add_test(

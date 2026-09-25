@@ -36,6 +36,7 @@ struct RigidBodyDefinition {
     std::vector<std::uint32_t> collision_mesh_indices{};
     bool paintable{};
     std::uint32_t paint_resolution{512U};
+    std::string source_name{};
 };
 
 struct ClothDefinition {
@@ -50,6 +51,7 @@ struct ClothDefinition {
     std::uint32_t solver_iterations{8U};
     bool paintable{};
     std::uint32_t paint_resolution{512U};
+    std::string paint_source{};
 };
 
 struct SceneDefinition {

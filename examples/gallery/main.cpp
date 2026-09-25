@@ -573,7 +573,8 @@ struct FluidEscapeTrace {
 [[nodiscard]] parallel_mater::Vec3 initial_scene_gravity(
     GalleryContext context, float scale) {
     const float magnitude = k_gravity * scale;
-    return context == GalleryContext::cloth_tear
+    return context == GalleryContext::cloth_tear ||
+           context == GalleryContext::cloth_paint
         ? parallel_mater::Vec3{0.0F, -magnitude * k_inv_sqrt_two,
                               -magnitude * k_inv_sqrt_two}
         : parallel_mater::Vec3{0.0F, -magnitude, 0.0F};
@@ -961,8 +962,10 @@ int main(int argc, char **argv) {
         if (runtime.context == GalleryContext::peg_paint ||
             runtime.context == GalleryContext::cloth_paint) {
             std::uint64_t painted = 0U;
+            const std::uint64_t minimum =
+                runtime.context == GalleryContext::peg_paint ? 100U : 1U;
             if (!runtime.renderer.paint_coverage(painted, error) ||
-                painted < 100U) {
+                painted < minimum) {
                 std::cerr << "Paint coverage failed: " << error << '\n';
                 return 1;
             }
@@ -1150,8 +1153,7 @@ int main(int argc, char **argv) {
                     }
                 }
             } else if (runtime.context != GalleryContext::rigid_body &&
-                       (!is_cloth_context(runtime.context) ||
-                        runtime.context == GalleryContext::cloth_paint) &&
+                       !is_cloth_context(runtime.context) &&
                        p_down && !p_was_down) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(
@@ -1230,7 +1232,7 @@ int main(int argc, char **argv) {
             interactive_step.gravity = {0.0F,
                 -k_gravity * runtime.scene.gravity_scale, 0.0F};
             if (is_cloth_context(runtime.context)) {
-                if (runtime.context != GalleryContext::cloth_tear)
+                if (runtime.context == GalleryContext::cloth)
                     cloth_gravity = steer_gravity(
                         cloth_gravity, input_state.camera.camera(),
                         directional.x, -directional.z,

@@ -47,8 +47,8 @@ Headless physics builds remain free of OpenGL and OptiX.
 7. **Cloth Tear** — a heavier rigid sphere crosses a pinned sheet under a
    fixed 45-degree gravity tilt. Once contact arms tearing, overstrained
    triangles disappear as whole primitives; the API owns the changing topology.
-8. **Cloth Paint** — a one-shot Blender Geometry flow contacts a deforming
-   pinned cloth shell and persistently paints its UVs through an API paint rule.
+8. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
+   cloth sheet and persistently paints its UVs at contact through an API rule.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -90,9 +90,9 @@ Cloth can be selected with `--cloth`; `R` restarts the pinned sheet and
 Arrow keys steer it relative to the camera, up to 45 degrees from vertical;
 releasing them eases it back to straight down.
 `--cloth-tear` uses the authored heavy sphere and fixed angled gravity;
-`--cloth-paint` supports the fluid `P` cap, `V` particle view, and `R` reset.
+`--cloth-paint` uses fixed 45-degree gravity, `R` reset, and `F` timings.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
-fluid paint rule. Collision and mask stamping happen in `World`; the OptiX
+rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
 to 50 degrees relative to the camera. The tilt eases in and returns to

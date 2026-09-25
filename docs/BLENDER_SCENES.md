@@ -154,13 +154,15 @@ gallery's fixed 45-degree gravity tilt. The API removes whole overstrained
 triangles after the first dynamic rigid contact and exposes updated indices
 through `cloth_view`; the gallery does not decide which triangles break.
 
-`ClothPaint.blend` derives from the supplied `ClothFluid.blend`. Its cloth shell
-pins its top vertices, authors `pm_paintable = true` and a 128×128 paint mask,
-and its Water mesh uses Blender Liquid Flow/Geometry for a one-time 730-particle
-fill. The gallery binds its UVs to a cloth-targeted `World` paint field and a
-fluid paint rule. Fluid–cloth collision and one-pixel paint stamping are in the
-API; the gallery only chooses blue and cubic filtering. The derivation script
-`tools/blender/make_cloth_variants.py` preserves both original `.blend` files.
+`ClothPaint.blend` derives from the supplied `Cloth.blend`. It retains the pinned
+top and bottom rows and the active rigid sphere, authors `pm_paintable = true`,
+a 128×128 paint mask, and `pm_paint_source` naming that sphere. The gallery
+binds the cloth UVs to a `World` paint field and registers a rigid-to-cloth
+paint rule. Rigid–cloth collision and one-pixel paint stamping are in the API;
+the gallery chooses blue and cubic filtering, while the variant has a neutral
+dry material so contact marks are visible. The cloth remains intact.
+The derivation script `tools/blender/make_cloth_variants.py` preserves the
+original `.blend` file.
 
 ## Liquid Flow scene
 

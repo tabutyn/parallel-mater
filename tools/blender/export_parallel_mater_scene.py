@@ -66,6 +66,7 @@ def rigid_metadata(
     exported["pm_schema"] = 2
     exported["pm_system"] = "rigid_body"
     exported["pm_name"] = exported.name
+    exported["pm_source_name"] = source.name
     exported["pm_motion"] = motion
     exported["pm_mass"] = float(rigid.mass)
     exported["pm_friction"] = float(rigid.friction)
@@ -376,6 +377,7 @@ def copy_cloth_for_export(
     exported["pm_solver_iterations"] = int(source.get("pm_solver_iterations", 8))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     exported["pm_paint_resolution"] = int(source.get("pm_paint_resolution", 512))
+    exported["pm_paint_source"] = str(source.get("pm_paint_source", ""))
     if len(mesh.materials) == 0:
         material = fallback_material(index, False)
         created_materials.append(material)

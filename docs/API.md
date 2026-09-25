@@ -121,20 +121,20 @@ Contact paint is opt-in. `World::add_paint_field` attaches a persistent,
 two-sided UV mask to one rigid-body instance or one cloth. Rigid paint meshes
 and UVs may differ from the body's collision proxy; cloth UVs correspond to
 its deforming vertices.
-`World::add_paint_rule` selects a source fluid and target field and sets extra
-reach beyond the fluid particle radius. During fluid–rigid or fluid–cloth
-triangle contact, the world projects each qualifying collision onto the
-target's UVs and stamps one texel. It does not depend on diagnostic contact
+`World::add_paint_rule` selects exactly one source: a fluid for a rigid target,
+or a rigid body for a cloth target. Fluid rules can set extra reach beyond the
+particle radius. During fluid–rigid or rigid–cloth triangle contact, the world
+projects each qualifying collision onto the target's UVs and stamps one texel.
+It does not depend on diagnostic contact
 collection or render frequency. `paint_field_view` exposes the device mask;
 bit 1 is the front side and bit 2 is the back side. `clear_paint_field` resets
 the mask. Render color and cubic filtering remain application choices.
 
-Remove rules before their source fluid or target field, and remove fields
-before their rigid body, paint mesh, or cloth. Fluid particles collide with
-the deforming cloth triangles, while paint remains owned by the world; the
-gallery only selects color and filtering. Fluid-to-cloth contact currently
-projects particle motion against the cloth without a fluid-to-cloth reaction
-impulse.
+Remove rules before their source fluid or rigid body or target field, and
+remove fields before their target rigid body, paint mesh, or cloth. Rigid bodies
+and deforming cloth exchange contact impulses while paint remains owned by the
+world; the gallery only selects color and filtering. Painting does not require
+or enable cloth tearing.
 
 ## Stepping and CUDA streams
 

@@ -138,7 +138,9 @@ bool run_paint() {
         return false;
     }
     if (scene.cloths.size() != 1U || !scene.cloths[0].paintable ||
-        scene.initial_particles.empty()) return false;
+        scene.cloths[0].tear_ratio != 0.0F ||
+        scene.cloths[0].paint_source.empty() ||
+        !scene.initial_particles.empty()) return false;
     World world;
     if (!check(World::create({.rigid_body_capacity = 2U,
                               .triangle_mesh_capacity = 5U,
@@ -149,22 +151,65 @@ bool run_paint() {
     SceneInstance instance{};
     if (!check(instantiate_scene(scene, world, instance),
                "instantiate paint")) return false;
-    if (instance.paint_bindings.size() != 1U) return false;
-    for (int frame = 0; frame < 90; ++frame)
-        if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U}),
-                   "step paint")) return false;
+    if (instance.paint_bindings.size() != 1U || instance.has_fluid)
+        return false;
     PaintFieldDeviceView view{};
     if (!check(world.paint_field_view(instance.paint_bindings[0].field, view),
-               "view paint")) return false;
+               "view initial paint")) return false;
     std::vector<std::uint32_t> pixels(view.pixels.size);
+    if (cudaMemcpy(pixels.data(), view.pixels.data,
+                   pixels.size() * sizeof(std::uint32_t),
+                   cudaMemcpyDeviceToHost) != cudaSuccess ||
+        std::any_of(pixels.begin(), pixels.end(),
+                    [](std::uint32_t value) { return value != 0U; }))
+        return false;
+    ClothDeviceView cloth_view{};
+    if (!check(world.cloth_view(instance.cloths[0], cloth_view),
+               "view initial paint cloth")) return false;
+    std::vector<Vec3> initial(cloth_view.vertex_count);
+    if (cudaMemcpy(initial.data(), cloth_view.positions.data,
+                   initial.size() * sizeof(Vec3),
+                   cudaMemcpyDeviceToHost) != cudaSuccess) return false;
+    for (int frame = 0; frame < 180; ++frame)
+        if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
+                               .gravity = {0.0F, -6.93671752F,
+                                           -6.93671752F}}),
+                   "step paint")) return false;
+    if (!check(world.cloth_view(instance.cloths[0], cloth_view),
+               "view final paint cloth")) return false;
+    std::vector<Vec3> final(cloth_view.vertex_count);
+    std::vector<std::uint32_t> triangles(cloth_view.triangle_indices.size);
+    if (cudaMemcpy(final.data(), cloth_view.positions.data,
+                   final.size() * sizeof(Vec3),
+                   cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(triangles.data(), cloth_view.triangle_indices.data,
+                   triangles.size() * sizeof(std::uint32_t),
+                   cudaMemcpyDeviceToHost) != cudaSuccess) return false;
+    float free_motion = 0.0F, pinned_motion = 0.0F;
+    for (std::size_t index = 0U; index < final.size(); ++index) {
+        const float motion = length(initial[index], final[index]);
+        if (scene.cloths[0].inverse_masses[index] == 0.0F)
+            pinned_motion = std::max(pinned_motion, motion);
+        else free_motion = std::max(free_motion, motion);
+    }
+    if (!check(world.paint_field_view(instance.paint_bindings[0].field, view),
+               "view paint")) return false;
     if (cudaMemcpy(pixels.data(), view.pixels.data,
                    pixels.size() * sizeof(std::uint32_t),
                    cudaMemcpyDeviceToHost) != cudaSuccess) return false;
     const auto painted = std::count_if(pixels.begin(), pixels.end(),
                                       [](std::uint32_t value) { return value != 0U; });
-    std::cout << "Cloth painted_texels=" << painted
-              << " initial_particles=" << scene.initial_particles.size() << '\n';
-    return painted > 0U;
+    const auto front_painted = std::count_if(pixels.begin(), pixels.end(),
+                                      [](std::uint32_t value) { return (value & 1U) != 0U; });
+    const auto back_painted = std::count_if(pixels.begin(), pixels.end(),
+                                      [](std::uint32_t value) { return (value & 2U) != 0U; });
+    std::cout << "Rigid-cloth painted_texels=" << painted
+              << " front=" << front_painted << " back=" << back_painted
+              << " free_motion=" << free_motion
+              << " pinned_motion=" << pinned_motion << '\n';
+    return front_painted > 0U && painted > 0U && free_motion > 0.02F &&
+           pinned_motion < 1.0e-5F &&
+           triangles == scene.meshes[scene.cloths[0].mesh_index].indices;
 }
 
 } // namespace

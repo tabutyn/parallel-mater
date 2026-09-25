@@ -2861,114 +2861,6 @@ __global__ void cloth_tear_triangles(const Vec3 *positions,
     indices[base + 2U] = a;
 }
 
-__global__ void fluid_cloth_contacts(
-    Vec3 *particles, Vec3 *velocities, const Vec3 *previous, float *foam,
-    const std::uint32_t *particle_count, float radius,
-    const Vec3 *cloth_positions, const std::uint32_t *cloth_indices,
-    std::uint32_t triangle_count, float thickness, FluidId fluid_id,
-    ClothId cloth_id, const PaintFieldResource *fields,
-    std::uint32_t field_capacity, const PaintRuleResource *rules,
-    std::uint32_t rule_capacity) {
-    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle >= *particle_count) return;
-    const Vec3 position = particles[particle];
-    const Vec3 start = previous[particle];
-    float best_squared = 1.0e30F;
-    Vec3 best_nearest{}, best_normal{};
-    std::uint32_t best_triangle = k_invalid_dense;
-    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
-        const std::uint32_t base = triangle * 3U;
-        const std::uint32_t ia = cloth_indices[base];
-        const std::uint32_t ib = cloth_indices[base + 1U];
-        const std::uint32_t ic = cloth_indices[base + 2U];
-        if (ia == ib) continue;
-        const Vec3 a = cloth_positions[ia], b = cloth_positions[ib];
-        const Vec3 c = cloth_positions[ic];
-        const Vec3 face = cross(subtract(b, a), subtract(c, a));
-        if (length_squared(face) < 1.0e-12F) continue;
-        const Vec3 nearest = fluid_closest_triangle(position, a, b, c);
-        const Vec3 delta = subtract(position, nearest);
-        const float squared = length_squared(delta);
-        if (squared >= best_squared) continue;
-        best_squared = squared;
-        best_triangle = triangle;
-        best_nearest = nearest;
-        const Vec3 face_normal = normalized_or(face, {0.0F, 1.0F, 0.0F});
-        best_normal = squared > 1.0e-12F
-            ? multiply(delta, rsqrtf(squared))
-            : multiply(face_normal,
-                dot(subtract(start, a), face_normal) >= 0.0F ? 1.0F : -1.0F);
-    }
-    if (best_triangle == k_invalid_dense) return;
-    const std::uint32_t base = 3U * best_triangle;
-    const std::uint32_t ia = cloth_indices[base];
-    const std::uint32_t ib = cloth_indices[base + 1U];
-    const std::uint32_t ic = cloth_indices[base + 2U];
-    const Vec3 a = cloth_positions[ia], b = cloth_positions[ib];
-    const Vec3 c = cloth_positions[ic];
-    const Vec3 face_normal = normalized_or(cross(subtract(b, a),
-        subtract(c, a)), {0.0F, 1.0F, 0.0F});
-    const float before = dot(subtract(start, a), face_normal);
-    const float after = dot(subtract(position, a), face_normal);
-    const float contact_radius = radius + thickness;
-    float penetration = contact_radius - sqrtf(best_squared);
-    if (before * after < 0.0F) {
-        const float fraction = before / (before - after);
-        const Vec3 crossing = add(start, multiply(subtract(position, start), fraction));
-        if (length_squared(subtract(fluid_closest_triangle(crossing, a, b, c),
-                                    crossing)) < contact_radius * contact_radius) {
-            best_normal = multiply(face_normal, before > 0.0F ? 1.0F : -1.0F);
-            penetration = fmaxf(penetration, contact_radius + fabsf(after));
-        }
-    }
-    if (penetration > 0.0F) {
-        particles[particle] = add(position, multiply(best_normal, penetration));
-        const float incoming = dot(velocities[particle], best_normal);
-        if (incoming < 0.0F)
-            velocities[particle] = subtract(velocities[particle],
-                multiply(best_normal, incoming));
-        foam[particle] = fmaxf(foam[particle], 0.25F);
-    }
-    for (std::uint32_t rule_index = 0U; rule_index < rule_capacity;
-         ++rule_index) {
-        const PaintRuleResource rule = rules[rule_index];
-        if (!rule.alive || !rule.options.enabled ||
-            rule.options.source.index != fluid_id.index ||
-            rule.options.source.generation != fluid_id.generation ||
-            rule.options.target.index >= field_capacity) continue;
-        const PaintFieldResource field = fields[rule.options.target.index];
-        if (!field.alive ||
-            field.generation != rule.options.target.generation ||
-            field.options.cloth.index != cloth_id.index ||
-            field.options.cloth.generation != cloth_id.generation ||
-            best_squared > (contact_radius + rule.options.reach) *
-                           (contact_radius + rule.options.reach)) continue;
-        const Vec3 ab = subtract(b, a), ac = subtract(c, a);
-        const Vec3 ap = subtract(best_nearest, a);
-        const float d00 = dot(ab, ab), d01 = dot(ab, ac);
-        const float d11 = dot(ac, ac), d20 = dot(ap, ab);
-        const float d21 = dot(ap, ac);
-        const float divisor = d00 * d11 - d01 * d01;
-        if (divisor <= 1.0e-12F) continue;
-        const float v = (d11 * d20 - d01 * d21) / divisor;
-        const float w = (d00 * d21 - d01 * d20) / divisor;
-        const float u = 1.0F - v - w;
-        const Vec2 uv{u * field.uvs[ia].x + v * field.uvs[ib].x +
-                          w * field.uvs[ic].x,
-                      u * field.uvs[ia].y + v * field.uvs[ib].y +
-                          w * field.uvs[ic].y};
-        const int width = static_cast<int>(field.options.width);
-        const int height = static_cast<int>(field.options.height);
-        int x = static_cast<int>(floorf(uv.x * width)) % width;
-        if (x < 0) x += width;
-        const int y = max(0, min(height - 1,
-            static_cast<int>(floorf(uv.y * height))));
-        const std::uint32_t side =
-            dot(face_normal, subtract(start, best_nearest)) >= 0.0F ? 1U : 2U;
-        atomicOr(field.pixels + y * width + x, side);
-    }
-}
-
 __global__ void cloth_collide(
     Vec3 *positions, Vec3 *velocities, const Vec3 *previous,
     const float *inverse_masses, std::uint32_t count, float thickness,
@@ -3084,6 +2976,48 @@ __global__ void cloth_collide(
 // The vertex-side contact above deforms the sheet and transfers momentum.
 // A second, triangle-side constraint keeps a fast rigid collider from slipping
 // between cloth vertices. The broad-phase sphere is conservative for any mesh.
+__device__ __noinline__ void stamp_rigid_cloth_paint(
+    RigidBodyId rigid_id, ClothId cloth_id, Vec3 center, Vec3 contact,
+    Vec3 a, Vec3 b, Vec3 c, std::uint32_t ia, std::uint32_t ib,
+    std::uint32_t ic, const PaintFieldResource *fields,
+    std::uint32_t field_capacity, const PaintRuleResource *rules,
+    std::uint32_t rule_capacity) {
+    for (std::uint32_t index = 0U; index < rule_capacity; ++index) {
+        const PaintRuleResource rule = rules[index];
+        if (!rule.alive || !rule.options.enabled ||
+            rule.options.rigid_source.index != rigid_id.index ||
+            rule.options.rigid_source.generation != rigid_id.generation ||
+            rule.options.target.index >= field_capacity) continue;
+        const PaintFieldResource field = fields[rule.options.target.index];
+        if (!field.alive || field.generation != rule.options.target.generation ||
+            field.options.cloth.index != cloth_id.index ||
+            field.options.cloth.generation != cloth_id.generation) continue;
+        const Vec3 ab = subtract(b, a), ac = subtract(c, a);
+        const Vec3 ap = subtract(contact, a);
+        const float d00 = dot(ab, ab), d01 = dot(ab, ac);
+        const float d11 = dot(ac, ac), d20 = dot(ap, ab);
+        const float d21 = dot(ap, ac);
+        const float divisor = d00 * d11 - d01 * d01;
+        if (divisor <= 1.0e-12F) continue;
+        const float v = (d11 * d20 - d01 * d21) / divisor;
+        const float w = (d00 * d21 - d01 * d20) / divisor;
+        const float u = 1.0F - v - w;
+        const Vec2 uv{u * field.uvs[ia].x + v * field.uvs[ib].x +
+                          w * field.uvs[ic].x,
+                      u * field.uvs[ia].y + v * field.uvs[ib].y +
+                          w * field.uvs[ic].y};
+        const int width = static_cast<int>(field.options.width);
+        const int height = static_cast<int>(field.options.height);
+        int x = static_cast<int>(floorf(uv.x * width)) % width;
+        if (x < 0) x += width;
+        const int y = max(0, min(height - 1,
+            static_cast<int>(floorf(uv.y * height))));
+        const std::uint32_t side = dot(cross(ab, ac),
+            subtract(center, contact)) >= 0.0F ? 1U : 2U;
+        atomicOr(field.pixels + y * width + x, side);
+    }
+}
+
 __global__ void cloth_constrain_bodies(
     const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
     const std::uint32_t *cloth_indices,
@@ -3092,7 +3026,10 @@ __global__ void cloth_constrain_bodies(
     float contact_friction,
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     RigidBodyState *states, const TriangleMeshResource *meshes,
-    std::uint32_t body_count, ClothBodyCorrection *corrections) {
+    const RigidBodyId *body_ids, std::uint32_t body_count,
+    ClothId cloth_id, const PaintFieldResource *paint_fields,
+    std::uint32_t field_capacity, const PaintRuleResource *paint_rules,
+    std::uint32_t rule_capacity, ClothBodyCorrection *corrections) {
     const std::uint32_t body_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (body_index >= body_count) return;
     corrections[body_index] = {};
@@ -3150,6 +3087,11 @@ __global__ void cloth_constrain_bodies(
     const std::uint32_t a = cloth_indices[first];
     const std::uint32_t b = cloth_indices[first + 1U];
     const std::uint32_t c = cloth_indices[first + 2U];
+    if (rule_capacity != 0U)
+        stamp_rigid_cloth_paint(body_ids[body_index], cloth_id, center,
+            best_contact, cloth_positions[a], cloth_positions[b],
+            cloth_positions[c], a, b, c, paint_fields, field_capacity,
+            paint_rules, rule_capacity);
     const float free_fraction =
         ((cloth_inverse_masses[a] > 0.0F ? 1.0F : 0.0F) +
          (cloth_inverse_masses[b] > 0.0F ? 1.0F : 0.0F) +
@@ -4686,13 +4628,30 @@ Status World::add_paint_rule(PaintRuleOptions options,
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    FluidStorage *fluid = nullptr;
-    if (!(status = impl_->validate_handle(options.source, fluid))) return status;
+    const bool fluid_source = options.source.generation != 0U;
+    const bool rigid_source = options.rigid_source.generation != 0U;
+    if (fluid_source == rigid_source)
+        return failure(StatusCode::invalid_argument,
+                       "paint rule needs exactly one source");
+    if (fluid_source) {
+        FluidStorage *fluid = nullptr;
+        if (!(status = impl_->validate_handle(options.source, fluid))) return status;
+    } else {
+        std::uint32_t dense = 0U;
+        if (!(status = impl_->validate_handle(options.rigid_source, dense)))
+            return status;
+    }
     if (options.target.index >= impl_->options.paint_field_capacity ||
         !impl_->paint_fields[options.target.index].alive ||
         impl_->paint_fields[options.target.index].generation !=
             options.target.generation)
         return failure(StatusCode::invalid_handle, "paint target field is stale");
+    const PaintFieldResource &target =
+        impl_->paint_fields[options.target.index];
+    if ((fluid_source && target.options.cloth.generation != 0U) ||
+        (rigid_source && target.options.cloth.generation == 0U))
+        return failure(StatusCode::not_supported,
+                       "paint source and target systems do not match");
     if (!finite(options.reach) || options.reach < 0.0F ||
         options.reach > 10.0F)
         return failure(StatusCode::invalid_argument, "paint reach is invalid");
@@ -5007,6 +4966,12 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
             impl_->paint_fields[index].options.body == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint field");
+    for (std::uint32_t index = 0;
+         index < impl_->options.paint_rule_capacity; ++index)
+        if (impl_->paint_rules[index].alive &&
+            impl_->paint_rules[index].options.rigid_source == body)
+            return failure(StatusCode::invalid_argument,
+                           "rigid body is still referenced by a paint rule");
     const std::uint32_t last = impl_->rigid_body_count - 1U;
     if (dense != last) {
         impl_->parameters[dense] = impl_->parameters[last];
@@ -5337,7 +5302,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         8U * (color_round_count + 1U);
     const auto advance_cloth = [&](const RigidBodyState *previous_states)
         noexcept -> Status {
-        for (const auto &cloth_pointer : impl_->cloths) {
+        for (std::uint32_t cloth_index = 0U;
+             cloth_index < impl_->cloths.size(); ++cloth_index) {
+            const auto &cloth_pointer = impl_->cloths[cloth_index];
             if (!cloth_pointer || !cloth_pointer->alive) continue;
             ClothStorage &cloth = *cloth_pointer;
             const std::uint32_t blocks =
@@ -5387,7 +5354,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.thickness, substep_timestep,
                     cloth.contact_friction, impl_->parameters,
                     previous_states, impl_->states[impl_->current_state],
-                    impl_->meshes, impl_->rigid_body_count,
+                    impl_->meshes, impl_->ids, impl_->rigid_body_count,
+                    {cloth_index, cloth.generation}, impl_->paint_fields,
+                    impl_->options.paint_field_capacity, impl_->paint_rules,
+                    impl_->options.paint_rule_capacity,
                     cloth.body_corrections);
                 cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
                     cloth.positions, cloth.velocities, cloth.inverse_masses,
@@ -5833,20 +5803,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (any_static_body) {
                 status = record_timing_stage(TimingStage::fluid_static_contacts);
                 if (!status) return status;
-            }
-            for (std::uint32_t cloth_index = 0U;
-                 cloth_index < impl_->cloths.size(); ++cloth_index) {
-                const auto &cloth_pointer = impl_->cloths[cloth_index];
-                if (!cloth_pointer || !cloth_pointer->alive) continue;
-                const ClothStorage &cloth = *cloth_pointer;
-                fluid_cloth_contacts<<<blocks, block_size, 0, stream>>>(
-                    fluid.positions, fluid.velocities, fluid.previous,
-                    fluid.foam, fluid.count, fluid.options.particle_radius,
-                    cloth.positions, cloth.indices, cloth.index_count / 3U,
-                    cloth.thickness, fluid_id,
-                    {cloth_index, cloth.generation}, impl_->paint_fields,
-                    impl_->options.paint_field_capacity, impl_->paint_rules,
-                    impl_->options.paint_rule_capacity);
             }
             bool any_destroy_plane = false;
             for (const DestroyPlaneSlot &slot : impl_->destroy_planes) {

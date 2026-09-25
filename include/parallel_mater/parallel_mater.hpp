@@ -313,9 +313,12 @@ struct PaintFieldOptions {
 };
 
 struct PaintRuleOptions {
+    // Set exactly one source. Rigid sources paint cloth at rigid–cloth contact;
+    // fluid sources paint rigid meshes at fluid–rigid contact.
     FluidId source{};
+    RigidBodyId rigid_source{};
     PaintFieldId target{};
-    // Additional reach beyond the source particle radius.
+    // Additional reach beyond a fluid source's particle radius.
     float reach{0.025F};
     bool enabled{true};
 };

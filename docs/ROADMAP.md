@@ -128,9 +128,9 @@ pass.
 - Derive `ClothTear.blend` from the pinned sheet with a heavier ball and a
   fixed 45-degree gravity tilt. Verify the ball passes through, surviving
   edges stay near rest length, and gravity alone does not tear the sheet.
-- Derive `ClothPaint.blend` from the authored `ClothFluid.blend`: pin its top
-  vertices, configure Water as a one-shot Blender Geometry flow, and enable
-  cloth UV painting. Fluid–cloth contact and texel stamping belong to `World`.
+- Derive `ClothPaint.blend` from the authored `Cloth.blend`: retain its pinned
+  rows and active rigid sphere, enable cloth UV painting, and keep the cloth
+  intact. Rigid–cloth contact and texel stamping belong to `World`.
 - Add headless and GPU scene tests for both variations.
 
 ## Later — Gallery game shell

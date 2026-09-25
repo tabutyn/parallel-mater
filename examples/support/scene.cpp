@@ -644,6 +644,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             return false;
         }
         body.name = extras.string("pm_name").value_or(body.name);
+        body.source_name = extras.string("pm_source_name").value_or(body.name);
         body.paintable = extras.boolean("pm_paintable").value_or(false);
         if (const auto resolution = extras.number("pm_paint_resolution")) {
             if (!std::isfinite(*resolution) || *resolution < 32.0 ||
@@ -818,6 +819,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
         cloth.paintable = extras.boolean("pm_paintable").value_or(false);
         cloth.paint_resolution = static_cast<std::uint32_t>(paint_resolution);
+        cloth.paint_source = extras.string("pm_paint_source").value_or("");
         cloth.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
         cloth.inverse_masses.assign(mesh.vertices.size(), 1.0F / mass);
         const RigidBodyState state = node_state(node);
@@ -1263,7 +1265,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     try {
     const auto bind_paint = [&](std::uint32_t owner,
                                 std::uint32_t mesh_index,
-                                PaintFieldOptions options) -> Status {
+                                PaintFieldOptions options,
+                                PaintRuleOptions rule_options) -> Status {
         const TriangleMesh &mesh = scene.meshes[mesh_index];
         std::vector<Vec2> uvs;
         uvs.reserve(mesh.vertices.size());
@@ -1284,8 +1287,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         cudaFree(device_uvs);
         if (!status) return status;
         PaintRuleId rule{};
-        status = world.add_paint_rule({.source = output.fluid,
-                                      .target = field}, rule);
+        rule_options.target = field;
+        status = world.add_paint_rule(rule_options, rule);
         if (!status) return status;
         output.paint_bindings.push_back({owner, mesh_index, field});
         return {};
@@ -1312,7 +1315,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 {.body = output.rigid_bodies[body_index],
                  .mesh = mesh_id,
                  .width = body.paint_resolution,
-                 .height = body.paint_resolution});
+                 .height = body.paint_resolution},
+                {.source = output.fluid});
             if (!status) return status;
         }
     }
@@ -1320,13 +1324,30 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
          cloth_index < scene.cloths.size(); ++cloth_index) {
         const ClothDefinition &cloth = scene.cloths[cloth_index];
         if (!cloth.paintable) continue;
-        if (!output.has_fluid)
+        if (cloth.paint_source.empty())
             return {StatusCode::invalid_argument, cudaSuccess,
-                    "paintable cloth needs a fluid source"};
+                    "paintable cloth needs an authored rigid paint source"};
+        const auto source = std::find_if(scene.rigid_bodies.begin(),
+            scene.rigid_bodies.end(), [&](const RigidBodyDefinition &body) {
+                return body.source_name == cloth.paint_source;
+            });
+        if (source == scene.rigid_bodies.end() ||
+            source->options.motion != MotionType::dynamic)
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "cloth paint source must name a dynamic rigid body"};
+        if (std::any_of(source + 1, scene.rigid_bodies.end(),
+                [&](const RigidBodyDefinition &body) {
+                    return body.source_name == cloth.paint_source;
+                }))
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "cloth paint source names more than one rigid body"};
+        const auto source_index = static_cast<std::size_t>(
+            source - scene.rigid_bodies.begin());
         const Status status = bind_paint(UINT32_MAX, cloth.mesh_index,
             {.cloth = output.cloths[cloth_index],
              .width = cloth.paint_resolution,
-             .height = cloth.paint_resolution});
+             .height = cloth.paint_resolution},
+            {.rigid_source = output.rigid_bodies[source_index]});
         if (!status) return status;
     }
     } catch (...) {
