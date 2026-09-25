@@ -20,6 +20,13 @@ def open_source(name: str) -> None:
 open_source("Cloth.blend")
 sheet = next(obj for obj in bpy.data.objects
              if any(mod.type == "CLOTH" for mod in obj.modifiers))
+# The authored two-unit sheet is barely wider than the opening a sphere needs.
+# Widen this variant around its center so the torn sheet remains visible.
+left = min(vertex.co.x for vertex in sheet.data.vertices)
+right = max(vertex.co.x for vertex in sheet.data.vertices)
+center = 0.5 * (left + right)
+for vertex in sheet.data.vertices:
+    vertex.co.x = center + 1.5 * (vertex.co.x - center)
 sheet["pm_tear_ratio"] = 1.11
 sheet["pm_tear_requires_contact"] = True
 sheet["pm_contact_cut_radius_scale"] = 1.5

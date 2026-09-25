@@ -995,6 +995,22 @@ int main(int argc, char **argv) {
             std::cerr << "Render validation failed: " << error << '\n';
             return 1;
         }
+        if (runtime.context == GalleryContext::cloth_tear) {
+            const auto *bytes = reinterpret_cast<const std::uint8_t *>(
+                pixels.data());
+            std::size_t cloth_pixels = 0U;
+            for (std::size_t index = 0U; index < pixels.size(); ++index) {
+                const unsigned red = bytes[4U * index];
+                const unsigned green = bytes[4U * index + 1U];
+                const unsigned blue = bytes[4U * index + 2U];
+                cloth_pixels += blue > red + 25U && blue > green + 20U;
+            }
+            std::cout << "Visible cloth pixels=" << cloth_pixels << '\n';
+            if (cloth_pixels < pixels.size() / 50U) {
+                std::cerr << "Cloth Tear render lost the sheet\n";
+                return 1;
+            }
+        }
         if (!write_ppm(options.headless_output, pixels, runtime.renderer.width(),
                        runtime.renderer.height())) {
             std::cerr << "Failed to write " << options.headless_output << '\n';

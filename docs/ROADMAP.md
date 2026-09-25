@@ -125,8 +125,9 @@ pass.
 
 - Add API-owned triangle-preserving strain tearing and localized one-shot
   contact cuts; render and collide against the same changing triangle buffer.
-- Derive `ClothTear.blend` from the pinned sheet with a heavier ball at its
-  original position and friction. Gravity starts down in every cloth scene:
+- Derive `ClothTear.blend` from the pinned sheet, widening it so a ball-sized
+  cut leaves visible cloth, with a heavier ball at its original position and
+  friction. Gravity starts down in every cloth scene:
   verify the ball lands without tearing, then rolls under steered gravity
   through a contact-triggered, near-circular cut. Surviving edges stay near
   rest length and a no-impact control does not tear.

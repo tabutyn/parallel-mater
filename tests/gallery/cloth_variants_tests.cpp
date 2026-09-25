@@ -130,6 +130,7 @@ bool run_tear() {
     }
     std::cout << "Tear before_roll_removed_triangles=" << settled_torn
               << " removed_triangles=" << torn
+              << " total_triangles=" << indices.size() / 3U
               << " first_cut_frame=" << first_cut_frame
               << " first_cut_body_z=" << first_cut_body_z
               << " contact_cut_scale=" << scene.cloths[0].contact_cut_radius_scale
@@ -177,7 +178,7 @@ bool run_tear() {
     return length(initial_body.linear_velocity, {}) < 1.0e-5F &&
            settled_torn == 0U && first_cut_frame >= 0 &&
            first_cut_body_z < 1.0F && torn > 0U &&
-           torn < (indices.size() / 3U) / 2U &&
+           torn < (indices.size() / 3U) / 4U &&
            baseline_torn == 0U &&
            scene.cloths[0].contact_cut_radius_scale > 0.0F &&
            width < 1.5F && height < 1.5F &&
