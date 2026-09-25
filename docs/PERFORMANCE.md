@@ -331,3 +331,14 @@ tilt, the highest outer particle reached Y 0.52 m at frame 600, with no
 lower-bound escapes or contact overflow. The invisible containment cylinder
 still holds a raised sheet under prolonged strong tilt; spilling over an open
 rim would need separate scene authoring.
+
+### Shared foam visualization
+
+The render-only `FoamVisuals` module now owns stable-ID patch lifetime,
+bubble drawing, and depth occlusion for Fluid, Fluid + Rigid, and Peg Paint.
+The two stream scenes have 0.045 m particles and a wider camera than Peg's
+0.03 m particles, so patch and minimum screen-space radius scale with particle
+and support radius. This does not change the fluid solver or foam signal.
+At 14,400 Fluid particles, the bounded 2,048-patch renderer took 4.7 ms CPU
+on the local test frame; Fluid + Rigid took 4.1 ms. Headless scene checks
+require nonzero patches, and a CPU test covers scaling and rigid occlusion.

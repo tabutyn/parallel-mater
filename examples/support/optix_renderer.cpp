@@ -4,6 +4,7 @@
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
 #include "contact_paint.hpp"
+#include "foam_visuals.hpp"
 
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
@@ -25,7 +26,6 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -48,6 +48,25 @@ void check_cuda(cudaError_t result, const char *operation) {
     if (result != cudaSuccess) {
         fail(std::string(operation) + ": " + cudaGetErrorString(result));
     }
+}
+
+void read_fluid_visual_samples(const FluidDeviceView &view,
+                               std::vector<Vec3> &positions,
+                               std::vector<float> &foam,
+                               std::vector<std::uint32_t> &ids) {
+    positions.resize(view.particle_count);
+    foam.resize(view.particle_count);
+    ids.resize(view.particle_count);
+    if (view.particle_count == 0U) return;
+    check_cuda(cudaMemcpy(positions.data(), view.positions.data,
+                          positions.size() * sizeof(Vec3),
+                          cudaMemcpyDeviceToHost), "copy fluid positions");
+    check_cuda(cudaMemcpy(foam.data(), view.foam.data,
+                          foam.size() * sizeof(float),
+                          cudaMemcpyDeviceToHost), "copy foam signal");
+    check_cuda(cudaMemcpy(ids.data(), view.stable_particle_ids.data,
+                          ids.size() * sizeof(std::uint32_t),
+                          cudaMemcpyDeviceToHost), "copy fluid IDs");
 }
 
 void check_driver(CUresult result, const char *operation) {
@@ -169,14 +188,6 @@ struct RenderBinding {
     std::uint32_t body_index{};
     std::uint32_t mesh_index{};
     unsigned int visibility_mask{255U};
-};
-
-struct FoamPatch {
-    std::uint32_t particle_id{};
-    Vec3 position{};
-    float age{};
-    float lifetime{};
-    float radius{};
 };
 
 [[nodiscard]] float3 make_float(Vec3 value) {
@@ -318,8 +329,7 @@ struct OptixRenderer::Impl {
     std::vector<float> host_depth{};
     std::vector<float> host_rigid_depth{};
     std::unique_ptr<FluidSurface> fluid_surface{};
-    std::vector<FoamPatch> foam_patches{};
-    std::uint64_t foam_tick{};
+    FoamVisuals foam_visuals{};
     OptixTraversableHandle scene_handle{};
     std::size_t instance_scratch_build_size{};
     std::size_t instance_scratch_update_size{};
@@ -801,165 +811,6 @@ void paint_fluid_particle_view(const std::vector<Vec3> &positions,
     }
 }
 
-[[nodiscard]] std::uint32_t foam_hash(std::uint32_t value) noexcept {
-    value ^= value >> 16U;
-    value *= 0x7feb352dU;
-    value ^= value >> 15U;
-    value *= 0x846ca68bU;
-    return value ^ (value >> 16U);
-}
-
-[[nodiscard]] float foam_unit(std::uint32_t value) noexcept {
-    return static_cast<float>(foam_hash(value) & 0x00ffffffU) /
-           16777216.0F;
-}
-
-// Rendering-only tracers: the physics foam signal emits finite-lived patches,
-// while stable particle IDs carry them with the water as it moves. They do not
-// feed back into the solver, and the fixed budget bounds rendering work.
-void update_foam_patches(std::vector<FoamPatch> &patches, std::uint64_t &tick,
-                         const std::vector<Vec3> &positions,
-                         const std::vector<float> &foam,
-                         const std::vector<std::uint32_t> &ids) {
-    constexpr float dt = 1.0F / 60.0F;
-    constexpr std::size_t capacity = 2048U;
-    std::unordered_map<std::uint32_t, std::size_t> particle_by_id;
-    particle_by_id.reserve(ids.size());
-    for (std::size_t i = 0; i < ids.size(); ++i)
-        particle_by_id.emplace(ids[i], i);
-    std::unordered_set<std::uint32_t> active;
-    active.reserve(patches.size());
-    for (std::size_t i = 0; i < patches.size();) {
-        FoamPatch &patch = patches[i];
-        patch.age += dt;
-        const auto owner = particle_by_id.find(patch.particle_id);
-        if (patch.age >= patch.lifetime || owner == particle_by_id.end()) {
-            patches[i] = patches.back();
-            patches.pop_back();
-            continue;
-        }
-        patch.position = positions[owner->second];
-        active.insert(patch.particle_id);
-        ++i;
-    }
-    for (std::size_t i = 0; i < ids.size() && patches.size() < capacity; ++i) {
-        if (foam[i] <= 0.0F || active.contains(ids[i])) continue;
-        const std::uint32_t seed = ids[i] ^
-            static_cast<std::uint32_t>(tick * 104729ULL);
-        if (foam_unit(seed) >= std::min(1.0F, 16.0F * foam[i] * dt))
-            continue;
-        const float radius = 0.0096F + 0.0128F *
-            foam_unit(seed ^ 0x9e3779b9U);
-        const float life = 1.5F + 2.0F *
-            foam_unit(seed ^ 0x85ebca6bU);
-        patches.push_back({ids[i], positions[i],
-                           0.12F * life * foam_unit(seed ^ 0xc2b2ae35U),
-                           life, radius});
-        active.insert(ids[i]);
-    }
-    ++tick;
-}
-
-void paint_foam_patches(const std::vector<FoamPatch> &patches,
-                        std::uint64_t tick, float support_radius,
-                        Camera camera, std::uint32_t width,
-                        std::uint32_t height, const std::vector<float> &depth,
-                        const std::vector<float> &rigid_depth,
-                        std::vector<std::uint32_t> &rgba) {
-    const Vec3 forward = normalize(subtract(camera.target, camera.eye));
-    const Vec3 right = normalize(cross(forward, camera.up));
-    const Vec3 up = normalize(cross(right, forward));
-    constexpr float radians = 0.017453292519943295F;
-    constexpr float pi = 3.14159265358979323846F;
-    const float tangent = std::tan(camera.vertical_field_of_view_degrees *
-                                   radians * 0.5F);
-    const float aspect = static_cast<float>(width) / static_cast<float>(height);
-    for (const FoamPatch &patch : patches) {
-        const float progress = patch.age / patch.lifetime;
-        const float fade = std::clamp((1.0F - progress) * 1.8F, 0.0F, 1.0F);
-        const float grow = 0.58F + 0.42F *
-            std::clamp(progress / 0.12F, 0.0F, 1.0F);
-        const float spread = 0.64F + 0.56F *
-            std::clamp(progress / 0.55F, 0.0F, 1.0F);
-        const float phase = 2.0F * pi * foam_unit(patch.particle_id) +
-                            static_cast<float>(tick) * 0.015F;
-        const Vec3 anchor{patch.position.x,
-                          patch.position.y + 0.30F * support_radius,
-                          patch.position.z};
-        for (std::uint32_t lobe = 0U; lobe < 11U; ++lobe) {
-            const std::uint32_t seed = patch.particle_id * 0x9e3779b9U +
-                                       lobe * 0x85ebca6bU;
-            const float first = foam_unit(seed ^ 0xc2b2ae35U);
-            const float second = foam_unit(seed ^ 0x27d4eb2fU);
-            const float third = foam_unit(seed ^ 0x165667b1U);
-            const float angle = phase + 2.0F * pi * second;
-            const float radial = lobe == 0U ? 0.0F :
-                (0.08F + 1.35F * std::sqrt(first)) * patch.radius * spread;
-            const Vec3 center{anchor.x + radial * std::cos(angle),
-                              anchor.y + 0.16F * third * patch.radius,
-                              anchor.z + radial * std::sin(angle)};
-            const float radius = (lobe == 0U ? 0.56F :
-                0.22F + 0.50F * third) * patch.radius * grow;
-            const Vec3 offset = subtract(center, camera.eye);
-            const float forward_distance = dot(offset, forward);
-            if (forward_distance <= radius) continue;
-            const float center_x = 0.5F * width *
-                (1.0F + dot(offset, right) /
-                    (forward_distance * tangent * aspect));
-            const float center_y = 0.5F * height *
-                (1.0F + dot(offset, up) / (forward_distance * tangent));
-            const float pixel_radius = std::max(0.75F,
-                radius * height / (2.0F * forward_distance * tangent));
-            if (center_x + pixel_radius < 0.0F ||
-                center_x - pixel_radius >= width ||
-                center_y + pixel_radius < 0.0F ||
-                center_y - pixel_radius >= height) continue;
-            const int x0 = std::max(0, static_cast<int>(center_x - pixel_radius));
-            const int y0 = std::max(0, static_cast<int>(center_y - pixel_radius));
-            const int x1 = std::min(static_cast<int>(width) - 1,
-                                    static_cast<int>(center_x + pixel_radius));
-            const int y1 = std::min(static_cast<int>(height) - 1,
-                                    static_cast<int>(center_y + pixel_radius));
-            const float center_depth = std::sqrt(dot(offset, offset));
-            for (int y = y0; y <= y1; ++y)
-                for (int x = x0; x <= x1; ++x) {
-                    const float dx = (x + 0.5F - center_x) / pixel_radius;
-                    const float dy = (y + 0.5F - center_y) / pixel_radius;
-                    const float squared = dx * dx + dy * dy;
-                    if (squared >= 1.0F) continue;
-                    const float cap = std::sqrt(1.0F - squared);
-                    const float bubble_depth = center_depth - radius * cap;
-                    const std::size_t pixel = static_cast<std::size_t>(y) *
-                                              width + x;
-                    if (bubble_depth > rigid_depth[pixel] + 0.002F ||
-                        bubble_depth > depth[pixel] +
-                            0.5F * support_radius) continue;
-                    const float rim = std::pow(1.0F - cap, 2.6F);
-                    const float glint = std::pow(std::max(0.0F,
-                        0.70F * cap + 0.30F * (dx + dy)), 34.0F);
-                    const float opacity = fade * fade * (3.0F - 2.0F * fade) *
-                        std::min(0.96F, 0.055F + 0.82F * rim +
-                                         0.26F * glint);
-                    const std::uint32_t old = rgba[pixel];
-                    const auto blend = [opacity](std::uint32_t previous,
-                                                  float film) {
-                        return static_cast<std::uint32_t>(std::clamp(
-                            previous * (1.0F - opacity) + film * opacity,
-                            0.0F, 255.0F));
-                    };
-                    const std::uint32_t red = blend(old & 255U,
-                                                    204.0F + 40.0F * third);
-                    const std::uint32_t green = blend((old >> 8U) & 255U,
-                                                      229.0F + 24.0F * third);
-                    const std::uint32_t blue = blend((old >> 16U) & 255U,
-                                                     255.0F);
-                    rgba[pixel] = 0xff000000U | (blue << 16U) |
-                                  (green << 8U) | red;
-                }
-        }
-    }
-}
-
 OptixRenderer::OptixRenderer() noexcept = default;
 OptixRenderer::~OptixRenderer() = default;
 OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
@@ -1032,22 +883,8 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                                                        : "cannot borrow fluid view");
             fluid_view = view;
             sample.particle_count = view.particle_count;
-            positions.resize(view.particle_count);
-            foam.resize(view.particle_count);
-            ids.resize(view.particle_count);
+            read_fluid_visual_samples(view, positions, foam, ids);
             if (view.particle_count != 0U) {
-                check_cuda(cudaMemcpy(positions.data(), view.positions.data,
-                                      positions.size() * sizeof(Vec3),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid positions for rendering");
-                check_cuda(cudaMemcpy(foam.data(), view.foam.data,
-                                      foam.size() * sizeof(float),
-                                      cudaMemcpyDeviceToHost),
-                           "copy foam signal for rendering");
-                check_cuda(cudaMemcpy(ids.data(), view.stable_particle_ids.data,
-                                      ids.size() * sizeof(std::uint32_t),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid IDs for rendering");
                 if (impl_->fluid_surface &&
                     fluid_mode == FluidRenderMode::surface) {
                     sample.surface_gpu_milliseconds =
@@ -1069,15 +906,16 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                     camera, impl_->width, impl_->height,
                     impl_->host_depth, impl_->host_rigid_depth, rgba);
             } else {
-                update_foam_patches(impl_->foam_patches, impl_->foam_tick,
-                                    positions, foam, ids);
-                paint_foam_patches(impl_->foam_patches, impl_->foam_tick,
-                                   fluid_view.support_radius, camera,
-                                   impl_->width, impl_->height,
-                                   impl_->host_depth, impl_->host_rigid_depth,
-                                   rgba);
+                impl_->foam_visuals.advance(
+                    positions, foam, ids, fluid_view.particle_radius);
+                impl_->foam_visuals.paint(
+                    fluid_view.support_radius, camera, impl_->width,
+                    impl_->height, impl_->host_depth,
+                    impl_->host_rigid_depth, rgba);
             }
         }
+        sample.foam_patch_count = static_cast<std::uint32_t>(
+            impl_->foam_visuals.patch_count());
         const auto finish = clock::now();
         const auto milliseconds = [](auto start, auto end) {
             return std::chrono::duration<float, std::milli>(end - start).count();
@@ -1108,23 +946,12 @@ bool OptixRenderer::advance_visuals(const World &world,
             if (!status) fail(status.message != nullptr ? status.message
                                                        : "cannot borrow fluid view");
             if (fluid.particle_count != 0U) {
-                std::vector<Vec3> positions(fluid.particle_count);
-                std::vector<float> foam(fluid.particle_count);
-                std::vector<std::uint32_t> ids(fluid.particle_count);
-                check_cuda(cudaMemcpy(positions.data(), fluid.positions.data,
-                                      positions.size() * sizeof(Vec3),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid positions for foam");
-                check_cuda(cudaMemcpy(foam.data(), fluid.foam.data,
-                                      foam.size() * sizeof(float),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid foam signal");
-                check_cuda(cudaMemcpy(ids.data(), fluid.stable_particle_ids.data,
-                                      ids.size() * sizeof(std::uint32_t),
-                                      cudaMemcpyDeviceToHost),
-                           "copy fluid IDs for foam");
-                update_foam_patches(impl_->foam_patches, impl_->foam_tick,
-                                    positions, foam, ids);
+                std::vector<Vec3> positions;
+                std::vector<float> foam;
+                std::vector<std::uint32_t> ids;
+                read_fluid_visual_samples(fluid, positions, foam, ids);
+                impl_->foam_visuals.advance(
+                    positions, foam, ids, fluid.particle_radius);
             }
         }
         if (!impl_->paint_masks.empty()) {

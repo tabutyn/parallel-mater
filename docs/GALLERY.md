@@ -88,8 +88,10 @@ accumulates a persistent paint mask for its two face sides. The sphere and
 pegs remain unpainted. Painting remains examples-only: `World` does not own a
 texture, paint color, or renderer.
 The shared water shader reflects authored geometry and uses the original
-course's lighter absorption and haze. Render-only foam signals seed bounded,
-short-lived multi-bubble patches that follow stable water-particle IDs. Foam
+course's lighter absorption and haze. All three fluid scenes use the shared
+render-only foam module: foam signals seed bounded, short-lived multi-bubble
+patches that follow stable water-particle IDs. Patch size follows particle
+scale so Fluid and Fluid + Rigid remain visible from their wider camera. Foam
 uses the rigid-body depth buffer for occlusion, so splashes behind the thin
 bowl wall do not appear on its exterior.
 

@@ -331,9 +331,13 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
     std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
                   renderer.raytrace_wall_milliseconds);
     text(rgba, width, height, 32, 288, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "%s %7.3f MS",
-                  renderer.particle_view ? "SPRITES CPU   " : "FOAM CPU      ",
-                  renderer.foam_wall_milliseconds);
+    if (renderer.particle_view)
+        std::snprintf(line, sizeof(line), "SPRITES CPU   %7.3f MS",
+                      renderer.foam_wall_milliseconds);
+    else
+        std::snprintf(line, sizeof(line), "FOAM CPU      %7.3f MS  %u PATCHES",
+                      renderer.foam_wall_milliseconds,
+                      renderer.foam_patch_count);
     text(rgba, width, height, 32, 308, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
                   renderer.total_wall_milliseconds);

@@ -924,7 +924,11 @@ int main(int argc, char **argv) {
             std::cout << "Fluid surface outliers="
                       << headless_render_timings.surface_excluded_particle_count
                       << " surface_gpu_ms="
-                      << headless_render_timings.surface_gpu_milliseconds << '\n';
+                      << headless_render_timings.surface_gpu_milliseconds
+                      << " foam_patches="
+                      << headless_render_timings.foam_patch_count
+                      << " foam_cpu_ms="
+                      << headless_render_timings.foam_wall_milliseconds << '\n';
         if (!validate_render(pixels, runtime.renderer.width(),
                              runtime.renderer.height(), error)) {
             std::cerr << "Render validation failed: " << error << '\n';

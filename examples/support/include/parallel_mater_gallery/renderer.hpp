@@ -25,6 +25,7 @@ struct RendererTimings {
     float total_wall_milliseconds{};
     std::uint32_t particle_count{};
     std::uint32_t surface_excluded_particle_count{};
+    std::uint32_t foam_patch_count{};
     bool particle_view{};
 };
 

@@ -151,6 +151,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     add_library(parallel-mater-gallery-renderer STATIC
                 examples/support/optix_renderer.cpp
+                examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
                 examples/support/contact_paint.cu
                 examples/support/overlay.cpp)
@@ -253,6 +254,17 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-material-visibility-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
 
+        add_executable(parallel-mater-foam-visuals-tests
+                       tests/gallery/foam_visuals_tests.cpp
+                       examples/support/foam_visuals.cpp)
+        target_include_directories(parallel-mater-foam-visuals-tests PRIVATE
+            examples/support examples/support/include)
+        target_link_libraries(parallel-mater-foam-visuals-tests PRIVATE
+            ParallelMater::parallel_mater)
+        target_compile_features(parallel-mater-foam-visuals-tests PRIVATE cxx_std_20)
+        add_test(NAME parallel-mater-foam-visuals-tests
+                 COMMAND parallel-mater-foam-visuals-tests)
+
         if(PARALLEL_MATER_BUILD_BENCHMARKS)
             add_test(NAME parallel-mater-pegs-stability-test
                      COMMAND parallel-mater-pegs-benchmark --verify-settling)
@@ -312,6 +324,8 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-test.ppm
                     --frames 30)
+        set_tests_properties(parallel-mater-fluid-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
         add_test(
             NAME parallel-mater-fluid-rigid-headless-test
             COMMAND parallel-mater-gallery
@@ -319,6 +333,8 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-rigid-test.ppm
                     --frames 120)
+        set_tests_properties(parallel-mater-fluid-rigid-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
         add_test(
             NAME parallel-mater-peg-paint-headless-test
             COMMAND parallel-mater-gallery
