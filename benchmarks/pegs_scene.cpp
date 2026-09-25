@@ -20,14 +20,16 @@ int main(int argc, char **argv) {
         std::string(argv[1]) == "--verify-settling";
     const bool verify_tilt = argc == 2 &&
         std::string(argv[1]) == "--verify-tilt";
-    if (verify_settling || verify_tilt) {
+    const bool verify_slosh = argc == 2 &&
+        std::string(argv[1]) == "--verify-slosh";
+    if (verify_settling || verify_tilt || verify_slosh) {
         int devices = 0;
         if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0)
             return 77;
     }
-    std::uint32_t frames = verify_settling || verify_tilt ? 300U : 600U;
+    std::uint32_t frames = verify_settling ? 300U : verify_slosh ? 240U : 600U;
     if (argc > 14) return 2;
-    if (argc >= 2 && !verify_settling && !verify_tilt) {
+    if (argc >= 2 && !verify_settling && !verify_tilt && !verify_slosh) {
         char *end = nullptr;
         const unsigned long value = std::strtoul(argv[1], &end, 10);
         if (end == argv[1] || *end != '\0' || value == 0U || value > 100'000U)
@@ -75,7 +77,7 @@ int main(int argc, char **argv) {
             return 2;
         scene.rigid_bodies[active].options.initial_state.position.y = initial_y;
     }
-    std::uint32_t sample_interval = 100U;
+    std::uint32_t sample_interval = verify_slosh ? 10U : 100U;
     if (argc >= 7) {
         char *end = nullptr;
         const unsigned long value = std::strtoul(argv[6], &end, 10);
@@ -157,6 +159,8 @@ int main(int argc, char **argv) {
                   << body.options.friction << '\n';
     Samples wall;
     bool settled = false;
+    bool reversed_with_momentum = false;
+    bool rebounded = false;
     std::cout << std::fixed << std::setprecision(3);
     for (std::uint32_t frame = 1U; frame <= frames; ++frame) {
         StepOptions options = standard_step_options(false);
@@ -165,6 +169,14 @@ int main(int argc, char **argv) {
             const float radians = gravity_tilt_degrees * 0.017453292519943295F;
             const float magnitude = -options.gravity.y;
             options.gravity = {magnitude * std::sin(radians),
+                               -magnitude * std::cos(radians), 0.0F};
+        }
+        if (verify_slosh) {
+            const float radians = peg_paint_gravity_tilt_degrees *
+                0.017453292519943295F;
+            const float magnitude = -options.gravity.y;
+            const float direction = frame <= 120U ? 1.0F : -1.0F;
+            options.gravity = {direction * magnitude * std::sin(radians),
                                -magnitude * std::cos(radians), 0.0F};
         }
         options.collect_fluid_contacts = frame % sample_interval == 0U ||
@@ -210,8 +222,12 @@ int main(int argc, char **argv) {
         float cap_foam_sum = 0.0F;
         float cap_vertical_sum = 0.0F;
         float cap_horizontal_sum = 0.0F;
+        float mean_vx = 0.0F;
+        float mean_x = 0.0F;
         for (std::size_t i = 0U; i < positions.size(); ++i) {
             const Vec3 position = positions[i];
+            mean_x += position.x;
+            mean_vx += velocities[i].x;
             lowest = std::min(lowest, position.y);
             outside += position.y < -1.02F;
             const bool outer = position.x * position.x +
@@ -253,6 +269,10 @@ int main(int argc, char **argv) {
                   << " edge_particles=" << edge_particles
                   << " high_outer_particles=" << high_outer_particles
                   << " outer_top=" << (edge_particles ? outer_top : 0.0F)
+                  << " mean_x=" << mean_x /
+                     std::max<std::size_t>(positions.size(), 1U)
+                  << " mean_vx=" << mean_vx /
+                     std::max<std::size_t>(positions.size(), 1U)
                   << " cap_speed=" << cap_speed
                   << " cap_mean_speed=" << cap_speed_sum /
                      std::max(1U, cap_particles)
@@ -285,14 +305,25 @@ int main(int argc, char **argv) {
                  outside == 0U && statistics.contact_overflow_count == 0U;
         }
         if (frame == frames && verify_tilt) {
-            settled = outer_top < 0.15F &&
-                high_outer_particles < 1000U && outside == 0U &&
+            settled = outer_top < 0.75F &&
+                high_outer_particles < 3000U && outside == 0U &&
                 statistics.contact_overflow_count == 0U;
+        }
+        if (verify_slosh) {
+            const float average_vx = mean_vx /
+                std::max<std::size_t>(positions.size(), 1U);
+            if (frame == 130U) reversed_with_momentum = average_vx < -1.7F;
+            if (frame == 190U) rebounded = average_vx > 0.05F;
+            if (frame == frames)
+                settled = reversed_with_momentum && rebounded &&
+                    statistics.particle_count == scene.initial_particles.size() &&
+                    outside == 0U && statistics.contact_overflow_count == 0U;
         }
         wall.clear();
     }
-    if ((verify_settling || verify_tilt) && !settled) {
-        std::cerr << (verify_tilt ? "Peg tilt stacked fluid above the rim\n"
+    if ((verify_settling || verify_tilt || verify_slosh) && !settled) {
+        std::cerr << (verify_slosh ? "Peg water lost slosh momentum\n"
+                    : verify_tilt ? "Peg tilt stacked fluid excessively\n"
                                   : "Peg sphere or post-cap fluid did not settle\n");
         return 1;
     }

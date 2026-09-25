@@ -314,9 +314,20 @@ single texel per particle contact, as in the old bowl; a 64×64 mask gives the
 smaller bowl 64×32 used texels, reconstructed with a smooth cubic B-spline
 filter to avoid the coarse mask's square edges.
 
-The Peg arrow-key limit is 20° from vertical, matching the original lab.
-The former 85° setting made sideways gravity dominate and drove water above
-the bowl rim. At 20° with authored scene options, the 300-frame benchmark's
-highest outer particle was Y −0.138 m, with 380 outer particles above
-Y −0.45 m, zero below the bowl floor, and no contact overflow. The tilt
-benchmark now guards against a return to near-horizontal gravity.
+The Peg arrow-key limit is now 50° from vertical, above the original lab's
+20° and below the excessive 85° setting. Static fluid contact previously
+removed 7.5% of tangential velocity on each solver pass against the bowl's
+0.05-friction material. Eight passes per frame could halve wall momentum.
+The static contact now uses impulse-limited Coulomb friction, matching the
+dynamic fluid contact and retaining tangential motion when normal impulse is
+small. Bulk velocity damping (0.4), normal damping (2), and speed cap (3 m/s)
+already matched the old lab and were left unchanged.
+
+In a 50° gravity-reversal probe, mean horizontal particle velocity ten frames
+after reversing changed from −1.27 m/s to −2.29 m/s. At frame 190, the old
+contact still moved left at −0.21 m/s; the revised contact had rebounded right
+at +0.21 m/s. The slosh regression guards both behaviors. At sustained 50°
+tilt, the highest outer particle reached Y 0.52 m at frame 600, with no
+lower-bound escapes or contact overflow. The invisible containment cylinder
+still holds a raised sheet under prolonged strong tilt; spilling over an open
+rim would need separate scene authoring.

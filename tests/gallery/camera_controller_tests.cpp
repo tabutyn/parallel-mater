@@ -87,7 +87,7 @@ int main() {
         tilted = steer_gravity(tilted, steering_camera, 1.0F, 0.0F,
                                19.62F, peg_paint_gravity_tilt_degrees,
                                1.0F / 60.0F);
-    check(tilted.x > 6.6F && tilted.y < -18.3F &&
+    check(tilted.x > 14.9F && tilted.y < -12.5F &&
               std::fabs(tilted.z) < 1.0e-4F &&
               near(std::sqrt(dot(tilted, tilted)), 19.62F),
           "Peg arrow steering tilts authored gravity toward camera right");
@@ -97,7 +97,7 @@ int main() {
                                      0.0F, 1.0F, 19.62F,
                                      peg_paint_gravity_tilt_degrees,
                                      1.0F / 60.0F);
-    check(forward_tilt.z < -6.6F &&
+    check(forward_tilt.z < -14.9F &&
               std::fabs(forward_tilt.x) < 1.0e-4F,
           "Peg Up Arrow steers into the camera view");
     for (int step = 0; step < 120; ++step)

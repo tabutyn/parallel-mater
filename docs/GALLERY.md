@@ -77,9 +77,9 @@ the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
 Fluid, or `--fluid-rigid` for a headless run.
 Peg Paint uses the same fluid controls and can be selected with `--peg-paint`.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
-to 20 degrees relative to the camera. The tilt eases in and returns to
-vertical when released. This matches the original lab's water-course limit;
-near-horizontal gravity drove water above the bowl rim.
+to 50 degrees relative to the camera. The tilt eases in and returns to
+vertical when released. Static fluid contacts use impulse-limited friction,
+so reversing direction can build a wave instead of stopping at the wall.
 Unlike Inflow, its Blender Flow/Geometry cylinder is sampled into particles
 on an HCP lattice once at scene creation; it does not keep emitting. The
 authored sphere starts above the bowl and falls through the water. The renderer

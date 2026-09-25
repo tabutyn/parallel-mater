@@ -2305,10 +2305,16 @@ __global__ void fluid_static_contacts(
                 multiply(best_normal, incoming * (1.0F + body.restitution)));
             const Vec3 tangent = subtract(velocity,
                 multiply(best_normal, dot(velocity, best_normal)));
-            // Material friction controls static surface drag; liquid walls
-            // can be authored slippery without changing body contact math.
-            velocity = subtract(velocity, multiply(tangent,
-                fminf(1.0F, body.friction * 1.5F)));
+            const float tangent_speed = vector_length(tangent);
+            if (tangent_speed > k_epsilon) {
+                // Coulomb friction is limited by this contact's normal
+                // impulse, as in fluid_moving_contacts. A fixed fractional
+                // cut on every solver pass overdamps water at rest on walls.
+                const float friction_speed = fminf(tangent_speed,
+                    body.friction * normal_impulse / particle_mass);
+                velocity = subtract(velocity, multiply(tangent,
+                    friction_speed / tangent_speed));
+            }
             foam[particle] = fmaxf(foam[particle],
                                   fminf(1.0F, -incoming * 0.35F));
         }
