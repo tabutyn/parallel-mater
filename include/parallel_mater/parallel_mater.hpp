@@ -177,6 +177,13 @@ struct FluidParticle {
 
 // Host geometry is copied at creation; vertex inverse mass zero pins a vertex
 // exactly. Triangles define stretch, shear, and bending links; they may be open.
+struct ClothBond {
+    std::uint32_t first{};
+    std::uint32_t second{};
+    float rest_length{};
+    bool bending{};
+};
+
 struct ClothOptions {
     HostSpan<Vec3> vertices{};
     HostSpan<std::uint32_t> triangle_indices{};
@@ -189,20 +196,27 @@ struct ClothOptions {
     // Coulomb coefficient for tangential rigid-body/cloth contact.
     float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
-    // Zero keeps an intact sheet. Otherwise an entire triangle is removed
-    // once any edge exceeds this multiple of its rest length.
-    float tear_ratio{};
-    // When enabled, strain tearing starts only after a dynamic rigid contact.
-    bool tear_requires_contact{};
-    // When nonzero, the first rigid contact cuts whole triangles inside this
-    // multiple of the collider radius instead of using global strain tearing.
-    float contact_cut_radius_scale{};
+    // Zero disables fracture. Otherwise a bond fails when its extension
+    // exceeds this fraction of its rest length for the configured duration.
+    float break_strain{};
+    std::uint32_t fracture_persistence_substeps{4U};
+    // Optional immediate bond failure from the sum of its endpoint contact
+    // impulses. Zero disables this additional impact criterion.
+    float impact_break_impulse{};
 };
 
 struct ClothDeviceView {
+    // Physical nodes and their authored connectivity.
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const std::uint32_t> triangle_indices{};
     std::uint32_t vertex_count{};
+    // For tearable cloth, every triangle owns three surface corners. The
+    // triangle count stays fixed as bonds fail; source indices preserve UVs.
+    DeviceSpan<const Vec3> surface_positions{};
+    DeviceSpan<const std::uint32_t> surface_triangle_indices{};
+    DeviceSpan<const std::uint32_t> surface_source_indices{};
+    DeviceSpan<const ClothBond> bonds{};
+    DeviceSpan<const std::uint8_t> active_bonds{};
 };
 
 struct FluidOptions {

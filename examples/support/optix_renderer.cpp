@@ -183,6 +183,7 @@ struct Geometry {
     DeviceBuffer update_scratch{};
     std::size_t update_scratch_size{};
     bool dynamic{};
+    bool fracture_surface{};
     OptixTraversableHandle handle{};
 };
 
@@ -455,8 +456,24 @@ struct OptixRenderer::Impl {
                 });
             std::vector<Vertex> vertices = mesh.vertices;
             smooth_render_normals(mesh, vertices);
+            gpu.fracture_surface = std::any_of(scene.cloths.begin(),
+                scene.cloths.end(), [index](const ClothDefinition &cloth) {
+                    return cloth.mesh_index == index &&
+                        (cloth.break_strain > 0.0F ||
+                         cloth.impact_break_impulse > 0.0F);
+                });
+            std::vector<std::uint32_t> triangles = mesh.indices;
+            if (gpu.fracture_surface) {
+                const auto source = vertices;
+                vertices.clear();
+                vertices.reserve(mesh.indices.size());
+                for (std::uint32_t corner : mesh.indices)
+                    vertices.push_back(source[corner]);
+                for (std::uint32_t corner = 0U; corner < triangles.size(); ++corner)
+                    triangles[corner] = corner;
+            }
             gpu.vertices.upload(vertices);
-            gpu.triangles.upload(mesh.indices);
+            gpu.triangles.upload(triangles);
             CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
             std::uint32_t geometry_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
             OptixBuildInput input{};
@@ -464,7 +481,7 @@ struct OptixRenderer::Impl {
             input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
             input.triangleArray.vertexStrideInBytes = sizeof(Vertex);
             input.triangleArray.numVertices =
-                static_cast<unsigned int>(mesh.vertices.size());
+                static_cast<unsigned int>(vertices.size());
             input.triangleArray.vertexBuffers = &vertex_buffer;
             input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
             input.triangleArray.indexStrideInBytes = 3U * sizeof(std::uint32_t);
@@ -696,29 +713,39 @@ struct OptixRenderer::Impl {
                               "cannot borrow cloth view");
             if (view.vertex_count != mesh.vertices.size())
                 fail("cloth renderer vertex count changed");
-            std::vector<Vertex> vertices = mesh.vertices;
-            std::vector<Vec3> positions(view.vertex_count);
-            check_cuda(cudaMemcpy(positions.data(), view.positions.data,
+            const bool fracture_surface = gpu.fracture_surface;
+            if (fracture_surface &&
+                view.surface_positions.size != mesh.indices.size())
+                fail("cloth surface vertex count changed");
+            std::vector<Vertex> vertices;
+            if (fracture_surface) {
+                vertices.reserve(mesh.indices.size());
+                for (std::uint32_t source : mesh.indices)
+                    vertices.push_back(mesh.vertices[source]);
+            } else {
+                vertices = mesh.vertices;
+            }
+            const auto &source_positions = fracture_surface
+                ? view.surface_positions : view.positions;
+            std::vector<Vec3> positions(source_positions.size);
+            check_cuda(cudaMemcpy(positions.data(), source_positions.data,
                                   positions.size() * sizeof(Vec3),
                                   cudaMemcpyDeviceToHost),
                        "copy cloth positions");
-            std::vector<std::uint32_t> updated_triangles;
-            if (cloth.tear_ratio > 0.0F) {
-                updated_triangles.resize(mesh.indices.size());
-                check_cuda(cudaMemcpy(updated_triangles.data(),
-                                      view.triangle_indices.data,
-                                      updated_triangles.size() * sizeof(std::uint32_t),
-                                      cudaMemcpyDeviceToHost),
-                           "copy cloth triangles");
+            std::vector<std::uint32_t> surface_triangles;
+            if (fracture_surface) {
+                surface_triangles.resize(mesh.indices.size());
+                for (std::uint32_t index = 0U;
+                     index < surface_triangles.size(); ++index)
+                    surface_triangles[index] = index;
             }
-            const auto &triangles = cloth.tear_ratio > 0.0F
-                ? updated_triangles : mesh.indices;
+            const auto &triangles = fracture_surface
+                ? surface_triangles : mesh.indices;
             for (std::size_t index = 0U; index < vertices.size(); ++index) {
                 vertices[index].position = positions[index];
                 vertices[index].normal = {};
             }
             for (std::size_t index = 0U; index < triangles.size(); index += 3U) {
-                if (triangles[index] == triangles[index + 1U]) continue;
                 Vertex &a = vertices[triangles[index]];
                 Vertex &b = vertices[triangles[index + 1U]];
                 Vertex &c = vertices[triangles[index + 2U]];
@@ -734,7 +761,6 @@ struct OptixRenderer::Impl {
             for (Vertex &vertex : vertices)
                 vertex.normal = normalize(vertex.normal);
             gpu.vertices.upload(vertices);
-            if (cloth.tear_ratio > 0.0F) gpu.triangles.upload(triangles);
             CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
             std::uint32_t flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
             OptixBuildInput input{};

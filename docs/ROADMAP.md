@@ -123,14 +123,14 @@ pass.
 
 ## PR 10 — Cloth tear and cloth paint variations
 
-- Add API-owned triangle-preserving strain tearing and localized one-shot
-  contact cuts; render and collide against the same changing triangle buffer.
-- Derive `ClothTear.blend` from the pinned sheet, widening it so a ball-sized
-  cut leaves visible cloth, with a heavier ball at its original position and
-  friction. Gravity starts down in every cloth scene:
-  verify the ball lands without tearing, then rolls under steered gravity
-  through a contact-triggered, near-circular cut. Surviving edges stay near
-  rest length and a no-impact control does not tear.
+- Add API-owned persistent bond fracture from sustained strain or rigid
+  contact impulses. Preserve every triangle with face-local surface corners
+  that separate when their supporting bonds fail.
+- Derive `ClothTear.blend` from the original-sized pinned sheet with a heavier
+  ball at its original position and friction. Gravity starts down in every
+  cloth scene: verify the ball lands without breaking bonds, then rolls under
+  steered gravity through the fractured sheet. A no-impact control does not
+  fracture, and surviving surface faces stay close to their rest shapes.
 - Derive `ClothPaint.blend` from the authored `Cloth.blend`: retain its pinned
   rows and active rigid sphere, enable cloth UV painting, and keep the cloth
   intact. Rigid–cloth contact and filled-disk texel stamping belong to `World`.

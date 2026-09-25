@@ -45,9 +45,8 @@ Headless physics builds remain free of OpenGL and OptiX.
    vertex rows while a dynamic sphere can press it when arrow keys tilt
    gravity up to 45 degrees; the passive box supports both.
 7. **Cloth Tear** — a heavy sphere first falls to the floor; arrow-key gravity
-   rolls it into the sheet, where confirmed contact cuts a bounded circular
-   opening of whole triangles. Its wider sheet remains visible around the
-   opening; the API owns topology.
+   rolls it into the sheet, where overloaded bonds break and triangle-local
+   faces separate without being deleted. The API owns fracture and topology.
 8. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
    cloth sheet and persistently paints its UVs at contact through an API rule.
 

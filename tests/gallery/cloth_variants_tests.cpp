@@ -27,6 +27,84 @@ float length(Vec3 a, Vec3 b) {
     return std::sqrt(x * x + y * y + z * z);
 }
 
+bool run_api_fracture() {
+    const std::vector<Vec3> vertices{{-0.5F, 1.0F, 0.0F},
+                                     { 0.5F, 1.0F, 0.0F},
+                                     {-0.5F, 0.0F, 0.0F},
+                                     { 0.5F, 0.0F, 0.0F}};
+    const std::vector<std::uint32_t> triangles{0U, 2U, 1U, 1U, 2U, 3U};
+    const std::vector<float> inverse_masses{0.0F, 0.0F, 1.0F, 1.0F};
+    World world;
+    if (!check(World::create({.rigid_body_capacity = 1U,
+                              .cloth_capacity = 1U}, world),
+               "create API fracture world")) return false;
+    ClothId cloth{};
+    std::vector<Vec3> degenerate = vertices;
+    degenerate[1] = degenerate[0];
+    if (world.add_cloth({.vertices = {degenerate.data(), degenerate.size()},
+                         .triangle_indices = {triangles.data(), triangles.size()}},
+                        cloth).code != StatusCode::invalid_argument) return false;
+    if (!check(world.add_cloth({.vertices = {vertices.data(), vertices.size()},
+                               .triangle_indices = {triangles.data(), triangles.size()},
+                               .inverse_masses = {inverse_masses.data(), inverse_masses.size()},
+                               .stretch_compliance = 0.2F,
+                               .bending_compliance = 0.2F,
+                               .velocity_damping = 0.0F,
+                               .break_strain = 0.05F,
+                               .fracture_persistence_substeps = 1U}, cloth),
+               "add API fracture cloth")) return false;
+    ClothDeviceView view{};
+    if (!check(world.cloth_view(cloth, view), "view API fracture cloth") ||
+        view.vertex_count != vertices.size() ||
+        view.triangle_indices.size != triangles.size() ||
+        view.surface_positions.size != triangles.size() ||
+        view.surface_triangle_indices.size != triangles.size() ||
+        view.surface_source_indices.size != triangles.size() ||
+        view.bonds.size == 0U ||
+        view.active_bonds.size != view.bonds.size) return false;
+    for (int frame = 0; frame < 12; ++frame)
+        if (!check(world.step({.gravity = {0.0F, -50.0F, 0.0F}}),
+                   "step API fracture cloth")) return false;
+    std::vector<std::uint8_t> active(view.active_bonds.size);
+    std::vector<ClothBond> bonds(view.bonds.size);
+    std::vector<std::uint32_t> source(view.surface_source_indices.size);
+    std::vector<std::uint32_t> surface_triangles(view.surface_triangle_indices.size);
+    std::vector<std::uint32_t> original_triangles(view.triangle_indices.size);
+    std::vector<Vec3> surface(view.surface_positions.size);
+    if (cudaMemcpy(active.data(), view.active_bonds.data,
+                   active.size() * sizeof(std::uint8_t), cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(bonds.data(), view.bonds.data,
+                   bonds.size() * sizeof(ClothBond), cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(source.data(), view.surface_source_indices.data,
+                   source.size() * sizeof(std::uint32_t), cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(surface_triangles.data(), view.surface_triangle_indices.data,
+                   surface_triangles.size() * sizeof(std::uint32_t), cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(original_triangles.data(), view.triangle_indices.data,
+                   original_triangles.size() * sizeof(std::uint32_t),
+                   cudaMemcpyDeviceToHost) != cudaSuccess ||
+        cudaMemcpy(surface.data(), view.surface_positions.data,
+                   surface.size() * sizeof(Vec3), cudaMemcpyDeviceToHost) != cudaSuccess)
+        return false;
+    const std::size_t broken = std::count(active.begin(), active.end(), std::uint8_t{0U});
+    const bool valid_bonds = std::all_of(bonds.begin(), bonds.end(),
+        [&](const ClothBond &bond) {
+            return bond.first < vertices.size() && bond.second < vertices.size() &&
+                   bond.rest_length > 0.0F;
+        });
+    const bool stable_surface = std::all_of(surface.begin(), surface.end(),
+        [](Vec3 point) {
+            return std::isfinite(point.x) && std::isfinite(point.y) &&
+                   std::isfinite(point.z);
+        });
+    std::cout << "API fracture broken_bonds=" << broken << "/" << bonds.size()
+              << " retained_triangles=" << original_triangles.size() / 3U << '\n';
+    for (std::size_t corner = 0U; corner < triangles.size(); ++corner)
+        if (source[corner] != triangles[corner] ||
+            surface_triangles[corner] != corner) return false;
+    return broken > 0U && broken < bonds.size() && valid_bonds && stable_surface &&
+           original_triangles == triangles;
+}
+
 bool run_tear() {
     SceneDefinition scene{};
     std::string error;
@@ -35,7 +113,7 @@ bool run_tear() {
         std::cerr << error << '\n';
         return false;
     }
-    if (scene.cloths.size() != 1U || scene.cloths[0].tear_ratio <= 1.0F)
+    if (scene.cloths.size() != 1U || scene.cloths[0].break_strain <= 0.0F)
         return false;
     World world;
     if (!check(World::create({.rigid_body_capacity = 2U,
@@ -53,6 +131,22 @@ bool run_tear() {
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           initial_body), "read tear body"))
         return false;
+    ClothDeviceView view{};
+    if (!check(world.cloth_view(instance.cloths[0], view), "view tear"))
+        return false;
+    const TriangleMesh &mesh = scene.meshes[scene.cloths[0].mesh_index];
+    if (view.surface_positions.size != mesh.indices.size() ||
+        view.surface_triangle_indices.size != mesh.indices.size() ||
+        view.active_bonds.size == 0U) return false;
+    std::vector<std::uint8_t> bonds(view.active_bonds.size);
+    const auto broken_bonds = [&]() {
+        if (cudaMemcpy(bonds.data(), view.active_bonds.data,
+                       bonds.size() * sizeof(std::uint8_t),
+                       cudaMemcpyDeviceToHost) != cudaSuccess)
+            return static_cast<std::size_t>(-1);
+        return static_cast<std::size_t>(std::count(
+            bonds.begin(), bonds.end(), std::uint8_t{0U}));
+    };
     for (int frame = 0; frame < 120; ++frame)
         if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
                                .gravity = {0.0F, -9.81F, 0.0F}}),
@@ -60,82 +154,74 @@ bool run_tear() {
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           settled_body), "read settled ball"))
         return false;
-    ClothDeviceView view{};
-    if (!check(world.cloth_view(instance.cloths[0], view), "view tear"))
-        return false;
-    std::vector<Vec3> positions(view.vertex_count);
-    std::vector<std::uint32_t> indices(view.triangle_indices.size);
-    const auto read_indices = [&]() {
-        return cudaMemcpy(indices.data(), view.triangle_indices.data,
-            indices.size() * sizeof(std::uint32_t),
-            cudaMemcpyDeviceToHost) == cudaSuccess;
-    };
-    if (!read_indices()) return false;
-    std::uint32_t settled_torn = 0U;
-    for (std::size_t base = 0U; base < indices.size(); base += 3U)
-        settled_torn += indices[base] == indices[base + 1U];
-    int first_cut_frame = -1;
-    float first_cut_body_z = INFINITY;
+    const std::size_t settled_broken = broken_bonds();
+    int first_break_frame = -1;
+    float first_break_body_z = INFINITY;
+    float remote_max_ratio = 0.0F, contact_max_ratio = 0.0F;
+    std::vector<Vec3> physical(view.vertex_count);
     for (int frame = 0; frame < 300; ++frame) {
         if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
                                .gravity = {0.0F, -6.93671752F,
                                            -6.93671752F}}),
                    "roll tear ball")) return false;
-        if (first_cut_frame >= 0) continue;
-        if (!read_indices()) return false;
-        for (std::size_t base = 0U; base < indices.size(); base += 3U) {
-            if (indices[base] != indices[base + 1U]) continue;
+        RigidBodyState sampled_body{};
+        if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
+                                               sampled_body), "sample tear body") ||
+            cudaMemcpy(physical.data(), view.positions.data,
+                       physical.size() * sizeof(Vec3),
+                       cudaMemcpyDeviceToHost) != cudaSuccess) return false;
+        for (std::size_t base = 0U; base < mesh.indices.size(); base += 3U)
+            for (std::size_t edge = 0U; edge < 3U; ++edge) {
+                const auto a = mesh.indices[base + edge];
+                const auto b = mesh.indices[base + (edge + 1U) % 3U];
+                const float ratio = length(physical[a], physical[b]) /
+                    length(mesh.vertices[a].position, mesh.vertices[b].position);
+                if (sampled_body.position.z > 1.0F)
+                    remote_max_ratio = std::max(remote_max_ratio, ratio);
+                else contact_max_ratio = std::max(contact_max_ratio, ratio);
+            }
+        if (first_break_frame < 0 && broken_bonds() > settled_broken) {
             RigidBodyState cut_body{};
             if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                                   cut_body), "read cut body"))
                 return false;
-            first_cut_frame = frame;
-            first_cut_body_z = cut_body.position.z;
-            break;
+            first_break_frame = frame;
+            first_break_body_z = cut_body.position.z;
         }
     }
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           final_body), "read torn body"))
         return false;
-    if (cudaMemcpy(positions.data(), view.positions.data,
-                   positions.size() * sizeof(Vec3),
+    const std::size_t broken = broken_bonds();
+    std::vector<Vec3> surface(view.surface_positions.size);
+    std::vector<std::uint32_t> indices(view.triangle_indices.size);
+    if (cudaMemcpy(surface.data(), view.surface_positions.data,
+                   surface.size() * sizeof(Vec3),
                    cudaMemcpyDeviceToHost) != cudaSuccess ||
-        !read_indices()) return false;
-    const TriangleMesh &mesh = scene.meshes[scene.cloths[0].mesh_index];
-    std::uint32_t torn = 0U;
+        cudaMemcpy(indices.data(), view.triangle_indices.data,
+                   indices.size() * sizeof(std::uint32_t),
+                   cudaMemcpyDeviceToHost) != cudaSuccess) return false;
     float maximum_ratio = 0.0F;
-    float cut_min_x = INFINITY, cut_max_x = -INFINITY;
-    float cut_min_y = INFINITY, cut_max_y = -INFINITY;
     for (std::size_t base = 0U; base < indices.size(); base += 3U) {
-        if (indices[base] == indices[base + 1U]) {
-            ++torn;
-            const auto &a = mesh.vertices[mesh.indices[base]].position;
-            const auto &b = mesh.vertices[mesh.indices[base + 1U]].position;
-            const auto &c = mesh.vertices[mesh.indices[base + 2U]].position;
-            const float x = (a.x + b.x + c.x) / 3.0F;
-            const float y = (a.y + b.y + c.y) / 3.0F;
-            cut_min_x = std::min(cut_min_x, x);
-            cut_max_x = std::max(cut_max_x, x);
-            cut_min_y = std::min(cut_min_y, y);
-            cut_max_y = std::max(cut_max_y, y);
-            continue;
-        }
+        if (indices[base] != mesh.indices[base] ||
+            indices[base + 1U] != mesh.indices[base + 1U] ||
+            indices[base + 2U] != mesh.indices[base + 2U]) return false;
         for (std::size_t edge = 0U; edge < 3U; ++edge) {
-            const auto a = indices[base + edge];
-            const auto b = indices[base + (edge + 1U) % 3U];
+            const auto a = mesh.indices[base + edge];
+            const auto b = mesh.indices[base + (edge + 1U) % 3U];
             maximum_ratio = std::max(maximum_ratio,
-                length(positions[a], positions[b]) /
+                length(surface[base + edge],
+                       surface[base + (edge + 1U) % 3U]) /
                 length(mesh.vertices[a].position, mesh.vertices[b].position));
         }
     }
-    std::cout << "Tear before_roll_removed_triangles=" << settled_torn
-              << " removed_triangles=" << torn
-              << " total_triangles=" << indices.size() / 3U
-              << " first_cut_frame=" << first_cut_frame
-              << " first_cut_body_z=" << first_cut_body_z
-              << " contact_cut_scale=" << scene.cloths[0].contact_cut_radius_scale
-              << " cut_bounds_x=" << cut_min_x << ".." << cut_max_x
-              << " cut_bounds_y=" << cut_min_y << ".." << cut_max_y
+    std::cout << "Tear settled_broken=" << settled_broken
+              << " broken_bonds=" << broken << "/" << bonds.size()
+              << " retained_triangles=" << indices.size() / 3U
+              << " first_break_frame=" << first_break_frame
+              << " first_break_body_z=" << first_break_body_z
+              << " remote_max_ratio=" << remote_max_ratio
+              << " contact_max_ratio=" << contact_max_ratio
               << " remaining_max_edge_ratio=" << maximum_ratio
               << " initial_body_y=" << initial_body.position.y
               << " settled_body_y=" << settled_body.position.y
@@ -165,27 +251,21 @@ bool run_tear() {
     ClothDeviceView baseline_view{};
     if (!check(baseline.cloth_view(baseline_instance.cloths[0], baseline_view),
                "view no-impact cloth")) return false;
-    std::vector<std::uint32_t> baseline_indices(baseline_view.triangle_indices.size);
-    if (cudaMemcpy(baseline_indices.data(), baseline_view.triangle_indices.data,
-                   baseline_indices.size() * sizeof(std::uint32_t),
+    std::vector<std::uint8_t> baseline_bonds(baseline_view.active_bonds.size);
+    if (cudaMemcpy(baseline_bonds.data(), baseline_view.active_bonds.data,
+                   baseline_bonds.size() * sizeof(std::uint8_t),
                    cudaMemcpyDeviceToHost) != cudaSuccess) return false;
-    std::uint32_t baseline_torn = 0U;
-    for (std::size_t base = 0U; base < baseline_indices.size(); base += 3U)
-        baseline_torn += baseline_indices[base] == baseline_indices[base + 1U];
-    std::cout << "No-impact removed_triangles=" << baseline_torn << '\n';
-    const float width = cut_max_x - cut_min_x;
-    const float height = cut_max_y - cut_min_y;
+    const std::size_t baseline_broken = std::count(
+        baseline_bonds.begin(), baseline_bonds.end(), std::uint8_t{0U});
+    std::cout << "No-impact broken_bonds=" << baseline_broken << '\n';
     return length(initial_body.linear_velocity, {}) < 1.0e-5F &&
-           settled_torn == 0U && first_cut_frame >= 0 &&
-           first_cut_body_z < 1.0F && torn > 0U &&
-           torn < (indices.size() / 3U) / 4U &&
-           baseline_torn == 0U &&
-           scene.cloths[0].contact_cut_radius_scale > 0.0F &&
-           width < 1.5F && height < 1.5F &&
+           settled_broken == 0U && first_break_frame >= 0 &&
+           first_break_body_z < 1.0F && broken > 0U &&
+           broken < bonds.size() / 3U && baseline_broken == 0U &&
            initial_body.position.y > settled_body.position.y &&
            std::abs(settled_body.position.z - initial_body.position.z) < 0.2F &&
            final_body.position.z < -0.5F &&
-           maximum_ratio <= scene.cloths[0].tear_ratio + 0.05F;
+           maximum_ratio <= 1.15F;
 }
 
 bool run_paint() {
@@ -197,7 +277,7 @@ bool run_paint() {
         return false;
     }
     if (scene.cloths.size() != 1U || !scene.cloths[0].paintable ||
-        scene.cloths[0].tear_ratio != 0.0F ||
+        scene.cloths[0].break_strain != 0.0F ||
         scene.cloths[0].paint_source.empty() ||
         !scene.initial_particles.empty()) return false;
     World world;
@@ -279,5 +359,5 @@ int main() {
         std::cout << "SKIP: CUDA device unavailable\n";
         return 77;
     }
-    return run_tear() && run_paint() ? 0 : 1;
+    return run_api_fracture() && run_tear() && run_paint() ? 0 : 1;
 }

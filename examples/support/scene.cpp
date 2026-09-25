@@ -760,8 +760,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_vertex_mass").value_or(0.001));
         const float thickness = static_cast<float>(
             extras.number("pm_thickness").value_or(0.025));
-        const float tear_ratio = static_cast<float>(
-            extras.number("pm_tear_ratio").value_or(0.0));
+        const float break_strain = static_cast<float>(
+            extras.number("pm_break_strain").value_or(0.0));
+        const float impact_break_impulse = static_cast<float>(
+            extras.number("pm_impact_break_impulse").value_or(0.0));
+        const double fracture_persistence = extras.number(
+            "pm_fracture_persistence_substeps").value_or(4.0);
         const float stretch_compliance = static_cast<float>(
             extras.number("pm_stretch_compliance").value_or(1.0e-6));
         const double solver_iterations =
@@ -775,8 +779,11 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = name + ": invalid cloth mass, thickness, or transform";
             return false;
         }
-        if (!finite(tear_ratio) ||
-            (tear_ratio != 0.0F && (tear_ratio <= 1.0F || tear_ratio > 10.0F)) ||
+        if (!finite(break_strain) || break_strain < 0.0F ||
+            break_strain > 9.0F || !finite(impact_break_impulse) ||
+            impact_break_impulse < 0.0F ||
+            fracture_persistence < 1.0 || fracture_persistence > 64.0 ||
+            std::floor(fracture_persistence) != fracture_persistence ||
             !finite(stretch_compliance) || stretch_compliance < 0.0F ||
             solver_iterations < 1.0 || solver_iterations > 64.0 ||
             std::floor(solver_iterations) != solver_iterations ||
@@ -820,17 +827,10 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         cloth.name = name;
         cloth.vertex_mass = mass;
         cloth.thickness = thickness;
-        cloth.tear_ratio = tear_ratio;
-        cloth.tear_requires_contact = extras.boolean(
-            "pm_tear_requires_contact").value_or(false);
-        cloth.contact_cut_radius_scale = static_cast<float>(
-            extras.number("pm_contact_cut_radius_scale").value_or(0.0));
-        if (!std::isfinite(cloth.contact_cut_radius_scale) ||
-            cloth.contact_cut_radius_scale < 0.0F ||
-            cloth.contact_cut_radius_scale > 2.0F) {
-            error = name + ": invalid cloth contact cut radius scale";
-            return false;
-        }
+        cloth.break_strain = break_strain;
+        cloth.fracture_persistence_substeps =
+            static_cast<std::uint32_t>(fracture_persistence);
+        cloth.impact_break_impulse = impact_break_impulse;
         cloth.stretch_compliance = stretch_compliance;
         cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
         cloth.paintable = extras.boolean("pm_paintable").value_or(false);
@@ -1234,10 +1234,10 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .thickness = definition.thickness,
             .stretch_compliance = definition.stretch_compliance,
             .solver_iterations = definition.solver_iterations,
-            .tear_ratio = definition.tear_ratio,
-            .tear_requires_contact = definition.tear_requires_contact,
-            .contact_cut_radius_scale =
-                definition.contact_cut_radius_scale}, cloth);
+            .break_strain = definition.break_strain,
+            .fracture_persistence_substeps =
+                definition.fracture_persistence_substeps,
+            .impact_break_impulse = definition.impact_break_impulse}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
     }

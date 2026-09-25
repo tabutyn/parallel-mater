@@ -94,23 +94,20 @@ triangle-side body constraint prevents fast bodies from crossing the sheet;
 its broad-phase rigid radius can overestimate non-spherical shapes, so a
 future exact deforming-mesh narrow phase remains possible without changing
 the API.
-Optional `tear_ratio > 1` removes complete triangles whose edges exceed that
-multiple of their rest lengths. Shared stretch links remain while either
-adjacent triangle survives; bending links require both. Setting
-`tear_requires_contact` delays strain tearing until a dynamic rigid body has
-contacted the sheet. `cloth_view().triangle_indices` therefore changes after
-stepping and must be consumed alongside current positions for collision and
-rendering.
-With `contact_cut_radius_scale > 0`, a dynamic body cuts one circular footprint
-of whole triangles only after the rigid–cloth contact constraint reports a
-collision. Proximity alone never cuts the sheet. The radius is the body's
-bounding radius times the scale; as with the current
-triangle-side contact constraint, non-spherical meshes use a conservative
-bounding sphere. This keeps the cut local
-and excludes orphaned vertices from later rigid contacts; intact triangles
-retain their original vertices and constraints. The old water lab fractures
-local bonds before projection and keeps its render faces, while this API uses
-a whole-face cut to match its shared-index cloth topology.
+Optional `break_strain > 0` enables persistent bond fracture: each stretch,
+shear, or bending bond has a stable ID, rest length, active state, and damage
+counter. A bond breaks after its extension exceeds `break_strain` for
+`fracture_persistence_substeps` consecutive substeps. Optional
+`impact_break_impulse > 0` also breaks bonds whose endpoint contact impulses
+exceed that threshold. Fracture never deletes a triangle. The constraint
+solver ignores broken tensile bonds and retains the original graph degree
+when normalizing corrections, avoiding a stiffness jump after fracture.
+For tearable cloth, `cloth_view` exposes triangle-local `surface_positions`,
+stable `surface_triangle_indices`, `surface_source_indices` for UV lookup,
+and `bonds`/`active_bonds` for diagnostics. A face whose bond fails remains
+attached to an intact edge or corner and keeps approximately its rest shape.
+Rigid contact uses that separated surface. The gallery only supplies authored
+settings and renders the API-owned surface; it does not choose a cut shape.
 
 ## Fluid sources and contact paint
 

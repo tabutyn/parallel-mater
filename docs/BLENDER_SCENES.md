@@ -149,15 +149,13 @@ Run `--cloth` for headless output or select Cloth with `Tab`; `R` resets it and
 `F` shows rigid/cloth timings.
 
 `ClothTear.blend` derives from the same sheet, authoring
-`pm_tear_ratio = 1.11`, `pm_tear_requires_contact = true`,
-`pm_contact_cut_radius_scale = 1.5`, zero stretch compliance, and 24 solver
-iterations. This variant widens the sheet from 2 to 3 units around its center,
-leaving cloth visible on both sides of the ball-sized opening. The 35 kg rigid
-sphere keeps its original position and ground friction, so it falls first and
-can then be rolled into the sheet with arrow-key gravity. The API cuts a
-circular patch of whole triangles only on confirmed rigid–cloth contact and
-exposes updated indices through
-`cloth_view`; the gallery does not decide which triangles break.
+`pm_break_strain = 0.96`, 16 persistent substeps,
+`pm_impact_break_impulse = 0.001`, zero stretch compliance, and 24 solver
+iterations. The sheet retains its original size. The 35 kg rigid sphere keeps
+its original position and ground friction, so it falls first and can then be
+rolled into the sheet with arrow-key gravity. The API breaks loaded bonds and
+separates triangle-local surface faces without deleting them; the gallery does
+not decide which bonds fail.
 
 `ClothPaint.blend` derives from the supplied `Cloth.blend`. It retains the pinned
 top and bottom rows and the active rigid sphere, authors `pm_paintable = true`,

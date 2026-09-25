@@ -45,9 +45,9 @@ struct ClothDefinition {
     std::vector<float> inverse_masses{};
     float vertex_mass{0.001F};
     float thickness{0.025F};
-    float tear_ratio{};
-    bool tear_requires_contact{};
-    float contact_cut_radius_scale{};
+    float break_strain{};
+    std::uint32_t fracture_persistence_substeps{4U};
+    float impact_break_impulse{};
     float stretch_compliance{1.0e-6F};
     std::uint32_t solver_iterations{8U};
     bool paintable{};

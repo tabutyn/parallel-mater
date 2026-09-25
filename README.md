@@ -89,8 +89,9 @@ renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
 two `FixedVertices` rows pinned. All three Cloth scenes start with gravity
 straight down; arrow keys steer it relative to the camera within a 45-degree
 tilt, and releasing them restores straight-down gravity.
-`--cloth-tear` lets a heavy sphere land, then roll through a local circular
-contact cut when gravity is steered toward the sheet. `--cloth-paint` keeps the
+`--cloth-tear` lets a heavy sphere land, then roll through bond-fractured cloth
+when gravity is steered toward the sheet. No cloth triangles are deleted.
+`--cloth-paint` keeps the
 cloth intact while the active sphere presses and paints it through the public
 paint-field API.
 

@@ -65,6 +65,7 @@ struct Options {
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
     std::uint32_t headless_cloth_tilt_degrees{};
+    std::uint32_t headless_cloth_tilt_after_frames{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
 };
@@ -525,6 +526,9 @@ struct FluidEscapeTrace {
         } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,
                              output.headless_cloth_tilt_degrees)) return false;
+        } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 0U, 100000U,
+                             output.headless_cloth_tilt_after_frames)) return false;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -538,6 +542,7 @@ struct FluidEscapeTrace {
                          "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint] "
                          "[--fluid-particles N] "
                          "[--cloth-tilt-degrees 1..45 (headless)] "
+                         "[--cloth-tilt-after-frames N (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
@@ -890,7 +895,10 @@ int main(int argc, char **argv) {
                     return 1;
                 }
             }
-            if (!require(runtime.world.step(headless_step),
+            StepOptions frame_step = headless_step;
+            if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
+                frame_step.gravity = step_options.gravity;
+            if (!require(runtime.world.step(frame_step),
                          "step headless gallery")) {
                 return 1;
             }

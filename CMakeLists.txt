@@ -376,13 +376,14 @@ if(BUILD_TESTING)
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-test.ppm
                     --frames 180)
         add_test(
-            NAME parallel-mater-cloth-tear-cut-render-test
+            NAME parallel-mater-cloth-tear-rolled-render-test
             COMMAND parallel-mater-gallery
                     --cloth-tear
                     --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-cut-test.ppm
-                    --frames 300
-                    --cloth-tilt-degrees 45)
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-rolled-test.ppm
+                    --frames 420
+                    --cloth-tilt-degrees 45
+                    --cloth-tilt-after-frames 120)
         add_test(
             NAME parallel-mater-cloth-paint-headless-test
             COMMAND parallel-mater-gallery

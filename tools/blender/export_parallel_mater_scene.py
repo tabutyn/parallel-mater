@@ -377,11 +377,11 @@ def copy_cloth_for_export(
     exported["pm_pin_stiffness"] = float(settings.pin_stiffness)
     exported["pm_vertex_mass"] = float(source.get("pm_vertex_mass", 0.001))
     exported["pm_thickness"] = float(source.get("pm_thickness", 0.025))
-    exported["pm_tear_ratio"] = float(source.get("pm_tear_ratio", 0.0))
-    exported["pm_tear_requires_contact"] = bool(
-        source.get("pm_tear_requires_contact", False))
-    exported["pm_contact_cut_radius_scale"] = float(
-        source.get("pm_contact_cut_radius_scale", 0.0))
+    exported["pm_break_strain"] = float(source.get("pm_break_strain", 0.0))
+    exported["pm_fracture_persistence_substeps"] = int(
+        source.get("pm_fracture_persistence_substeps", 4))
+    exported["pm_impact_break_impulse"] = float(
+        source.get("pm_impact_break_impulse", 0.0))
     exported["pm_stretch_compliance"] = float(source.get("pm_stretch_compliance", 1.0e-6))
     exported["pm_solver_iterations"] = int(source.get("pm_solver_iterations", 8))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
