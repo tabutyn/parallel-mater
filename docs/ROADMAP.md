@@ -121,13 +121,25 @@ pass.
 - Test authored pin count, zero pin drift, free-vertex movement, rigid
   containment, and headless rendering.
 
-## PR 9 — Gallery game shell
+## PR 10 — Cloth tear and cloth paint variations
+
+- Add API-owned triangle-preserving strain tearing with optional rigid-contact
+  activation; render and collide against the same changing triangle buffer.
+- Derive `ClothTear.blend` from the pinned sheet with a heavier ball and a
+  fixed 45-degree gravity tilt. Verify the ball passes through, surviving
+  edges stay near rest length, and gravity alone does not tear the sheet.
+- Derive `ClothPaint.blend` from the authored `ClothFluid.blend`: pin its top
+  vertices, configure Water as a one-shot Blender Geometry flow, and enable
+  cloth UV painting. Fluid–cloth contact and texel stamping belong to `World`.
+- Add headless and GPU scene tests for both variations.
+
+## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
 - Add objectives, scene selection, controls, and save data outside the library.
 - Add the obstacle-bowl scene.
 
-## PR 10 — Water rendering portability
+## Later — Water rendering portability
 
 - Build a raster fallback for the PR 7 OptiX surface renderer, without changing
   the installed physics API.

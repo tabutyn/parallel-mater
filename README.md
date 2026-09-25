@@ -12,7 +12,7 @@ Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
 momentum exchange, and agitation foam are also available through the same
 `World`.
 One-shot Blender Geometry flows use the public volume sampler. Opt-in
-fluid-to-rigid contact paint fields are also owned by `World`; the gallery
+fluid-to-rigid and fluid-to-cloth contact paint fields are owned by `World`; the gallery
 supplies UVs and chooses their display color and filtering.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
@@ -75,7 +75,8 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, and Cloth; use
+the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
+Cloth Tear, and Cloth Paint; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
@@ -88,6 +89,9 @@ renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
 two `FixedVertices` rows pinned, and starts with gravity straight down. Arrow
 keys steer Cloth gravity relative to the camera within a 45-degree tilt;
 releasing them restores straight-down gravity.
+`--cloth-tear` demonstrates contact-armed triangle tearing while a heavy sphere
+passes through. `--cloth-paint` samples an authored one-shot water volume and
+paints the deforming cloth through the public paint-field API.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

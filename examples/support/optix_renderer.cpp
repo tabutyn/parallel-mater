@@ -702,14 +702,26 @@ struct OptixRenderer::Impl {
                                   positions.size() * sizeof(Vec3),
                                   cudaMemcpyDeviceToHost),
                        "copy cloth positions");
+            std::vector<std::uint32_t> updated_triangles;
+            if (cloth.tear_ratio > 0.0F) {
+                updated_triangles.resize(mesh.indices.size());
+                check_cuda(cudaMemcpy(updated_triangles.data(),
+                                      view.triangle_indices.data,
+                                      updated_triangles.size() * sizeof(std::uint32_t),
+                                      cudaMemcpyDeviceToHost),
+                           "copy cloth triangles");
+            }
+            const auto &triangles = cloth.tear_ratio > 0.0F
+                ? updated_triangles : mesh.indices;
             for (std::size_t index = 0U; index < vertices.size(); ++index) {
                 vertices[index].position = positions[index];
                 vertices[index].normal = {};
             }
-            for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
-                Vertex &a = vertices[mesh.indices[index]];
-                Vertex &b = vertices[mesh.indices[index + 1U]];
-                Vertex &c = vertices[mesh.indices[index + 2U]];
+            for (std::size_t index = 0U; index < triangles.size(); index += 3U) {
+                if (triangles[index] == triangles[index + 1U]) continue;
+                Vertex &a = vertices[triangles[index]];
+                Vertex &b = vertices[triangles[index + 1U]];
+                Vertex &c = vertices[triangles[index + 2U]];
                 const Vec3 normal = cross(subtract(b.position, a.position),
                                           subtract(c.position, a.position));
                 a.normal = {a.normal.x + normal.x, a.normal.y + normal.y,
@@ -722,6 +734,7 @@ struct OptixRenderer::Impl {
             for (Vertex &vertex : vertices)
                 vertex.normal = normalize(vertex.normal);
             gpu.vertices.upload(vertices);
+            if (cloth.tear_ratio > 0.0F) gpu.triangles.upload(triangles);
             CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
             std::uint32_t flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
             OptixBuildInput input{};

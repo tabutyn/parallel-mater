@@ -189,6 +189,11 @@ struct ClothOptions {
     // Coulomb coefficient for tangential rigid-body/cloth contact.
     float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
+    // Zero keeps an intact sheet. Otherwise an entire triangle is removed
+    // once any edge exceeds this multiple of its rest length.
+    float tear_ratio{};
+    // When enabled, strain tearing starts only after a dynamic rigid contact.
+    bool tear_requires_contact{};
 };
 
 struct ClothDeviceView {
@@ -295,13 +300,13 @@ struct RigidBodyOptions {
     std::uint64_t user_data{};
 };
 
-// A field is owned per rigid-body instance, even if bodies share geometry.
-// Its UVs correspond to mesh vertices; the mesh may differ from the body's
-// collision mesh (for authored collision proxies). Pixels hold two side bits:
+// A field targets either one rigid-body mesh or one deforming cloth. Its UVs
+// correspond to target vertices. Pixels hold two side bits:
 // 1 for the winding/front side and 2 for the back side.
 struct PaintFieldOptions {
     RigidBodyId body{};
     TriangleMeshId mesh{};
+    ClothId cloth{}; // Set instead of body/mesh for a deforming cloth target.
     DeviceSpan<const Vec2> vertex_uvs{};
     std::uint32_t width{512U};
     std::uint32_t height{512U};

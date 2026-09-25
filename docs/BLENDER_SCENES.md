@@ -147,6 +147,21 @@ are limited to avoid local vertex pops.
 Run `--cloth` for headless output or select Cloth with `Tab`; `R` resets it and
 `F` shows rigid/cloth timings.
 
+`ClothTear.blend` derives from the same sheet, authoring
+`pm_tear_ratio = 1.11`, `pm_tear_requires_contact = true`, zero stretch
+compliance, and 20 solver iterations. A 35 kg rigid sphere strikes under the
+gallery's fixed 45-degree gravity tilt. The API removes whole overstrained
+triangles after the first dynamic rigid contact and exposes updated indices
+through `cloth_view`; the gallery does not decide which triangles break.
+
+`ClothPaint.blend` derives from the supplied `ClothFluid.blend`. Its cloth shell
+pins its top vertices, authors `pm_paintable = true` and a 128×128 paint mask,
+and its Water mesh uses Blender Liquid Flow/Geometry for a one-time 730-particle
+fill. The gallery binds its UVs to a cloth-targeted `World` paint field and a
+fluid paint rule. Fluid–cloth collision and one-pixel paint stamping are in the
+API; the gallery only chooses blue and cubic filtering. The derivation script
+`tools/blender/make_cloth_variants.py` preserves both original `.blend` files.
+
 ## Liquid Flow scene
 
 `examples/assets/Fluid.blend` is the PR 7 source. It contains `Inflow` with

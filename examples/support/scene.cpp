@@ -751,11 +751,29 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_vertex_mass").value_or(0.001));
         const float thickness = static_cast<float>(
             extras.number("pm_thickness").value_or(0.025));
+        const float tear_ratio = static_cast<float>(
+            extras.number("pm_tear_ratio").value_or(0.0));
+        const float stretch_compliance = static_cast<float>(
+            extras.number("pm_stretch_compliance").value_or(1.0e-6));
+        const double solver_iterations =
+            extras.number("pm_solver_iterations").value_or(8.0);
+        const double paint_resolution =
+            extras.number("pm_paint_resolution").value_or(512.0);
         const Vec3 scale = node_scale(node);
         if (!finite(scale) || scale.x <= 0.0F || scale.y <= 0.0F ||
             scale.z <= 0.0F || !finite(mass) || mass <= 0.0F ||
             !finite(thickness) || thickness <= 0.0F) {
             error = name + ": invalid cloth mass, thickness, or transform";
+            return false;
+        }
+        if (!finite(tear_ratio) ||
+            (tear_ratio != 0.0F && (tear_ratio <= 1.0F || tear_ratio > 10.0F)) ||
+            !finite(stretch_compliance) || stretch_compliance < 0.0F ||
+            solver_iterations < 1.0 || solver_iterations > 64.0 ||
+            std::floor(solver_iterations) != solver_iterations ||
+            paint_resolution < 32.0 || paint_resolution > 2048.0 ||
+            std::floor(paint_resolution) != paint_resolution) {
+            error = name + ": invalid cloth tear, solver, or paint settings";
             return false;
         }
         const auto encoded_pins = extras.string("pm_pin_vertices");
@@ -793,6 +811,13 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         cloth.name = name;
         cloth.vertex_mass = mass;
         cloth.thickness = thickness;
+        cloth.tear_ratio = tear_ratio;
+        cloth.tear_requires_contact = extras.boolean(
+            "pm_tear_requires_contact").value_or(false);
+        cloth.stretch_compliance = stretch_compliance;
+        cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
+        cloth.paintable = extras.boolean("pm_paintable").value_or(false);
+        cloth.paint_resolution = static_cast<std::uint32_t>(paint_resolution);
         cloth.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
         cloth.inverse_masses.assign(mesh.vertices.size(), 1.0F / mass);
         const RigidBodyState state = node_state(node);
@@ -1180,7 +1205,11 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .inverse_masses = {definition.inverse_masses.data(),
                                definition.inverse_masses.size()},
             .vertex_mass = definition.vertex_mass,
-            .thickness = definition.thickness}, cloth);
+            .thickness = definition.thickness,
+            .stretch_compliance = definition.stretch_compliance,
+            .solver_iterations = definition.solver_iterations,
+            .tear_ratio = definition.tear_ratio,
+            .tear_requires_contact = definition.tear_requires_contact}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
     }
@@ -1232,6 +1261,35 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         }
     }
     try {
+    const auto bind_paint = [&](std::uint32_t owner,
+                                std::uint32_t mesh_index,
+                                PaintFieldOptions options) -> Status {
+        const TriangleMesh &mesh = scene.meshes[mesh_index];
+        std::vector<Vec2> uvs;
+        uvs.reserve(mesh.vertices.size());
+        for (const Vertex &vertex : mesh.vertices) uvs.push_back(vertex.uv);
+        Vec2 *device_uvs = nullptr;
+        cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_uvs),
+                                      uvs.size() * sizeof(Vec2));
+        if (error == cudaSuccess)
+            error = cudaMemcpy(device_uvs, uvs.data(),
+                uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice);
+        if (error != cudaSuccess) {
+            cudaFree(device_uvs);
+            return {StatusCode::cuda_failure, error, "failed to upload paint UVs"};
+        }
+        options.vertex_uvs = {device_uvs, uvs.size()};
+        PaintFieldId field{};
+        Status status = world.add_paint_field(options, field);
+        cudaFree(device_uvs);
+        if (!status) return status;
+        PaintRuleId rule{};
+        status = world.add_paint_rule({.source = output.fluid,
+                                      .target = field}, rule);
+        if (!status) return status;
+        output.paint_bindings.push_back({owner, mesh_index, field});
+        return {};
+    };
     for (std::uint32_t body_index = 0;
          body_index < scene.rigid_bodies.size(); ++body_index) {
         const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
@@ -1240,7 +1298,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return {StatusCode::invalid_argument, cudaSuccess,
                     "paintable gallery body needs a fluid source"};
         for (const std::uint32_t mesh_index : body.mesh_indices) {
-            const TriangleMesh &mesh = scene.meshes[mesh_index];
             const std::string key = "paint:" + std::to_string(mesh_index);
             TriangleMeshId mesh_id{};
             const auto cached = mesh_cache.find(key);
@@ -1251,42 +1308,26 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 if (!status) return status;
                 mesh_cache.emplace(key, mesh_id);
             }
-            std::vector<Vec2> uvs;
-            try {
-                uvs.reserve(mesh.vertices.size());
-                for (const Vertex &vertex : mesh.vertices)
-                    uvs.push_back(vertex.uv);
-            } catch (...) {
-                return {StatusCode::out_of_memory, cudaSuccess,
-                        "failed to assemble paint UVs"};
-            }
-            Vec2 *device_uvs = nullptr;
-            cudaError_t error = cudaMalloc(
-                reinterpret_cast<void **>(&device_uvs),
-                uvs.size() * sizeof(Vec2));
-            if (error == cudaSuccess)
-                error = cudaMemcpy(device_uvs, uvs.data(),
-                    uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice);
-            if (error != cudaSuccess) {
-                cudaFree(device_uvs);
-                return {StatusCode::cuda_failure, error,
-                        "failed to upload paint UVs"};
-            }
-            PaintFieldId field{};
-            Status status = world.add_paint_field(
+            const Status status = bind_paint(body_index, mesh_index,
                 {.body = output.rigid_bodies[body_index],
                  .mesh = mesh_id,
-                 .vertex_uvs = {device_uvs, uvs.size()},
                  .width = body.paint_resolution,
-                 .height = body.paint_resolution}, field);
-            cudaFree(device_uvs);
+                 .height = body.paint_resolution});
             if (!status) return status;
-            PaintRuleId rule{};
-            status = world.add_paint_rule(
-                {.source = output.fluid, .target = field}, rule);
-            if (!status) return status;
-            output.paint_bindings.push_back({body_index, mesh_index, field});
         }
+    }
+    for (std::uint32_t cloth_index = 0U;
+         cloth_index < scene.cloths.size(); ++cloth_index) {
+        const ClothDefinition &cloth = scene.cloths[cloth_index];
+        if (!cloth.paintable) continue;
+        if (!output.has_fluid)
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "paintable cloth needs a fluid source"};
+        const Status status = bind_paint(UINT32_MAX, cloth.mesh_index,
+            {.cloth = output.cloths[cloth_index],
+             .width = cloth.paint_resolution,
+             .height = cloth.paint_resolution});
+        if (!status) return status;
     }
     } catch (...) {
         return {StatusCode::out_of_memory, cudaSuccess,

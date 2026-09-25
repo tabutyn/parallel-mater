@@ -94,6 +94,13 @@ triangle-side body constraint prevents fast bodies from crossing the sheet;
 its broad-phase rigid radius can overestimate non-spherical shapes, so a
 future exact deforming-mesh narrow phase remains possible without changing
 the API.
+Optional `tear_ratio > 1` removes complete triangles whose edges exceed that
+multiple of their rest lengths. Shared stretch links remain while either
+adjacent triangle survives; bending links require both. Setting
+`tear_requires_contact` delays strain tearing until a dynamic rigid body has
+contacted the sheet. `cloth_view().triangle_indices` therefore changes after
+stepping and must be consumed alongside current positions for collision and
+rendering.
 
 ## Fluid sources and contact paint
 
@@ -111,20 +118,23 @@ configured fluid capacity. Gallery scene loading uses the same public sampler
 to combine authored geometry volumes before instantiation.
 
 Contact paint is opt-in. `World::add_paint_field` attaches a persistent,
-two-sided UV mask to one rigid-body instance. Its paint mesh and UVs may differ
-from the body's collision proxy; both use the same body-local coordinates.
+two-sided UV mask to one rigid-body instance or one cloth. Rigid paint meshes
+and UVs may differ from the body's collision proxy; cloth UVs correspond to
+its deforming vertices.
 `World::add_paint_rule` selects a source fluid and target field and sets extra
-reach beyond the fluid particle radius. During fluid–rigid triangle contact,
-the world projects each qualifying collision onto the paint mesh using its BVH
-and stamps one texel. It does not depend on diagnostic contact collection or
-on render frequency. `paint_field_view` exposes the device mask to any renderer;
+reach beyond the fluid particle radius. During fluid–rigid or fluid–cloth
+triangle contact, the world projects each qualifying collision onto the
+target's UVs and stamps one texel. It does not depend on diagnostic contact
+collection or render frequency. `paint_field_view` exposes the device mask;
 bit 1 is the front side and bit 2 is the back side. `clear_paint_field` resets
 the mask. Render color and cubic filtering remain application choices.
 
 Remove rules before their source fluid or target field, and remove fields
-before their rigid body or paint mesh. The current transfer implementation is
-fluid-to-rigid; the field/rule boundary leaves other physics-domain transfers
-for a future extension rather than silently accepting unsupported pairs.
+before their rigid body, paint mesh, or cloth. Fluid particles collide with
+the deforming cloth triangles, while paint remains owned by the world; the
+gallery only selects color and filtering. Fluid-to-cloth contact currently
+projects particle motion against the cloth without a fluid-to-cloth reaction
+impulse.
 
 ## Stepping and CUDA streams
 

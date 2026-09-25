@@ -450,8 +450,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(14, static_cast<int>(height) / 2 - 296);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 592,
+    const int top = std::max(14, static_cast<int>(height) / 2 - 312);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 625,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
@@ -461,34 +461,40 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                          std::string_view state, Color state_color) {
         if (selection == context) {
             rectangle(rgba, width, height, center - 226, y - 6, center + 226,
-                      y + 72, {105, 255, 155, 255});
+                      y + 60, {105, 255, 155, 255});
         }
-        rectangle(rgba, width, height, center - 220, y, center + 220, y + 66,
+        rectangle(rgba, width, height, center - 220, y, center + 220, y + 54,
                   background);
-        rectangle(rgba, width, height, center - 198, y + 14, center - 160,
-                  y + 52, icon);
-        text(rgba, width, height, center - 135, y + 11, name,
+        rectangle(rgba, width, height, center - 198, y + 8, center - 160,
+                  y + 46, icon);
+        text(rgba, width, height, center - 135, y + 6, name,
              {245, 247, 250, 255}, 2);
-        text(rgba, width, height, center - 135, y + 37, state, state_color, 1);
+        text(rgba, width, height, center - 135, y + 31, state, state_color, 1);
     };
 
     row(top + 78, GalleryContext::rigid_body, {48, 55, 63, 235},
         {170, 176, 184, 255}, "RIGID BODY", "AVAILABLE",
         {105, 255, 155, 255});
-    row(top + 160, GalleryContext::dump, {62, 38, 22, 235},
+    row(top + 146, GalleryContext::dump, {62, 38, 22, 235},
         {245, 130, 45, 255}, "DUMP", "AVAILABLE  P EDITS SPHERES",
         {105, 255, 155, 255});
-    row(top + 242, GalleryContext::fluid, {12, 42, 65, 235},
+    row(top + 214, GalleryContext::fluid, {12, 42, 65, 235},
         {35, 150, 255, 255}, "FLUID", "P CAP  V PARTICLES  R RESET",
         {105, 255, 155, 255});
-    row(top + 324, GalleryContext::fluid_rigid, {25, 52, 64, 235},
+    row(top + 282, GalleryContext::fluid_rigid, {25, 52, 64, 235},
         {35, 190, 230, 255}, "FLUID RIGID", "64 FREE SPHERES  P CAP",
         {105, 255, 155, 255});
-    row(top + 406, GalleryContext::peg_paint, {44, 28, 61, 235},
+    row(top + 350, GalleryContext::peg_paint, {44, 28, 61, 235},
         {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
         {105, 255, 155, 255});
-    row(top + 488, GalleryContext::cloth, {40, 42, 58, 235},
+    row(top + 418, GalleryContext::cloth, {40, 42, 58, 235},
         {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
+        {105, 255, 155, 255});
+    row(top + 486, GalleryContext::cloth_tear, {53, 37, 48, 235},
+        {255, 126, 111, 255}, "CLOTH TEAR", "45 DEG GRAVITY  R RESET",
+        {105, 255, 155, 255});
+    row(top + 554, GalleryContext::cloth_paint, {28, 49, 55, 235},
+        {65, 177, 240, 255}, "CLOTH PAINT", "FLUID CONTACT PAINT  P CAP",
         {105, 255, 155, 255});
 }
 

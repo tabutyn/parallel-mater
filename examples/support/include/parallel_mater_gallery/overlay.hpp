@@ -16,12 +16,21 @@ enum class GalleryContext : std::uint8_t {
     fluid_rigid,
     peg_paint,
     cloth,
+    cloth_tear,
+    cloth_paint,
 };
+
+[[nodiscard]] constexpr bool is_cloth_context(GalleryContext context) noexcept {
+    return context == GalleryContext::cloth ||
+           context == GalleryContext::cloth_tear ||
+           context == GalleryContext::cloth_paint;
+}
 
 [[nodiscard]] constexpr bool is_fluid_context(GalleryContext context) noexcept {
     return context == GalleryContext::fluid ||
            context == GalleryContext::fluid_rigid ||
-           context == GalleryContext::peg_paint;
+           context == GalleryContext::peg_paint ||
+           context == GalleryContext::cloth_paint;
 }
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
