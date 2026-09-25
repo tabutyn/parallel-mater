@@ -488,7 +488,7 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
         {105, 255, 155, 255});
     row(top + 488, GalleryContext::cloth, {40, 42, 58, 235},
-        {236, 188, 96, 255}, "CLOTH", "PINNED EDGES  R RESET",
+        {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
         {105, 255, 155, 255});
 }
 

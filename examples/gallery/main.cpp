@@ -41,7 +41,7 @@ using parallel_mater::gallery::SceneInstance;
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
-constexpr float k_cloth_gravity_component = 6.93671752F;
+constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
 constexpr float k_gravity_tilt_tangent = 0.577350269F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
@@ -795,13 +795,9 @@ int main(int argc, char **argv) {
 
     const StepOptions step_options{.timestep = k_timestep,
                                    .substeps = 4U,
-                                   .gravity = runtime.context == GalleryContext::cloth
-                                       ? parallel_mater::Vec3{0.0F,
-                                             -k_cloth_gravity_component,
-                                             -k_cloth_gravity_component}
-                                       : parallel_mater::Vec3{0.0F,
-                                             -k_gravity * runtime.scene.gravity_scale,
-                                             0.0F}};
+                                   .gravity = {0.0F,
+                                       -k_gravity * runtime.scene.gravity_scale,
+                                       0.0F}};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera.set_preset(camera_preset(runtime.context));
@@ -1014,6 +1010,8 @@ int main(int argc, char **argv) {
     float dump_angle = k_dump_initial_angle;
     parallel_mater::Vec3 peg_gravity{0.0F, -k_gravity *
         runtime.scene.gravity_scale, 0.0F};
+    parallel_mater::Vec3 cloth_gravity{0.0F, -k_gravity *
+        runtime.scene.gravity_scale, 0.0F};
     WorldStepTimings timings{};
     WorldStatistics statistics{};
     RendererTimings renderer_timings{};
@@ -1068,6 +1066,8 @@ int main(int argc, char **argv) {
                         runtime = std::move(replacement);
                         peg_gravity = {0.0F, -k_gravity *
                             runtime.scene.gravity_scale, 0.0F};
+                        cloth_gravity = {0.0F, -k_gravity *
+                            runtime.scene.gravity_scale, 0.0F};
                         if (fluid_dialog) fluid_particles = requested;
                         else dump_spheres = requested;
                         dump_angle = k_dump_initial_angle;
@@ -1111,6 +1111,8 @@ int main(int argc, char **argv) {
                             runtime = std::move(replacement);
                             peg_gravity = {0.0F, -k_gravity *
                                 runtime.scene.gravity_scale, 0.0F};
+                            cloth_gravity = {0.0F, -k_gravity *
+                                runtime.scene.gravity_scale, 0.0F};
                             input_state.camera.set_preset(
                                 camera_preset(runtime.context));
                             dump_angle = k_dump_initial_angle;
@@ -1137,6 +1139,8 @@ int main(int argc, char **argv) {
                                   fluid_particles, replacement, error)) {
                     runtime = std::move(replacement);
                     peg_gravity = {0.0F, -k_gravity *
+                        runtime.scene.gravity_scale, 0.0F};
+                    cloth_gravity = {0.0F, -k_gravity *
                         runtime.scene.gravity_scale, 0.0F};
                     dump_angle = k_dump_initial_angle;
                     timings = {};
@@ -1196,12 +1200,16 @@ int main(int argc, char **argv) {
                 }
             }
             StepOptions interactive_step = step_options;
-            interactive_step.gravity.y =
-                -k_gravity * runtime.scene.gravity_scale;
-            if (runtime.context == GalleryContext::cloth)
-                interactive_step.gravity = {0.0F,
-                    -k_cloth_gravity_component, -k_cloth_gravity_component};
-            if (runtime.context == GalleryContext::rigid_body) {
+            interactive_step.gravity = {0.0F,
+                -k_gravity * runtime.scene.gravity_scale, 0.0F};
+            if (runtime.context == GalleryContext::cloth) {
+                cloth_gravity = steer_gravity(
+                    cloth_gravity, input_state.camera.camera(),
+                    directional.x, -directional.z,
+                    k_gravity * runtime.scene.gravity_scale,
+                    k_cloth_gravity_tilt_degrees, k_timestep);
+                interactive_step.gravity = cloth_gravity;
+            } else if (runtime.context == GalleryContext::rigid_body) {
                 interactive_step.gravity = gravity_for(directional);
             } else if (runtime.context == GalleryContext::peg_paint) {
                 const float right = directional.x + (!context_visible ?

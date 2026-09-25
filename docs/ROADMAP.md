@@ -115,8 +115,9 @@ pass.
   rows through triangulation and glTF vertex splitting.
 - Add world-owned cloth particles and links, exact fixed vertices, reusable
   cloth handles/views, and two-way contact with authored rigid triangles.
-- Add a Cloth gallery entry with 45-degree gravity toward the sheet and a
-  dynamic sphere; update its OptiX mesh as vertices deform.
+- Add a Cloth gallery entry with straight-down gravity by default and arrow
+  steering up to 45 degrees, plus a dynamic sphere; update its OptiX mesh as
+  vertices deform.
 - Test authored pin count, zero pin drift, free-vertex movement, rigid
   containment, and headless rendering.
 

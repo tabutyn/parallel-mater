@@ -85,8 +85,9 @@ GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene
 renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
-two `FixedVertices` rows pinned, and applies 45-degree gravity toward the
-sheet while an active sphere presses it.
+two `FixedVertices` rows pinned, and starts with gravity straight down. Arrow
+keys steer Cloth gravity relative to the camera within a 45-degree tilt;
+releasing them restores straight-down gravity.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

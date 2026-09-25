@@ -135,9 +135,17 @@ vertices are distinct solver particles even when they receive the same pin.
 
 The gallery creates the cloth through `World::add_cloth` and updates its
 OptiX triangles each frame. The scene also contains the authored passive box
-and active sphere. In the Cloth gallery entry, gravity points 45 degrees
-downward and toward the sheet. Run `--cloth` for headless output or select
-Cloth with `Tab`; `R` resets it and `F` shows rigid/cloth timings.
+and active sphere. In the Cloth gallery entry, gravity starts straight down.
+Arrow keys steer it camera-relatively within a 45-degree tilt, returning to
+straight down when released.
+The API advances rigid bodies and cloth together at each substep. Cloth vertex
+velocity damping (`ClothOptions::velocity_damping`, default 5/s) and
+tangential contact friction (`contact_friction`, default 0.4) are configurable.
+Rigid and cloth exchange friction impulses while touching, but separating
+bodies shed tangential friction and are free to escape; cloth-side impulses
+are limited to avoid local vertex pops.
+Run `--cloth` for headless output or select Cloth with `Tab`; `R` resets it and
+`F` shows rigid/cloth timings.
 
 ## Liquid Flow scene
 

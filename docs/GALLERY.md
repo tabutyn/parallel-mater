@@ -42,8 +42,8 @@ Headless physics builds remain free of OpenGL and OptiX.
    four static pegs and one dynamic sphere; fluid contacts persistently paint
    the authored UV surfaces blue.
 6. **Cloth** — a Blender-authored subdivided sheet pins its top and bottom
-   vertex rows while a dynamic sphere presses it under 45-degree tilted
-   gravity; the passive box supports both.
+   vertex rows while a dynamic sphere can press it when arrow keys tilt
+   gravity up to 45 degrees; the passive box supports both.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -81,8 +81,9 @@ the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
 Fluid, or `--fluid-rigid` for a headless run.
 Peg Paint uses the same fluid controls and can be selected with `--peg-paint`.
 Cloth can be selected with `--cloth`; `R` restarts the pinned sheet and
-`F` reports its constraint and contact timings. Its initial gravity has equal
-downward and sheet-facing components.
+`F` reports its constraint and contact timings. Gravity starts straight down.
+Arrow keys steer it relative to the camera, up to 45 degrees from vertical;
+releasing them eases it back to straight down.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
 to 50 degrees relative to the camera. The tilt eases in and returns to
 vertical when released. Static fluid contacts use impulse-limited friction,

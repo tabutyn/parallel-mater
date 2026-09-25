@@ -185,7 +185,9 @@ struct ClothOptions {
     float thickness{0.025F};
     float stretch_compliance{1.0e-6F};
     float bending_compliance{0.1F};
-    float velocity_damping{0.02F};
+    float velocity_damping{5.0F};
+    // Coulomb coefficient for tangential rigid-body/cloth contact.
+    float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
 };
 

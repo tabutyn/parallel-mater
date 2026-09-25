@@ -1958,6 +1958,7 @@ struct ClothStorage {
     std::uint32_t index_count{};
     float thickness{};
     float velocity_damping{};
+    float contact_friction{};
     std::uint32_t solver_iterations{};
     Vec3 *positions{};
     Vec3 *scratch{};
@@ -2886,11 +2887,11 @@ __global__ void cloth_collide(
     if (best_body != k_invalid_dense) {
         const BodyParameters body = parameters[best_body];
         const RigidBodyState state = states[best_body];
+        Vec3 velocity = multiply(subtract(end, start), 1.0F / dt);
         end = add(end, multiply(best_normal, best_penetration));
         const Vec3 arm = subtract(best_contact, state.position);
         const Vec3 body_velocity = add(state.linear_velocity,
             cross(state.angular_velocity, arm));
-        Vec3 velocity = multiply(subtract(end, start), 1.0F / dt);
         const Vec3 relative = subtract(velocity, body_velocity);
         const float incoming = dot(relative, best_normal);
         const float recovery = fminf(1.0F,
@@ -2922,9 +2923,11 @@ __global__ void cloth_collide(
 // A second, triangle-side constraint keeps a fast rigid collider from slipping
 // between cloth vertices. The broad-phase sphere is conservative for any mesh.
 __global__ void cloth_constrain_bodies(
-    const Vec3 *cloth_positions, const std::uint32_t *cloth_indices,
+    const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
+    const std::uint32_t *cloth_indices,
     const float *cloth_inverse_masses, std::uint32_t vertex_count,
-    std::uint32_t triangle_count, float thickness,
+    std::uint32_t triangle_count, float thickness, float dt,
+    float contact_friction,
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     RigidBodyState *states, const TriangleMeshResource *meshes,
     std::uint32_t body_count, ClothBodyCorrection *corrections) {
@@ -2990,6 +2993,7 @@ __global__ void cloth_constrain_bodies(
          (cloth_inverse_masses[b] > 0.0F ? 1.0F : 0.0F) +
          (cloth_inverse_masses[c] > 0.0F ? 1.0F : 0.0F)) / 3.0F;
     constexpr float cloth_share = 0.5F;
+    const float cloth_shift = cloth_share * best_penetration;
     const Vec3 arm = subtract(best_contact, state.position);
     const float incoming = dot(state.linear_velocity, best_normal);
     const Vec3 angular_axis = cross(arm, best_normal);
@@ -3001,23 +3005,79 @@ __global__ void cloth_constrain_bodies(
     const float inverse_support_squared = 1.0F /
         (support_radius * support_radius);
     float weight_sum = 0.0F;
-    if (normal_impulse > 0.0F) {
-        for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex) {
-            if (cloth_inverse_masses[vertex] == 0.0F) continue;
-            const float squared = length_squared(subtract(
-                cloth_positions[vertex], best_contact));
-            const float weight = fmaxf(0.0F,
-                1.0F - squared * inverse_support_squared);
-            weight_sum += weight * weight;
+    float maximum_weighted_inverse_mass = 0.0F;
+    float weighted_inverse_mass_squared = 0.0F;
+    Vec3 weighted_cloth_velocity{};
+    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex) {
+        const float inverse_mass = cloth_inverse_masses[vertex];
+        if (inverse_mass == 0.0F) continue;
+        const float squared = length_squared(subtract(
+            cloth_positions[vertex], best_contact));
+        const float weight = fmaxf(0.0F,
+            1.0F - squared * inverse_support_squared);
+        const float weighted = weight * weight;
+        weight_sum += weighted;
+        weighted_inverse_mass_squared += inverse_mass * weighted * weighted;
+        weighted_cloth_velocity = add(weighted_cloth_velocity,
+                                      multiply(cloth_velocities[vertex], weighted));
+        maximum_weighted_inverse_mass = fmaxf(
+            maximum_weighted_inverse_mass, inverse_mass * weighted);
+    }
+    // Bound the velocity kick of every contacted cloth vertex to one tenth
+    // of its collision thickness per substep. Excess impact is dissipated.
+    const float maximum_cloth_impulse = maximum_weighted_inverse_mass > 0.0F
+        ? 0.1F * thickness * weight_sum /
+              (dt * maximum_weighted_inverse_mass)
+        : normal_impulse;
+    const float cloth_impulse = fminf(normal_impulse,
+                                     maximum_cloth_impulse);
+    Vec3 tangent_impulse{};
+    if (weight_sum > 1.0e-8F && contact_friction > 0.0F) {
+        const Vec3 cloth_velocity = multiply(weighted_cloth_velocity,
+                                             1.0F / weight_sum);
+        const Vec3 body_velocity = add(state.linear_velocity,
+                                      cross(state.angular_velocity, arm));
+        const Vec3 relative = subtract(body_velocity, cloth_velocity);
+        const float separating_speed = dot(relative, best_normal);
+        const Vec3 tangent = subtract(relative,
+            multiply(best_normal, separating_speed));
+        const float tangent_speed = vector_length(tangent);
+        // Friction must not turn an outward-moving body into a cloth tether.
+        const float release_weight = fmaxf(0.0F,
+            1.0F - fmaxf(incoming, 0.0F) / 0.5F);
+        if (release_weight > 0.0F && separating_speed <= 0.0F &&
+            tangent_speed > 1.0e-6F) {
+            const Vec3 direction = multiply(tangent, 1.0F / tangent_speed);
+            const Vec3 angular_axis = cross(arm, direction);
+            const float cloth_inverse_mass =
+                weighted_inverse_mass_squared / (weight_sum * weight_sum);
+            const float effective_inverse_mass = body.inverse_mass +
+                dot(cross(inverse_inertia_world(body, state, angular_axis), arm),
+                    direction) + cloth_inverse_mass;
+            // Resting contact can have little incoming speed despite a finite
+            // positional correction; use that correction as normal load.
+            const float correction_impulse = best_penetration > 0.0F &&
+                    body.inverse_mass > 0.0F
+                ? 0.2F * best_penetration / (dt * body.inverse_mass) : 0.0F;
+            const float friction_limit = contact_friction * release_weight *
+                fmaxf(normal_impulse, correction_impulse);
+            const float magnitude = effective_inverse_mass > k_epsilon
+                ? fminf(tangent_speed / effective_inverse_mass, friction_limit)
+                : 0.0F;
+            tangent_impulse = multiply(direction, -magnitude);
         }
     }
+    // Limit the cloth-side kick independently of the rigid-body friction.
+    const Vec3 cloth_tangent_impulse = clamp_length(tangent_impulse,
+                                                    maximum_cloth_impulse);
     corrections[body_index] = {
-        multiply(best_normal, -cloth_share * best_penetration),
-        multiply(best_normal, -normal_impulse), best_contact,
+        multiply(best_normal, -cloth_shift),
+        subtract(multiply(best_normal, -cloth_impulse),
+                 cloth_tangent_impulse), best_contact,
         support_radius, weight_sum, {a, b, c}, true};
     state.position = add(state.position,
         multiply(best_normal,
-                 (1.0F - cloth_share * free_fraction) * best_penetration));
+                 best_penetration - cloth_shift * free_fraction));
     if (normal_impulse > 0.0F) {
         state.linear_velocity = clamp_length(add(state.linear_velocity,
             multiply(best_normal, normal_impulse * body.inverse_mass)),
@@ -3027,6 +3087,12 @@ __global__ void cloth_constrain_bodies(
                 multiply(angular_axis, normal_impulse))),
             body.maximum_angular_speed);
     }
+    state.linear_velocity = clamp_length(add(state.linear_velocity,
+        multiply(tangent_impulse, body.inverse_mass)),
+        body.maximum_linear_speed);
+    state.angular_velocity = clamp_length(add(state.angular_velocity,
+        inverse_inertia_world(body, state, cross(arm, tangent_impulse))),
+        body.maximum_angular_speed);
     states[body_index] = state;
 }
 
@@ -4508,6 +4574,7 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         !finite(options.stretch_compliance) || options.stretch_compliance < 0.0F ||
         !finite(options.bending_compliance) || options.bending_compliance < 0.0F ||
         !finite(options.velocity_damping) || options.velocity_damping < 0.0F ||
+        !finite(options.contact_friction) || options.contact_friction < 0.0F ||
         options.solver_iterations == 0U || options.solver_iterations > 64U) {
         return failure(StatusCode::invalid_argument, "invalid cloth geometry or solver options");
     }
@@ -4586,6 +4653,7 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     cloth->neighbor_count = static_cast<std::uint32_t>(neighbors.size());
     cloth->thickness = options.thickness;
     cloth->velocity_damping = options.velocity_damping;
+    cloth->contact_friction = options.contact_friction;
     cloth->solver_iterations = options.solver_iterations;
     status = allocate_managed(cloth->positions, count); if (!status) return status;
     status = allocate_managed(cloth->scratch, count); if (!status) return status;
@@ -5033,15 +5101,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         (impl_->rigid_body_count + block_size - 1U) / block_size;
     const bool has_cloth = std::any_of(impl_->cloths.begin(), impl_->cloths.end(),
         [](const auto &cloth) { return cloth && cloth->alive; });
-    if (has_cloth && impl_->rigid_body_count != 0U &&
-        impl_->fluid_count == 0U) {
-        error = cudaMemcpyAsync(impl_->fluid_previous_states,
-            impl_->states[impl_->current_state],
-            impl_->rigid_body_count * sizeof(RigidBodyState),
-            cudaMemcpyDeviceToDevice, stream);
-        if (error != cudaSuccess)
-            return cuda_failure(error, "cloth body state copy failed");
-    }
     bool any_moving_body = false;
     if (impl_->fluid_count != 0U) {
         for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
@@ -5068,6 +5127,82 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     impl_->rigid_solve_kernels_per_substep =
         3U + 3U * color_round_count +
         8U * (color_round_count + 1U);
+    const auto advance_cloth = [&](const RigidBodyState *previous_states)
+        noexcept -> Status {
+        for (const auto &cloth_pointer : impl_->cloths) {
+            if (!cloth_pointer || !cloth_pointer->alive) continue;
+            ClothStorage &cloth = *cloth_pointer;
+            const std::uint32_t blocks =
+                (cloth.vertex_count + block_size - 1U) / block_size;
+            cloth_predict<<<blocks, block_size, 0, stream>>>(
+                cloth.positions, cloth.previous, cloth.velocities,
+                cloth.inverse_masses, cloth.vertex_count, options.gravity,
+                substep_timestep, cloth.velocity_damping);
+            Status cloth_status = record_timing_stage(
+                TimingStage::cloth_prediction);
+            if (!cloth_status) return cloth_status;
+            for (std::uint32_t iteration = 0U;
+                 iteration < cloth.solver_iterations; ++iteration) {
+                cloth_project_links<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.scratch, cloth.inverse_masses,
+                    cloth.offsets, cloth.neighbors, cloth.vertex_count,
+                    substep_timestep);
+                std::swap(cloth.positions, cloth.scratch);
+                cloth_status = record_timing_stage(
+                    TimingStage::cloth_constraints);
+                if (!cloth_status) return cloth_status;
+            }
+            if (impl_->rigid_body_count != 0U) {
+                const cudaError_t clear_error = cudaMemsetAsync(
+                    impl_->fluid_body_contact_flags, 0,
+                    impl_->rigid_body_count * sizeof(std::uint32_t), stream);
+                if (clear_error != cudaSuccess)
+                    return cuda_failure(clear_error,
+                                        "cloth contact flags clear failed");
+                cloth_collide<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.previous,
+                    cloth.inverse_masses, cloth.vertex_count,
+                    cloth.thickness, substep_timestep,
+                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->meshes, impl_->rigid_body_count,
+                    cloth.body_impulses, impl_->fluid_body_contact_flags);
+                fluid_reduce_body_impulses<<<impl_->rigid_body_count,
+                                             block_size, 0, stream>>>(
+                    cloth.body_impulses, cloth.count, impl_->parameters,
+                    impl_->states[impl_->current_state],
+                    impl_->fluid_body_contact_flags, impl_->rigid_body_count);
+                cloth_constrain_bodies<<<block_count, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.indices,
+                    cloth.inverse_masses,
+                    cloth.vertex_count, cloth.index_count / 3U,
+                    cloth.thickness, substep_timestep,
+                    cloth.contact_friction, impl_->parameters,
+                    previous_states, impl_->states[impl_->current_state],
+                    impl_->meshes, impl_->rigid_body_count,
+                    cloth.body_corrections);
+                cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.inverse_masses,
+                    cloth.vertex_count,
+                    cloth.body_corrections, impl_->rigid_body_count);
+            } else {
+                cloth_collide<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.previous,
+                    cloth.inverse_masses, cloth.vertex_count,
+                    cloth.thickness, substep_timestep,
+                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->meshes, 0U, cloth.body_impulses,
+                    impl_->fluid_body_contact_flags);
+            }
+            cloth_status = record_timing_stage(TimingStage::cloth_contacts);
+            if (!cloth_status) return cloth_status;
+        }
+        const cudaError_t cloth_error = cudaPeekAtLastError();
+        if (cloth_error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(cloth_error, "cloth kernel launch failed");
+        }
+        return success();
+    };
     for (std::uint32_t substep = 0; substep < options.substeps; ++substep) {
         if (impl_->rigid_body_count == 0U) {
             break;
@@ -5271,6 +5406,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return status;
         }
         impl_->current_state = output_state;
+        // Couple the sheet to the rigid state from this same substep.
+        if (has_cloth) {
+            status = advance_cloth(impl_->states[1U - impl_->current_state]);
+            if (!status) return status;
+        }
     }
 
     if (impl_->rigid_body_count > 0U) {
@@ -5288,72 +5428,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
-    for (const auto &cloth_pointer : impl_->cloths) {
-        if (!cloth_pointer || !cloth_pointer->alive) continue;
-        ClothStorage &cloth = *cloth_pointer;
-        const std::uint32_t blocks =
-            (cloth.vertex_count + block_size - 1U) / block_size;
+    if (has_cloth && impl_->rigid_body_count == 0U) {
         for (std::uint32_t substep = 0U; substep < options.substeps; ++substep) {
-            cloth_predict<<<blocks, block_size, 0, stream>>>(
-                cloth.positions, cloth.previous, cloth.velocities,
-                cloth.inverse_masses, cloth.vertex_count, options.gravity,
-                substep_timestep, cloth.velocity_damping);
-            status = record_timing_stage(TimingStage::cloth_prediction);
+            status = advance_cloth(nullptr);
             if (!status) return status;
-            for (std::uint32_t iteration = 0U;
-                 iteration < cloth.solver_iterations; ++iteration) {
-                cloth_project_links<<<blocks, block_size, 0, stream>>>(
-                    cloth.positions, cloth.scratch, cloth.inverse_masses,
-                    cloth.offsets, cloth.neighbors, cloth.vertex_count,
-                    substep_timestep);
-                std::swap(cloth.positions, cloth.scratch);
-                status = record_timing_stage(TimingStage::cloth_constraints);
-                if (!status) return status;
-            }
-            if (impl_->rigid_body_count != 0U) {
-                error = cudaMemsetAsync(impl_->fluid_body_contact_flags, 0,
-                    impl_->rigid_body_count * sizeof(std::uint32_t), stream);
-                if (error != cudaSuccess)
-                    return cuda_failure(error, "cloth contact flags clear failed");
-                cloth_collide<<<blocks, block_size, 0, stream>>>(
-                    cloth.positions, cloth.velocities, cloth.previous,
-                    cloth.inverse_masses, cloth.vertex_count,
-                    cloth.thickness, substep_timestep,
-                    impl_->parameters, impl_->states[impl_->current_state],
-                    impl_->meshes, impl_->rigid_body_count,
-                    cloth.body_impulses, impl_->fluid_body_contact_flags);
-                fluid_reduce_body_impulses<<<impl_->rigid_body_count,
-                                             block_size, 0, stream>>>(
-                    cloth.body_impulses, cloth.count, impl_->parameters,
-                    impl_->states[impl_->current_state],
-                    impl_->fluid_body_contact_flags, impl_->rigid_body_count);
-                cloth_constrain_bodies<<<block_count, block_size, 0, stream>>>(
-                    cloth.positions, cloth.indices, cloth.inverse_masses,
-                    cloth.vertex_count, cloth.index_count / 3U,
-                    cloth.thickness, impl_->parameters,
-                    impl_->fluid_previous_states,
-                    impl_->states[impl_->current_state], impl_->meshes,
-                    impl_->rigid_body_count, cloth.body_corrections);
-                cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
-                    cloth.positions, cloth.velocities, cloth.inverse_masses,
-                    cloth.vertex_count,
-                    cloth.body_corrections, impl_->rigid_body_count);
-            } else {
-                cloth_collide<<<blocks, block_size, 0, stream>>>(
-                    cloth.positions, cloth.velocities, cloth.previous,
-                    cloth.inverse_masses, cloth.vertex_count,
-                    cloth.thickness, substep_timestep,
-                    impl_->parameters, impl_->states[impl_->current_state],
-                    impl_->meshes, 0U, cloth.body_impulses,
-                    impl_->fluid_body_contact_flags);
-            }
-            status = record_timing_stage(TimingStage::cloth_contacts);
-            if (!status) return status;
-        }
-        error = cudaPeekAtLastError();
-        if (error != cudaSuccess) {
-            cudaStreamSynchronize(stream);
-            return cuda_failure(error, "cloth kernel launch failed");
         }
     }
 

@@ -106,6 +106,41 @@ int main() {
                                1.0F / 60.0F);
     check(std::fabs(tilted.x) < 0.001F && near(tilted.y, -19.62F),
           "Peg gravity eases back to authored down when arrows release");
+
+    constexpr float cloth_magnitude = 9.81F;
+    const float cloth_component = cloth_magnitude * std::sqrt(0.5F);
+    Vec3 cloth_gravity{0.0F, -cloth_magnitude, 0.0F};
+    bool within_cloth_tilt = true;
+    for (int step = 0; step < 120; ++step) {
+        cloth_gravity = steer_gravity(
+            cloth_gravity, steering_camera, 1.0F, 0.0F,
+            cloth_magnitude, 45.0F, 1.0F / 60.0F);
+        within_cloth_tilt &= std::hypot(cloth_gravity.x, cloth_gravity.z) <=
+                             -cloth_gravity.y + 1.0e-4F;
+    }
+    check(within_cloth_tilt,
+          "Cloth arrow steering stays within a 45-degree tilt");
+    check(std::fabs(cloth_gravity.x - cloth_component) < 0.001F &&
+              std::fabs(cloth_gravity.y + cloth_component) < 0.001F &&
+              std::fabs(cloth_gravity.z) < 0.001F &&
+              near(std::sqrt(dot(cloth_gravity, cloth_gravity)),
+                   cloth_magnitude),
+          "Cloth Right Arrow steers 45 degrees toward camera right");
+    for (int step = 0; step < 120; ++step)
+        cloth_gravity = steer_gravity(
+            cloth_gravity, steering_camera, 0.0F, 0.0F,
+            cloth_magnitude, 45.0F, 1.0F / 60.0F);
+    check(std::fabs(cloth_gravity.x) < 0.001F &&
+              std::fabs(cloth_gravity.y + cloth_magnitude) < 0.001F &&
+              std::fabs(cloth_gravity.z) < 0.001F,
+          "Cloth gravity returns to straight down when arrows release");
+    for (int step = 0; step < 120; ++step)
+        cloth_gravity = steer_gravity(
+            cloth_gravity, steering_camera, 0.0F, 1.0F,
+            cloth_magnitude, 45.0F, 1.0F / 60.0F);
+    check(std::fabs(cloth_gravity.y + cloth_component) < 0.001F &&
+              std::fabs(cloth_gravity.z + cloth_component) < 0.001F,
+          "Cloth Up Arrow tilts 45 degrees toward the sheet");
     CameraController controller;
     const Camera initial = controller.camera();
     check_pan(controller, "Rigid Body pan matches screen-space drag");
