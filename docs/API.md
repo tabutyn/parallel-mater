@@ -101,9 +101,10 @@ adjacent triangle survives; bending links require both. Setting
 contacted the sheet. `cloth_view().triangle_indices` therefore changes after
 stepping and must be consumed alongside current positions for collision and
 rendering.
-With `contact_cut_radius_scale > 0`, an approaching dynamic body instead cuts
-one circular footprint of whole triangles before contact resolution. The
-radius is the body's bounding radius times the scale; as with the current
+With `contact_cut_radius_scale > 0`, a dynamic body cuts one circular footprint
+of whole triangles only after the rigid–cloth contact constraint reports a
+collision. Proximity alone never cuts the sheet. The radius is the body's
+bounding radius times the scale; as with the current
 triangle-side contact constraint, non-spherical meshes use a conservative
 bounding sphere. This keeps the cut local
 and excludes orphaned vertices from later rigid contacts; intact triangles

@@ -2862,47 +2862,23 @@ __global__ void cloth_tear_triangles(const Vec3 *positions,
     indices[base + 2U] = a;
 }
 
-// A local impact cuts only complete faces inside the collider footprint.
-// The surviving triangles keep their authored corners and their constraint
-// links. Cut just before an approaching rigid body reaches the sheet, so the
-// contact solve observes the opening instead of bouncing the body first.
+// A confirmed rigid/cloth contact cuts only complete faces inside the
+// collider footprint. The surviving triangles keep their authored corners
+// and constraint links; proximity alone never removes triangles.
 __global__ void cloth_cut_contact_patch(
     const Vec3 *positions, std::uint32_t *indices,
     std::uint32_t triangle_count, const BodyParameters *parameters,
-    const RigidBodyState *states, const TriangleMeshResource *meshes,
-    std::uint32_t body_count, float thickness, float radius_scale,
-    std::uint32_t *cut_done) {
+    const TriangleMeshResource *meshes,
+    const ClothBodyCorrection *corrections, std::uint32_t body_count,
+    float radius_scale, std::uint32_t *cut_done) {
     if (blockIdx.x != 0U || threadIdx.x != 0U || *cut_done != 0U) return;
     bool removed = false;
     for (std::uint32_t body = 0U; body < body_count; ++body) {
         const BodyParameters params = parameters[body];
-        if (params.motion != MotionType::dynamic) continue;
-        const TriangleMeshResource collider =
-            meshes[params.mesh.index];
-        const RigidBodyState state = states[body];
-        const Vec3 center = transform_point(state, collider.bounding_center);
-        Vec3 contact{};
-        float nearest_squared = 1.0e30F;
-        for (std::uint32_t triangle = 0U; triangle < triangle_count;
-             ++triangle) {
-            const std::uint32_t base = triangle * 3U;
-            const std::uint32_t a = indices[base], b = indices[base + 1U],
-                                c = indices[base + 2U];
-            if (a == b) continue;
-            const Vec3 point = fluid_closest_triangle(center, positions[a],
-                positions[b], positions[c]);
-            const float distance_squared = length_squared(
-                subtract(center, point));
-            if (distance_squared >= nearest_squared) continue;
-            nearest_squared = distance_squared;
-            contact = point;
-        }
-        const float approach_radius = collider.bounding_radius +
-            params.collision_margin + thickness;
-        if (nearest_squared > (approach_radius + thickness) *
-                              (approach_radius + thickness) ||
-            dot(state.linear_velocity, subtract(center, contact)) >=
-                -0.1F * sqrtf(nearest_squared)) continue;
+        const ClothBodyCorrection correction = corrections[body];
+        if (params.motion != MotionType::dynamic || !correction.active)
+            continue;
+        const TriangleMeshResource collider = meshes[params.mesh.index];
         const float radius = collider.bounding_radius * radius_scale;
         const float radius_squared = radius * radius;
         for (std::uint32_t triangle = 0U; triangle < triangle_count;
@@ -2913,7 +2889,7 @@ __global__ void cloth_cut_contact_patch(
             if (a == b) continue;
             const Vec3 centroid = multiply(add(positions[a],
                 add(positions[b], positions[c])), 1.0F / 3.0F);
-            if (length_squared(subtract(centroid, contact)) >
+            if (length_squared(subtract(centroid, correction.contact)) >
                 radius_squared) continue;
             indices[base + 1U] = a;
             indices[base + 2U] = a;
@@ -5447,13 +5423,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     TimingStage::cloth_constraints);
                 if (!cloth_status) return cloth_status;
             }
-            if (cloth.contact_cut_radius_scale > 0.0F &&
-                impl_->rigid_body_count != 0U)
-                cloth_cut_contact_patch<<<1U, 1U, 0, stream>>>(
-                    cloth.positions, cloth.indices, cloth.index_count / 3U,
-                    impl_->parameters, impl_->states[impl_->current_state],
-                    impl_->meshes, impl_->rigid_body_count, cloth.thickness,
-                    cloth.contact_cut_radius_scale, cloth.tear_armed);
             if (impl_->rigid_body_count != 0U) {
                 const cudaError_t clear_error = cudaMemsetAsync(
                     impl_->fluid_body_contact_flags, 0,
@@ -5487,6 +5456,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->options.paint_field_capacity, impl_->paint_rules,
                     impl_->options.paint_rule_capacity,
                     cloth.body_corrections);
+                if (cloth.contact_cut_radius_scale > 0.0F)
+                    cloth_cut_contact_patch<<<1U, 1U, 0, stream>>>(
+                        cloth.positions, cloth.indices,
+                        cloth.index_count / 3U, impl_->parameters,
+                        impl_->meshes, cloth.body_corrections,
+                        impl_->rigid_body_count,
+                        cloth.contact_cut_radius_scale, cloth.tear_armed);
                 cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
                     cloth.positions, cloth.velocities, cloth.inverse_masses,
                     cloth.vertex_count,

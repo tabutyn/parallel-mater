@@ -49,28 +49,58 @@ bool run_tear() {
     for (std::size_t index = 0U; index < scene.rigid_bodies.size(); ++index)
         if (scene.rigid_bodies[index].options.motion == MotionType::dynamic)
             active = index;
-    RigidBodyState initial_body{}, final_body{};
+    RigidBodyState initial_body{}, settled_body{}, final_body{};
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           initial_body), "read tear body"))
         return false;
-    for (int frame = 0; frame < 300; ++frame)
+    for (int frame = 0; frame < 120; ++frame)
         if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
                                .gravity = {0.0F, -9.81F, 0.0F}}),
-                   "step tear")) return false;
+                   "settle tear ball")) return false;
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
-                                          final_body), "read torn body"))
+                                          settled_body), "read settled ball"))
         return false;
     ClothDeviceView view{};
     if (!check(world.cloth_view(instance.cloths[0], view), "view tear"))
         return false;
     std::vector<Vec3> positions(view.vertex_count);
     std::vector<std::uint32_t> indices(view.triangle_indices.size);
+    const auto read_indices = [&]() {
+        return cudaMemcpy(indices.data(), view.triangle_indices.data,
+            indices.size() * sizeof(std::uint32_t),
+            cudaMemcpyDeviceToHost) == cudaSuccess;
+    };
+    if (!read_indices()) return false;
+    std::uint32_t settled_torn = 0U;
+    for (std::size_t base = 0U; base < indices.size(); base += 3U)
+        settled_torn += indices[base] == indices[base + 1U];
+    int first_cut_frame = -1;
+    float first_cut_body_z = INFINITY;
+    for (int frame = 0; frame < 300; ++frame) {
+        if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
+                               .gravity = {0.0F, -6.93671752F,
+                                           -6.93671752F}}),
+                   "roll tear ball")) return false;
+        if (first_cut_frame >= 0) continue;
+        if (!read_indices()) return false;
+        for (std::size_t base = 0U; base < indices.size(); base += 3U) {
+            if (indices[base] != indices[base + 1U]) continue;
+            RigidBodyState cut_body{};
+            if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
+                                                  cut_body), "read cut body"))
+                return false;
+            first_cut_frame = frame;
+            first_cut_body_z = cut_body.position.z;
+            break;
+        }
+    }
+    if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
+                                          final_body), "read torn body"))
+        return false;
     if (cudaMemcpy(positions.data(), view.positions.data,
                    positions.size() * sizeof(Vec3),
                    cudaMemcpyDeviceToHost) != cudaSuccess ||
-        cudaMemcpy(indices.data(), view.triangle_indices.data,
-                   indices.size() * sizeof(std::uint32_t),
-                   cudaMemcpyDeviceToHost) != cudaSuccess) return false;
+        !read_indices()) return false;
     const TriangleMesh &mesh = scene.meshes[scene.cloths[0].mesh_index];
     std::uint32_t torn = 0U;
     float maximum_ratio = 0.0F;
@@ -98,14 +128,19 @@ bool run_tear() {
                 length(mesh.vertices[a].position, mesh.vertices[b].position));
         }
     }
-    std::cout << "Tear removed_triangles=" << torn
+    std::cout << "Tear before_roll_removed_triangles=" << settled_torn
+              << " removed_triangles=" << torn
+              << " first_cut_frame=" << first_cut_frame
+              << " first_cut_body_z=" << first_cut_body_z
               << " contact_cut_scale=" << scene.cloths[0].contact_cut_radius_scale
               << " cut_bounds_x=" << cut_min_x << ".." << cut_max_x
               << " cut_bounds_y=" << cut_min_y << ".." << cut_max_y
               << " remaining_max_edge_ratio=" << maximum_ratio
               << " initial_body_y=" << initial_body.position.y
+              << " settled_body_y=" << settled_body.position.y
               << " final_body_y=" << final_body.position.y
               << " initial_body_z=" << initial_body.position.z
+              << " settled_body_z=" << settled_body.position.z
               << " final_body_z=" << final_body.position.z << '\n';
     SceneDefinition no_impact = scene;
     no_impact.rigid_bodies.erase(std::remove_if(
@@ -139,12 +174,15 @@ bool run_tear() {
     std::cout << "No-impact removed_triangles=" << baseline_torn << '\n';
     const float width = cut_max_x - cut_min_x;
     const float height = cut_max_y - cut_min_y;
-    return torn > 0U && torn < (indices.size() / 3U) / 2U &&
+    return length(initial_body.linear_velocity, {}) < 1.0e-5F &&
+           settled_torn == 0U && first_cut_frame >= 0 &&
+           first_cut_body_z < 1.0F && torn > 0U &&
+           torn < (indices.size() / 3U) / 2U &&
            baseline_torn == 0U &&
            scene.cloths[0].contact_cut_radius_scale > 0.0F &&
            width < 1.5F && height < 1.5F &&
-           width / height > 0.75F && width / height < 1.25F &&
-           cut_min_y > 0.1F && cut_max_y < 2.0F &&
+           initial_body.position.y > settled_body.position.y &&
+           std::abs(settled_body.position.z - initial_body.position.z) < 0.2F &&
            final_body.position.z < -0.5F &&
            maximum_ratio <= scene.cloths[0].tear_ratio + 0.05F;
 }

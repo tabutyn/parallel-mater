@@ -28,10 +28,6 @@ sheet["pm_solver_iterations"] = 24
 ball = next(obj for obj in bpy.data.objects
             if obj.rigid_body and obj.rigid_body.type == "ACTIVE")
 ball.rigid_body.mass = 35.0
-ball.rigid_body.friction = 0.0
-ball.location.z += 0.25
-ball.location.y += 1.75
-ball["pm_initial_velocity"] = (0.0, 6.0, 0.0)
 bpy.ops.wm.save_as_mainfile(filepath=str(ASSETS / "ClothTear.blend"),
                             compress=True)
 
