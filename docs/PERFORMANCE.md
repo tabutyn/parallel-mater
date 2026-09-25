@@ -244,3 +244,54 @@ The first unindexed moving-body implementation approximately doubled the
 120-frame wall time (2.9 s versus 1.4 s uncoupled). The spatial body index
 reduced the coupled 120-frame run to about 1.42 s. These are local project
 measurements, not general hardware guarantees.
+
+## Peg Paint: one-shot fill and sinking body
+
+`Pegs.blend` exports five passive triangle bodies, one dynamic Icosphere, and
+one Liquid Flow/Geometry cylinder. The first implementation used 2,947
+cubic-grid particles, 1g, repulsion 8, tangential viscosity, and a sphere
+starting almost on the bowl bottom. It stayed contained, but formed a shallow,
+contact-heavy layer with no visible sinking path. At authored mass 1 kg, the
+sphere floated; the old Water example used a 3,500-unit sphere against
+roughly 2,500 displaced unit-mass particles.
+
+The old Water physics also used HCP packing at 0.045 m, pair repulsion plus
+radial damping, a 55-unit force cap, 0.4/s velocity damping, a 3 m/s speed
+cap, two-g gravity, and overlap correction reacting on both particle and
+sphere. The reusable API now supports HCP-consistent particle rest volume,
+radial pair damping, a bounded pair-acceleration cap, and shared
+fluid/triangle-body overlap reaction. The Blender Geometry flow authors
+0.052 m spacing and 2× gravity; its 5,707 particles retain the intended
+fluid density. At the smaller bowl scale, repulsion 30 kept the pack
+contained; 50 ejected 15–18 particles over the open rim. The sphere is
+authored at 125 kg and Y 0.4 m, above the bowl, so it visibly falls and
+settles near Y −0.72.
+
+In `parallel-mater-pegs-benchmark 2000` on the local RTX 3050 Ti, all 5,707
+particles remained live and inside the bowl at every 100-frame sample;
+contact overflow stayed zero. Frames 1,901–2,000 averaged 15.55 ms per
+physics step. The old example's analytic sphere collision, analytic bowl
+projection, and bowl-specific inward hydrostatic correction were not copied:
+this scene still uses authored triangle meshes and the shared solver.
+
+### Old Water comparison, 2026-09-24
+
+After 300 warmup frames, 60 profiled frames of the old Water course with
+20,000 particles, four iterations, 320×240 particle rendering, and foam off
+measured 4.04 ms median wall time (3.91 ms GPU). The revised Peg scene with
+5,707 particles averaged 10.31 ms physics wall time over frames 201–300,
+excluding rendering. These are **different scenes and workloads**, not an
+algorithmic speedup ratio. At Peg frame 300, GPU stages were 3.39 ms rigid
+triangle contact, 3.24 ms fluid neighbors, 2.40 ms static triangle contact,
+0.73 ms moving-triangle contact, and 0.59 ms cell sorting.
+
+The old course projects particles against an analytic hemisphere and capped
+cylinders in its integration kernel and couples one analytic sphere. Peg uses
+generic BVH triangle contacts for five passive bodies, one dynamic body, and
+the shared rigid solver. The old course runs four fluid iterations per frame;
+Peg currently runs four substeps × two solver iterations. The old neighbor
+kernel schedules threads in sorted-cell order and sorts only active particles;
+the reusable API schedules in particle-ID order and sorts reserved capacity
+(30,000 slots here). The old bowl also has a bounded, bowl-specific
+hydrostatic equalization force that reduces its raised outer ring. That
+heuristic is part of its appearance but is not general triangle-water physics.

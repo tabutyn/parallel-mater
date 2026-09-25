@@ -102,6 +102,14 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_options(
             parallel-mater-fluid-rigid-benchmark
             PRIVATE -Wall -Wextra -Wpedantic)
+
+        add_executable(parallel-mater-pegs-benchmark
+                       benchmarks/pegs_scene.cpp)
+        target_link_libraries(
+            parallel-mater-pegs-benchmark PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(
+            parallel-mater-pegs-benchmark PRIVATE
+            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb")
     endif()
 
     FetchContent_Declare(
@@ -144,6 +152,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     add_library(parallel-mater-gallery-renderer STATIC
                 examples/support/optix_renderer.cpp
                 examples/support/fluid_surface.cu
+                examples/support/contact_paint.cu
                 examples/support/overlay.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
@@ -173,6 +182,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
             PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
             PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
+            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -221,10 +231,34 @@ if(BUILD_TESTING)
             parallel-mater-gallery-scene-tests
             PRIVATE
                 PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
+        target_compile_definitions(
+            parallel-mater-gallery-scene-tests
+            PRIVATE
+                PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb")
         add_test(NAME parallel-mater-gallery-scene-tests
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-material-visibility-tests
+                       tests/gallery/material_visibility_tests.cpp)
+        target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
+            parallel-mater-gallery-renderer CUDA::cudart)
+        target_compile_definitions(parallel-mater-material-visibility-tests PRIVATE
+            PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf"
+            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
+            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+        add_test(NAME parallel-mater-material-visibility-tests
+                 COMMAND parallel-mater-material-visibility-tests)
+        set_tests_properties(parallel-mater-material-visibility-tests
+                             PROPERTIES SKIP_RETURN_CODE 77)
+
+        if(PARALLEL_MATER_BUILD_BENCHMARKS)
+            add_test(NAME parallel-mater-pegs-stability-test
+                     COMMAND parallel-mater-pegs-benchmark --verify-settling)
+            set_tests_properties(parallel-mater-pegs-stability-test
+                                 PROPERTIES SKIP_RETURN_CODE 77)
+        endif()
 
         add_executable(parallel-mater-fluid-surface-tests
                        tests/gallery/fluid_surface_tests.cpp)
@@ -237,6 +271,17 @@ if(BUILD_TESTING)
         add_test(NAME parallel-mater-fluid-surface-tests
                  COMMAND parallel-mater-fluid-surface-tests)
         set_tests_properties(parallel-mater-fluid-surface-tests
+                             PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-contact-paint-tests
+                       tests/gallery/contact_paint_tests.cu)
+        target_include_directories(parallel-mater-contact-paint-tests PRIVATE
+            examples/support ${parallel_mater_optix_dev_SOURCE_DIR}/include)
+        target_link_libraries(parallel-mater-contact-paint-tests PRIVATE
+            parallel-mater-gallery-renderer CUDA::cudart)
+        add_test(NAME parallel-mater-contact-paint-tests
+                 COMMAND parallel-mater-contact-paint-tests)
+        set_tests_properties(parallel-mater-contact-paint-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
 
         add_test(
@@ -266,6 +311,30 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-rigid-test.ppm
                     --frames 120)
+        add_test(
+            NAME parallel-mater-peg-paint-headless-test
+            COMMAND parallel-mater-gallery
+                    --peg-paint
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-test.ppm
+                    --frames 180)
+        add_test(
+            NAME parallel-mater-peg-paint-containment-test
+            COMMAND parallel-mater-gallery
+                    --peg-paint
+                    --fluid-particle-view
+                    --trace-fluid-escapes
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-containment-test.ppm
+                    --frames 600)
+        add_test(
+            NAME parallel-mater-peg-paint-cap-test
+            COMMAND parallel-mater-gallery
+                    --peg-paint
+                    --fluid-particles 100
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-cap-test.ppm
+                    --frames 180)
         add_test(
             NAME parallel-mater-fluid-containment-test
             COMMAND parallel-mater-gallery

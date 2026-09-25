@@ -38,6 +38,14 @@ The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
 milestone.
 
+For an invisible collider, assign a material and set its **Principled BSDF →
+Alpha** to `0`. Blender exports the material alpha; the gallery hides those
+faces from camera and depth rays while keeping the rigid body and all its
+collision triangles. This works per material slot, not by object name. Constant
+glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
+alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
+materials remain visible regardless of their alpha value.
+
 ## Export the open `.blend`
 
 Run this inside Blender's Scripting workspace, or from a shell:
@@ -66,6 +74,7 @@ The generated metadata is:
 | `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
 | `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
+| `pm_paintable` | Optional Boolean source custom property; enables a persistent gallery paint mask for that rigid body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
 
 When a proxy is selected, the exporter adds a non-rendered
@@ -142,3 +151,39 @@ The 64 spheres are separate dynamic bodies, not one compound mesh; they share
 one uploaded triangle mesh. Particle impacts change their linear and angular
 velocity, while their moving triangles push particles and produce opt-in
 contact events.
+
+## One-shot Geometry flow and paint
+
+`examples/assets/Pegs.blend` contains a closed cylinder with **Fluid → Flow →
+Liquid → Geometry**, a passive bowl and four passive pegs, and one ACTIVE
+icosphere. The exporter marks the cylinder as
+`pm_system = "fluid_initial_volume"`. The gallery samples its authored mesh on
+a deterministic HCP lattice, keeps points inside the volume, and creates
+those particles once when the scene starts. No Blender Domain or baked cache
+is needed, and the flow does not emit on later frames. `P` changes the maximum
+particle count and restarts; if lower than the authored fill, the gallery
+selects an evenly distributed subset.
+
+The Geometry-flow object can author `pm_particle_spacing` (metres) and
+`pm_gravity_scale` as Blender custom properties. The Peg source uses 0.052 m
+spacing and 2× standard gravity. Particle rest volume follows the HCP cell
+volume, so denser sampling does not silently increase fluid mass. These are
+general flow settings, not Peg-specific solver branches.
+
+The Peg Paint example paints persistent blue masks where particles approach
+the bodies' exported UV surfaces. Paint is renderer-owned; the installed
+physics API keeps no texture state. This is why the
+exporter retains each render mesh's UV coordinates. Only the bowl has
+`pm_paintable = true`; the active sphere and four pegs remain unpainted. Other
+scenes do not allocate paint masks unless their authors opt in. Front and back
+faces maintain separate paint channels, so
+water touching the inside of a thin bowl does not tint its outside. Run with
+`./build-gallery/parallel-mater-gallery --peg-paint`.
+The four peg caps have a slight authored crown, giving resting droplets a
+downhill path off the posts without peg-specific fluid forces.
+
+The ACTIVE Icosphere is authored at 125 kg and starts above the bowl at
+Y 0.4 m. At its 0.268 m radius, a 1 kg sphere floats in a water-density
+fill; the heavier value falls through the water and settles against the bowl.
+Keep mass and initial position as authored Rigid Body properties rather than
+hidden scene-specific runtime overrides.

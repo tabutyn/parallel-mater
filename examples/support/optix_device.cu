@@ -178,6 +178,7 @@ extern "C" __global__ void __raygen__primary() {
     float3 color = make_float3(__uint_as_float(red), __uint_as_float(green),
                                __uint_as_float(blue));
     float visible_depth = __uint_as_float(depth);
+    params.rigid_depth[launch.y * params.width + launch.x] = visible_depth;
     float water_depth = 0.0F;
     float3 normal{};
     if (trace_surface(params.fluid, params.eye, direction, visible_depth,
@@ -189,11 +190,22 @@ extern "C" __global__ void __raygen__primary() {
         const float3 point = add(params.eye, multiply(direction, water_depth));
         const float3 reflected = normalize(subtract(
             direction, multiply(normal, 2.0F * dot(direction, normal))));
+        unsigned int rr = __float_as_uint(0.0F);
+        unsigned int rg = __float_as_uint(0.0F);
+        unsigned int rb = __float_as_uint(0.0F);
+        unsigned int rd = __float_as_uint(1.0e16F);
+        optixTrace(params.scene, add(point, multiply(reflected, 0.002F)),
+                   reflected, 0.001F, 1.0e16F, 0.0F,
+                   OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                   0, 1, 0, rr, rg, rb, rd);
+        const float3 reflection = make_float3(__uint_as_float(rr),
+                                               __uint_as_float(rg),
+                                               __uint_as_float(rb));
         const float eta = 1.0F / 1.333F;
         const float cosine = -dot(normal, direction);
         const float k = 1.0F - eta * eta * (1.0F - cosine * cosine);
         float3 transmission = color;
-        float path = 0.6F;
+        float path = 0.55F;
         if (k > 0.0F) {
             const float3 refracted = normalize(add(multiply(direction, eta),
                 multiply(normal, eta * cosine - sqrtf(k))));
@@ -208,11 +220,11 @@ extern "C" __global__ void __raygen__primary() {
             transmission = make_float3(__uint_as_float(tr), __uint_as_float(tg),
                                         __uint_as_float(tb));
             if (__uint_as_float(td) < 1.0e15F)
-                path = fminf(2.0F, fmaxf(0.3F, __uint_as_float(td)));
+                path = fminf(1.5F, fmaxf(0.03F, __uint_as_float(td)));
         }
         const float3 absorption = make_float3(
             expf(-1.35F * path), expf(-0.34F * path), expf(-0.16F * path));
-        const float haze = 0.35F + 0.45F * (1.0F - absorption.x);
+        const float haze = 0.12F + 0.34F * (1.0F - absorption.x);
         const float3 tint = make_float3(0.012F, 0.40F, 0.46F);
         transmission = add(multiply(make_float3(
             transmission.x * absorption.x,
@@ -221,10 +233,11 @@ extern "C" __global__ void __raygen__primary() {
             multiply(tint, haze));
         const float glint = powf(fmaxf(0.0F, dot(reflected,
             normalize(make_float3(-0.48F, 0.84F, 0.34F)))), 80.0F);
-        color = add(add(multiply(sky(reflected), fresnel),
+        color = add(add(multiply(reflection, fresnel),
                         multiply(transmission, 1.0F - fresnel)),
                     multiply(make_float3(0.62F, 0.91F, 1.0F),
-                             0.38F * glint));
+                             0.38F * glint +
+                             0.055F * powf(1.0F - facing, 2.0F)));
         visible_depth = water_depth;
     }
     params.image[launch.y * params.width + launch.x] =
@@ -264,6 +277,39 @@ extern "C" __global__ void __closesthit__surface() {
                             1;
         base_color = checker != 0 ? make_float3(0.08F, 0.1F, 0.13F)
                                   : make_float3(0.82F, 0.85F, 0.9F);
+    }
+    if (hit_data.paint_pixels != nullptr) {
+        const unsigned int paint_side = optixIsFrontFaceHit() ? 1U : 2U;
+        const float2 first = hit_data.vertices[triangle.x].uv;
+        const float2 second = hit_data.vertices[triangle.y].uv;
+        const float2 third = hit_data.vertices[triangle.z].uv;
+        const float u = first.x * first_weight +
+            second.x * barycentric.x + third.x * barycentric.y;
+        const float v = first.y * first_weight +
+            second.y * barycentric.x + third.y * barycentric.y;
+        const int width = static_cast<int>(hit_data.paint_width);
+        const int height = static_cast<int>(hit_data.paint_height);
+        const float fx = (u - floorf(u)) * width - 0.5F;
+        const float fy = fminf(1.0F, fmaxf(0.0F, v)) * height - 0.5F;
+        const int x0 = static_cast<int>(floorf(fx));
+        const int y0 = static_cast<int>(floorf(fy));
+        const float tx = fx - x0, ty = fy - y0;
+        float paint = 0.0F;
+        for (int dy = 0; dy < 2; ++dy) {
+            const int y = max(0, min(height - 1, y0 + dy));
+            for (int dx = 0; dx < 2; ++dx) {
+                int x = (x0 + dx) % width;
+                if (x < 0) x += width;
+                const float weight = (dx == 0 ? 1.0F - tx : tx) *
+                                     (dy == 0 ? 1.0F - ty : ty);
+                paint += weight *
+                    ((hit_data.paint_pixels[y * width + x] & paint_side) != 0U
+                        ? 1.0F : 0.0F);
+            }
+        }
+        const float3 wet_blue = make_float3(0.025F, 0.36F, 0.94F);
+        base_color = add(multiply(base_color, 1.0F - paint),
+                         multiply(wet_blue, paint));
     }
     const float3 light = normalize(make_float3(-0.45F, 0.82F, 0.35F));
     const float diffuse = fmaxf(dot(normal, light), 0.0F);

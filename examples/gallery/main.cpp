@@ -30,6 +30,7 @@ using parallel_mater::World;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::CameraPreset;
+using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::OptixRenderer;
@@ -503,23 +504,25 @@ struct FluidEscapeTrace {
             if (!parse_count(argv[++index], k_minimum_fluid_particles,
                              k_maximum_fluid_particles,
                              output.fluid_particles)) return false;
-            if (output.initial_context != GalleryContext::fluid_rigid)
+            if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
         } else if (argument == "--fluid") {
             output.initial_context = GalleryContext::fluid;
         } else if (argument == "--fluid-rigid") {
             output.initial_context = GalleryContext::fluid_rigid;
+        } else if (argument == "--peg-paint") {
+            output.initial_context = GalleryContext::peg_paint;
         } else if (argument == "--fluid-particle-view") {
-            if (output.initial_context != GalleryContext::fluid_rigid)
+            if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
             output.fluid_particle_view = true;
         } else if (argument == "--trace-fluid-escapes") {
-            if (output.initial_context != GalleryContext::fluid_rigid)
+            if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
             output.trace_fluid_escapes = true;
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid|--fluid-rigid] "
+                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint] "
                          "[--fluid-particles N] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
@@ -545,6 +548,9 @@ struct FluidEscapeTrace {
 [[nodiscard]] CameraPreset camera_preset(GalleryContext context) {
     if (context == GalleryContext::dump)
         return {.target = {0.5F, 2.2F, 0.0F}};
+    if (context == GalleryContext::peg_paint)
+        return {.target = {0.0F, -0.34F, 0.0F},
+                .distance_scale = 0.34F, .pitch = 0.72F};
     if (is_fluid_context(context))
         return {.target = {-2.0F, -1.0F, -2.0F},
                 .distance_scale = 1.6F};
@@ -663,6 +669,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                 ? std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH)
                 : context == GalleryContext::fluid_rigid
                     ? std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH)
+                    : context == GalleryContext::peg_paint
+                    ? std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH)
                     : options.scene;
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
@@ -727,15 +735,17 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case GalleryContext::dump: return 1;
     case GalleryContext::fluid: return 2;
     case GalleryContext::fluid_rigid: return 3;
+    case GalleryContext::peg_paint: return 4;
     }
     return 0;
 }
 
 [[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 3)) {
+    switch (std::clamp(index, 0, 4)) {
     case 1: return GalleryContext::dump;
     case 2: return GalleryContext::fluid;
     case 3: return GalleryContext::fluid_rigid;
+    case 4: return GalleryContext::peg_paint;
     default: return GalleryContext::rigid_body;
     }
 }
@@ -760,9 +770,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    constexpr StepOptions step_options{.timestep = k_timestep,
-                                       .substeps = 4U,
-                                       .gravity = {0.0F, -9.81F, 0.0F}};
+    const StepOptions step_options{.timestep = k_timestep,
+                                   .substeps = 4U,
+                                   .gravity = {0.0F,
+                                               -k_gravity * runtime.scene.gravity_scale,
+                                               0.0F}};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera.set_preset(camera_preset(runtime.context));
@@ -822,6 +834,13 @@ int main(int argc, char **argv) {
             }
             if (!require(runtime.world.step(step_options),
                          "step headless gallery")) {
+                return 1;
+            }
+            if (runtime.instance.has_fluid &&
+                frame + 1 < options.frames &&
+                !runtime.renderer.advance_visuals(
+                    runtime.world, runtime.instance, error)) {
+                std::cerr << "Visual update failed: " << error << '\n';
                 return 1;
             }
             if (options.trace_fluid_escapes &&
@@ -891,6 +910,15 @@ int main(int argc, char **argv) {
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
+        if (runtime.context == GalleryContext::peg_paint) {
+            std::uint64_t painted = 0U;
+            if (!runtime.renderer.paint_coverage(painted, error) ||
+                painted < 100U) {
+                std::cerr << "Peg paint coverage failed: " << error << '\n';
+                return 1;
+            }
+            std::cout << "Painted rigid texels=" << painted << '\n';
+        }
         if (runtime.instance.has_fluid && !options.fluid_particle_view)
             std::cout << "Fluid surface outliers="
                       << headless_render_timings.surface_excluded_particle_count
@@ -953,6 +981,8 @@ int main(int argc, char **argv) {
     std::uint32_t dump_spheres = options.dump_spheres;
     std::uint32_t fluid_particles = options.fluid_particles;
     float dump_angle = k_dump_initial_angle;
+    parallel_mater::Vec3 peg_gravity{0.0F, -k_gravity *
+        runtime.scene.gravity_scale, 0.0F};
     WorldStepTimings timings{};
     WorldStatistics statistics{};
     RendererTimings renderer_timings{};
@@ -1005,6 +1035,8 @@ int main(int argc, char **argv) {
                                       fluid_dialog ? requested : fluid_particles,
                                       replacement, error)) {
                         runtime = std::move(replacement);
+                        peg_gravity = {0.0F, -k_gravity *
+                            runtime.scene.gravity_scale, 0.0F};
                         if (fluid_dialog) fluid_particles = requested;
                         else dump_spheres = requested;
                         dump_angle = k_dump_initial_angle;
@@ -1035,7 +1067,7 @@ int main(int argc, char **argv) {
                     selected = std::max(0, selected - 1);
                 }
                 if (down_down && !down_was_down) {
-                    selected = std::min(3, selected + 1);
+                    selected = std::min(4, selected + 1);
                 }
                 context_selection = context_from_index(selected);
                 if (enter_down && !enter_was_down) {
@@ -1046,6 +1078,8 @@ int main(int argc, char **argv) {
                                       replacement, error)) {
                         if (context_selection != runtime.context) {
                             runtime = std::move(replacement);
+                            peg_gravity = {0.0F, -k_gravity *
+                                runtime.scene.gravity_scale, 0.0F};
                             input_state.camera.set_preset(
                                 camera_preset(runtime.context));
                             dump_angle = k_dump_initial_angle;
@@ -1070,6 +1104,8 @@ int main(int argc, char **argv) {
                 if (build_runtime(options, runtime.context, dump_spheres,
                                   fluid_particles, replacement, error)) {
                     runtime = std::move(replacement);
+                    peg_gravity = {0.0F, -k_gravity *
+                        runtime.scene.gravity_scale, 0.0F};
                     dump_angle = k_dump_initial_angle;
                     timings = {};
                     statistics = {};
@@ -1128,8 +1164,23 @@ int main(int argc, char **argv) {
                 }
             }
             StepOptions interactive_step = step_options;
+            interactive_step.gravity.y =
+                -k_gravity * runtime.scene.gravity_scale;
             if (runtime.context == GalleryContext::rigid_body) {
                 interactive_step.gravity = gravity_for(directional);
+            } else if (runtime.context == GalleryContext::peg_paint) {
+                const float right = directional.x + (!context_visible ?
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+                    : 0.0F);
+                const float forward = -directional.z + (!context_visible ?
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+                    : 0.0F);
+                peg_gravity = steer_gravity(
+                    peg_gravity, input_state.camera.camera(), right, forward,
+                    k_gravity * runtime.scene.gravity_scale, 85.0F, k_timestep);
+                interactive_step.gravity = peg_gravity;
             }
             interactive_step.collect_kernel_timings = timing_visible;
             interactive_step.collect_rigid_contacts =

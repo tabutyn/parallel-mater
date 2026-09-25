@@ -2107,15 +2107,20 @@ __global__ void fluid_compute_forces(
                         length_squared(relative_velocity) * q;
                     neighboring_foam = fmaxf(neighboring_foam,
                                                foam[other] * q);
+                    const float radial_speed = dot(relative_velocity, direction);
                     acceleration = add(acceleration,
                         add(multiply(direction, options.repulsion *
-                            (1'000.0F / options.rest_density) * q * q),
+                            (1'000.0F / options.rest_density) * q * q +
+                            options.normal_damping * radial_speed),
                             multiply(relative_velocity,
                                      options.viscosity * q)));
                 }
             }
         }
     }
+    if (options.maximum_pair_acceleration > 0.0F)
+        acceleration = clamp_length(acceleration,
+                                    options.maximum_pair_acceleration);
     forces[particle] = acceleration;
     const float exposure = vector_length(outward) / fmaxf(weight, 1.0e-6F);
     const float upward = fmaxf(0.0F, dot(normalized_or(outward, up), up));
@@ -2300,8 +2305,10 @@ __global__ void fluid_static_contacts(
                 multiply(best_normal, incoming * (1.0F + body.restitution)));
             const Vec3 tangent = subtract(velocity,
                 multiply(best_normal, dot(velocity, best_normal)));
+            // Remove tangential energy on impact; the previous weak response
+            // left shallow puddles cycling over narrow static surfaces.
             velocity = subtract(velocity, multiply(tangent,
-                fminf(1.0F, body.friction * 0.08F)));
+                fminf(1.0F, body.friction * 1.5F)));
             foam[particle] = fmaxf(foam[particle],
                                   fminf(1.0F, -incoming * 0.35F));
         }
@@ -2374,6 +2381,7 @@ __global__ void fluid_index_body_cells(
 __global__ void fluid_moving_contacts(
     Vec3 *positions, Vec3 *velocities, const Vec3 *previous, float *foam,
     const std::uint32_t *count, float radius, float particle_mass,
+    float timestep, float maximum_speed,
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     const RigidBodyState *states, const TriangleMeshResource *meshes,
     const WorldAabb *bounds, std::uint32_t body_count,
@@ -2485,13 +2493,19 @@ __global__ void fluid_moving_contacts(
         cross(state.angular_velocity, arm));
     const Vec3 relative = subtract(velocity, body_velocity);
     const float incoming = dot(relative, best_normal);
-    if (incoming >= 0.0F) return;
+    // A resting particle can be pushed into a moving surface without having
+    // negative normal velocity. Share a bounded overlap-recovery impulse with
+    // the body instead of silently moving only the particle.
+    const float recovery_speed = fminf(maximum_speed,
+        fminf(0.5F * radius, 0.2F * best_penetration) / timestep);
+    if (incoming >= recovery_speed) return;
     const Vec3 normal_cross = cross(arm, best_normal);
     const float normal_denominator = 1.0F / particle_mass +
         body.inverse_mass + dot(cross(inverse_inertia_world(body, state,
             normal_cross), arm), best_normal);
     if (normal_denominator <= k_epsilon) return;
-    const float normal_impulse = -incoming / normal_denominator;
+    const float normal_impulse =
+        (recovery_speed - incoming) / normal_denominator;
     if (collect_contacts &&
         (particle_contact_flags[particle] != 2U ||
          normal_impulse > samples[particle].normal_impulse)) {
@@ -3217,7 +3231,12 @@ Status World::add_fluid(FluidOptions options,
         !finite(options.repulsion) || options.repulsion < 0.0F ||
         !finite(options.viscosity) || options.viscosity < 0.0F ||
         !finite(options.velocity_damping) || options.velocity_damping < 0.0F ||
-        !finite(options.maximum_speed) || options.maximum_speed <= 0.0F) {
+        !finite(options.maximum_speed) || options.maximum_speed <= 0.0F ||
+        !finite(options.normal_damping) || options.normal_damping < 0.0F ||
+        !finite(options.rest_particle_volume) ||
+        options.rest_particle_volume < 0.0F ||
+        !finite(options.maximum_pair_acceleration) ||
+        options.maximum_pair_acceleration < 0.0F) {
         return failure(StatusCode::invalid_argument, "fluid options or initial particles are invalid");
     }
     std::uint32_t slot = 0U;
@@ -4432,7 +4451,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         const float dt = options.timestep / static_cast<float>(iterations);
         const float diameter = 2.0F * fluid.options.particle_radius;
         const float particle_mass = fluid.options.rest_density *
-            diameter * diameter * diameter;
+            (fluid.options.rest_particle_volume > 0.0F
+                ? fluid.options.rest_particle_volume
+                : diameter * diameter * diameter);
         const std::uint32_t body_words =
             (impl_->options.rigid_body_capacity + 63U) / 64U;
         if (any_moving_body) {
@@ -4498,7 +4519,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 fluid_moving_contacts<<<blocks, block_size, 0, stream>>>(
                     fluid.positions, fluid.velocities, fluid.previous,
                     fluid.foam, fluid.count, fluid.options.particle_radius,
-                    particle_mass, impl_->parameters,
+                    particle_mass, dt, fluid.options.maximum_speed,
+                    impl_->parameters,
                     impl_->fluid_previous_states,
                     impl_->states[impl_->current_state], impl_->meshes,
                     impl_->fluid_body_bounds, impl_->rigid_body_count,

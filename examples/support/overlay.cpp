@@ -419,8 +419,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(24, static_cast<int>(height) / 2 - 215);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 430,
+    const int top = std::max(14, static_cast<int>(height) / 2 - 255);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 510,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
@@ -452,6 +452,9 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         {105, 255, 155, 255});
     row(top + 324, GalleryContext::fluid_rigid, {25, 52, 64, 235},
         {35, 190, 230, 255}, "FLUID RIGID", "64 FREE SPHERES  P CAP",
+        {105, 255, 155, 255});
+    row(top + 406, GalleryContext::peg_paint, {44, 28, 61, 235},
+        {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
         {105, 255, 155, 255});
 }
 

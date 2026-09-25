@@ -90,7 +90,7 @@ pass.
 - Test a brute-force neighbor pair, lifecycle, passive high-speed impact,
   authored-scene loading, and a headless fluid image.
 
-## PR 8 — Dynamic fluid–rigid coupling (implemented in this branch)
+## PR 8 — Dynamic fluid–rigid coupling (merged)
 
 - Extend the PR 7 passive particle/triangle path to moving and dynamic bodies,
   including friction, restitution, projection, and balanced reactions.
@@ -98,6 +98,14 @@ pass.
   Blender-authored `FluidRigid.blend` scene: three Array modifiers detach into
   64 independently simulated, shared-mesh dynamic spheres.
 - Validate momentum exchange, containment, high-speed impact, and overflow.
+
+## Peg Paint — implemented in this branch
+
+- Export Blender Liquid Flow/Geometry as a one-shot, closed-mesh particle fill.
+- Paint authored rigid UVs persistently from nearby fluid particles in the
+  gallery, without adding texture ownership to `World`.
+- Tune the single active sphere to sink while retaining fluid in the bowl;
+  validate paint UV seams, the authored scene, containment, and timing.
 
 ## PR 9 — Gallery game shell
 

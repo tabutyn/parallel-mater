@@ -152,6 +152,15 @@ struct FluidOptions {
     float viscosity{0.02F};
     float velocity_damping{0.2F};
     float maximum_speed{8.0F};
+    // Opposes pairwise approach/separation along the contact axis. Unlike
+    // viscosity it does not damp tangential motion between particles.
+    float normal_damping{0.0F};
+    // Optional physical volume carried by one particle. Zero preserves the
+    // historical cubic-diameter estimate for callers without a known lattice.
+    float rest_particle_volume{0.0F};
+    // Zero disables the cap. Useful when dense initial packs create a short
+    // repulsion spike that would otherwise overwhelm contact resolution.
+    float maximum_pair_acceleration{0.0F};
 };
 
 // A finite rectangle. orientation rotates local +Y into the plane normal;

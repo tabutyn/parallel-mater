@@ -58,6 +58,13 @@ class OptixRenderer {
                               FluidRenderMode fluid_mode =
                                   FluidRenderMode::surface);
 
+    // Advance render-only paint and foam during unrendered headless steps.
+    [[nodiscard]] bool advance_visuals(const World &world,
+                                       const SceneInstance &instance,
+                                       std::string &error);
+    [[nodiscard]] bool paint_coverage(std::uint64_t &painted_texels,
+                                      std::string &error) const;
+
     [[nodiscard]] std::uint32_t width() const noexcept;
     [[nodiscard]] std::uint32_t height() const noexcept;
 
