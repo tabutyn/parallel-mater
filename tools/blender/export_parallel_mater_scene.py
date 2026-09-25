@@ -77,6 +77,8 @@ def rigid_metadata(
     )
     exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
+    if "pm_paint_resolution" in source:
+        exported["pm_paint_resolution"] = float(source["pm_paint_resolution"])
     if collision_proxy_name is not None:
         exported["pm_collision_proxy"] = collision_proxy_name
 

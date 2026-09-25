@@ -539,14 +539,15 @@ struct OptixRenderer::Impl {
         if (std::none_of(scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
             [](const RigidBodyDefinition &body) { return body.paintable; }))
             return;
-        constexpr std::uint32_t paint_width = 512U;
-        constexpr std::uint32_t paint_height = 512U;
         paint_masks.resize(bindings.size());
         paint_host_bindings.resize(bindings.size());
         for (std::size_t index = 0U; index < bindings.size(); ++index) {
             const RenderBinding binding = bindings[index];
             if (!scene.rigid_bodies[binding.body_index].paintable ||
                 binding.visibility_mask == 0U) continue;
+            const std::uint32_t paint_width =
+                scene.rigid_bodies[binding.body_index].paint_resolution;
+            const std::uint32_t paint_height = paint_width;
             paint_masks[index].resize(
                 paint_width * paint_height * sizeof(std::uint32_t));
             check_cuda(cudaMemset(paint_masks[index].pointer(), 0,

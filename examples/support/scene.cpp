@@ -728,6 +728,14 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         }
         body.name = extras.string("pm_name").value_or(body.name);
         body.paintable = extras.boolean("pm_paintable").value_or(false);
+        if (const auto resolution = extras.number("pm_paint_resolution")) {
+            if (!std::isfinite(*resolution) || *resolution < 32.0 ||
+                *resolution > 2048.0 || std::floor(*resolution) != *resolution) {
+                error = body.name + ": pm_paint_resolution must be an integer from 32 to 2048";
+                return false;
+            }
+            body.paint_resolution = static_cast<std::uint32_t>(*resolution);
+        }
         if (node.parent != nullptr) {
             error = body.name + ": physics objects must be scene-root nodes";
             return false;

@@ -147,6 +147,10 @@ int main() {
             peg_body.options.motion == MotionType::static_body) {
             check(std::fabs(peg_body.options.collision_margin - 0.02F) < 0.001F,
                   "authored bowl skin keeps resting sphere contacts continuous");
+            check(std::fabs(peg_body.options.friction - 0.05F) < 0.001F,
+                  "authored bowl friction lets water drain down the wall");
+            check(peg_body.paint_resolution == 64U,
+                  "authored Peg paint grid matches the smaller bowl");
         }
         if (peg_body.options.motion == MotionType::dynamic) {
             check(std::fabs(peg_body.options.mass - 125.0F) < 0.01F,

@@ -19,6 +19,8 @@ struct CameraPreset {
 
 // Camera-relative gravity steering shared by scenes with a tiltable course.
 // Input is right/forward on the horizontal camera plane, each in [-1, 1].
+inline constexpr float peg_paint_gravity_tilt_degrees = 20.0F;
+
 [[nodiscard]] inline Vec3 steer_gravity(Vec3 current, Camera camera,
                                          float right_input, float forward_input,
                                          float magnitude, float tilt_degrees,

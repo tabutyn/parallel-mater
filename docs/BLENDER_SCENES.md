@@ -75,6 +75,7 @@ The generated metadata is:
 | `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
 | `pm_paintable` | Optional Boolean source custom property; enables a persistent gallery paint mask for that rigid body |
+| `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
 
 When a proxy is selected, the exporter adds a non-rendered
@@ -155,8 +156,9 @@ contact events.
 ## One-shot Geometry flow and paint
 
 `examples/assets/Pegs.blend` contains a closed cylinder with **Fluid → Flow →
-Liquid → Geometry**, a passive bowl and four passive pegs, and one ACTIVE
-icosphere. The exporter marks the cylinder as
+Liquid → Geometry**, a passive bowl, four passive pegs, an invisible passive
+containment cylinder, and one ACTIVE icosphere. The exporter marks the flow
+cylinder as
 `pm_system = "fluid_initial_volume"`. The gallery samples its authored mesh on
 a deterministic HCP lattice, keeps points inside the volume, and creates
 those particles once when the scene starts. No Blender Domain or baked cache
@@ -181,6 +183,13 @@ water touching the inside of a thin bowl does not tint its outside. Run with
 `./build-gallery/parallel-mater-gallery --peg-paint`.
 The four peg caps have a slight authored crown, giving resting droplets a
 downhill path off the posts without peg-specific fluid forces.
+The bowl and invisible containment cylinder use Blender rigid-body friction
+`0.05`, while the pegs retain `0.5`. This lets water slide down the curved
+wall instead of accumulating as a thin raised layer. Contact paint records
+one texel per nearby particle and reconstructs the mask with a smooth cubic
+B-spline filter.
+The bowl authors `pm_paint_resolution = 64`; its half-height UV chart uses
+64×32 texels. Larger future paintable surfaces retain the default resolution.
 
 The ACTIVE Icosphere is authored at 125 kg and starts above the bowl at
 Y 0.4 m. At its 0.268 m radius, a 1 kg sphere floats in a water-density

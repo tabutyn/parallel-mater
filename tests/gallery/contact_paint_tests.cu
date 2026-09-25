@@ -52,7 +52,9 @@ int main() {
         okay = cudaMemcpy(pixels.data(), gpu_pixels, sizeof(pixels),
                           cudaMemcpyDeviceToHost) == cudaSuccess;
     okay = okay && pixels[32U * width + 63U] == 2U &&
-        pixels[32U * width] == 2U && pixels[8U * width + 8U] == 0U;
+        pixels[32U * width] == 0U &&
+        pixels[31U * width + 63U] == 0U &&
+        pixels[8U * width + 8U] == 0U;
     if (okay) {
         Vec3 opposite = particle;
         opposite.y = -0.03F;

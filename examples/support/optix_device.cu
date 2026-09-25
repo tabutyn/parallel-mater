@@ -250,6 +250,17 @@ extern "C" __global__ void __miss__sky() {
     set_payload(sky(direction));
 }
 
+__device__ float paint_cubic_weight(float value) {
+    value = fabsf(value);
+    if (value <= 1.0F)
+        return (4.0F - 6.0F * value * value +
+                3.0F * value * value * value) / 6.0F;
+    if (value < 2.0F)
+        return (2.0F - value) * (2.0F - value) *
+               (2.0F - value) / 6.0F;
+    return 0.0F;
+}
+
 extern "C" __global__ void __closesthit__surface() {
     optixSetPayload_3(__float_as_uint(optixGetRayTmax()));
     const HitData &hit_data =
@@ -293,20 +304,24 @@ extern "C" __global__ void __closesthit__surface() {
         const float fy = fminf(1.0F, fmaxf(0.0F, v)) * height - 0.5F;
         const int x0 = static_cast<int>(floorf(fx));
         const int y0 = static_cast<int>(floorf(fy));
-        const float tx = fx - x0, ty = fy - y0;
         float paint = 0.0F;
-        for (int dy = 0; dy < 2; ++dy) {
+        float total_weight = 0.0F;
+        for (int dy = -1; dy <= 2; ++dy) {
             const int y = max(0, min(height - 1, y0 + dy));
-            for (int dx = 0; dx < 2; ++dx) {
+            const float wy = paint_cubic_weight(fy - (y0 + dy));
+            for (int dx = -1; dx <= 2; ++dx) {
                 int x = (x0 + dx) % width;
                 if (x < 0) x += width;
-                const float weight = (dx == 0 ? 1.0F - tx : tx) *
-                                     (dy == 0 ? 1.0F - ty : ty);
+                const float weight = wy *
+                    paint_cubic_weight(fx - (x0 + dx));
                 paint += weight *
                     ((hit_data.paint_pixels[y * width + x] & paint_side) != 0U
                         ? 1.0F : 0.0F);
+                total_weight += weight;
             }
         }
+        paint = total_weight > 0.0F
+            ? fminf(1.0F, fmaxf(0.0F, paint / total_weight)) : 0.0F;
         const float3 wet_blue = make_float3(0.025F, 0.36F, 0.94F);
         base_color = add(multiply(base_color, 1.0F - paint),
                          multiply(wet_blue, paint));

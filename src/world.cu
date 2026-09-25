@@ -2305,8 +2305,8 @@ __global__ void fluid_static_contacts(
                 multiply(best_normal, incoming * (1.0F + body.restitution)));
             const Vec3 tangent = subtract(velocity,
                 multiply(best_normal, dot(velocity, best_normal)));
-            // Remove tangential energy on impact; the previous weak response
-            // left shallow puddles cycling over narrow static surfaces.
+            // Material friction controls static surface drag; liquid walls
+            // can be authored slippery without changing body contact math.
             velocity = subtract(velocity, multiply(tangent,
                 fminf(1.0F, body.friction * 1.5F)));
             foam[particle] = fmaxf(foam[particle],

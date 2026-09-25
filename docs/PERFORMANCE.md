@@ -247,7 +247,7 @@ measurements, not general hardware guarantees.
 
 ## Peg Paint: one-shot fill and sinking body
 
-`Pegs.blend` exports five passive triangle bodies, one dynamic Icosphere, and
+`Pegs.blend` exports six passive triangle bodies, one dynamic Icosphere, and
 one Liquid Flow/Geometry cylinder. The first implementation used 2,947
 cubic-grid particles, 1g, repulsion 8, tangential viscosity, and a sphere
 starting almost on the bowl bottom. It stayed contained, but formed a shallow,
@@ -287,7 +287,7 @@ triangle contact, 3.24 ms fluid neighbors, 2.40 ms static triangle contact,
 
 The old course projects particles against an analytic hemisphere and capped
 cylinders in its integration kernel and couples one analytic sphere. Peg uses
-generic BVH triangle contacts for five passive bodies, one dynamic body, and
+generic BVH triangle contacts for six passive bodies, one dynamic body, and
 the shared rigid solver. The old course runs four fluid iterations per frame;
 Peg currently runs four substeps × two solver iterations. The old neighbor
 kernel schedules threads in sorted-cell order and sorts only active particles;
@@ -295,3 +295,28 @@ the reusable API schedules in particle-ID order and sorts reserved capacity
 (30,000 slots here). The old bowl also has a bounded, bowl-specific
 hydrostatic equalization force that reduces its raised outer ring. That
 heuristic is part of its appearance but is not general triangle-water physics.
+
+### Wall drainage and one-texel paint, 2026-09-25
+
+The old bowl cancels inward normal velocity but retains tangential wall motion.
+The shared triangle solver applies authored material friction to fluid too, so
+the default Blender friction `0.5` removed 75% of tangential velocity on each
+impact. Zero friction caused a transient neighbor overflow at repulsion 30;
+raising repulsion to 50 avoided overflow but made the wall layer surge before
+settling. Keeping the shared solver and setting only the bowl and invisible
+containment cylinder to friction `0.05` drained the wall without that surge.
+
+At 5,707 particles and repulsion 30, the number above Y −0.45 m in the outer
+R > 0.8 m annulus fell from 459 to 18 at frame 100 and from 266 to zero at
+frame 300. No particles were below the bowl's lower bound at the sampled
+frames, and physics timing remained near 11 ms per frame. Paint now sets a
+single texel per particle contact, as in the old bowl; a 64×64 mask gives the
+smaller bowl 64×32 used texels, reconstructed with a smooth cubic B-spline
+filter to avoid the coarse mask's square edges.
+
+The Peg arrow-key limit is 20° from vertical, matching the original lab.
+The former 85° setting made sideways gravity dominate and drove water above
+the bowl rim. At 20° with authored scene options, the 300-frame benchmark's
+highest outer particle was Y −0.138 m, with 380 outer particles above
+Y −0.45 m, zero below the bowl floor, and no contact overflow. The tilt
+benchmark now guards against a return to near-horizontal gravity.

@@ -89,8 +89,7 @@ __global__ void paint_particles(const Vec3 *positions,
                                 std::uint32_t particle_count,
                                 const PaintBinding *bindings,
                                 std::uint32_t binding_count,
-                                float maximum_distance_squared,
-                                float particle_radius) {
+                                float maximum_distance_squared) {
     const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
     if (item >= particle_count) return;
     const Vec3 point = positions[item];
@@ -105,7 +104,6 @@ __global__ void paint_particles(const Vec3 *positions,
         float best_distance = maximum_distance_squared;
         float2 best_uv{};
         std::uint32_t best_side = 0U;
-        int best_radius = 1;
         for (std::uint32_t triangle_index = 0U;
              triangle_index < binding.triangle_count; ++triangle_index) {
             const uint3 triangle = binding.triangles[triangle_index];
@@ -125,33 +123,15 @@ __global__ void paint_particles(const Vec3 *positions,
             const float3 face = cross(subtract(b.position, a.position),
                                       subtract(c.position, a.position));
             best_side = dot(face, delta) >= 0.0F ? 1U : 2U;
-            const float world_area_twice = sqrtf(dot(face, face));
-            const float uv_area_twice = fabsf(
-                (b.uv.x - a.uv.x) * (c.uv.y - a.uv.y) -
-                (b.uv.y - a.uv.y) * (c.uv.x - a.uv.x));
-            // A single physical particle should paint roughly the same
-            // surface area regardless of mesh size or UV texture density.
-            const float pixels_per_world = sqrtf(
-                uv_area_twice / fmaxf(world_area_twice, 1.0e-12F) *
-                binding.width * binding.height);
-            best_radius = max(1, min(8, __float2int_rn(
-                1.5F * particle_radius * pixels_per_world)));
         }
         if (best_side == 0U) continue;
         const int width = static_cast<int>(binding.width);
         const int height = static_cast<int>(binding.height);
-        const int center_x = static_cast<int>(floorf(best_uv.x * width));
-        const int center_y = static_cast<int>(floorf(best_uv.y * height));
-        for (int dy = -best_radius; dy <= best_radius; ++dy) {
-            const int y = center_y + dy;
-            if (y < 0 || y >= height) continue;
-            for (int dx = -best_radius; dx <= best_radius; ++dx) {
-                if (dx * dx + dy * dy > best_radius * best_radius) continue;
-                int x = (center_x + dx) % width;
-                if (x < 0) x += width;
-                atomicOr(binding.pixels + y * width + x, best_side);
-            }
-        }
+        int x = static_cast<int>(floorf(best_uv.x * width)) % width;
+        if (x < 0) x += width;
+        const int y = max(0, min(height - 1,
+            static_cast<int>(floorf(best_uv.y * height))));
+        atomicOr(binding.pixels + y * width + x, best_side);
     }
 }
 
@@ -166,8 +146,7 @@ cudaError_t apply_particle_paint(const Vec3 *positions,
     if (particle_count == 0U || binding_count == 0U) return cudaSuccess;
     const float reach = particle_radius + 0.025F;
     paint_particles<<<(particle_count + 127U) / 128U, 128U, 0, stream>>>(
-        positions, particle_count, bindings, binding_count, reach * reach,
-        particle_radius);
+        positions, particle_count, bindings, binding_count, reach * reach);
     return cudaPeekAtLastError();
 }
 

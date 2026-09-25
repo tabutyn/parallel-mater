@@ -35,6 +35,7 @@ struct RigidBodyDefinition {
     // indices address SceneDefinition::collision_meshes.
     std::vector<std::uint32_t> collision_mesh_indices{};
     bool paintable{};
+    std::uint32_t paint_resolution{512U};
 };
 
 struct SceneDefinition {

@@ -13,6 +13,7 @@ using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::CameraPreset;
 using parallel_mater::gallery::steer_gravity;
+using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 
 int failures = 0;
 
@@ -84,22 +85,25 @@ int main() {
     Vec3 tilted{0.0F, -19.62F, 0.0F};
     for (int step = 0; step < 60; ++step)
         tilted = steer_gravity(tilted, steering_camera, 1.0F, 0.0F,
-                               19.62F, 85.0F, 1.0F / 60.0F);
-    check(tilted.x > 19.0F && tilted.y > -2.5F &&
+                               19.62F, peg_paint_gravity_tilt_degrees,
+                               1.0F / 60.0F);
+    check(tilted.x > 6.6F && tilted.y < -18.3F &&
               std::fabs(tilted.z) < 1.0e-4F &&
               near(std::sqrt(dot(tilted, tilted)), 19.62F),
           "Peg arrow steering tilts authored gravity toward camera right");
     Vec3 forward_tilt{0.0F, -19.62F, 0.0F};
     for (int step = 0; step < 60; ++step)
         forward_tilt = steer_gravity(forward_tilt, steering_camera,
-                                     0.0F, 1.0F, 19.62F, 85.0F,
+                                     0.0F, 1.0F, 19.62F,
+                                     peg_paint_gravity_tilt_degrees,
                                      1.0F / 60.0F);
-    check(forward_tilt.z < -19.0F &&
+    check(forward_tilt.z < -6.6F &&
               std::fabs(forward_tilt.x) < 1.0e-4F,
           "Peg Up Arrow steers into the camera view");
     for (int step = 0; step < 120; ++step)
         tilted = steer_gravity(tilted, steering_camera, 0.0F, 0.0F,
-                               19.62F, 85.0F, 1.0F / 60.0F);
+                               19.62F, peg_paint_gravity_tilt_degrees,
+                               1.0F / 60.0F);
     check(std::fabs(tilted.x) < 0.001F && near(tilted.y, -19.62F),
           "Peg gravity eases back to authored down when arrows release");
     CameraController controller;

@@ -31,6 +31,7 @@ using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::CameraPreset;
 using parallel_mater::gallery::steer_gravity;
+using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::OptixRenderer;
@@ -1179,7 +1180,8 @@ int main(int argc, char **argv) {
                     : 0.0F);
                 peg_gravity = steer_gravity(
                     peg_gravity, input_state.camera.camera(), right, forward,
-                    k_gravity * runtime.scene.gravity_scale, 85.0F, k_timestep);
+                    k_gravity * runtime.scene.gravity_scale,
+                    peg_paint_gravity_tilt_degrees, k_timestep);
                 interactive_step.gravity = peg_gravity;
             }
             interactive_step.collect_kernel_timings = timing_visible;

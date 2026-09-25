@@ -258,6 +258,10 @@ if(BUILD_TESTING)
                      COMMAND parallel-mater-pegs-benchmark --verify-settling)
             set_tests_properties(parallel-mater-pegs-stability-test
                                  PROPERTIES SKIP_RETURN_CODE 77)
+            add_test(NAME parallel-mater-pegs-tilt-test
+                     COMMAND parallel-mater-pegs-benchmark --verify-tilt)
+            set_tests_properties(parallel-mater-pegs-tilt-test
+                                 PROPERTIES SKIP_RETURN_CODE 77)
         endif()
 
         add_executable(parallel-mater-fluid-surface-tests

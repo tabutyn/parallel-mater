@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "support.hpp"
+#include <parallel_mater_gallery/camera_controller.hpp>
 
 #include <cuda_runtime_api.h>
 
@@ -17,14 +18,16 @@ int main(int argc, char **argv) {
     using namespace parallel_mater::gallery;
     const bool verify_settling = argc == 2 &&
         std::string(argv[1]) == "--verify-settling";
-    if (verify_settling) {
+    const bool verify_tilt = argc == 2 &&
+        std::string(argv[1]) == "--verify-tilt";
+    if (verify_settling || verify_tilt) {
         int devices = 0;
         if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0)
             return 77;
     }
-    std::uint32_t frames = verify_settling ? 300U : 600U;
+    std::uint32_t frames = verify_settling || verify_tilt ? 300U : 600U;
     if (argc > 14) return 2;
-    if (argc >= 2 && !verify_settling) {
+    if (argc >= 2 && !verify_settling && !verify_tilt) {
         char *end = nullptr;
         const unsigned long value = std::strtoul(argv[1], &end, 10);
         if (end == argv[1] || *end != '\0' || value == 0U || value > 100'000U)
@@ -119,7 +122,8 @@ int main(int argc, char **argv) {
             if (body.name.starts_with("Sphere"))
                 body.options.collision_margin = margin;
     }
-    float gravity_tilt_degrees = 0.0F;
+    float gravity_tilt_degrees = verify_tilt
+        ? peg_paint_gravity_tilt_degrees : 0.0F;
     if (argc >= 14) {
         char *end = nullptr;
         gravity_tilt_degrees = std::strtof(argv[13], &end);
@@ -149,7 +153,8 @@ int main(int argc, char **argv) {
               << '\n';
     for (const RigidBodyDefinition &body : scene.rigid_bodies)
         std::cout << "body=" << body.name << " margin="
-                  << body.options.collision_margin << '\n';
+                  << body.options.collision_margin << " friction="
+                  << body.options.friction << '\n';
     Samples wall;
     bool settled = false;
     std::cout << std::fixed << std::setprecision(3);
@@ -198,6 +203,8 @@ int main(int argc, char **argv) {
         std::uint32_t outside = 0U;
         std::uint32_t cap_particles = 0U;
         std::uint32_t edge_particles = 0U;
+        std::uint32_t high_outer_particles = 0U;
+        float outer_top = -1.0e10F;
         float cap_speed = 0.0F;
         float cap_speed_sum = 0.0F;
         float cap_foam_sum = 0.0F;
@@ -207,8 +214,11 @@ int main(int argc, char **argv) {
             const Vec3 position = positions[i];
             lowest = std::min(lowest, position.y);
             outside += position.y < -1.02F;
-            edge_particles += position.x * position.x +
+            const bool outer = position.x * position.x +
                 position.z * position.z > 0.8F * 0.8F;
+            edge_particles += outer;
+            high_outer_particles += outer && position.y > -0.45F;
+            if (outer) outer_top = std::max(outer_top, position.y);
             const float dx = std::fabs(position.x) - 0.264F;
             const float dz = std::fabs(position.z) - 0.264F;
             if (dx * dx + dz * dz < 0.04F * 0.04F &&
@@ -241,6 +251,8 @@ int main(int argc, char **argv) {
                   << " contacts=" << statistics.contact_count
                   << " cap_particles=" << cap_particles
                   << " edge_particles=" << edge_particles
+                  << " high_outer_particles=" << high_outer_particles
+                  << " outer_top=" << (edge_particles ? outer_top : 0.0F)
                   << " cap_speed=" << cap_speed
                   << " cap_mean_speed=" << cap_speed_sum /
                      std::max(1U, cap_particles)
@@ -263,18 +275,25 @@ int main(int argc, char **argv) {
                      timings.rigid_contact_generation.total_milliseconds +
                      timings.rigid_contact_solve.total_milliseconds
                   << " wall_ms=" << wall.mean() << '\n';
-        if (frame == frames) {
+        if (frame == frames && verify_settling) {
             settled = std::fabs(state.position.y + 0.707F) < 0.025F &&
                 std::fabs(state.linear_velocity.y) < 0.10F &&
                 cap_particles <= 2U &&
+                high_outer_particles <= 100U &&
                 (cap_particles == 0U ||
                  cap_speed_sum / cap_particles < 0.12F) &&
-                outside == 0U && statistics.contact_overflow_count == 0U;
+                 outside == 0U && statistics.contact_overflow_count == 0U;
+        }
+        if (frame == frames && verify_tilt) {
+            settled = outer_top < 0.15F &&
+                high_outer_particles < 1000U && outside == 0U &&
+                statistics.contact_overflow_count == 0U;
         }
         wall.clear();
     }
-    if (verify_settling && !settled) {
-        std::cerr << "Peg sphere or post-cap fluid did not settle\n";
+    if ((verify_settling || verify_tilt) && !settled) {
+        std::cerr << (verify_tilt ? "Peg tilt stacked fluid above the rim\n"
+                                  : "Peg sphere or post-cap fluid did not settle\n");
         return 1;
     }
     return 0;
