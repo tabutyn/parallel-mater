@@ -194,6 +194,9 @@ struct ClothOptions {
     float tear_ratio{};
     // When enabled, strain tearing starts only after a dynamic rigid contact.
     bool tear_requires_contact{};
+    // When nonzero, the first rigid contact cuts whole triangles inside this
+    // multiple of the collider radius instead of using global strain tearing.
+    float contact_cut_radius_scale{};
 };
 
 struct ClothDeviceView {
@@ -320,6 +323,8 @@ struct PaintRuleOptions {
     PaintFieldId target{};
     // Additional reach beyond a fluid source's particle radius.
     float reach{0.025F};
+    // World-space brush radius for rigid-to-cloth contact paint.
+    float brush_radius{0.15F};
     bool enabled{true};
 };
 

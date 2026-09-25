@@ -101,6 +101,15 @@ adjacent triangle survives; bending links require both. Setting
 contacted the sheet. `cloth_view().triangle_indices` therefore changes after
 stepping and must be consumed alongside current positions for collision and
 rendering.
+With `contact_cut_radius_scale > 0`, an approaching dynamic body instead cuts
+one circular footprint of whole triangles before contact resolution. The
+radius is the body's bounding radius times the scale; as with the current
+triangle-side contact constraint, non-spherical meshes use a conservative
+bounding sphere. This keeps the cut local
+and excludes orphaned vertices from later rigid contacts; intact triangles
+retain their original vertices and constraints. The old water lab fractures
+local bonds before projection and keeps its render faces, while this API uses
+a whole-face cut to match its shared-index cloth topology.
 
 ## Fluid sources and contact paint
 
@@ -123,9 +132,10 @@ and UVs may differ from the body's collision proxy; cloth UVs correspond to
 its deforming vertices.
 `World::add_paint_rule` selects exactly one source: a fluid for a rigid target,
 or a rigid body for a cloth target. Fluid rules can set extra reach beyond the
-particle radius. During fluid–rigid or rigid–cloth triangle contact, the world
-projects each qualifying collision onto the target's UVs and stamps one texel.
-It does not depend on diagnostic contact
+particle radius. Fluid–rigid contacts stamp one texel. Rigid–cloth contacts
+fill a world-space disk of UV texels using `brush_radius`, producing continuous
+marks as the body moves across deforming triangles. Paint does not depend on
+diagnostic contact
 collection or render frequency. `paint_field_view` exposes the device mask;
 bit 1 is the front side and bit 2 is the back side. `clear_paint_field` resets
 the mask. Render color and cubic filtering remain application choices.

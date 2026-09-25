@@ -491,10 +491,10 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
         {105, 255, 155, 255});
     row(top + 486, GalleryContext::cloth_tear, {53, 37, 48, 235},
-        {255, 126, 111, 255}, "CLOTH TEAR", "45 DEG GRAVITY  R RESET",
+        {255, 126, 111, 255}, "CLOTH TEAR", "ARROWS GRAVITY  R RESET",
         {105, 255, 155, 255});
     row(top + 554, GalleryContext::cloth_paint, {28, 49, 55, 235},
-        {65, 177, 240, 255}, "CLOTH PAINT", "RIGID CONTACT PAINT  R RESET",
+        {65, 177, 240, 255}, "CLOTH PAINT", "ARROWS GRAVITY  R RESET",
         {105, 255, 155, 255});
 }
 

@@ -53,9 +53,9 @@ bool run_tear() {
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           initial_body), "read tear body"))
         return false;
-    for (int frame = 0; frame < 180; ++frame)
+    for (int frame = 0; frame < 300; ++frame)
         if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
-                               .gravity = {0.0F, -6.93671752F, -6.93671752F}}),
+                               .gravity = {0.0F, -9.81F, 0.0F}}),
                    "step tear")) return false;
     if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                           final_body), "read torn body"))
@@ -74,9 +74,20 @@ bool run_tear() {
     const TriangleMesh &mesh = scene.meshes[scene.cloths[0].mesh_index];
     std::uint32_t torn = 0U;
     float maximum_ratio = 0.0F;
+    float cut_min_x = INFINITY, cut_max_x = -INFINITY;
+    float cut_min_y = INFINITY, cut_max_y = -INFINITY;
     for (std::size_t base = 0U; base < indices.size(); base += 3U) {
         if (indices[base] == indices[base + 1U]) {
             ++torn;
+            const auto &a = mesh.vertices[mesh.indices[base]].position;
+            const auto &b = mesh.vertices[mesh.indices[base + 1U]].position;
+            const auto &c = mesh.vertices[mesh.indices[base + 2U]].position;
+            const float x = (a.x + b.x + c.x) / 3.0F;
+            const float y = (a.y + b.y + c.y) / 3.0F;
+            cut_min_x = std::min(cut_min_x, x);
+            cut_max_x = std::max(cut_max_x, x);
+            cut_min_y = std::min(cut_min_y, y);
+            cut_max_y = std::max(cut_max_y, y);
             continue;
         }
         for (std::size_t edge = 0U; edge < 3U; ++edge) {
@@ -88,6 +99,9 @@ bool run_tear() {
         }
     }
     std::cout << "Tear removed_triangles=" << torn
+              << " contact_cut_scale=" << scene.cloths[0].contact_cut_radius_scale
+              << " cut_bounds_x=" << cut_min_x << ".." << cut_max_x
+              << " cut_bounds_y=" << cut_min_y << ".." << cut_max_y
               << " remaining_max_edge_ratio=" << maximum_ratio
               << " initial_body_y=" << initial_body.position.y
               << " final_body_y=" << final_body.position.y
@@ -123,10 +137,16 @@ bool run_tear() {
     for (std::size_t base = 0U; base < baseline_indices.size(); base += 3U)
         baseline_torn += baseline_indices[base] == baseline_indices[base + 1U];
     std::cout << "No-impact removed_triangles=" << baseline_torn << '\n';
-    return torn > 0U && torn < (indices.size() / 3U) / 5U &&
+    const float width = cut_max_x - cut_min_x;
+    const float height = cut_max_y - cut_min_y;
+    return torn > 0U && torn < (indices.size() / 3U) / 2U &&
            baseline_torn == 0U &&
+           scene.cloths[0].contact_cut_radius_scale > 0.0F &&
+           width < 1.5F && height < 1.5F &&
+           width / height > 0.75F && width / height < 1.25F &&
+           cut_min_y > 0.1F && cut_max_y < 2.0F &&
            final_body.position.z < -0.5F &&
-           maximum_ratio <= scene.cloths[0].tear_ratio + 0.02F;
+           maximum_ratio <= scene.cloths[0].tear_ratio + 0.05F;
 }
 
 bool run_paint() {
@@ -172,8 +192,7 @@ bool run_paint() {
                    cudaMemcpyDeviceToHost) != cudaSuccess) return false;
     for (int frame = 0; frame < 180; ++frame)
         if (!check(world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
-                               .gravity = {0.0F, -6.93671752F,
-                                           -6.93671752F}}),
+                               .gravity = {0.0F, -9.81F, 0.0F}}),
                    "step paint")) return false;
     if (!check(world.cloth_view(instance.cloths[0], cloth_view),
                "view final paint cloth")) return false;
@@ -207,7 +226,8 @@ bool run_paint() {
               << " front=" << front_painted << " back=" << back_painted
               << " free_motion=" << free_motion
               << " pinned_motion=" << pinned_motion << '\n';
-    return front_painted > 0U && painted > 0U && free_motion > 0.02F &&
+    return front_painted >= 500U && painted >= 500U &&
+           free_motion > 0.02F &&
            pinned_motion < 1.0e-5F &&
            triangles == scene.meshes[scene.cloths[0].mesh_index].indices;
 }

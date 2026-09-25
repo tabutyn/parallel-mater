@@ -43,7 +43,6 @@ constexpr float k_timestep = 1.0F / 60.0F;
 constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
 constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
-constexpr float k_inv_sqrt_two = 0.70710678118F;
 constexpr float k_gravity_tilt_tangent = 0.577350269F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
@@ -65,6 +64,7 @@ struct Options {
     GalleryContext initial_context{GalleryContext::rigid_body};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
+    std::uint32_t headless_cloth_tilt_degrees{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
 };
@@ -522,6 +522,9 @@ struct FluidEscapeTrace {
             output.initial_context = GalleryContext::cloth_tear;
         } else if (argument == "--cloth-paint") {
             output.initial_context = GalleryContext::cloth_paint;
+        } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 1U, 45U,
+                             output.headless_cloth_tilt_degrees)) return false;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -534,6 +537,7 @@ struct FluidEscapeTrace {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
                          "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint] "
                          "[--fluid-particles N] "
+                         "[--cloth-tilt-degrees 1..45 (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
@@ -572,12 +576,8 @@ struct FluidEscapeTrace {
 
 [[nodiscard]] parallel_mater::Vec3 initial_scene_gravity(
     GalleryContext context, float scale) {
-    const float magnitude = k_gravity * scale;
-    return context == GalleryContext::cloth_tear ||
-           context == GalleryContext::cloth_paint
-        ? parallel_mater::Vec3{0.0F, -magnitude * k_inv_sqrt_two,
-                              -magnitude * k_inv_sqrt_two}
-        : parallel_mater::Vec3{0.0F, -magnitude, 0.0F};
+    (void)context;
+    return {0.0F, -k_gravity * scale, 0.0F};
 }
 
 void mouse_button(GLFWwindow *window, int button, int action, int modifiers) {
@@ -828,6 +828,15 @@ int main(int argc, char **argv) {
     InputState input_state;
     input_state.camera.set_preset(camera_preset(runtime.context));
     if (!options.headless_output.empty()) {
+        StepOptions headless_step = step_options;
+        if (is_cloth_context(runtime.context) &&
+            options.headless_cloth_tilt_degrees != 0U) {
+            const float angle = static_cast<float>(
+                options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
+            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
+                                    -magnitude * std::sin(angle)};
+        }
         parallel_mater::Vec3 passive_minimum{}, passive_maximum{};
         FluidEscapeTrace escape_trace{};
         PassiveFloorIndex floor_index{};
@@ -881,7 +890,7 @@ int main(int argc, char **argv) {
                     return 1;
                 }
             }
-            if (!require(runtime.world.step(step_options),
+            if (!require(runtime.world.step(headless_step),
                          "step headless gallery")) {
                 return 1;
             }
@@ -963,7 +972,8 @@ int main(int argc, char **argv) {
             runtime.context == GalleryContext::cloth_paint) {
             std::uint64_t painted = 0U;
             const std::uint64_t minimum =
-                runtime.context == GalleryContext::peg_paint ? 100U : 1U;
+                runtime.context == GalleryContext::peg_paint ? 100U :
+                options.headless_cloth_tilt_degrees != 0U ? 1U : 0U;
             if (!runtime.renderer.paint_coverage(painted, error) ||
                 painted < minimum) {
                 std::cerr << "Paint coverage failed: " << error << '\n';
@@ -1232,12 +1242,11 @@ int main(int argc, char **argv) {
             interactive_step.gravity = {0.0F,
                 -k_gravity * runtime.scene.gravity_scale, 0.0F};
             if (is_cloth_context(runtime.context)) {
-                if (runtime.context == GalleryContext::cloth)
-                    cloth_gravity = steer_gravity(
-                        cloth_gravity, input_state.camera.camera(),
-                        directional.x, -directional.z,
-                        k_gravity * runtime.scene.gravity_scale,
-                        k_cloth_gravity_tilt_degrees, k_timestep);
+                cloth_gravity = steer_gravity(
+                    cloth_gravity, input_state.camera.camera(),
+                    directional.x, -directional.z,
+                    k_gravity * runtime.scene.gravity_scale,
+                    k_cloth_gravity_tilt_degrees, k_timestep);
                 interactive_step.gravity = cloth_gravity;
             } else if (runtime.context == GalleryContext::rigid_body) {
                 interactive_step.gravity = gravity_for(directional);

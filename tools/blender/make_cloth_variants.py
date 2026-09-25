@@ -22,11 +22,16 @@ sheet = next(obj for obj in bpy.data.objects
              if any(mod.type == "CLOTH" for mod in obj.modifiers))
 sheet["pm_tear_ratio"] = 1.11
 sheet["pm_tear_requires_contact"] = True
+sheet["pm_contact_cut_radius_scale"] = 1.5
 sheet["pm_stretch_compliance"] = 0.0
-sheet["pm_solver_iterations"] = 20
+sheet["pm_solver_iterations"] = 24
 ball = next(obj for obj in bpy.data.objects
             if obj.rigid_body and obj.rigid_body.type == "ACTIVE")
 ball.rigid_body.mass = 35.0
+ball.rigid_body.friction = 0.0
+ball.location.z += 0.25
+ball.location.y += 1.75
+ball["pm_initial_velocity"] = (0.0, 6.0, 0.0)
 bpy.ops.wm.save_as_mainfile(filepath=str(ASSETS / "ClothTear.blend"),
                             compress=True)
 
@@ -35,9 +40,13 @@ sheet = next(obj for obj in bpy.data.objects
              if any(mod.type == "CLOTH" for mod in obj.modifiers))
 ball = next(obj for obj in bpy.data.objects
             if obj.rigid_body and obj.rigid_body.type == "ACTIVE")
+ball.location.z += 0.5
+ball.location.y += 1.75
+ball["pm_initial_velocity"] = (0.0, 2.5, 0.0)
 sheet["pm_paintable"] = True
 sheet["pm_paint_resolution"] = 128
 sheet["pm_paint_source"] = ball.name
+sheet["pm_paint_brush_radius"] = 0.18
 # A neutral dry cloth makes the blue contact paint visible in the gallery.
 dry_cloth = bpy.data.materials.new("DryClothPaint")
 dry_cloth.diffuse_color = (0.8, 0.82, 0.78, 1.0)

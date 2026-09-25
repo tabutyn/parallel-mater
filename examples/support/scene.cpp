@@ -673,6 +673,14 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             return false;
         }
         body.options.initial_state = node_state(node);
+        body.options.initial_state.linear_velocity = {
+            static_cast<float>(extras.number("pm_initial_velocity_x").value_or(0.0)),
+            static_cast<float>(extras.number("pm_initial_velocity_y").value_or(0.0)),
+            static_cast<float>(extras.number("pm_initial_velocity_z").value_or(0.0))};
+        if (!finite(body.options.initial_state.linear_velocity)) {
+            error = body.name + ": initial rigid velocity must be finite";
+            return false;
+        }
         const bool has_proxy = extras.string("pm_collision_proxy").has_value();
         const auto cached = shared_render_meshes.find(node.mesh);
         const bool reuse = !has_proxy && cached != shared_render_meshes.end() &&
@@ -815,11 +823,27 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         cloth.tear_ratio = tear_ratio;
         cloth.tear_requires_contact = extras.boolean(
             "pm_tear_requires_contact").value_or(false);
+        cloth.contact_cut_radius_scale = static_cast<float>(
+            extras.number("pm_contact_cut_radius_scale").value_or(0.0));
+        if (!std::isfinite(cloth.contact_cut_radius_scale) ||
+            cloth.contact_cut_radius_scale < 0.0F ||
+            cloth.contact_cut_radius_scale > 2.0F) {
+            error = name + ": invalid cloth contact cut radius scale";
+            return false;
+        }
         cloth.stretch_compliance = stretch_compliance;
         cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
         cloth.paintable = extras.boolean("pm_paintable").value_or(false);
         cloth.paint_resolution = static_cast<std::uint32_t>(paint_resolution);
         cloth.paint_source = extras.string("pm_paint_source").value_or("");
+        cloth.paint_brush_radius = static_cast<float>(
+            extras.number("pm_paint_brush_radius").value_or(0.15));
+        if (!std::isfinite(cloth.paint_brush_radius) ||
+            cloth.paint_brush_radius <= 0.0F ||
+            cloth.paint_brush_radius > 10.0F) {
+            error = name + ": invalid cloth paint brush radius";
+            return false;
+        }
         cloth.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
         cloth.inverse_masses.assign(mesh.vertices.size(), 1.0F / mass);
         const RigidBodyState state = node_state(node);
@@ -1211,7 +1235,9 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .stretch_compliance = definition.stretch_compliance,
             .solver_iterations = definition.solver_iterations,
             .tear_ratio = definition.tear_ratio,
-            .tear_requires_contact = definition.tear_requires_contact}, cloth);
+            .tear_requires_contact = definition.tear_requires_contact,
+            .contact_cut_radius_scale =
+                definition.contact_cut_radius_scale}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
     }
@@ -1347,7 +1373,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             {.cloth = output.cloths[cloth_index],
              .width = cloth.paint_resolution,
              .height = cloth.paint_resolution},
-            {.rigid_source = output.rigid_bodies[source_index]});
+            {.rigid_source = output.rigid_bodies[source_index],
+             .brush_radius = cloth.paint_brush_radius});
         if (!status) return status;
     }
     } catch (...) {

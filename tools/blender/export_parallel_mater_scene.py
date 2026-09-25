@@ -76,6 +76,13 @@ def rigid_metadata(
     exported["pm_collision_margin"] = (
         float(rigid.collision_margin) if rigid.use_margin else 0.005
     )
+    if "pm_initial_velocity" in source:
+        velocity = source["pm_initial_velocity"]
+        if len(velocity) != 3:
+            raise RuntimeError(f"{source.name}: pm_initial_velocity needs 3 components")
+        exported["pm_initial_velocity_x"] = float(velocity[0])
+        exported["pm_initial_velocity_y"] = float(velocity[2])
+        exported["pm_initial_velocity_z"] = -float(velocity[1])
     exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     if "pm_paint_resolution" in source:
@@ -373,11 +380,15 @@ def copy_cloth_for_export(
     exported["pm_tear_ratio"] = float(source.get("pm_tear_ratio", 0.0))
     exported["pm_tear_requires_contact"] = bool(
         source.get("pm_tear_requires_contact", False))
+    exported["pm_contact_cut_radius_scale"] = float(
+        source.get("pm_contact_cut_radius_scale", 0.0))
     exported["pm_stretch_compliance"] = float(source.get("pm_stretch_compliance", 1.0e-6))
     exported["pm_solver_iterations"] = int(source.get("pm_solver_iterations", 8))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     exported["pm_paint_resolution"] = int(source.get("pm_paint_resolution", 512))
     exported["pm_paint_source"] = str(source.get("pm_paint_source", ""))
+    exported["pm_paint_brush_radius"] = float(
+        source.get("pm_paint_brush_radius", 0.15))
     if len(mesh.materials) == 0:
         material = fallback_material(index, False)
         created_materials.append(material)

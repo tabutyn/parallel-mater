@@ -47,11 +47,13 @@ struct ClothDefinition {
     float thickness{0.025F};
     float tear_ratio{};
     bool tear_requires_contact{};
+    float contact_cut_radius_scale{};
     float stretch_compliance{1.0e-6F};
     std::uint32_t solver_iterations{8U};
     bool paintable{};
     std::uint32_t paint_resolution{512U};
     std::string paint_source{};
+    float paint_brush_radius{0.15F};
 };
 
 struct SceneDefinition {
