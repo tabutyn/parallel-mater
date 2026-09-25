@@ -10,6 +10,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -732,6 +733,90 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         }
         output.rigid_bodies.push_back(std::move(body));
     }
+    for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) continue;
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "cloth") continue;
+        const std::string name = extras.string("pm_name").value_or(
+            node.name != nullptr ? node.name : "cloth");
+        if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
+            node.parent != nullptr || node.has_matrix || node.mesh == nullptr ||
+            node.mesh->primitives_count != 1U ||
+            extras.number("pm_pin_stiffness").value_or(0.0) != 1.0) {
+            error = name + ": cloth needs schema 2, one root TRS mesh, and full pin stiffness";
+            return false;
+        }
+        const float mass = static_cast<float>(
+            extras.number("pm_vertex_mass").value_or(0.001));
+        const float thickness = static_cast<float>(
+            extras.number("pm_thickness").value_or(0.025));
+        const Vec3 scale = node_scale(node);
+        if (!finite(scale) || scale.x <= 0.0F || scale.y <= 0.0F ||
+            scale.z <= 0.0F || !finite(mass) || mass <= 0.0F ||
+            !finite(thickness) || thickness <= 0.0F) {
+            error = name + ": invalid cloth mass, thickness, or transform";
+            return false;
+        }
+        const auto encoded_pins = extras.string("pm_pin_vertices");
+        if (!encoded_pins || encoded_pins->empty()) {
+            error = name + ": cloth has no exported pin vertices";
+            return false;
+        }
+        struct Pin { Vec3 position; float weight; bool matched{}; };
+        std::vector<Pin> pins;
+        const char *cursor = encoded_pins->c_str();
+        const char *end = cursor + encoded_pins->size();
+        while (cursor < end) {
+            float fields[4]{};
+            for (int component = 0; component < 4; ++component) {
+                char *next = nullptr;
+                fields[component] = std::strtof(cursor, &next);
+                if (next == cursor || !std::isfinite(fields[component]) ||
+                    (component < 3 && *next != ',') ||
+                    (component == 3 && *next != ';' && *next != '\0')) {
+                    error = name + ": invalid exported cloth pin coordinate";
+                    return false;
+                }
+                cursor = next + (component < 3 || *next == ';' ? 1 : 0);
+            }
+            if (fields[3] <= 0.0F || fields[3] > 1.0F) {
+                error = name + ": invalid cloth pin weight";
+                return false;
+            }
+            pins.push_back({{fields[0], fields[1], fields[2]}, fields[3]});
+        }
+        TriangleMesh mesh{};
+        if (!append_primitive(node.mesh->primitives[0], scale, false,
+                              name, mesh, error)) return false;
+        ClothDefinition cloth{};
+        cloth.name = name;
+        cloth.vertex_mass = mass;
+        cloth.thickness = thickness;
+        cloth.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
+        cloth.inverse_masses.assign(mesh.vertices.size(), 1.0F / mass);
+        const RigidBodyState state = node_state(node);
+        for (std::size_t vertex = 0U; vertex < mesh.vertices.size(); ++vertex) {
+            Vertex &point = mesh.vertices[vertex];
+            for (Pin &pin : pins) {
+                const Vec3 delta = subtract(point.position, pin.position);
+                if (dot(delta, delta) > 1.0e-8F) continue;
+                cloth.inverse_masses[vertex] =
+                    (1.0F - pin.weight) / mass;
+                pin.matched = true;
+            }
+            point.position = add(state.position,
+                rotate(state.orientation, point.position));
+            point.normal = rotate(state.orientation, point.normal);
+        }
+        if (std::any_of(pins.begin(), pins.end(),
+                        [](const Pin &pin) { return !pin.matched; })) {
+            error = name + ": cloth pin positions did not match exported mesh";
+            return false;
+        }
+        output.meshes.push_back(std::move(mesh));
+        output.cloths.push_back(std::move(cloth));
+    }
     std::optional<float> initial_spacing;
     std::optional<float> initial_gravity_scale;
     for (cgltf_size node_index = 0; node_index < data->nodes_count;
@@ -1073,6 +1158,31 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return status;
         }
         output.rigid_bodies.push_back(body);
+    }
+    for (const ClothDefinition &definition : scene.cloths) {
+        if (definition.mesh_index >= scene.meshes.size())
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "gallery cloth mesh index is invalid"};
+        const TriangleMesh &mesh = scene.meshes[definition.mesh_index];
+        std::vector<Vec3> positions;
+        try {
+            positions.reserve(mesh.vertices.size());
+            for (const Vertex &vertex : mesh.vertices)
+                positions.push_back(vertex.position);
+        } catch (...) {
+            return {StatusCode::out_of_memory, cudaSuccess,
+                    "failed to assemble gallery cloth vertices"};
+        }
+        ClothId cloth{};
+        const Status status = world.add_cloth({
+            .vertices = {positions.data(), positions.size()},
+            .triangle_indices = {mesh.indices.data(), mesh.indices.size()},
+            .inverse_masses = {definition.inverse_masses.data(),
+                               definition.inverse_masses.size()},
+            .vertex_mass = definition.vertex_mass,
+            .thickness = definition.thickness}, cloth);
+        if (!status) return status;
+        output.cloths.push_back(cloth);
     }
     if (scene.fluid_options.capacity != 0U) {
         const std::size_t requested = std::min<std::size_t>(

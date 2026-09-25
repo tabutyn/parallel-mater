@@ -8,6 +8,7 @@
 #include <thrust/iterator/counting_iterator.h>
 
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cfloat>
 #include <cmath>
@@ -17,6 +18,8 @@
 #include <memory>
 #include <new>
 #include <numeric>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -1766,6 +1769,9 @@ enum class TimingStage : std::uint8_t {
     rigid_contact_evaluation,
     rigid_contact_solve,
     rigid_input_clear,
+    cloth_prediction,
+    cloth_constraints,
+    cloth_contacts,
     fluid_spawn,
     fluid_neighbor_sort,
     fluid_neighbor_forces,
@@ -1927,6 +1933,60 @@ struct FluidBodyImpulse {
     Vec3 linear{};
     Vec3 angular{};
     std::uint32_t body{k_invalid_dense};
+};
+
+struct ClothNeighbor {
+    std::uint32_t index{};
+    float rest_length{};
+    float compliance{};
+};
+
+struct ClothBodyCorrection {
+    Vec3 offset{};
+    Vec3 impulse{};
+    Vec3 contact{};
+    float support_radius{};
+    float weight_sum{};
+    std::uint32_t vertices[3]{};
+    bool active{};
+};
+
+struct ClothStorage {
+    std::uint32_t generation{1U};
+    bool alive{};
+    std::uint32_t vertex_count{};
+    std::uint32_t index_count{};
+    float thickness{};
+    float velocity_damping{};
+    float contact_friction{};
+    std::uint32_t solver_iterations{};
+    Vec3 *positions{};
+    Vec3 *scratch{};
+    Vec3 *previous{};
+    Vec3 *velocities{};
+    float *inverse_masses{};
+    std::uint32_t *indices{};
+    std::uint32_t *offsets{};
+    ClothNeighbor *neighbors{};
+    std::uint32_t neighbor_count{};
+    FluidBodyImpulse *body_impulses{};
+    ClothBodyCorrection *body_corrections{};
+    std::uint32_t *count{};
+
+    void release() noexcept {
+        release_managed(positions);
+        release_managed(scratch);
+        release_managed(previous);
+        release_managed(velocities);
+        release_managed(inverse_masses);
+        release_managed(indices);
+        release_managed(offsets);
+        release_managed(neighbors);
+        release_managed(body_impulses);
+        release_managed(body_corrections);
+        release_managed(count);
+    }
+    ~ClothStorage() { release(); }
 };
 
 struct FluidContactSample {
@@ -2698,6 +2758,374 @@ __global__ void fluid_reduce_body_impulses(
     }
 }
 
+__global__ void cloth_predict(Vec3 *positions, Vec3 *previous,
+                              Vec3 *velocities, const float *inverse_masses,
+                              std::uint32_t count, Vec3 gravity, float dt,
+                              float damping) {
+    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= count) return;
+    const Vec3 old = positions[vertex];
+    previous[vertex] = old;
+    if (inverse_masses[vertex] == 0.0F) {
+        velocities[vertex] = {};
+        return;
+    }
+    Vec3 velocity = multiply(velocities[vertex], fmaxf(0.0F, 1.0F - damping * dt));
+    velocity = add(velocity, multiply(gravity, dt));
+    positions[vertex] = add(old, multiply(velocity, dt));
+    velocities[vertex] = velocity;
+}
+
+__global__ void cloth_project_links(
+    const Vec3 *positions, Vec3 *scratch, const float *inverse_masses,
+    const std::uint32_t *offsets, const ClothNeighbor *neighbors,
+    std::uint32_t count, float dt) {
+    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= count) return;
+    const float self_mass = inverse_masses[vertex];
+    const Vec3 position = positions[vertex];
+    if (self_mass == 0.0F) {
+        scratch[vertex] = position;
+        return;
+    }
+    Vec3 correction{};
+    const std::uint32_t first = offsets[vertex];
+    const std::uint32_t last = offsets[vertex + 1U];
+    for (std::uint32_t edge = first; edge < last; ++edge) {
+        const ClothNeighbor neighbor = neighbors[edge];
+        const Vec3 difference = subtract(position, positions[neighbor.index]);
+        const float length = vector_length(difference);
+        if (length < 1.0e-7F) continue;
+        const float other_mass = inverse_masses[neighbor.index];
+        const float denominator = self_mass + other_mass +
+            neighbor.compliance / (dt * dt);
+        const float amount = -self_mass * (length - neighbor.rest_length) /
+            (denominator * length);
+        correction = add(correction, multiply(difference, amount));
+    }
+    const float divisor = static_cast<float>(max(1U, last - first));
+    scratch[vertex] = add(position, multiply(correction, 1.0F / divisor));
+}
+
+__global__ void cloth_collide(
+    Vec3 *positions, Vec3 *velocities, const Vec3 *previous,
+    const float *inverse_masses, std::uint32_t count, float thickness,
+    float dt, const BodyParameters *parameters,
+    const RigidBodyState *states, const TriangleMeshResource *meshes,
+    std::uint32_t body_count, FluidBodyImpulse *impulses,
+    std::uint32_t *contact_flags) {
+    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= count) return;
+    impulses[vertex] = {};
+    if (inverse_masses[vertex] == 0.0F) return;
+    const Vec3 start = previous[vertex];
+    Vec3 end = positions[vertex];
+    float best_penetration = 0.0F;
+    Vec3 best_normal{}, best_contact{};
+    std::uint32_t best_body = k_invalid_dense;
+    for (std::uint32_t body_index = 0U; body_index < body_count; ++body_index) {
+        const BodyParameters body = parameters[body_index];
+        const RigidBodyState state = states[body_index];
+        const TriangleMeshResource mesh = meshes[body.mesh.index];
+        if (mesh.bvh_node_count == 0U) continue;
+        const Vec3 local_start = inverse_rotate(state.orientation,
+            subtract(start, state.position));
+        const Vec3 local_end = inverse_rotate(state.orientation,
+            subtract(end, state.position));
+        if (!fluid_segment_bounds(local_start, local_end, mesh.bvh_nodes[0],
+                                  thickness + body.collision_margin)) continue;
+        std::uint32_t stack[64]{};
+        int pending = 1;
+        while (pending != 0) {
+            const BvhNode &node = mesh.bvh_nodes[stack[--pending]];
+            if (!fluid_segment_bounds(local_start, local_end, node,
+                                      thickness + body.collision_margin)) continue;
+            if (node.triangle_count == 0U) {
+                if (pending + 2 > 64) continue;
+                stack[pending++] = node.right;
+                stack[pending++] = node.left;
+                continue;
+            }
+            for (std::uint32_t item = 0U; item < node.triangle_count; ++item) {
+                const std::uint32_t base = (node.first_triangle + item) * 3U;
+                const Vec3 a = mesh.vertices[mesh.indices[base]];
+                const Vec3 b = mesh.vertices[mesh.indices[base + 1U]];
+                const Vec3 c = mesh.vertices[mesh.indices[base + 2U]];
+                const Vec3 nearest = fluid_closest_triangle(local_end, a, b, c);
+                const Vec3 delta = subtract(local_end, nearest);
+                const float distance = vector_length(delta);
+                const Vec3 face = normalized_or(cross(subtract(b, a),
+                    subtract(c, a)), {0.0F, 1.0F, 0.0F});
+                Vec3 normal = distance > 1.0e-6F
+                    ? multiply(delta, 1.0F / distance)
+                    : multiply(face, dot(subtract(local_start, a), face) >= 0.0F
+                                         ? 1.0F : -1.0F);
+                float penetration = thickness + body.collision_margin - distance;
+                const float before = dot(subtract(local_start, a), face);
+                const float after = dot(subtract(local_end, a), face);
+                if (before * after < 0.0F) {
+                    const float fraction = before / (before - after);
+                    const Vec3 crossing = add(local_start,
+                        multiply(subtract(local_end, local_start), fraction));
+                    if (length_squared(subtract(fluid_closest_triangle(
+                            crossing, a, b, c), crossing)) <
+                            thickness * thickness) {
+                        normal = multiply(face, before > 0.0F ? 1.0F : -1.0F);
+                        penetration = fmaxf(penetration,
+                            thickness + body.collision_margin + fabsf(after));
+                    }
+                }
+                if (penetration > best_penetration) {
+                    best_penetration = penetration;
+                    best_normal = rotate(state.orientation, normal);
+                    best_contact = transform_point(state, nearest);
+                    best_body = body_index;
+                }
+            }
+        }
+    }
+    if (best_body != k_invalid_dense) {
+        const BodyParameters body = parameters[best_body];
+        const RigidBodyState state = states[best_body];
+        Vec3 velocity = multiply(subtract(end, start), 1.0F / dt);
+        end = add(end, multiply(best_normal, best_penetration));
+        const Vec3 arm = subtract(best_contact, state.position);
+        const Vec3 body_velocity = add(state.linear_velocity,
+            cross(state.angular_velocity, arm));
+        const Vec3 relative = subtract(velocity, body_velocity);
+        const float incoming = dot(relative, best_normal);
+        const float recovery = fminf(1.0F,
+            0.1F * best_penetration / dt);
+        if (incoming < recovery) {
+            const float mass = 1.0F / fmaxf(inverse_masses[vertex], 1.0e-6F);
+            const Vec3 arm_cross = cross(arm, best_normal);
+            const float denominator = 1.0F / mass + body.inverse_mass +
+                dot(cross(inverse_inertia_world(body, state, arm_cross), arm),
+                    best_normal);
+            if (denominator > k_epsilon) {
+                const Vec3 impulse = multiply(best_normal,
+                    fminf(2.0F * mass, (recovery - incoming) / denominator));
+                velocity = add(velocity, multiply(impulse, 1.0F / mass));
+                impulses[vertex] = {multiply(impulse, -1.0F),
+                    multiply(cross(arm, impulse), -1.0F), best_body};
+                atomicExch(contact_flags + best_body, 1U);
+            }
+        }
+        positions[vertex] = end;
+        velocities[vertex] = clamp_length(velocity, 20.0F);
+    } else {
+        velocities[vertex] = clamp_length(
+            multiply(subtract(end, start), 1.0F / dt), 20.0F);
+    }
+}
+
+// The vertex-side contact above deforms the sheet and transfers momentum.
+// A second, triangle-side constraint keeps a fast rigid collider from slipping
+// between cloth vertices. The broad-phase sphere is conservative for any mesh.
+__global__ void cloth_constrain_bodies(
+    const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
+    const std::uint32_t *cloth_indices,
+    const float *cloth_inverse_masses, std::uint32_t vertex_count,
+    std::uint32_t triangle_count, float thickness, float dt,
+    float contact_friction,
+    const BodyParameters *parameters, const RigidBodyState *previous_states,
+    RigidBodyState *states, const TriangleMeshResource *meshes,
+    std::uint32_t body_count, ClothBodyCorrection *corrections) {
+    const std::uint32_t body_index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (body_index >= body_count) return;
+    corrections[body_index] = {};
+    if (parameters[body_index].motion != MotionType::dynamic) return;
+    const BodyParameters body = parameters[body_index];
+    RigidBodyState state = states[body_index];
+    const TriangleMeshResource mesh = meshes[body.mesh.index];
+    const Vec3 center = transform_point(state, mesh.bounding_center);
+    const Vec3 previous_center = transform_point(previous_states[body_index],
+                                                  mesh.bounding_center);
+    const float radius = mesh.bounding_radius + body.collision_margin + thickness;
+    float best_penetration = 0.0F;
+    Vec3 best_normal{}, best_contact{};
+    std::uint32_t best_triangle = 0U;
+    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
+        const std::uint32_t base = triangle * 3U;
+        const Vec3 a = cloth_positions[cloth_indices[base]];
+        const Vec3 b = cloth_positions[cloth_indices[base + 1U]];
+        const Vec3 c = cloth_positions[cloth_indices[base + 2U]];
+        const Vec3 ab = subtract(b, a), ac = subtract(c, a);
+        const Vec3 face = cross(ab, ac);
+        if (length_squared(face) < 1.0e-12F) continue;
+        const Vec3 normal = normalized_or(face, {0.0F, 0.0F, 1.0F});
+        const Vec3 nearest = fluid_closest_triangle(center, a, b, c);
+        const Vec3 delta = subtract(center, nearest);
+        const float distance = vector_length(delta);
+        Vec3 contact_normal = distance > 1.0e-6F
+            ? multiply(delta, 1.0F / distance)
+            : multiply(normal, dot(subtract(previous_center, a), normal) >= 0.0F
+                                   ? 1.0F : -1.0F);
+        float penetration = radius - distance;
+        const float before = dot(subtract(previous_center, a), normal);
+        const float after = dot(subtract(center, a), normal);
+        if (before * after < 0.0F) {
+            const float fraction = before / (before - after);
+            const Vec3 crossing = add(previous_center,
+                multiply(subtract(center, previous_center), fraction));
+            if (length_squared(subtract(fluid_closest_triangle(
+                    crossing, a, b, c), crossing)) < radius * radius) {
+                contact_normal = multiply(normal, before > 0.0F ? 1.0F : -1.0F);
+                penetration = fmaxf(penetration, radius + fabsf(after));
+            }
+        } else if (penetration > 0.0F && before * after > 0.0F) {
+            contact_normal = multiply(normal, before > 0.0F ? 1.0F : -1.0F);
+        }
+        if (penetration > best_penetration) {
+            best_penetration = penetration;
+            best_normal = contact_normal;
+            best_contact = nearest;
+            best_triangle = triangle;
+        }
+    }
+    if (best_penetration <= 0.0F) return;
+    const std::uint32_t first = best_triangle * 3U;
+    const std::uint32_t a = cloth_indices[first];
+    const std::uint32_t b = cloth_indices[first + 1U];
+    const std::uint32_t c = cloth_indices[first + 2U];
+    const float free_fraction =
+        ((cloth_inverse_masses[a] > 0.0F ? 1.0F : 0.0F) +
+         (cloth_inverse_masses[b] > 0.0F ? 1.0F : 0.0F) +
+         (cloth_inverse_masses[c] > 0.0F ? 1.0F : 0.0F)) / 3.0F;
+    constexpr float cloth_share = 0.5F;
+    const float cloth_shift = cloth_share * best_penetration;
+    const Vec3 arm = subtract(best_contact, state.position);
+    const float incoming = dot(state.linear_velocity, best_normal);
+    const Vec3 angular_axis = cross(arm, best_normal);
+    // The conservative body-radius constraint must remove inward center
+    // velocity even if spin makes the contact-point velocity nearly zero.
+    const float normal_impulse = incoming < 0.0F && body.inverse_mass > 0.0F
+        ? -incoming / body.inverse_mass : 0.0F;
+    const float support_radius = fmaxf(0.15F, mesh.bounding_radius * 0.8F);
+    const float inverse_support_squared = 1.0F /
+        (support_radius * support_radius);
+    float weight_sum = 0.0F;
+    float maximum_weighted_inverse_mass = 0.0F;
+    float weighted_inverse_mass_squared = 0.0F;
+    Vec3 weighted_cloth_velocity{};
+    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex) {
+        const float inverse_mass = cloth_inverse_masses[vertex];
+        if (inverse_mass == 0.0F) continue;
+        const float squared = length_squared(subtract(
+            cloth_positions[vertex], best_contact));
+        const float weight = fmaxf(0.0F,
+            1.0F - squared * inverse_support_squared);
+        const float weighted = weight * weight;
+        weight_sum += weighted;
+        weighted_inverse_mass_squared += inverse_mass * weighted * weighted;
+        weighted_cloth_velocity = add(weighted_cloth_velocity,
+                                      multiply(cloth_velocities[vertex], weighted));
+        maximum_weighted_inverse_mass = fmaxf(
+            maximum_weighted_inverse_mass, inverse_mass * weighted);
+    }
+    // Bound the velocity kick of every contacted cloth vertex to one tenth
+    // of its collision thickness per substep. Excess impact is dissipated.
+    const float maximum_cloth_impulse = maximum_weighted_inverse_mass > 0.0F
+        ? 0.1F * thickness * weight_sum /
+              (dt * maximum_weighted_inverse_mass)
+        : normal_impulse;
+    const float cloth_impulse = fminf(normal_impulse,
+                                     maximum_cloth_impulse);
+    Vec3 tangent_impulse{};
+    if (weight_sum > 1.0e-8F && contact_friction > 0.0F) {
+        const Vec3 cloth_velocity = multiply(weighted_cloth_velocity,
+                                             1.0F / weight_sum);
+        const Vec3 body_velocity = add(state.linear_velocity,
+                                      cross(state.angular_velocity, arm));
+        const Vec3 relative = subtract(body_velocity, cloth_velocity);
+        const float separating_speed = dot(relative, best_normal);
+        const Vec3 tangent = subtract(relative,
+            multiply(best_normal, separating_speed));
+        const float tangent_speed = vector_length(tangent);
+        // Friction must not turn an outward-moving body into a cloth tether.
+        const float release_weight = fmaxf(0.0F,
+            1.0F - fmaxf(incoming, 0.0F) / 0.5F);
+        if (release_weight > 0.0F && separating_speed <= 0.0F &&
+            tangent_speed > 1.0e-6F) {
+            const Vec3 direction = multiply(tangent, 1.0F / tangent_speed);
+            const Vec3 angular_axis = cross(arm, direction);
+            const float cloth_inverse_mass =
+                weighted_inverse_mass_squared / (weight_sum * weight_sum);
+            const float effective_inverse_mass = body.inverse_mass +
+                dot(cross(inverse_inertia_world(body, state, angular_axis), arm),
+                    direction) + cloth_inverse_mass;
+            // Resting contact can have little incoming speed despite a finite
+            // positional correction; use that correction as normal load.
+            const float correction_impulse = best_penetration > 0.0F &&
+                    body.inverse_mass > 0.0F
+                ? 0.2F * best_penetration / (dt * body.inverse_mass) : 0.0F;
+            const float friction_limit = contact_friction * release_weight *
+                fmaxf(normal_impulse, correction_impulse);
+            const float magnitude = effective_inverse_mass > k_epsilon
+                ? fminf(tangent_speed / effective_inverse_mass, friction_limit)
+                : 0.0F;
+            tangent_impulse = multiply(direction, -magnitude);
+        }
+    }
+    // Limit the cloth-side kick independently of the rigid-body friction.
+    const Vec3 cloth_tangent_impulse = clamp_length(tangent_impulse,
+                                                    maximum_cloth_impulse);
+    corrections[body_index] = {
+        multiply(best_normal, -cloth_shift),
+        subtract(multiply(best_normal, -cloth_impulse),
+                 cloth_tangent_impulse), best_contact,
+        support_radius, weight_sum, {a, b, c}, true};
+    state.position = add(state.position,
+        multiply(best_normal,
+                 best_penetration - cloth_shift * free_fraction));
+    if (normal_impulse > 0.0F) {
+        state.linear_velocity = clamp_length(add(state.linear_velocity,
+            multiply(best_normal, normal_impulse * body.inverse_mass)),
+            body.maximum_linear_speed);
+        state.angular_velocity = clamp_length(add(state.angular_velocity,
+            inverse_inertia_world(body, state,
+                multiply(angular_axis, normal_impulse))),
+            body.maximum_angular_speed);
+    }
+    state.linear_velocity = clamp_length(add(state.linear_velocity,
+        multiply(tangent_impulse, body.inverse_mass)),
+        body.maximum_linear_speed);
+    state.angular_velocity = clamp_length(add(state.angular_velocity,
+        inverse_inertia_world(body, state, cross(arm, tangent_impulse))),
+        body.maximum_angular_speed);
+    states[body_index] = state;
+}
+
+__global__ void cloth_apply_body_corrections(
+    Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
+    std::uint32_t count,
+    const ClothBodyCorrection *corrections, std::uint32_t body_count) {
+    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= count || inverse_masses[vertex] == 0.0F) return;
+    Vec3 offset{};
+    Vec3 velocity = velocities[vertex];
+    for (std::uint32_t body = 0U; body < body_count; ++body) {
+        const ClothBodyCorrection correction = corrections[body];
+        if (!correction.active) continue;
+        if (correction.vertices[0] == vertex ||
+            correction.vertices[1] == vertex ||
+            correction.vertices[2] == vertex)
+            offset = add(offset, correction.offset);
+        if (correction.weight_sum > 1.0e-8F) {
+            const float squared = length_squared(subtract(
+                positions[vertex], correction.contact));
+            const float support_squared = correction.support_radius *
+                correction.support_radius;
+            const float weight = fmaxf(0.0F, 1.0F - squared / support_squared);
+            velocity = add(velocity, multiply(correction.impulse,
+                inverse_masses[vertex] * weight * weight /
+                    correction.weight_sum));
+        }
+    }
+    positions[vertex] = add(positions[vertex], offset);
+    velocities[vertex] = clamp_length(velocity, 20.0F);
+}
+
 __global__ void fluid_reserve_contact_events(
     const std::uint32_t *selected_count, std::uint32_t *offset,
     std::uint32_t *world_count, std::uint32_t *overflow,
@@ -2857,6 +3285,7 @@ struct World::Impl {
     std::uint32_t rigid_solve_kernels_per_substep{1U};
     std::vector<Slot> slots{};
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
+    std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<SpawnPlaneSlot> spawn_planes{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
@@ -3118,6 +3547,7 @@ Status World::create(WorldOptions options, World &output,
         implementation = std::make_unique<Impl>();
         implementation->slots.resize(options.rigid_body_capacity);
         implementation->fluids.resize(options.fluid_capacity);
+        implementation->cloths.resize(options.cloth_capacity);
         implementation->spawn_planes.resize(options.particle_spawn_plane_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
     } catch (...) {
@@ -4124,6 +4554,172 @@ Status World::remove_paint_rule(PaintRuleId id) noexcept {
     return success();
 }
 
+Status World::add_cloth(ClothOptions options, ClothId &output,
+                        cudaStream_t stream) noexcept {
+    (void)stream;
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.vertices.data == nullptr || options.vertices.size < 3U ||
+        options.vertices.size > UINT32_MAX ||
+        options.triangle_indices.data == nullptr ||
+        options.triangle_indices.size == 0U ||
+        options.triangle_indices.size % 3U != 0U ||
+        options.triangle_indices.size > UINT32_MAX ||
+        (options.inverse_masses.size != 0U &&
+         (options.inverse_masses.data == nullptr ||
+          options.inverse_masses.size != options.vertices.size)) ||
+        !finite(options.vertex_mass) || options.vertex_mass <= 0.0F ||
+        !finite(options.thickness) || options.thickness <= 0.0F ||
+        !finite(options.stretch_compliance) || options.stretch_compliance < 0.0F ||
+        !finite(options.bending_compliance) || options.bending_compliance < 0.0F ||
+        !finite(options.velocity_damping) || options.velocity_damping < 0.0F ||
+        !finite(options.contact_friction) || options.contact_friction < 0.0F ||
+        options.solver_iterations == 0U || options.solver_iterations > 64U) {
+        return failure(StatusCode::invalid_argument, "invalid cloth geometry or solver options");
+    }
+    for (std::uint64_t vertex = 0U; vertex < options.vertices.size; ++vertex) {
+        if (!finite(options.vertices.data[vertex]) ||
+            (options.inverse_masses.size != 0U &&
+             (!finite(options.inverse_masses.data[vertex]) ||
+              options.inverse_masses.data[vertex] < 0.0F)))
+            return failure(StatusCode::invalid_argument, "invalid cloth vertex or inverse mass");
+    }
+    std::uint32_t slot = k_invalid_dense;
+    for (std::uint32_t index = 0U; index < impl_->cloths.size(); ++index) {
+        if (!impl_->cloths[index] || !impl_->cloths[index]->alive) {
+            slot = index;
+            break;
+        }
+    }
+    if (slot == k_invalid_dense)
+        return failure(StatusCode::capacity_exceeded, "cloth capacity is exhausted");
+
+    const std::uint32_t count = static_cast<std::uint32_t>(options.vertices.size);
+    std::vector<std::vector<ClothNeighbor>> adjacency;
+    std::vector<std::uint32_t> offsets;
+    std::vector<ClothNeighbor> neighbors;
+    try {
+        adjacency.resize(count);
+        std::unordered_set<std::uint64_t> links;
+        std::unordered_map<std::uint64_t, std::uint32_t> opposite;
+        const auto key = [](std::uint32_t a, std::uint32_t b) {
+            if (a > b) std::swap(a, b);
+            return (static_cast<std::uint64_t>(a) << 32U) | b;
+        };
+        const auto link = [&](std::uint32_t a, std::uint32_t b,
+                              float compliance) {
+            if (a == b || !links.insert(key(a, b)).second) return;
+            const float rest = vector_length(subtract(
+                options.vertices.data[a], options.vertices.data[b]));
+            if (rest <= 1.0e-6F) return;
+            adjacency[a].push_back({b, rest, compliance});
+            adjacency[b].push_back({a, rest, compliance});
+        };
+        for (std::uint64_t triangle = 0U;
+             triangle < options.triangle_indices.size; triangle += 3U) {
+            const std::uint32_t a = options.triangle_indices.data[triangle];
+            const std::uint32_t b = options.triangle_indices.data[triangle + 1U];
+            const std::uint32_t c = options.triangle_indices.data[triangle + 2U];
+            if (a >= count || b >= count || c >= count || a == b || b == c || c == a)
+                return failure(StatusCode::invalid_argument, "invalid cloth triangle index");
+            const std::array<std::array<std::uint32_t, 3>, 3> edges{{
+                {a, b, c}, {b, c, a}, {c, a, b}}};
+            for (const auto &edge : edges) {
+                link(edge[0], edge[1], options.stretch_compliance);
+                const std::uint64_t edge_key = key(edge[0], edge[1]);
+                const auto previous = opposite.find(edge_key);
+                if (previous == opposite.end()) opposite.emplace(edge_key, edge[2]);
+                else link(previous->second, edge[2], options.bending_compliance);
+            }
+        }
+        offsets.reserve(static_cast<std::size_t>(count) + 1U);
+        offsets.push_back(0U);
+        for (const auto &list : adjacency) {
+            if (neighbors.size() + list.size() > UINT32_MAX)
+                return failure(StatusCode::capacity_exceeded, "cloth links exceed uint32 range");
+            neighbors.insert(neighbors.end(), list.begin(), list.end());
+            offsets.push_back(static_cast<std::uint32_t>(neighbors.size()));
+        }
+    } catch (...) {
+        return failure(StatusCode::out_of_memory, "failed to build cloth links");
+    }
+    std::unique_ptr<ClothStorage> cloth;
+    try { cloth = std::make_unique<ClothStorage>(); }
+    catch (...) { return failure(StatusCode::out_of_memory, "failed to allocate cloth"); }
+    cloth->generation = impl_->cloths[slot] ? impl_->cloths[slot]->generation : 1U;
+    cloth->vertex_count = count;
+    cloth->index_count = static_cast<std::uint32_t>(options.triangle_indices.size);
+    cloth->neighbor_count = static_cast<std::uint32_t>(neighbors.size());
+    cloth->thickness = options.thickness;
+    cloth->velocity_damping = options.velocity_damping;
+    cloth->contact_friction = options.contact_friction;
+    cloth->solver_iterations = options.solver_iterations;
+    status = allocate_managed(cloth->positions, count); if (!status) return status;
+    status = allocate_managed(cloth->scratch, count); if (!status) return status;
+    status = allocate_managed(cloth->previous, count); if (!status) return status;
+    status = allocate_managed(cloth->velocities, count); if (!status) return status;
+    status = allocate_managed(cloth->inverse_masses, count); if (!status) return status;
+    status = allocate_managed(cloth->indices, cloth->index_count); if (!status) return status;
+    status = allocate_managed(cloth->offsets, offsets.size()); if (!status) return status;
+    status = allocate_managed(cloth->neighbors, neighbors.size()); if (!status) return status;
+    status = allocate_managed(cloth->body_impulses, count); if (!status) return status;
+    status = allocate_managed(cloth->body_corrections,
+                              impl_->options.rigid_body_capacity);
+    if (!status) return status;
+    status = allocate_managed(cloth->count, 1U); if (!status) return status;
+    for (std::uint32_t index = 0U; index < count; ++index) {
+        cloth->positions[index] = options.vertices.data[index];
+        cloth->scratch[index] = options.vertices.data[index];
+        cloth->previous[index] = options.vertices.data[index];
+        cloth->velocities[index] = {};
+        cloth->inverse_masses[index] = options.inverse_masses.size != 0U
+            ? options.inverse_masses.data[index] : 1.0F / options.vertex_mass;
+    }
+    std::copy_n(options.triangle_indices.data, cloth->index_count, cloth->indices);
+    std::copy(offsets.begin(), offsets.end(), cloth->offsets);
+    std::copy(neighbors.begin(), neighbors.end(), cloth->neighbors);
+    *cloth->count = count;
+    cloth->alive = true;
+    output = {slot, cloth->generation};
+    impl_->cloths[slot] = std::move(cloth);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_cloth(ClothId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->cloths.size() || !impl_->cloths[id.index] ||
+        !impl_->cloths[id.index]->alive ||
+        impl_->cloths[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "cloth handle is stale");
+    ClothStorage &cloth = *impl_->cloths[id.index];
+    cloth.alive = false;
+    cloth.release();
+    ++cloth.generation;
+    if (cloth.generation == 0U) cloth.generation = 1U;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (id.index >= impl_->cloths.size() || !impl_->cloths[id.index] ||
+        !impl_->cloths[id.index]->alive ||
+        impl_->cloths[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "cloth handle is stale");
+    const ClothStorage &cloth = *impl_->cloths[id.index];
+    output.positions = {cloth.positions, cloth.vertex_count};
+    output.triangle_indices = {cloth.indices, cloth.index_count};
+    output.vertex_count = cloth.vertex_count;
+    return success();
+}
+
 Status World::add_rigid_body(RigidBodyOptions options,
                              RigidBodyId &output) noexcept {
     if (!impl_) {
@@ -4471,6 +5067,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         fluid->options.solver_iterations * 7U;
             }
         }
+        for (const auto &cloth : impl_->cloths) {
+            if (cloth && cloth->alive)
+                maximum_stages += static_cast<std::size_t>(options.substeps) *
+                    (cloth->solver_iterations + 2U);
+        }
         status = impl_->prepare_timing_events(
             maximum_stages + 2U);
         if (!status) {
@@ -4498,6 +5099,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     constexpr std::uint32_t block_size = 128U;
     const std::uint32_t block_count =
         (impl_->rigid_body_count + block_size - 1U) / block_size;
+    const bool has_cloth = std::any_of(impl_->cloths.begin(), impl_->cloths.end(),
+        [](const auto &cloth) { return cloth && cloth->alive; });
     bool any_moving_body = false;
     if (impl_->fluid_count != 0U) {
         for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
@@ -4524,6 +5127,82 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     impl_->rigid_solve_kernels_per_substep =
         3U + 3U * color_round_count +
         8U * (color_round_count + 1U);
+    const auto advance_cloth = [&](const RigidBodyState *previous_states)
+        noexcept -> Status {
+        for (const auto &cloth_pointer : impl_->cloths) {
+            if (!cloth_pointer || !cloth_pointer->alive) continue;
+            ClothStorage &cloth = *cloth_pointer;
+            const std::uint32_t blocks =
+                (cloth.vertex_count + block_size - 1U) / block_size;
+            cloth_predict<<<blocks, block_size, 0, stream>>>(
+                cloth.positions, cloth.previous, cloth.velocities,
+                cloth.inverse_masses, cloth.vertex_count, options.gravity,
+                substep_timestep, cloth.velocity_damping);
+            Status cloth_status = record_timing_stage(
+                TimingStage::cloth_prediction);
+            if (!cloth_status) return cloth_status;
+            for (std::uint32_t iteration = 0U;
+                 iteration < cloth.solver_iterations; ++iteration) {
+                cloth_project_links<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.scratch, cloth.inverse_masses,
+                    cloth.offsets, cloth.neighbors, cloth.vertex_count,
+                    substep_timestep);
+                std::swap(cloth.positions, cloth.scratch);
+                cloth_status = record_timing_stage(
+                    TimingStage::cloth_constraints);
+                if (!cloth_status) return cloth_status;
+            }
+            if (impl_->rigid_body_count != 0U) {
+                const cudaError_t clear_error = cudaMemsetAsync(
+                    impl_->fluid_body_contact_flags, 0,
+                    impl_->rigid_body_count * sizeof(std::uint32_t), stream);
+                if (clear_error != cudaSuccess)
+                    return cuda_failure(clear_error,
+                                        "cloth contact flags clear failed");
+                cloth_collide<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.previous,
+                    cloth.inverse_masses, cloth.vertex_count,
+                    cloth.thickness, substep_timestep,
+                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->meshes, impl_->rigid_body_count,
+                    cloth.body_impulses, impl_->fluid_body_contact_flags);
+                fluid_reduce_body_impulses<<<impl_->rigid_body_count,
+                                             block_size, 0, stream>>>(
+                    cloth.body_impulses, cloth.count, impl_->parameters,
+                    impl_->states[impl_->current_state],
+                    impl_->fluid_body_contact_flags, impl_->rigid_body_count);
+                cloth_constrain_bodies<<<block_count, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.indices,
+                    cloth.inverse_masses,
+                    cloth.vertex_count, cloth.index_count / 3U,
+                    cloth.thickness, substep_timestep,
+                    cloth.contact_friction, impl_->parameters,
+                    previous_states, impl_->states[impl_->current_state],
+                    impl_->meshes, impl_->rigid_body_count,
+                    cloth.body_corrections);
+                cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.inverse_masses,
+                    cloth.vertex_count,
+                    cloth.body_corrections, impl_->rigid_body_count);
+            } else {
+                cloth_collide<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.previous,
+                    cloth.inverse_masses, cloth.vertex_count,
+                    cloth.thickness, substep_timestep,
+                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->meshes, 0U, cloth.body_impulses,
+                    impl_->fluid_body_contact_flags);
+            }
+            cloth_status = record_timing_stage(TimingStage::cloth_contacts);
+            if (!cloth_status) return cloth_status;
+        }
+        const cudaError_t cloth_error = cudaPeekAtLastError();
+        if (cloth_error != cudaSuccess) {
+            cudaStreamSynchronize(stream);
+            return cuda_failure(cloth_error, "cloth kernel launch failed");
+        }
+        return success();
+    };
     for (std::uint32_t substep = 0; substep < options.substeps; ++substep) {
         if (impl_->rigid_body_count == 0U) {
             break;
@@ -4727,6 +5406,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return status;
         }
         impl_->current_state = output_state;
+        // Couple the sheet to the rigid state from this same substep.
+        if (has_cloth) {
+            status = advance_cloth(impl_->states[1U - impl_->current_state]);
+            if (!status) return status;
+        }
     }
 
     if (impl_->rigid_body_count > 0U) {
@@ -4741,6 +5425,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!status) {
             cudaStreamSynchronize(stream);
             return status;
+        }
+    }
+
+    if (has_cloth && impl_->rigid_body_count == 0U) {
+        for (std::uint32_t substep = 0U; substep < options.substeps; ++substep) {
+            status = advance_cloth(nullptr);
+            if (!status) return status;
         }
     }
 
@@ -5103,6 +5794,15 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::rigid_input_clear:
             timing = &output.rigid_input_clear;
             break;
+        case TimingStage::cloth_prediction:
+            timing = &output.cloth_prediction;
+            break;
+        case TimingStage::cloth_constraints:
+            timing = &output.cloth_constraints;
+            break;
+        case TimingStage::cloth_contacts:
+            timing = &output.cloth_contacts;
+            break;
         case TimingStage::fluid_spawn:
             timing = &output.fluid_spawn;
             break;
@@ -5167,6 +5867,21 @@ Status World::collect_statistics(WorldStatistics &output,
     output = {};
     output.frame_index = impl_->frame_index;
     output.fluid_count = impl_->fluid_count;
+    for (const auto &cloth : impl_->cloths) {
+        if (!cloth || !cloth->alive) continue;
+        ++output.cloth_count;
+        output.cloth_vertex_count += cloth->vertex_count;
+        output.allocated_bytes +=
+            static_cast<std::size_t>(cloth->vertex_count) *
+                (4U * sizeof(Vec3) + sizeof(float) + sizeof(FluidBodyImpulse)) +
+            cloth->index_count * sizeof(std::uint32_t) +
+            (static_cast<std::size_t>(cloth->vertex_count) + 1U) *
+                sizeof(std::uint32_t) +
+            cloth->neighbor_count * sizeof(ClothNeighbor) +
+            impl_->options.rigid_body_capacity *
+                sizeof(ClothBodyCorrection) +
+            sizeof(std::uint32_t);
+    }
     output.emitted_particle_count = impl_->emitted_particle_count;
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;

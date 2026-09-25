@@ -108,6 +108,19 @@ pass.
 - Tune the single active sphere to sink while retaining fluid in the bowl;
   validate paint UV seams, the authored scene, containment, and timing.
 
+## Cloth — Blender-authored pinned sheet and rigid coupling
+
+- Export `Cloth.blend` as an open, indexed cloth mesh with its
+  `FixedVertices` Shape Pin Group and stiffness 1.0. Preserve the two pinned
+  rows through triangulation and glTF vertex splitting.
+- Add world-owned cloth particles and links, exact fixed vertices, reusable
+  cloth handles/views, and two-way contact with authored rigid triangles.
+- Add a Cloth gallery entry with straight-down gravity by default and arrow
+  steering up to 45 degrees, plus a dynamic sphere; update its OptiX mesh as
+  vertices deform.
+- Test authored pin count, zero pin drift, free-vertex movement, rigid
+  containment, and headless rendering.
+
 ## PR 9 — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
@@ -123,6 +136,6 @@ pass.
 
 ## Later, one solver at a time
 
-Cloth, soft body, rope, and smoke each require an approved API extension, one
+Soft body, rope, and smoke each require an approved API extension, one
 focused gallery scene, two-system coupling tests, and performance evidence.
 No campaign or presentation concept is promoted into the installed library.

@@ -58,8 +58,8 @@ blender --background examples/assets/PassiveActive.blend \
 
 When `--output` is omitted, the script writes a `.glb` beside the currently
 open `.blend` using the same filename stem. The script is non-destructive:
-it exports evaluated temporary copies, bakes each object's scale into its
-vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
+it exports evaluated rigid copies and undeformed cloth rest copies, bakes scale
+into their vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
 the temporary data. The source `.blend` is not saved or changed.
 
 The generated metadata is:
@@ -115,9 +115,37 @@ rotational trajectories. Substeps remain the accuracy control for extreme
 angular motion and multiple impacts. The collision margin remains numerical
 thickness rather than visible geometry.
 
-Future cloth, soft-body, rope, and smoke schemas will be introduced only
+Future soft-body, rope, and smoke schemas will be introduced only
 with their reviewed public APIs. Unknown systems and schema versions fail
 explicitly rather than silently changing scene meaning.
+
+## Cloth Shape Pin Group
+
+`examples/assets/Cloth.blend` has a 33×33 subdivided sheet. Its top and
+bottom rows belong to `FixedVertices`, selected in **Cloth → Shape → Pin
+Group**, with pin stiffness `1.0`. The exporter writes the undeformed rest
+mesh, not Blender's evaluated Cloth modifier, and records each weighted pin
+coordinate in schema-2 `pm_system = "cloth"` metadata. Pin coordinates are
+matched to glTF positions after triangulation, including vertices split by
+UVs or normals. Weight 1 becomes zero inverse mass and is exactly fixed;
+partial weights retain proportionate motion. Optional `pm_vertex_mass` and
+`pm_thickness` object properties set the cloth's physical scale.
+Keep the exported surface topologically connected: separate coincident
+vertices are distinct solver particles even when they receive the same pin.
+
+The gallery creates the cloth through `World::add_cloth` and updates its
+OptiX triangles each frame. The scene also contains the authored passive box
+and active sphere. In the Cloth gallery entry, gravity starts straight down.
+Arrow keys steer it camera-relatively within a 45-degree tilt, returning to
+straight down when released.
+The API advances rigid bodies and cloth together at each substep. Cloth vertex
+velocity damping (`ClothOptions::velocity_damping`, default 5/s) and
+tangential contact friction (`contact_friction`, default 0.4) are configurable.
+Rigid and cloth exchange friction impulses while touching, but separating
+bodies shed tangential friction and are free to escape; cloth-side impulses
+are limited to avoid local vertex pops.
+Run `--cloth` for headless output or select Cloth with `Tab`; `R` resets it and
+`F` shows rigid/cloth timings.
 
 ## Liquid Flow scene
 

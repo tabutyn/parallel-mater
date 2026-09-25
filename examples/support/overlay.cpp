@@ -284,6 +284,33 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, 32, 224, total, {100, 255, 155, 255}, 2);
 }
 
+void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &timings) {
+    rectangle(rgba, width, height, 18, 18, 410, 230, {5, 12, 18, 215});
+    text(rgba, width, height, 32, 30, "CLOTH GPU KERNELS",
+         {80, 220, 255, 255}, 2);
+    if (!timings.available) {
+        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
+             {255, 190, 70, 255}, 2);
+        return;
+    }
+    timing_row(rgba, width, height, 58, "RIGID STEP",
+        {timings.rigid_integration.total_milliseconds +
+         timings.rigid_contact_generation.total_milliseconds +
+         timings.rigid_contact_solve.total_milliseconds,
+         timings.rigid_integration.launch_count +
+         timings.rigid_contact_generation.launch_count +
+         timings.rigid_contact_solve.launch_count});
+    timing_row(rgba, width, height, 84, "PREDICT", timings.cloth_prediction);
+    timing_row(rgba, width, height, 110, "LINKS", timings.cloth_constraints);
+    timing_row(rgba, width, height, 136, "CONTACTS", timings.cloth_contacts);
+    char total[96]{};
+    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
+                  timings.total_gpu_milliseconds);
+    text(rgba, width, height, 32, 177, total, {100, 255, 155, 255}, 2);
+}
+
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &physics,
@@ -423,8 +450,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(14, static_cast<int>(height) / 2 - 255);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 510,
+    const int top = std::max(14, static_cast<int>(height) / 2 - 296);
+    rectangle(rgba, width, height, center - 255, top, center + 255, top + 592,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
@@ -459,6 +486,9 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         {105, 255, 155, 255});
     row(top + 406, GalleryContext::peg_paint, {44, 28, 61, 235},
         {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
+        {105, 255, 155, 255});
+    row(top + 488, GalleryContext::cloth, {40, 42, 58, 235},
+        {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
         {105, 255, 155, 255});
 }
 

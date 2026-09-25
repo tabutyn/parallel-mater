@@ -76,6 +76,16 @@ struct FluidId {
     }
 };
 
+struct ClothId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(ClothId left,
+                                                   ClothId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -142,6 +152,7 @@ struct WorldOptions {
     // Maximum diagnostic contact events retained for a requested frame.
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
+    std::uint32_t cloth_capacity{1U};
 };
 
 struct StepOptions {
@@ -162,6 +173,28 @@ struct StepOptions {
 struct FluidParticle {
     Vec3 position{};
     Vec3 velocity{};
+};
+
+// Host geometry is copied at creation; vertex inverse mass zero pins a vertex
+// exactly. Triangles define stretch, shear, and bending links; they may be open.
+struct ClothOptions {
+    HostSpan<Vec3> vertices{};
+    HostSpan<std::uint32_t> triangle_indices{};
+    HostSpan<float> inverse_masses{};
+    float vertex_mass{0.02F};
+    float thickness{0.025F};
+    float stretch_compliance{1.0e-6F};
+    float bending_compliance{0.1F};
+    float velocity_damping{5.0F};
+    // Coulomb coefficient for tangential rigid-body/cloth contact.
+    float contact_friction{0.4F};
+    std::uint32_t solver_iterations{8U};
+};
+
+struct ClothDeviceView {
+    DeviceSpan<const Vec3> positions{};
+    DeviceSpan<const std::uint32_t> triangle_indices{};
+    std::uint32_t vertex_count{};
 };
 
 struct FluidOptions {
@@ -367,6 +400,9 @@ struct WorldStepTimings {
     KernelTiming fluid_contact_events{};
     KernelTiming fluid_outflow_compaction{};
     float total_gpu_milliseconds{};
+    KernelTiming cloth_prediction{};
+    KernelTiming cloth_constraints{};
+    KernelTiming cloth_contacts{};
 };
 
 struct WorldStatistics {
@@ -381,6 +417,8 @@ struct WorldStatistics {
     std::uint64_t destroyed_particle_count{};
     std::uint64_t spawn_capacity_miss_count{};
     std::size_t allocated_bytes{};
+    std::uint32_t cloth_count{};
+    std::uint32_t cloth_vertex_count{};
 };
 
 class FrameToken {
@@ -426,6 +464,12 @@ class World {
     [[nodiscard]] Status remove_fluid(FluidId fluid,
                                       cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
+                                   cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status remove_cloth(ClothId cloth) noexcept;
+    [[nodiscard]] Status cloth_view(ClothId cloth,
+                                    ClothDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_particle_spawn_plane(
         ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;

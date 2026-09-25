@@ -180,6 +180,9 @@ struct Geometry {
     DeviceBuffer vertices{};
     DeviceBuffer triangles{};
     DeviceBuffer acceleration{};
+    DeviceBuffer update_scratch{};
+    std::size_t update_scratch_size{};
+    bool dynamic{};
     OptixTraversableHandle handle{};
 };
 
@@ -188,6 +191,9 @@ struct RenderBinding {
     std::uint32_t mesh_index{};
     unsigned int visibility_mask{255U};
 };
+
+constexpr std::uint32_t k_cloth_binding =
+    std::numeric_limits<std::uint32_t>::max();
 
 [[nodiscard]] float3 make_float(Vec3 value) {
     return make_float3(value.x, value.y, value.z);
@@ -303,6 +309,7 @@ void optix_log(unsigned int level, const char *tag, const char *message,
 struct OptixRenderer::Impl {
     std::uint32_t width{};
     std::uint32_t height{};
+    SceneDefinition scene{};
     OptixDeviceContext context{};
     OptixModule module{};
     OptixProgramGroup raygen_group{};
@@ -442,6 +449,10 @@ struct OptixRenderer::Impl {
         for (std::size_t index = 0; index < scene.meshes.size(); ++index) {
             const TriangleMesh &mesh = scene.meshes[index];
             Geometry &gpu = geometry[index];
+            gpu.dynamic = std::any_of(scene.cloths.begin(), scene.cloths.end(),
+                [index](const ClothDefinition &cloth) {
+                    return cloth.mesh_index == index;
+                });
             std::vector<Vertex> vertices = mesh.vertices;
             smooth_render_normals(mesh, vertices);
             gpu.vertices.upload(vertices);
@@ -465,17 +476,27 @@ struct OptixRenderer::Impl {
 
             OptixAccelBuildOptions build_options{};
             build_options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
+            if (gpu.dynamic)
+                build_options.buildFlags |= OPTIX_BUILD_FLAG_ALLOW_UPDATE;
             build_options.operation = OPTIX_BUILD_OPERATION_BUILD;
             OptixAccelBufferSizes sizes{};
             check_optix(optixAccelComputeMemoryUsage(
                             context, &build_options, &input, 1U, &sizes),
                         "compute OptiX geometry memory");
             DeviceBuffer scratch;
-            scratch.resize(sizes.tempSizeInBytes);
+            if (gpu.dynamic) {
+                gpu.update_scratch_size = sizes.tempUpdateSizeInBytes;
+                gpu.update_scratch.resize(std::max(sizes.tempSizeInBytes,
+                                                   sizes.tempUpdateSizeInBytes));
+            } else {
+                scratch.resize(sizes.tempSizeInBytes);
+            }
             gpu.acceleration.resize(sizes.outputSizeInBytes);
             check_optix(optixAccelBuild(
                             context, nullptr, &build_options, &input, 1U,
-                            scratch.device_pointer(), scratch.size(),
+                            gpu.dynamic ? gpu.update_scratch.device_pointer()
+                                        : scratch.device_pointer(),
+                            sizes.tempSizeInBytes,
                             gpu.acceleration.device_pointer(),
                             gpu.acceleration.size(), &gpu.handle, nullptr, 0U),
                         "build OptiX geometry acceleration");
@@ -489,7 +510,9 @@ struct OptixRenderer::Impl {
         for (std::size_t index = 0; index < bindings.size(); ++index) {
             const RenderBinding binding = bindings[index];
             OptixInstance &instance = result[index];
-            write_transform(states[binding.body_index], instance.transform);
+            write_transform(binding.body_index == k_cloth_binding
+                                ? RigidBodyState{} : states[binding.body_index],
+                            instance.transform);
             instance.instanceId = static_cast<unsigned int>(index);
             instance.sbtOffset = static_cast<unsigned int>(index);
             instance.visibilityMask = binding.visibility_mask;
@@ -511,6 +534,9 @@ struct OptixRenderer::Impl {
                     scene.meshes[mesh_index].visible ? 255U : 0U});
             }
         }
+        for (const ClothDefinition &cloth : scene.cloths)
+            bindings.push_back({k_cloth_binding, cloth.mesh_index,
+                scene.meshes[cloth.mesh_index].visible ? 255U : 0U});
         std::vector<OptixInstance> authored_instances = make_instances(states);
         instances.upload(authored_instances);
 
@@ -652,6 +678,75 @@ struct OptixRenderer::Impl {
                         instance_acceleration.device_pointer(),
                         instance_acceleration.size(), &scene_handle, nullptr, 0U),
                     "update OptiX instance acceleration");
+    }
+
+    void update_cloth_geometry(const SceneDefinition &scene,
+                               const World &world,
+                               const SceneInstance &instance) {
+        if (scene.cloths.size() != instance.cloths.size())
+            fail("cloth render bindings do not match the scene");
+        for (std::size_t cloth_index = 0U; cloth_index < scene.cloths.size();
+             ++cloth_index) {
+            const ClothDefinition &cloth = scene.cloths[cloth_index];
+            const TriangleMesh &mesh = scene.meshes[cloth.mesh_index];
+            Geometry &gpu = geometry[cloth.mesh_index];
+            ClothDeviceView view{};
+            const Status status = world.cloth_view(instance.cloths[cloth_index], view);
+            if (!status) fail(status.message != nullptr ? status.message :
+                              "cannot borrow cloth view");
+            if (view.vertex_count != mesh.vertices.size())
+                fail("cloth renderer vertex count changed");
+            std::vector<Vertex> vertices = mesh.vertices;
+            std::vector<Vec3> positions(view.vertex_count);
+            check_cuda(cudaMemcpy(positions.data(), view.positions.data,
+                                  positions.size() * sizeof(Vec3),
+                                  cudaMemcpyDeviceToHost),
+                       "copy cloth positions");
+            for (std::size_t index = 0U; index < vertices.size(); ++index) {
+                vertices[index].position = positions[index];
+                vertices[index].normal = {};
+            }
+            for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
+                Vertex &a = vertices[mesh.indices[index]];
+                Vertex &b = vertices[mesh.indices[index + 1U]];
+                Vertex &c = vertices[mesh.indices[index + 2U]];
+                const Vec3 normal = cross(subtract(b.position, a.position),
+                                          subtract(c.position, a.position));
+                a.normal = {a.normal.x + normal.x, a.normal.y + normal.y,
+                            a.normal.z + normal.z};
+                b.normal = {b.normal.x + normal.x, b.normal.y + normal.y,
+                            b.normal.z + normal.z};
+                c.normal = {c.normal.x + normal.x, c.normal.y + normal.y,
+                            c.normal.z + normal.z};
+            }
+            for (Vertex &vertex : vertices)
+                vertex.normal = normalize(vertex.normal);
+            gpu.vertices.upload(vertices);
+            CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
+            std::uint32_t flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
+            OptixBuildInput input{};
+            input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+            input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+            input.triangleArray.vertexStrideInBytes = sizeof(Vertex);
+            input.triangleArray.numVertices =
+                static_cast<unsigned int>(vertices.size());
+            input.triangleArray.vertexBuffers = &vertex_buffer;
+            input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+            input.triangleArray.indexStrideInBytes = 3U * sizeof(std::uint32_t);
+            input.triangleArray.numIndexTriplets =
+                static_cast<unsigned int>(mesh.indices.size() / 3U);
+            input.triangleArray.indexBuffer = gpu.triangles.device_pointer();
+            input.triangleArray.flags = &flags;
+            input.triangleArray.numSbtRecords = 1U;
+            OptixAccelBuildOptions options{};
+            options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE |
+                                 OPTIX_BUILD_FLAG_ALLOW_UPDATE;
+            options.operation = OPTIX_BUILD_OPERATION_UPDATE;
+            check_optix(optixAccelBuild(context, nullptr, &options, &input, 1U,
+                gpu.update_scratch.device_pointer(), gpu.update_scratch_size,
+                gpu.acceleration.device_pointer(), gpu.acceleration.size(),
+                &gpu.handle, nullptr, 0U), "update OptiX cloth geometry");
+        }
     }
 
     void render(Camera camera, optix_shared::FluidSurfaceView fluid,
@@ -798,6 +893,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         auto implementation = std::make_unique<Impl>();
         implementation->width = width;
         implementation->height = height;
+        implementation->scene = scene;
         implementation->create_context();
         implementation->create_pipeline(ptx_path);
         implementation->create_geometry(scene);
@@ -838,6 +934,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         sample.particle_view = fluid_mode == FluidRenderMode::particles;
         const std::vector<RigidBodyState> states =
             impl_->read_states(world, instance);
+        impl_->update_cloth_geometry(impl_->scene, world, instance);
         impl_->update_instances(states);
         std::vector<Vec3> positions;
         std::vector<float> foam;
