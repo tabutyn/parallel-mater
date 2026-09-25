@@ -41,6 +41,7 @@ using parallel_mater::gallery::SceneInstance;
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
+constexpr float k_cloth_gravity_component = 6.93671752F;
 constexpr float k_gravity_tilt_tangent = 0.577350269F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
@@ -513,6 +514,8 @@ struct FluidEscapeTrace {
             output.initial_context = GalleryContext::fluid_rigid;
         } else if (argument == "--peg-paint") {
             output.initial_context = GalleryContext::peg_paint;
+        } else if (argument == "--cloth") {
+            output.initial_context = GalleryContext::cloth;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -523,7 +526,7 @@ struct FluidEscapeTrace {
             output.trace_fluid_escapes = true;
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint] "
+                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth] "
                          "[--fluid-particles N] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
@@ -552,6 +555,9 @@ struct FluidEscapeTrace {
     if (context == GalleryContext::peg_paint)
         return {.target = {0.0F, -0.34F, 0.0F},
                 .distance_scale = 0.34F, .pitch = 0.72F};
+    if (context == GalleryContext::cloth)
+        return {.target = {0.0F, 1.1F, 1.2F},
+                .distance_scale = 0.55F, .pitch = 0.42F};
     if (is_fluid_context(context))
         return {.target = {-2.0F, -1.0F, -2.0F},
                 .distance_scale = 1.6F};
@@ -664,6 +670,7 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     if (context == GalleryContext::dump) {
         next.scene = parallel_mater::gallery::make_dump_scene(dump_spheres);
     } else if (context == GalleryContext::rigid_body ||
+               context == GalleryContext::cloth ||
                is_fluid_context(context)) {
         const std::filesystem::path scene_path =
             context == GalleryContext::fluid
@@ -672,6 +679,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                     ? std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH)
                     : context == GalleryContext::peg_paint
                     ? std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH)
+                    : context == GalleryContext::cloth
+                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH)
                     : options.scene;
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
@@ -703,7 +712,9 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
          .triangle_mesh_capacity = static_cast<std::uint32_t>(
              mesh_capacity + next.scene.meshes.size()),
          .paint_field_capacity = static_cast<std::uint32_t>(paint_capacity),
-         .paint_rule_capacity = static_cast<std::uint32_t>(paint_capacity)},
+         .paint_rule_capacity = static_cast<std::uint32_t>(paint_capacity),
+         .cloth_capacity = static_cast<std::uint32_t>(
+             std::max<std::size_t>(1U, next.scene.cloths.size()))},
         next.world);
     if (!create_status) {
         error = create_status.message != nullptr ? create_status.message
@@ -746,16 +757,18 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case GalleryContext::fluid: return 2;
     case GalleryContext::fluid_rigid: return 3;
     case GalleryContext::peg_paint: return 4;
+    case GalleryContext::cloth: return 5;
     }
     return 0;
 }
 
 [[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 4)) {
+    switch (std::clamp(index, 0, 5)) {
     case 1: return GalleryContext::dump;
     case 2: return GalleryContext::fluid;
     case 3: return GalleryContext::fluid_rigid;
     case 4: return GalleryContext::peg_paint;
+    case 5: return GalleryContext::cloth;
     default: return GalleryContext::rigid_body;
     }
 }
@@ -782,9 +795,13 @@ int main(int argc, char **argv) {
 
     const StepOptions step_options{.timestep = k_timestep,
                                    .substeps = 4U,
-                                   .gravity = {0.0F,
-                                               -k_gravity * runtime.scene.gravity_scale,
-                                               0.0F}};
+                                   .gravity = runtime.context == GalleryContext::cloth
+                                       ? parallel_mater::Vec3{0.0F,
+                                             -k_cloth_gravity_component,
+                                             -k_cloth_gravity_component}
+                                       : parallel_mater::Vec3{0.0F,
+                                             -k_gravity * runtime.scene.gravity_scale,
+                                             0.0F}};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera.set_preset(camera_preset(runtime.context));
@@ -1081,7 +1098,7 @@ int main(int argc, char **argv) {
                     selected = std::max(0, selected - 1);
                 }
                 if (down_down && !down_was_down) {
-                    selected = std::min(4, selected + 1);
+                    selected = std::min(5, selected + 1);
                 }
                 context_selection = context_from_index(selected);
                 if (enter_down && !enter_was_down) {
@@ -1105,6 +1122,7 @@ int main(int argc, char **argv) {
                     }
                 }
             } else if (runtime.context != GalleryContext::rigid_body &&
+                       runtime.context != GalleryContext::cloth &&
                        p_down && !p_was_down) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(
@@ -1180,6 +1198,9 @@ int main(int argc, char **argv) {
             StepOptions interactive_step = step_options;
             interactive_step.gravity.y =
                 -k_gravity * runtime.scene.gravity_scale;
+            if (runtime.context == GalleryContext::cloth)
+                interactive_step.gravity = {0.0F,
+                    -k_cloth_gravity_component, -k_cloth_gravity_component};
             if (runtime.context == GalleryContext::rigid_body) {
                 interactive_step.gravity = gravity_for(directional);
             } else if (runtime.context == GalleryContext::peg_paint) {
@@ -1239,6 +1260,9 @@ int main(int argc, char **argv) {
                 draw_fluid_timing_overlay(
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     timings, renderer_timings, statistics, fluid_particles);
+            else if (runtime.context == GalleryContext::cloth)
+                draw_cloth_timing_overlay(pixels, runtime.renderer.width(),
+                                          runtime.renderer.height(), timings);
             else
                 draw_timing_overlay(pixels, runtime.renderer.width(),
                                     runtime.renderer.height(), timings);

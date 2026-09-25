@@ -1,8 +1,8 @@
-# Initial API proposal: fluid and rigid bodies
+# Physics API: rigid bodies, fluid, and cloth
 
 ## The central decision
 
-`parallel_mater::World` owns every simulated fluid and rigid body and advances
+`parallel_mater::World` owns every simulated fluid, cloth, and rigid body and advances
 their interactions in one call. This replaces the former design where an
 application manually called `begin_frame`, `prepare_substep`, contact helpers,
 solver-specific completion functions, and telemetry readbacks in the correct
@@ -80,6 +80,21 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Cloth meshes and pinning
+
+`World::add_cloth` copies host positions, triangle indices, and optional
+per-vertex inverse masses. Zero inverse mass pins a vertex exactly; omitted
+masses default to `1 / vertex_mass`. Triangles create stretch and bending
+links, solved by compliant Jacobi projection over each substep. World-owned
+cloth positions and triangles are borrowed through `cloth_view` and reacquired
+after stepping. `ClothId` is generation checked like other resource handles.
+The cloth contact stage resolves vertices against rigid triangle BVHs and
+transfers equal-and-opposite impulses to dynamic bodies. A conservative
+triangle-side body constraint prevents fast bodies from crossing the sheet;
+its broad-phase rigid radius can overestimate non-spherical shapes, so a
+future exact deforming-mesh narrow phase remains possible without changing
+the API.
+
 ## Fluid sources and contact paint
 
 Continuous inflow is configured with `ParticleSpawnPlaneOptions` and
@@ -140,7 +155,8 @@ compaction, leaf-pair generation, triangle contact evaluation, contact solving,
 and input clearing. `rigid_contact_generation` remains the sum of the five
 broad/narrow-phase fields. Fluid frames additionally measure spawn, cell
 sorting, neighbor forces, integration, static triangle contacts, and outflow
-compaction. `total_gpu_milliseconds` covers both solvers in the frame.
+compaction. `total_gpu_milliseconds` covers all active solvers in the frame.
+Cloth frames also report prediction, link projection, and contact stages.
 `collect_step_timings` reads those events after
 frame completion. Timing is diagnostic data rather than solver input and is
 unavailable for frames that did not request it.
@@ -271,7 +287,7 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- cloth, rope, soft body, smoke, a separate foam-particle simulation, or
+- rope, soft body, smoke, a separate foam-particle simulation, or
   fracture;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.

@@ -15,6 +15,7 @@ enum class GalleryContext : std::uint8_t {
     fluid,
     fluid_rigid,
     peg_paint,
+    cloth,
 };
 
 [[nodiscard]] constexpr bool is_fluid_context(GalleryContext context) noexcept {
@@ -26,6 +27,10 @@ enum class GalleryContext : std::uint8_t {
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings);
+
+void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &timings);
 
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,

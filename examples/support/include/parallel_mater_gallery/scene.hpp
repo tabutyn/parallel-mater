@@ -38,10 +38,19 @@ struct RigidBodyDefinition {
     std::uint32_t paint_resolution{512U};
 };
 
+struct ClothDefinition {
+    std::string name{};
+    std::uint32_t mesh_index{};
+    std::vector<float> inverse_masses{};
+    float vertex_mass{0.001F};
+    float thickness{0.025F};
+};
+
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
+    std::vector<ClothDefinition> cloths{};
     FluidOptions fluid_options{};
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.
@@ -57,6 +66,7 @@ struct SceneInstance {
         PaintFieldId field{};
     };
     std::vector<RigidBodyId> rigid_bodies{};
+    std::vector<ClothId> cloths{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};

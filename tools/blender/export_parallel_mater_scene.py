@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Export Blender rigid bodies and liquid flow planes as a ParallelMater GLB.
+"""Export Blender rigid bodies, cloth, and liquid flow as ParallelMater GLB.
 
 The source .blend is never modified. Evaluated mesh copies are triangulated,
 object scale is baked into their vertices, and Blender ACTIVE/PASSIVE settings
@@ -315,6 +315,67 @@ def copy_flow_for_export(
     return exported
 
 
+def copy_cloth_for_export(
+    source: bpy.types.Object,
+    index: int,
+    collection: bpy.types.Collection,
+    created_meshes: list[bpy.types.Mesh],
+    created_materials: list[bpy.types.Material],
+) -> bpy.types.Object:
+    modifiers = [modifier for modifier in source.modifiers if modifier.type == "CLOTH"]
+    if len(modifiers) != 1 or source.parent is not None or source.rigid_body is not None:
+        raise RuntimeError(f"{source.name}: expected one scene-root Cloth modifier")
+    settings = modifiers[0].settings
+    group_name = settings.vertex_group_mass
+    group = source.vertex_groups.get(group_name) if group_name else None
+    if group is None:
+        raise RuntimeError(f"{source.name}: Cloth Shape Pin Group is required")
+    if abs(float(settings.pin_stiffness) - 1.0) > 1.0e-5:
+        raise RuntimeError(f"{source.name}: only Cloth pin stiffness 1.0 is supported")
+
+    mesh = source.data.copy()
+    created_meshes.append(mesh)
+    location, rotation, scale = source.matrix_world.decompose()
+    scale_matrix = Matrix.Diagonal(Vector((scale.x, scale.y, scale.z, 1.0)))
+    pins = []
+    for vertex in source.data.vertices:
+        weight = next((assignment.weight for assignment in vertex.groups
+                       if assignment.group == group.index), 0.0)
+        if weight <= 0.0:
+            continue
+        position = scale_matrix @ vertex.co
+        # glTF uses Y up: Blender (x,y,z) -> glTF (x,z,-y).
+        pins.append(f"{position.x:.9g},{position.z:.9g},{-position.y:.9g},{weight:.9g}")
+    if not pins:
+        raise RuntimeError(f"{source.name}: Cloth pin group is empty")
+    geometry = bmesh.new()
+    geometry.from_mesh(mesh)
+    bmesh.ops.transform(geometry, matrix=scale_matrix, verts=geometry.verts)
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.normal_update()
+    geometry.to_mesh(mesh)
+    geometry.free()
+    mesh.validate(clean_customdata=False)
+    mesh.update()
+
+    exported = bpy.data.objects.new(source.name, mesh)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    exported["pm_schema"] = 2
+    exported["pm_system"] = "cloth"
+    exported["pm_name"] = source.name
+    exported["pm_pin_group"] = group_name
+    exported["pm_pin_vertices"] = ";".join(pins)
+    exported["pm_pin_stiffness"] = float(settings.pin_stiffness)
+    exported["pm_vertex_mass"] = float(source.get("pm_vertex_mass", 0.001))
+    exported["pm_thickness"] = float(source.get("pm_thickness", 0.025))
+    if len(mesh.materials) == 0:
+        material = fallback_material(index, False)
+        created_materials.append(material)
+        mesh.materials.append(material)
+    return exported
+
+
 def export(output: pathlib.Path) -> None:
     sources = [
         obj
@@ -328,6 +389,10 @@ def export(output: pathlib.Path) -> None:
     flows = [
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH" and any(mod.type == "FLUID" for mod in obj.modifiers)
+    ]
+    cloths = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == "MESH" and any(mod.type == "CLOTH" for mod in obj.modifiers)
     ]
 
     previous_selection = list(bpy.context.selected_objects)
@@ -403,6 +468,10 @@ def export(output: pathlib.Path) -> None:
             created_objects.append(
                 copy_flow_for_export(source, collection, created_meshes)
             )
+        for index, source in enumerate(cloths):
+            created_objects.append(copy_cloth_for_export(
+                source, index, collection, created_meshes, created_materials
+            ))
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:

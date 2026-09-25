@@ -24,7 +24,7 @@ measurements, not general hardware claims.
 ## Design goals
 
 - One owning `World` coordinates simulation and cross-system coupling.
-- Fluid and rigid-body resources use stable, generation-checked handles.
+- Fluid, cloth, and rigid-body resources use stable, generation-checked handles.
 - One `step` call advances a complete fixed frame; applications do not invoke
   solver-internal phases.
 - CUDA allocations remain owned by the library while renderers borrow explicit
@@ -75,7 +75,7 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, and Peg Paint; use
+the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, and Cloth; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
@@ -84,7 +84,9 @@ GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene
-renders are available through CLI flags:
+renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
+two `FixedVertices` rows pinned, and applies 45-degree gravity toward the
+sheet while an active sphere presses it.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
@@ -96,6 +98,9 @@ renders are available through CLI flags:
 
 ./build-gallery/parallel-mater-gallery \
   --fluid --headless /tmp/parallel-mater-fluid.ppm --frames 120
+
+./build-gallery/parallel-mater-gallery \
+  --cloth --headless /tmp/parallel-mater-cloth.ppm --frames 180
 ```
 
 The gallery currently requires an NVIDIA driver supported by OptiX 9.1,
