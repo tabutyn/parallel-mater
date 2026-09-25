@@ -102,8 +102,9 @@ pass.
 ## Peg Paint — implemented in this branch
 
 - Export Blender Liquid Flow/Geometry as a one-shot, closed-mesh particle fill.
-- Paint authored rigid UVs persistently from nearby fluid particles in the
-  gallery, without adding texture ownership to `World`.
+- Paint authored rigid UVs persistently from fluid–rigid contacts through
+  opt-in `World` paint fields and transfer rules; the gallery owns color and
+  filtering, not paint state.
 - Tune the single active sphere to sink while retaining fluid in the bowl;
   validate paint UV seams, the authored scene, containment, and timing.
 

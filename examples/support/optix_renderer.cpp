@@ -3,7 +3,6 @@
 
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
-#include "contact_paint.hpp"
 #include "foam_visuals.hpp"
 
 #include <optix_function_table_definition.h>
@@ -313,9 +312,7 @@ struct OptixRenderer::Impl {
     OptixShaderBindingTable shader_binding_table{};
     std::vector<Geometry> geometry{};
     std::vector<RenderBinding> bindings{};
-    std::vector<DeviceBuffer> paint_masks{};
-    std::vector<PaintBinding> paint_host_bindings{};
-    DeviceBuffer paint_device_bindings{};
+    std::vector<PaintFieldDeviceView> paint_views{};
     DeviceBuffer raygen_record{};
     DeviceBuffer miss_record{};
     DeviceBuffer hit_records{};
@@ -545,53 +542,22 @@ struct OptixRenderer::Impl {
         check_cuda(cudaDeviceSynchronize(), "synchronize instance build");
     }
 
-    void create_paint(const SceneDefinition &scene) {
-        if (std::none_of(scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
-            [](const RigidBodyDefinition &body) { return body.paintable; }))
-            return;
-        paint_masks.resize(bindings.size());
-        paint_host_bindings.resize(bindings.size());
-        for (std::size_t index = 0U; index < bindings.size(); ++index) {
+    void create_paint(const World &world, const SceneInstance &instance) {
+        paint_views.resize(bindings.size());
+        for (std::size_t index = 0; index < bindings.size(); ++index) {
             const RenderBinding binding = bindings[index];
-            if (!scene.rigid_bodies[binding.body_index].paintable ||
-                binding.visibility_mask == 0U) continue;
-            const std::uint32_t paint_width =
-                scene.rigid_bodies[binding.body_index].paint_resolution;
-            const std::uint32_t paint_height = paint_width;
-            paint_masks[index].resize(
-                paint_width * paint_height * sizeof(std::uint32_t));
-            check_cuda(cudaMemset(paint_masks[index].pointer(), 0,
-                                  paint_masks[index].size()),
-                       "clear contact paint");
-            const TriangleMesh &mesh = scene.meshes[binding.mesh_index];
-            paint_host_bindings[index].vertices =
-                reinterpret_cast<const optix_shared::Vertex *>(
-                    geometry[binding.mesh_index].vertices.device_pointer());
-            paint_host_bindings[index].triangles =
-                reinterpret_cast<const uint3 *>(
-                    geometry[binding.mesh_index].triangles.device_pointer());
-            paint_host_bindings[index].triangle_count =
-                static_cast<std::uint32_t>(mesh.indices.size() / 3U);
-            paint_host_bindings[index].pixels =
-                reinterpret_cast<std::uint32_t *>(paint_masks[index].pointer());
-            paint_host_bindings[index].width = paint_width;
-            paint_host_bindings[index].height = paint_height;
+            for (const SceneInstance::PaintBinding &paint :
+                 instance.paint_bindings) {
+                if (paint.body_index != binding.body_index ||
+                    paint.mesh_index != binding.mesh_index) continue;
+                const Status status = world.paint_field_view(
+                    paint.field, paint_views[index]);
+                if (!status)
+                    fail(status.message != nullptr ? status.message :
+                         "cannot borrow paint field");
+                break;
+            }
         }
-    }
-
-    void update_paint(const std::vector<RigidBodyState> &states,
-                      FluidDeviceView fluid) {
-        if (paint_masks.empty() || fluid.particle_count == 0U) return;
-        for (std::size_t index = 0U; index < bindings.size(); ++index) {
-            const std::uint32_t body = bindings[index].body_index;
-            paint_host_bindings[index].state = states[body];
-        }
-        paint_device_bindings.upload(paint_host_bindings);
-        check_cuda(apply_particle_paint(
-            fluid.positions.data, fluid.particle_count,
-            reinterpret_cast<const PaintBinding *>(paint_device_bindings.pointer()),
-            static_cast<std::uint32_t>(paint_host_bindings.size()),
-            fluid.particle_radius), "stamp nearby fluid onto rigid UVs");
     }
 
     void create_shader_binding_table(const SceneDefinition &scene) {
@@ -614,12 +580,12 @@ struct OptixRenderer::Impl {
                     geometry[mesh_index].vertices.device_pointer());
             hits[index].data.triangles = reinterpret_cast<const uint3 *>(
                 geometry[mesh_index].triangles.device_pointer());
-            if (!paint_masks.empty() && paint_masks[index].size() != 0U) {
+            if (paint_views[index].pixels.size != 0U) {
                 hits[index].data.paint_pixels =
                     reinterpret_cast<const std::uint32_t *>(
-                        paint_masks[index].pointer());
-                hits[index].data.paint_width = paint_host_bindings[index].width;
-                hits[index].data.paint_height = paint_host_bindings[index].height;
+                        paint_views[index].pixels.data);
+                hits[index].data.paint_width = paint_views[index].width;
+                hits[index].data.paint_height = paint_views[index].height;
             }
             hits[index].data.base_color = make_float(mesh.base_color);
             hits[index].data.checkerboard = mesh.checkerboard ? 1U : 0U;
@@ -817,6 +783,8 @@ OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
 OptixRenderer &OptixRenderer::operator=(OptixRenderer &&) noexcept = default;
 
 bool OptixRenderer::create(const SceneDefinition &scene,
+                           const World &world,
+                           const SceneInstance &instance,
                            const std::filesystem::path &ptx_path,
                            std::uint32_t width, std::uint32_t height,
                            OptixRenderer &output, std::string &error) {
@@ -834,7 +802,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         implementation->create_pipeline(ptx_path);
         implementation->create_geometry(scene);
         implementation->create_instances(scene);
-        implementation->create_paint(scene);
+        implementation->create_paint(world, instance);
         implementation->create_shader_binding_table(scene);
         implementation->image.resize(static_cast<std::size_t>(width) * height *
                                      sizeof(std::uint32_t));
@@ -895,7 +863,6 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                 }
             }
         }
-        impl_->update_paint(states, fluid_view);
         const auto raytrace_begin = clock::now();
         impl_->render(camera, surface, rgba);
         const auto foam_begin = clock::now();
@@ -954,11 +921,6 @@ bool OptixRenderer::advance_visuals(const World &world,
                     positions, foam, ids, fluid.particle_radius);
             }
         }
-        if (!impl_->paint_masks.empty()) {
-            const std::vector<RigidBodyState> states =
-                impl_->read_states(world, instance);
-            impl_->update_paint(states, fluid);
-        }
         return true;
     } catch (const std::exception &exception) {
         error = exception.what();
@@ -975,11 +937,12 @@ bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
         return false;
     }
     try {
-        for (const DeviceBuffer &mask : impl_->paint_masks) {
-            if (mask.size() == 0U) continue;
+        for (const PaintFieldDeviceView &mask : impl_->paint_views) {
+            if (mask.pixels.size == 0U) continue;
             std::vector<std::uint32_t> pixels(
-                mask.size() / sizeof(std::uint32_t));
-            check_cuda(cudaMemcpy(pixels.data(), mask.pointer(), mask.size(),
+                mask.pixels.size);
+            check_cuda(cudaMemcpy(pixels.data(), mask.pixels.data,
+                                  mask.pixels.size * sizeof(std::uint32_t),
                                   cudaMemcpyDeviceToHost),
                        "read contact paint coverage");
             painted_texels += static_cast<std::uint64_t>(std::count_if(

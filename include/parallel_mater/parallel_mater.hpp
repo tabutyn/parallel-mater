@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace parallel_mater {
 
@@ -35,6 +36,11 @@ template <typename T> struct DeviceSpan {
     std::uint64_t size{};
 
     [[nodiscard]] constexpr bool empty() const noexcept { return size == 0U; }
+};
+
+template <typename T> struct HostSpan {
+    const T *data{};
+    std::uint64_t size{};
 };
 
 enum class StatusCode : std::uint8_t {
@@ -90,6 +96,21 @@ struct TriangleMeshId {
     }
 };
 
+struct PaintFieldId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(PaintFieldId left,
+                                                    PaintFieldId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
+struct PaintRuleId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+};
+
 struct ParticleSpawnPlaneId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -116,6 +137,8 @@ struct WorldOptions {
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_spawn_plane_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
+    std::uint32_t paint_field_capacity{8U};
+    std::uint32_t paint_rule_capacity{8U};
     // Maximum diagnostic contact events retained for a requested frame.
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
@@ -206,6 +229,22 @@ struct RigidBodyState {
     Vec3 angular_velocity{};
 };
 
+// A closed, indexed, body-local triangle mesh sampled once into an HCP
+// particle lattice. Host buffers are borrowed only for the duration of the
+// call. A volume may have multiple disconnected closed components.
+struct FluidGeometrySource {
+    HostSpan<Vec3> vertices{};
+    HostSpan<std::uint32_t> triangle_indices{};
+    RigidBodyState transform{};
+    Vec3 initial_velocity{};
+    float spacing{0.06F};
+};
+
+// Appends sampled particles to output. This CPU utility needs no CUDA device;
+// callers can inspect or downsample before uploading to World.
+[[nodiscard]] Status sample_fluid_geometry(
+    FluidGeometrySource source, std::vector<FluidParticle> &output) noexcept;
+
 struct RigidBodyOptions {
     MotionType motion{MotionType::dynamic};
     TriangleMeshId mesh{};
@@ -221,6 +260,33 @@ struct RigidBodyOptions {
     float maximum_angular_speed{100.0F};
     float collision_margin{0.005F};
     std::uint64_t user_data{};
+};
+
+// A field is owned per rigid-body instance, even if bodies share geometry.
+// Its UVs correspond to mesh vertices; the mesh may differ from the body's
+// collision mesh (for authored collision proxies). Pixels hold two side bits:
+// 1 for the winding/front side and 2 for the back side.
+struct PaintFieldOptions {
+    RigidBodyId body{};
+    TriangleMeshId mesh{};
+    DeviceSpan<const Vec2> vertex_uvs{};
+    std::uint32_t width{512U};
+    std::uint32_t height{512U};
+};
+
+struct PaintRuleOptions {
+    FluidId source{};
+    PaintFieldId target{};
+    // Additional reach beyond the source particle radius.
+    float reach{0.025F};
+    bool enabled{true};
+};
+
+struct PaintFieldDeviceView {
+    DeviceSpan<const std::uint32_t> pixels{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint64_t revision{};
 };
 
 struct FluidDeviceView {
@@ -352,6 +418,11 @@ class World {
                                    DeviceSpan<const FluidParticle> initial_particles,
                                    FluidId &output,
                                    cudaStream_t stream = nullptr) noexcept;
+    // Samples one authored closed volume and creates a fluid. Continuous
+    // inflow is configured separately with add_particle_spawn_plane.
+    [[nodiscard]] Status add_fluid_geometry(
+        FluidOptions options, FluidGeometrySource source, FluidId &output,
+        cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status remove_fluid(FluidId fluid,
                                       cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
@@ -393,6 +464,18 @@ class World {
         DeviceSpan<const std::uint32_t> triangle_indices,
         TriangleMeshId &output, cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status remove_triangle_mesh(TriangleMeshId mesh) noexcept;
+
+    [[nodiscard]] Status add_paint_field(
+        PaintFieldOptions options, PaintFieldId &output,
+        cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status remove_paint_field(PaintFieldId field) noexcept;
+    [[nodiscard]] Status clear_paint_field(
+        PaintFieldId field, cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status paint_field_view(
+        PaintFieldId field, PaintFieldDeviceView &output) const noexcept;
+    [[nodiscard]] Status add_paint_rule(
+        PaintRuleOptions options, PaintRuleId &output) noexcept;
+    [[nodiscard]] Status remove_paint_rule(PaintRuleId rule) noexcept;
 
     // Only one frame may be in flight per World in the initial release.
     [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,

@@ -80,6 +80,37 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Fluid sources and contact paint
+
+Continuous inflow is configured with `ParticleSpawnPlaneOptions` and
+`World::add_particle_spawn_plane`; `ParticleDestroyPlaneOptions` supplies the
+matching outflow. These are physics-owned sources and sinks, so the gallery
+only translates Blender flow-plane metadata into their options.
+
+For a one-time Flow/Geometry volume, `sample_fluid_geometry` expects a closed,
+indexed host triangle mesh, transform, velocity, and particle spacing. It
+appends an HCP particle lattice to a host vector without requiring a GPU.
+`World::add_fluid_geometry` performs that sampling and creates a fluid directly,
+deterministically selecting particles if the requested volume exceeds the
+configured fluid capacity. Gallery scene loading uses the same public sampler
+to combine authored geometry volumes before instantiation.
+
+Contact paint is opt-in. `World::add_paint_field` attaches a persistent,
+two-sided UV mask to one rigid-body instance. Its paint mesh and UVs may differ
+from the body's collision proxy; both use the same body-local coordinates.
+`World::add_paint_rule` selects a source fluid and target field and sets extra
+reach beyond the fluid particle radius. During fluid–rigid triangle contact,
+the world projects each qualifying collision onto the paint mesh using its BVH
+and stamps one texel. It does not depend on diagnostic contact collection or
+on render frequency. `paint_field_view` exposes the device mask to any renderer;
+bit 1 is the front side and bit 2 is the back side. `clear_paint_field` resets
+the mask. Render color and cubic filtering remain application choices.
+
+Remove rules before their source fluid or target field, and remove fields
+before their rigid body or paint mesh. The current transfer implementation is
+fluid-to-rigid; the field/rule boundary leaves other physics-domain transfers
+for a future extension rather than silently accepting unsupported pairs.
+
 ## Stepping and CUDA streams
 
 `step_async` enqueues a complete frame on the caller's CUDA stream and records
@@ -215,12 +246,10 @@ Set `StepOptions::collect_fluid_contacts` to retain one representative
 fluid-particle/rigid-body contact per surviving particle per frame. Moving
 body contacts take priority over static contacts, and the strongest normal
 impulse wins within each class. Events appear in fluid order, then stable
-particle order. Collection is disabled by default. These are the physics-side
-input for painting: stable particle
-and body IDs, contact position, normal, and impulse let gallery code update its
-own color fields or textures. The physics API does not own paint pixels,
-materials, UVs, or textures. The same records can drive sound, objectives,
-foam emission, or debugging. Overflow is explicit in `ContactDeviceView` and
+particle order. Collection is disabled by default. These diagnostics can drive
+sound, objectives, or debugging, but contact paint does not depend on this
+bounded representative stream: it stamps directly from each qualifying
+fluid–rigid collision. Overflow is explicit in `ContactDeviceView` and
 statistics.
 
 Rigid–rigid diagnostics are a separate opt-in stream. `RigidContactEvent`
@@ -242,8 +271,8 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- cloth, rope, soft body, smoke, a separate foam-particle simulation, paint
-  storage, or fracture;
+- cloth, rope, soft body, smoke, a separate foam-particle simulation, or
+  fracture;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.
 
@@ -252,9 +281,9 @@ These omissions are the main defense against another application-shaped API.
 ## Decisions from the first review
 
 - `World` is the only stepping interface in v0.1.
-- Initial fluid data is device-resident.
-- A capacity-bounded contact stream is retained as the input to painting and
-  other application effects.
+- Initial fluid data may be device-resident or sampled from host geometry.
+- A capacity-bounded contact stream remains available for diagnostic and
+  application effects; contact paint uses the collision path directly.
 - One frame may be in flight per world.
 - Indexed triangles are the only rigid representation; Blender primitives are
   triangulated during export instead of creating parallel collider types.

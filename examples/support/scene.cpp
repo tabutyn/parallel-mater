@@ -361,111 +361,27 @@ class FlatJson {
 [[nodiscard]] bool sample_initial_volume(
     const cgltf_node &node, Vec3 scale, Vec3 velocity, float spacing,
     std::vector<FluidParticle> &particles, std::string &error) {
-    if (!std::isfinite(spacing) || spacing <= 0.0F) {
-        error = "fluid initial volume spacing must be positive and finite";
-        return false;
-    }
-    struct Triangle { Vec3 a, b, c; };
-    const std::size_t particle_begin = particles.size();
-    std::vector<Triangle> triangles;
-    Vec3 minimum{FLT_MAX, FLT_MAX, FLT_MAX};
-    Vec3 maximum{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-    const RigidBodyState transform = node_state(node);
+    std::vector<Vec3> vertices;
+    std::vector<std::uint32_t> indices;
     for (cgltf_size primitive_index = 0U;
          primitive_index < node.mesh->primitives_count; ++primitive_index) {
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[primitive_index], scale,
                               false, "fluid initial volume", mesh, error))
             return false;
-        for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
-            Triangle triangle{};
-            Vec3 *points[3]{&triangle.a, &triangle.b, &triangle.c};
-            for (std::size_t corner = 0U; corner < 3U; ++corner) {
-                *points[corner] = add(transform.position,
-                    rotate(transform.orientation,
-                           mesh.vertices[mesh.indices[index + corner]].position));
-                const Vec3 point = *points[corner];
-                minimum = {std::min(minimum.x, point.x),
-                           std::min(minimum.y, point.y),
-                           std::min(minimum.z, point.z)};
-                maximum = {std::max(maximum.x, point.x),
-                           std::max(maximum.y, point.y),
-                           std::max(maximum.z, point.z)};
-            }
-            triangles.push_back(triangle);
-        }
+        const auto base = static_cast<std::uint32_t>(vertices.size());
+        for (const Vertex &vertex : mesh.vertices)
+            vertices.push_back(vertex.position);
+        for (const std::uint32_t index : mesh.indices)
+            indices.push_back(base + index);
     }
-    const Vec3 extent = subtract(maximum, minimum);
-    if (triangles.empty() || !finite(extent) ||
-        std::min({extent.x, extent.y, extent.z}) < spacing) {
-        error = "fluid initial volume must be a closed three-dimensional mesh";
-        return false;
-    }
-    const float row_height = spacing * std::sqrt(3.0F) * 0.5F;
-    const float layer_height = spacing * std::sqrt(2.0F / 3.0F);
-    if (extent.x / spacing > 254.0F ||
-        extent.y / layer_height > 254.0F ||
-        extent.z / row_height > 254.0F) {
-        error = "fluid initial volume sampling grid is too large";
-        return false;
-    }
-    const std::array<std::uint32_t, 3> dimensions{
-        static_cast<std::uint32_t>(std::ceil(extent.x / spacing)) + 1U,
-        static_cast<std::uint32_t>(std::ceil(extent.y / layer_height)) + 1U,
-        static_cast<std::uint32_t>(std::ceil(extent.z / row_height)) + 1U};
-    if (static_cast<std::uint64_t>(dimensions[0]) * dimensions[1] *
-            dimensions[2] > 1'000'000U) {
-        error = "fluid initial volume sampling grid is too large";
-        return false;
-    }
-    // A non-axis-aligned ray avoids most shared-edge degeneracies. Duplicate
-    // intersections from neighboring triangles are merged before parity.
-    const Vec3 direction = normalize({1.0F, 0.371F, 0.173F});
-    std::vector<float> crossings;
-    crossings.reserve(triangles.size());
-    for (std::uint32_t y = 0U; y < dimensions[1]; ++y)
-        for (std::uint32_t z = 0U; z < dimensions[2]; ++z)
-            for (std::uint32_t x = 0U; x < dimensions[0]; ++x) {
-                const bool shifted_layer = (y & 1U) != 0U;
-                const bool shifted_row = (z & 1U) != 0U;
-                const Vec3 point{
-                    minimum.x + (x + 0.5F + (shifted_row ? 0.5F : 0.0F) +
-                                 (shifted_layer ? 0.5F : 0.0F)) * spacing,
-                    minimum.y + (y + 0.5F) * layer_height,
-                    minimum.z + (z + 0.5F) * row_height +
-                        (shifted_layer ? row_height / 3.0F : 0.0F)};
-                if (point.x > maximum.x || point.y > maximum.y ||
-                    point.z > maximum.z) continue;
-                crossings.clear();
-                for (const Triangle &triangle : triangles) {
-                    const Vec3 first = subtract(triangle.b, triangle.a);
-                    const Vec3 second = subtract(triangle.c, triangle.a);
-                    const Vec3 p = cross(direction, second);
-                    const float determinant = dot(first, p);
-                    if (std::fabs(determinant) < 1.0e-8F) continue;
-                    const Vec3 from_vertex = subtract(point, triangle.a);
-                    const float u = dot(from_vertex, p) / determinant;
-                    if (u < -1.0e-6F || u > 1.0F + 1.0e-6F) continue;
-                    const Vec3 q = cross(from_vertex, first);
-                    const float v = dot(direction, q) / determinant;
-                    if (v < -1.0e-6F || u + v > 1.0F + 1.0e-6F) continue;
-                    const float distance = dot(second, q) / determinant;
-                    if (distance > 1.0e-5F) crossings.push_back(distance);
-                }
-                std::sort(crossings.begin(), crossings.end());
-                std::size_t unique = 0U;
-                for (const float distance : crossings) {
-                    if (unique == 0U ||
-                        distance - crossings[unique - 1U] > 1.0e-4F)
-                        crossings[unique++] = distance;
-                }
-                if (unique % 2U != 0U) particles.push_back({point, velocity});
-            }
-    if (particles.size() == particle_begin) {
-        error = "fluid initial volume did not contain any particle centers";
-        return false;
-    }
-    return true;
+    const FluidGeometrySource source{{vertices.data(), vertices.size()},
+        {indices.data(), indices.size()}, node_state(node), velocity, spacing};
+    const Status status = sample_fluid_geometry(source, particles);
+    if (!status)
+        error = status.message != nullptr ? status.message :
+            "fluid geometry sampling failed";
+    return status.ok();
 }
 
 [[nodiscard]] bool finalize_body_geometry(SceneDefinition &scene,
@@ -1204,6 +1120,67 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             status = world.add_particle_destroy_plane(options, id);
             if (!status) return status;
         }
+    }
+    try {
+    for (std::uint32_t body_index = 0;
+         body_index < scene.rigid_bodies.size(); ++body_index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
+        if (!body.paintable) continue;
+        if (!output.has_fluid)
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "paintable gallery body needs a fluid source"};
+        for (const std::uint32_t mesh_index : body.mesh_indices) {
+            const TriangleMesh &mesh = scene.meshes[mesh_index];
+            const std::string key = "paint:" + std::to_string(mesh_index);
+            TriangleMeshId mesh_id{};
+            const auto cached = mesh_cache.find(key);
+            if (cached != mesh_cache.end()) {
+                mesh_id = cached->second;
+            } else {
+                Status status = upload_mesh(scene.meshes, {mesh_index}, mesh_id);
+                if (!status) return status;
+                mesh_cache.emplace(key, mesh_id);
+            }
+            std::vector<Vec2> uvs;
+            try {
+                uvs.reserve(mesh.vertices.size());
+                for (const Vertex &vertex : mesh.vertices)
+                    uvs.push_back(vertex.uv);
+            } catch (...) {
+                return {StatusCode::out_of_memory, cudaSuccess,
+                        "failed to assemble paint UVs"};
+            }
+            Vec2 *device_uvs = nullptr;
+            cudaError_t error = cudaMalloc(
+                reinterpret_cast<void **>(&device_uvs),
+                uvs.size() * sizeof(Vec2));
+            if (error == cudaSuccess)
+                error = cudaMemcpy(device_uvs, uvs.data(),
+                    uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice);
+            if (error != cudaSuccess) {
+                cudaFree(device_uvs);
+                return {StatusCode::cuda_failure, error,
+                        "failed to upload paint UVs"};
+            }
+            PaintFieldId field{};
+            Status status = world.add_paint_field(
+                {.body = output.rigid_bodies[body_index],
+                 .mesh = mesh_id,
+                 .vertex_uvs = {device_uvs, uvs.size()},
+                 .width = body.paint_resolution,
+                 .height = body.paint_resolution}, field);
+            cudaFree(device_uvs);
+            if (!status) return status;
+            PaintRuleId rule{};
+            status = world.add_paint_rule(
+                {.source = output.fluid, .target = field}, rule);
+            if (!status) return status;
+            output.paint_bindings.push_back({body_index, mesh_index, field});
+        }
+    }
+    } catch (...) {
+        return {StatusCode::out_of_memory, cudaSuccess,
+                "failed to assemble gallery paint bindings"};
     }
     return {};
 }

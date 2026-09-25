@@ -11,7 +11,8 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, device views, contacts
+  World, FluidId, RigidBodyId, geometry sampling, inflow/outflow,
+  paint fields and rules, device views, contacts
 
 examples/gallery (not installed)
   .glb assets, scene loader, renderer adapters, controls, objectives
@@ -82,11 +83,11 @@ vertical when released. Static fluid contacts use impulse-limited friction,
 so reversing direction can build a wave instead of stopping at the wall.
 Unlike Inflow, its Blender Flow/Geometry cylinder is sampled into particles
 on an HCP lattice once at scene creation; it does not keep emitting. The
-authored sphere starts above the bowl and falls through the water. The renderer
-projects nearby particles onto the bowl's render triangles and UVs, then
-accumulates a persistent paint mask for its two face sides. The sphere and
-pegs remain unpainted. Painting remains examples-only: `World` does not own a
-texture, paint color, or renderer.
+authored sphere starts above the bowl and falls through the water. The gallery
+registers the bowl's render triangles and UVs as a `World` paint field; the
+physics contact path stamps its persistent two-sided mask. The renderer only
+samples that mask and applies blue color with cubic filtering. The sphere and
+pegs remain unpainted. `World` owns no renderer or paint color.
 The shared water shader reflects authored geometry and uses the original
 course's lighter absorption and haze. All three fluid scenes use the shared
 render-only foam module: foam signals seed bounded, short-lived multi-bubble

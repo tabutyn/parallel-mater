@@ -684,18 +684,26 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
 
     const std::size_t mesh_capacity =
         next.scene.meshes.size() + next.scene.collision_meshes.size();
+    std::size_t paint_capacity = 0U;
+    for (const auto &body : next.scene.rigid_bodies)
+        if (body.paintable) paint_capacity += body.mesh_indices.size();
     if (next.scene.rigid_bodies.empty() ||
         next.scene.rigid_bodies.size() >
             std::numeric_limits<std::uint32_t>::max() ||
         mesh_capacity == 0U ||
-        mesh_capacity > std::numeric_limits<std::uint32_t>::max()) {
+        mesh_capacity + next.scene.meshes.size() >
+            std::numeric_limits<std::uint32_t>::max() ||
+        paint_capacity > std::numeric_limits<std::uint32_t>::max()) {
         error = "scene exceeds world capacity range";
         return false;
     }
     const Status create_status = World::create(
         {.rigid_body_capacity =
              static_cast<std::uint32_t>(next.scene.rigid_bodies.size()),
-         .triangle_mesh_capacity = static_cast<std::uint32_t>(mesh_capacity)},
+         .triangle_mesh_capacity = static_cast<std::uint32_t>(
+             mesh_capacity + next.scene.meshes.size()),
+         .paint_field_capacity = static_cast<std::uint32_t>(paint_capacity),
+         .paint_rule_capacity = static_cast<std::uint32_t>(paint_capacity)},
         next.world);
     if (!create_status) {
         error = create_status.message != nullptr ? create_status.message
@@ -710,7 +718,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                     : "scene instantiation failed";
         return false;
     }
-    if (!OptixRenderer::create(next.scene, PARALLEL_MATER_OPTIX_PTX_PATH,
+    if (!OptixRenderer::create(next.scene, next.world, next.instance,
+                               PARALLEL_MATER_OPTIX_PTX_PATH,
                                options.width, options.height, next.renderer,
                                error)) {
         error = "renderer creation failed: " + error;

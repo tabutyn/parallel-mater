@@ -51,7 +51,13 @@ struct SceneDefinition {
 };
 
 struct SceneInstance {
+    struct PaintBinding {
+        std::uint32_t body_index{};
+        std::uint32_t mesh_index{};
+        PaintFieldId field{};
+    };
     std::vector<RigidBodyId> rigid_bodies{};
+    std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};
 };

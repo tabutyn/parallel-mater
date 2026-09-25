@@ -11,9 +11,9 @@ deterministic private BVH accelerates mesh contact. Particle fluid, Blender
 Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
 momentum exchange, and agitation foam are also available through the same
 `World`.
-The gallery also accepts a one-shot Blender Geometry flow and paints authored
-UV surfaces when fluid particles approach them; these rendering concerns stay outside
-the installed physics API.
+One-shot Blender Geometry flows use the public volume sampler. Opt-in
+fluid-to-rigid contact paint fields are also owned by `World`; the gallery
+supplies UVs and chooses their display color and filtering.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
 24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
@@ -29,8 +29,8 @@ measurements, not general hardware claims.
   solver-internal phases.
 - CUDA allocations remain owned by the library while renderers borrow explicit
   device views.
-- Fluids accept device-resident initial particles and can own deterministic,
-  capacity-bounded particle spawn and destroy planes.
+- Fluids accept device-resident initial particles or one-shot host geometry
+  volumes, and can own deterministic, capacity-bounded inflow/outflow planes.
 - Synchronous convenience calls and stream-ordered asynchronous calls share the
   same semantics.
 - The gallery is simultaneously the example suite, visual regression surface,

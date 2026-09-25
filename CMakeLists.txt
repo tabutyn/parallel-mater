@@ -25,7 +25,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
-add_library(parallel-mater STATIC src/world.cu)
+add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 set_target_properties(
@@ -153,7 +153,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 examples/support/optix_renderer.cpp
                 examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
-                examples/support/contact_paint.cu
                 examples/support/overlay.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
@@ -205,6 +204,13 @@ if(BUILD_TESTING)
         parallel-mater-fluid-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-fluid-tests COMMAND parallel-mater-fluid-tests)
     set_tests_properties(parallel-mater-fluid-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    add_executable(parallel-mater-paint-geometry-tests
+                   tests/paint_geometry_tests.cpp)
+    target_link_libraries(parallel-mater-paint-geometry-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-paint-geometry-tests
+             COMMAND parallel-mater-paint-geometry-tests)
 
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         add_executable(parallel-mater-camera-controller-tests
@@ -293,16 +299,6 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-fluid-surface-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
 
-        add_executable(parallel-mater-contact-paint-tests
-                       tests/gallery/contact_paint_tests.cu)
-        target_include_directories(parallel-mater-contact-paint-tests PRIVATE
-            examples/support ${parallel_mater_optix_dev_SOURCE_DIR}/include)
-        target_link_libraries(parallel-mater-contact-paint-tests PRIVATE
-            parallel-mater-gallery-renderer CUDA::cudart)
-        add_test(NAME parallel-mater-contact-paint-tests
-                 COMMAND parallel-mater-contact-paint-tests)
-        set_tests_properties(parallel-mater-contact-paint-tests
-                             PROPERTIES SKIP_RETURN_CODE 77)
 
         add_test(
             NAME parallel-mater-optix-headless-test

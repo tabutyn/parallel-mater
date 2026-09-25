@@ -74,7 +74,7 @@ The generated metadata is:
 | `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
 | `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
-| `pm_paintable` | Optional Boolean source custom property; enables a persistent gallery paint mask for that rigid body |
+| `pm_paintable` | Optional Boolean source custom property; gallery registers a persistent API paint field and fluid-to-rigid rule for that body |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
 
@@ -159,8 +159,8 @@ contact events.
 Liquid → Geometry**, a passive bowl, four passive pegs, an invisible passive
 containment cylinder, and one ACTIVE icosphere. The exporter marks the flow
 cylinder as
-`pm_system = "fluid_initial_volume"`. The gallery samples its authored mesh on
-a deterministic HCP lattice, keeps points inside the volume, and creates
+`pm_system = "fluid_initial_volume"`. The gallery uses the public geometry
+sampler to fill its authored mesh on a deterministic HCP lattice, then creates
 those particles once when the scene starts. No Blender Domain or baked cache
 is needed, and the flow does not emit on later frames. `P` changes the maximum
 particle count and restarts; if lower than the authored fill, the gallery
@@ -172,9 +172,9 @@ spacing and 2× standard gravity. Particle rest volume follows the HCP cell
 volume, so denser sampling does not silently increase fluid mass. These are
 general flow settings, not Peg-specific solver branches.
 
-The Peg Paint example paints persistent blue masks where particles approach
-the bodies' exported UV surfaces. Paint is renderer-owned; the installed
-physics API keeps no texture state. This is why the
+The Peg Paint example paints persistent blue masks from qualifying fluid
+contacts with the bodies' exported UV surfaces. `World` owns the two-sided
+paint field; the gallery renderer chooses blue and cubic filtering. The
 exporter retains each render mesh's UV coordinates. Only the bowl has
 `pm_paintable = true`; the active sphere and four pegs remain unpainted. Other
 scenes do not allocate paint masks unless their authors opt in. Front and back
@@ -186,7 +186,7 @@ downhill path off the posts without peg-specific fluid forces.
 The bowl and invisible containment cylinder use Blender rigid-body friction
 `0.05`, while the pegs retain `0.5`. This lets water slide down the curved
 wall instead of accumulating as a thin raised layer. Contact paint records
-one texel per nearby particle and reconstructs the mask with a smooth cubic
+one texel per qualifying contact and reconstructs the mask with a smooth cubic
 B-spline filter.
 The bowl authors `pm_paint_resolution = 64`; its half-height UV chart uses
 64×32 texels. Larger future paintable surfaces retain the default resolution.

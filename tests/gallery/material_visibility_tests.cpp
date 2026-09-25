@@ -100,7 +100,8 @@ int main() {
         const Camera camera{.eye = {0.0F, 3.0F, 3.0F}, .target = {}};
         auto render = [&](const SceneDefinition &definition) {
             OptixRenderer renderer;
-            require(OptixRenderer::create(definition, PARALLEL_MATER_OPTIX_PTX_PATH,
+            require(OptixRenderer::create(definition, world, instance,
+                                         PARALLEL_MATER_OPTIX_PTX_PATH,
                                          96U, 96U, renderer, error), error);
             // Repeated render also exercises instance updates: visibility must
             // not revert to opaque when rigid transforms are refreshed.

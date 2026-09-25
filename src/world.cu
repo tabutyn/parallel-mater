@@ -1936,6 +1936,20 @@ struct FluidContactSample {
     std::uint32_t body{k_invalid_dense};
 };
 
+struct PaintFieldResource {
+    PaintFieldOptions options{};
+    Vec2 *uvs{};
+    std::uint32_t *pixels{};
+    std::uint32_t generation{1U};
+    bool alive{};
+};
+
+struct PaintRuleResource {
+    PaintRuleOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
+};
+
 struct FluidStorage {
     FluidOptions options{};
     std::uint32_t generation{1U};
@@ -2206,6 +2220,83 @@ __device__ bool fluid_segment_bounds(Vec3 a, Vec3 b, const BvhNode &node,
     return true;
 }
 
+__device__ __noinline__ void stamp_paint_at_contact(
+    Vec3 local_particle, float particle_radius, FluidId source,
+    RigidBodyId target, const TriangleMeshResource *meshes,
+    const PaintFieldResource *fields, std::uint32_t field_capacity,
+    const PaintRuleResource *rules, std::uint32_t rule_capacity) noexcept {
+    for (std::uint32_t rule_index = 0; rule_index < rule_capacity;
+         ++rule_index) {
+        const PaintRuleResource rule = rules[rule_index];
+        if (!rule.alive || !rule.options.enabled ||
+            rule.options.source.index != source.index ||
+            rule.options.source.generation != source.generation ||
+            rule.options.target.index >= field_capacity) continue;
+        const PaintFieldResource field = fields[rule.options.target.index];
+        if (!field.alive ||
+            field.generation != rule.options.target.generation ||
+            field.options.body.index != target.index ||
+            field.options.body.generation != target.generation) continue;
+        const TriangleMeshResource mesh = meshes[field.options.mesh.index];
+        const float reach = particle_radius + rule.options.reach;
+        const float reach_squared = reach * reach;
+        float best_distance = reach_squared;
+        Vec2 best_uv{};
+        std::uint32_t best_side = 0U;
+        std::uint32_t stack[64]{};
+        int pending = mesh.bvh_node_count == 0U ? 0 : 1;
+        while (pending != 0) {
+            const BvhNode &node = mesh.bvh_nodes[stack[--pending]];
+            if (!fluid_segment_bounds(local_particle, local_particle,
+                                      node, reach)) continue;
+            if (node.triangle_count == 0U) {
+                if (pending + 2 > 64) continue;
+                stack[pending++] = node.right;
+                stack[pending++] = node.left;
+                continue;
+            }
+            for (std::uint32_t item = 0; item < node.triangle_count; ++item) {
+                const std::uint32_t base =
+                    (node.first_triangle + item) * 3U;
+                const std::uint32_t ia = mesh.indices[base];
+                const std::uint32_t ib = mesh.indices[base + 1U];
+                const std::uint32_t ic = mesh.indices[base + 2U];
+                const Vec3 a = mesh.vertices[ia], b = mesh.vertices[ib];
+                const Vec3 c = mesh.vertices[ic];
+                const Vec3 nearest = fluid_closest_triangle(
+                    local_particle, a, b, c);
+                const Vec3 delta = subtract(local_particle, nearest);
+                const float distance = length_squared(delta);
+                if (distance >= best_distance) continue;
+                const Vec3 ab = subtract(b, a), ac = subtract(c, a);
+                const Vec3 ap = subtract(nearest, a);
+                const float d00 = dot(ab, ab), d01 = dot(ab, ac);
+                const float d11 = dot(ac, ac), d20 = dot(ap, ab);
+                const float d21 = dot(ap, ac);
+                const float divisor = d00 * d11 - d01 * d01;
+                if (divisor <= 1.0e-12F) continue;
+                const float v = (d11*d20 - d01*d21) / divisor;
+                const float w = (d00*d21 - d01*d20) / divisor;
+                const float u = 1.0F - v - w;
+                best_uv = {u*field.uvs[ia].x + v*field.uvs[ib].x +
+                               w*field.uvs[ic].x,
+                           u*field.uvs[ia].y + v*field.uvs[ib].y +
+                               w*field.uvs[ic].y};
+                best_side = dot(cross(ab, ac), delta) >= 0.0F ? 1U : 2U;
+                best_distance = distance;
+            }
+        }
+        if (best_side == 0U) continue;
+        const int width = static_cast<int>(field.options.width);
+        const int height = static_cast<int>(field.options.height);
+        int x = static_cast<int>(floorf(best_uv.x * width)) % width;
+        if (x < 0) x += width;
+        const int y = max(0, min(height - 1,
+            static_cast<int>(floorf(best_uv.y * height))));
+        atomicOr(field.pixels + y * width + x, best_side);
+    }
+}
+
 __global__ void fluid_static_contacts(
     Vec3 *positions, Vec3 *velocities, const Vec3 *previous, float *foam,
     const std::uint32_t *count, float radius, float spawn_clearance,
@@ -2213,7 +2304,10 @@ __global__ void fluid_static_contacts(
     const BodyParameters *parameters, const RigidBodyState *states,
     const TriangleMeshResource *meshes, std::uint32_t body_index,
     float particle_mass, bool collect_contacts,
-    FluidContactSample *samples, std::uint8_t *contact_flags) {
+    FluidContactSample *samples, std::uint8_t *contact_flags,
+    FluidId fluid_id, RigidBodyId body_id, bool apply_paint,
+    const PaintFieldResource *paint_fields, std::uint32_t field_capacity,
+    const PaintRuleResource *paint_rules, std::uint32_t rule_capacity) {
     const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
     const BodyParameters body = parameters[body_index];
     const RigidBodyState state = states[body_index];
@@ -2296,6 +2390,10 @@ __global__ void fluid_static_contacts(
         }
     }
     if (best_penetration > 0.0F) {
+        if (apply_paint && rule_capacity != 0U)
+            stamp_paint_at_contact(position, radius, fluid_id, body_id,
+                meshes, paint_fields, field_capacity, paint_rules,
+                rule_capacity);
         position = add(position, multiply(best_normal, best_penetration));
         const float incoming = dot(velocity, best_normal);
         const float normal_impulse = incoming < 0.0F
@@ -2394,7 +2492,10 @@ __global__ void fluid_moving_contacts(
     const unsigned long long *masks, const unsigned long long *global_masks,
     std::uint32_t words, bool first_iteration, FluidBodyImpulse *impulses,
     std::uint32_t *contact_flags, bool collect_contacts,
-    FluidContactSample *samples, std::uint8_t *particle_contact_flags) {
+    FluidContactSample *samples, std::uint8_t *particle_contact_flags,
+    FluidId fluid_id, const RigidBodyId *body_ids, bool apply_paint,
+    const PaintFieldResource *paint_fields, std::uint32_t field_capacity,
+    const PaintRuleResource *paint_rules, std::uint32_t rule_capacity) {
     const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= *count) return;
     impulses[particle] = {};
@@ -2488,6 +2589,13 @@ __global__ void fluid_moving_contacts(
     if (best_body == k_invalid_dense) return;
     const BodyParameters body = parameters[best_body];
     const RigidBodyState state = states[best_body];
+    if (apply_paint && rule_capacity != 0U) {
+        const Vec3 local_particle = inverse_rotate(state.orientation,
+            subtract(end, state.position));
+        stamp_paint_at_contact(local_particle, radius, fluid_id,
+            body_ids[best_body], meshes, paint_fields, field_capacity,
+            paint_rules, rule_capacity);
+    }
     positions[particle] = add(end, multiply(best_normal, best_penetration));
     if (collect_contacts && particle_contact_flags[particle] != 2U) {
         samples[particle] = {best_contact, best_normal, 0.0F, best_body};
@@ -2751,6 +2859,9 @@ struct World::Impl {
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<SpawnPlaneSlot> spawn_planes{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
+    PaintFieldResource *paint_fields{};
+    PaintRuleResource *paint_rules{};
+    std::uint32_t paint_rule_count{};
     std::uint32_t *fluid_neighbor_overflow{};
     BodyParameters *parameters{};
     BodyAccumulator *accumulators{};
@@ -2804,6 +2915,15 @@ struct World::Impl {
                 release_managed(meshes[index].vertices);
             }
         }
+        if (paint_fields != nullptr) {
+            for (std::uint32_t index = 0;
+                 index < options.paint_field_capacity; ++index) {
+                release_managed(paint_fields[index].uvs);
+                release_managed(paint_fields[index].pixels);
+            }
+        }
+        release_managed(paint_fields);
+        release_managed(paint_rules);
         for (cudaEvent_t event : timing_events) {
             cudaEventDestroy(event);
         }
@@ -3006,7 +3126,17 @@ Status World::create(WorldOptions options, World &output,
     }
     implementation->options = options;
     implementation->device_ordinal = device;
-    Status status = allocate_managed(implementation->fluid_neighbor_overflow, 1U);
+    Status status = allocate_managed(implementation->paint_fields,
+                                     options.paint_field_capacity);
+    if (!status) return status;
+    for (std::uint32_t i = 0; i < options.paint_field_capacity; ++i)
+        implementation->paint_fields[i] = {};
+    status = allocate_managed(implementation->paint_rules,
+                              options.paint_rule_capacity);
+    if (!status) return status;
+    for (std::uint32_t i = 0; i < options.paint_rule_capacity; ++i)
+        implementation->paint_rules[i] = {};
+    status = allocate_managed(implementation->fluid_neighbor_overflow, 1U);
     if (!status) return status;
     *implementation->fluid_neighbor_overflow = 0U;
     const std::size_t pair_capacity =
@@ -3323,12 +3453,55 @@ Status World::add_fluid(FluidOptions options,
     return success();
 }
 
+Status World::add_fluid_geometry(FluidOptions options,
+                                 FluidGeometrySource source, FluidId &output,
+                                 cudaStream_t stream) noexcept {
+    std::vector<FluidParticle> sampled;
+    Status status = sample_fluid_geometry(source, sampled);
+    if (!status) return status;
+    if (options.capacity == 0U)
+        return failure(StatusCode::invalid_argument,
+                       "fluid geometry requires a positive fluid capacity");
+    if (sampled.size() > options.capacity) {
+        std::vector<FluidParticle> selected;
+        try {
+            selected.reserve(options.capacity);
+            for (std::size_t i = 0; i < options.capacity; ++i)
+                selected.push_back(sampled[i * sampled.size() /
+                                            options.capacity]);
+        } catch (...) {
+            return failure(StatusCode::out_of_memory,
+                           "fluid geometry selection allocation failed");
+        }
+        sampled.swap(selected);
+    }
+    FluidParticle *device = nullptr;
+    cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device),
+                                    sampled.size() * sizeof(FluidParticle));
+    if (error != cudaSuccess)
+        return cuda_failure(error, "fluid geometry upload allocation failed");
+    error = cudaMemcpy(device, sampled.data(),
+                       sampled.size() * sizeof(FluidParticle),
+                       cudaMemcpyHostToDevice);
+    if (error == cudaSuccess)
+        status = add_fluid(options, {device, sampled.size()}, output, stream);
+    cudaFree(device);
+    if (error != cudaSuccess)
+        return cuda_failure(error, "fluid geometry upload failed");
+    return status;
+}
+
 Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(id, fluid))) return status;
+    for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
+        if (impl_->paint_rules[i].alive &&
+            impl_->paint_rules[i].options.source == id)
+            return failure(StatusCode::invalid_argument,
+                           "fluid is still referenced by a paint rule");
     std::unique_ptr<FluidStorage> tombstone(
         new (std::nothrow) FluidStorage());
     if (!tombstone)
@@ -3761,6 +3934,12 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
                            "triangle mesh is still referenced by a rigid body");
         }
     }
+    for (std::uint32_t index = 0;
+         index < impl_->options.paint_field_capacity; ++index)
+        if (impl_->paint_fields[index].alive &&
+            impl_->paint_fields[index].options.mesh == mesh_id)
+            return failure(StatusCode::invalid_argument,
+                           "triangle mesh is still referenced by a paint field");
     TriangleMeshResource &mesh = impl_->meshes[mesh_id.index];
     release_managed(mesh.bvh_leaves);
     release_managed(mesh.bvh_nodes);
@@ -3776,6 +3955,171 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
         mesh.generation = 1U;
     }
     --impl_->triangle_mesh_count;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_paint_field(PaintFieldOptions options,
+                              PaintFieldId &output,
+                              cudaStream_t stream) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    std::uint32_t dense = 0U;
+    if (!(status = impl_->validate_handle(options.body, dense)) ||
+        !(status = impl_->validate_handle(options.mesh))) return status;
+    const TriangleMeshResource &mesh = impl_->meshes[options.mesh.index];
+    if (options.vertex_uvs.data == nullptr ||
+        options.vertex_uvs.size != mesh.vertex_count ||
+        options.width == 0U || options.height == 0U ||
+        options.width > 4096U || options.height > 4096U ||
+        static_cast<std::uint64_t>(options.width) * options.height >
+            16'777'216U)
+        return failure(StatusCode::invalid_argument,
+                       "paint field UV count or dimensions are invalid");
+    std::uint32_t slot = 0U;
+    for (; slot < impl_->options.paint_field_capacity; ++slot)
+        if (!impl_->paint_fields[slot].alive) break;
+    if (slot == impl_->options.paint_field_capacity)
+        return failure(StatusCode::capacity_exceeded,
+                       "paint field capacity exhausted");
+    Vec2 *uvs = nullptr;
+    std::uint32_t *pixels = nullptr;
+    status = allocate_managed(uvs, mesh.vertex_count);
+    if (!status) return status;
+    status = allocate_managed(pixels,
+        static_cast<std::size_t>(options.width) * options.height);
+    if (!status) { release_managed(uvs); return status; }
+    cudaError_t error = cudaMemcpyAsync(uvs, options.vertex_uvs.data,
+        mesh.vertex_count * sizeof(Vec2), cudaMemcpyDefault, stream);
+    if (error == cudaSuccess)
+        error = cudaMemsetAsync(pixels, 0,
+            static_cast<std::size_t>(options.width) * options.height *
+                sizeof(std::uint32_t), stream);
+    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+    if (error != cudaSuccess) {
+        release_managed(pixels);
+        release_managed(uvs);
+        return cuda_failure(error, "paint field upload failed");
+    }
+    for (std::uint32_t i = 0; i < mesh.vertex_count; ++i)
+        if (!finite(uvs[i].x) || !finite(uvs[i].y)) {
+            release_managed(pixels);
+            release_managed(uvs);
+            return failure(StatusCode::invalid_argument,
+                           "paint field contains non-finite UVs");
+        }
+    PaintFieldResource &field = impl_->paint_fields[slot];
+    options.vertex_uvs = {uvs, mesh.vertex_count};
+    field.options = options;
+    field.uvs = uvs;
+    field.pixels = pixels;
+    field.alive = true;
+    output = {slot, field.generation};
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_paint_field(PaintFieldId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->options.paint_field_capacity ||
+        !impl_->paint_fields[id.index].alive ||
+        impl_->paint_fields[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "paint field handle is stale");
+    for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
+        if (impl_->paint_rules[i].alive &&
+            impl_->paint_rules[i].options.target == id)
+            return failure(StatusCode::invalid_argument,
+                           "paint field is still referenced by a paint rule");
+    PaintFieldResource &field = impl_->paint_fields[id.index];
+    release_managed(field.pixels);
+    release_managed(field.uvs);
+    field.alive = false;
+    ++field.generation;
+    if (field.generation == 0U) field.generation = 1U;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::clear_paint_field(PaintFieldId id, cudaStream_t stream) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->options.paint_field_capacity ||
+        !impl_->paint_fields[id.index].alive ||
+        impl_->paint_fields[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "paint field handle is stale");
+    const PaintFieldResource &field = impl_->paint_fields[id.index];
+    cudaError_t error = cudaMemsetAsync(field.pixels, 0,
+        static_cast<std::size_t>(field.options.width) *
+        field.options.height * sizeof(std::uint32_t), stream);
+    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+    if (error != cudaSuccess)
+        return cuda_failure(error, "paint field clear failed");
+    return success();
+}
+
+Status World::paint_field_view(PaintFieldId id,
+                               PaintFieldDeviceView &output) const noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->options.paint_field_capacity ||
+        !impl_->paint_fields[id.index].alive ||
+        impl_->paint_fields[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "paint field handle is stale");
+    const PaintFieldResource &field = impl_->paint_fields[id.index];
+    output = {{field.pixels, static_cast<std::uint64_t>(field.options.width) *
+                                 field.options.height},
+              field.options.width, field.options.height, impl_->revision};
+    return success();
+}
+
+Status World::add_paint_rule(PaintRuleOptions options,
+                             PaintRuleId &output) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    FluidStorage *fluid = nullptr;
+    if (!(status = impl_->validate_handle(options.source, fluid))) return status;
+    if (options.target.index >= impl_->options.paint_field_capacity ||
+        !impl_->paint_fields[options.target.index].alive ||
+        impl_->paint_fields[options.target.index].generation !=
+            options.target.generation)
+        return failure(StatusCode::invalid_handle, "paint target field is stale");
+    if (!finite(options.reach) || options.reach < 0.0F ||
+        options.reach > 10.0F)
+        return failure(StatusCode::invalid_argument, "paint reach is invalid");
+    std::uint32_t slot = 0U;
+    for (; slot < impl_->options.paint_rule_capacity; ++slot)
+        if (!impl_->paint_rules[slot].alive) break;
+    if (slot == impl_->options.paint_rule_capacity)
+        return failure(StatusCode::capacity_exceeded,
+                       "paint rule capacity exhausted");
+    PaintRuleResource &rule = impl_->paint_rules[slot];
+    rule.options = options;
+    rule.alive = true;
+    ++impl_->paint_rule_count;
+    output = {slot, rule.generation};
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_paint_rule(PaintRuleId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->options.paint_rule_capacity ||
+        !impl_->paint_rules[id.index].alive ||
+        impl_->paint_rules[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "paint rule handle is stale");
+    PaintRuleResource &rule = impl_->paint_rules[id.index];
+    rule.alive = false;
+    --impl_->paint_rule_count;
+    ++rule.generation;
+    if (rule.generation == 0U) rule.generation = 1U;
     ++impl_->revision;
     return success();
 }
@@ -3853,6 +4197,12 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
     if (!status) {
         return status;
     }
+    for (std::uint32_t index = 0;
+         index < impl_->options.paint_field_capacity; ++index)
+        if (impl_->paint_fields[index].alive &&
+            impl_->paint_fields[index].options.body == body)
+            return failure(StatusCode::invalid_argument,
+                           "rigid body is still referenced by a paint field");
     const std::uint32_t last = impl_->rigid_body_count - 1U;
     if (dense != last) {
         impl_->parameters[dense] = impl_->parameters[last];
@@ -4534,7 +4884,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body_words, iteration == 0U, fluid.body_impulses,
                     impl_->fluid_body_contact_flags,
                     options.collect_fluid_contacts, fluid.contact_samples,
-                    fluid.contact_flags);
+                    fluid.contact_flags, fluid_id, impl_->ids,
+                    impl_->paint_rule_count != 0U,
+                    impl_->paint_fields, impl_->options.paint_field_capacity,
+                    impl_->paint_rules, impl_->options.paint_rule_capacity);
                 fluid_reduce_body_impulses<<<impl_->rigid_body_count,
                                              block_size, 0, stream>>>(
                     fluid.body_impulses, fluid.count, impl_->parameters,
@@ -4560,7 +4913,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, body, particle_mass,
                     options.collect_fluid_contacts, fluid.contact_samples,
-                    fluid.contact_flags);
+                    fluid.contact_flags, fluid_id, impl_->ids[body],
+                    impl_->paint_rule_count != 0U,
+                    impl_->paint_fields, impl_->options.paint_field_capacity,
+                    impl_->paint_rules, impl_->options.paint_rule_capacity);
             }
             if (any_static_body) {
                 status = record_timing_stage(TimingStage::fluid_static_contacts);
@@ -4854,7 +5210,18 @@ Status World::collect_statistics(WorldStatistics &output,
             ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
         ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
         3U * sizeof(std::uint32_t) +
-        impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource);
+        impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource) +
+        impl_->options.paint_field_capacity * sizeof(PaintFieldResource) +
+        impl_->options.paint_rule_capacity * sizeof(PaintRuleResource);
+    for (std::uint32_t index = 0;
+         index < impl_->options.paint_field_capacity; ++index) {
+        const PaintFieldResource &field = impl_->paint_fields[index];
+        if (!field.alive) continue;
+        output.allocated_bytes +=
+            field.options.vertex_uvs.size * sizeof(Vec2) +
+            static_cast<std::size_t>(field.options.width) *
+                field.options.height * sizeof(std::uint32_t);
+    }
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {
         if (impl_->meshes[index].alive) {

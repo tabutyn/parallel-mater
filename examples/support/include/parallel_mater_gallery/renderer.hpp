@@ -44,6 +44,8 @@ class OptixRenderer {
     OptixRenderer &operator=(const OptixRenderer &) = delete;
 
     [[nodiscard]] static bool create(const SceneDefinition &scene,
+                                     const World &world,
+                                     const SceneInstance &instance,
                                      const std::filesystem::path &ptx_path,
                                      std::uint32_t width,
                                      std::uint32_t height,
@@ -59,7 +61,7 @@ class OptixRenderer {
                               FluidRenderMode fluid_mode =
                                   FluidRenderMode::surface);
 
-    // Advance render-only paint and foam during unrendered headless steps.
+    // Advance render-only foam during unrendered headless steps.
     [[nodiscard]] bool advance_visuals(const World &world,
                                        const SceneInstance &instance,
                                        std::string &error);
