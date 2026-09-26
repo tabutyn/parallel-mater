@@ -184,6 +184,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
             PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
             PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
+            PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
+            PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -255,6 +257,17 @@ if(BUILD_TESTING)
             PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb")
         add_test(NAME parallel-mater-cloth-tests COMMAND parallel-mater-cloth-tests)
         set_tests_properties(parallel-mater-cloth-tests
+            PROPERTIES SKIP_RETURN_CODE 77)
+        add_executable(parallel-mater-cloth-variants-tests
+            tests/gallery/cloth_variants_tests.cpp)
+        target_link_libraries(parallel-mater-cloth-variants-tests
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-cloth-variants-tests PRIVATE
+            PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
+            PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb")
+        add_test(NAME parallel-mater-cloth-variants-tests
+            COMMAND parallel-mater-cloth-variants-tests)
+        set_tests_properties(parallel-mater-cloth-variants-tests
             PROPERTIES SKIP_RETURN_CODE 77)
 
         add_executable(parallel-mater-material-visibility-tests
@@ -355,6 +368,31 @@ if(BUILD_TESTING)
                     --headless
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-test.ppm
                     --frames 180)
+        add_test(
+            NAME parallel-mater-cloth-tear-headless-test
+            COMMAND parallel-mater-gallery
+                    --cloth-tear
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-test.ppm
+                    --frames 180)
+        add_test(
+            NAME parallel-mater-cloth-tear-rolled-render-test
+            COMMAND parallel-mater-gallery
+                    --cloth-tear
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-rolled-test.ppm
+                    --frames 420
+                    --cloth-tilt-degrees 45
+                    --cloth-tilt-after-frames 120)
+        add_test(
+            NAME parallel-mater-cloth-paint-headless-test
+            COMMAND parallel-mater-gallery
+                    --cloth-paint
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-paint-test.ppm
+                    --frames 180)
+        set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
         add_test(
             NAME parallel-mater-peg-paint-containment-test
             COMMAND parallel-mater-gallery

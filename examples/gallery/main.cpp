@@ -34,6 +34,7 @@ using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::is_fluid_context;
+using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::OptixRenderer;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
@@ -63,6 +64,8 @@ struct Options {
     GalleryContext initial_context{GalleryContext::rigid_body};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
+    std::uint32_t headless_cloth_tilt_degrees{};
+    std::uint32_t headless_cloth_tilt_after_frames{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
 };
@@ -516,6 +519,16 @@ struct FluidEscapeTrace {
             output.initial_context = GalleryContext::peg_paint;
         } else if (argument == "--cloth") {
             output.initial_context = GalleryContext::cloth;
+        } else if (argument == "--cloth-tear") {
+            output.initial_context = GalleryContext::cloth_tear;
+        } else if (argument == "--cloth-paint") {
+            output.initial_context = GalleryContext::cloth_paint;
+        } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 1U, 45U,
+                             output.headless_cloth_tilt_degrees)) return false;
+        } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 0U, 100000U,
+                             output.headless_cloth_tilt_after_frames)) return false;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -526,8 +539,10 @@ struct FluidEscapeTrace {
             output.trace_fluid_escapes = true;
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth] "
+                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint] "
                          "[--fluid-particles N] "
+                         "[--cloth-tilt-degrees 1..45 (headless)] "
+                         "[--cloth-tilt-after-frames N (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
@@ -555,13 +570,19 @@ struct FluidEscapeTrace {
     if (context == GalleryContext::peg_paint)
         return {.target = {0.0F, -0.34F, 0.0F},
                 .distance_scale = 0.34F, .pitch = 0.72F};
-    if (context == GalleryContext::cloth)
+    if (is_cloth_context(context))
         return {.target = {0.0F, 1.1F, 1.2F},
                 .distance_scale = 0.55F, .pitch = 0.42F};
     if (is_fluid_context(context))
         return {.target = {-2.0F, -1.0F, -2.0F},
                 .distance_scale = 1.6F};
     return {};
+}
+
+[[nodiscard]] parallel_mater::Vec3 initial_scene_gravity(
+    GalleryContext context, float scale) {
+    (void)context;
+    return {0.0F, -k_gravity * scale, 0.0F};
 }
 
 void mouse_button(GLFWwindow *window, int button, int action, int modifiers) {
@@ -670,7 +691,7 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     if (context == GalleryContext::dump) {
         next.scene = parallel_mater::gallery::make_dump_scene(dump_spheres);
     } else if (context == GalleryContext::rigid_body ||
-               context == GalleryContext::cloth ||
+               is_cloth_context(context) ||
                is_fluid_context(context)) {
         const std::filesystem::path scene_path =
             context == GalleryContext::fluid
@@ -681,6 +702,10 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                     ? std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH)
                     : context == GalleryContext::cloth
                     ? std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH)
+                    : context == GalleryContext::cloth_tear
+                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH)
+                    : context == GalleryContext::cloth_paint
+                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH)
                     : options.scene;
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
@@ -696,6 +721,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     std::size_t paint_capacity = 0U;
     for (const auto &body : next.scene.rigid_bodies)
         if (body.paintable) paint_capacity += body.mesh_indices.size();
+    for (const auto &cloth : next.scene.cloths)
+        if (cloth.paintable) ++paint_capacity;
     if (next.scene.rigid_bodies.empty() ||
         next.scene.rigid_bodies.size() >
             std::numeric_limits<std::uint32_t>::max() ||
@@ -758,17 +785,21 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case GalleryContext::fluid_rigid: return 3;
     case GalleryContext::peg_paint: return 4;
     case GalleryContext::cloth: return 5;
+    case GalleryContext::cloth_tear: return 6;
+    case GalleryContext::cloth_paint: return 7;
     }
     return 0;
 }
 
 [[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 5)) {
+    switch (std::clamp(index, 0, 7)) {
     case 1: return GalleryContext::dump;
     case 2: return GalleryContext::fluid;
     case 3: return GalleryContext::fluid_rigid;
     case 4: return GalleryContext::peg_paint;
     case 5: return GalleryContext::cloth;
+    case 6: return GalleryContext::cloth_tear;
+    case 7: return GalleryContext::cloth_paint;
     default: return GalleryContext::rigid_body;
     }
 }
@@ -795,13 +826,22 @@ int main(int argc, char **argv) {
 
     const StepOptions step_options{.timestep = k_timestep,
                                    .substeps = 4U,
-                                   .gravity = {0.0F,
-                                       -k_gravity * runtime.scene.gravity_scale,
-                                       0.0F}};
+                                   .gravity = initial_scene_gravity(
+                                       runtime.context,
+                                       runtime.scene.gravity_scale)};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera.set_preset(camera_preset(runtime.context));
     if (!options.headless_output.empty()) {
+        StepOptions headless_step = step_options;
+        if (is_cloth_context(runtime.context) &&
+            options.headless_cloth_tilt_degrees != 0U) {
+            const float angle = static_cast<float>(
+                options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
+            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
+                                    -magnitude * std::sin(angle)};
+        }
         parallel_mater::Vec3 passive_minimum{}, passive_maximum{};
         FluidEscapeTrace escape_trace{};
         PassiveFloorIndex floor_index{};
@@ -855,7 +895,10 @@ int main(int argc, char **argv) {
                     return 1;
                 }
             }
-            if (!require(runtime.world.step(step_options),
+            StepOptions frame_step = headless_step;
+            if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
+                frame_step.gravity = step_options.gravity;
+            if (!require(runtime.world.step(frame_step),
                          "step headless gallery")) {
                 return 1;
             }
@@ -933,14 +976,18 @@ int main(int argc, char **argv) {
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
-        if (runtime.context == GalleryContext::peg_paint) {
+        if (runtime.context == GalleryContext::peg_paint ||
+            runtime.context == GalleryContext::cloth_paint) {
             std::uint64_t painted = 0U;
+            const std::uint64_t minimum =
+                runtime.context == GalleryContext::peg_paint ? 100U :
+                options.headless_cloth_tilt_degrees != 0U ? 1U : 0U;
             if (!runtime.renderer.paint_coverage(painted, error) ||
-                painted < 100U) {
-                std::cerr << "Peg paint coverage failed: " << error << '\n';
+                painted < minimum) {
+                std::cerr << "Paint coverage failed: " << error << '\n';
                 return 1;
             }
-            std::cout << "Painted rigid texels=" << painted << '\n';
+            std::cout << "Painted texels=" << painted << '\n';
         }
         if (runtime.instance.has_fluid && !options.fluid_particle_view)
             std::cout << "Fluid surface outliers="
@@ -955,6 +1002,22 @@ int main(int argc, char **argv) {
                              runtime.renderer.height(), error)) {
             std::cerr << "Render validation failed: " << error << '\n';
             return 1;
+        }
+        if (runtime.context == GalleryContext::cloth_tear) {
+            const auto *bytes = reinterpret_cast<const std::uint8_t *>(
+                pixels.data());
+            std::size_t cloth_pixels = 0U;
+            for (std::size_t index = 0U; index < pixels.size(); ++index) {
+                const unsigned red = bytes[4U * index];
+                const unsigned green = bytes[4U * index + 1U];
+                const unsigned blue = bytes[4U * index + 2U];
+                cloth_pixels += blue > red + 25U && blue > green + 20U;
+            }
+            std::cout << "Visible cloth pixels=" << cloth_pixels << '\n';
+            if (cloth_pixels < pixels.size() / 50U) {
+                std::cerr << "Cloth Tear render lost the sheet\n";
+                return 1;
+            }
         }
         if (!write_ppm(options.headless_output, pixels, runtime.renderer.width(),
                        runtime.renderer.height())) {
@@ -1010,8 +1073,8 @@ int main(int argc, char **argv) {
     float dump_angle = k_dump_initial_angle;
     parallel_mater::Vec3 peg_gravity{0.0F, -k_gravity *
         runtime.scene.gravity_scale, 0.0F};
-    parallel_mater::Vec3 cloth_gravity{0.0F, -k_gravity *
-        runtime.scene.gravity_scale, 0.0F};
+    parallel_mater::Vec3 cloth_gravity = initial_scene_gravity(
+        runtime.context, runtime.scene.gravity_scale);
     WorldStepTimings timings{};
     WorldStatistics statistics{};
     RendererTimings renderer_timings{};
@@ -1066,8 +1129,8 @@ int main(int argc, char **argv) {
                         runtime = std::move(replacement);
                         peg_gravity = {0.0F, -k_gravity *
                             runtime.scene.gravity_scale, 0.0F};
-                        cloth_gravity = {0.0F, -k_gravity *
-                            runtime.scene.gravity_scale, 0.0F};
+                        cloth_gravity = initial_scene_gravity(
+                            runtime.context, runtime.scene.gravity_scale);
                         if (fluid_dialog) fluid_particles = requested;
                         else dump_spheres = requested;
                         dump_angle = k_dump_initial_angle;
@@ -1098,7 +1161,7 @@ int main(int argc, char **argv) {
                     selected = std::max(0, selected - 1);
                 }
                 if (down_down && !down_was_down) {
-                    selected = std::min(5, selected + 1);
+                    selected = std::min(7, selected + 1);
                 }
                 context_selection = context_from_index(selected);
                 if (enter_down && !enter_was_down) {
@@ -1111,8 +1174,8 @@ int main(int argc, char **argv) {
                             runtime = std::move(replacement);
                             peg_gravity = {0.0F, -k_gravity *
                                 runtime.scene.gravity_scale, 0.0F};
-                            cloth_gravity = {0.0F, -k_gravity *
-                                runtime.scene.gravity_scale, 0.0F};
+                            cloth_gravity = initial_scene_gravity(
+                                runtime.context, runtime.scene.gravity_scale);
                             input_state.camera.set_preset(
                                 camera_preset(runtime.context));
                             dump_angle = k_dump_initial_angle;
@@ -1124,7 +1187,7 @@ int main(int argc, char **argv) {
                     }
                 }
             } else if (runtime.context != GalleryContext::rigid_body &&
-                       runtime.context != GalleryContext::cloth &&
+                       !is_cloth_context(runtime.context) &&
                        p_down && !p_was_down) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(
@@ -1140,8 +1203,8 @@ int main(int argc, char **argv) {
                     runtime = std::move(replacement);
                     peg_gravity = {0.0F, -k_gravity *
                         runtime.scene.gravity_scale, 0.0F};
-                    cloth_gravity = {0.0F, -k_gravity *
-                        runtime.scene.gravity_scale, 0.0F};
+                    cloth_gravity = initial_scene_gravity(
+                        runtime.context, runtime.scene.gravity_scale);
                     dump_angle = k_dump_initial_angle;
                     timings = {};
                     statistics = {};
@@ -1202,7 +1265,7 @@ int main(int argc, char **argv) {
             StepOptions interactive_step = step_options;
             interactive_step.gravity = {0.0F,
                 -k_gravity * runtime.scene.gravity_scale, 0.0F};
-            if (runtime.context == GalleryContext::cloth) {
+            if (is_cloth_context(runtime.context)) {
                 cloth_gravity = steer_gravity(
                     cloth_gravity, input_state.camera.camera(),
                     directional.x, -directional.z,
@@ -1268,7 +1331,7 @@ int main(int argc, char **argv) {
                 draw_fluid_timing_overlay(
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     timings, renderer_timings, statistics, fluid_particles);
-            else if (runtime.context == GalleryContext::cloth)
+            else if (is_cloth_context(runtime.context))
                 draw_cloth_timing_overlay(pixels, runtime.renderer.width(),
                                           runtime.renderer.height(), timings);
             else

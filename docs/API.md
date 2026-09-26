@@ -90,10 +90,28 @@ cloth positions and triangles are borrowed through `cloth_view` and reacquired
 after stepping. `ClothId` is generation checked like other resource handles.
 The cloth contact stage resolves vertices against rigid triangle BVHs and
 transfers equal-and-opposite impulses to dynamic bodies. A conservative
-triangle-side body constraint prevents fast bodies from crossing the sheet;
-its broad-phase rigid radius can overestimate non-spherical shapes, so a
+triangle-side body constraint prevents fast bodies from crossing intact,
+nonfracturing sheets. Fracturing cloth instead uses node contacts to let the
+body keep its incoming momentum while bonds fail; the conservative
+triangle-radius constraint otherwise holds it against the separating faces.
+The broad-phase rigid radius can overestimate non-spherical shapes, so a
 future exact deforming-mesh narrow phase remains possible without changing
 the API.
+Optional `break_strain > 0` enables persistent bond fracture: each stretch,
+shear, or bending bond has a stable ID, rest length, active state, and damage
+counter. A bond breaks after its extension exceeds `break_strain` for
+`fracture_persistence_substeps` consecutive substeps. Optional
+`impact_break_impulse > 0` also breaks bonds whose endpoint contact impulses
+exceed that threshold. Fracture never deletes a triangle. The constraint
+solver ignores broken tensile bonds and retains the original graph degree
+when normalizing corrections, avoiding a stiffness jump after fracture.
+For tearable cloth, `cloth_view` exposes triangle-local `surface_positions`,
+stable `surface_triangle_indices`, `surface_source_indices` for UV lookup,
+and `bonds`/`active_bonds` for diagnostics. A face whose bond fails remains
+attached to an intact edge or corner and keeps approximately its rest shape.
+The gallery renders that API-owned surface; rigid-body response on fracturing
+cloth uses physical node contacts, not a triangle-radius barrier. The gallery
+does not choose a cut shape.
 
 ## Fluid sources and contact paint
 
@@ -111,20 +129,24 @@ configured fluid capacity. Gallery scene loading uses the same public sampler
 to combine authored geometry volumes before instantiation.
 
 Contact paint is opt-in. `World::add_paint_field` attaches a persistent,
-two-sided UV mask to one rigid-body instance. Its paint mesh and UVs may differ
-from the body's collision proxy; both use the same body-local coordinates.
-`World::add_paint_rule` selects a source fluid and target field and sets extra
-reach beyond the fluid particle radius. During fluid–rigid triangle contact,
-the world projects each qualifying collision onto the paint mesh using its BVH
-and stamps one texel. It does not depend on diagnostic contact collection or
-on render frequency. `paint_field_view` exposes the device mask to any renderer;
+two-sided UV mask to one rigid-body instance or one cloth. Rigid paint meshes
+and UVs may differ from the body's collision proxy; cloth UVs correspond to
+its deforming vertices.
+`World::add_paint_rule` selects exactly one source: a fluid for a rigid target,
+or a rigid body for a cloth target. Fluid rules can set extra reach beyond the
+particle radius. Fluid–rigid contacts stamp one texel. Rigid–cloth contacts
+fill a world-space disk of UV texels using `brush_radius`, producing continuous
+marks as the body moves across deforming triangles. Paint does not depend on
+diagnostic contact
+collection or render frequency. `paint_field_view` exposes the device mask;
 bit 1 is the front side and bit 2 is the back side. `clear_paint_field` resets
 the mask. Render color and cubic filtering remain application choices.
 
-Remove rules before their source fluid or target field, and remove fields
-before their rigid body or paint mesh. The current transfer implementation is
-fluid-to-rigid; the field/rule boundary leaves other physics-domain transfers
-for a future extension rather than silently accepting unsupported pairs.
+Remove rules before their source fluid or rigid body or target field, and
+remove fields before their target rigid body, paint mesh, or cloth. Rigid bodies
+and deforming cloth exchange contact impulses while paint remains owned by the
+world; the gallery only selects color and filtering. Painting does not require
+or enable cloth tearing.
 
 ## Stepping and CUDA streams
 

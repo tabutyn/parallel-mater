@@ -121,13 +121,29 @@ pass.
 - Test authored pin count, zero pin drift, free-vertex movement, rigid
   containment, and headless rendering.
 
-## PR 9 — Gallery game shell
+## PR 10 — Cloth tear and cloth paint variations
+
+- Add API-owned persistent bond fracture from sustained strain or rigid
+  contact impulses. Preserve every triangle with face-local surface corners
+  that separate when their supporting bonds fail.
+- Derive `ClothTear.blend` from the original-sized pinned sheet with a heavier
+  ball at its original position and friction. Gravity starts down in every
+  cloth scene: verify the ball lands without breaking bonds, then rolls under
+  steered gravity through the fractured sheet without a prolonged stop. A
+  no-impact control does not fracture, and surviving surface faces stay close
+  to their rest shapes.
+- Derive `ClothPaint.blend` from the authored `Cloth.blend`: retain its pinned
+  rows and active rigid sphere, enable cloth UV painting, and keep the cloth
+  intact. Rigid–cloth contact and filled-disk texel stamping belong to `World`.
+- Add headless and GPU scene tests for both variations.
+
+## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
 - Add objectives, scene selection, controls, and save data outside the library.
 - Add the obstacle-bowl scene.
 
-## PR 10 — Water rendering portability
+## Later — Water rendering portability
 
 - Build a raster fallback for the PR 7 OptiX surface renderer, without changing
   the installed physics API.

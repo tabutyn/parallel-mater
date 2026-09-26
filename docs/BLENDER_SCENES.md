@@ -73,6 +73,7 @@ The generated metadata is:
 | `pm_friction`, `pm_restitution` | Blender rigid-body material |
 | `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
 | `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
+| `pm_initial_velocity` | Optional 3-component Blender-space custom property for a rigid body's initial linear velocity |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
 | `pm_paintable` | Optional Boolean source custom property; gallery registers a persistent API paint field and fluid-to-rigid rule for that body |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
@@ -135,9 +136,9 @@ vertices are distinct solver particles even when they receive the same pin.
 
 The gallery creates the cloth through `World::add_cloth` and updates its
 OptiX triangles each frame. The scene also contains the authored passive box
-and active sphere. In the Cloth gallery entry, gravity starts straight down.
-Arrow keys steer it camera-relatively within a 45-degree tilt, returning to
-straight down when released.
+and active sphere. All three Cloth gallery entries start with gravity straight
+down. Arrow keys steer it camera-relatively within a 45-degree tilt, returning
+to straight down when released.
 The API advances rigid bodies and cloth together at each substep. Cloth vertex
 velocity damping (`ClothOptions::velocity_damping`, default 5/s) and
 tangential contact friction (`contact_friction`, default 0.4) are configurable.
@@ -146,6 +147,27 @@ bodies shed tangential friction and are free to escape; cloth-side impulses
 are limited to avoid local vertex pops.
 Run `--cloth` for headless output or select Cloth with `Tab`; `R` resets it and
 `F` shows rigid/cloth timings.
+
+`ClothTear.blend` derives from the same sheet, authoring
+`pm_break_strain = 0.96`, 16 persistent substeps,
+`pm_impact_break_impulse = 0.001`, zero stretch compliance, and 24 solver
+iterations. The sheet retains its original size. The 35 kg rigid sphere keeps
+its original position and ground friction, so it falls first and can then be
+rolled into the sheet with arrow-key gravity. The API breaks loaded bonds and
+separates triangle-local surface faces without deleting them; the gallery does
+not decide which bonds fail.
+
+`ClothPaint.blend` derives from the supplied `Cloth.blend`. It retains the pinned
+top and bottom rows and the active rigid sphere, authors `pm_paintable = true`,
+a 128×128 paint mask, `pm_paint_source` naming that sphere, and a 0.18-unit
+world-space paint brush radius. The sphere has an authored forward velocity
+so it can contact the cloth while gravity remains straight down. The gallery
+binds the cloth UVs to a `World` paint field and registers a rigid-to-cloth
+paint rule. Rigid–cloth collision and disk-shaped texel stamping are in the API;
+the gallery chooses blue and cubic filtering, while the variant has a neutral
+dry material so contact marks are visible. The cloth remains intact.
+The derivation script `tools/blender/make_cloth_variants.py` preserves the
+original `.blend` file.
 
 ## Liquid Flow scene
 
