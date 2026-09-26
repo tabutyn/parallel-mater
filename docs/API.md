@@ -90,8 +90,11 @@ cloth positions and triangles are borrowed through `cloth_view` and reacquired
 after stepping. `ClothId` is generation checked like other resource handles.
 The cloth contact stage resolves vertices against rigid triangle BVHs and
 transfers equal-and-opposite impulses to dynamic bodies. A conservative
-triangle-side body constraint prevents fast bodies from crossing the sheet;
-its broad-phase rigid radius can overestimate non-spherical shapes, so a
+triangle-side body constraint prevents fast bodies from crossing intact,
+nonfracturing sheets. Fracturing cloth instead uses node contacts to let the
+body keep its incoming momentum while bonds fail; the conservative
+triangle-radius constraint otherwise holds it against the separating faces.
+The broad-phase rigid radius can overestimate non-spherical shapes, so a
 future exact deforming-mesh narrow phase remains possible without changing
 the API.
 Optional `break_strain > 0` enables persistent bond fracture: each stretch,
@@ -106,8 +109,9 @@ For tearable cloth, `cloth_view` exposes triangle-local `surface_positions`,
 stable `surface_triangle_indices`, `surface_source_indices` for UV lookup,
 and `bonds`/`active_bonds` for diagnostics. A face whose bond fails remains
 attached to an intact edge or corner and keeps approximately its rest shape.
-Rigid contact uses that separated surface. The gallery only supplies authored
-settings and renders the API-owned surface; it does not choose a cut shape.
+The gallery renders that API-owned surface; rigid-body response on fracturing
+cloth uses physical node contacts, not a triangle-radius barrier. The gallery
+does not choose a cut shape.
 
 ## Fluid sources and contact paint
 

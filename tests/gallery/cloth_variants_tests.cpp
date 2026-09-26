@@ -156,7 +156,9 @@ bool run_tear() {
         return false;
     const std::size_t settled_broken = broken_bonds();
     int first_break_frame = -1;
+    int first_pass_frame = -1;
     float first_break_body_z = INFINITY;
+    float first_pass_velocity_z = 0.0F;
     float remote_max_ratio = 0.0F, contact_max_ratio = 0.0F;
     std::vector<Vec3> physical(view.vertex_count);
     for (int frame = 0; frame < 300; ++frame) {
@@ -170,6 +172,10 @@ bool run_tear() {
             cudaMemcpy(physical.data(), view.positions.data,
                        physical.size() * sizeof(Vec3),
                        cudaMemcpyDeviceToHost) != cudaSuccess) return false;
+        if (first_pass_frame < 0 && sampled_body.position.z < -0.5F) {
+            first_pass_frame = frame;
+            first_pass_velocity_z = sampled_body.linear_velocity.z;
+        }
         for (std::size_t base = 0U; base < mesh.indices.size(); base += 3U)
             for (std::size_t edge = 0U; edge < 3U; ++edge) {
                 const auto a = mesh.indices[base + edge];
@@ -220,6 +226,8 @@ bool run_tear() {
               << " retained_triangles=" << indices.size() / 3U
               << " first_break_frame=" << first_break_frame
               << " first_break_body_z=" << first_break_body_z
+              << " first_pass_frame=" << first_pass_frame
+              << " first_pass_velocity_z=" << first_pass_velocity_z
               << " remote_max_ratio=" << remote_max_ratio
               << " contact_max_ratio=" << contact_max_ratio
               << " remaining_max_edge_ratio=" << maximum_ratio
@@ -261,6 +269,9 @@ bool run_tear() {
     return length(initial_body.linear_velocity, {}) < 1.0e-5F &&
            settled_broken == 0U && first_break_frame >= 0 &&
            first_break_body_z < 1.0F && broken > 0U &&
+           first_pass_frame > first_break_frame &&
+           first_pass_frame - first_break_frame <= 24 &&
+           first_pass_velocity_z < -1.0F &&
            broken < bonds.size() / 3U && baseline_broken == 0U &&
            initial_body.position.y > settled_body.position.y &&
            std::abs(settled_body.position.z - initial_body.position.z) < 0.2F &&

@@ -3041,37 +3041,10 @@ __global__ void cloth_collide(
     }
 }
 
-// A tearable sheet exposes local strain by moving every contacted node out
-// of the rigid collider before sampling bond failure. Limiting each substep
-// correction avoids the large one-node kicks that destabilize a torn sheet.
-__global__ void cloth_project_nodes_from_rigid(
-    Vec3 *positions, const float *inverse_masses, std::uint32_t count,
-    float thickness, const BodyParameters *parameters,
-    const RigidBodyState *states, const TriangleMeshResource *meshes,
-    std::uint32_t body_count) {
-    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
-    if (vertex >= count || inverse_masses[vertex] == 0.0F) return;
-    Vec3 position = positions[vertex];
-    for (std::uint32_t body = 0U; body < body_count; ++body) {
-        const BodyParameters params = parameters[body];
-        if (params.motion != MotionType::dynamic) continue;
-        const TriangleMeshResource mesh = meshes[params.mesh.index];
-        const Vec3 center = transform_point(states[body], mesh.bounding_center);
-        const Vec3 delta = subtract(position, center);
-        const float distance = vector_length(delta);
-        const float radius = mesh.bounding_radius +
-            params.collision_margin + thickness;
-        if (distance >= radius) continue;
-        const Vec3 normal = normalized_or(delta, {0.0F, 0.0F, -1.0F});
-        position = add(position, multiply(normal,
-            fminf(radius - distance, 0.75F * thickness)));
-    }
-    positions[vertex] = position;
-}
-
 // The vertex-side contact above deforms the sheet and transfers momentum.
 // A second, triangle-side constraint keeps a fast rigid collider from slipping
-// between cloth vertices. The broad-phase sphere is conservative for any mesh.
+// between intact, nonfracturing cloth vertices. The broad-phase sphere is
+// conservative for any mesh; tearable cloth uses node contacts instead.
 __device__ __noinline__ void stamp_rigid_cloth_paint(
     RigidBodyId rigid_id, ClothId cloth_id, Vec3 center, Vec3 contact,
     const Vec3 *positions, const std::uint32_t *indices,
@@ -3148,7 +3121,6 @@ __device__ __noinline__ void stamp_rigid_cloth_paint(
 __global__ void cloth_constrain_bodies(
     const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
     const std::uint32_t *cloth_indices, const Vec3 *surface_positions,
-    const std::uint32_t *triangle_bonds, const std::uint8_t *bond_active,
     const float *cloth_inverse_masses, std::uint32_t vertex_count,
     std::uint32_t triangle_count, float thickness, float dt,
     float contact_friction,
@@ -3220,21 +3192,19 @@ __global__ void cloth_constrain_bodies(
     const std::uint32_t a = cloth_indices[first];
     const std::uint32_t b = cloth_indices[first + 1U];
     const std::uint32_t c = cloth_indices[first + 2U];
-    const bool fractured_contact = triangle_bonds != nullptr &&
-        (bond_active[triangle_bonds[first]] == 0U ||
-         bond_active[triangle_bonds[first + 1U]] == 0U ||
-         bond_active[triangle_bonds[first + 2U]] == 0U);
     if (rule_capacity != 0U)
         stamp_rigid_cloth_paint(body_ids[body_index], cloth_id, center,
             best_contact, cloth_positions, cloth_indices, triangle_count,
             paint_fields, field_capacity, paint_rules, rule_capacity);
+    // Fracturing cloth follows the node-contact response: the conservative
+    // triangle-radius constraint otherwise cancels the body's incoming speed
+    // on every substep while bonds fail. Keep the triangle query for paint.
+    if (surface_positions != nullptr) return;
     const float free_fraction =
         ((cloth_inverse_masses[a] > 0.0F ? 1.0F : 0.0F) +
          (cloth_inverse_masses[b] > 0.0F ? 1.0F : 0.0F) +
          (cloth_inverse_masses[c] > 0.0F ? 1.0F : 0.0F)) / 3.0F;
-    // Broken bonds let the contacted patch yield instead of treating a
-    // lightweight cloth node as half of a heavy rigid body's position solve.
-    const float cloth_share = fractured_contact ? 0.9F : 0.5F;
+    constexpr float cloth_share = 0.5F;
     const float cloth_shift = cloth_share * best_penetration;
     const Vec3 arm = subtract(best_contact, state.position);
     const float incoming = dot(state.linear_velocity, best_normal);
@@ -3242,8 +3212,7 @@ __global__ void cloth_constrain_bodies(
     // The conservative body-radius constraint must remove inward center
     // velocity even if spin makes the contact-point velocity nearly zero.
     const float normal_impulse = incoming < 0.0F && body.inverse_mass > 0.0F
-        ? -incoming / body.inverse_mass *
-            (fractured_contact ? 0.1F : 1.0F) : 0.0F;
+        ? -incoming / body.inverse_mass : 0.0F;
     const float support_radius = fmaxf(0.15F, mesh.bounding_radius * 0.8F);
     const float inverse_support_squared = 1.0F /
         (support_radius * support_radius);
@@ -5540,12 +5509,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, impl_->rigid_body_count,
                     cloth.body_impulses, impl_->fluid_body_contact_flags);
-                if (cloth.surface_positions != nullptr)
-                    cloth_project_nodes_from_rigid<<<blocks, block_size, 0,
-                        stream>>>(cloth.positions, cloth.inverse_masses,
-                        cloth.vertex_count, cloth.thickness,
-                        impl_->parameters, impl_->states[impl_->current_state],
-                        impl_->meshes, impl_->rigid_body_count);
                 fluid_reduce_body_impulses<<<impl_->rigid_body_count,
                                              block_size, 0, stream>>>(
                     cloth.body_impulses, cloth.count, impl_->parameters,
@@ -5562,8 +5525,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 }
                 cloth_constrain_bodies<<<block_count, block_size, 0, stream>>>(
                     cloth.positions, cloth.velocities, cloth.indices,
-                    cloth.surface_positions, cloth.triangle_bonds,
-                    cloth.bond_active,
+                    cloth.surface_positions,
                     cloth.inverse_masses,
                     cloth.vertex_count, cloth.index_count / 3U,
                     cloth.thickness, substep_timestep,

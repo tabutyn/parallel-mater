@@ -129,8 +129,9 @@ pass.
 - Derive `ClothTear.blend` from the original-sized pinned sheet with a heavier
   ball at its original position and friction. Gravity starts down in every
   cloth scene: verify the ball lands without breaking bonds, then rolls under
-  steered gravity through the fractured sheet. A no-impact control does not
-  fracture, and surviving surface faces stay close to their rest shapes.
+  steered gravity through the fractured sheet without a prolonged stop. A
+  no-impact control does not fracture, and surviving surface faces stay close
+  to their rest shapes.
 - Derive `ClothPaint.blend` from the authored `Cloth.blend`: retain its pinned
   rows and active rigid sphere, enable cloth UV painting, and keep the cloth
   intact. Rigid–cloth contact and filled-disk texel stamping belong to `World`.
