@@ -157,12 +157,32 @@ int main() {
     ClothDeviceView cloth_view;
     if (!require(world.cloth_view(instance.cloths[0], cloth_view), "cloth view"))
         return 1;
+    if (cloth_view.rigid_contact_forces.size != cloth_view.vertex_count ||
+        cloth_view.fluid_contact_forces.size != cloth_view.vertex_count) {
+        std::cerr << "cloth coupling diagnostics are not exposed per vertex\n";
+        return 1;
+    }
     std::vector<std::uint32_t> indices(cloth_view.triangle_indices.size);
     std::vector<Vec3> cloth(cloth_view.positions.size);
     cudaMemcpy(indices.data(), cloth_view.triangle_indices.data,
                indices.size() * sizeof(std::uint32_t), cudaMemcpyDeviceToHost);
     cudaMemcpy(cloth.data(), cloth_view.positions.data,
                cloth.size() * sizeof(Vec3), cudaMemcpyDeviceToHost);
+    std::vector<Vec3> rigid_forces(cloth_view.rigid_contact_forces.size);
+    std::vector<Vec3> fluid_forces(cloth_view.fluid_contact_forces.size);
+    cudaMemcpy(rigid_forces.data(), cloth_view.rigid_contact_forces.data,
+               rigid_forces.size() * sizeof(Vec3), cudaMemcpyDeviceToHost);
+    cudaMemcpy(fluid_forces.data(), cloth_view.fluid_contact_forces.data,
+               fluid_forces.size() * sizeof(Vec3), cudaMemcpyDeviceToHost);
+    const auto finite = [](Vec3 value) {
+        return std::isfinite(value.x) && std::isfinite(value.y) &&
+               std::isfinite(value.z);
+    };
+    if (!std::all_of(rigid_forces.begin(), rigid_forces.end(), finite) ||
+        !std::all_of(fluid_forces.begin(), fluid_forces.end(), finite)) {
+        std::cerr << "cloth coupling diagnostics contain nonfinite forces\n";
+        return 1;
+    }
     const float initial_signed_volume = signed_volume(cloth, indices);
     const float initial_volume = std::fabs(initial_signed_volume);
     const float orientation = initial_signed_volume < 0.0F ? -1.0F : 1.0F;

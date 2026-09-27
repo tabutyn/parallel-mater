@@ -55,6 +55,20 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
     std::uint32_t height, RigidContactDeviceView contacts, Camera camera,
     std::string &error);
 
+struct ClothDebugOptions {
+    bool normals{};
+    bool rigid_contact_forces{};
+    bool fluid_contact_forces{};
+    bool wireframe{};
+};
+
+// Shared cloth diagnostics. Data comes directly from ClothDeviceView so any
+// client renderer can reproduce the gallery's Z/X/C/V inspection modes.
+[[nodiscard]] bool draw_cloth_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, ClothDeviceView cloth, Camera camera,
+    ClothDebugOptions options, std::string &error);
+
 // Fluid loads the Blender-authored Flow scene. Gallery navigation belongs to
 // examples, not World.
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,

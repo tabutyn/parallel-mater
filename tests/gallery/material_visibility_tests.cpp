@@ -3,6 +3,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -119,6 +120,48 @@ int main() {
         scene.meshes[0].visible = true;
         require(hidden != render(scene),
                 "opaque control must cover the lower floor");
+
+        SceneDefinition water_cloth;
+        require(load_glb_scene(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH,
+                               water_cloth, error),
+                "load ClothWater: " + error);
+        const std::size_t water_mesh_capacity = water_cloth.meshes.size() +
+            water_cloth.collision_meshes.size() + water_cloth.meshes.size();
+        World water_world;
+        require(World::create({
+            .fluid_capacity = 1U,
+            .rigid_body_capacity = static_cast<std::uint32_t>(
+                std::max<std::size_t>(1U, water_cloth.rigid_bodies.size())),
+            .triangle_mesh_capacity = static_cast<std::uint32_t>(
+                water_mesh_capacity),
+            .cloth_capacity = 1U,
+            .fluid_cloth_coupling_capacity = 1U}, water_world));
+        SceneInstance water_instance;
+        require(instantiate_scene(water_cloth, water_world, water_instance));
+        for (int frame = 0; frame < 10; ++frame)
+            require(water_world.step({}));
+        const auto render_water = [&](SceneDefinition definition,
+                                      FluidRenderMode mode) {
+            OptixRenderer renderer;
+            require(OptixRenderer::create(
+                definition, water_world, water_instance,
+                PARALLEL_MATER_OPTIX_PTX_PATH, 96U, 96U, renderer, error),
+                error);
+            std::vector<std::uint32_t> image;
+            require(renderer.render(water_world, water_instance, camera,
+                                    image, error, nullptr, mode), error);
+            return image;
+        };
+        const auto transparent = render_water(
+            water_cloth, FluidRenderMode::surface);
+        SceneDefinition opaque_cloth = water_cloth;
+        opaque_cloth.cloths[0].contains_fluid = false;
+        require(transparent != render_water(
+                    opaque_cloth, FluidRenderMode::surface),
+                "contained-fluid cloth must use the transparent skin layer");
+        require(transparent != render_water(
+                    water_cloth, FluidRenderMode::wireframe),
+                "wireframe mode must hide the transparent skin and show particles");
 
         std::cout << "Material alpha import, rendering, and collisions passed\n";
         return 0;

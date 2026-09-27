@@ -173,16 +173,18 @@ extern "C" __global__ void __raygen__primary() {
     unsigned int blue = __float_as_uint(0.0F);
     unsigned int depth = __float_as_uint(1.0e16F);
     optixTrace(params.scene, params.eye, direction, 0.001F, 1.0e16F, 0.0F,
-               OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT, 0, 1, 0,
+               OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT, 0, 1, 0,
                red, green, blue, depth);
-    float3 color = make_float3(__uint_as_float(red), __uint_as_float(green),
-                               __uint_as_float(blue));
+    const float3 opaque_color = make_float3(
+        __uint_as_float(red), __uint_as_float(green), __uint_as_float(blue));
+    float3 color = opaque_color;
     float visible_depth = __uint_as_float(depth);
     params.rigid_depth[launch.y * params.width + launch.x] = visible_depth;
     float water_depth = 0.0F;
     float3 normal{};
-    if (trace_surface(params.fluid, params.eye, direction, visible_depth,
-                      water_depth, normal)) {
+    const bool water_hit = trace_surface(
+        params.fluid, params.eye, direction, visible_depth, water_depth, normal);
+    if (water_hit) {
         if (dot(normal, direction) > 0.0F) normal = multiply(normal, -1.0F);
         const float facing = fmaxf(0.0F, -dot(normal, direction));
         const float fresnel = 0.02037F +
@@ -196,7 +198,7 @@ extern "C" __global__ void __raygen__primary() {
         unsigned int rd = __float_as_uint(1.0e16F);
         optixTrace(params.scene, add(point, multiply(reflected, 0.002F)),
                    reflected, 0.001F, 1.0e16F, 0.0F,
-                   OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                   OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
                    0, 1, 0, rr, rg, rb, rd);
         const float3 reflection = make_float3(__uint_as_float(rr),
                                                __uint_as_float(rg),
@@ -215,7 +217,7 @@ extern "C" __global__ void __raygen__primary() {
             unsigned int td = __float_as_uint(1.0e16F);
             optixTrace(params.scene, add(point, multiply(refracted, 0.002F)),
                        refracted, 0.001F, 1.0e16F, 0.0F,
-                       OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                       OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
                        0, 1, 0, tr, tg, tb, td);
             transmission = make_float3(__uint_as_float(tr), __uint_as_float(tg),
                                         __uint_as_float(tb));
@@ -239,6 +241,74 @@ extern "C" __global__ void __raygen__primary() {
                              0.38F * glint +
                              0.055F * powf(1.0F - facing, 2.0F)));
         visible_depth = water_depth;
+    }
+    if (params.show_transparent_skin != 0U) {
+        unsigned int nr = __float_as_uint(0.0F);
+        unsigned int ng = __float_as_uint(0.0F);
+        unsigned int nb = __float_as_uint(0.0F);
+        unsigned int sd = __float_as_uint(1.0e16F);
+        optixTrace(params.scene, params.eye, direction, 0.001F, 1.0e16F, 0.0F,
+                   OptixVisibilityMask(2), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                   0, 1, 0, nr, ng, nb, sd);
+        const float skin_depth = __uint_as_float(sd);
+        if (skin_depth < 1.0e15F) {
+            float3 skin_normal = normalize(make_float3(
+                __uint_as_float(nr), __uint_as_float(ng), __uint_as_float(nb)));
+            if (dot(skin_normal, direction) > 0.0F)
+                skin_normal = multiply(skin_normal, -1.0F);
+            const float facing = fmaxf(0.0F, -dot(skin_normal, direction));
+            const float fresnel = 0.02037F +
+                0.97963F * powf(1.0F - facing, 5.0F);
+            const float3 point = add(params.eye,
+                                     multiply(direction, skin_depth));
+            const float3 reflected = normalize(subtract(
+                direction, multiply(skin_normal,
+                                    2.0F * dot(direction, skin_normal))));
+            unsigned int rr = __float_as_uint(0.0F);
+            unsigned int rg = __float_as_uint(0.0F);
+            unsigned int rb = __float_as_uint(0.0F);
+            unsigned int rd = __float_as_uint(1.0e16F);
+            optixTrace(params.scene, add(point, multiply(reflected, 0.002F)),
+                       reflected, 0.001F, 1.0e16F, 0.0F,
+                       OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                       0, 1, 0, rr, rg, rb, rd);
+            const float3 reflection = make_float3(
+                __uint_as_float(rr), __uint_as_float(rg), __uint_as_float(rb));
+
+            // Estimate the closed skin thickness along this ray. The skin is
+            // a transparent render layer; it never participates in opaque
+            // visibility or changes the collision representation.
+            unsigned int er = __float_as_uint(0.0F);
+            unsigned int eg = __float_as_uint(0.0F);
+            unsigned int eb = __float_as_uint(0.0F);
+            unsigned int ed = __float_as_uint(1.0e16F);
+            optixTrace(params.scene, add(point, multiply(direction, 0.002F)),
+                       direction, 0.001F, 1.0e16F, 0.0F,
+                       OptixVisibilityMask(2), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+                       0, 1, 0, er, eg, eb, ed);
+            const float exit_depth = __uint_as_float(ed);
+            const float path = exit_depth < 1.0e15F
+                ? fminf(3.0F, fmaxf(0.02F, exit_depth)) : 0.25F;
+            const float3 absorption = make_float3(
+                expf(-0.22F * path), expf(-0.075F * path),
+                expf(-0.035F * path));
+            const float3 tint = make_float3(0.02F, 0.22F, 0.30F);
+            const float3 transmission = add(
+                make_float3(opaque_color.x * absorption.x,
+                            opaque_color.y * absorption.y,
+                            opaque_color.z * absorption.z),
+                multiply(tint, 1.0F - absorption.x));
+            const float3 skin_color = add(
+                add(multiply(reflection, fresnel),
+                    multiply(transmission, 1.0F - fresnel)),
+                multiply(make_float3(0.22F, 0.55F, 0.72F),
+                         0.12F * powf(1.0F - facing, 2.0F)));
+            if (water_hit && skin_depth < water_depth)
+                color = add(multiply(skin_color, 0.20F),
+                            multiply(color, 0.80F));
+            else if (skin_depth < visible_depth)
+                color = skin_color;
+        }
     }
     params.image[launch.y * params.width + launch.x] =
         make_uchar4(to_byte(color.x), to_byte(color.y), to_byte(color.z), 255U);
@@ -276,6 +346,10 @@ extern "C" __global__ void __closesthit__surface() {
     const float3 ray_direction = normalize(optixGetWorldRayDirection());
     if (dot(normal, ray_direction) > 0.0F) {
         normal = multiply(normal, -1.0F);
+    }
+    if (hit_data.transparent_skin != 0U) {
+        set_payload(normal);
+        return;
     }
     const float3 hit_point =
         add(optixGetWorldRayOrigin(),

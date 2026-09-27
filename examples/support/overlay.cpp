@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string_view>
+#include <type_traits>
 
 namespace parallel_mater::gallery {
 namespace {
@@ -445,6 +446,115 @@ bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, 28, static_cast<int>(height) - 35,
          "RED CONTACT  GREEN NORMAL  ORANGE FRICTION", {235, 240, 245, 255},
          1);
+    return true;
+}
+
+bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
+                              std::uint32_t width, std::uint32_t height,
+                              ClothDeviceView cloth, Camera camera,
+                              ClothDebugOptions options, std::string &error) {
+    error.clear();
+    const auto copy = [&](auto span, auto &host, const char *label) {
+        using Value = typename std::decay_t<decltype(host)>::value_type;
+        host.resize(span.size);
+        if (host.empty()) return true;
+        const cudaError_t result = cudaMemcpy(
+            host.data(), span.data, host.size() * sizeof(Value),
+            cudaMemcpyDeviceToHost);
+        if (result == cudaSuccess) return true;
+        error = std::string("copy ") + label + ": " +
+                cudaGetErrorString(result);
+        return false;
+    };
+    std::vector<Vec3> positions;
+    std::vector<std::uint32_t> triangles;
+    if (!copy(cloth.positions, positions, "cloth positions") ||
+        !copy(cloth.triangle_indices, triangles, "cloth triangles"))
+        return false;
+    if (triangles.size() % 3U != 0U) {
+        error = "cloth debug triangle index count is not divisible by three";
+        return false;
+    }
+    if (options.wireframe) {
+        const Color wire{26, 230, 255, 225};
+        for (std::size_t triangle = 0U; triangle < triangles.size();
+             triangle += 3U) {
+            const std::uint32_t indices[3]{triangles[triangle],
+                triangles[triangle + 1U], triangles[triangle + 2U]};
+            if (indices[0] >= positions.size() ||
+                indices[1] >= positions.size() ||
+                indices[2] >= positions.size()) {
+                error = "cloth debug triangle index is out of range";
+                return false;
+            }
+            for (int edge = 0; edge < 3; ++edge) {
+                const ScreenPoint first = project(
+                    positions[indices[edge]], camera, width, height);
+                const ScreenPoint second = project(
+                    positions[indices[(edge + 1) % 3]], camera, width, height);
+                if (first.visible && second.visible)
+                    line(rgba, width, height, first.x, first.y,
+                         second.x, second.y, wire);
+            }
+        }
+    }
+    std::vector<Vec3> normals;
+    if (options.normals) {
+        normals.assign(positions.size(), {});
+        for (std::size_t triangle = 0U; triangle < triangles.size();
+             triangle += 3U) {
+            const std::uint32_t a = triangles[triangle];
+            const std::uint32_t b = triangles[triangle + 1U];
+            const std::uint32_t c = triangles[triangle + 2U];
+            if (a >= positions.size() || b >= positions.size() ||
+                c >= positions.size()) continue;
+            const Vec3 face = cross(subtract(positions[b], positions[a]),
+                                    subtract(positions[c], positions[a]));
+            normals[a] = add(normals[a], face);
+            normals[b] = add(normals[b], face);
+            normals[c] = add(normals[c], face);
+        }
+        for (Vec3 &normal : normals) normal = normalized(normal);
+    }
+    const auto draw_vectors = [&](const std::vector<Vec3> &vectors,
+                                  float fixed_length, Color color) {
+        const std::size_t count = std::min(positions.size(), vectors.size());
+        for (std::size_t index = 0U; index < count; ++index) {
+            const float magnitude = length(vectors[index]);
+            if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) continue;
+            const float arrow_length = fixed_length > 0.0F
+                ? fixed_length
+                : std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+            const Vec3 endpoint = add(
+                positions[index], multiply(vectors[index],
+                                            arrow_length / magnitude));
+            arrow(rgba, width, height,
+                  project(positions[index], camera, width, height),
+                  project(endpoint, camera, width, height), color);
+        }
+    };
+    if (options.normals)
+        draw_vectors(normals, 0.065F, {31, 255, 56, 242});
+    if (options.rigid_contact_forces) {
+        std::vector<Vec3> forces;
+        if (!copy(cloth.rigid_contact_forces, forces,
+                  "cloth rigid contact forces")) return false;
+        draw_vectors(forces, 0.0F, {31, 122, 255, 242});
+    }
+    if (options.fluid_contact_forces) {
+        std::vector<Vec3> forces;
+        if (!copy(cloth.fluid_contact_forces, forces,
+                  "cloth fluid contact forces")) return false;
+        draw_vectors(forces, 0.0F, {255, 219, 20, 242});
+    }
+    if (options.normals || options.rigid_contact_forces ||
+        options.fluid_contact_forces || options.wireframe) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 42,
+                  620, static_cast<int>(height) - 14, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 35,
+             "Z NORMAL  X RIGID FORCE  C FLUID FORCE  V WIREFRAME",
+             {235, 240, 245, 255}, 1);
+    }
     return true;
 }
 

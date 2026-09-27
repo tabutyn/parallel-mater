@@ -193,6 +193,9 @@ struct RenderBinding {
     unsigned int visibility_mask{255U};
 };
 
+constexpr unsigned int k_opaque_visibility = 1U;
+constexpr unsigned int k_transparent_skin_visibility = 2U;
+
 constexpr std::uint32_t k_cloth_binding =
     std::numeric_limits<std::uint32_t>::max();
 
@@ -335,6 +338,7 @@ struct OptixRenderer::Impl {
     std::vector<float> host_rigid_depth{};
     std::unique_ptr<FluidSurface> fluid_surface{};
     FoamVisuals foam_visuals{};
+    bool has_transparent_skin{};
     OptixTraversableHandle scene_handle{};
     std::size_t instance_scratch_build_size{};
     std::size_t instance_scratch_update_size{};
@@ -548,12 +552,19 @@ struct OptixRenderer::Impl {
             states.push_back(body.options.initial_state);
             for (const std::uint32_t mesh_index : body.mesh_indices) {
                 bindings.push_back({body_index, mesh_index,
-                    scene.meshes[mesh_index].visible ? 255U : 0U});
+                    scene.meshes[mesh_index].visible
+                        ? k_opaque_visibility : 0U});
             }
         }
-        for (const ClothDefinition &cloth : scene.cloths)
+        for (const ClothDefinition &cloth : scene.cloths) {
+            has_transparent_skin = has_transparent_skin ||
+                (scene.meshes[cloth.mesh_index].visible &&
+                 cloth.contains_fluid);
             bindings.push_back({k_cloth_binding, cloth.mesh_index,
-                scene.meshes[cloth.mesh_index].visible ? 255U : 0U});
+                !scene.meshes[cloth.mesh_index].visible ? 0U :
+                cloth.contains_fluid ? k_transparent_skin_visibility :
+                                       k_opaque_visibility});
+        }
         std::vector<OptixInstance> authored_instances = make_instances(states);
         instances.upload(authored_instances);
 
@@ -632,6 +643,9 @@ struct OptixRenderer::Impl {
             }
             hits[index].data.base_color = make_float(mesh.base_color);
             hits[index].data.checkerboard = mesh.checkerboard ? 1U : 0U;
+            hits[index].data.transparent_skin =
+                bindings[index].visibility_mask ==
+                    k_transparent_skin_visibility ? 1U : 0U;
         }
         hit_records.upload(hits);
         shader_binding_table = {};
@@ -789,6 +803,7 @@ struct OptixRenderer::Impl {
     }
 
     void render(Camera camera, optix_shared::FluidSurfaceView fluid,
+                bool show_transparent_skin,
                 std::vector<std::uint32_t> &rgba) {
         const Vec3 forward = normalize(subtract(camera.target, camera.eye));
         const Vec3 right = normalize(cross(forward, camera.up));
@@ -810,6 +825,8 @@ struct OptixRenderer::Impl {
         parameters.camera_u = make_float(multiply(right, vertical_scale * aspect));
         parameters.camera_v = make_float(multiply(corrected_up, vertical_scale));
         parameters.fluid = fluid;
+        parameters.show_transparent_skin =
+            show_transparent_skin && has_transparent_skin ? 1U : 0U;
         launch_parameters.upload(&parameters, sizeof(parameters));
         check_optix(optixLaunch(pipeline, nullptr,
                                 launch_parameters.device_pointer(),
@@ -970,7 +987,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         using clock = std::chrono::steady_clock;
         const auto total_begin = clock::now();
         RendererTimings sample{};
-        sample.particle_view = fluid_mode == FluidRenderMode::particles;
+        sample.particle_view = fluid_mode != FluidRenderMode::surface;
         const std::vector<RigidBodyState> states =
             impl_->read_states(world, instance);
         impl_->update_cloth_geometry(impl_->scene, world, instance);
@@ -1000,10 +1017,11 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
             }
         }
         const auto raytrace_begin = clock::now();
-        impl_->render(camera, surface, rgba);
+        impl_->render(camera, surface,
+                      fluid_mode == FluidRenderMode::surface, rgba);
         const auto foam_begin = clock::now();
         if (instance.has_fluid && !positions.empty()) {
-            if (fluid_mode == FluidRenderMode::particles) {
+            if (fluid_mode != FluidRenderMode::surface) {
                 paint_fluid_particle_view(
                     positions, foam, ids, fluid_view.particle_radius,
                     camera, impl_->width, impl_->height,

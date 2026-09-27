@@ -96,7 +96,10 @@ the camera, up to 45 degrees from vertical; releasing them eases it back to
 straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
 `F` timings. Headless runs can opt into `--cloth-tilt-degrees 1..45`.
 Water Cloth can be selected with `--water-cloth`; it also accepts the common
-fluid particle cap and particle/surface view controls.
+fluid particle cap. Its pressure cloth is a transparent refractive render
+layer. `V` toggles particles plus cloth wireframe, `Z` toggles cloth normals,
+`X` toggles rigid-contact forces, and `C` toggles fluid reaction forces.
+`--water-cloth-debug` exercises all four overlays in a headless render.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.

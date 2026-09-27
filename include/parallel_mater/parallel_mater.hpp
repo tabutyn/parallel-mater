@@ -252,6 +252,11 @@ struct ClothDeviceView {
     DeviceSpan<const std::uint32_t> surface_source_indices{};
     DeviceSpan<const ClothBond> bonds{};
     DeviceSpan<const std::uint8_t> active_bonds{};
+    // Last-substep forces applied at each physical node. These diagnostics
+    // remain available without enabling contact event collection, allowing
+    // renderers and tools to inspect cloth coupling through the public API.
+    DeviceSpan<const Vec3> rigid_contact_forces{};
+    DeviceSpan<const Vec3> fluid_contact_forces{};
 };
 
 struct FluidOptions {

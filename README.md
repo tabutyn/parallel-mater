@@ -104,8 +104,11 @@ paint-field API.
 `--water-cloth` loads `ClothWater.blend`: Blender Cloth Pressure preserves the
 closed unpinned sphere's authored volume while an explicit API coupling keeps
 its Geometry-flow water inside and transfers equal-and-opposite forces back to
-the cloth. `P`, `V`, `F`, arrow-gravity steering, and `R` use the common fluid
-and cloth controls.
+the cloth. Its containing skin is rendered as refractive transparent water.
+`V` toggles the combined particle/cloth-wire diagnostic, `Z` toggles skin
+normals, `X` toggles rigid-to-skin forces, and `C` toggles fluid-to-skin
+reactions. `P`, `F`, arrow-gravity steering, and `R` use the common fluid and
+cloth controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

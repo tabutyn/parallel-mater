@@ -304,6 +304,7 @@ if(BUILD_TESTING)
         target_compile_definitions(parallel-mater-material-visibility-tests PRIVATE
             PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf"
             PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
         add_test(NAME parallel-mater-material-visibility-tests
                  COMMAND parallel-mater-material-visibility-tests)
@@ -428,6 +429,16 @@ if(BUILD_TESTING)
                     ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-test.ppm
                     --frames 180)
         set_tests_properties(parallel-mater-water-cloth-headless-test PROPERTIES
+            TIMEOUT 120)
+        add_test(
+            NAME parallel-mater-water-cloth-debug-headless-test
+            COMMAND parallel-mater-gallery
+                    --water-cloth-debug
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-debug-test.ppm
+                    --frames 180)
+        set_tests_properties(
+            parallel-mater-water-cloth-debug-headless-test PROPERTIES
             TIMEOUT 120)
         add_test(
             NAME parallel-mater-peg-paint-containment-test

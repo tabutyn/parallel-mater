@@ -159,6 +159,8 @@ pass.
   the cloth; the gallery only instantiates exported relationships.
 - Add the Blender-authored `ClothWater` gallery context with common fluid,
   camera, reset, timing, and gravity controls.
+- Render contained-fluid cloth as a transparent water skin and expose shared
+  Z/X/C/V normal, coupling-force, particle, and wireframe diagnostics.
 - Measure volume drift, escaped particles, and frame cost in a GPU regression
   test, then verify the scene through the common exporter and headless render.
 

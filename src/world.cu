@@ -1987,6 +1987,7 @@ struct ClothStorage {
     ClothNeighbor *neighbors{};
     std::uint32_t neighbor_count{};
     FluidBodyImpulse *body_impulses{};
+    Vec3 *rigid_contact_forces{};
     ClothBodyCorrection *body_corrections{};
     Vec3 *volume_gradients{};
     Vec3 *fluid_forces{};
@@ -2010,6 +2011,7 @@ struct ClothStorage {
         release_managed(offsets);
         release_managed(neighbors);
         release_managed(body_impulses);
+        release_managed(rigid_contact_forces);
         release_managed(body_corrections);
         release_managed(volume_gradients);
         release_managed(fluid_forces);
@@ -3189,10 +3191,12 @@ __global__ void cloth_collide(
     float dt, const BodyParameters *parameters,
     const RigidBodyState *states, const TriangleMeshResource *meshes,
     std::uint32_t body_count, FluidBodyImpulse *impulses,
+    Vec3 *contact_forces,
     std::uint32_t *contact_flags) {
     const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
     if (vertex >= count) return;
     impulses[vertex] = {};
+    contact_forces[vertex] = {};
     if (inverse_masses[vertex] == 0.0F) return;
     const Vec3 start = previous[vertex];
     Vec3 end = positions[vertex];
@@ -3284,6 +3288,7 @@ __global__ void cloth_collide(
                 velocity = add(velocity, multiply(impulse, 1.0F / mass));
                 impulses[vertex] = {multiply(impulse, -1.0F),
                     multiply(cross(arm, impulse), -1.0F), best_body};
+                contact_forces[vertex] = multiply(impulse, 1.0F / dt);
                 atomicExch(contact_flags + best_body, 1U);
             }
         }
@@ -5257,6 +5262,8 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     status = allocate_managed(cloth->offsets, offsets.size()); if (!status) return status;
     status = allocate_managed(cloth->neighbors, neighbors.size()); if (!status) return status;
     status = allocate_managed(cloth->body_impulses, count); if (!status) return status;
+    status = allocate_managed(cloth->rigid_contact_forces, count);
+    if (!status) return status;
     status = allocate_managed(cloth->body_corrections,
                               impl_->options.rigid_body_capacity);
     if (!status) return status;
@@ -5277,6 +5284,8 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         cloth->scratch[index] = options.vertices.data[index];
         cloth->previous[index] = options.vertices.data[index];
         cloth->velocities[index] = {};
+        cloth->rigid_contact_forces[index] = {};
+        if (cloth->fluid_forces != nullptr) cloth->fluid_forces[index] = {};
         cloth->inverse_masses[index] = options.inverse_masses.size != 0U
             ? options.inverse_masses.data[index] : 1.0F / options.vertex_mass;
     }
@@ -5352,6 +5361,11 @@ Status World::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
     }
     output.bonds = {cloth.bonds, cloth.bond_count};
     output.active_bonds = {cloth.bond_active, cloth.bond_count};
+    output.rigid_contact_forces = {
+        cloth.rigid_contact_forces, cloth.vertex_count};
+    if (cloth.fluid_forces != nullptr)
+        output.fluid_contact_forces = {
+            cloth.fluid_forces, cloth.vertex_count};
     return success();
 }
 
@@ -5921,7 +5935,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.thickness, substep_timestep,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, impl_->rigid_body_count,
-                    cloth.body_impulses, impl_->fluid_body_contact_flags);
+                    cloth.body_impulses, cloth.rigid_contact_forces,
+                    impl_->fluid_body_contact_flags);
                 fluid_reduce_body_impulses<<<impl_->rigid_body_count,
                                              block_size, 0, stream>>>(
                     cloth.body_impulses, cloth.count, impl_->parameters,
@@ -5960,6 +5975,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.thickness, substep_timestep,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, 0U, cloth.body_impulses,
+                    cloth.rigid_contact_forces,
                     impl_->fluid_body_contact_flags);
             }
             cloth_status = record_timing_stage(TimingStage::cloth_contacts);
@@ -6738,7 +6754,7 @@ Status World::collect_statistics(WorldStatistics &output,
         output.cloth_vertex_count += cloth->vertex_count;
         output.allocated_bytes +=
             static_cast<std::size_t>(cloth->vertex_count) *
-                (4U * sizeof(Vec3) + sizeof(float) + sizeof(FluidBodyImpulse)) +
+                (5U * sizeof(Vec3) + sizeof(float) + sizeof(FluidBodyImpulse)) +
             cloth->index_count * sizeof(std::uint32_t) +
             (static_cast<std::size_t>(cloth->vertex_count) + 1U) *
                 sizeof(std::uint32_t) +

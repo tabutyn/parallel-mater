@@ -112,6 +112,11 @@ attached to an intact edge or corner and keeps approximately its rest shape.
 The gallery renders that API-owned surface; rigid-body response on fracturing
 cloth uses physical node contacts, not a triangle-radius barrier. The gallery
 does not choose a cut shape.
+`ClothDeviceView` also exposes the last-substep per-node
+`rigid_contact_forces` and `fluid_contact_forces`. They are ordinary borrowed
+device spans and are available without enabling the bounded contact-event
+streams, so an application can build force diagnostics without reaching into
+solver storage.
 
 ## Fluid sources and contact paint
 
