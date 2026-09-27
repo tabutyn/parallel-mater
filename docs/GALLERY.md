@@ -44,6 +44,11 @@ Headless physics builds remain free of OpenGL and OptiX.
 6. **Cloth** — a Blender-authored subdivided sheet pins its top and bottom
    vertex rows while a dynamic sphere can press it when arrow keys tilt
    gravity up to 45 degrees; the passive box supports both.
+7. **Cloth Tear** — a heavy sphere first falls to the floor; arrow-key gravity
+   rolls it into the sheet, where overloaded bonds break and triangle-local
+   faces separate without being deleted. The API owns fracture and topology.
+8. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
+   cloth sheet and persistently paints its UVs at contact through an API rule.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -54,7 +59,7 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
-Fluid + Rigid, Peg Paint, Cloth.
+Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -81,9 +86,14 @@ the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
 Fluid, or `--fluid-rigid` for a headless run.
 Peg Paint uses the same fluid controls and can be selected with `--peg-paint`.
 Cloth can be selected with `--cloth`; `R` restarts the pinned sheet and
-`F` reports its constraint and contact timings. Gravity starts straight down.
-Arrow keys steer it relative to the camera, up to 45 degrees from vertical;
-releasing them eases it back to straight down.
+`F` reports its constraint and contact timings. Cloth, Cloth Tear, and Cloth
+Paint all start with straight-down gravity. Arrow keys steer it relative to
+the camera, up to 45 degrees from vertical; releasing them eases it back to
+straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
+`F` timings. Headless runs can opt into `--cloth-tilt-degrees 1..45`.
+The gallery supplies cloth UVs to `World::add_paint_field` and registers a
+rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
+adapter merely filters and displays the borrowed two-sided mask.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
 to 50 degrees relative to the camera. The tilt eases in and returns to
 vertical when released. Static fluid contacts use impulse-limited friction,

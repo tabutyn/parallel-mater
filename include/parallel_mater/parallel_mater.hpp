@@ -177,6 +177,13 @@ struct FluidParticle {
 
 // Host geometry is copied at creation; vertex inverse mass zero pins a vertex
 // exactly. Triangles define stretch, shear, and bending links; they may be open.
+struct ClothBond {
+    std::uint32_t first{};
+    std::uint32_t second{};
+    float rest_length{};
+    bool bending{};
+};
+
 struct ClothOptions {
     HostSpan<Vec3> vertices{};
     HostSpan<std::uint32_t> triangle_indices{};
@@ -189,12 +196,27 @@ struct ClothOptions {
     // Coulomb coefficient for tangential rigid-body/cloth contact.
     float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
+    // Zero disables fracture. Otherwise a bond fails when its extension
+    // exceeds this fraction of its rest length for the configured duration.
+    float break_strain{};
+    std::uint32_t fracture_persistence_substeps{4U};
+    // Optional immediate bond failure from the sum of its endpoint contact
+    // impulses. Zero disables this additional impact criterion.
+    float impact_break_impulse{};
 };
 
 struct ClothDeviceView {
+    // Physical nodes and their authored connectivity.
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const std::uint32_t> triangle_indices{};
     std::uint32_t vertex_count{};
+    // For tearable cloth, every triangle owns three surface corners. The
+    // triangle count stays fixed as bonds fail; source indices preserve UVs.
+    DeviceSpan<const Vec3> surface_positions{};
+    DeviceSpan<const std::uint32_t> surface_triangle_indices{};
+    DeviceSpan<const std::uint32_t> surface_source_indices{};
+    DeviceSpan<const ClothBond> bonds{};
+    DeviceSpan<const std::uint8_t> active_bonds{};
 };
 
 struct FluidOptions {
@@ -295,23 +317,28 @@ struct RigidBodyOptions {
     std::uint64_t user_data{};
 };
 
-// A field is owned per rigid-body instance, even if bodies share geometry.
-// Its UVs correspond to mesh vertices; the mesh may differ from the body's
-// collision mesh (for authored collision proxies). Pixels hold two side bits:
+// A field targets either one rigid-body mesh or one deforming cloth. Its UVs
+// correspond to target vertices. Pixels hold two side bits:
 // 1 for the winding/front side and 2 for the back side.
 struct PaintFieldOptions {
     RigidBodyId body{};
     TriangleMeshId mesh{};
+    ClothId cloth{}; // Set instead of body/mesh for a deforming cloth target.
     DeviceSpan<const Vec2> vertex_uvs{};
     std::uint32_t width{512U};
     std::uint32_t height{512U};
 };
 
 struct PaintRuleOptions {
+    // Set exactly one source. Rigid sources paint cloth at rigid–cloth contact;
+    // fluid sources paint rigid meshes at fluid–rigid contact.
     FluidId source{};
+    RigidBodyId rigid_source{};
     PaintFieldId target{};
-    // Additional reach beyond the source particle radius.
+    // Additional reach beyond a fluid source's particle radius.
     float reach{0.025F};
+    // World-space brush radius for rigid-to-cloth contact paint.
+    float brush_radius{0.15F};
     bool enabled{true};
 };
 

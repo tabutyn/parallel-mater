@@ -12,7 +12,7 @@ Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
 momentum exchange, and agitation foam are also available through the same
 `World`.
 One-shot Blender Geometry flows use the public volume sampler. Opt-in
-fluid-to-rigid contact paint fields are also owned by `World`; the gallery
+fluid-to-rigid and rigid-to-cloth contact paint fields are owned by `World`; the gallery
 supplies UVs and chooses their display color and filtering.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
@@ -75,7 +75,8 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, and Cloth; use
+the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
+Cloth Tear, and Cloth Paint; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
@@ -85,9 +86,14 @@ GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene
 renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
-two `FixedVertices` rows pinned, and starts with gravity straight down. Arrow
-keys steer Cloth gravity relative to the camera within a 45-degree tilt;
-releasing them restores straight-down gravity.
+two `FixedVertices` rows pinned. All three Cloth scenes start with gravity
+straight down; arrow keys steer it relative to the camera within a 45-degree
+tilt, and releasing them restores straight-down gravity.
+`--cloth-tear` lets a heavy sphere land, then roll through bond-fractured cloth
+when gravity is steered toward the sheet. No cloth triangles are deleted.
+`--cloth-paint` keeps the
+cloth intact while the active sphere presses and paints it through the public
+paint-field API.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
