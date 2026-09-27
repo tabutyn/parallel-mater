@@ -79,10 +79,8 @@ int main() {
         scene.fluid_options.capacity = 1U;
         scene.initial_particles = {{{-0.5F, 0.5F, 0.0F}, {}}};
         World world;
-        require(World::create({.rigid_body_capacity = 3U,
-                               .triangle_mesh_capacity = 3U}, world));
         SceneInstance instance;
-        require(instantiate_scene(scene, world, instance));
+        require(create_scene_world(scene, world, instance));
         for (int frame = 0; frame < 120; ++frame) require(world.step({}));
         RigidBodyState rigid;
         require(world.read_rigid_body_state(instance.rigid_bodies[2], rigid));
@@ -125,19 +123,9 @@ int main() {
         require(load_glb_scene(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH,
                                water_cloth, error),
                 "load ClothWater: " + error);
-        const std::size_t water_mesh_capacity = water_cloth.meshes.size() +
-            water_cloth.collision_meshes.size() + water_cloth.meshes.size();
         World water_world;
-        require(World::create({
-            .fluid_capacity = 1U,
-            .rigid_body_capacity = static_cast<std::uint32_t>(
-                std::max<std::size_t>(1U, water_cloth.rigid_bodies.size())),
-            .triangle_mesh_capacity = static_cast<std::uint32_t>(
-                water_mesh_capacity),
-            .cloth_capacity = 1U,
-            .fluid_cloth_coupling_capacity = 1U}, water_world));
         SceneInstance water_instance;
-        require(instantiate_scene(water_cloth, water_world, water_instance));
+        require(create_scene_world(water_cloth, water_world, water_instance));
         for (int frame = 0; frame < 10; ++frame)
             require(water_world.step({}));
         const auto render_water = [&](SceneDefinition definition,

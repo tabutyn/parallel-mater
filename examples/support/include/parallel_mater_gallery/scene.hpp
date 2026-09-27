@@ -97,6 +97,17 @@ struct SceneInstance {
 // concepts; DUMP builds reusable triangle meshes through SceneDefinition.
 [[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
 
+// Derives the capacities needed by the shared scene instantiator. Gallery
+// clients, tests, and benchmarks should use this instead of mirroring its
+// mesh/paint/cloth accounting.
+[[nodiscard]] Status scene_world_options(
+    const SceneDefinition &scene, WorldOptions &output,
+    PhysicsDebugOptions physics_debug = {}) noexcept;
+
+[[nodiscard]] Status create_scene_world(
+    const SceneDefinition &scene, World &world, SceneInstance &output,
+    PhysicsDebugOptions physics_debug = {}) noexcept;
+
 [[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
                                        World &world,
                                        SceneInstance &output) noexcept;

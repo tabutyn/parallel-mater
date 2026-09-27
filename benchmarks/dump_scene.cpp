@@ -48,8 +48,7 @@ int main(int argc, char **argv) {
     const SceneDefinition scene = make_dump_scene(sphere_count);
     World world;
     SceneInstance instance;
-    if (!prepare_world(scene, static_cast<std::uint32_t>(scene.meshes.size()),
-                       world, instance)) {
+    if (!prepare_world(scene, world, instance)) {
         return 1;
     }
     WorldStatistics statistics{};

@@ -4,6 +4,7 @@
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
 #include "foam_visuals.hpp"
+#include "vector_math.hpp"
 
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
@@ -30,6 +31,11 @@
 
 namespace parallel_mater::gallery {
 namespace {
+
+using math::cross;
+using math::dot;
+using math::multiply;
+using math::subtract;
 
 using optix_shared::HitData;
 using optix_shared::LaunchParameters;
@@ -203,27 +209,8 @@ constexpr std::uint32_t k_cloth_binding =
     return make_float3(value.x, value.y, value.z);
 }
 
-[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
-    return {first.x - second.x, first.y - second.y, first.z - second.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, float scalar) {
-    return {value.x * scalar, value.y * scalar, value.z * scalar};
-}
-
-[[nodiscard]] float dot(Vec3 first, Vec3 second) {
-    return first.x * second.x + first.y * second.y + first.z * second.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
-    return {first.y * second.z - first.z * second.y,
-            first.z * second.x - first.x * second.z,
-            first.x * second.y - first.y * second.x};
-}
-
 [[nodiscard]] Vec3 normalize(Vec3 value) {
-    const float length = std::sqrt(std::max(dot(value, value), 1.0e-20F));
-    return multiply(value, 1.0F / length);
+    return math::normalize_or(value, {});
 }
 
 struct PositionKey {

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
 
+#include "vector_math.hpp"
+
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
@@ -21,6 +23,12 @@
 
 namespace parallel_mater::gallery {
 namespace {
+
+using math::add;
+using math::cross;
+using math::dot;
+using math::multiply;
+using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
 
@@ -112,36 +120,8 @@ class FlatJson {
     return finite(value.x) && finite(value.y) && finite(value.z);
 }
 
-[[nodiscard]] Vec3 add(Vec3 first, Vec3 second) {
-    return {first.x + second.x, first.y + second.y, first.z + second.z};
-}
-
-[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
-    return {first.x - second.x, first.y - second.y, first.z - second.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, Vec3 scale) {
-    return {value.x * scale.x, value.y * scale.y, value.z * scale.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, float scale) {
-    return {value.x * scale, value.y * scale, value.z * scale};
-}
-
-[[nodiscard]] float dot(Vec3 first, Vec3 second) {
-    return first.x * second.x + first.y * second.y + first.z * second.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
-    return {first.y * second.z - first.z * second.y,
-            first.z * second.x - first.x * second.z,
-            first.x * second.y - first.y * second.x};
-}
-
 [[nodiscard]] Vec3 normalize(Vec3 value) {
-    const float length = std::sqrt(dot(value, value));
-    return length > 1.0e-8F ? multiply(value, 1.0F / length)
-                            : Vec3{0.0F, 1.0F, 0.0F};
+    return math::normalize_or(value, {0.0F, 1.0F, 0.0F});
 }
 
 [[nodiscard]] Vec3 rotate(Quaternion orientation, Vec3 value) {
@@ -1143,6 +1123,78 @@ SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
     return result;
 }
 
+Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
+                           PhysicsDebugOptions physics_debug) noexcept {
+    std::size_t triangle_meshes = 0U;
+    for (std::size_t index = 0U; index < scene.rigid_bodies.size(); ++index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[index];
+        const bool collision = !body.collision_mesh_indices.empty();
+        const auto &indices = collision ? body.collision_mesh_indices
+                                        : body.mesh_indices;
+        bool already_uploaded = false;
+        for (std::size_t previous = 0U; previous < index; ++previous) {
+            const RigidBodyDefinition &candidate = scene.rigid_bodies[previous];
+            const bool candidate_collision =
+                !candidate.collision_mesh_indices.empty();
+            const auto &candidate_indices = candidate_collision
+                ? candidate.collision_mesh_indices : candidate.mesh_indices;
+            if (collision == candidate_collision && indices == candidate_indices) {
+                already_uploaded = true;
+                break;
+            }
+        }
+        triangle_meshes += already_uploaded ? 0U : 1U;
+    }
+    std::size_t paint_fields = 0U;
+    for (std::size_t body_index = 0U; body_index < scene.rigid_bodies.size();
+         ++body_index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
+        if (!body.paintable) continue;
+        paint_fields += body.mesh_indices.size();
+        for (std::uint32_t mesh : body.mesh_indices) {
+            bool already_uploaded = false;
+            for (std::size_t previous = 0U; previous < body_index; ++previous) {
+                const RigidBodyDefinition &candidate =
+                    scene.rigid_bodies[previous];
+                already_uploaded = candidate.paintable &&
+                    std::find(candidate.mesh_indices.begin(),
+                              candidate.mesh_indices.end(), mesh) !=
+                        candidate.mesh_indices.end();
+                if (already_uploaded) break;
+            }
+            triangle_meshes += already_uploaded ? 0U : 1U;
+        }
+    }
+    for (const ClothDefinition &cloth : scene.cloths)
+        paint_fields += cloth.paintable ? 1U : 0U;
+    const std::size_t maximum = std::numeric_limits<std::uint32_t>::max();
+    if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
+        scene.spawn_planes.size() > maximum ||
+        scene.destroy_planes.size() > maximum || paint_fields > maximum ||
+        scene.cloths.size() > maximum) {
+        return {StatusCode::capacity_exceeded, cudaSuccess,
+                "gallery scene exceeds world capacity range"};
+    }
+    output = {
+        .fluid_capacity = 1U,
+        .rigid_body_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.rigid_bodies.size())),
+        .triangle_mesh_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, triangle_meshes)),
+        .particle_spawn_plane_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.spawn_planes.size())),
+        .particle_destroy_plane_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.destroy_planes.size())),
+        .paint_field_capacity = static_cast<std::uint32_t>(paint_fields),
+        .paint_rule_capacity = static_cast<std::uint32_t>(paint_fields),
+        .cloth_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.cloths.size())),
+        .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.cloths.size())),
+        .physics_debug = physics_debug};
+    return {};
+}
+
 Status instantiate_scene(const SceneDefinition &scene, World &world,
                          SceneInstance &output) noexcept {
     output = {};
@@ -1458,6 +1510,16 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 "failed to assemble gallery paint bindings"};
     }
     return {};
+}
+
+Status create_scene_world(const SceneDefinition &scene, World &world,
+                          SceneInstance &output,
+                          PhysicsDebugOptions physics_debug) noexcept {
+    WorldOptions options{};
+    Status status = scene_world_options(scene, options, physics_debug);
+    if (!status) return status;
+    status = World::create(options, world);
+    return status ? instantiate_scene(scene, world, output) : status;
 }
 
 } // namespace parallel_mater::gallery

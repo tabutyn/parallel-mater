@@ -61,7 +61,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         FetchContent_Populate(parallel_mater_cgltf)
     endif()
 
-    add_library(parallel-mater-gallery-scene STATIC examples/support/scene.cpp)
+    add_library(parallel-mater-gallery-scene STATIC
+                examples/support/scene.cpp
+                examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
         parallel-mater-gallery-scene
@@ -350,160 +352,96 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-fluid-surface-tests)
         set_tests_properties(parallel-mater-fluid-surface-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
+        function(add_gallery_headless_test name output frames)
+            add_test(
+                NAME ${name}
+                COMMAND parallel-mater-gallery
+                        ${ARGN}
+                        --headless ${CMAKE_CURRENT_BINARY_DIR}/${output}
+                        --frames ${frames})
+        endfunction()
 
-
-        add_test(
-            NAME parallel-mater-optix-headless-test
-            COMMAND parallel-mater-gallery
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-optix-test.ppm
-                    --frames 30)
-        add_test(
-            NAME parallel-mater-dump-headless-test
-            COMMAND parallel-mater-gallery
-                    --dump-spheres 10
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-dump-test.ppm
-                    --frames 150)
-        add_test(
-            NAME parallel-mater-fluid-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-optix-headless-test
+            parallel-mater-optix-test.ppm 30)
+        add_gallery_headless_test(
+            parallel-mater-dump-headless-test
+            parallel-mater-dump-test.ppm 150 --dump-spheres 10)
+        add_gallery_headless_test(
+            parallel-mater-fluid-headless-test
+            parallel-mater-fluid-test.ppm 30 --fluid)
         set_tests_properties(parallel-mater-fluid-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-fluid-rigid-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid-rigid
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-rigid-test.ppm
-                    --frames 120)
+        add_gallery_headless_test(
+            parallel-mater-fluid-rigid-headless-test
+            parallel-mater-fluid-rigid-test.ppm 120 --fluid-rigid)
         set_tests_properties(parallel-mater-fluid-rigid-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-peg-paint-headless-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-tear-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth-tear
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-tear-rolled-render-test
-            COMMAND parallel-mater-gallery
-                    --cloth-tear
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-rolled-test.ppm
-                    --frames 420
-                    --cloth-tilt-degrees 45
-                    --cloth-tilt-after-frames 120)
-        add_test(
-            NAME parallel-mater-cloth-paint-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth-paint
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-paint-test.ppm
-                    --frames 180)
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-headless-test
+            parallel-mater-peg-paint-test.ppm 180 --peg-paint)
+        add_gallery_headless_test(
+            parallel-mater-cloth-headless-test
+            parallel-mater-cloth-test.ppm 180 --cloth)
+        add_gallery_headless_test(
+            parallel-mater-cloth-tear-headless-test
+            parallel-mater-cloth-tear-test.ppm 180 --cloth-tear)
+        add_gallery_headless_test(
+            parallel-mater-cloth-tear-rolled-render-test
+            parallel-mater-cloth-tear-rolled-test.ppm 420
+            --cloth-tear --cloth-tilt-degrees 45
+            --cloth-tilt-after-frames 120)
+        add_gallery_headless_test(
+            parallel-mater-cloth-paint-headless-test
+            parallel-mater-cloth-paint-test.ppm 180 --cloth-paint)
         set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-water-cloth-headless-test
-            COMMAND parallel-mater-gallery
-                    --water-cloth
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-test.ppm
-                    --frames 180)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-headless-test
+            parallel-mater-water-cloth-test.ppm 180 --water-cloth)
         set_tests_properties(parallel-mater-water-cloth-headless-test PROPERTIES
             TIMEOUT 120)
-        add_test(
-            NAME parallel-mater-water-cloth-debug-headless-test
-            COMMAND parallel-mater-gallery
-                    --water-cloth-debug
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-debug-test.ppm
-                    --frames 180)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-debug-headless-test
+            parallel-mater-water-cloth-debug-test.ppm 180 --water-cloth-debug)
         set_tests_properties(
             parallel-mater-water-cloth-debug-headless-test PROPERTIES
             TIMEOUT 120)
-        add_test(
-            NAME parallel-mater-water-cloth-left-regression-test
-            COMMAND parallel-mater-gallery
-                    --water-cloth
-                    --cloth-tilt-left
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-left-test.ppm
-                    --frames 180)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-left-regression-test
+            parallel-mater-water-cloth-left-test.ppm 180
+            --water-cloth --cloth-tilt-left)
         set_tests_properties(
             parallel-mater-water-cloth-left-regression-test PROPERTIES
             TIMEOUT 120)
-        add_test(
-            NAME parallel-mater-physics-capture-headless-test
-            COMMAND parallel-mater-gallery
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.ppm
-                    --physics-capture
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.log
-                    --frames 10)
+        add_gallery_headless_test(
+            parallel-mater-physics-capture-headless-test
+            parallel-mater-physics-capture-test.ppm 10
+            --physics-capture
+            ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.log)
         set_tests_properties(
             parallel-mater-physics-capture-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Physics capture")
-        add_test(
-            NAME parallel-mater-peg-paint-containment-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --fluid-particle-view
-                    --trace-fluid-escapes
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-containment-test.ppm
-                    --frames 600)
-        add_test(
-            NAME parallel-mater-peg-paint-cap-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --fluid-particles 100
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-cap-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-fluid-containment-test
-            COMMAND parallel-mater-gallery
-                    --fluid
-                    --trace-fluid-escapes
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-containment-test.ppm
-                    --frames 120)
-        add_test(
-            NAME parallel-mater-fluid-cap-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid-particles 100
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-cap-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-containment-test
+            parallel-mater-peg-paint-containment-test.ppm 600
+            --peg-paint --fluid-particle-view --trace-fluid-escapes)
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-cap-test
+            parallel-mater-peg-paint-cap-test.ppm 180
+            --peg-paint --fluid-particles 100)
+        add_gallery_headless_test(
+            parallel-mater-fluid-containment-test
+            parallel-mater-fluid-containment-test.ppm 120
+            --fluid --trace-fluid-escapes)
+        add_gallery_headless_test(
+            parallel-mater-fluid-cap-headless-test
+            parallel-mater-fluid-cap-test.ppm 30 --fluid-particles 100)
         set_tests_properties(parallel-mater-fluid-cap-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Fluid particles=100 ")
-        add_test(
-            NAME parallel-mater-fluid-particle-view-test
-            COMMAND parallel-mater-gallery
-                    --fluid-particle-view
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-particles-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-fluid-particle-view-test
+            parallel-mater-fluid-particles-test.ppm 30 --fluid-particle-view)
     endif()
 endif()
 

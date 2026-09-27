@@ -134,20 +134,11 @@ int main() {
         return 1;
     }
 
-    const std::size_t uploaded_meshes = scene.meshes.size() +
-        scene.collision_meshes.size() + scene.meshes.size();
     World world;
-    if (!require(World::create({
-            .fluid_capacity = 1U,
-            .rigid_body_capacity = static_cast<std::uint32_t>(
-                std::max<std::size_t>(1U, scene.rigid_bodies.size())),
-            .triangle_mesh_capacity = static_cast<std::uint32_t>(uploaded_meshes),
-            .cloth_capacity = 1U,
-            .fluid_cloth_coupling_capacity = 1U,
-            .physics_debug = {.frame_capacity = 1U}}, world), "create world"))
-        return 1;
     SceneInstance instance;
-    if (!require(instantiate_scene(scene, world, instance), "instantiate scene"))
+    if (!require(create_scene_world(scene, world, instance,
+                                    {.frame_capacity = 1U}),
+                 "create scene world"))
         return 1;
     if (!instance.has_fluid || instance.cloths.size() != 1U ||
         instance.fluid_cloth_couplings.size() != 1U) {

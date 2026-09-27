@@ -1,39 +1,13 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/gallery_context.hpp>
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
 namespace parallel_mater::gallery {
-
-enum class GalleryContext : std::uint8_t {
-    rigid_body,
-    dump,
-    fluid,
-    fluid_rigid,
-    peg_paint,
-    cloth,
-    cloth_tear,
-    cloth_paint,
-    water_cloth,
-};
-
-[[nodiscard]] constexpr bool is_cloth_context(GalleryContext context) noexcept {
-    return context == GalleryContext::cloth ||
-           context == GalleryContext::cloth_tear ||
-           context == GalleryContext::cloth_paint ||
-           context == GalleryContext::water_cloth;
-}
-
-[[nodiscard]] constexpr bool is_fluid_context(GalleryContext context) noexcept {
-    return context == GalleryContext::fluid ||
-           context == GalleryContext::fluid_rigid ||
-           context == GalleryContext::peg_paint ||
-           context == GalleryContext::water_cloth;
-}
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,

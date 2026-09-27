@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/overlay.hpp>
 
+#include "vector_math.hpp"
+
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <span>
 #include <string_view>
 #include <type_traits>
 
 namespace parallel_mater::gallery {
 namespace {
+
+using math::add;
+using math::cross;
+using math::dot;
+using math::length;
+using math::multiply;
+using math::subtract;
 
 struct Color {
     std::uint8_t red{};
@@ -19,6 +29,10 @@ struct Color {
     std::uint8_t blue{};
     std::uint8_t alpha{255U};
 };
+
+[[nodiscard]] constexpr Color color(GalleryColor value) noexcept {
+    return {value.red, value.green, value.blue, value.alpha};
+}
 
 [[nodiscard]] std::uint32_t packed(Color color) {
     return static_cast<std::uint32_t>(color.red) |
@@ -157,35 +171,8 @@ void text(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     }
 }
 
-[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
-    return {first.x - second.x, first.y - second.y, first.z - second.z};
-}
-
-[[nodiscard]] Vec3 add(Vec3 first, Vec3 second) {
-    return {first.x + second.x, first.y + second.y, first.z + second.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, float scalar) {
-    return {value.x * scalar, value.y * scalar, value.z * scalar};
-}
-
-[[nodiscard]] float dot(Vec3 first, Vec3 second) {
-    return first.x * second.x + first.y * second.y + first.z * second.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
-    return {first.y * second.z - first.z * second.y,
-            first.z * second.x - first.x * second.z,
-            first.x * second.y - first.y * second.x};
-}
-
-[[nodiscard]] float length(Vec3 value) {
-    return std::sqrt(std::max(dot(value, value), 0.0F));
-}
-
 [[nodiscard]] Vec3 normalized(Vec3 value) {
-    const float size = length(value);
-    return size > 1.0e-6F ? multiply(value, 1.0F / size) : Vec3{};
+    return math::normalize_or(value, {}, 1.0e-6F);
 }
 
 struct ScreenPoint {
@@ -251,65 +238,70 @@ void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     text(rgba, width, height, 32, y, value, {225, 235, 242, 255}, 2);
 }
 
+struct TimingRow {
+    const char *label{};
+    KernelTiming timing{};
+};
+
+void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+                  std::uint32_t height, int right, int bottom,
+                  std::string_view title, bool available,
+                  std::span<const TimingRow> rows, int row_step, int total_y,
+                  float total_milliseconds) {
+    rectangle(rgba, width, height, 18, 18, right, bottom, {5, 12, 18, 215});
+    text(rgba, width, height, 32, 30, title, {80, 220, 255, 255}, 2);
+    if (!available) {
+        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
+             {255, 190, 70, 255}, 2);
+        return;
+    }
+    int y = 58;
+    for (const TimingRow &row : rows) {
+        timing_row(rgba, width, height, y, row.label, row.timing);
+        y += row_step;
+    }
+    char total[96]{};
+    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
+                  total_milliseconds);
+    text(rgba, width, height, 32, total_y, total, {100, 255, 155, 255}, 2);
+}
+
 } // namespace
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings) {
-    rectangle(rgba, width, height, 18, 18, 390, 274, {5, 12, 18, 215});
-    text(rgba, width, height, 32, 30, "GPU KERNELS", {80, 220, 255, 255}, 2);
-    if (!timings.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE", {255, 190, 70, 255},
-             2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "INTEGRATE",
-               timings.rigid_integration);
-    timing_row(rgba, width, height, 78, "BOUNDS",
-               timings.rigid_world_bounds);
-    timing_row(rgba, width, height, 98, "PAIR FILTER",
-               timings.rigid_pair_filter);
-    timing_row(rgba, width, height, 118, "PAIR COMPACT",
-               timings.rigid_pair_compaction);
-    timing_row(rgba, width, height, 138, "LEAF PAIRS",
-               timings.rigid_leaf_pair_generation);
-    timing_row(rgba, width, height, 158, "TRI CONTACT",
-               timings.rigid_contact_evaluation);
-    timing_row(rgba, width, height, 178, "SOLVE",
-               timings.rigid_contact_solve);
-    timing_row(rgba, width, height, 198, "CLEAR",
-               timings.rigid_input_clear);
-    char total[96]{};
-    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
-                  timings.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 224, total, {100, 255, 155, 255}, 2);
+    const std::array rows{
+        TimingRow{"INTEGRATE", timings.rigid_integration},
+        TimingRow{"BOUNDS", timings.rigid_world_bounds},
+        TimingRow{"PAIR FILTER", timings.rigid_pair_filter},
+        TimingRow{"PAIR COMPACT", timings.rigid_pair_compaction},
+        TimingRow{"LEAF PAIRS", timings.rigid_leaf_pair_generation},
+        TimingRow{"TRI CONTACT", timings.rigid_contact_evaluation},
+        TimingRow{"SOLVE", timings.rigid_contact_solve},
+        TimingRow{"CLEAR", timings.rigid_input_clear}};
+    timing_panel(rgba, width, height, 390, 274, "GPU KERNELS",
+                 timings.available, rows, 20, 224,
+                 timings.total_gpu_milliseconds);
 }
 
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings) {
-    rectangle(rgba, width, height, 18, 18, 410, 230, {5, 12, 18, 215});
-    text(rgba, width, height, 32, 30, "CLOTH GPU KERNELS",
-         {80, 220, 255, 255}, 2);
-    if (!timings.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
-             {255, 190, 70, 255}, 2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "RIGID STEP",
-        {timings.rigid_integration.total_milliseconds +
-         timings.rigid_contact_generation.total_milliseconds +
-         timings.rigid_contact_solve.total_milliseconds,
-         timings.rigid_integration.launch_count +
-         timings.rigid_contact_generation.launch_count +
-         timings.rigid_contact_solve.launch_count});
-    timing_row(rgba, width, height, 84, "PREDICT", timings.cloth_prediction);
-    timing_row(rgba, width, height, 110, "LINKS", timings.cloth_constraints);
-    timing_row(rgba, width, height, 136, "CONTACTS", timings.cloth_contacts);
-    char total[96]{};
-    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
-                  timings.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 177, total, {100, 255, 155, 255}, 2);
+    const std::array rows{
+        TimingRow{"RIGID STEP",
+            {timings.rigid_integration.total_milliseconds +
+             timings.rigid_contact_generation.total_milliseconds +
+             timings.rigid_contact_solve.total_milliseconds,
+             timings.rigid_integration.launch_count +
+             timings.rigid_contact_generation.launch_count +
+             timings.rigid_contact_solve.launch_count}},
+        TimingRow{"PREDICT", timings.cloth_prediction},
+        TimingRow{"LINKS", timings.cloth_constraints},
+        TimingRow{"CONTACTS", timings.cloth_contacts}};
+    timing_panel(rgba, width, height, 410, 230, "CLOTH GPU KERNELS",
+                 timings.available, rows, 26, 177,
+                 timings.total_gpu_milliseconds);
 }
 
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
@@ -318,40 +310,24 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                const RendererTimings &renderer,
                                const WorldStatistics &statistics,
                                std::uint32_t capacity) {
-    rectangle(rgba, width, height, 18, 18, 480, 502,
-              {5, 12, 18, 225});
-    text(rgba, width, height, 32, 30,
-         renderer.particle_view ? "FLUID PARTICLE TIMINGS"
-                                : "FLUID SURFACE TIMINGS",
-         {80, 220, 255, 255}, 2);
-    if (!physics.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
-             {255, 190, 70, 255}, 2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "SPAWN", physics.fluid_spawn);
-    timing_row(rgba, width, height, 78, "CELL SORT",
-               physics.fluid_neighbor_sort);
-    timing_row(rgba, width, height, 98, "NEIGHBORS",
-               physics.fluid_neighbor_forces);
-    timing_row(rgba, width, height, 118, "INTEGRATE",
-               physics.fluid_integration);
-    timing_row(rgba, width, height, 138, "TRI COLLIDE",
-               physics.fluid_static_contacts);
-    timing_row(rgba, width, height, 158, "BODY INDEX",
-               physics.fluid_body_index);
-    timing_row(rgba, width, height, 178, "MOVING TRI",
-               physics.fluid_moving_contacts);
-    timing_row(rgba, width, height, 198, "FLUID CLOTH",
-               physics.fluid_cloth_contacts);
-    timing_row(rgba, width, height, 218, "EVENTS",
-               physics.fluid_contact_events);
-    timing_row(rgba, width, height, 238, "OUTFLOW",
-               physics.fluid_outflow_compaction);
+    const std::array rows{
+        TimingRow{"SPAWN", physics.fluid_spawn},
+        TimingRow{"CELL SORT", physics.fluid_neighbor_sort},
+        TimingRow{"NEIGHBORS", physics.fluid_neighbor_forces},
+        TimingRow{"INTEGRATE", physics.fluid_integration},
+        TimingRow{"TRI COLLIDE", physics.fluid_static_contacts},
+        TimingRow{"BODY INDEX", physics.fluid_body_index},
+        TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
+        TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
+        TimingRow{"EVENTS", physics.fluid_contact_events},
+        TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
+    timing_panel(rgba, width, height, 480, 502,
+                 renderer.particle_view ? "FLUID PARTICLE TIMINGS"
+                                        : "FLUID SURFACE TIMINGS",
+                 physics.available, rows, 20, 264,
+                 physics.total_gpu_milliseconds);
+    if (!physics.available) return;
     char line[128]{};
-    std::snprintf(line, sizeof(line), "PHYSICS GPU    %7.3f MS",
-                  physics.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 264, line, {100, 255, 155, 255}, 2);
     if (renderer.particle_view)
         std::snprintf(line, sizeof(line), "SURFACE GPU       OFF");
     else
@@ -703,8 +679,12 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(14, static_cast<int>(height) / 2 - 346);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 693,
+    constexpr int row_height = 68;
+    const int panel_height = 81 + row_height *
+        static_cast<int>(gallery_entries.size());
+    const int top = std::max(14, (static_cast<int>(height) - panel_height) / 2);
+    rectangle(rgba, width, height, center - 255, top, center + 255,
+              top + panel_height,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
@@ -727,41 +707,20 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         text(rgba, width, height, center - 135, y + 31, state, state_color, 1);
     };
 
-    row(top + 78, GalleryContext::rigid_body, {48, 55, 63, 235},
-        {170, 176, 184, 255}, "RIGID BODY", "AVAILABLE",
-        {105, 255, 155, 255});
-    row(top + 146, GalleryContext::dump, {62, 38, 22, 235},
-        {245, 130, 45, 255}, "DUMP", "AVAILABLE  P EDITS SPHERES",
-        {105, 255, 155, 255});
-    row(top + 214, GalleryContext::fluid, {12, 42, 65, 235},
-        {35, 150, 255, 255}, "FLUID", "P CAP  V PARTICLES  R RESET",
-        {105, 255, 155, 255});
-    row(top + 282, GalleryContext::fluid_rigid, {25, 52, 64, 235},
-        {35, 190, 230, 255}, "FLUID RIGID", "64 FREE SPHERES  P CAP",
-        {105, 255, 155, 255});
-    row(top + 350, GalleryContext::peg_paint, {44, 28, 61, 235},
-        {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
-        {105, 255, 155, 255});
-    row(top + 418, GalleryContext::cloth, {40, 42, 58, 235},
-        {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
-    row(top + 486, GalleryContext::cloth_tear, {53, 37, 48, 235},
-        {255, 126, 111, 255}, "CLOTH TEAR", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
-    row(top + 554, GalleryContext::cloth_paint, {28, 49, 55, 235},
-        {65, 177, 240, 255}, "CLOTH PAINT", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
-    row(top + 622, GalleryContext::water_cloth, {20, 50, 68, 235},
-        {45, 190, 235, 255}, "WATER CLOTH",
-        "PRESSURE SKIN  ARROWS GRAVITY  P CAP",
-        {105, 255, 155, 255});
+    int y = top + 78;
+    for (const GalleryEntry &entry : gallery_entries) {
+        row(y, entry.context, color(entry.background), color(entry.icon),
+            entry.name, entry.help, {105, 255, 155, 255});
+        y += row_height;
+    }
 }
 
 void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
                         bool invalid) {
-    const bool fluid = is_fluid_context(context);
+    const GalleryEntry &entry = gallery_entry(context);
+    const bool fluid = entry.count_kind == GalleryCountKind::fluid_particles;
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
     rectangle(rgba, width, height, center_x - 260, center_y - 118,
@@ -775,8 +734,10 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, center_x - 198, center_y - 17,
          (fluid ? "MAX " : "COUNT ") + value, {245, 247, 250, 255}, 2);
     text(rgba, width, height, center_x - 220, center_y + 42,
-         fluid ? (invalid ? "USE 100-100000" : "MIN 100  MAX 100000")
-               : (invalid ? "USE 10-1000" : "MIN 10  MAX 1000"),
+         invalid ? ("USE " + std::to_string(entry.minimum_count) + '-' +
+                    std::to_string(entry.maximum_count))
+                 : ("MIN " + std::to_string(entry.minimum_count) + "  MAX " +
+                    std::to_string(entry.maximum_count)),
          invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
     text(rgba, width, height, center_x - 220, center_y + 72,
          "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);

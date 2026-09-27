@@ -27,25 +27,11 @@ namespace parallel_mater::benchmark {
     return false;
 }
 
-// The caller sets mesh capacity because GLB proxies and DUMP mesh reuse differ.
 [[nodiscard]] inline bool prepare_world(const gallery::SceneDefinition &scene,
-                                        std::uint32_t mesh_capacity,
                                         World &world,
                                         gallery::SceneInstance &instance) {
-    std::uint32_t paint_capacity = 0U;
-    for (const auto &body : scene.rigid_bodies)
-        if (body.paintable)
-            paint_capacity += static_cast<std::uint32_t>(body.mesh_indices.size());
-    const WorldOptions options{
-        .rigid_body_capacity =
-            static_cast<std::uint32_t>(scene.rigid_bodies.size()),
-        .triangle_mesh_capacity = mesh_capacity +
-            static_cast<std::uint32_t>(scene.meshes.size()),
-        .paint_field_capacity = paint_capacity,
-        .paint_rule_capacity = paint_capacity};
-    return require(World::create(options, world), "create world") &&
-           require(gallery::instantiate_scene(scene, world, instance),
-                   "instantiate scene");
+    return require(gallery::create_scene_world(scene, world, instance),
+                   "create scene world");
 }
 
 [[nodiscard]] inline StepOptions standard_step_options(bool collect_timings) {

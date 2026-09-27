@@ -82,13 +82,9 @@ int main() {
         return 77;
     }
     World world;
-    if (!require(World::create({.rigid_body_capacity = 2U,
-                                .triangle_mesh_capacity = 2U,
-                                .cloth_capacity = 1U}, world),
-                 "create cloth world")) return 1;
     SceneInstance instance{};
-    if (!require(instantiate_scene(scene, world, instance),
-                 "instantiate cloth scene")) return 1;
+    if (!require(create_scene_world(scene, world, instance),
+                 "create cloth scene world")) return 1;
     std::vector<Vec3> initial;
     if (!read_cloth(world, instance.cloths.front(), initial)) return 1;
     std::size_t active = 0U;
@@ -212,13 +208,10 @@ int main() {
     SceneDefinition rigid_only = scene;
     rigid_only.cloths.clear();
     World no_cloth_world;
-    if (!require(World::create({.rigid_body_capacity = 2U,
-                                .triangle_mesh_capacity = 2U,
-                                .cloth_capacity = 0U}, no_cloth_world),
-                 "create rigid-only comparison world")) return 1;
     SceneInstance no_cloth_instance{};
-    if (!require(instantiate_scene(rigid_only, no_cloth_world, no_cloth_instance),
-                 "instantiate rigid-only comparison")) return 1;
+    if (!require(create_scene_world(rigid_only, no_cloth_world,
+                                    no_cloth_instance),
+                 "create rigid-only comparison")) return 1;
     for (int frame = 0; frame < 600; ++frame)
         if (!require(no_cloth_world.step(step), "step rigid-only comparison"))
             return 1;
@@ -235,13 +228,9 @@ int main() {
     }
 
     World escape_world;
-    if (!require(World::create({.rigid_body_capacity = 2U,
-                                .triangle_mesh_capacity = 2U,
-                                .cloth_capacity = 1U}, escape_world),
-                 "create cloth release world")) return 1;
     SceneInstance escape_instance{};
-    if (!require(instantiate_scene(scene, escape_world, escape_instance),
-                 "instantiate cloth release world")) return 1;
+    if (!require(create_scene_world(scene, escape_world, escape_instance),
+                 "create cloth release world")) return 1;
     for (int frame = 0; frame < 600; ++frame)
         if (!require(escape_world.step(step), "settle cloth release world"))
             return 1;
@@ -322,14 +311,10 @@ int main() {
     SceneDefinition cloth_only = scene;
     cloth_only.rigid_bodies.erase(cloth_only.rigid_bodies.begin() + active);
     World no_sphere_world;
-    if (!require(World::create({.rigid_body_capacity = 1U,
-                                .triangle_mesh_capacity = 1U,
-                                .cloth_capacity = 1U}, no_sphere_world),
-                 "create cloth-only comparison world")) return 1;
     SceneInstance no_sphere_instance{};
-    if (!require(instantiate_scene(cloth_only, no_sphere_world,
-                                   no_sphere_instance),
-                 "instantiate cloth-only comparison")) return 1;
+    if (!require(create_scene_world(cloth_only, no_sphere_world,
+                                    no_sphere_instance),
+                 "create cloth-only comparison")) return 1;
     for (int frame = 0; frame < 600; ++frame)
         if (!require(no_sphere_world.step(step), "step cloth-only comparison"))
             return 1;
@@ -438,14 +423,10 @@ int main() {
     SceneDefinition isolated_cloth = scene;
     isolated_cloth.rigid_bodies.clear();
     World isolated_world;
-    if (!require(World::create({.rigid_body_capacity = 1U,
-                                .triangle_mesh_capacity = 1U,
-                                .cloth_capacity = 1U}, isolated_world),
-                 "create isolated cloth world")) return 1;
     SceneInstance isolated_instance{};
-    if (!require(instantiate_scene(isolated_cloth, isolated_world,
-                                   isolated_instance),
-                 "instantiate isolated cloth")) return 1;
+    if (!require(create_scene_world(isolated_cloth, isolated_world,
+                                    isolated_instance),
+                 "create isolated cloth")) return 1;
     for (int frame = 0; frame < 120; ++frame)
         if (!require(isolated_world.step(step), "step isolated cloth"))
             return 1;
