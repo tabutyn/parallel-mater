@@ -37,6 +37,7 @@ struct LaunchParameters {
     float3 camera_v{};
     float3 camera_w{};
     FluidSurfaceView fluid{};
+    unsigned int show_transparent_skin{};
 };
 
 struct HitData {
@@ -47,6 +48,7 @@ struct HitData {
     unsigned int paint_height{};
     float3 base_color{};
     unsigned int checkerboard{};
+    unsigned int transparent_skin{};
 };
 
 } // namespace parallel_mater::gallery::optix_shared

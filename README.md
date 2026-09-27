@@ -63,6 +63,13 @@ The optional gallery loads a committed Blender-authored `.glb`, creates its
 rigid bodies through the public API, and ray traces its render meshes with
 OptiX. It is deliberately separate from the installed physics library.
 
+All Blender scenes use one exporter,
+`tools/blender/export_parallel_mater_scene.py`: as a Blender File → Export menu
+entry, a headless script, or its `export_scene()` Python function. See the
+[Blender interface guide](docs/BLENDER_SCENES.md). If Blender is installed when
+configuring the gallery, CTest also checks fresh exports against the runtime
+loader without changing the source assets.
+
 ```bash
 cmake -S . -B build-gallery \
   -DCMAKE_BUILD_TYPE=Release \
@@ -76,17 +83,17 @@ ctest --test-dir build-gallery --output-on-failure
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
-Cloth Tear, and Cloth Paint; use
+Cloth Tear, Cloth Paint, and Water Cloth; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
-GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
+GPU timings. Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene
 renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
-two `FixedVertices` rows pinned. All three Cloth scenes start with gravity
+two `FixedVertices` rows pinned. All four Cloth scenes start with gravity
 straight down; arrow keys steer it relative to the camera within a 45-degree
 tilt, and releasing them restores straight-down gravity.
 `--cloth-tear` lets a heavy sphere land, then roll through bond-fractured cloth
@@ -94,6 +101,17 @@ when gravity is steered toward the sheet. No cloth triangles are deleted.
 `--cloth-paint` keeps the
 cloth intact while the active sphere presses and paints it through the public
 paint-field API.
+`--water-cloth` loads `ClothWater.blend`: Blender Cloth Pressure preserves the
+closed unpinned sphere's authored volume while an explicit API coupling keeps
+its Geometry-flow water inside and transfers equal-and-opposite forces back to
+the cloth. Its containing skin is rendered as refractive transparent water.
+Every entry uses the same physics diagnostics: `Z` toggles contact/cloth
+normals, `X` rigid and rigid-contact forces, `C` fluid acceleration/reaction
+forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.
+`V` exposes particles and/or cloth wireframe where those systems exist; `B`
+shows cloth bonds. The gallery opts into capture when it creates each `World`;
+ordinary library consumers pay no capture/readback cost unless they do the
+same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
@@ -108,6 +126,11 @@ paint-field API.
 
 ./build-gallery/parallel-mater-gallery \
   --cloth --headless /tmp/parallel-mater-cloth.ppm --frames 180
+
+./build-gallery/parallel-mater-gallery \
+  --water-cloth --cloth-tilt-left --frames 180 \
+  --physics-capture /tmp/water-cloth-physics.log \
+  --headless /tmp/water-cloth.ppm
 ```
 
 The gallery currently requires an NVIDIA driver supported by OptiX 9.1,

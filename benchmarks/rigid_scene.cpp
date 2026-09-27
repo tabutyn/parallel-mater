@@ -23,9 +23,7 @@ int main(int argc, char **argv) {
     }
     World world;
     SceneInstance instance;
-    if (!prepare_world(scene,
-                       static_cast<std::uint32_t>(scene.rigid_bodies.size()),
-                       world, instance)) {
+    if (!prepare_world(scene, world, instance)) {
         return 1;
     }
 

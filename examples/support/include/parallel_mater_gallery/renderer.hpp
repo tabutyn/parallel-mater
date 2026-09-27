@@ -32,6 +32,7 @@ struct RendererTimings {
 enum class FluidRenderMode : std::uint8_t {
     surface,
     particles,
+    wireframe,
 };
 
 class OptixRenderer {

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
+#include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/surface_query.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -16,7 +19,6 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -29,15 +31,24 @@ using parallel_mater::Status;
 using parallel_mater::World;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
-using parallel_mater::gallery::CameraPreset;
 using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
+using parallel_mater::gallery::GalleryControlPolicy;
+using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
+using parallel_mater::gallery::GalleryEntry;
+using parallel_mater::gallery::GalleryDebugState;
+using parallel_mater::gallery::GallerySceneSource;
+using parallel_mater::gallery::gallery_entries;
+using parallel_mater::gallery::gallery_entry;
+using parallel_mater::gallery::gallery_context_index;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::OptixRenderer;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
+using parallel_mater::gallery::StaticTriangleSurface;
+using parallel_mater::gallery::SurfaceSelection;
 
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr float k_kinematic_speed = 2.0F;
@@ -48,16 +59,13 @@ constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
 constexpr float k_dump_final_angle = -k_pi * 0.25F;
 constexpr float k_dump_rotation_speed = k_pi * 0.25F;
-constexpr std::uint32_t k_minimum_dump_spheres = 10U;
-constexpr std::uint32_t k_maximum_dump_spheres = 1'000U;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
-constexpr std::uint32_t k_minimum_fluid_particles = 100U;
-constexpr std::uint32_t k_maximum_fluid_particles = 100'000U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
 struct Options {
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
+    std::filesystem::path physics_capture_output{};
     int frames{240};
     std::uint32_t width{960U};
     std::uint32_t height{720U};
@@ -66,8 +74,10 @@ struct Options {
     std::uint32_t fluid_particles{k_default_fluid_particles};
     std::uint32_t headless_cloth_tilt_degrees{};
     std::uint32_t headless_cloth_tilt_after_frames{};
+    bool headless_cloth_tilt_left{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
+    bool water_cloth_debug{};
 };
 
 struct InputState {
@@ -83,6 +93,68 @@ struct DirectionalInput {
     float z{};
 };
 
+enum class KeyAction : std::size_t {
+    escape,
+    enter,
+    backspace,
+    scenes,
+    particle_count,
+    up,
+    down,
+    reset,
+    timing,
+    primary_debug,
+    normals,
+    rigid_forces,
+    fluid_forces,
+    bonds,
+    velocities,
+    capture,
+    action_count,
+};
+
+class KeyEdges {
+  public:
+    void update(GLFWwindow *window) noexcept {
+        previous_ = down_;
+        for (std::size_t index = 0U; index < bindings_.size(); ++index) {
+            const Binding binding = bindings_[index];
+            down_[index] = glfwGetKey(window, binding.first) == GLFW_PRESS ||
+                (binding.second != GLFW_KEY_UNKNOWN &&
+                 glfwGetKey(window, binding.second) == GLFW_PRESS);
+        }
+    }
+
+    [[nodiscard]] bool pressed(KeyAction action) const noexcept {
+        const std::size_t index = static_cast<std::size_t>(action);
+        return down_[index] && !previous_[index];
+    }
+
+  private:
+    struct Binding { int first; int second; };
+    static constexpr std::size_t action_count =
+        static_cast<std::size_t>(KeyAction::action_count);
+    static constexpr std::array<Binding, action_count> bindings_{
+        Binding{GLFW_KEY_ESCAPE, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_ENTER, GLFW_KEY_KP_ENTER},
+        Binding{GLFW_KEY_BACKSPACE, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_TAB, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_P, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_UP, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_DOWN, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_R, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_F, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_V, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_Z, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_X, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_C, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_B, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_N, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_M, GLFW_KEY_UNKNOWN}};
+    std::array<bool, action_count> down_{};
+    std::array<bool, action_count> previous_{};
+};
+
 struct GalleryRuntime {
     GalleryContext context{GalleryContext::rigid_body};
     SceneDefinition scene{};
@@ -93,225 +165,20 @@ struct GalleryRuntime {
     RigidBodyState kinematic_target{};
 };
 
+[[nodiscard]] const GalleryEntry *entry_for_option(
+    std::string_view option) noexcept {
+    const auto found = std::find_if(
+        gallery_entries.begin(), gallery_entries.end(),
+        [&](const GalleryEntry &entry) {
+            return !entry.command_line_option.empty() &&
+                   entry.command_line_option == option;
+        });
+    return found == gallery_entries.end() ? nullptr : &*found;
+}
+
 [[nodiscard]] parallel_mater::Quaternion rotation_z(float radians) {
     return {0.0F, 0.0F, std::sin(radians * 0.5F),
             std::cos(radians * 0.5F)};
-}
-
-[[nodiscard]] parallel_mater::Vec3 rotate_point(
-    parallel_mater::Quaternion q, parallel_mater::Vec3 p) {
-    const parallel_mater::Vec3 t{
-        2.0F * (q.y * p.z - q.z * p.y),
-        2.0F * (q.z * p.x - q.x * p.z),
-        2.0F * (q.x * p.y - q.y * p.x)};
-    return {p.x + q.w * t.x + q.y * t.z - q.z * t.y,
-            p.y + q.w * t.y + q.z * t.x - q.x * t.z,
-            p.z + q.w * t.z + q.x * t.y - q.y * t.x};
-}
-
-[[nodiscard]] bool passive_mesh_bounds(const SceneDefinition &scene,
-                                       parallel_mater::Vec3 &minimum,
-                                       parallel_mater::Vec3 &maximum) {
-    minimum = {std::numeric_limits<float>::max(),
-               std::numeric_limits<float>::max(),
-               std::numeric_limits<float>::max()};
-    maximum = {-std::numeric_limits<float>::max(),
-               -std::numeric_limits<float>::max(),
-               -std::numeric_limits<float>::max()};
-    bool found = false;
-    for (const auto &body : scene.rigid_bodies) {
-        if (body.options.motion != parallel_mater::MotionType::static_body)
-            continue;
-        const auto &meshes = body.collision_mesh_indices.empty()
-            ? scene.meshes : scene.collision_meshes;
-        const auto &indices = body.collision_mesh_indices.empty()
-            ? body.mesh_indices : body.collision_mesh_indices;
-        for (std::uint32_t mesh_index : indices) {
-            for (const auto &vertex : meshes[mesh_index].vertices) {
-                const auto local = rotate_point(
-                    body.options.initial_state.orientation, vertex.position);
-                const auto center = body.options.initial_state.position;
-                const parallel_mater::Vec3 p{
-                    center.x + local.x, center.y + local.y, center.z + local.z};
-                minimum.x = std::min(minimum.x, p.x);
-                minimum.y = std::min(minimum.y, p.y);
-                minimum.z = std::min(minimum.z, p.z);
-                maximum.x = std::max(maximum.x, p.x);
-                maximum.y = std::max(maximum.y, p.y);
-                maximum.z = std::max(maximum.z, p.z);
-                found = true;
-            }
-        }
-    }
-    return found;
-}
-
-[[nodiscard]] std::optional<float> passive_surface_height(
-    const SceneDefinition &scene, parallel_mater::Vec3 position,
-    float *normal_y = nullptr) {
-    std::optional<float> highest;
-    for (const auto &body : scene.rigid_bodies) {
-        if (body.options.motion != parallel_mater::MotionType::static_body)
-            continue;
-        const auto &meshes = body.collision_mesh_indices.empty()
-            ? scene.meshes : scene.collision_meshes;
-        const auto &indices = body.collision_mesh_indices.empty()
-            ? body.mesh_indices : body.collision_mesh_indices;
-        const auto world_vertex = [&](parallel_mater::Vec3 local) {
-            const auto rotated = rotate_point(
-                body.options.initial_state.orientation, local);
-            const auto origin = body.options.initial_state.position;
-            return parallel_mater::Vec3{origin.x + rotated.x,
-                                        origin.y + rotated.y,
-                                        origin.z + rotated.z};
-        };
-        for (std::uint32_t mesh_index : indices) {
-            const auto &mesh = meshes[mesh_index];
-            for (std::size_t triangle = 0; triangle < mesh.indices.size();
-                 triangle += 3U) {
-                const auto a = world_vertex(
-                    mesh.vertices[mesh.indices[triangle]].position);
-                const auto b = world_vertex(
-                    mesh.vertices[mesh.indices[triangle + 1U]].position);
-                const auto c = world_vertex(
-                    mesh.vertices[mesh.indices[triangle + 2U]].position);
-                const float abx = b.x - a.x, abz = b.z - a.z;
-                const float acx = c.x - a.x, acz = c.z - a.z;
-                const float determinant = abx * acz - abz * acx;
-                if (std::fabs(determinant) < 1.0e-8F) continue;
-                const float px = position.x - a.x, pz = position.z - a.z;
-                const float u = (px * acz - pz * acx) / determinant;
-                const float v = (abx * pz - abz * px) / determinant;
-                if (u < -1.0e-4F || v < -1.0e-4F ||
-                    u + v > 1.0001F) continue;
-                const float height = a.y + u * (b.y - a.y) + v * (c.y - a.y);
-                if (!highest || height > *highest) {
-                    highest = height;
-                    if (normal_y != nullptr) {
-                        const float ny = abz * acx - abx * acz;
-                        const float nx = (b.y - a.y) * acz -
-                                         (c.y - a.y) * abz;
-                        const float nz = abx * (c.y - a.y) -
-                                         acx * (b.y - a.y);
-                        *normal_y = ny / std::sqrt(nx * nx + ny * ny + nz * nz);
-                    }
-                }
-            }
-        }
-    }
-    return highest;
-}
-
-struct PassiveFloorIndex {
-    struct Triangle {
-        parallel_mater::Vec3 a{}, b{}, c{};
-    };
-    float minimum_x{}, minimum_z{};
-    float cell_size{0.35F};
-    std::size_t columns{}, rows{};
-    std::vector<Triangle> triangles{};
-    std::vector<std::vector<std::uint32_t>> cells{};
-
-    [[nodiscard]] std::optional<float> height(float x, float z) const {
-        const int column = static_cast<int>(std::floor((x - minimum_x) /
-                                                        cell_size));
-        const int row = static_cast<int>(std::floor((z - minimum_z) /
-                                                     cell_size));
-        if (column < 0 || row < 0 ||
-            static_cast<std::size_t>(column) >= columns ||
-            static_cast<std::size_t>(row) >= rows) return std::nullopt;
-        std::optional<float> lowest;
-        for (const std::uint32_t index :
-             cells[static_cast<std::size_t>(row) * columns + column]) {
-            const auto &triangle = triangles[index];
-            const auto a = triangle.a, b = triangle.b, c = triangle.c;
-            const float abx = b.x - a.x, abz = b.z - a.z;
-            const float acx = c.x - a.x, acz = c.z - a.z;
-            const float determinant = abx * acz - abz * acx;
-            const float px = x - a.x, pz = z - a.z;
-            const float u = (px * acz - pz * acx) / determinant;
-            const float v = (abx * pz - abz * px) / determinant;
-            if (u < -1.0e-4F || v < -1.0e-4F || u + v > 1.0001F)
-                continue;
-            const float y = a.y + u * (b.y - a.y) + v * (c.y - a.y);
-            if (!lowest || y < *lowest) lowest = y;
-        }
-        return lowest;
-    }
-};
-
-[[nodiscard]] PassiveFloorIndex build_passive_floor_index(
-    const SceneDefinition &scene, parallel_mater::Vec3 minimum,
-    parallel_mater::Vec3 maximum) {
-    PassiveFloorIndex index{};
-    index.minimum_x = minimum.x;
-    index.minimum_z = minimum.z;
-    index.columns = static_cast<std::size_t>(
-        std::ceil((maximum.x - minimum.x) / index.cell_size)) + 1U;
-    index.rows = static_cast<std::size_t>(
-        std::ceil((maximum.z - minimum.z) / index.cell_size)) + 1U;
-    index.cells.resize(index.columns * index.rows);
-    for (const auto &body : scene.rigid_bodies) {
-        if (body.options.motion != parallel_mater::MotionType::static_body)
-            continue;
-        const auto &meshes = body.collision_mesh_indices.empty()
-            ? scene.meshes : scene.collision_meshes;
-        const auto &mesh_indices = body.collision_mesh_indices.empty()
-            ? body.mesh_indices : body.collision_mesh_indices;
-        const auto world_vertex = [&](parallel_mater::Vec3 local) {
-            const auto p = rotate_point(body.options.initial_state.orientation,
-                                        local);
-            const auto origin = body.options.initial_state.position;
-            return parallel_mater::Vec3{p.x + origin.x, p.y + origin.y,
-                                        p.z + origin.z};
-        };
-        for (const std::uint32_t mesh_index : mesh_indices) {
-            const auto &mesh = meshes[mesh_index];
-            for (std::size_t offset = 0; offset < mesh.indices.size();
-                 offset += 3U) {
-                const auto a = world_vertex(
-                    mesh.vertices[mesh.indices[offset]].position);
-                const auto b = world_vertex(
-                    mesh.vertices[mesh.indices[offset + 1U]].position);
-                const auto c = world_vertex(
-                    mesh.vertices[mesh.indices[offset + 2U]].position);
-                const float nx = (b.y - a.y) * (c.z - a.z) -
-                                 (b.z - a.z) * (c.y - a.y);
-                const float ny = (b.z - a.z) * (c.x - a.x) -
-                                 (b.x - a.x) * (c.z - a.z);
-                const float nz = (b.x - a.x) * (c.y - a.y) -
-                                 (b.y - a.y) * (c.x - a.x);
-                const float normal_length = std::sqrt(nx * nx + ny * ny + nz * nz);
-                if (normal_length < 1.0e-8F ||
-                    std::fabs(ny) < normal_length * 0.2F) continue;
-                const std::uint32_t triangle = static_cast<std::uint32_t>(
-                    index.triangles.size());
-                index.triangles.push_back({a, b, c});
-                const float left = std::min({a.x, b.x, c.x});
-                const float right = std::max({a.x, b.x, c.x});
-                const float front = std::min({a.z, b.z, c.z});
-                const float back = std::max({a.z, b.z, c.z});
-                const auto first_column = static_cast<std::size_t>(
-                    std::max(0.0F, std::floor((left - minimum.x) /
-                                                index.cell_size)));
-                const auto last_column = std::min(index.columns - 1U,
-                    static_cast<std::size_t>(std::max(0.0F,
-                        std::floor((right - minimum.x) / index.cell_size))));
-                const auto first_row = static_cast<std::size_t>(
-                    std::max(0.0F, std::floor((front - minimum.z) /
-                                                index.cell_size)));
-                const auto last_row = std::min(index.rows - 1U,
-                    static_cast<std::size_t>(std::max(0.0F,
-                        std::floor((back - minimum.z) / index.cell_size))));
-                for (std::size_t row = first_row; row <= last_row; ++row)
-                    for (std::size_t column = first_column;
-                         column <= last_column; ++column)
-                        index.cells[row * index.columns + column].push_back(
-                            triangle);
-            }
-        }
-    }
-    return index;
 }
 
 struct FluidEscapeTrace {
@@ -328,10 +195,7 @@ struct FluidEscapeTrace {
 
 [[nodiscard]] bool trace_fluid_escapes(const World &world,
                                        const SceneInstance &instance,
-                                       const SceneDefinition &scene,
-                                       const PassiveFloorIndex &floor,
-                                       parallel_mater::Vec3 mesh_minimum,
-                                       parallel_mater::Vec3 mesh_maximum,
+                                       const StaticTriangleSurface &floor,
                                        int frame, FluidEscapeTrace &trace) {
     parallel_mater::FluidDeviceView view{};
     const Status status = world.fluid_view(instance.fluid, view);
@@ -351,6 +215,8 @@ struct FluidEscapeTrace {
             return false;
         }
     }
+    const parallel_mater::Vec3 mesh_minimum = floor.minimum();
+    const parallel_mater::Vec3 mesh_maximum = floor.maximum();
     const float threshold = mesh_minimum.y;
     std::uint32_t below = 0U;
     std::uint32_t below_local = 0U;
@@ -359,7 +225,8 @@ struct FluidEscapeTrace {
     float first_local_surface = 0.0F;
     for (std::size_t i = 0; i < positions.size(); ++i) {
         trace.lowest_y = std::min(trace.lowest_y, positions[i].y);
-        const auto surface = floor.height(positions[i].x, positions[i].z);
+        const auto surface = floor.height(
+            positions[i].x, positions[i].z, SurfaceSelection::lowest);
         if (surface && positions[i].y < *surface - 0.001F) {
             ++below_local;
             if (first_local == positions.size()) {
@@ -425,8 +292,8 @@ struct FluidEscapeTrace {
             const auto sample =
                 trace.recent_positions[stable_id][sample_frame % 64];
             float normal_y = 0.0F;
-            const auto surface = passive_surface_height(scene, sample,
-                                                         &normal_y);
+            const auto surface = floor.height(
+                sample.x, sample.z, SurfaceSelection::highest, &normal_y);
             std::cout << "  particle " << stable_id << " frame=" << sample_frame
                       << " y=" << sample.y << " surface_y=";
             if (surface) std::cout << *surface << " normal_y=" << normal_y;
@@ -500,35 +367,29 @@ struct FluidEscapeTrace {
                 return false;
             }
         } else if (argument == "--dump-spheres" && index + 1 < argc) {
-            if (!parse_count(argv[++index], k_minimum_dump_spheres,
-                             k_maximum_dump_spheres, output.dump_spheres)) {
+            const GalleryEntry &entry = gallery_entry(GalleryContext::dump);
+            if (!parse_count(argv[++index], entry.minimum_count,
+                             entry.maximum_count, output.dump_spheres)) {
                 return false;
             }
             output.initial_context = GalleryContext::dump;
         } else if (argument == "--fluid-particles" && index + 1 < argc) {
-            if (!parse_count(argv[++index], k_minimum_fluid_particles,
-                             k_maximum_fluid_particles,
+            const GalleryEntry &entry = gallery_entry(GalleryContext::fluid);
+            if (!parse_count(argv[++index], entry.minimum_count,
+                             entry.maximum_count,
                              output.fluid_particles)) return false;
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
-        } else if (argument == "--fluid") {
-            output.initial_context = GalleryContext::fluid;
-        } else if (argument == "--fluid-rigid") {
-            output.initial_context = GalleryContext::fluid_rigid;
-        } else if (argument == "--peg-paint") {
-            output.initial_context = GalleryContext::peg_paint;
-        } else if (argument == "--cloth") {
-            output.initial_context = GalleryContext::cloth;
-        } else if (argument == "--cloth-tear") {
-            output.initial_context = GalleryContext::cloth_tear;
-        } else if (argument == "--cloth-paint") {
-            output.initial_context = GalleryContext::cloth_paint;
+        } else if (const GalleryEntry *entry = entry_for_option(argument)) {
+            output.initial_context = entry->context;
         } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,
                              output.headless_cloth_tilt_degrees)) return false;
         } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
             if (!parse_count(argv[++index], 0U, 100000U,
                              output.headless_cloth_tilt_after_frames)) return false;
+        } else if (argument == "--cloth-tilt-left") {
+            output.headless_cloth_tilt_left = true;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -537,13 +398,27 @@ struct FluidEscapeTrace {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
             output.trace_fluid_escapes = true;
+        } else if (argument == "--water-cloth-debug") {
+            output.initial_context = GalleryContext::water_cloth;
+            output.water_cloth_debug = true;
+        } else if (argument == "--physics-capture" && index + 1 < argc) {
+            output.physics_capture_output = argv[++index];
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint] "
-                         "[--fluid-particles N] "
+                         "[--dump-spheres N] [";
+            bool first = true;
+            for (const GalleryEntry &entry : gallery_entries) {
+                if (entry.command_line_option.empty()) continue;
+                std::cout << (first ? "" : "|") << entry.command_line_option;
+                first = false;
+            }
+            std::cout << "] [--fluid-particles N] "
                          "[--cloth-tilt-degrees 1..45 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
+                         "[--cloth-tilt-left (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
+                         "[--water-cloth-debug] "
+                         "[--physics-capture output.log] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
             std::exit(0);
@@ -562,21 +437,6 @@ struct FluidEscapeTrace {
               << (status.message != nullptr ? status.message : "unknown")
               << '\n';
     return false;
-}
-
-[[nodiscard]] CameraPreset camera_preset(GalleryContext context) {
-    if (context == GalleryContext::dump)
-        return {.target = {0.5F, 2.2F, 0.0F}};
-    if (context == GalleryContext::peg_paint)
-        return {.target = {0.0F, -0.34F, 0.0F},
-                .distance_scale = 0.34F, .pitch = 0.72F};
-    if (is_cloth_context(context))
-        return {.target = {0.0F, 1.1F, 1.2F},
-                .distance_scale = 0.55F, .pitch = 0.42F};
-    if (is_fluid_context(context))
-        return {.target = {-2.0F, -1.0F, -2.0F},
-                .distance_scale = 1.6F};
-    return {};
 }
 
 [[nodiscard]] parallel_mater::Vec3 initial_scene_gravity(
@@ -688,72 +548,36 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                                  std::string &error) {
     GalleryRuntime next{};
     next.context = context;
-    if (context == GalleryContext::dump) {
+    const GalleryEntry &entry = gallery_entry(context);
+    if (entry.source == GallerySceneSource::procedural_dump) {
         next.scene = parallel_mater::gallery::make_dump_scene(dump_spheres);
-    } else if (context == GalleryContext::rigid_body ||
-               is_cloth_context(context) ||
-               is_fluid_context(context)) {
-        const std::filesystem::path scene_path =
-            context == GalleryContext::fluid
-                ? std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH)
-                : context == GalleryContext::fluid_rigid
-                    ? std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH)
-                    : context == GalleryContext::peg_paint
-                    ? std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH)
-                    : context == GalleryContext::cloth
-                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH)
-                    : context == GalleryContext::cloth_tear
-                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH)
-                    : context == GalleryContext::cloth_paint
-                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH)
-                    : options.scene;
+    } else {
+        const std::array scene_paths{
+            options.scene,
+            std::filesystem::path{},
+            std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH)};
+        const std::filesystem::path &scene_path = scene_paths[
+            static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
             error = "scene load failed: " + error;
             return false;
         }
-        if (is_fluid_context(context))
+        if (entry.has_fluid)
             next.scene.fluid_options.capacity = fluid_particles;
     }
-
-    const std::size_t mesh_capacity =
-        next.scene.meshes.size() + next.scene.collision_meshes.size();
-    std::size_t paint_capacity = 0U;
-    for (const auto &body : next.scene.rigid_bodies)
-        if (body.paintable) paint_capacity += body.mesh_indices.size();
-    for (const auto &cloth : next.scene.cloths)
-        if (cloth.paintable) ++paint_capacity;
-    if (next.scene.rigid_bodies.empty() ||
-        next.scene.rigid_bodies.size() >
-            std::numeric_limits<std::uint32_t>::max() ||
-        mesh_capacity == 0U ||
-        mesh_capacity + next.scene.meshes.size() >
-            std::numeric_limits<std::uint32_t>::max() ||
-        paint_capacity > std::numeric_limits<std::uint32_t>::max()) {
-        error = "scene exceeds world capacity range";
-        return false;
-    }
-    const Status create_status = World::create(
-        {.rigid_body_capacity =
-             static_cast<std::uint32_t>(next.scene.rigid_bodies.size()),
-         .triangle_mesh_capacity = static_cast<std::uint32_t>(
-             mesh_capacity + next.scene.meshes.size()),
-         .paint_field_capacity = static_cast<std::uint32_t>(paint_capacity),
-         .paint_rule_capacity = static_cast<std::uint32_t>(paint_capacity),
-         .cloth_capacity = static_cast<std::uint32_t>(
-             std::max<std::size_t>(1U, next.scene.cloths.size()))},
-        next.world);
+    const Status create_status = parallel_mater::gallery::create_scene_world(
+        next.scene, next.world, next.instance,
+        {.frame_capacity = 30U, .frame_stride = 1U});
     if (!create_status) {
         error = create_status.message != nullptr ? create_status.message
-                                                 : "world creation failed";
-        return false;
-    }
-    const Status instantiate_status = parallel_mater::gallery::instantiate_scene(
-        next.scene, next.world, next.instance);
-    if (!instantiate_status) {
-        error = instantiate_status.message != nullptr
-                    ? instantiate_status.message
-                    : "scene instantiation failed";
+                                                 : "scene creation failed";
         return false;
     }
     if (!OptixRenderer::create(next.scene, next.world, next.instance,
@@ -777,32 +601,38 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     return true;
 }
 
-[[nodiscard]] int context_index(GalleryContext context) {
-    switch (context) {
-    case GalleryContext::rigid_body: return 0;
-    case GalleryContext::dump: return 1;
-    case GalleryContext::fluid: return 2;
-    case GalleryContext::fluid_rigid: return 3;
-    case GalleryContext::peg_paint: return 4;
-    case GalleryContext::cloth: return 5;
-    case GalleryContext::cloth_tear: return 6;
-    case GalleryContext::cloth_paint: return 7;
-    }
-    return 0;
-}
+struct GallerySession {
+    GalleryRuntime runtime{};
+    std::uint32_t dump_spheres{k_default_dump_spheres};
+    std::uint32_t fluid_particles{k_default_fluid_particles};
+    float dump_angle{k_dump_initial_angle};
+    parallel_mater::Vec3 peg_gravity{};
+    parallel_mater::Vec3 cloth_gravity{};
+    parallel_mater::WorldStepTimings timings{};
+    parallel_mater::WorldStatistics statistics{};
+    parallel_mater::gallery::RendererTimings renderer_timings{};
 
-[[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 7)) {
-    case 1: return GalleryContext::dump;
-    case 2: return GalleryContext::fluid;
-    case 3: return GalleryContext::fluid_rigid;
-    case 4: return GalleryContext::peg_paint;
-    case 5: return GalleryContext::cloth;
-    case 6: return GalleryContext::cloth_tear;
-    case 7: return GalleryContext::cloth_paint;
-    default: return GalleryContext::rigid_body;
+    [[nodiscard]] bool rebuild(const Options &options, GalleryContext context,
+                               std::uint32_t requested_dump_spheres,
+                               std::uint32_t requested_fluid_particles,
+                               std::string &error) {
+        GalleryRuntime replacement;
+        if (!build_runtime(options, context, requested_dump_spheres,
+                           requested_fluid_particles, replacement, error)) {
+            return false;
+        }
+        runtime = std::move(replacement);
+        dump_spheres = requested_dump_spheres;
+        fluid_particles = requested_fluid_particles;
+        dump_angle = k_dump_initial_angle;
+        peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);
+        cloth_gravity = peg_gravity;
+        timings = {};
+        statistics = {};
+        renderer_timings = {};
+        return true;
     }
-}
+};
 
 } // namespace
 
@@ -816,13 +646,21 @@ int main(int argc, char **argv) {
         return 2;
     }
     std::string error;
-    GalleryRuntime runtime;
-    if (!build_runtime(options, options.initial_context, options.dump_spheres,
-                       options.fluid_particles,
-                       runtime, error)) {
+    GallerySession session;
+    if (!session.rebuild(options, options.initial_context, options.dump_spheres,
+                         options.fluid_particles, error)) {
         std::cerr << error << '\n';
         return 1;
     }
+    GalleryRuntime &runtime = session.runtime;
+    std::uint32_t &dump_spheres = session.dump_spheres;
+    std::uint32_t &fluid_particles = session.fluid_particles;
+    float &dump_angle = session.dump_angle;
+    Vec3 &peg_gravity = session.peg_gravity;
+    Vec3 &cloth_gravity = session.cloth_gravity;
+    WorldStepTimings &timings = session.timings;
+    WorldStatistics &statistics = session.statistics;
+    RendererTimings &renderer_timings = session.renderer_timings;
 
     const StepOptions step_options{.timestep = k_timestep,
                                    .substeps = 4U,
@@ -831,10 +669,11 @@ int main(int argc, char **argv) {
                                        runtime.scene.gravity_scale)};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
-    input_state.camera.set_preset(camera_preset(runtime.context));
+    input_state.camera.set_preset(gallery_entry(runtime.context).camera);
     if (!options.headless_output.empty()) {
         StepOptions headless_step = step_options;
-        if (is_cloth_context(runtime.context) &&
+        if (gallery_entry(runtime.context).controls ==
+                GalleryControlPolicy::cloth_gravity &&
             options.headless_cloth_tilt_degrees != 0U) {
             const float angle = static_cast<float>(
                 options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
@@ -842,14 +681,14 @@ int main(int argc, char **argv) {
             headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
                                     -magnitude * std::sin(angle)};
         }
-        parallel_mater::Vec3 passive_minimum{}, passive_maximum{};
         FluidEscapeTrace escape_trace{};
-        PassiveFloorIndex floor_index{};
+        StaticTriangleSurface floor_index{};
         if (options.trace_fluid_escapes) {
             if (!runtime.instance.has_fluid ||
-                !passive_mesh_bounds(runtime.scene, passive_minimum,
-                                     passive_maximum)) {
-                std::cerr << "Fluid escape trace needs a passive collider\n";
+                !StaticTriangleSurface::create(runtime.scene, floor_index,
+                                               error)) {
+                std::cerr << "Fluid escape trace needs a passive collider: "
+                          << error << '\n';
                 return 1;
             }
             for (const auto &body : runtime.scene.rigid_bodies) {
@@ -859,14 +698,14 @@ int main(int argc, char **argv) {
                           << body.collision_mesh_indices.size() << " render_meshes="
                           << body.mesh_indices.size() << '\n';
             }
+            const Vec3 passive_minimum = floor_index.minimum();
+            const Vec3 passive_maximum = floor_index.maximum();
             std::cout << "Passive mesh bounds x=" << passive_minimum.x << ".."
                       << passive_maximum.x << " y=" << passive_minimum.y << ".."
                       << passive_maximum.y << " z=" << passive_minimum.z << ".."
                       << passive_maximum.z << '\n';
-            floor_index = build_passive_floor_index(
-                runtime.scene, passive_minimum, passive_maximum);
             std::cout << "Passive floor triangles="
-                      << floor_index.triangles.size() << '\n';
+                      << floor_index.triangle_count() << '\n';
             for (const auto &spawn : runtime.scene.spawn_planes) {
                 std::cout << "Fluid inflow center=(" << spawn.plane.center.x
                           << ',' << spawn.plane.center.y << ','
@@ -880,7 +719,8 @@ int main(int argc, char **argv) {
         }
         float headless_dump_angle = k_dump_initial_angle;
         for (int frame = 0; frame < options.frames; ++frame) {
-            if (runtime.context == GalleryContext::dump &&
+            if (gallery_entry(runtime.context).controls ==
+                    GalleryControlPolicy::dump_rotation &&
                 runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
                 headless_dump_angle = std::max(
                     k_dump_final_angle,
@@ -898,8 +738,24 @@ int main(int argc, char **argv) {
             StepOptions frame_step = headless_step;
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
-            if (!require(runtime.world.step(frame_step),
-                         "step headless gallery")) {
+            else if (options.headless_cloth_tilt_left &&
+                     gallery_entry(runtime.context).controls ==
+                         GalleryControlPolicy::cloth_gravity) {
+                headless_step.gravity = steer_gravity(
+                    headless_step.gravity, input_state.camera.camera(),
+                    -1.0F, 0.0F, k_gravity * runtime.scene.gravity_scale,
+                    k_cloth_gravity_tilt_degrees, k_timestep);
+                frame_step.gravity = headless_step.gravity;
+            }
+            const Status frame_status = runtime.world.step(frame_step);
+            if (!frame_status) {
+                WorldStatistics failure_statistics{};
+                (void)runtime.world.collect_statistics(failure_statistics);
+                std::cerr << "Headless frame " << frame + 1
+                          << " failed; peak fluid neighbors="
+                          << failure_statistics.maximum_fluid_neighbor_count
+                          << '\n';
+                (void)require(frame_status, "step headless gallery");
                 return 1;
             }
             if (runtime.instance.has_fluid &&
@@ -911,9 +767,8 @@ int main(int argc, char **argv) {
             }
             if (options.trace_fluid_escapes &&
                 !trace_fluid_escapes(runtime.world, runtime.instance,
-                                     runtime.scene, floor_index,
-                                     passive_minimum, passive_maximum, frame + 1,
-                                     escape_trace)) return 1;
+                                     floor_index, frame + 1, escape_trace))
+                return 1;
         }
         if (options.trace_fluid_escapes)
             std::cout << "Fluid escape summary first_frame="
@@ -966,15 +821,50 @@ int main(int argc, char **argv) {
                           << " z=" << low.z << ".." << high.z << '\n';
             }
         }
+        if (!options.physics_capture_output.empty()) {
+            if (!write_physics_debug_capture(
+                    runtime.world, options.physics_capture_output, error)) {
+                std::cerr << "Physics capture failed: " << error << '\n';
+                return 1;
+            }
+            std::cout << "Physics capture "
+                      << options.physics_capture_output << '\n';
+        }
         RendererTimings headless_render_timings{};
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      input_state.camera.camera(),
                                      pixels, error, &headless_render_timings,
-                                     options.fluid_particle_view
+                                     options.water_cloth_debug
+                                         ? FluidRenderMode::wireframe
+                                         : options.fluid_particle_view
                                          ? FluidRenderMode::particles
                                          : FluidRenderMode::surface)) {
             std::cerr << "Render failed: " << error << '\n';
             return 1;
+        }
+        if (options.water_cloth_debug) {
+            ClothDeviceView cloth{};
+            if (runtime.instance.cloths.empty() ||
+                !require(runtime.world.cloth_view(
+                             runtime.instance.cloths.front(), cloth),
+                         "borrow headless cloth debug view") ||
+                !draw_cloth_debug_overlay(
+                    pixels, runtime.renderer.width(), runtime.renderer.height(),
+                    cloth, input_state.camera.camera(),
+                    {.normals = true, .rigid_contact_forces = true,
+                     .fluid_contact_forces = true, .wireframe = true,
+                     .bonds = true}, error)) {
+                std::cerr << "Cloth debug overlay failed: " << error << '\n';
+                return 1;
+            }
+            PhysicsDebugFrameView debug_frame{};
+            if (!require(runtime.world.physics_debug_frame(debug_frame),
+                         "borrow headless physics debug frame")) return 1;
+            draw_physics_debug_overlay(
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                debug_frame, input_state.camera.camera(),
+                {.contact_normals = true, .rigid_forces = true,
+                 .fluid_forces = true, .velocities = true});
         }
         if (runtime.context == GalleryContext::peg_paint ||
             runtime.context == GalleryContext::cloth_paint) {
@@ -989,7 +879,8 @@ int main(int argc, char **argv) {
             }
             std::cout << "Painted texels=" << painted << '\n';
         }
-        if (runtime.instance.has_fluid && !options.fluid_particle_view)
+        if (runtime.instance.has_fluid && !options.fluid_particle_view &&
+            !options.water_cloth_debug)
             std::cout << "Fluid surface outliers="
                       << headless_render_timings.surface_excluded_particle_count
                       << " surface_gpu_ms="
@@ -1053,55 +944,23 @@ int main(int argc, char **argv) {
     glDisable(GL_DEPTH_TEST);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-    bool reset_was_down = false;
-    bool timing_was_down = false;
-    bool debug_was_down = false;
-    bool tab_was_down = false;
-    bool p_was_down = false;
-    bool up_was_down = false;
-    bool down_was_down = false;
-    bool enter_was_down = false;
-    bool backspace_was_down = false;
-    bool escape_was_down = false;
+    KeyEdges keys;
     bool timing_visible = false;
-    bool debug_visible = false;
-    bool fluid_particle_view = options.fluid_particle_view;
+    GalleryDebugState debug;
+    debug.reset(options.fluid_particle_view);
+    bool capture_requested = false;
     bool context_visible = false;
     GalleryContext context_selection = runtime.context;
-    std::uint32_t dump_spheres = options.dump_spheres;
-    std::uint32_t fluid_particles = options.fluid_particles;
-    float dump_angle = k_dump_initial_angle;
-    parallel_mater::Vec3 peg_gravity{0.0F, -k_gravity *
-        runtime.scene.gravity_scale, 0.0F};
-    parallel_mater::Vec3 cloth_gravity = initial_scene_gravity(
-        runtime.context, runtime.scene.gravity_scale);
-    WorldStepTimings timings{};
-    WorldStatistics statistics{};
-    RendererTimings renderer_timings{};
-
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
-        const bool escape_down =
-            glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
-        const bool enter_down =
-            glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_KP_ENTER) == GLFW_PRESS;
-        const bool backspace_down =
-            glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS;
-        const bool tab_down = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
-        const bool p_down = glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS;
-        const bool up_down = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
-        const bool down_down = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
-        const bool reset_down = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
-        const bool timing_down = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
-        const bool debug_down = glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS;
+        keys.update(window);
 
         if (input_state.count_dialog_visible) {
-            if (escape_down && !escape_was_down) {
+            if (keys.pressed(KeyAction::escape)) {
                 input_state.count_dialog_visible = false;
                 input_state.count_value_invalid = false;
             }
-            if (backspace_down && !backspace_was_down) {
+            if (keys.pressed(KeyAction::backspace)) {
                 if (input_state.replace_count_value) {
                     input_state.count_value.clear();
                     input_state.replace_count_value = false;
@@ -1110,33 +969,23 @@ int main(int argc, char **argv) {
                 }
                 input_state.count_value_invalid = false;
             }
-            if (enter_down && !enter_was_down) {
+            if (keys.pressed(KeyAction::enter)) {
                 std::uint32_t requested = 0U;
-                const bool fluid_dialog = is_fluid_context(runtime.context);
-                const std::uint32_t minimum = fluid_dialog
-                    ? k_minimum_fluid_particles : k_minimum_dump_spheres;
-                const std::uint32_t maximum = fluid_dialog
-                    ? k_maximum_fluid_particles : k_maximum_dump_spheres;
-                if (!parse_count(input_state.count_value, minimum, maximum,
+                const GalleryEntry &entry = gallery_entry(runtime.context);
+                const bool fluid_dialog =
+                    entry.count_kind == GalleryCountKind::fluid_particles;
+                if (!parse_count(input_state.count_value, entry.minimum_count,
+                                 entry.maximum_count,
                                  requested)) {
                     input_state.count_value_invalid = true;
                 } else {
-                    GalleryRuntime replacement;
-                    if (build_runtime(options, runtime.context,
-                                      fluid_dialog ? dump_spheres : requested,
-                                      fluid_dialog ? requested : fluid_particles,
-                                      replacement, error)) {
-                        runtime = std::move(replacement);
-                        peg_gravity = {0.0F, -k_gravity *
-                            runtime.scene.gravity_scale, 0.0F};
-                        cloth_gravity = initial_scene_gravity(
-                            runtime.context, runtime.scene.gravity_scale);
-                        if (fluid_dialog) fluid_particles = requested;
-                        else dump_spheres = requested;
-                        dump_angle = k_dump_initial_angle;
+                    if (session.rebuild(
+                            options, runtime.context,
+                            fluid_dialog ? dump_spheres : requested,
+                            fluid_dialog ? requested : fluid_particles,
+                            error)) {
                         input_state.count_dialog_visible = false;
                         input_state.count_value_invalid = false;
-                        timings = {};
                     } else {
                         std::cerr << "Scene restart failed: " << error << '\n';
                         input_state.count_value_invalid = true;
@@ -1144,102 +993,86 @@ int main(int argc, char **argv) {
                 }
             }
         } else {
-            if (escape_down && !escape_was_down) {
+            if (keys.pressed(KeyAction::escape)) {
                 if (context_visible) {
                     context_visible = false;
                 } else {
                     glfwSetWindowShouldClose(window, GLFW_TRUE);
                 }
             }
-            if (tab_down && !tab_was_down) {
+            if (keys.pressed(KeyAction::scenes)) {
                 context_visible = !context_visible;
                 context_selection = runtime.context;
             }
             if (context_visible) {
-                int selected = context_index(context_selection);
-                if (up_down && !up_was_down) {
-                    selected = std::max(0, selected - 1);
+                std::size_t selected = gallery_context_index(context_selection);
+                if (keys.pressed(KeyAction::up)) {
+                    if (selected != 0U) --selected;
                 }
-                if (down_down && !down_was_down) {
-                    selected = std::min(7, selected + 1);
+                if (keys.pressed(KeyAction::down)) {
+                    selected = std::min(gallery_entries.size() - 1U,
+                                        selected + 1U);
                 }
-                context_selection = context_from_index(selected);
-                if (enter_down && !enter_was_down) {
-                    GalleryRuntime replacement;
-                    if (context_selection == runtime.context ||
-                        build_runtime(options, context_selection, dump_spheres,
-                                      fluid_particles,
-                                      replacement, error)) {
-                        if (context_selection != runtime.context) {
-                            runtime = std::move(replacement);
-                            peg_gravity = {0.0F, -k_gravity *
-                                runtime.scene.gravity_scale, 0.0F};
-                            cloth_gravity = initial_scene_gravity(
-                                runtime.context, runtime.scene.gravity_scale);
+                context_selection = gallery_entries[selected].context;
+                if (keys.pressed(KeyAction::enter)) {
+                    const bool context_changed =
+                        context_selection != runtime.context;
+                    if (!context_changed ||
+                        session.rebuild(options, context_selection, dump_spheres,
+                                        fluid_particles, error)) {
+                        if (context_changed) {
+                            debug.reset(options.fluid_particle_view);
                             input_state.camera.set_preset(
-                                camera_preset(runtime.context));
-                            dump_angle = k_dump_initial_angle;
-                            timings = {};
+                                gallery_entry(runtime.context).camera);
                         }
                         context_visible = false;
                     } else {
                         std::cerr << "Scene switch failed: " << error << '\n';
                     }
                 }
-            } else if (runtime.context != GalleryContext::rigid_body &&
-                       !is_cloth_context(runtime.context) &&
-                       p_down && !p_was_down) {
+            } else if (gallery_entry(runtime.context).count_kind !=
+                           GalleryCountKind::none &&
+                       keys.pressed(KeyAction::particle_count)) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(
-                    is_fluid_context(runtime.context)
+                    gallery_entry(runtime.context).count_kind ==
+                            GalleryCountKind::fluid_particles
                         ? fluid_particles : dump_spheres);
                 input_state.replace_count_value = true;
                 input_state.count_value_invalid = false;
             }
-            if (!context_visible && reset_down && !reset_was_down) {
-                GalleryRuntime replacement;
-                if (build_runtime(options, runtime.context, dump_spheres,
-                                  fluid_particles, replacement, error)) {
-                    runtime = std::move(replacement);
-                    peg_gravity = {0.0F, -k_gravity *
-                        runtime.scene.gravity_scale, 0.0F};
-                    cloth_gravity = initial_scene_gravity(
-                        runtime.context, runtime.scene.gravity_scale);
-                    dump_angle = k_dump_initial_angle;
-                    timings = {};
-                    statistics = {};
-                    renderer_timings = {};
-                } else {
+            if (!context_visible && keys.pressed(KeyAction::reset)) {
+                if (!session.rebuild(options, runtime.context, dump_spheres,
+                                     fluid_particles, error)) {
                     std::cerr << "Scene reset failed: " << error << '\n';
                 }
             }
-            if (timing_down && !timing_was_down) {
+            if (keys.pressed(KeyAction::timing)) {
                 timing_visible = !timing_visible;
             }
-            if (debug_down && !debug_was_down) {
-                if (is_fluid_context(runtime.context))
-                    fluid_particle_view = !fluid_particle_view;
-                else
-                    debug_visible = !debug_visible;
+            if (keys.pressed(KeyAction::primary_debug)) {
+                debug.toggle_primary(runtime.context);
             }
+            if (keys.pressed(KeyAction::normals))
+                debug.normals = !debug.normals;
+            if (keys.pressed(KeyAction::rigid_forces))
+                debug.rigid_forces = !debug.rigid_forces;
+            if (keys.pressed(KeyAction::fluid_forces))
+                debug.fluid_forces = !debug.fluid_forces;
+            if (keys.pressed(KeyAction::bonds))
+                debug.cloth_bonds = !debug.cloth_bonds;
+            if (keys.pressed(KeyAction::velocities))
+                debug.velocities = !debug.velocities;
+            if (keys.pressed(KeyAction::capture))
+                capture_requested = true;
         }
-
-        reset_was_down = reset_down;
-        timing_was_down = timing_down;
-        debug_was_down = debug_down;
-        tab_was_down = tab_down;
-        p_was_down = p_down;
-        up_was_down = up_down;
-        down_was_down = down_down;
-        enter_was_down = enter_down;
-        backspace_was_down = backspace_down;
-        escape_was_down = escape_down;
 
         if (!input_state.count_dialog_visible) {
             const DirectionalInput directional =
                 context_visible ? DirectionalInput{} : directional_input(window);
+            const GalleryEntry &entry = gallery_entry(runtime.context);
             if (runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
-                if (runtime.context == GalleryContext::dump) {
+                if (entry.controls == GalleryControlPolicy::dump_rotation) {
                     if (!context_visible &&
                         glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
                         dump_angle = std::max(
@@ -1265,16 +1098,16 @@ int main(int argc, char **argv) {
             StepOptions interactive_step = step_options;
             interactive_step.gravity = {0.0F,
                 -k_gravity * runtime.scene.gravity_scale, 0.0F};
-            if (is_cloth_context(runtime.context)) {
+            if (entry.controls == GalleryControlPolicy::cloth_gravity) {
                 cloth_gravity = steer_gravity(
                     cloth_gravity, input_state.camera.camera(),
                     directional.x, -directional.z,
                     k_gravity * runtime.scene.gravity_scale,
                     k_cloth_gravity_tilt_degrees, k_timestep);
                 interactive_step.gravity = cloth_gravity;
-            } else if (runtime.context == GalleryContext::rigid_body) {
+            } else if (entry.controls == GalleryControlPolicy::rigid_gravity) {
                 interactive_step.gravity = gravity_for(directional);
-            } else if (runtime.context == GalleryContext::peg_paint) {
+            } else if (entry.controls == GalleryControlPolicy::peg_gravity) {
                 const float right = directional.x + (!context_visible ?
                     static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
                     static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
@@ -1290,12 +1123,18 @@ int main(int argc, char **argv) {
                 interactive_step.gravity = peg_gravity;
             }
             interactive_step.collect_kernel_timings = timing_visible;
-            interactive_step.collect_rigid_contacts =
-                debug_visible && !is_fluid_context(runtime.context);
-            interactive_step.collect_fluid_contacts =
-                timing_visible && is_fluid_context(runtime.context);
             if (!require(runtime.world.step(interactive_step), "step gallery")) {
                 break;
+            }
+            if (capture_requested) {
+                std::filesystem::path capture_path;
+                if (save_physics_debug_capture(runtime.world, capture_path,
+                                               error)) {
+                    std::cout << "Physics capture " << capture_path << '\n';
+                } else {
+                    std::cerr << "Physics capture failed: " << error << '\n';
+                }
+                capture_requested = false;
             }
             if (timing_visible &&
                 !require(runtime.world.collect_step_timings(timings),
@@ -1311,19 +1150,55 @@ int main(int argc, char **argv) {
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      current_camera, pixels, error,
                                      timing_visible ? &renderer_timings : nullptr,
-                                     fluid_particle_view
-                                         ? FluidRenderMode::particles
-                                         : FluidRenderMode::surface)) {
+                                     debug.fluid_render_mode(runtime.context))) {
             std::cerr << "Render failed: " << error << '\n';
             break;
         }
-        if (debug_visible && !is_fluid_context(runtime.context) &&
+        if (is_cloth_context(runtime.context) &&
+            (debug.normals || debug.structure || debug.cloth_bonds)) {
+            bool cloth_debug_ok = true;
+            for (ClothId id : runtime.instance.cloths) {
+                ClothDeviceView cloth{};
+                if (!require(runtime.world.cloth_view(id, cloth),
+                             "borrow cloth debug view") ||
+                    !draw_cloth_debug_overlay(
+                        pixels, runtime.renderer.width(),
+                        runtime.renderer.height(), cloth, current_camera,
+                        {.normals = debug.normals,
+                         .wireframe = debug.structure,
+                         .bonds = debug.cloth_bonds}, error)) {
+                    cloth_debug_ok = false;
+                    break;
+                }
+            }
+            if (!cloth_debug_ok) {
+                std::cerr << "Cloth debug overlay failed: " << error << '\n';
+                break;
+            }
+        }
+        if (debug.vectors_visible()) {
+            PhysicsDebugFrameView debug_frame{};
+            const Status debug_status =
+                runtime.world.physics_debug_frame(debug_frame);
+            if (!debug_status) {
+                std::cerr << "Physics debug overlay failed: "
+                          << (debug_status.message != nullptr
+                                  ? debug_status.message : "unknown") << '\n';
+                break;
+            }
+            draw_physics_debug_overlay(
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                debug_frame, current_camera,
+                {.contact_normals = debug.normals,
+                 .rigid_forces = debug.rigid_forces,
+                 .fluid_forces = debug.fluid_forces,
+                 .velocities = debug.velocities});
+        }
+        if (debug.rigid_contacts &&
             !draw_rigid_contact_overlay(
-                                 pixels, runtime.renderer.width(),
-                                 runtime.renderer.height(),
-                                 runtime.world.rigid_contacts(), current_camera,
-                                 error)) {
-            std::cerr << "Debug overlay failed: " << error << '\n';
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                runtime.world.rigid_contacts(), current_camera, error)) {
+            std::cerr << "Rigid contact overlay failed: " << error << '\n';
             break;
         }
         if (timing_visible) {

@@ -34,9 +34,7 @@ int main(int argc, char **argv) {
     }
     World world;
     SceneInstance instance;
-    if (!prepare_world(scene, static_cast<std::uint32_t>(
-            scene.meshes.size() + scene.collision_meshes.size()),
-            world, instance)) return 1;
+    if (!prepare_world(scene, world, instance)) return 1;
     WorldStatistics statistics{};
     if (!require(world.collect_statistics(statistics), "collect allocation"))
         return 1;

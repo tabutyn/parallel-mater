@@ -61,7 +61,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         FetchContent_Populate(parallel_mater_cgltf)
     endif()
 
-    add_library(parallel-mater-gallery-scene STATIC examples/support/scene.cpp)
+    add_library(parallel-mater-gallery-scene STATIC
+                examples/support/scene.cpp
+                examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
         parallel-mater-gallery-scene
@@ -153,7 +155,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 examples/support/optix_renderer.cpp
                 examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
-                examples/support/overlay.cpp)
+                examples/support/overlay.cpp
+                examples/support/physics_debug.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     target_include_directories(
@@ -186,6 +189,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
             PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
             PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -216,6 +220,21 @@ if(BUILD_TESTING)
              COMMAND parallel-mater-paint-geometry-tests)
 
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+        find_program(PARALLEL_MATER_BLENDER_EXECUTABLE NAMES blender)
+        if(PARALLEL_MATER_BLENDER_EXECUTABLE)
+            add_executable(parallel-mater-blender-scene-check
+                           tests/gallery/blender_scene_check.cpp)
+            target_link_libraries(parallel-mater-blender-scene-check
+                                 PRIVATE parallel-mater-gallery-scene)
+            add_test(NAME parallel-mater-blender-export-tests
+                COMMAND ${PARALLEL_MATER_BLENDER_EXECUTABLE}
+                        --background --factory-startup --threads 1
+                        --python-exit-code 1
+                        --python ${CMAKE_CURRENT_SOURCE_DIR}/tests/blender/export_scene_tests.py
+                        -- --loader $<TARGET_FILE:parallel-mater-blender-scene-check>)
+            set_tests_properties(parallel-mater-blender-export-tests
+                                 PROPERTIES TIMEOUT 300)
+        endif()
         add_executable(parallel-mater-camera-controller-tests
                        tests/gallery/camera_controller_tests.cpp)
         target_link_libraries(
@@ -270,6 +289,17 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-cloth-variants-tests
             PROPERTIES SKIP_RETURN_CODE 77)
 
+        add_executable(parallel-mater-cloth-water-tests
+            tests/gallery/cloth_water_tests.cpp)
+        target_link_libraries(parallel-mater-cloth-water-tests
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-cloth-water-tests PRIVATE
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb")
+        add_test(NAME parallel-mater-cloth-water-tests
+            COMMAND parallel-mater-cloth-water-tests)
+        set_tests_properties(parallel-mater-cloth-water-tests
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
         target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
@@ -277,6 +307,7 @@ if(BUILD_TESTING)
         target_compile_definitions(parallel-mater-material-visibility-tests PRIVATE
             PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf"
             PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
         add_test(NAME parallel-mater-material-visibility-tests
                  COMMAND parallel-mater-material-visibility-tests)
@@ -321,119 +352,96 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-fluid-surface-tests)
         set_tests_properties(parallel-mater-fluid-surface-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
+        function(add_gallery_headless_test name output frames)
+            add_test(
+                NAME ${name}
+                COMMAND parallel-mater-gallery
+                        ${ARGN}
+                        --headless ${CMAKE_CURRENT_BINARY_DIR}/${output}
+                        --frames ${frames})
+        endfunction()
 
-
-        add_test(
-            NAME parallel-mater-optix-headless-test
-            COMMAND parallel-mater-gallery
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-optix-test.ppm
-                    --frames 30)
-        add_test(
-            NAME parallel-mater-dump-headless-test
-            COMMAND parallel-mater-gallery
-                    --dump-spheres 10
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-dump-test.ppm
-                    --frames 150)
-        add_test(
-            NAME parallel-mater-fluid-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-optix-headless-test
+            parallel-mater-optix-test.ppm 30)
+        add_gallery_headless_test(
+            parallel-mater-dump-headless-test
+            parallel-mater-dump-test.ppm 150 --dump-spheres 10)
+        add_gallery_headless_test(
+            parallel-mater-fluid-headless-test
+            parallel-mater-fluid-test.ppm 30 --fluid)
         set_tests_properties(parallel-mater-fluid-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-fluid-rigid-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid-rigid
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-rigid-test.ppm
-                    --frames 120)
+        add_gallery_headless_test(
+            parallel-mater-fluid-rigid-headless-test
+            parallel-mater-fluid-rigid-test.ppm 120 --fluid-rigid)
         set_tests_properties(parallel-mater-fluid-rigid-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-peg-paint-headless-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-tear-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth-tear
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-cloth-tear-rolled-render-test
-            COMMAND parallel-mater-gallery
-                    --cloth-tear
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-tear-rolled-test.ppm
-                    --frames 420
-                    --cloth-tilt-degrees 45
-                    --cloth-tilt-after-frames 120)
-        add_test(
-            NAME parallel-mater-cloth-paint-headless-test
-            COMMAND parallel-mater-gallery
-                    --cloth-paint
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-cloth-paint-test.ppm
-                    --frames 180)
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-headless-test
+            parallel-mater-peg-paint-test.ppm 180 --peg-paint)
+        add_gallery_headless_test(
+            parallel-mater-cloth-headless-test
+            parallel-mater-cloth-test.ppm 180 --cloth)
+        add_gallery_headless_test(
+            parallel-mater-cloth-tear-headless-test
+            parallel-mater-cloth-tear-test.ppm 180 --cloth-tear)
+        add_gallery_headless_test(
+            parallel-mater-cloth-tear-rolled-render-test
+            parallel-mater-cloth-tear-rolled-test.ppm 420
+            --cloth-tear --cloth-tilt-degrees 45
+            --cloth-tilt-after-frames 120)
+        add_gallery_headless_test(
+            parallel-mater-cloth-paint-headless-test
+            parallel-mater-cloth-paint-test.ppm 180 --cloth-paint)
         set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
-        add_test(
-            NAME parallel-mater-peg-paint-containment-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --fluid-particle-view
-                    --trace-fluid-escapes
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-containment-test.ppm
-                    --frames 600)
-        add_test(
-            NAME parallel-mater-peg-paint-cap-test
-            COMMAND parallel-mater-gallery
-                    --peg-paint
-                    --fluid-particles 100
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-peg-paint-cap-test.ppm
-                    --frames 180)
-        add_test(
-            NAME parallel-mater-fluid-containment-test
-            COMMAND parallel-mater-gallery
-                    --fluid
-                    --trace-fluid-escapes
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-containment-test.ppm
-                    --frames 120)
-        add_test(
-            NAME parallel-mater-fluid-cap-headless-test
-            COMMAND parallel-mater-gallery
-                    --fluid-particles 100
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-cap-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-headless-test
+            parallel-mater-water-cloth-test.ppm 180 --water-cloth)
+        set_tests_properties(parallel-mater-water-cloth-headless-test PROPERTIES
+            TIMEOUT 120)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-debug-headless-test
+            parallel-mater-water-cloth-debug-test.ppm 180 --water-cloth-debug)
+        set_tests_properties(
+            parallel-mater-water-cloth-debug-headless-test PROPERTIES
+            TIMEOUT 120)
+        add_gallery_headless_test(
+            parallel-mater-water-cloth-left-regression-test
+            parallel-mater-water-cloth-left-test.ppm 180
+            --water-cloth --cloth-tilt-left)
+        set_tests_properties(
+            parallel-mater-water-cloth-left-regression-test PROPERTIES
+            TIMEOUT 120)
+        add_gallery_headless_test(
+            parallel-mater-physics-capture-headless-test
+            parallel-mater-physics-capture-test.ppm 10
+            --physics-capture
+            ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.log)
+        set_tests_properties(
+            parallel-mater-physics-capture-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Physics capture")
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-containment-test
+            parallel-mater-peg-paint-containment-test.ppm 600
+            --peg-paint --fluid-particle-view --trace-fluid-escapes)
+        add_gallery_headless_test(
+            parallel-mater-peg-paint-cap-test
+            parallel-mater-peg-paint-cap-test.ppm 180
+            --peg-paint --fluid-particles 100)
+        add_gallery_headless_test(
+            parallel-mater-fluid-containment-test
+            parallel-mater-fluid-containment-test.ppm 120
+            --fluid --trace-fluid-escapes)
+        add_gallery_headless_test(
+            parallel-mater-fluid-cap-headless-test
+            parallel-mater-fluid-cap-test.ppm 30 --fluid-particles 100)
         set_tests_properties(parallel-mater-fluid-cap-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Fluid particles=100 ")
-        add_test(
-            NAME parallel-mater-fluid-particle-view-test
-            COMMAND parallel-mater-gallery
-                    --fluid-particle-view
-                    --headless
-                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-fluid-particles-test.ppm
-                    --frames 30)
+        add_gallery_headless_test(
+            parallel-mater-fluid-particle-view-test
+            parallel-mater-fluid-particles-test.ppm 30 --fluid-particle-view)
     endif()
 endif()
 
@@ -452,6 +460,8 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES tools/blender/export_parallel_mater_scene.py
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender)
 install(
     EXPORT ParallelMaterTargets
     FILE ParallelMaterTargets.cmake

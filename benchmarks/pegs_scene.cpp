@@ -144,9 +144,7 @@ int main(int argc, char **argv) {
     }
     World world;
     SceneInstance instance;
-    if (!prepare_world(scene, static_cast<std::uint32_t>(
-            scene.meshes.size() + scene.collision_meshes.size()),
-            world, instance)) return 1;
+    if (!prepare_world(scene, world, instance)) return 1;
     std::cout << "initial_particles=" << scene.initial_particles.size()
               << " initial_cap_particles=" << initial_cap_particles
               << " active_mass=" << scene.rigid_bodies[active].options.mass

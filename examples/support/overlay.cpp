@@ -1,16 +1,27 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/overlay.hpp>
 
+#include "vector_math.hpp"
+
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <span>
 #include <string_view>
+#include <type_traits>
 
 namespace parallel_mater::gallery {
 namespace {
+
+using math::add;
+using math::cross;
+using math::dot;
+using math::length;
+using math::multiply;
+using math::subtract;
 
 struct Color {
     std::uint8_t red{};
@@ -18,6 +29,10 @@ struct Color {
     std::uint8_t blue{};
     std::uint8_t alpha{255U};
 };
+
+[[nodiscard]] constexpr Color color(GalleryColor value) noexcept {
+    return {value.red, value.green, value.blue, value.alpha};
+}
 
 [[nodiscard]] std::uint32_t packed(Color color) {
     return static_cast<std::uint32_t>(color.red) |
@@ -156,35 +171,8 @@ void text(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     }
 }
 
-[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
-    return {first.x - second.x, first.y - second.y, first.z - second.z};
-}
-
-[[nodiscard]] Vec3 add(Vec3 first, Vec3 second) {
-    return {first.x + second.x, first.y + second.y, first.z + second.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, float scalar) {
-    return {value.x * scalar, value.y * scalar, value.z * scalar};
-}
-
-[[nodiscard]] float dot(Vec3 first, Vec3 second) {
-    return first.x * second.x + first.y * second.y + first.z * second.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
-    return {first.y * second.z - first.z * second.y,
-            first.z * second.x - first.x * second.z,
-            first.x * second.y - first.y * second.x};
-}
-
-[[nodiscard]] float length(Vec3 value) {
-    return std::sqrt(std::max(dot(value, value), 0.0F));
-}
-
 [[nodiscard]] Vec3 normalized(Vec3 value) {
-    const float size = length(value);
-    return size > 1.0e-6F ? multiply(value, 1.0F / size) : Vec3{};
+    return math::normalize_or(value, {}, 1.0e-6F);
 }
 
 struct ScreenPoint {
@@ -250,65 +238,70 @@ void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     text(rgba, width, height, 32, y, value, {225, 235, 242, 255}, 2);
 }
 
+struct TimingRow {
+    const char *label{};
+    KernelTiming timing{};
+};
+
+void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
+                  std::uint32_t height, int right, int bottom,
+                  std::string_view title, bool available,
+                  std::span<const TimingRow> rows, int row_step, int total_y,
+                  float total_milliseconds) {
+    rectangle(rgba, width, height, 18, 18, right, bottom, {5, 12, 18, 215});
+    text(rgba, width, height, 32, 30, title, {80, 220, 255, 255}, 2);
+    if (!available) {
+        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
+             {255, 190, 70, 255}, 2);
+        return;
+    }
+    int y = 58;
+    for (const TimingRow &row : rows) {
+        timing_row(rgba, width, height, y, row.label, row.timing);
+        y += row_step;
+    }
+    char total[96]{};
+    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
+                  total_milliseconds);
+    text(rgba, width, height, 32, total_y, total, {100, 255, 155, 255}, 2);
+}
+
 } // namespace
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings) {
-    rectangle(rgba, width, height, 18, 18, 390, 274, {5, 12, 18, 215});
-    text(rgba, width, height, 32, 30, "GPU KERNELS", {80, 220, 255, 255}, 2);
-    if (!timings.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE", {255, 190, 70, 255},
-             2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "INTEGRATE",
-               timings.rigid_integration);
-    timing_row(rgba, width, height, 78, "BOUNDS",
-               timings.rigid_world_bounds);
-    timing_row(rgba, width, height, 98, "PAIR FILTER",
-               timings.rigid_pair_filter);
-    timing_row(rgba, width, height, 118, "PAIR COMPACT",
-               timings.rigid_pair_compaction);
-    timing_row(rgba, width, height, 138, "LEAF PAIRS",
-               timings.rigid_leaf_pair_generation);
-    timing_row(rgba, width, height, 158, "TRI CONTACT",
-               timings.rigid_contact_evaluation);
-    timing_row(rgba, width, height, 178, "SOLVE",
-               timings.rigid_contact_solve);
-    timing_row(rgba, width, height, 198, "CLEAR",
-               timings.rigid_input_clear);
-    char total[96]{};
-    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
-                  timings.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 224, total, {100, 255, 155, 255}, 2);
+    const std::array rows{
+        TimingRow{"INTEGRATE", timings.rigid_integration},
+        TimingRow{"BOUNDS", timings.rigid_world_bounds},
+        TimingRow{"PAIR FILTER", timings.rigid_pair_filter},
+        TimingRow{"PAIR COMPACT", timings.rigid_pair_compaction},
+        TimingRow{"LEAF PAIRS", timings.rigid_leaf_pair_generation},
+        TimingRow{"TRI CONTACT", timings.rigid_contact_evaluation},
+        TimingRow{"SOLVE", timings.rigid_contact_solve},
+        TimingRow{"CLEAR", timings.rigid_input_clear}};
+    timing_panel(rgba, width, height, 390, 274, "GPU KERNELS",
+                 timings.available, rows, 20, 224,
+                 timings.total_gpu_milliseconds);
 }
 
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings) {
-    rectangle(rgba, width, height, 18, 18, 410, 230, {5, 12, 18, 215});
-    text(rgba, width, height, 32, 30, "CLOTH GPU KERNELS",
-         {80, 220, 255, 255}, 2);
-    if (!timings.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
-             {255, 190, 70, 255}, 2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "RIGID STEP",
-        {timings.rigid_integration.total_milliseconds +
-         timings.rigid_contact_generation.total_milliseconds +
-         timings.rigid_contact_solve.total_milliseconds,
-         timings.rigid_integration.launch_count +
-         timings.rigid_contact_generation.launch_count +
-         timings.rigid_contact_solve.launch_count});
-    timing_row(rgba, width, height, 84, "PREDICT", timings.cloth_prediction);
-    timing_row(rgba, width, height, 110, "LINKS", timings.cloth_constraints);
-    timing_row(rgba, width, height, 136, "CONTACTS", timings.cloth_contacts);
-    char total[96]{};
-    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
-                  timings.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 177, total, {100, 255, 155, 255}, 2);
+    const std::array rows{
+        TimingRow{"RIGID STEP",
+            {timings.rigid_integration.total_milliseconds +
+             timings.rigid_contact_generation.total_milliseconds +
+             timings.rigid_contact_solve.total_milliseconds,
+             timings.rigid_integration.launch_count +
+             timings.rigid_contact_generation.launch_count +
+             timings.rigid_contact_solve.launch_count}},
+        TimingRow{"PREDICT", timings.cloth_prediction},
+        TimingRow{"LINKS", timings.cloth_constraints},
+        TimingRow{"CONTACTS", timings.cloth_contacts}};
+    timing_panel(rgba, width, height, 410, 230, "CLOTH GPU KERNELS",
+                 timings.available, rows, 26, 177,
+                 timings.total_gpu_milliseconds);
 }
 
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
@@ -317,47 +310,33 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                const RendererTimings &renderer,
                                const WorldStatistics &statistics,
                                std::uint32_t capacity) {
-    rectangle(rgba, width, height, 18, 18, 480, 482,
-              {5, 12, 18, 225});
-    text(rgba, width, height, 32, 30,
-         renderer.particle_view ? "FLUID PARTICLE TIMINGS"
-                                : "FLUID SURFACE TIMINGS",
-         {80, 220, 255, 255}, 2);
-    if (!physics.available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
-             {255, 190, 70, 255}, 2);
-        return;
-    }
-    timing_row(rgba, width, height, 58, "SPAWN", physics.fluid_spawn);
-    timing_row(rgba, width, height, 78, "CELL SORT",
-               physics.fluid_neighbor_sort);
-    timing_row(rgba, width, height, 98, "NEIGHBORS",
-               physics.fluid_neighbor_forces);
-    timing_row(rgba, width, height, 118, "INTEGRATE",
-               physics.fluid_integration);
-    timing_row(rgba, width, height, 138, "TRI COLLIDE",
-               physics.fluid_static_contacts);
-    timing_row(rgba, width, height, 158, "BODY INDEX",
-               physics.fluid_body_index);
-    timing_row(rgba, width, height, 178, "MOVING TRI",
-               physics.fluid_moving_contacts);
-    timing_row(rgba, width, height, 198, "EVENTS",
-               physics.fluid_contact_events);
-    timing_row(rgba, width, height, 218, "OUTFLOW",
-               physics.fluid_outflow_compaction);
+    const std::array rows{
+        TimingRow{"SPAWN", physics.fluid_spawn},
+        TimingRow{"CELL SORT", physics.fluid_neighbor_sort},
+        TimingRow{"NEIGHBORS", physics.fluid_neighbor_forces},
+        TimingRow{"INTEGRATE", physics.fluid_integration},
+        TimingRow{"TRI COLLIDE", physics.fluid_static_contacts},
+        TimingRow{"BODY INDEX", physics.fluid_body_index},
+        TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
+        TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
+        TimingRow{"EVENTS", physics.fluid_contact_events},
+        TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
+    timing_panel(rgba, width, height, 480, 502,
+                 renderer.particle_view ? "FLUID PARTICLE TIMINGS"
+                                        : "FLUID SURFACE TIMINGS",
+                 physics.available, rows, 20, 264,
+                 physics.total_gpu_milliseconds);
+    if (!physics.available) return;
     char line[128]{};
-    std::snprintf(line, sizeof(line), "PHYSICS GPU    %7.3f MS",
-                  physics.total_gpu_milliseconds);
-    text(rgba, width, height, 32, 244, line, {100, 255, 155, 255}, 2);
     if (renderer.particle_view)
         std::snprintf(line, sizeof(line), "SURFACE GPU       OFF");
     else
         std::snprintf(line, sizeof(line), "SURFACE GPU    %7.3f MS",
                       renderer.surface_gpu_milliseconds);
-    text(rgba, width, height, 32, 268, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 288, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
                   renderer.raytrace_wall_milliseconds);
-    text(rgba, width, height, 32, 288, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 308, line, {225, 235, 242, 255}, 2);
     if (renderer.particle_view)
         std::snprintf(line, sizeof(line), "SPRITES CPU   %7.3f MS",
                       renderer.foam_wall_milliseconds);
@@ -365,30 +344,30 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         std::snprintf(line, sizeof(line), "FOAM CPU      %7.3f MS  %u PATCHES",
                       renderer.foam_wall_milliseconds,
                       renderer.foam_patch_count);
-    text(rgba, width, height, 32, 308, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 328, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
                   renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, 332, line, {100, 255, 155, 255}, 2);
+    text(rgba, width, height, 32, 352, line, {100, 255, 155, 255}, 2);
     std::snprintf(line, sizeof(line), "LIVE %u / MAX %u",
                   statistics.particle_count, capacity);
-    text(rgba, width, height, 32, 364, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 384, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
                   static_cast<unsigned long long>(statistics.emitted_particle_count),
                   static_cast<unsigned long long>(statistics.destroyed_particle_count));
-    text(rgba, width, height, 32, 384, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 404, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
                   static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
-    text(rgba, width, height, 32, 404, line,
+    text(rgba, width, height, 32, 424, line,
          statistics.spawn_capacity_miss_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
                   renderer.surface_excluded_particle_count);
-    text(rgba, width, height, 32, 428, line,
+    text(rgba, width, height, 32, 448, line,
          renderer.surface_excluded_particle_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CONTACTS %u  OVERFLOW %u",
                   statistics.contact_count, statistics.contact_overflow_count);
-    text(rgba, width, height, 32, 452, line,
+    text(rgba, width, height, 32, 472, line,
          statistics.contact_overflow_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
 }
@@ -446,15 +425,271 @@ bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
     return true;
 }
 
+void draw_physics_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, PhysicsDebugFrameView frame, Camera camera,
+    PhysicsDebugVisualizationOptions options) {
+    constexpr std::size_t maximum_vectors = 700U;
+    const auto draw_vector = [&](Vec3 origin, Vec3 value, Color color,
+                                 float scale) {
+        const float magnitude = length(value);
+        if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) return;
+        const float arrow_length = std::clamp(
+            scale * std::log1p(magnitude), 0.025F, 0.35F);
+        arrow(rgba, width, height,
+              project(origin, camera, width, height),
+              project(add(origin, multiply(value, arrow_length / magnitude)),
+                      camera, width, height), color);
+    };
+    const auto stride_for = [](std::uint64_t count) {
+        return std::max<std::uint64_t>(
+            1U, (count + maximum_vectors - 1U) / maximum_vectors);
+    };
+    if (options.contact_normals) {
+        for (std::uint64_t index = 0U; index < frame.rigid_contacts.size;
+             index += stride_for(frame.rigid_contacts.size)) {
+            const RigidContactEvent &contact = frame.rigid_contacts.data[index];
+            draw_vector(contact.position, contact.normal,
+                        {48, 255, 95, 245}, 0.12F);
+        }
+        for (std::uint64_t index = 0U; index < frame.fluid_contacts.size;
+             index += stride_for(frame.fluid_contacts.size)) {
+            const ContactEvent &contact = frame.fluid_contacts.data[index];
+            draw_vector(contact.position, contact.normal,
+                        {55, 238, 255, 235}, 0.12F);
+        }
+    }
+    if (options.rigid_forces) {
+        for (std::uint64_t index = 0U; index < frame.rigid_bodies.size;
+             index += stride_for(frame.rigid_bodies.size)) {
+            const PhysicsDebugRigidSample &sample =
+                frame.rigid_bodies.data[index];
+            draw_vector(sample.state.position, sample.applied_force,
+                        {255, 88, 64, 245}, 0.035F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.rigid_contact_force,
+                        {52, 135, 255, 238}, 0.025F);
+        }
+        const float inverse_timestep = frame.timestep > 0.0F
+            ? 1.0F / frame.timestep : 0.0F;
+        for (std::uint64_t index = 0U; index < frame.rigid_contacts.size;
+             index += stride_for(frame.rigid_contacts.size)) {
+            const RigidContactEvent &contact = frame.rigid_contacts.data[index];
+            draw_vector(contact.position,
+                        add(multiply(contact.normal,
+                                     contact.normal_impulse * inverse_timestep),
+                            multiply(contact.friction_impulse,
+                                     inverse_timestep)),
+                        {255, 180, 35, 238}, 0.025F);
+        }
+    }
+    if (options.fluid_forces) {
+        for (std::uint64_t index = 0U; index < frame.fluid_particles.size;
+             index += stride_for(frame.fluid_particles.size)) {
+            const PhysicsDebugFluidSample &sample =
+                frame.fluid_particles.data[index];
+            draw_vector(sample.position, sample.acceleration,
+                        {20, 210, 255, 225}, 0.018F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.fluid_contact_force,
+                        {255, 225, 30, 238}, 0.025F);
+        }
+    }
+    if (options.velocities) {
+        for (std::uint64_t index = 0U; index < frame.rigid_bodies.size;
+             index += stride_for(frame.rigid_bodies.size)) {
+            const PhysicsDebugRigidSample &sample =
+                frame.rigid_bodies.data[index];
+            draw_vector(sample.state.position, sample.state.linear_velocity,
+                        {255, 80, 230, 238}, 0.085F);
+        }
+        for (std::uint64_t index = 0U; index < frame.fluid_particles.size;
+             index += stride_for(frame.fluid_particles.size)) {
+            const PhysicsDebugFluidSample &sample =
+                frame.fluid_particles.data[index];
+            draw_vector(sample.position, sample.velocity,
+                        {255, 80, 230, 215}, 0.085F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.velocity,
+                        {255, 80, 230, 220}, 0.085F);
+        }
+    }
+    if (options.contact_normals || options.rigid_forces ||
+        options.fluid_forces || options.velocities) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 62,
+                  690, static_cast<int>(height) - 14, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 55,
+             "Z NORMALS  X RIGID FORCES  C FLUID FORCES  N VELOCITIES",
+             {235, 240, 245, 255}, 1);
+        char summary[128]{};
+        std::snprintf(summary, sizeof(summary),
+                      "FRAME %llu  MAX FLUID NEIGHBORS %u",
+                      static_cast<unsigned long long>(frame.frame_index),
+                      frame.maximum_fluid_neighbor_count);
+        text(rgba, width, height, 28, static_cast<int>(height) - 35,
+             summary, {130, 220, 255, 255}, 1);
+    }
+}
+
+bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
+                              std::uint32_t width, std::uint32_t height,
+                              ClothDeviceView cloth, Camera camera,
+                              ClothDebugOptions options, std::string &error) {
+    error.clear();
+    const auto copy = [&](auto span, auto &host, const char *label) {
+        using Value = typename std::decay_t<decltype(host)>::value_type;
+        host.resize(span.size);
+        if (host.empty()) return true;
+        const cudaError_t result = cudaMemcpy(
+            host.data(), span.data, host.size() * sizeof(Value),
+            cudaMemcpyDeviceToHost);
+        if (result == cudaSuccess) return true;
+        error = std::string("copy ") + label + ": " +
+                cudaGetErrorString(result);
+        return false;
+    };
+    std::vector<Vec3> positions;
+    std::vector<std::uint32_t> triangles;
+    if (!copy(cloth.positions, positions, "cloth positions") ||
+        !copy(cloth.triangle_indices, triangles, "cloth triangles"))
+        return false;
+    if (triangles.size() % 3U != 0U) {
+        error = "cloth debug triangle index count is not divisible by three";
+        return false;
+    }
+    if (options.wireframe) {
+        const Color wire{26, 230, 255, 225};
+        for (std::size_t triangle = 0U; triangle < triangles.size();
+             triangle += 3U) {
+            const std::uint32_t indices[3]{triangles[triangle],
+                triangles[triangle + 1U], triangles[triangle + 2U]};
+            if (indices[0] >= positions.size() ||
+                indices[1] >= positions.size() ||
+                indices[2] >= positions.size()) {
+                error = "cloth debug triangle index is out of range";
+                return false;
+            }
+            for (int edge = 0; edge < 3; ++edge) {
+                const ScreenPoint first = project(
+                    positions[indices[edge]], camera, width, height);
+                const ScreenPoint second = project(
+                    positions[indices[(edge + 1) % 3]], camera, width, height);
+                if (first.visible && second.visible)
+                    line(rgba, width, height, first.x, first.y,
+                         second.x, second.y, wire);
+            }
+        }
+    }
+    if (options.bonds) {
+        std::vector<ClothBond> bonds;
+        std::vector<std::uint8_t> active;
+        if (!copy(cloth.bonds, bonds, "cloth bonds") ||
+            !copy(cloth.active_bonds, active, "cloth active bonds"))
+            return false;
+        const std::size_t stride = std::max<std::size_t>(
+            1U, (bonds.size() + 2'499U) / 2'500U);
+        for (std::size_t index = 0U; index < bonds.size(); index += stride) {
+            const ClothBond &bond = bonds[index];
+            if (bond.first >= positions.size() ||
+                bond.second >= positions.size()) continue;
+            const ScreenPoint first = project(
+                positions[bond.first], camera, width, height);
+            const ScreenPoint second = project(
+                positions[bond.second], camera, width, height);
+            if (!first.visible || !second.visible) continue;
+            const bool enabled = index >= active.size() || active[index] != 0U;
+            line(rgba, width, height, first.x, first.y, second.x, second.y,
+                 enabled ? Color{255, 155, 25, 220}
+                         : Color{255, 45, 70, 235});
+        }
+    }
+    std::vector<Vec3> normals;
+    if (options.normals) {
+        normals.assign(positions.size(), {});
+        for (std::size_t triangle = 0U; triangle < triangles.size();
+             triangle += 3U) {
+            const std::uint32_t a = triangles[triangle];
+            const std::uint32_t b = triangles[triangle + 1U];
+            const std::uint32_t c = triangles[triangle + 2U];
+            if (a >= positions.size() || b >= positions.size() ||
+                c >= positions.size()) continue;
+            const Vec3 face = cross(subtract(positions[b], positions[a]),
+                                    subtract(positions[c], positions[a]));
+            normals[a] = add(normals[a], face);
+            normals[b] = add(normals[b], face);
+            normals[c] = add(normals[c], face);
+        }
+        for (Vec3 &normal : normals) normal = normalized(normal);
+    }
+    const auto draw_vectors = [&](const std::vector<Vec3> &vectors,
+                                  float fixed_length, Color color) {
+        const std::size_t count = std::min(positions.size(), vectors.size());
+        for (std::size_t index = 0U; index < count; ++index) {
+            const float magnitude = length(vectors[index]);
+            if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) continue;
+            const float arrow_length = fixed_length > 0.0F
+                ? fixed_length
+                : std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+            const Vec3 endpoint = add(
+                positions[index], multiply(vectors[index],
+                                            arrow_length / magnitude));
+            arrow(rgba, width, height,
+                  project(positions[index], camera, width, height),
+                  project(endpoint, camera, width, height), color);
+        }
+    };
+    if (options.normals)
+        draw_vectors(normals, 0.065F, {31, 255, 56, 242});
+    if (options.rigid_contact_forces) {
+        std::vector<Vec3> forces;
+        if (!copy(cloth.rigid_contact_forces, forces,
+                  "cloth rigid contact forces")) return false;
+        draw_vectors(forces, 0.0F, {31, 122, 255, 242});
+    }
+    if (options.fluid_contact_forces) {
+        std::vector<Vec3> forces;
+        if (!copy(cloth.fluid_contact_forces, forces,
+                  "cloth fluid contact forces")) return false;
+        draw_vectors(forces, 0.0F, {255, 219, 20, 242});
+    }
+    if (options.normals || options.rigid_contact_forces ||
+        options.fluid_contact_forces || options.wireframe || options.bonds) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 88,
+                  620, static_cast<int>(height) - 66, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 81,
+             "CLOTH  Z NORMALS  V WIREFRAME  B BONDS",
+             {235, 240, 245, 255}, 1);
+    }
+    return true;
+}
+
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
-    const int top = std::max(14, static_cast<int>(height) / 2 - 312);
-    rectangle(rgba, width, height, center - 255, top, center + 255, top + 625,
+    constexpr int row_height = 68;
+    const int panel_height = 81 + row_height *
+        static_cast<int>(gallery_entries.size());
+    const int top = std::max(14, (static_cast<int>(height) - panel_height) / 2);
+    rectangle(rgba, width, height, center - 255, top, center + 255,
+              top + panel_height,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
+    text(rgba, width, height, center - 70, top + 34,
+         "Z X C V B N DEBUG   M CAPTURE", {185, 220, 235, 255}, 1);
 
     const auto row = [&](int y, GalleryContext context, Color background,
                          Color icon, std::string_view name,
@@ -472,37 +707,20 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         text(rgba, width, height, center - 135, y + 31, state, state_color, 1);
     };
 
-    row(top + 78, GalleryContext::rigid_body, {48, 55, 63, 235},
-        {170, 176, 184, 255}, "RIGID BODY", "AVAILABLE",
-        {105, 255, 155, 255});
-    row(top + 146, GalleryContext::dump, {62, 38, 22, 235},
-        {245, 130, 45, 255}, "DUMP", "AVAILABLE  P EDITS SPHERES",
-        {105, 255, 155, 255});
-    row(top + 214, GalleryContext::fluid, {12, 42, 65, 235},
-        {35, 150, 255, 255}, "FLUID", "P CAP  V PARTICLES  R RESET",
-        {105, 255, 155, 255});
-    row(top + 282, GalleryContext::fluid_rigid, {25, 52, 64, 235},
-        {35, 190, 230, 255}, "FLUID RIGID", "64 FREE SPHERES  P CAP",
-        {105, 255, 155, 255});
-    row(top + 350, GalleryContext::peg_paint, {44, 28, 61, 235},
-        {42, 145, 255, 255}, "PEG PAINT", "ARROWS GRAVITY  P CAP",
-        {105, 255, 155, 255});
-    row(top + 418, GalleryContext::cloth, {40, 42, 58, 235},
-        {236, 188, 96, 255}, "CLOTH", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
-    row(top + 486, GalleryContext::cloth_tear, {53, 37, 48, 235},
-        {255, 126, 111, 255}, "CLOTH TEAR", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
-    row(top + 554, GalleryContext::cloth_paint, {28, 49, 55, 235},
-        {65, 177, 240, 255}, "CLOTH PAINT", "ARROWS GRAVITY  R RESET",
-        {105, 255, 155, 255});
+    int y = top + 78;
+    for (const GalleryEntry &entry : gallery_entries) {
+        row(y, entry.context, color(entry.background), color(entry.icon),
+            entry.name, entry.help, {105, 255, 155, 255});
+        y += row_height;
+    }
 }
 
 void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
                         bool invalid) {
-    const bool fluid = is_fluid_context(context);
+    const GalleryEntry &entry = gallery_entry(context);
+    const bool fluid = entry.count_kind == GalleryCountKind::fluid_particles;
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
     rectangle(rgba, width, height, center_x - 260, center_y - 118,
@@ -516,8 +734,10 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, center_x - 198, center_y - 17,
          (fluid ? "MAX " : "COUNT ") + value, {245, 247, 250, 255}, 2);
     text(rgba, width, height, center_x - 220, center_y + 42,
-         fluid ? (invalid ? "USE 100-100000" : "MIN 100  MAX 100000")
-               : (invalid ? "USE 10-1000" : "MIN 10  MAX 1000"),
+         invalid ? ("USE " + std::to_string(entry.minimum_count) + '-' +
+                    std::to_string(entry.maximum_count))
+                 : ("MIN " + std::to_string(entry.minimum_count) + "  MAX " +
+                    std::to_string(entry.maximum_count)),
          invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
     text(rgba, width, height, center_x - 220, center_y + 72,
          "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);

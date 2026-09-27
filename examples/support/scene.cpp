@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
 
+#include "vector_math.hpp"
+
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
@@ -21,6 +23,12 @@
 
 namespace parallel_mater::gallery {
 namespace {
+
+using math::add;
+using math::cross;
+using math::dot;
+using math::multiply;
+using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
 
@@ -112,36 +120,8 @@ class FlatJson {
     return finite(value.x) && finite(value.y) && finite(value.z);
 }
 
-[[nodiscard]] Vec3 add(Vec3 first, Vec3 second) {
-    return {first.x + second.x, first.y + second.y, first.z + second.z};
-}
-
-[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) {
-    return {first.x - second.x, first.y - second.y, first.z - second.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, Vec3 scale) {
-    return {value.x * scale.x, value.y * scale.y, value.z * scale.z};
-}
-
-[[nodiscard]] Vec3 multiply(Vec3 value, float scale) {
-    return {value.x * scale, value.y * scale, value.z * scale};
-}
-
-[[nodiscard]] float dot(Vec3 first, Vec3 second) {
-    return first.x * second.x + first.y * second.y + first.z * second.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) {
-    return {first.y * second.z - first.z * second.y,
-            first.z * second.x - first.x * second.z,
-            first.x * second.y - first.y * second.x};
-}
-
 [[nodiscard]] Vec3 normalize(Vec3 value) {
-    const float length = std::sqrt(dot(value, value));
-    return length > 1.0e-8F ? multiply(value, 1.0F / length)
-                            : Vec3{0.0F, 1.0F, 0.0F};
+    return math::normalize_or(value, {0.0F, 1.0F, 0.0F});
 }
 
 [[nodiscard]] Vec3 rotate(Quaternion orientation, Vec3 value) {
@@ -357,6 +337,27 @@ class FlatJson {
         }
     }
     return true;
+}
+
+// glTF may split one Blender vertex at normal or UV seams. Pressure physics
+// needs the authored topological vertex, so merge coincident render vertices
+// before constructing a closed cloth graph.
+void weld_pressure_cloth(TriangleMesh &mesh) {
+    std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> remap(mesh.vertices.size());
+    vertices.reserve(mesh.vertices.size());
+    for (std::size_t source = 0U; source < mesh.vertices.size(); ++source) {
+        const Vec3 position = mesh.vertices[source].position;
+        std::size_t target = 0U;
+        for (; target < vertices.size(); ++target) {
+            const Vec3 difference = subtract(position, vertices[target].position);
+            if (dot(difference, difference) <= 1.0e-12F) break;
+        }
+        if (target == vertices.size()) vertices.push_back(mesh.vertices[source]);
+        remap[source] = static_cast<std::uint32_t>(target);
+    }
+    for (std::uint32_t &index : mesh.indices) index = remap[index];
+    mesh.vertices = std::move(vertices);
 }
 
 [[nodiscard]] bool sample_initial_volume(
@@ -770,6 +771,22 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_stretch_compliance").value_or(1.0e-6));
         const double solver_iterations =
             extras.number("pm_solver_iterations").value_or(8.0);
+        const float velocity_damping = static_cast<float>(
+            extras.number("pm_velocity_damping").value_or(5.0));
+        const float contact_friction = static_cast<float>(
+            extras.number("pm_contact_friction").value_or(0.4));
+        const bool pressure_enabled =
+            extras.boolean("pm_pressure_enabled").value_or(false);
+        const float pressure_scale = static_cast<float>(
+            extras.number("pm_pressure_scale").value_or(1.0));
+        const float uniform_pressure = static_cast<float>(
+            extras.number("pm_uniform_pressure").value_or(0.0));
+        const bool pressure_custom_volume =
+            extras.boolean("pm_pressure_custom_volume").value_or(false);
+        const float pressure_target_volume = static_cast<float>(
+            extras.number("pm_pressure_target_volume").value_or(0.0));
+        const float pressure_fluid_density = static_cast<float>(
+            extras.number("pm_pressure_fluid_density").value_or(0.0));
         const double paint_resolution =
             extras.number("pm_paint_resolution").value_or(512.0);
         const Vec3 scale = node_scale(node);
@@ -785,6 +802,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             fracture_persistence < 1.0 || fracture_persistence > 64.0 ||
             std::floor(fracture_persistence) != fracture_persistence ||
             !finite(stretch_compliance) || stretch_compliance < 0.0F ||
+            !finite(velocity_damping) || velocity_damping < 0.0F ||
+            !finite(contact_friction) || contact_friction < 0.0F ||
+            !finite(pressure_scale) || pressure_scale <= 0.0F ||
+            !finite(uniform_pressure) || uniform_pressure != 0.0F ||
+            !finite(pressure_target_volume) || pressure_target_volume < 0.0F ||
+            !finite(pressure_fluid_density) || pressure_fluid_density < 0.0F ||
             solver_iterations < 1.0 || solver_iterations > 64.0 ||
             std::floor(solver_iterations) != solver_iterations ||
             paint_resolution < 32.0 || paint_resolution > 2048.0 ||
@@ -792,15 +815,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = name + ": invalid cloth tear, solver, or paint settings";
             return false;
         }
-        const auto encoded_pins = extras.string("pm_pin_vertices");
-        if (!encoded_pins || encoded_pins->empty()) {
-            error = name + ": cloth has no exported pin vertices";
-            return false;
-        }
+        const std::string encoded_pins =
+            extras.string("pm_pin_vertices").value_or("");
         struct Pin { Vec3 position; float weight; bool matched{}; };
         std::vector<Pin> pins;
-        const char *cursor = encoded_pins->c_str();
-        const char *end = cursor + encoded_pins->size();
+        const char *cursor = encoded_pins.c_str();
+        const char *end = cursor + encoded_pins.size();
         while (cursor < end) {
             float fields[4]{};
             for (int component = 0; component < 4; ++component) {
@@ -823,6 +843,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[0], scale, false,
                               name, mesh, error)) return false;
+        if (pressure_enabled) weld_pressure_cloth(mesh);
         ClothDefinition cloth{};
         cloth.name = name;
         cloth.vertex_mass = mass;
@@ -832,7 +853,19 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             static_cast<std::uint32_t>(fracture_persistence);
         cloth.impact_break_impulse = impact_break_impulse;
         cloth.stretch_compliance = stretch_compliance;
+        cloth.velocity_damping = velocity_damping;
+        cloth.contact_friction = contact_friction;
         cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
+        cloth.preserve_volume = pressure_enabled;
+        cloth.target_volume = pressure_custom_volume
+            ? pressure_target_volume : 0.0F;
+        cloth.volume_compliance = 1.0e-7F / pressure_scale;
+        cloth.contains_fluid =
+            extras.boolean("pm_contains_fluid").value_or(false);
+        if (cloth.contains_fluid && !cloth.preserve_volume) {
+            error = name + ": contained fluid requires Cloth Pressure";
+            return false;
+        }
         cloth.paintable = extras.boolean("pm_paintable").value_or(false);
         cloth.paint_resolution = static_cast<std::uint32_t>(paint_resolution);
         cloth.paint_source = extras.string("pm_paint_source").value_or("");
@@ -992,7 +1025,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                 .particle_radius = radius,
                                 .support_radius = std::max(0.12F, spacing),
                                 .solver_iterations = 2U,
-                                .maximum_neighbors = 256U,
+                                // Pressure cloth can transiently compress a
+                                // valid geometry volume above the ordinary
+                                // free-surface density. The solver visits all
+                                // neighbors; this is a safety threshold, not
+                                // a storage allocation.
+                                .maximum_neighbors = 512U,
                                 .repulsion = 30.0F,
                                 .viscosity = 0.0F,
                                 .velocity_damping = 0.4F,
@@ -1002,8 +1040,10 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                     std::sqrt(0.5F) * spacing * spacing * spacing,
                                 .maximum_pair_acceleration = 55.0F};
     }
-    if (output.rigid_bodies.empty()) {
-        error = "GLB contains no ParallelMater rigid bodies";
+    if (output.rigid_bodies.empty() && output.cloths.empty() &&
+        output.spawn_planes.empty() && output.destroy_planes.empty() &&
+        output.initial_particles.empty()) {
+        error = "GLB contains no ParallelMater physics objects";
         return false;
     }
     return true;
@@ -1081,6 +1121,78 @@ SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
              {2U}});
     }
     return result;
+}
+
+Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
+                           PhysicsDebugOptions physics_debug) noexcept {
+    std::size_t triangle_meshes = 0U;
+    for (std::size_t index = 0U; index < scene.rigid_bodies.size(); ++index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[index];
+        const bool collision = !body.collision_mesh_indices.empty();
+        const auto &indices = collision ? body.collision_mesh_indices
+                                        : body.mesh_indices;
+        bool already_uploaded = false;
+        for (std::size_t previous = 0U; previous < index; ++previous) {
+            const RigidBodyDefinition &candidate = scene.rigid_bodies[previous];
+            const bool candidate_collision =
+                !candidate.collision_mesh_indices.empty();
+            const auto &candidate_indices = candidate_collision
+                ? candidate.collision_mesh_indices : candidate.mesh_indices;
+            if (collision == candidate_collision && indices == candidate_indices) {
+                already_uploaded = true;
+                break;
+            }
+        }
+        triangle_meshes += already_uploaded ? 0U : 1U;
+    }
+    std::size_t paint_fields = 0U;
+    for (std::size_t body_index = 0U; body_index < scene.rigid_bodies.size();
+         ++body_index) {
+        const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
+        if (!body.paintable) continue;
+        paint_fields += body.mesh_indices.size();
+        for (std::uint32_t mesh : body.mesh_indices) {
+            bool already_uploaded = false;
+            for (std::size_t previous = 0U; previous < body_index; ++previous) {
+                const RigidBodyDefinition &candidate =
+                    scene.rigid_bodies[previous];
+                already_uploaded = candidate.paintable &&
+                    std::find(candidate.mesh_indices.begin(),
+                              candidate.mesh_indices.end(), mesh) !=
+                        candidate.mesh_indices.end();
+                if (already_uploaded) break;
+            }
+            triangle_meshes += already_uploaded ? 0U : 1U;
+        }
+    }
+    for (const ClothDefinition &cloth : scene.cloths)
+        paint_fields += cloth.paintable ? 1U : 0U;
+    const std::size_t maximum = std::numeric_limits<std::uint32_t>::max();
+    if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
+        scene.spawn_planes.size() > maximum ||
+        scene.destroy_planes.size() > maximum || paint_fields > maximum ||
+        scene.cloths.size() > maximum) {
+        return {StatusCode::capacity_exceeded, cudaSuccess,
+                "gallery scene exceeds world capacity range"};
+    }
+    output = {
+        .fluid_capacity = 1U,
+        .rigid_body_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.rigid_bodies.size())),
+        .triangle_mesh_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, triangle_meshes)),
+        .particle_spawn_plane_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.spawn_planes.size())),
+        .particle_destroy_plane_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.destroy_planes.size())),
+        .paint_field_capacity = static_cast<std::uint32_t>(paint_fields),
+        .paint_rule_capacity = static_cast<std::uint32_t>(paint_fields),
+        .cloth_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.cloths.size())),
+        .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.cloths.size())),
+        .physics_debug = physics_debug};
+    return {};
 }
 
 Status instantiate_scene(const SceneDefinition &scene, World &world,
@@ -1233,11 +1345,16 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .vertex_mass = definition.vertex_mass,
             .thickness = definition.thickness,
             .stretch_compliance = definition.stretch_compliance,
+            .velocity_damping = definition.velocity_damping,
+            .contact_friction = definition.contact_friction,
             .solver_iterations = definition.solver_iterations,
             .break_strain = definition.break_strain,
             .fracture_persistence_substeps =
                 definition.fracture_persistence_substeps,
-            .impact_break_impulse = definition.impact_break_impulse}, cloth);
+            .impact_break_impulse = definition.impact_break_impulse,
+            .preserve_volume = definition.preserve_volume,
+            .target_volume = definition.target_volume,
+            .volume_compliance = definition.volume_compliance}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
     }
@@ -1287,6 +1404,17 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             status = world.add_particle_destroy_plane(options, id);
             if (!status) return status;
         }
+    }
+    for (std::size_t index = 0U; index < scene.cloths.size(); ++index) {
+        if (!scene.cloths[index].contains_fluid) continue;
+        if (!output.has_fluid || index >= output.cloths.size())
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "contained cloth needs a scene fluid"};
+        FluidClothCouplingId coupling{};
+        const Status status = world.add_fluid_cloth_coupling(
+            {.fluid = output.fluid, .cloth = output.cloths[index]}, coupling);
+        if (!status) return status;
+        output.fluid_cloth_couplings.push_back(coupling);
     }
     try {
     const auto bind_paint = [&](std::uint32_t owner,
@@ -1382,6 +1510,16 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 "failed to assemble gallery paint bindings"};
     }
     return {};
+}
+
+Status create_scene_world(const SceneDefinition &scene, World &world,
+                          SceneInstance &output,
+                          PhysicsDebugOptions physics_debug) noexcept {
+    WorldOptions options{};
+    Status status = scene_world_options(scene, options, physics_debug);
+    if (!status) return status;
+    status = World::create(options, world);
+    return status ? instantiate_scene(scene, world, output) : status;
 }
 
 } // namespace parallel_mater::gallery

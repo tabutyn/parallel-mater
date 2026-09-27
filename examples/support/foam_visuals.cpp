@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "foam_visuals.hpp"
+#include "vector_math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,22 +10,12 @@
 namespace parallel_mater::gallery {
 namespace {
 
-[[nodiscard]] Vec3 subtract(Vec3 a, Vec3 b) {
-    return {a.x - b.x, a.y - b.y, a.z - b.z};
-}
-
-[[nodiscard]] float dot(Vec3 a, Vec3 b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-[[nodiscard]] Vec3 cross(Vec3 a, Vec3 b) {
-    return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x};
-}
+using math::cross;
+using math::dot;
+using math::subtract;
 
 [[nodiscard]] Vec3 normalize(Vec3 value) {
-    const float length = std::sqrt(std::max(dot(value, value), 1.0e-20F));
-    return {value.x / length, value.y / length, value.z / length};
+    return math::normalize_or(value, {});
 }
 
 [[nodiscard]] std::uint32_t foam_hash(std::uint32_t value) noexcept {

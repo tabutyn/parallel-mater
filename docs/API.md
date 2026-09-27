@@ -112,6 +112,16 @@ attached to an intact edge or corner and keeps approximately its rest shape.
 The gallery renders that API-owned surface; rigid-body response on fracturing
 cloth uses physical node contacts, not a triangle-radius barrier. The gallery
 does not choose a cut shape.
+`ClothDeviceView` also exposes the last-substep per-node
+`rigid_contact_forces` and `fluid_contact_forces`. They are ordinary borrowed
+device spans and are available without enabling the bounded contact-event
+streams, so an application can build force diagnostics without reaching into
+solver storage.
+
+`FluidDeviceView::accelerations`, `ClothDeviceView::velocities`, and the
+opt-in `RigidBodyDeviceView::applied_forces`/`applied_torques` provide the
+remaining live force and motion inputs needed by client visualizers. The
+library never draws these spans.
 
 ## Fluid sources and contact paint
 
@@ -191,6 +201,23 @@ choice does not change the triangle-mesh contact API.
 
 Rigid contact diagnostics retain at most `WorldOptions::contact_capacity`
 events. Contact solving remains complete when diagnostic storage is capped.
+
+## Opt-in physics capture
+
+Set `WorldOptions::physics_debug.frame_capacity` before `World::create` to
+retain a rolling host history. Zero, the default, allocates no capture force
+buffers, performs no state readback, and leaves contact collection controlled
+solely by `StepOptions`. A nonzero capacity retains rigid state and applied
+inputs, fluid position/velocity/solver acceleration/foam, cloth state and both
+coupling forces, contact events, gravity, timestep, and the measured peak
+fluid-neighbor count. `frame_stride` can reduce capture frequency.
+
+`physics_debug_frame` borrows the newest immutable host frame until the next
+completed step. `copy_physics_debug_capture` deep-copies the ring in
+chronological order for logging. Enabling capture intentionally also retains
+contact events and synchronously assembles a host frame when completion is
+acknowledged; consumers should enable it only in tools or diagnostic builds.
+File formats and vector drawing remain outside the physics library.
 
 ## Fluid contract
 

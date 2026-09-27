@@ -116,12 +116,8 @@ bool run_tear() {
     if (scene.cloths.size() != 1U || scene.cloths[0].break_strain <= 0.0F)
         return false;
     World world;
-    if (!check(World::create({.rigid_body_capacity = 2U,
-                              .triangle_mesh_capacity = 4U,
-                              .cloth_capacity = 1U}, world), "create tear world"))
-        return false;
     SceneInstance instance{};
-    if (!check(instantiate_scene(scene, world, instance), "instantiate tear"))
+    if (!check(create_scene_world(scene, world, instance), "create tear world"))
         return false;
     std::size_t active = 0U;
     for (std::size_t index = 0U; index < scene.rigid_bodies.size(); ++index)
@@ -244,13 +240,9 @@ bool run_tear() {
             return body.options.motion == MotionType::dynamic;
         }), no_impact.rigid_bodies.end());
     World baseline;
-    if (!check(World::create({.rigid_body_capacity = 1U,
-                              .triangle_mesh_capacity = 4U,
-                              .cloth_capacity = 1U}, baseline),
-               "create no-impact world")) return false;
     SceneInstance baseline_instance{};
-    if (!check(instantiate_scene(no_impact, baseline, baseline_instance),
-               "instantiate no-impact cloth")) return false;
+    if (!check(create_scene_world(no_impact, baseline, baseline_instance),
+               "create no-impact cloth")) return false;
     for (int frame = 0; frame < 180; ++frame)
         if (!check(baseline.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
                                   .gravity = {0.0F, -6.93671752F,
@@ -292,15 +284,9 @@ bool run_paint() {
         scene.cloths[0].paint_source.empty() ||
         !scene.initial_particles.empty()) return false;
     World world;
-    if (!check(World::create({.rigid_body_capacity = 2U,
-                              .triangle_mesh_capacity = 5U,
-                              .paint_field_capacity = 1U,
-                              .paint_rule_capacity = 1U,
-                              .cloth_capacity = 1U}, world),
-               "create paint world")) return false;
     SceneInstance instance{};
-    if (!check(instantiate_scene(scene, world, instance),
-               "instantiate paint")) return false;
+    if (!check(create_scene_world(scene, world, instance),
+               "create paint world")) return false;
     if (instance.paint_bindings.size() != 1U || instance.has_fluid)
         return false;
     PaintFieldDeviceView view{};

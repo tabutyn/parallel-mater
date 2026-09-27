@@ -4,6 +4,19 @@ Every stage is a separate pull request. A stage is merged only after its public
 example, deterministic tests, sanitizer checks, and unprofiled measurements
 pass.
 
+## Blender interface direction
+
+- Keep one exporter, `tools/blender/export_parallel_mater_scene.py`, for every
+  supported physics system. CLI, Blender File → Export, and automation call
+  the same `export_scene()` function and write the same versioned schema.
+- Keep example source authoring helpers under `examples/assets/tools/`; they
+  do not export or implement runtime physics.
+- Test real Blender exports, failure cleanup, source preservation, and the
+  runtime loader contract. Ship the exporter with the installed package.
+- Next steps: Blender property panels and a reusable runtime scene importer
+  outside gallery support. Extend this interface instead of adding per-scene
+  scripts or moving simulation behavior into Blender export code.
+
 ## PR 1 — API review RFC (merged)
 
 - Agree on ownership, handles, stepping, views, contacts, and scope.
@@ -136,6 +149,26 @@ pass.
   rows and active rigid sphere, enable cloth UV painting, and keep the cloth
   intact. Rigid–cloth contact and filled-disk texel stamping belong to `World`.
 - Add headless and GPU scene tests for both variations.
+
+## PR 11 — Water inside pressure cloth
+
+- Export Blender's native Cloth Pressure settings and accept closed unpinned
+  cloth. Initial authored volume is the default pressure target.
+- Add reusable API volume preservation and an explicit fluid–cloth coupling
+  resource. Particle containment transfers equal-and-opposite reactions to
+  the cloth; the gallery only instantiates exported relationships.
+- Add the Blender-authored `ClothWater` gallery context with common fluid,
+  camera, reset, timing, and gravity controls.
+- Render contained-fluid cloth as a transparent water skin and expose shared
+  Z/X/C/V normal, coupling-force, particle, and wireframe diagnostics.
+- Add opt-in API-owned rolling physics capture for rigid, fluid, cloth, and
+  contact state. Share Z/X/C/V/B/N visualization and M log capture across all
+  gallery contexts while keeping final drawing and persistence outside `World`.
+- Treat `maximum_neighbors` as an explicit diagnostic ceiling, report the
+  observed peak, and cover left-steered pressure-cloth compression without
+  terminating the gallery on a valid 268-neighbor transient.
+- Measure volume drift, escaped particles, and frame cost in a GPU regression
+  test, then verify the scene through the common exporter and headless render.
 
 ## Later — Gallery game shell
 

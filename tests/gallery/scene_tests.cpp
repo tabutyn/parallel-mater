@@ -239,16 +239,9 @@ int main() {
     }
 
     World world;
-    check_status(World::create(
-                     {.rigid_body_capacity =
-                          static_cast<std::uint32_t>(scene.rigid_bodies.size()),
-                      .triangle_mesh_capacity =
-                          static_cast<std::uint32_t>(scene.rigid_bodies.size())},
-                     world),
-                 "create PassiveActive world");
     SceneInstance instance;
-    check_status(instantiate_scene(scene, world, instance),
-                 "instantiate PassiveActive scene");
+    check_status(create_scene_world(scene, world, instance),
+                 "create PassiveActive scene world");
     check(instance.rigid_bodies.size() == 5U,
           "each rigid body must have a scene instance handle");
     WorldStatistics statistics{};
@@ -258,13 +251,9 @@ int main() {
           "world must own five bodies and five triangle meshes");
 
     World dump_world;
-    check_status(World::create({.rigid_body_capacity = 12U,
-                                .triangle_mesh_capacity = 3U},
-                               dump_world),
-                 "create DUMP world");
     SceneInstance dump_instance;
-    check_status(instantiate_scene(minimum_dump, dump_world, dump_instance),
-                 "instantiate DUMP scene");
+    check_status(create_scene_world(minimum_dump, dump_world, dump_instance),
+                 "create DUMP scene world");
     WorldStatistics dump_statistics{};
     check_status(dump_world.collect_statistics(dump_statistics),
                  "collect DUMP statistics");
@@ -273,13 +262,9 @@ int main() {
           "DUMP bodies must reuse three uploaded triangle meshes");
 
     World fluid_world;
-    check_status(World::create({.fluid_capacity = 1U,
-                                .rigid_body_capacity = 1U,
-                                .triangle_mesh_capacity = 1U},
-                               fluid_world), "create Fluid world");
     SceneInstance fluid_instance;
-    check_status(instantiate_scene(fluid_scene, fluid_world, fluid_instance),
-                 "instantiate Blender Fluid scene");
+    check_status(create_scene_world(fluid_scene, fluid_world, fluid_instance),
+                 "create Blender Fluid scene world");
     check(fluid_instance.has_fluid,
           "Fluid scene must instantiate a live fluid owner");
     for (int frame = 0; frame < 30; ++frame) {
@@ -337,12 +322,10 @@ int main() {
 
     const SceneDefinition colored_dump = make_dump_scene(256U);
     World colored_world;
-    check_status(World::create({.rigid_body_capacity = 258U,
-                                .triangle_mesh_capacity = 3U}, colored_world),
-                 "create parallel-contact DUMP world");
     SceneInstance colored_instance;
-    check_status(instantiate_scene(colored_dump, colored_world, colored_instance),
-                 "instantiate parallel-contact DUMP scene");
+    check_status(create_scene_world(colored_dump, colored_world,
+                                    colored_instance),
+                 "create parallel-contact DUMP scene world");
     std::vector<RigidBodyState> reference_states;
     for (int repetition = 0; repetition < 2; ++repetition) {
         for (std::size_t index = 0U;

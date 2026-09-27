@@ -49,7 +49,13 @@ struct ClothDefinition {
     std::uint32_t fracture_persistence_substeps{4U};
     float impact_break_impulse{};
     float stretch_compliance{1.0e-6F};
+    float velocity_damping{5.0F};
+    float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
+    bool preserve_volume{};
+    float target_volume{};
+    float volume_compliance{1.0e-7F};
+    bool contains_fluid{};
     bool paintable{};
     std::uint32_t paint_resolution{512U};
     std::string paint_source{};
@@ -77,6 +83,7 @@ struct SceneInstance {
     };
     std::vector<RigidBodyId> rigid_bodies{};
     std::vector<ClothId> cloths{};
+    std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};
@@ -89,6 +96,17 @@ struct SceneInstance {
 // Examples-only rigid stress scene. The installed physics API has no scene
 // concepts; DUMP builds reusable triangle meshes through SceneDefinition.
 [[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
+
+// Derives the capacities needed by the shared scene instantiator. Gallery
+// clients, tests, and benchmarks should use this instead of mirroring its
+// mesh/paint/cloth accounting.
+[[nodiscard]] Status scene_world_options(
+    const SceneDefinition &scene, WorldOptions &output,
+    PhysicsDebugOptions physics_debug = {}) noexcept;
+
+[[nodiscard]] Status create_scene_world(
+    const SceneDefinition &scene, World &world, SceneInstance &output,
+    PhysicsDebugOptions physics_debug = {}) noexcept;
 
 [[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
                                        World &world,

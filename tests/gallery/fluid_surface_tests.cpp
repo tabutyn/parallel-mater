@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "fluid_surface.hpp"
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/surface_query.hpp>
 
 #include <cuda_runtime_api.h>
 
@@ -13,58 +14,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-namespace {
-
-using parallel_mater::Vec3;
-using parallel_mater::gallery::SceneDefinition;
-
-float floor_height(const SceneDefinition &scene, float x, float z) {
-    float highest = -std::numeric_limits<float>::infinity();
-    for (const auto &body : scene.rigid_bodies) {
-        if (body.options.motion != parallel_mater::MotionType::static_body)
-            continue;
-        const auto &meshes = body.collision_mesh_indices.empty()
-            ? scene.meshes : scene.collision_meshes;
-        const auto &mesh_indices = body.collision_mesh_indices.empty()
-            ? body.mesh_indices : body.collision_mesh_indices;
-        const auto state = body.options.initial_state;
-        const auto transform = [&](Vec3 p) {
-            const auto q = state.orientation;
-            const Vec3 t{2.0F * (q.y * p.z - q.z * p.y),
-                         2.0F * (q.z * p.x - q.x * p.z),
-                         2.0F * (q.x * p.y - q.y * p.x)};
-            return Vec3{p.x + q.w * t.x + q.y * t.z - q.z * t.y +
-                            state.position.x,
-                        p.y + q.w * t.y + q.z * t.x - q.x * t.z +
-                            state.position.y,
-                        p.z + q.w * t.z + q.x * t.y - q.y * t.x +
-                            state.position.z};
-        };
-        for (std::uint32_t mesh_index : mesh_indices) {
-            const auto &mesh = meshes[mesh_index];
-            for (std::size_t i = 0; i < mesh.indices.size(); i += 3U) {
-                const Vec3 a = transform(mesh.vertices[mesh.indices[i]].position);
-                const Vec3 b = transform(mesh.vertices[mesh.indices[i + 1U]].position);
-                const Vec3 c = transform(mesh.vertices[mesh.indices[i + 2U]].position);
-                const float abx = b.x - a.x, abz = b.z - a.z;
-                const float acx = c.x - a.x, acz = c.z - a.z;
-                const float determinant = abx * acz - abz * acx;
-                if (std::fabs(determinant) < 1.0e-8F) continue;
-                const float px = x - a.x, pz = z - a.z;
-                const float u = (px * acz - pz * acx) / determinant;
-                const float v = (abx * pz - abz * px) / determinant;
-                if (u < -1.0e-4F || v < -1.0e-4F ||
-                    u + v > 1.0001F) continue;
-                highest = std::max(highest,
-                    a.y + u * (b.y - a.y) + v * (c.y - a.y));
-            }
-        }
-    }
-    return highest;
-}
-
-} // namespace
 
 int main() {
     using parallel_mater::FluidDeviceView;
@@ -206,20 +155,22 @@ int main() {
         if (sheet_total == 0U || sheet_wet * 100U < sheet_total * 95U)
             throw 20;
 
-        SceneDefinition scene;
+        parallel_mater::gallery::SceneDefinition scene;
         std::string error;
         if (!parallel_mater::gallery::load_glb_scene(
                 PARALLEL_MATER_FLUID_SCENE_PATH, scene, error))
             throw std::runtime_error(error);
+        parallel_mater::gallery::StaticTriangleSurface surface_query;
+        if (!parallel_mater::gallery::StaticTriangleSurface::create(
+                scene, surface_query, error)) throw std::runtime_error(error);
+        const auto floor_height = [&](float x, float z) {
+            return surface_query.height(
+                x, z, parallel_mater::gallery::SurfaceSelection::highest)
+                .value_or(-std::numeric_limits<float>::infinity());
+        };
         parallel_mater::World world;
-        if (!parallel_mater::World::create(
-                {.rigid_body_capacity =
-                     static_cast<std::uint32_t>(scene.rigid_bodies.size()),
-                 .triangle_mesh_capacity = static_cast<std::uint32_t>(
-                     scene.meshes.size() + scene.collision_meshes.size())},
-                world)) throw 11;
         parallel_mater::gallery::SceneInstance instance;
-        if (!parallel_mater::gallery::instantiate_scene(scene, world, instance))
+        if (!parallel_mater::gallery::create_scene_world(scene, world, instance))
             throw 12;
         for (int frame = 0; frame < 2'000; ++frame)
             if (!world.step({.timestep = 1.0F / 60.0F, .substeps = 4U,
@@ -244,7 +195,7 @@ int main() {
         for (std::uint32_t z = 0; z < grid.dimensions.z; ++z)
             for (std::uint32_t x = 0; x < grid.dimensions.x; ++x)
                 terrain[static_cast<std::size_t>(z) * grid.dimensions.x + x] =
-                    floor_height(scene, grid.minimum.x + x * grid.cell_size.x,
+                    floor_height(grid.minimum.x + x * grid.cell_size.x,
                                  grid.minimum.z + z * grid.cell_size.z);
         std::size_t below_scene_floor = 0U;
         std::size_t wet_scene_cells = 0U;
@@ -298,7 +249,7 @@ int main() {
                     (x + 0.5F) * grid.cell_size.x;
                 const float world_z = grid.minimum.z +
                     (z + 0.5F) * grid.cell_size.z;
-                const float sample_y = floor_height(scene, world_x, world_z) -
+                const float sample_y = floor_height(world_x, world_z) -
                     0.001F;
                 const float coordinate =
                     (sample_y - grid.minimum.y) / grid.cell_size.y;
