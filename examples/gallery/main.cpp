@@ -523,6 +523,8 @@ struct FluidEscapeTrace {
             output.initial_context = GalleryContext::cloth_tear;
         } else if (argument == "--cloth-paint") {
             output.initial_context = GalleryContext::cloth_paint;
+        } else if (argument == "--water-cloth") {
+            output.initial_context = GalleryContext::water_cloth;
         } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,
                              output.headless_cloth_tilt_degrees)) return false;
@@ -539,7 +541,7 @@ struct FluidEscapeTrace {
             output.trace_fluid_escapes = true;
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
-                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint] "
+                         "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint|--water-cloth] "
                          "[--fluid-particles N] "
                          "[--cloth-tilt-degrees 1..45 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
@@ -706,6 +708,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                     ? std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH)
                     : context == GalleryContext::cloth_paint
                     ? std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH)
+                    : context == GalleryContext::water_cloth
+                    ? std::filesystem::path(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH)
                     : options.scene;
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
@@ -741,6 +745,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
          .paint_field_capacity = static_cast<std::uint32_t>(paint_capacity),
          .paint_rule_capacity = static_cast<std::uint32_t>(paint_capacity),
          .cloth_capacity = static_cast<std::uint32_t>(
+             std::max<std::size_t>(1U, next.scene.cloths.size())),
+         .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
              std::max<std::size_t>(1U, next.scene.cloths.size()))},
         next.world);
     if (!create_status) {
@@ -787,12 +793,13 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case GalleryContext::cloth: return 5;
     case GalleryContext::cloth_tear: return 6;
     case GalleryContext::cloth_paint: return 7;
+    case GalleryContext::water_cloth: return 8;
     }
     return 0;
 }
 
 [[nodiscard]] GalleryContext context_from_index(int index) {
-    switch (std::clamp(index, 0, 7)) {
+    switch (std::clamp(index, 0, 8)) {
     case 1: return GalleryContext::dump;
     case 2: return GalleryContext::fluid;
     case 3: return GalleryContext::fluid_rigid;
@@ -800,6 +807,7 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     case 5: return GalleryContext::cloth;
     case 6: return GalleryContext::cloth_tear;
     case 7: return GalleryContext::cloth_paint;
+    case 8: return GalleryContext::water_cloth;
     default: return GalleryContext::rigid_body;
     }
 }
@@ -1161,7 +1169,7 @@ int main(int argc, char **argv) {
                     selected = std::max(0, selected - 1);
                 }
                 if (down_down && !down_was_down) {
-                    selected = std::min(7, selected + 1);
+                    selected = std::min(8, selected + 1);
                 }
                 context_selection = context_from_index(selected);
                 if (enter_down && !enter_was_down) {
@@ -1187,7 +1195,8 @@ int main(int argc, char **argv) {
                     }
                 }
             } else if (runtime.context != GalleryContext::rigid_body &&
-                       !is_cloth_context(runtime.context) &&
+                       (!is_cloth_context(runtime.context) ||
+                        runtime.context == GalleryContext::water_cloth) &&
                        p_down && !p_was_down) {
                 input_state.count_dialog_visible = true;
                 input_state.count_value = std::to_string(

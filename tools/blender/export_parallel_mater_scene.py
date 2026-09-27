@@ -354,9 +354,7 @@ def copy_cloth_for_export(
     settings = modifiers[0].settings
     group_name = settings.vertex_group_mass
     group = source.vertex_groups.get(group_name) if group_name else None
-    if group is None:
-        raise RuntimeError(f"{source.name}: Cloth Shape Pin Group is required")
-    if abs(float(settings.pin_stiffness) - 1.0) > 1.0e-5:
+    if group is not None and abs(float(settings.pin_stiffness) - 1.0) > 1.0e-5:
         raise RuntimeError(f"{source.name}: only Cloth pin stiffness 1.0 is supported")
 
     mesh = source.data.copy()
@@ -366,13 +364,13 @@ def copy_cloth_for_export(
     pins = []
     for vertex in source.data.vertices:
         weight = next((assignment.weight for assignment in vertex.groups
-                       if assignment.group == group.index), 0.0)
+                       if group is not None and assignment.group == group.index), 0.0)
         if weight <= 0.0:
             continue
         position = scale_matrix @ vertex.co
         # glTF uses Y up: Blender (x,y,z) -> glTF (x,z,-y).
         pins.append(f"{position.x:.9g},{position.z:.9g},{-position.y:.9g},{weight:.9g}")
-    if not pins:
+    if group is not None and not pins:
         raise RuntimeError(f"{source.name}: Cloth pin group is empty")
     geometry = bmesh.new()
     geometry.from_mesh(mesh)
@@ -390,7 +388,7 @@ def copy_cloth_for_export(
     exported["pm_schema"] = SCHEMA_VERSION
     exported["pm_system"] = "cloth"
     exported["pm_name"] = source.name
-    exported["pm_pin_group"] = group_name
+    exported["pm_pin_group"] = group_name if group is not None else ""
     exported["pm_pin_vertices"] = ";".join(pins)
     exported["pm_pin_stiffness"] = float(settings.pin_stiffness)
     exported["pm_vertex_mass"] = float(source.get("pm_vertex_mass", 0.001))
@@ -402,6 +400,17 @@ def copy_cloth_for_export(
         source.get("pm_impact_break_impulse", 0.0))
     exported["pm_stretch_compliance"] = float(source.get("pm_stretch_compliance", 1.0e-6))
     exported["pm_solver_iterations"] = int(source.get("pm_solver_iterations", 8))
+    exported["pm_velocity_damping"] = float(
+        source.get("pm_velocity_damping", settings.air_damping))
+    exported["pm_contact_friction"] = float(
+        source.get("pm_contact_friction", 0.4))
+    exported["pm_pressure_enabled"] = bool(settings.use_pressure)
+    exported["pm_uniform_pressure"] = float(settings.uniform_pressure_force)
+    exported["pm_pressure_scale"] = float(settings.pressure_factor)
+    exported["pm_pressure_custom_volume"] = bool(settings.use_pressure_volume)
+    exported["pm_pressure_target_volume"] = float(settings.target_volume)
+    exported["pm_pressure_fluid_density"] = float(settings.fluid_density)
+    exported["pm_contains_fluid"] = bool(source.get("pm_contains_fluid", False))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     exported["pm_paint_resolution"] = int(source.get("pm_paint_resolution", 512))
     exported["pm_paint_source"] = str(source.get("pm_paint_source", ""))

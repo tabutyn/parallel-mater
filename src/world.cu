@@ -1772,6 +1772,7 @@ enum class TimingStage : std::uint8_t {
     cloth_prediction,
     cloth_constraints,
     cloth_contacts,
+    fluid_cloth_contacts,
     fluid_spawn,
     fluid_neighbor_sort,
     fluid_neighbor_forces,
@@ -1964,6 +1965,10 @@ struct ClothStorage {
     std::uint32_t fracture_persistence_substeps{};
     float impact_break_impulse{};
     std::uint32_t solver_iterations{};
+    bool preserve_volume{};
+    float target_volume{};
+    float volume_compliance{};
+    float orientation{1.0F};
     Vec3 *positions{};
     Vec3 *scratch{};
     Vec3 *previous{};
@@ -1983,6 +1988,9 @@ struct ClothStorage {
     std::uint32_t neighbor_count{};
     FluidBodyImpulse *body_impulses{};
     ClothBodyCorrection *body_corrections{};
+    Vec3 *volume_gradients{};
+    Vec3 *fluid_forces{};
+    float *volume_lambda{};
     std::uint32_t *count{};
 
     void release() noexcept {
@@ -2003,9 +2011,18 @@ struct ClothStorage {
         release_managed(neighbors);
         release_managed(body_impulses);
         release_managed(body_corrections);
+        release_managed(volume_gradients);
+        release_managed(fluid_forces);
+        release_managed(volume_lambda);
         release_managed(count);
     }
     ~ClothStorage() { release(); }
+};
+
+struct FluidClothCouplingResource {
+    FluidClothCouplingOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
 };
 
 struct FluidContactSample {
@@ -2273,6 +2290,197 @@ __device__ Vec3 fluid_closest_triangle(Vec3 p, Vec3 a, Vec3 b, Vec3 c) noexcept 
     return denominator > 1.0e-12F
         ? add(a, add(multiply(ab, vb / denominator),
                      multiply(ac, vc / denominator))) : a;
+}
+
+__device__ Vec3 fluid_closest_triangle_barycentric(
+    Vec3 p, Vec3 a, Vec3 b, Vec3 c, Vec3 &weights) noexcept {
+    const Vec3 ab = subtract(b, a), ac = subtract(c, a), ap = subtract(p, a);
+    const float d1 = dot(ab, ap), d2 = dot(ac, ap);
+    if (d1 <= 0.0F && d2 <= 0.0F) {
+        weights = {1.0F, 0.0F, 0.0F};
+        return a;
+    }
+    const Vec3 bp = subtract(p, b);
+    const float d3 = dot(ab, bp), d4 = dot(ac, bp);
+    if (d3 >= 0.0F && d4 <= d3) {
+        weights = {0.0F, 1.0F, 0.0F};
+        return b;
+    }
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0F && d1 >= 0.0F && d3 <= 0.0F) {
+        const float v = d1 / (d1 - d3);
+        weights = {1.0F - v, v, 0.0F};
+        return add(a, multiply(ab, v));
+    }
+    const Vec3 cp = subtract(p, c);
+    const float d5 = dot(ab, cp), d6 = dot(ac, cp);
+    if (d6 >= 0.0F && d5 <= d6) {
+        weights = {0.0F, 0.0F, 1.0F};
+        return c;
+    }
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0F && d2 >= 0.0F && d6 <= 0.0F) {
+        const float w = d2 / (d2 - d6);
+        weights = {1.0F - w, 0.0F, w};
+        return add(a, multiply(ac, w));
+    }
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0F && d4 - d3 >= 0.0F && d5 - d6 >= 0.0F) {
+        const float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        weights = {0.0F, 1.0F - w, w};
+        return add(b, multiply(subtract(c, b), w));
+    }
+    const float denominator = va + vb + vc;
+    if (denominator <= 1.0e-12F) {
+        weights = {1.0F, 0.0F, 0.0F};
+        return a;
+    }
+    const float inverse = 1.0F / denominator;
+    const float v = vb * inverse, w = vc * inverse;
+    weights = {1.0F - v - w, v, w};
+    return add(a, add(multiply(ab, v), multiply(ac, w)));
+}
+
+__device__ void atomic_add(Vec3 *destination, Vec3 value) noexcept {
+    atomicAdd(&destination->x, value.x);
+    atomicAdd(&destination->y, value.y);
+    atomicAdd(&destination->z, value.z);
+}
+
+__global__ void fluid_cloth_containment_forces(
+    const Vec3 *particle_positions, const Vec3 *particle_velocities,
+    const std::uint32_t *particle_count, Vec3 *particle_accelerations,
+    float *foam_source, float particle_mass,
+    const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
+    const std::uint32_t *cloth_indices, std::uint32_t triangle_count,
+    float cloth_orientation, FluidClothCouplingOptions options,
+    Vec3 *cloth_forces) {
+    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= *particle_count) return;
+    const Vec3 point = particle_positions[particle];
+    float best_squared = FLT_MAX;
+    Vec3 best_point{}, best_normal{}, best_weights{};
+    std::uint32_t best_triangle = 0U;
+    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
+        const std::uint32_t a_index = cloth_indices[3U * triangle];
+        const std::uint32_t b_index = cloth_indices[3U * triangle + 1U];
+        const std::uint32_t c_index = cloth_indices[3U * triangle + 2U];
+        const Vec3 a = cloth_positions[a_index];
+        const Vec3 b = cloth_positions[b_index];
+        const Vec3 c = cloth_positions[c_index];
+        Vec3 weights{};
+        const Vec3 nearest = fluid_closest_triangle_barycentric(
+            point, a, b, c, weights);
+        const float squared = length_squared(subtract(point, nearest));
+        if (squared >= best_squared) continue;
+        const Vec3 face = cross(subtract(b, a), subtract(c, a));
+        if (length_squared(face) <= 1.0e-14F) continue;
+        best_squared = squared;
+        best_point = nearest;
+        best_normal = multiply(normalized_or(face, {0.0F, 1.0F, 0.0F}),
+                               cloth_orientation);
+        best_weights = weights;
+        best_triangle = triangle;
+    }
+    if (best_squared == FLT_MAX) return;
+    const float signed_distance = dot(subtract(point, best_point), best_normal);
+    const float violation = options.contact_distance + signed_distance;
+    const bool outside = signed_distance > 0.0F;
+    if (violation <= 0.0F ||
+        (!outside && best_squared >
+            options.interaction_radius * options.interaction_radius)) return;
+    const std::uint32_t a = cloth_indices[3U * best_triangle];
+    const std::uint32_t b = cloth_indices[3U * best_triangle + 1U];
+    const std::uint32_t c = cloth_indices[3U * best_triangle + 2U];
+    const Vec3 surface_velocity = add(
+        multiply(cloth_velocities[a], best_weights.x),
+        add(multiply(cloth_velocities[b], best_weights.y),
+            multiply(cloth_velocities[c], best_weights.z)));
+    const Vec3 relative_velocity = subtract(
+        particle_velocities[particle], surface_velocity);
+    const float normal_speed = dot(relative_velocity, best_normal);
+    const float magnitude = fminf(options.maximum_force,
+        fmaxf(0.0F, options.stiffness * violation +
+                     options.damping * normal_speed));
+    const Vec3 tangent = subtract(relative_velocity,
+                                  multiply(best_normal, normal_speed));
+    const Vec3 force = clamp_length(add(
+        multiply(best_normal, -magnitude),
+        multiply(tangent, -options.tangential_drag)), options.maximum_force);
+    particle_accelerations[particle] = add(
+        particle_accelerations[particle], multiply(force, 1.0F / particle_mass));
+    foam_source[particle] = fmaxf(foam_source[particle],
+        clamp_scalar(magnitude / fmaxf(options.maximum_force, 1.0F),
+                     0.0F, 1.0F));
+    const Vec3 reaction = multiply(force, -1.0F);
+    atomic_add(cloth_forces + a, multiply(reaction, best_weights.x));
+    atomic_add(cloth_forces + b, multiply(reaction, best_weights.y));
+    atomic_add(cloth_forces + c, multiply(reaction, best_weights.z));
+}
+
+__global__ void cloth_apply_fluid_forces(
+    Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
+    const Vec3 *forces, std::uint32_t count, float dt) {
+    const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= count || inverse_masses[vertex] == 0.0F) return;
+    const Vec3 velocity_change = clamp_length(
+        multiply(forces[vertex], inverse_masses[vertex] * dt), 2.0F);
+    velocities[vertex] = clamp_length(
+        add(velocities[vertex], velocity_change), 20.0F);
+    positions[vertex] = add(positions[vertex], multiply(velocity_change, dt));
+}
+
+__global__ void fluid_project_inside_cloth(
+    Vec3 *particle_positions, Vec3 *particle_velocities,
+    const std::uint32_t *particle_count, float contact_distance,
+    const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
+    const std::uint32_t *cloth_indices, std::uint32_t triangle_count,
+    float cloth_orientation) {
+    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= *particle_count) return;
+    const Vec3 point = particle_positions[particle];
+    float best_squared = FLT_MAX;
+    Vec3 best_point{}, best_normal{}, best_weights{};
+    std::uint32_t best_triangle = 0U;
+    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
+        const std::uint32_t a_index = cloth_indices[3U * triangle];
+        const std::uint32_t b_index = cloth_indices[3U * triangle + 1U];
+        const std::uint32_t c_index = cloth_indices[3U * triangle + 2U];
+        const Vec3 a = cloth_positions[a_index];
+        const Vec3 b = cloth_positions[b_index];
+        const Vec3 c = cloth_positions[c_index];
+        Vec3 weights{};
+        const Vec3 nearest = fluid_closest_triangle_barycentric(
+            point, a, b, c, weights);
+        const float squared = length_squared(subtract(point, nearest));
+        if (squared >= best_squared) continue;
+        const Vec3 face = cross(subtract(b, a), subtract(c, a));
+        if (length_squared(face) <= 1.0e-14F) continue;
+        best_squared = squared;
+        best_point = nearest;
+        best_normal = multiply(normalized_or(face, {0.0F, 1.0F, 0.0F}),
+                               cloth_orientation);
+        best_weights = weights;
+        best_triangle = triangle;
+    }
+    if (best_squared == FLT_MAX) return;
+    const float signed_distance = dot(subtract(point, best_point), best_normal);
+    const float violation = contact_distance + signed_distance;
+    if (violation <= 0.0F) return;
+    const std::uint32_t a = cloth_indices[3U * best_triangle];
+    const std::uint32_t b = cloth_indices[3U * best_triangle + 1U];
+    const std::uint32_t c = cloth_indices[3U * best_triangle + 2U];
+    particle_positions[particle] = subtract(
+        particle_positions[particle], multiply(best_normal, violation));
+    const Vec3 surface_velocity = add(
+        multiply(cloth_velocities[a], best_weights.x),
+        add(multiply(cloth_velocities[b], best_weights.y),
+            multiply(cloth_velocities[c], best_weights.z)));
+    Vec3 relative = subtract(particle_velocities[particle], surface_velocity);
+    const float outward_speed = dot(relative, best_normal);
+    if (outward_speed > 0.0F)
+        relative = subtract(relative, multiply(best_normal, outward_speed));
+    particle_velocities[particle] = add(surface_velocity, relative);
 }
 
 __device__ bool fluid_segment_bounds(Vec3 a, Vec3 b, const BvhNode &node,
@@ -2827,6 +3035,52 @@ __global__ void cloth_project_links(
     // neighbors abruptly stiffer and start a fracture cascade.
     const float divisor = static_cast<float>(max(1U, last - first));
     scratch[vertex] = add(position, multiply(correction, 1.0F / divisor));
+}
+
+// Closed-cloth volume is a global constraint. A single deterministic thread
+// is preferable here to unordered floating-point atomics: authored pressure
+// skins are small, while the work remains linear in vertices and triangles.
+__global__ void cloth_project_volume(
+    Vec3 *positions, const float *inverse_masses,
+    const std::uint32_t *indices, std::uint32_t vertex_count,
+    std::uint32_t triangle_count, Vec3 *gradients, float target_volume,
+    float orientation, float compliance, float dt, float *lambda,
+    bool reset_lambda) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    if (reset_lambda) *lambda = 0.0F;
+    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex)
+        gradients[vertex] = {};
+    float signed_volume = 0.0F;
+    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
+        const std::uint32_t a_index = indices[3U * triangle];
+        const std::uint32_t b_index = indices[3U * triangle + 1U];
+        const std::uint32_t c_index = indices[3U * triangle + 2U];
+        const Vec3 a = positions[a_index];
+        const Vec3 b = positions[b_index];
+        const Vec3 c = positions[c_index];
+        signed_volume += dot(a, cross(b, c)) / 6.0F;
+        gradients[a_index] = add(
+            gradients[a_index], multiply(cross(b, c), orientation / 6.0F));
+        gradients[b_index] = add(
+            gradients[b_index], multiply(cross(c, a), orientation / 6.0F));
+        gradients[c_index] = add(
+            gradients[c_index], multiply(cross(a, b), orientation / 6.0F));
+    }
+    float inverse_mass_sum = 0.0F;
+    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex)
+        inverse_mass_sum += inverse_masses[vertex] *
+            length_squared(gradients[vertex]);
+    if (inverse_mass_sum <= 1.0e-12F) return;
+    const float alpha = compliance / (dt * dt);
+    const float constraint = orientation * signed_volume - target_volume;
+    const float delta_lambda =
+        (-constraint - alpha * *lambda) / (inverse_mass_sum + alpha);
+    *lambda += delta_lambda;
+    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex) {
+        if (inverse_masses[vertex] == 0.0F) continue;
+        positions[vertex] = add(positions[vertex], multiply(
+            gradients[vertex], inverse_masses[vertex] * delta_lambda));
+    }
 }
 
 __global__ void cloth_break_bonds(const Vec3 *positions,
@@ -3498,6 +3752,7 @@ struct World::Impl {
     std::vector<Slot> slots{};
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
+    std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<SpawnPlaneSlot> spawn_planes{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
@@ -3760,6 +4015,8 @@ Status World::create(WorldOptions options, World &output,
         implementation->slots.resize(options.rigid_body_capacity);
         implementation->fluids.resize(options.fluid_capacity);
         implementation->cloths.resize(options.cloth_capacity);
+        implementation->fluid_cloth_couplings.resize(
+            options.fluid_cloth_coupling_capacity);
         implementation->spawn_planes.resize(options.particle_spawn_plane_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
     } catch (...) {
@@ -4144,6 +4401,11 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
             impl_->paint_rules[i].options.source == id)
             return failure(StatusCode::invalid_argument,
                            "fluid is still referenced by a paint rule");
+    for (const FluidClothCouplingResource &coupling :
+         impl_->fluid_cloth_couplings)
+        if (coupling.alive && coupling.options.fluid == id)
+            return failure(StatusCode::invalid_argument,
+                "fluid is still referenced by a cloth coupling");
     std::unique_ptr<FluidStorage> tombstone(
         new (std::nothrow) FluidStorage());
     if (!tombstone)
@@ -4824,6 +5086,11 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         options.break_strain > 9.0F ||
         !finite(options.impact_break_impulse) ||
         options.impact_break_impulse < 0.0F ||
+        !finite(options.target_volume) || options.target_volume < 0.0F ||
+        !finite(options.volume_compliance) ||
+        options.volume_compliance < 0.0F ||
+        (options.preserve_volume &&
+         (options.break_strain > 0.0F || options.impact_break_impulse > 0.0F)) ||
         options.fracture_persistence_substeps == 0U ||
         options.fracture_persistence_substeps > 64U ||
         options.solver_iterations == 0U || options.solver_iterations > 64U) {
@@ -4854,10 +5121,12 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     std::vector<Vec3> surface_rest;
     std::vector<std::uint32_t> surface_indices;
     std::vector<std::uint32_t> triangle_bonds;
+    float initial_signed_volume = 0.0F;
     try {
         adjacency.resize(count);
         std::unordered_map<std::uint64_t, std::uint32_t> bond_ids;
         std::unordered_map<std::uint64_t, std::uint32_t> opposite;
+        std::unordered_map<std::uint64_t, std::uint32_t> edge_counts;
         const auto key = [](std::uint32_t a, std::uint32_t b) {
             if (a > b) std::swap(a, b);
             return (static_cast<std::uint64_t>(a) << 32U) | b;
@@ -4889,10 +5158,13 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
                                        options.vertices.data[a])) <= 1.0e-6F)
                 return failure(StatusCode::invalid_argument,
                                "cloth triangle has a zero-length edge");
+            initial_signed_volume += dot(options.vertices.data[a], cross(
+                options.vertices.data[b], options.vertices.data[c])) / 6.0F;
             const std::array<std::array<std::uint32_t, 3>, 3> edges{{
                 {a, b, c}, {b, c, a}, {c, a, b}}};
             for (const auto &edge : edges) {
                 const std::uint64_t edge_key = key(edge[0], edge[1]);
+                ++edge_counts[edge_key];
                 const auto previous = opposite.find(edge_key);
                 if (previous == opposite.end()) {
                     opposite.emplace(edge_key, edge[2]);
@@ -4902,6 +5174,13 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
                          true);
                 }
             }
+        }
+        if (options.preserve_volume) {
+            if (fabsf(initial_signed_volume) <= 1.0e-8F ||
+                std::any_of(edge_counts.begin(), edge_counts.end(),
+                    [](const auto &edge) { return edge.second != 2U; }))
+                return failure(StatusCode::invalid_argument,
+                    "volume-preserving cloth must be a closed manifold");
         }
         for (std::uint64_t triangle = 0U;
              triangle < options.triangle_indices.size; triangle += 3U) {
@@ -4945,6 +5224,11 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         options.fracture_persistence_substeps;
     cloth->impact_break_impulse = options.impact_break_impulse;
     cloth->solver_iterations = options.solver_iterations;
+    cloth->preserve_volume = options.preserve_volume;
+    cloth->target_volume = options.target_volume > 0.0F
+        ? options.target_volume : fabsf(initial_signed_volume);
+    cloth->volume_compliance = options.volume_compliance;
+    cloth->orientation = initial_signed_volume < 0.0F ? -1.0F : 1.0F;
     status = allocate_managed(cloth->positions, count); if (!status) return status;
     status = allocate_managed(cloth->scratch, count); if (!status) return status;
     status = allocate_managed(cloth->previous, count); if (!status) return status;
@@ -4976,6 +5260,17 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     status = allocate_managed(cloth->body_corrections,
                               impl_->options.rigid_body_capacity);
     if (!status) return status;
+    if (options.preserve_volume) {
+        status = allocate_managed(cloth->volume_gradients, count);
+        if (!status) return status;
+        status = allocate_managed(cloth->volume_lambda, 1U);
+        if (!status) return status;
+        *cloth->volume_lambda = 0.0F;
+    }
+    if (impl_->options.fluid_cloth_coupling_capacity != 0U) {
+        status = allocate_managed(cloth->fluid_forces, count);
+        if (!status) return status;
+    }
     status = allocate_managed(cloth->count, 1U); if (!status) return status;
     for (std::uint32_t index = 0U; index < count; ++index) {
         cloth->positions[index] = options.vertices.data[index];
@@ -5022,6 +5317,11 @@ Status World::remove_cloth(ClothId id) noexcept {
             impl_->paint_fields[field].options.cloth == id)
             return failure(StatusCode::invalid_argument,
                            "cloth is still referenced by a paint field");
+    for (const FluidClothCouplingResource &coupling :
+         impl_->fluid_cloth_couplings)
+        if (coupling.alive && coupling.options.cloth == id)
+            return failure(StatusCode::invalid_argument,
+                "cloth is still referenced by a fluid coupling");
     ClothStorage &cloth = *impl_->cloths[id.index];
     cloth.alive = false;
     cloth.release();
@@ -5052,6 +5352,110 @@ Status World::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
     }
     output.bonds = {cloth.bonds, cloth.bond_count};
     output.active_bonds = {cloth.bond_active, cloth.bond_count};
+    return success();
+}
+
+Status World::add_fluid_cloth_coupling(
+    FluidClothCouplingOptions options,
+    FluidClothCouplingId &output) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    FluidStorage *fluid = nullptr;
+    if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
+    if (options.cloth.index >= impl_->cloths.size() ||
+        !impl_->cloths[options.cloth.index] ||
+        !impl_->cloths[options.cloth.index]->alive ||
+        impl_->cloths[options.cloth.index]->generation !=
+            options.cloth.generation)
+        return failure(StatusCode::invalid_handle,
+                       "cloth coupling handle is invalid or stale");
+    const ClothStorage &cloth = *impl_->cloths[options.cloth.index];
+    if (!cloth.preserve_volume)
+        return failure(StatusCode::invalid_argument,
+            "contained fluid requires closed volume-preserving cloth");
+    if (!finite(options.contact_distance) || options.contact_distance < 0.0F ||
+        !finite(options.interaction_radius) || options.interaction_radius < 0.0F ||
+        !finite(options.stiffness) || options.stiffness <= 0.0F ||
+        !finite(options.damping) || options.damping < 0.0F ||
+        !finite(options.tangential_drag) || options.tangential_drag < 0.0F ||
+        !finite(options.maximum_force) || options.maximum_force <= 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid fluid-cloth coupling options");
+    for (const FluidClothCouplingResource &coupling :
+         impl_->fluid_cloth_couplings)
+        if (coupling.alive && coupling.options.fluid == options.fluid &&
+            coupling.options.cloth == options.cloth)
+            return failure(StatusCode::invalid_argument,
+                "fluid and cloth are already coupled");
+    std::uint32_t slot = 0U;
+    for (; slot < impl_->fluid_cloth_couplings.size(); ++slot)
+        if (!impl_->fluid_cloth_couplings[slot].alive) break;
+    if (slot == impl_->fluid_cloth_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "fluid-cloth coupling capacity exhausted");
+    FluidClothCouplingResource &coupling =
+        impl_->fluid_cloth_couplings[slot];
+    coupling.options = options;
+    coupling.alive = true;
+    output = {slot, coupling.generation};
+    ++impl_->revision;
+    return success();
+}
+
+Status World::update_fluid_cloth_coupling(
+    FluidClothCouplingId id,
+    FluidClothCouplingOptions options) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_cloth_couplings.size() ||
+        !impl_->fluid_cloth_couplings[id.index].alive ||
+        impl_->fluid_cloth_couplings[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "fluid-cloth coupling handle is stale");
+    FluidStorage *fluid = nullptr;
+    if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
+    if (options.cloth.index >= impl_->cloths.size() ||
+        !impl_->cloths[options.cloth.index] ||
+        !impl_->cloths[options.cloth.index]->alive ||
+        impl_->cloths[options.cloth.index]->generation !=
+            options.cloth.generation ||
+        !impl_->cloths[options.cloth.index]->preserve_volume)
+        return failure(StatusCode::invalid_handle,
+                       "fluid-cloth coupling cloth is invalid or open");
+    if (!finite(options.contact_distance) || options.contact_distance < 0.0F ||
+        !finite(options.interaction_radius) || options.interaction_radius < 0.0F ||
+        !finite(options.stiffness) || options.stiffness <= 0.0F ||
+        !finite(options.damping) || options.damping < 0.0F ||
+        !finite(options.tangential_drag) || options.tangential_drag < 0.0F ||
+        !finite(options.maximum_force) || options.maximum_force <= 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid fluid-cloth coupling options");
+    impl_->fluid_cloth_couplings[id.index].options = options;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_fluid_cloth_coupling(
+    FluidClothCouplingId id) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_cloth_couplings.size() ||
+        !impl_->fluid_cloth_couplings[id.index].alive ||
+        impl_->fluid_cloth_couplings[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "fluid-cloth coupling handle is stale");
+    FluidClothCouplingResource &coupling =
+        impl_->fluid_cloth_couplings[id.index];
+    coupling.alive = false;
+    ++coupling.generation;
+    if (coupling.generation == 0U) coupling.generation = 1U;
+    ++impl_->revision;
     return success();
 }
 
@@ -5405,7 +5809,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (fluid && fluid->alive) {
                 maximum_stages += 2U +
                     static_cast<std::size_t>(options.substeps) *
-                        fluid->options.solver_iterations * 7U;
+                        fluid->options.solver_iterations * 9U;
             }
         }
         for (const auto &cloth : impl_->cloths) {
@@ -5491,6 +5895,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.offsets, cloth.neighbors, cloth.bond_active,
                     cloth.vertex_count, substep_timestep);
                 std::swap(cloth.positions, cloth.scratch);
+                if (cloth.preserve_volume) {
+                    cloth_project_volume<<<1U, 1U, 0, stream>>>(
+                        cloth.positions, cloth.inverse_masses, cloth.indices,
+                        cloth.vertex_count, cloth.index_count / 3U,
+                        cloth.volume_gradients, cloth.target_volume,
+                        cloth.orientation, cloth.volume_compliance,
+                        substep_timestep, cloth.volume_lambda,
+                        iteration == 0U);
+                }
                 cloth_status = record_timing_stage(
                     TimingStage::cloth_constraints);
                 if (!cloth_status) return cloth_status;
@@ -5922,6 +6335,61 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->fluid_neighbor_overflow);
             status = record_timing_stage(TimingStage::fluid_neighbor_forces);
             if (!status) return status;
+            for (FluidClothCouplingResource &coupling :
+                 impl_->fluid_cloth_couplings) {
+                if (!coupling.alive || !coupling.options.enabled ||
+                    !(coupling.options.fluid == fluid_id)) continue;
+                if (coupling.options.cloth.index >= impl_->cloths.size())
+                    continue;
+                const auto &cloth_pointer =
+                    impl_->cloths[coupling.options.cloth.index];
+                if (!cloth_pointer || !cloth_pointer->alive ||
+                    cloth_pointer->generation !=
+                        coupling.options.cloth.generation)
+                    continue;
+                ClothStorage &cloth = *cloth_pointer;
+                FluidClothCouplingOptions resolved = coupling.options;
+                if (resolved.contact_distance == 0.0F)
+                    resolved.contact_distance =
+                        fluid.options.particle_radius + cloth.thickness;
+                if (resolved.interaction_radius == 0.0F)
+                    resolved.interaction_radius = fluid.options.support_radius;
+                error = cudaMemsetAsync(cloth.fluid_forces, 0,
+                    cloth.vertex_count * sizeof(Vec3), stream);
+                if (error != cudaSuccess)
+                    return cuda_failure(error,
+                        "fluid-cloth reaction clear failed");
+                fluid_cloth_containment_forces<<<
+                    blocks, block_size, 0, stream>>>(
+                        fluid.positions, fluid.velocities, fluid.count,
+                        fluid.forces, fluid.foam_source, particle_mass,
+                        cloth.positions, cloth.velocities, cloth.indices,
+                        cloth.index_count / 3U, cloth.orientation, resolved,
+                        cloth.fluid_forces);
+                const std::uint32_t cloth_blocks =
+                    (cloth.vertex_count + block_size - 1U) / block_size;
+                cloth_apply_fluid_forces<<<
+                    cloth_blocks, block_size, 0, stream>>>(
+                        cloth.positions, cloth.velocities,
+                        cloth.inverse_masses, cloth.fluid_forces,
+                        cloth.vertex_count, dt);
+                cloth_project_links<<<cloth_blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.scratch, cloth.inverse_masses,
+                    cloth.offsets, cloth.neighbors, cloth.bond_active,
+                    cloth.vertex_count, dt);
+                std::swap(cloth.positions, cloth.scratch);
+                if (cloth.preserve_volume) {
+                    cloth_project_volume<<<1U, 1U, 0, stream>>>(
+                        cloth.positions, cloth.inverse_masses, cloth.indices,
+                        cloth.vertex_count, cloth.index_count / 3U,
+                        cloth.volume_gradients, cloth.target_volume,
+                        cloth.orientation, cloth.volume_compliance, dt,
+                        cloth.volume_lambda, true);
+                }
+                status = record_timing_stage(
+                    TimingStage::fluid_cloth_contacts);
+                if (!status) return status;
+            }
             fluid_integrate<<<blocks, block_size, 0, stream>>>(
                 fluid.positions, fluid.velocities, fluid.previous,
                 fluid.foam, fluid.forces, fluid.foam_source,
@@ -5929,6 +6397,29 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 options.gravity, dt);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
+            for (const FluidClothCouplingResource &coupling :
+                 impl_->fluid_cloth_couplings) {
+                if (!coupling.alive || !coupling.options.enabled ||
+                    !(coupling.options.fluid == fluid_id) ||
+                    coupling.options.cloth.index >= impl_->cloths.size())
+                    continue;
+                const auto &cloth_pointer =
+                    impl_->cloths[coupling.options.cloth.index];
+                if (!cloth_pointer || !cloth_pointer->alive ||
+                    cloth_pointer->generation !=
+                        coupling.options.cloth.generation)
+                    continue;
+                const ClothStorage &cloth = *cloth_pointer;
+                const float contact_distance =
+                    coupling.options.contact_distance > 0.0F
+                        ? coupling.options.contact_distance
+                        : fluid.options.particle_radius + cloth.thickness;
+                fluid_project_inside_cloth<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.count,
+                    contact_distance, cloth.positions, cloth.velocities,
+                    cloth.indices, cloth.index_count / 3U,
+                    cloth.orientation);
+            }
             if (any_moving_body) {
                 error = cudaMemsetAsync(impl_->fluid_body_contact_flags, 0,
                     impl_->rigid_body_count * sizeof(std::uint32_t), stream);
@@ -6174,6 +6665,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::cloth_contacts:
             timing = &output.cloth_contacts;
             break;
+        case TimingStage::fluid_cloth_contacts:
+            timing = &output.fluid_cloth_contacts;
+            break;
         case TimingStage::fluid_spawn:
             timing = &output.fluid_spawn;
             break;
@@ -6256,6 +6750,12 @@ Status World::collect_statistics(WorldStatistics &output,
                     2U * sizeof(std::uint32_t)) : 0U) +
             impl_->options.rigid_body_capacity *
                 sizeof(ClothBodyCorrection) +
+            (cloth->volume_gradients != nullptr
+                ? static_cast<std::size_t>(cloth->vertex_count) * sizeof(Vec3) +
+                    sizeof(float) : 0U) +
+            (cloth->fluid_forces != nullptr
+                ? static_cast<std::size_t>(cloth->vertex_count) * sizeof(Vec3)
+                : 0U) +
             sizeof(std::uint32_t);
     }
     output.emitted_particle_count = impl_->emitted_particle_count;

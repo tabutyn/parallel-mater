@@ -83,7 +83,7 @@ ctest --test-dir build-gallery --output-on-failure
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
-Cloth Tear, and Cloth Paint; use
+Cloth Tear, Cloth Paint, and Water Cloth; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
@@ -93,7 +93,7 @@ GPU timings and `V` toggles rigid contact diagnostics. Fluid uses the supplied
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene
 renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
-two `FixedVertices` rows pinned. All three Cloth scenes start with gravity
+two `FixedVertices` rows pinned. All four Cloth scenes start with gravity
 straight down; arrow keys steer it relative to the camera within a 45-degree
 tilt, and releasing them restores straight-down gravity.
 `--cloth-tear` lets a heavy sphere land, then roll through bond-fractured cloth
@@ -101,6 +101,11 @@ when gravity is steered toward the sheet. No cloth triangles are deleted.
 `--cloth-paint` keeps the
 cloth intact while the active sphere presses and paints it through the public
 paint-field API.
+`--water-cloth` loads `ClothWater.blend`: Blender Cloth Pressure preserves the
+closed unpinned sphere's authored volume while an explicit API coupling keeps
+its Geometry-flow water inside and transfers equal-and-opposite forces back to
+the cloth. `P`, `V`, `F`, arrow-gravity steering, and `R` use the common fluid
+and cloth controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \

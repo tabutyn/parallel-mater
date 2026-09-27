@@ -86,6 +86,17 @@ struct ClothId {
     }
 };
 
+struct FluidClothCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        FluidClothCouplingId left,
+        FluidClothCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -153,6 +164,7 @@ struct WorldOptions {
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
     std::uint32_t cloth_capacity{1U};
+    std::uint32_t fluid_cloth_coupling_capacity{1U};
 };
 
 struct StepOptions {
@@ -203,6 +215,29 @@ struct ClothOptions {
     // Optional immediate bond failure from the sum of its endpoint contact
     // impulses. Zero disables this additional impact criterion.
     float impact_break_impulse{};
+    // Preserves the signed volume of a closed cloth surface. A zero target
+    // captures the authored initial volume. Compliance is inverse stiffness;
+    // zero is a hard constraint.
+    bool preserve_volume{};
+    float target_volume{};
+    float volume_compliance{1.0e-7F};
+};
+
+// Couples one fluid to one closed cloth surface. Containment treats the cloth
+// winding as outward-facing, keeps particle centers inside it, and transfers
+// equal-and-opposite forces back to the cloth.
+struct FluidClothCouplingOptions {
+    FluidId fluid{};
+    ClothId cloth{};
+    // Zero selects particle_radius + cloth thickness.
+    float contact_distance{};
+    // Zero selects the fluid support radius.
+    float interaction_radius{};
+    float stiffness{2'000.0F};
+    float damping{12.0F};
+    float tangential_drag{1.44F};
+    float maximum_force{960.0F};
+    bool enabled{true};
 };
 
 struct ClothDeviceView {
@@ -424,6 +459,7 @@ struct WorldStepTimings {
     KernelTiming fluid_static_contacts{};
     KernelTiming fluid_body_index{};
     KernelTiming fluid_moving_contacts{};
+    KernelTiming fluid_cloth_contacts{};
     KernelTiming fluid_contact_events{};
     KernelTiming fluid_outflow_compaction{};
     float total_gpu_milliseconds{};
@@ -497,6 +533,15 @@ class World {
     [[nodiscard]] Status remove_cloth(ClothId cloth) noexcept;
     [[nodiscard]] Status cloth_view(ClothId cloth,
                                     ClothDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_fluid_cloth_coupling(
+        FluidClothCouplingOptions options,
+        FluidClothCouplingId &output) noexcept;
+    [[nodiscard]] Status update_fluid_cloth_coupling(
+        FluidClothCouplingId coupling,
+        FluidClothCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_fluid_cloth_coupling(
+        FluidClothCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_particle_spawn_plane(
         ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;

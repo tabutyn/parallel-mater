@@ -49,7 +49,13 @@ struct ClothDefinition {
     std::uint32_t fracture_persistence_substeps{4U};
     float impact_break_impulse{};
     float stretch_compliance{1.0e-6F};
+    float velocity_damping{5.0F};
+    float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
+    bool preserve_volume{};
+    float target_volume{};
+    float volume_compliance{1.0e-7F};
+    bool contains_fluid{};
     bool paintable{};
     std::uint32_t paint_resolution{512U};
     std::string paint_source{};
@@ -77,6 +83,7 @@ struct SceneInstance {
     };
     std::vector<RigidBodyId> rigid_bodies{};
     std::vector<ClothId> cloths{};
+    std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};

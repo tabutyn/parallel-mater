@@ -116,7 +116,7 @@ sources; they do not select scene-specific physics.
 ## Validate the result
 
 With Blender installed, the gallery build adds
-`parallel-mater-blender-export-tests` to CTest. This exports all seven committed
+`parallel-mater-blender-export-tests` to CTest. This exports all eight committed
 source scenes into temporary files and checks them with the runtime loader,
 plus cloth-only/fluid-only scenes, the menu operator, CLI, and error cleanup.
 No committed assets are rewritten.
@@ -179,9 +179,26 @@ partial weights retain proportionate motion. Optional `pm_vertex_mass` and
 Keep the exported surface topologically connected: separate coincident
 vertices are distinct solver particles even when they receive the same pin.
 
+## Closed pressure cloth and contained fluid
+
+For an air-filled closed cloth such as `ClothWater.blend`, enable **Cloth →
+Physical Properties → Pressure**. Leave **Custom Volume** off to preserve the
+authored initial volume, and leave Fluid Density at zero for air. Pressure
+Scale maps to inverse volume compliance. A pressure cloth may be unpinned; the
+exporter welds glTF vertices split only by render seams before building its
+closed physics topology.
+
+Set the cloth object's Boolean custom property `pm_contains_fluid` when a
+Geometry-flow liquid volume belongs inside that cloth. The gallery translates
+this relationship into `World::add_fluid_cloth_coupling`; containment,
+reaction forces, and volume preservation live in the installed physics API,
+not in scene-specific gallery code. Uniform Pressure Force is currently
+required to remain zero because the API implements target-volume pressure,
+not a separate constant inflation force.
+
 The gallery creates the cloth through `World::add_cloth` and updates its
 OptiX triangles each frame. The scene also contains the authored passive box
-and active sphere. All three Cloth gallery entries start with gravity straight
+and active sphere. All four Cloth gallery entries start with gravity straight
 down. Arrow keys steer it camera-relatively within a 45-degree tilt, returning
 to straight down when released.
 The API advances rigid bodies and cloth together at each substep. Cloth vertex

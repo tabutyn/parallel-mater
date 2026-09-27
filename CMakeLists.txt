@@ -186,6 +186,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
             PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
             PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -284,6 +285,17 @@ if(BUILD_TESTING)
             COMMAND parallel-mater-cloth-variants-tests)
         set_tests_properties(parallel-mater-cloth-variants-tests
             PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-cloth-water-tests
+            tests/gallery/cloth_water_tests.cpp)
+        target_link_libraries(parallel-mater-cloth-water-tests
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-cloth-water-tests PRIVATE
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb")
+        add_test(NAME parallel-mater-cloth-water-tests
+            COMMAND parallel-mater-cloth-water-tests)
+        set_tests_properties(parallel-mater-cloth-water-tests
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
@@ -408,6 +420,15 @@ if(BUILD_TESTING)
                     --frames 180)
         set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
+        add_test(
+            NAME parallel-mater-water-cloth-headless-test
+            COMMAND parallel-mater-gallery
+                    --water-cloth
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-test.ppm
+                    --frames 180)
+        set_tests_properties(parallel-mater-water-cloth-headless-test PROPERTIES
+            TIMEOUT 120)
         add_test(
             NAME parallel-mater-peg-paint-containment-test
             COMMAND parallel-mater-gallery

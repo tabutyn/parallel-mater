@@ -49,6 +49,10 @@ Headless physics builds remain free of OpenGL and OptiX.
    faces separate without being deleted. The API owns fracture and topology.
 8. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
    cloth sheet and persistently paints its UVs at contact through an API rule.
+9. **Water Cloth** — one closed, unpinned pressure cloth contains a one-shot
+   Geometry-flow water volume. Fluid pressure deforms the cloth and the moving
+   cloth surface contains and accelerates the particles through a public
+   two-way coupling resource.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -59,7 +63,7 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
-Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint.
+Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -91,6 +95,8 @@ Paint all start with straight-down gravity. Arrow keys steer it relative to
 the camera, up to 45 degrees from vertical; releasing them eases it back to
 straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
 `F` timings. Headless runs can opt into `--cloth-tilt-degrees 1..45`.
+Water Cloth can be selected with `--water-cloth`; it also accepts the common
+fluid particle cap and particle/surface view controls.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.

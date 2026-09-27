@@ -359,6 +359,27 @@ class FlatJson {
     return true;
 }
 
+// glTF may split one Blender vertex at normal or UV seams. Pressure physics
+// needs the authored topological vertex, so merge coincident render vertices
+// before constructing a closed cloth graph.
+void weld_pressure_cloth(TriangleMesh &mesh) {
+    std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> remap(mesh.vertices.size());
+    vertices.reserve(mesh.vertices.size());
+    for (std::size_t source = 0U; source < mesh.vertices.size(); ++source) {
+        const Vec3 position = mesh.vertices[source].position;
+        std::size_t target = 0U;
+        for (; target < vertices.size(); ++target) {
+            const Vec3 difference = subtract(position, vertices[target].position);
+            if (dot(difference, difference) <= 1.0e-12F) break;
+        }
+        if (target == vertices.size()) vertices.push_back(mesh.vertices[source]);
+        remap[source] = static_cast<std::uint32_t>(target);
+    }
+    for (std::uint32_t &index : mesh.indices) index = remap[index];
+    mesh.vertices = std::move(vertices);
+}
+
 [[nodiscard]] bool sample_initial_volume(
     const cgltf_node &node, Vec3 scale, Vec3 velocity, float spacing,
     std::vector<FluidParticle> &particles, std::string &error) {
@@ -770,6 +791,22 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_stretch_compliance").value_or(1.0e-6));
         const double solver_iterations =
             extras.number("pm_solver_iterations").value_or(8.0);
+        const float velocity_damping = static_cast<float>(
+            extras.number("pm_velocity_damping").value_or(5.0));
+        const float contact_friction = static_cast<float>(
+            extras.number("pm_contact_friction").value_or(0.4));
+        const bool pressure_enabled =
+            extras.boolean("pm_pressure_enabled").value_or(false);
+        const float pressure_scale = static_cast<float>(
+            extras.number("pm_pressure_scale").value_or(1.0));
+        const float uniform_pressure = static_cast<float>(
+            extras.number("pm_uniform_pressure").value_or(0.0));
+        const bool pressure_custom_volume =
+            extras.boolean("pm_pressure_custom_volume").value_or(false);
+        const float pressure_target_volume = static_cast<float>(
+            extras.number("pm_pressure_target_volume").value_or(0.0));
+        const float pressure_fluid_density = static_cast<float>(
+            extras.number("pm_pressure_fluid_density").value_or(0.0));
         const double paint_resolution =
             extras.number("pm_paint_resolution").value_or(512.0);
         const Vec3 scale = node_scale(node);
@@ -785,6 +822,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             fracture_persistence < 1.0 || fracture_persistence > 64.0 ||
             std::floor(fracture_persistence) != fracture_persistence ||
             !finite(stretch_compliance) || stretch_compliance < 0.0F ||
+            !finite(velocity_damping) || velocity_damping < 0.0F ||
+            !finite(contact_friction) || contact_friction < 0.0F ||
+            !finite(pressure_scale) || pressure_scale <= 0.0F ||
+            !finite(uniform_pressure) || uniform_pressure != 0.0F ||
+            !finite(pressure_target_volume) || pressure_target_volume < 0.0F ||
+            !finite(pressure_fluid_density) || pressure_fluid_density < 0.0F ||
             solver_iterations < 1.0 || solver_iterations > 64.0 ||
             std::floor(solver_iterations) != solver_iterations ||
             paint_resolution < 32.0 || paint_resolution > 2048.0 ||
@@ -792,15 +835,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = name + ": invalid cloth tear, solver, or paint settings";
             return false;
         }
-        const auto encoded_pins = extras.string("pm_pin_vertices");
-        if (!encoded_pins || encoded_pins->empty()) {
-            error = name + ": cloth has no exported pin vertices";
-            return false;
-        }
+        const std::string encoded_pins =
+            extras.string("pm_pin_vertices").value_or("");
         struct Pin { Vec3 position; float weight; bool matched{}; };
         std::vector<Pin> pins;
-        const char *cursor = encoded_pins->c_str();
-        const char *end = cursor + encoded_pins->size();
+        const char *cursor = encoded_pins.c_str();
+        const char *end = cursor + encoded_pins.size();
         while (cursor < end) {
             float fields[4]{};
             for (int component = 0; component < 4; ++component) {
@@ -823,6 +863,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[0], scale, false,
                               name, mesh, error)) return false;
+        if (pressure_enabled) weld_pressure_cloth(mesh);
         ClothDefinition cloth{};
         cloth.name = name;
         cloth.vertex_mass = mass;
@@ -832,7 +873,19 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             static_cast<std::uint32_t>(fracture_persistence);
         cloth.impact_break_impulse = impact_break_impulse;
         cloth.stretch_compliance = stretch_compliance;
+        cloth.velocity_damping = velocity_damping;
+        cloth.contact_friction = contact_friction;
         cloth.solver_iterations = static_cast<std::uint32_t>(solver_iterations);
+        cloth.preserve_volume = pressure_enabled;
+        cloth.target_volume = pressure_custom_volume
+            ? pressure_target_volume : 0.0F;
+        cloth.volume_compliance = 1.0e-7F / pressure_scale;
+        cloth.contains_fluid =
+            extras.boolean("pm_contains_fluid").value_or(false);
+        if (cloth.contains_fluid && !cloth.preserve_volume) {
+            error = name + ": contained fluid requires Cloth Pressure";
+            return false;
+        }
         cloth.paintable = extras.boolean("pm_paintable").value_or(false);
         cloth.paint_resolution = static_cast<std::uint32_t>(paint_resolution);
         cloth.paint_source = extras.string("pm_paint_source").value_or("");
@@ -1235,11 +1288,16 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .vertex_mass = definition.vertex_mass,
             .thickness = definition.thickness,
             .stretch_compliance = definition.stretch_compliance,
+            .velocity_damping = definition.velocity_damping,
+            .contact_friction = definition.contact_friction,
             .solver_iterations = definition.solver_iterations,
             .break_strain = definition.break_strain,
             .fracture_persistence_substeps =
                 definition.fracture_persistence_substeps,
-            .impact_break_impulse = definition.impact_break_impulse}, cloth);
+            .impact_break_impulse = definition.impact_break_impulse,
+            .preserve_volume = definition.preserve_volume,
+            .target_volume = definition.target_volume,
+            .volume_compliance = definition.volume_compliance}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
     }
@@ -1289,6 +1347,17 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             status = world.add_particle_destroy_plane(options, id);
             if (!status) return status;
         }
+    }
+    for (std::size_t index = 0U; index < scene.cloths.size(); ++index) {
+        if (!scene.cloths[index].contains_fluid) continue;
+        if (!output.has_fluid || index >= output.cloths.size())
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "contained cloth needs a scene fluid"};
+        FluidClothCouplingId coupling{};
+        const Status status = world.add_fluid_cloth_coupling(
+            {.fluid = output.fluid, .cloth = output.cloths[index]}, coupling);
+        if (!status) return status;
+        output.fluid_cloth_couplings.push_back(coupling);
     }
     try {
     const auto bind_paint = [&](std::uint32_t owner,

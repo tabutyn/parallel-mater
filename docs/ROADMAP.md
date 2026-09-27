@@ -150,6 +150,18 @@ pass.
   intact. Rigid–cloth contact and filled-disk texel stamping belong to `World`.
 - Add headless and GPU scene tests for both variations.
 
+## PR 11 — Water inside pressure cloth
+
+- Export Blender's native Cloth Pressure settings and accept closed unpinned
+  cloth. Initial authored volume is the default pressure target.
+- Add reusable API volume preservation and an explicit fluid–cloth coupling
+  resource. Particle containment transfers equal-and-opposite reactions to
+  the cloth; the gallery only instantiates exported relationships.
+- Add the Blender-authored `ClothWater` gallery context with common fluid,
+  camera, reset, timing, and gravity controls.
+- Measure volume drift, escaped particles, and frame cost in a GPU regression
+  test, then verify the scene through the common exporter and headless render.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
