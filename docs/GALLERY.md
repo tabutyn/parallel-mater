@@ -79,7 +79,7 @@ and restarts the scene. `--fluid-particles N` sets the cap for a headless run.
 `R` rebuilds the active scene from its initial state, clearing particles and
 emitter history. In Fluid, `V` toggles between the continuous surface and
 individual particles; `--fluid-particle-view` selects particles in headless
-mode. In other scenes, `V` retains the rigid-contact debug view.
+mode.
 For containment debugging, run the headless Fluid scene with
 `--trace-fluid-escapes`. It reports the first particle below the passive
 mesh's overall bottom or more than 1 mm below its local floor surface,
@@ -97,9 +97,18 @@ straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
 `F` timings. Headless runs can opt into `--cloth-tilt-degrees 1..45`.
 Water Cloth can be selected with `--water-cloth`; it also accepts the common
 fluid particle cap. Its pressure cloth is a transparent refractive render
-layer. `V` toggles particles plus cloth wireframe, `Z` toggles cloth normals,
-`X` toggles rigid-contact forces, and `C` toggles fluid reaction forces.
-`--water-cloth-debug` exercises all four overlays in a headless render.
+layer.
+
+All gallery entries create `World` with opt-in rolling physics capture. `Z`
+shows available contact and cloth normals, `X` rigid inputs/contact forces,
+`C` fluid accelerations and reactions, and `N` rigid/fluid/cloth velocities.
+`V` switches to available particle/cloth structure, `B` shows cloth bonds, and
+`M` copies the common API capture to a self-describing log in `/tmp`. Missing
+systems simply contribute no vectors. Rendering and log persistence stay in
+gallery support; state, forces, contacts, and the chronological capture come
+from the public API. `--physics-capture file.log` exercises the same writer in
+headless runs. `--water-cloth-debug` exercises the original four Water Cloth
+overlays in a headless render.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.

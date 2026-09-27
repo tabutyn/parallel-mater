@@ -161,6 +161,12 @@ pass.
   camera, reset, timing, and gravity controls.
 - Render contained-fluid cloth as a transparent water skin and expose shared
   Z/X/C/V normal, coupling-force, particle, and wireframe diagnostics.
+- Add opt-in API-owned rolling physics capture for rigid, fluid, cloth, and
+  contact state. Share Z/X/C/V/B/N visualization and M log capture across all
+  gallery contexts while keeping final drawing and persistence outside `World`.
+- Treat `maximum_neighbors` as an explicit diagnostic ceiling, report the
+  observed peak, and cover left-steered pressure-cloth compression without
+  terminating the gallery on a valid 268-neighbor transient.
 - Measure volume drift, escaped particles, and frame cost in a GPU regression
   test, then verify the scene through the common exporter and headless render.
 

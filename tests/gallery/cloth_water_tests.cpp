@@ -143,7 +143,8 @@ int main() {
                 std::max<std::size_t>(1U, scene.rigid_bodies.size())),
             .triangle_mesh_capacity = static_cast<std::uint32_t>(uploaded_meshes),
             .cloth_capacity = 1U,
-            .fluid_cloth_coupling_capacity = 1U}, world), "create world"))
+            .fluid_cloth_coupling_capacity = 1U,
+            .physics_debug = {.frame_capacity = 1U}}, world), "create world"))
         return 1;
     SceneInstance instance;
     if (!require(instantiate_scene(scene, world, instance), "instantiate scene"))
@@ -207,6 +208,15 @@ int main() {
     }
     const float milliseconds = std::chrono::duration<float, std::milli>(
         std::chrono::steady_clock::now() - started).count();
+
+    PhysicsDebugFrameView debug_frame{};
+    if (!require(world.physics_debug_frame(debug_frame),
+                 "water-cloth physics debug frame")) return 1;
+    if (debug_frame.fluid_particles.size != scene.initial_particles.size() ||
+        debug_frame.cloth_vertices.size != cloth_view.vertex_count) {
+        std::cerr << "physics capture omitted fluid or cloth state\n";
+        return 1;
+    }
 
     FluidDeviceView fluid_view;
     if (!require(world.fluid_view(instance.fluid, fluid_view), "fluid view"))

@@ -593,6 +593,65 @@ void test_invalid_triangle_indices() {
     cudaFree(device_vertices);
 }
 
+void test_opt_in_physics_debug_capture() {
+    using namespace parallel_mater;
+    World disabled;
+    check_status(World::create({.rigid_body_capacity = 1U,
+                                .triangle_mesh_capacity = 1U}, disabled),
+                 "create debug-disabled world");
+    PhysicsDebugFrameView disabled_frame{};
+    check(disabled.physics_debug_frame(disabled_frame).code ==
+              StatusCode::not_supported,
+          "physics capture must be opt in");
+
+    World world;
+    check_status(World::create({.rigid_body_capacity = 1U,
+                                .triangle_mesh_capacity = 1U,
+                                .physics_debug = {.frame_capacity = 2U}},
+                               world),
+                 "create debug-enabled world");
+    const TriangleMeshId mesh = add_box(world, {0.25F, 0.25F, 0.25F});
+    RigidBodyId body{};
+    check_status(world.add_rigid_body(
+                     {.mesh = mesh,
+                      .mass = 2.0F,
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F},
+                     body),
+                 "add debug capture body");
+    for (std::uint32_t frame = 1U; frame <= 3U; ++frame) {
+        const Vec3 force{static_cast<float>(frame), 2.0F, -3.0F};
+        check_status(world.apply_force(body, force, {}),
+                     "apply captured force");
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 1U,
+                                 .gravity = {}}),
+                     "step debug capture world");
+        PhysicsDebugFrameView latest{};
+        check_status(world.physics_debug_frame(latest),
+                     "borrow latest physics debug frame");
+        check(latest.frame_index == frame && latest.rigid_bodies.size == 1U,
+              "latest debug frame must match completed frame");
+        if (latest.rigid_bodies.size == 1U) {
+            check(near(latest.rigid_bodies.data[0].applied_force.x,
+                       static_cast<float>(frame)),
+                  "debug capture must preserve applied rigid force");
+        }
+    }
+    PhysicsDebugCapture capture{};
+    check_status(world.copy_physics_debug_capture(capture),
+                 "copy rolling physics debug capture");
+    check(capture.frames.size() == 2U &&
+              capture.frames[0].frame_index == 2U &&
+              capture.frames[1].frame_index == 3U,
+          "debug capture ring must copy in chronological order");
+    RigidBodyDeviceView view{};
+    check_status(world.rigid_body_view(view), "borrow debug rigid view");
+    check(view.applied_forces.size == 1U &&
+              near(view.applied_forces.data[0].x, 3.0F),
+          "debug rigid view must expose last frame input force");
+}
+
 } // namespace
 
 int main() {
@@ -612,6 +671,7 @@ int main() {
     test_parallel_contact_coloring(128U);
     test_parallel_contact_coloring(256U);
     test_invalid_triangle_indices();
+    test_opt_in_physics_debug_capture();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";
         return 1;

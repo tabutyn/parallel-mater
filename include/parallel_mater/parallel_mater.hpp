@@ -152,6 +152,14 @@ struct ParticleDestroyPlaneId {
     }
 };
 
+// Opt-in rolling physics history. A nonzero frame capacity records state and
+// force diagnostics as frames complete, so it has intentional readback and
+// host-memory cost. Frame stride one records every simulation frame.
+struct PhysicsDebugOptions {
+    std::uint32_t frame_capacity{};
+    std::uint32_t frame_stride{1U};
+};
+
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
@@ -165,6 +173,7 @@ struct WorldOptions {
     bool deterministic{true};
     std::uint32_t cloth_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
+    PhysicsDebugOptions physics_debug{};
 };
 
 struct StepOptions {
@@ -243,6 +252,7 @@ struct FluidClothCouplingOptions {
 struct ClothDeviceView {
     // Physical nodes and their authored connectivity.
     DeviceSpan<const Vec3> positions{};
+    DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const std::uint32_t> triangle_indices{};
     std::uint32_t vertex_count{};
     // For tearable cloth, every triangle owns three surface corners. The
@@ -392,6 +402,8 @@ struct PaintFieldDeviceView {
 struct FluidDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
+    // Solver acceleration excluding the StepOptions gravity term.
+    DeviceSpan<const Vec3> accelerations{};
     DeviceSpan<const std::uint32_t> stable_particle_ids{};
     // Short-lived impact/exposed-surface agitation for renderers; [0, 1].
     DeviceSpan<const float> foam{};
@@ -404,6 +416,10 @@ struct FluidDeviceView {
 struct RigidBodyDeviceView {
     DeviceSpan<const RigidBodyId> ids{};
     DeviceSpan<const RigidBodyState> states{};
+    // Inputs captured at the beginning of the last completed frame. Empty
+    // unless WorldOptions::physics_debug is enabled.
+    DeviceSpan<const Vec3> applied_forces{};
+    DeviceSpan<const Vec3> applied_torques{};
     std::uint64_t revision{};
 };
 
@@ -437,6 +453,59 @@ struct RigidContactDeviceView {
     DeviceSpan<const RigidContactEvent> events{};
     std::uint32_t event_count{};
     std::uint64_t frame_index{};
+};
+
+struct PhysicsDebugRigidSample {
+    RigidBodyId id{};
+    RigidBodyState state{};
+    Vec3 applied_force{};
+    Vec3 applied_torque{};
+};
+
+struct PhysicsDebugFluidSample {
+    FluidId fluid{};
+    std::uint32_t stable_particle_id{};
+    Vec3 position{};
+    Vec3 velocity{};
+    Vec3 acceleration{};
+    float foam{};
+};
+
+struct PhysicsDebugClothSample {
+    ClothId cloth{};
+    std::uint32_t vertex{};
+    Vec3 position{};
+    Vec3 velocity{};
+    Vec3 rigid_contact_force{};
+    Vec3 fluid_contact_force{};
+};
+
+struct PhysicsDebugFrame {
+    std::uint64_t frame_index{};
+    float timestep{};
+    Vec3 gravity{};
+    std::uint32_t maximum_fluid_neighbor_count{};
+    std::vector<PhysicsDebugRigidSample> rigid_bodies{};
+    std::vector<PhysicsDebugFluidSample> fluid_particles{};
+    std::vector<PhysicsDebugClothSample> cloth_vertices{};
+    std::vector<RigidContactEvent> rigid_contacts{};
+    std::vector<ContactEvent> fluid_contacts{};
+};
+
+struct PhysicsDebugFrameView {
+    std::uint64_t frame_index{};
+    float timestep{};
+    Vec3 gravity{};
+    std::uint32_t maximum_fluid_neighbor_count{};
+    HostSpan<PhysicsDebugRigidSample> rigid_bodies{};
+    HostSpan<PhysicsDebugFluidSample> fluid_particles{};
+    HostSpan<PhysicsDebugClothSample> cloth_vertices{};
+    HostSpan<RigidContactEvent> rigid_contacts{};
+    HostSpan<ContactEvent> fluid_contacts{};
+};
+
+struct PhysicsDebugCapture {
+    std::vector<PhysicsDebugFrame> frames{};
 };
 
 struct KernelTiming {
@@ -481,6 +550,7 @@ struct WorldStatistics {
     std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
+    std::uint32_t maximum_fluid_neighbor_count{};
     std::uint64_t emitted_particle_count{};
     std::uint64_t destroyed_particle_count{};
     std::uint64_t spawn_capacity_miss_count{};
@@ -606,6 +676,12 @@ class World {
 
     [[nodiscard]] ContactDeviceView contacts() const noexcept;
     [[nodiscard]] RigidContactDeviceView rigid_contacts() const noexcept;
+    // Borrow the latest host debug frame, or deep-copy the chronological ring.
+    // Both require physics_debug.frame_capacity > 0 at World creation.
+    [[nodiscard]] Status physics_debug_frame(
+        PhysicsDebugFrameView &output) const noexcept;
+    [[nodiscard]] Status copy_physics_debug_capture(
+        PhysicsDebugCapture &output) const noexcept;
     [[nodiscard]] Status collect_step_timings(
         WorldStepTimings &output) const noexcept;
     [[nodiscard]] Status collect_statistics(WorldStatistics &output,

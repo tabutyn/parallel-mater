@@ -449,6 +449,124 @@ bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
     return true;
 }
 
+void draw_physics_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, PhysicsDebugFrameView frame, Camera camera,
+    PhysicsDebugVisualizationOptions options) {
+    constexpr std::size_t maximum_vectors = 700U;
+    const auto draw_vector = [&](Vec3 origin, Vec3 value, Color color,
+                                 float scale) {
+        const float magnitude = length(value);
+        if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) return;
+        const float arrow_length = std::clamp(
+            scale * std::log1p(magnitude), 0.025F, 0.35F);
+        arrow(rgba, width, height,
+              project(origin, camera, width, height),
+              project(add(origin, multiply(value, arrow_length / magnitude)),
+                      camera, width, height), color);
+    };
+    const auto stride_for = [](std::uint64_t count) {
+        return std::max<std::uint64_t>(
+            1U, (count + maximum_vectors - 1U) / maximum_vectors);
+    };
+    if (options.contact_normals) {
+        for (std::uint64_t index = 0U; index < frame.rigid_contacts.size;
+             index += stride_for(frame.rigid_contacts.size)) {
+            const RigidContactEvent &contact = frame.rigid_contacts.data[index];
+            draw_vector(contact.position, contact.normal,
+                        {48, 255, 95, 245}, 0.12F);
+        }
+        for (std::uint64_t index = 0U; index < frame.fluid_contacts.size;
+             index += stride_for(frame.fluid_contacts.size)) {
+            const ContactEvent &contact = frame.fluid_contacts.data[index];
+            draw_vector(contact.position, contact.normal,
+                        {55, 238, 255, 235}, 0.12F);
+        }
+    }
+    if (options.rigid_forces) {
+        for (std::uint64_t index = 0U; index < frame.rigid_bodies.size;
+             index += stride_for(frame.rigid_bodies.size)) {
+            const PhysicsDebugRigidSample &sample =
+                frame.rigid_bodies.data[index];
+            draw_vector(sample.state.position, sample.applied_force,
+                        {255, 88, 64, 245}, 0.035F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.rigid_contact_force,
+                        {52, 135, 255, 238}, 0.025F);
+        }
+        const float inverse_timestep = frame.timestep > 0.0F
+            ? 1.0F / frame.timestep : 0.0F;
+        for (std::uint64_t index = 0U; index < frame.rigid_contacts.size;
+             index += stride_for(frame.rigid_contacts.size)) {
+            const RigidContactEvent &contact = frame.rigid_contacts.data[index];
+            draw_vector(contact.position,
+                        add(multiply(contact.normal,
+                                     contact.normal_impulse * inverse_timestep),
+                            multiply(contact.friction_impulse,
+                                     inverse_timestep)),
+                        {255, 180, 35, 238}, 0.025F);
+        }
+    }
+    if (options.fluid_forces) {
+        for (std::uint64_t index = 0U; index < frame.fluid_particles.size;
+             index += stride_for(frame.fluid_particles.size)) {
+            const PhysicsDebugFluidSample &sample =
+                frame.fluid_particles.data[index];
+            draw_vector(sample.position, sample.acceleration,
+                        {20, 210, 255, 225}, 0.018F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.fluid_contact_force,
+                        {255, 225, 30, 238}, 0.025F);
+        }
+    }
+    if (options.velocities) {
+        for (std::uint64_t index = 0U; index < frame.rigid_bodies.size;
+             index += stride_for(frame.rigid_bodies.size)) {
+            const PhysicsDebugRigidSample &sample =
+                frame.rigid_bodies.data[index];
+            draw_vector(sample.state.position, sample.state.linear_velocity,
+                        {255, 80, 230, 238}, 0.085F);
+        }
+        for (std::uint64_t index = 0U; index < frame.fluid_particles.size;
+             index += stride_for(frame.fluid_particles.size)) {
+            const PhysicsDebugFluidSample &sample =
+                frame.fluid_particles.data[index];
+            draw_vector(sample.position, sample.velocity,
+                        {255, 80, 230, 215}, 0.085F);
+        }
+        for (std::uint64_t index = 0U; index < frame.cloth_vertices.size;
+             index += stride_for(frame.cloth_vertices.size)) {
+            const PhysicsDebugClothSample &sample =
+                frame.cloth_vertices.data[index];
+            draw_vector(sample.position, sample.velocity,
+                        {255, 80, 230, 220}, 0.085F);
+        }
+    }
+    if (options.contact_normals || options.rigid_forces ||
+        options.fluid_forces || options.velocities) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 62,
+                  690, static_cast<int>(height) - 14, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 55,
+             "Z NORMALS  X RIGID FORCES  C FLUID FORCES  N VELOCITIES",
+             {235, 240, 245, 255}, 1);
+        char summary[128]{};
+        std::snprintf(summary, sizeof(summary),
+                      "FRAME %llu  MAX FLUID NEIGHBORS %u",
+                      static_cast<unsigned long long>(frame.frame_index),
+                      frame.maximum_fluid_neighbor_count);
+        text(rgba, width, height, 28, static_cast<int>(height) - 35,
+             summary, {130, 220, 255, 255}, 1);
+    }
+}
+
 bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
                               std::uint32_t width, std::uint32_t height,
                               ClothDeviceView cloth, Camera camera,
@@ -496,6 +614,29 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
                     line(rgba, width, height, first.x, first.y,
                          second.x, second.y, wire);
             }
+        }
+    }
+    if (options.bonds) {
+        std::vector<ClothBond> bonds;
+        std::vector<std::uint8_t> active;
+        if (!copy(cloth.bonds, bonds, "cloth bonds") ||
+            !copy(cloth.active_bonds, active, "cloth active bonds"))
+            return false;
+        const std::size_t stride = std::max<std::size_t>(
+            1U, (bonds.size() + 2'499U) / 2'500U);
+        for (std::size_t index = 0U; index < bonds.size(); index += stride) {
+            const ClothBond &bond = bonds[index];
+            if (bond.first >= positions.size() ||
+                bond.second >= positions.size()) continue;
+            const ScreenPoint first = project(
+                positions[bond.first], camera, width, height);
+            const ScreenPoint second = project(
+                positions[bond.second], camera, width, height);
+            if (!first.visible || !second.visible) continue;
+            const bool enabled = index >= active.size() || active[index] != 0U;
+            line(rgba, width, height, first.x, first.y, second.x, second.y,
+                 enabled ? Color{255, 155, 25, 220}
+                         : Color{255, 45, 70, 235});
         }
     }
     std::vector<Vec3> normals;
@@ -548,11 +689,11 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         draw_vectors(forces, 0.0F, {255, 219, 20, 242});
     }
     if (options.normals || options.rigid_contact_forces ||
-        options.fluid_contact_forces || options.wireframe) {
-        rectangle(rgba, width, height, 18, static_cast<int>(height) - 42,
-                  620, static_cast<int>(height) - 14, {5, 12, 18, 205});
-        text(rgba, width, height, 28, static_cast<int>(height) - 35,
-             "Z NORMAL  X RIGID FORCE  C FLUID FORCE  V WIREFRAME",
+        options.fluid_contact_forces || options.wireframe || options.bonds) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 88,
+                  620, static_cast<int>(height) - 66, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 81,
+             "CLOTH  Z NORMALS  V WIREFRAME  B BONDS",
              {235, 240, 245, 255}, 1);
     }
     return true;
@@ -567,6 +708,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
               {4, 10, 16, 230});
     text(rgba, width, height, center - 225, top + 24, "SCENES",
          {110, 225, 255, 255}, 3);
+    text(rgba, width, height, center - 70, top + 34,
+         "Z X C V B N DEBUG   M CAPTURE", {185, 220, 235, 255}, 1);
 
     const auto row = [&](int y, GalleryContext context, Color background,
                          Color icon, std::string_view name,

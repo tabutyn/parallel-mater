@@ -56,7 +56,8 @@ int main() {
     // acceleration=20*q*q=5, so one 0.1 s step changes speed by 0.5.
     World pair_world;
     check(World::create({.rigid_body_capacity = 1U,
-                         .triangle_mesh_capacity = 1U}, pair_world),
+                         .triangle_mesh_capacity = 1U,
+                         .physics_debug = {.frame_capacity = 2U}}, pair_world),
           "create pair world");
     const std::array<FluidParticle, 2> pair{{
         {{0.0F, 0.0F, 0.0F}, {}},
@@ -88,6 +89,14 @@ int main() {
     FluidDeviceView pair_view{};
     check(pair_world.fluid_view(pair_id, pair_view), "view pair fluid");
     check(pair_view.particle_count == 2U, "pair retains two particles");
+    check(pair_view.accelerations.size == pair_view.particle_count,
+          "fluid view exposes solver acceleration per particle");
+    PhysicsDebugFrameView pair_debug{};
+    check(pair_world.physics_debug_frame(pair_debug),
+          "borrow pair physics capture");
+    check(pair_debug.fluid_particles.size == 2U &&
+              pair_debug.maximum_fluid_neighbor_count == 1U,
+          "physics capture retains fluid state and measured neighbor peak");
     std::array<Vec3, 2> pair_positions{}, pair_velocities{};
     if (pair_view.particle_count == 2U) {
         check(cudaMemcpy(pair_positions.data(), pair_view.positions.data,

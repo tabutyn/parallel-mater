@@ -153,7 +153,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 examples/support/optix_renderer.cpp
                 examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
-                examples/support/overlay.cpp)
+                examples/support/overlay.cpp
+                examples/support/physics_debug.cpp)
     add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     target_include_directories(
@@ -440,6 +441,28 @@ if(BUILD_TESTING)
         set_tests_properties(
             parallel-mater-water-cloth-debug-headless-test PROPERTIES
             TIMEOUT 120)
+        add_test(
+            NAME parallel-mater-water-cloth-left-regression-test
+            COMMAND parallel-mater-gallery
+                    --water-cloth
+                    --cloth-tilt-left
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-water-cloth-left-test.ppm
+                    --frames 180)
+        set_tests_properties(
+            parallel-mater-water-cloth-left-regression-test PROPERTIES
+            TIMEOUT 120)
+        add_test(
+            NAME parallel-mater-physics-capture-headless-test
+            COMMAND parallel-mater-gallery
+                    --headless
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.ppm
+                    --physics-capture
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.log
+                    --frames 10)
+        set_tests_properties(
+            parallel-mater-physics-capture-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Physics capture")
         add_test(
             NAME parallel-mater-peg-paint-containment-test
             COMMAND parallel-mater-gallery

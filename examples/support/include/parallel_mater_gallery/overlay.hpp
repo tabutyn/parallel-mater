@@ -60,6 +60,7 @@ struct ClothDebugOptions {
     bool rigid_contact_forces{};
     bool fluid_contact_forces{};
     bool wireframe{};
+    bool bonds{};
 };
 
 // Shared cloth diagnostics. Data comes directly from ClothDeviceView so any
@@ -68,6 +69,20 @@ struct ClothDebugOptions {
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, ClothDeviceView cloth, Camera camera,
     ClothDebugOptions options, std::string &error);
+
+struct PhysicsDebugVisualizationOptions {
+    bool contact_normals{};
+    bool rigid_forces{};
+    bool fluid_forces{};
+    bool velocities{};
+};
+
+// Draws host-side state and force vectors captured by the opt-in World debug
+// API. Rendering remains a client concern and does not enter the physics API.
+void draw_physics_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, PhysicsDebugFrameView frame, Camera camera,
+    PhysicsDebugVisualizationOptions options);
 
 // Fluid loads the Blender-authored Flow scene. Gallery navigation belongs to
 // examples, not World.

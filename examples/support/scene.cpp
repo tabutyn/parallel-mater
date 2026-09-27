@@ -1045,7 +1045,12 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                 .particle_radius = radius,
                                 .support_radius = std::max(0.12F, spacing),
                                 .solver_iterations = 2U,
-                                .maximum_neighbors = 256U,
+                                // Pressure cloth can transiently compress a
+                                // valid geometry volume above the ordinary
+                                // free-surface density. The solver visits all
+                                // neighbors; this is a safety threshold, not
+                                // a storage allocation.
+                                .maximum_neighbors = 512U,
                                 .repulsion = 30.0F,
                                 .viscosity = 0.0F,
                                 .velocity_damping = 0.4F,

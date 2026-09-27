@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/camera_controller.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
+#include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
@@ -58,6 +59,7 @@ constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 struct Options {
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
+    std::filesystem::path physics_capture_output{};
     int frames{240};
     std::uint32_t width{960U};
     std::uint32_t height{720U};
@@ -66,6 +68,7 @@ struct Options {
     std::uint32_t fluid_particles{k_default_fluid_particles};
     std::uint32_t headless_cloth_tilt_degrees{};
     std::uint32_t headless_cloth_tilt_after_frames{};
+    bool headless_cloth_tilt_left{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
     bool water_cloth_debug{};
@@ -532,6 +535,8 @@ struct FluidEscapeTrace {
         } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
             if (!parse_count(argv[++index], 0U, 100000U,
                              output.headless_cloth_tilt_after_frames)) return false;
+        } else if (argument == "--cloth-tilt-left") {
+            output.headless_cloth_tilt_left = true;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -543,14 +548,18 @@ struct FluidEscapeTrace {
         } else if (argument == "--water-cloth-debug") {
             output.initial_context = GalleryContext::water_cloth;
             output.water_cloth_debug = true;
+        } else if (argument == "--physics-capture" && index + 1 < argc) {
+            output.physics_capture_output = argv[++index];
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
                          "[--dump-spheres N] [--fluid|--fluid-rigid|--peg-paint|--cloth|--cloth-tear|--cloth-paint|--water-cloth] "
                          "[--fluid-particles N] "
                          "[--cloth-tilt-degrees 1..45 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
+                         "[--cloth-tilt-left (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--water-cloth-debug] "
+                         "[--physics-capture output.log] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
             std::exit(0);
@@ -752,7 +761,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
          .cloth_capacity = static_cast<std::uint32_t>(
              std::max<std::size_t>(1U, next.scene.cloths.size())),
          .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
-             std::max<std::size_t>(1U, next.scene.cloths.size()))},
+             std::max<std::size_t>(1U, next.scene.cloths.size())),
+         .physics_debug = {.frame_capacity = 30U, .frame_stride = 1U}},
         next.world);
     if (!create_status) {
         error = create_status.message != nullptr ? create_status.message
@@ -911,8 +921,23 @@ int main(int argc, char **argv) {
             StepOptions frame_step = headless_step;
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
-            if (!require(runtime.world.step(frame_step),
-                         "step headless gallery")) {
+            else if (options.headless_cloth_tilt_left &&
+                     is_cloth_context(runtime.context)) {
+                headless_step.gravity = steer_gravity(
+                    headless_step.gravity, input_state.camera.camera(),
+                    -1.0F, 0.0F, k_gravity * runtime.scene.gravity_scale,
+                    k_cloth_gravity_tilt_degrees, k_timestep);
+                frame_step.gravity = headless_step.gravity;
+            }
+            const Status frame_status = runtime.world.step(frame_step);
+            if (!frame_status) {
+                WorldStatistics failure_statistics{};
+                (void)runtime.world.collect_statistics(failure_statistics);
+                std::cerr << "Headless frame " << frame + 1
+                          << " failed; peak fluid neighbors="
+                          << failure_statistics.maximum_fluid_neighbor_count
+                          << '\n';
+                (void)require(frame_status, "step headless gallery");
                 return 1;
             }
             if (runtime.instance.has_fluid &&
@@ -979,6 +1004,15 @@ int main(int argc, char **argv) {
                           << " z=" << low.z << ".." << high.z << '\n';
             }
         }
+        if (!options.physics_capture_output.empty()) {
+            if (!write_physics_debug_capture(
+                    runtime.world, options.physics_capture_output, error)) {
+                std::cerr << "Physics capture failed: " << error << '\n';
+                return 1;
+            }
+            std::cout << "Physics capture "
+                      << options.physics_capture_output << '\n';
+        }
         RendererTimings headless_render_timings{};
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      input_state.camera.camera(),
@@ -1001,10 +1035,19 @@ int main(int argc, char **argv) {
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     cloth, input_state.camera.camera(),
                     {.normals = true, .rigid_contact_forces = true,
-                     .fluid_contact_forces = true, .wireframe = true}, error)) {
+                     .fluid_contact_forces = true, .wireframe = true,
+                     .bonds = true}, error)) {
                 std::cerr << "Cloth debug overlay failed: " << error << '\n';
                 return 1;
             }
+            PhysicsDebugFrameView debug_frame{};
+            if (!require(runtime.world.physics_debug_frame(debug_frame),
+                         "borrow headless physics debug frame")) return 1;
+            draw_physics_debug_overlay(
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                debug_frame, input_state.camera.camera(),
+                {.contact_normals = true, .rigid_forces = true,
+                 .fluid_forces = true, .velocities = true});
         }
         if (runtime.context == GalleryContext::peg_paint ||
             runtime.context == GalleryContext::cloth_paint) {
@@ -1090,6 +1133,9 @@ int main(int argc, char **argv) {
     bool normals_was_down = false;
     bool rigid_forces_was_down = false;
     bool fluid_forces_was_down = false;
+    bool bonds_was_down = false;
+    bool velocities_was_down = false;
+    bool capture_was_down = false;
     bool tab_was_down = false;
     bool p_was_down = false;
     bool up_was_down = false;
@@ -1098,12 +1144,15 @@ int main(int argc, char **argv) {
     bool backspace_was_down = false;
     bool escape_was_down = false;
     bool timing_visible = false;
-    bool debug_visible = false;
     bool fluid_particle_view = options.fluid_particle_view;
-    bool cloth_normals_visible = false;
-    bool cloth_rigid_forces_visible = false;
-    bool cloth_fluid_forces_visible = false;
-    bool water_cloth_wireframe = false;
+    bool normals_visible = false;
+    bool rigid_forces_visible = false;
+    bool fluid_forces_visible = false;
+    bool cloth_bonds_visible = false;
+    bool velocities_visible = false;
+    bool structure_visible = false;
+    bool rigid_contacts_visible = false;
+    bool capture_requested = false;
     bool context_visible = false;
     GalleryContext context_selection = runtime.context;
     std::uint32_t dump_spheres = options.dump_spheres;
@@ -1138,6 +1187,10 @@ int main(int argc, char **argv) {
             glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS;
         const bool fluid_forces_down =
             glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+        const bool bonds_down = glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS;
+        const bool velocities_down =
+            glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS;
+        const bool capture_down = glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS;
 
         if (input_state.count_dialog_visible) {
             if (escape_down && !escape_was_down) {
@@ -1216,10 +1269,13 @@ int main(int argc, char **argv) {
                         if (context_selection != runtime.context) {
                             runtime = std::move(replacement);
                             fluid_particle_view = options.fluid_particle_view;
-                            water_cloth_wireframe = false;
-                            cloth_normals_visible = false;
-                            cloth_rigid_forces_visible = false;
-                            cloth_fluid_forces_visible = false;
+                            structure_visible = false;
+                            normals_visible = false;
+                            rigid_forces_visible = false;
+                            fluid_forces_visible = false;
+                            cloth_bonds_visible = false;
+                            velocities_visible = false;
+                            rigid_contacts_visible = false;
                             peg_gravity = {0.0F, -k_gravity *
                                 runtime.scene.gravity_scale, 0.0F};
                             cloth_gravity = initial_scene_gravity(
@@ -1266,23 +1322,26 @@ int main(int argc, char **argv) {
                 timing_visible = !timing_visible;
             }
             if (debug_down && !debug_was_down) {
-                if (runtime.context == GalleryContext::water_cloth)
-                    water_cloth_wireframe = !water_cloth_wireframe;
-                else if (is_fluid_context(runtime.context))
+                if (is_cloth_context(runtime.context))
+                    structure_visible = !structure_visible;
+                if (is_fluid_context(runtime.context))
                     fluid_particle_view = !fluid_particle_view;
-                else
-                    debug_visible = !debug_visible;
+                if (!is_cloth_context(runtime.context) &&
+                    !is_fluid_context(runtime.context))
+                    rigid_contacts_visible = !rigid_contacts_visible;
             }
-            if (runtime.context == GalleryContext::water_cloth) {
-                if (normals_down && !normals_was_down)
-                    cloth_normals_visible = !cloth_normals_visible;
-                if (rigid_forces_down && !rigid_forces_was_down)
-                    cloth_rigid_forces_visible =
-                        !cloth_rigid_forces_visible;
-                if (fluid_forces_down && !fluid_forces_was_down)
-                    cloth_fluid_forces_visible =
-                        !cloth_fluid_forces_visible;
-            }
+            if (normals_down && !normals_was_down)
+                normals_visible = !normals_visible;
+            if (rigid_forces_down && !rigid_forces_was_down)
+                rigid_forces_visible = !rigid_forces_visible;
+            if (fluid_forces_down && !fluid_forces_was_down)
+                fluid_forces_visible = !fluid_forces_visible;
+            if (bonds_down && !bonds_was_down)
+                cloth_bonds_visible = !cloth_bonds_visible;
+            if (velocities_down && !velocities_was_down)
+                velocities_visible = !velocities_visible;
+            if (capture_down && !capture_was_down)
+                capture_requested = true;
         }
 
         reset_was_down = reset_down;
@@ -1291,6 +1350,9 @@ int main(int argc, char **argv) {
         normals_was_down = normals_down;
         rigid_forces_was_down = rigid_forces_down;
         fluid_forces_was_down = fluid_forces_down;
+        bonds_was_down = bonds_down;
+        velocities_was_down = velocities_down;
+        capture_was_down = capture_down;
         tab_was_down = tab_down;
         p_was_down = p_down;
         up_was_down = up_down;
@@ -1354,12 +1416,18 @@ int main(int argc, char **argv) {
                 interactive_step.gravity = peg_gravity;
             }
             interactive_step.collect_kernel_timings = timing_visible;
-            interactive_step.collect_rigid_contacts =
-                debug_visible && !is_fluid_context(runtime.context);
-            interactive_step.collect_fluid_contacts =
-                timing_visible && is_fluid_context(runtime.context);
             if (!require(runtime.world.step(interactive_step), "step gallery")) {
                 break;
+            }
+            if (capture_requested) {
+                std::filesystem::path capture_path;
+                if (save_physics_debug_capture(runtime.world, capture_path,
+                                               error)) {
+                    std::cout << "Physics capture " << capture_path << '\n';
+                } else {
+                    std::cerr << "Physics capture failed: " << error << '\n';
+                }
+                capture_requested = false;
             }
             if (timing_visible &&
                 !require(runtime.world.collect_step_timings(timings),
@@ -1375,42 +1443,63 @@ int main(int argc, char **argv) {
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      current_camera, pixels, error,
                                      timing_visible ? &renderer_timings : nullptr,
-                                     runtime.context ==
-                                             GalleryContext::water_cloth &&
-                                         water_cloth_wireframe
-                                         ? FluidRenderMode::wireframe
-                                         : fluid_particle_view
+                                     fluid_particle_view
                                          ? FluidRenderMode::particles
+                                         : runtime.context ==
+                                               GalleryContext::water_cloth &&
+                                               structure_visible
+                                         ? FluidRenderMode::wireframe
                                          : FluidRenderMode::surface)) {
             std::cerr << "Render failed: " << error << '\n';
             break;
         }
-        if (runtime.context == GalleryContext::water_cloth &&
-            (cloth_normals_visible || cloth_rigid_forces_visible ||
-             cloth_fluid_forces_visible || water_cloth_wireframe)) {
-            ClothDeviceView cloth{};
-            if (runtime.instance.cloths.empty() ||
-                !require(runtime.world.cloth_view(
-                             runtime.instance.cloths.front(), cloth),
-                         "borrow cloth debug view") ||
-                !draw_cloth_debug_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    cloth, current_camera,
-                    {.normals = cloth_normals_visible,
-                     .rigid_contact_forces = cloth_rigid_forces_visible,
-                     .fluid_contact_forces = cloth_fluid_forces_visible,
-                     .wireframe = water_cloth_wireframe}, error)) {
+        if (is_cloth_context(runtime.context) &&
+            (normals_visible || structure_visible ||
+             cloth_bonds_visible)) {
+            bool cloth_debug_ok = true;
+            for (ClothId id : runtime.instance.cloths) {
+                ClothDeviceView cloth{};
+                if (!require(runtime.world.cloth_view(id, cloth),
+                             "borrow cloth debug view") ||
+                    !draw_cloth_debug_overlay(
+                        pixels, runtime.renderer.width(),
+                        runtime.renderer.height(), cloth, current_camera,
+                        {.normals = normals_visible,
+                         .wireframe = structure_visible,
+                         .bonds = cloth_bonds_visible}, error)) {
+                    cloth_debug_ok = false;
+                    break;
+                }
+            }
+            if (!cloth_debug_ok) {
                 std::cerr << "Cloth debug overlay failed: " << error << '\n';
                 break;
             }
         }
-        if (debug_visible && !is_fluid_context(runtime.context) &&
+        if (normals_visible || rigid_forces_visible ||
+            fluid_forces_visible || velocities_visible) {
+            PhysicsDebugFrameView debug_frame{};
+            const Status debug_status =
+                runtime.world.physics_debug_frame(debug_frame);
+            if (!debug_status) {
+                std::cerr << "Physics debug overlay failed: "
+                          << (debug_status.message != nullptr
+                                  ? debug_status.message : "unknown") << '\n';
+                break;
+            }
+            draw_physics_debug_overlay(
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                debug_frame, current_camera,
+                {.contact_normals = normals_visible,
+                 .rigid_forces = rigid_forces_visible,
+                 .fluid_forces = fluid_forces_visible,
+                 .velocities = velocities_visible});
+        }
+        if (rigid_contacts_visible &&
             !draw_rigid_contact_overlay(
-                                 pixels, runtime.renderer.width(),
-                                 runtime.renderer.height(),
-                                 runtime.world.rigid_contacts(), current_camera,
-                                 error)) {
-            std::cerr << "Debug overlay failed: " << error << '\n';
+                pixels, runtime.renderer.width(), runtime.renderer.height(),
+                runtime.world.rigid_contacts(), current_camera, error)) {
+            std::cerr << "Rigid contact overlay failed: " << error << '\n';
             break;
         }
         if (timing_visible) {

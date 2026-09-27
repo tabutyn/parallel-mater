@@ -1747,11 +1747,21 @@ __global__ void clear_rigid_inputs_kernel(BodyAccumulator *accumulators,
     targets[index].active = false;
 }
 
+__global__ void capture_rigid_inputs_kernel(
+    const BodyAccumulator *accumulators, Vec3 *forces, Vec3 *torques,
+    std::uint32_t count) {
+    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count) return;
+    forces[index] = accumulators[index].force;
+    torques[index] = accumulators[index].torque;
+}
+
 struct CompletionState {
     cudaEvent_t event{};
     const std::uint32_t *fluid_neighbor_overflow{};
     bool acknowledged{};
     Status completion_status{};
+    std::function<Status()> on_complete{};
 
     ~CompletionState() {
         if (event != nullptr) {
@@ -1793,15 +1803,18 @@ enum class TimingStage : std::uint8_t {
         return completion->completion_status;
     }
     const cudaError_t error = cudaEventSynchronize(completion->event);
-    completion->completion_status =
-        error == cudaSuccess
-            ? success()
-            : cuda_failure(error, "CUDA frame completion failed");
+    completion->completion_status = error == cudaSuccess
+        ? success() : cuda_failure(error, "CUDA frame completion failed");
+    Status debug_status{};
+    if (error == cudaSuccess && completion->on_complete)
+        debug_status = completion->on_complete();
     if (error == cudaSuccess && completion->fluid_neighbor_overflow != nullptr &&
         *completion->fluid_neighbor_overflow != 0U) {
         completion->completion_status = failure(
             StatusCode::capacity_exceeded,
             "fluid neighbor count exceeded maximum_neighbors");
+    } else if (!debug_status) {
+        completion->completion_status = debug_status;
     }
     completion->acknowledged = true;
     return completion->completion_status;
@@ -2171,7 +2184,8 @@ __global__ void fluid_compute_forces(
     const Vec3 *positions, const Vec3 *velocities, const std::uint32_t *count,
     const std::uint64_t *keys, const std::uint32_t *indices,
     const float *foam, FluidOptions options, Vec3 up,
-    Vec3 *forces, float *foam_source, std::uint32_t *overflow) {
+    Vec3 *forces, float *foam_source, std::uint32_t *overflow,
+    std::uint32_t *maximum_neighbor_count) {
     const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= *count) return;
     const Vec3 p = positions[particle], v = velocities[particle];
@@ -2242,6 +2256,7 @@ __global__ void fluid_compute_forces(
         clamp_scalar((exposure - 0.12F) * 2.0F, 0.0F, 1.0F) * upward *
             clamp_scalar((agitation - 0.15F) * 1.5F, 0.0F, 1.0F),
         neighboring_foam * upward * 0.9F);
+    atomicMax(maximum_neighbor_count, neighbors);
     if (neighbors > options.maximum_neighbors) atomicAdd(overflow, 1U);
 }
 
@@ -3764,11 +3779,14 @@ struct World::Impl {
     PaintRuleResource *paint_rules{};
     std::uint32_t paint_rule_count{};
     std::uint32_t *fluid_neighbor_overflow{};
+    std::uint32_t *fluid_maximum_neighbor_count{};
     BodyParameters *parameters{};
     BodyAccumulator *accumulators{};
     KinematicTarget *targets{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
+    Vec3 *debug_applied_forces{};
+    Vec3 *debug_applied_torques{};
     RigidBodyState *fluid_previous_states{};
     ContactManifold *rigid_manifolds{};
     std::uint32_t *rigid_color_owners{};
@@ -3802,6 +3820,78 @@ struct World::Impl {
     std::size_t timing_boundary_count{};
     std::uint64_t timing_frame_index{};
     bool timing_available{};
+    std::vector<PhysicsDebugFrame> debug_frames{};
+    std::size_t debug_next_frame{};
+    std::size_t debug_frame_count{};
+
+    [[nodiscard]] Status record_debug_frame(
+        StepOptions step_options) noexcept {
+        if (options.physics_debug.frame_capacity == 0U ||
+            frame_index % options.physics_debug.frame_stride != 0U)
+            return success();
+        try {
+            PhysicsDebugFrame &output = debug_frames[debug_next_frame];
+            output.frame_index = frame_index;
+            output.timestep = step_options.timestep;
+            output.gravity = step_options.gravity;
+            output.maximum_fluid_neighbor_count =
+                *fluid_maximum_neighbor_count;
+            output.rigid_bodies.resize(rigid_body_count);
+            for (std::uint32_t index = 0U; index < rigid_body_count; ++index) {
+                output.rigid_bodies[index] = {
+                    ids[index], states[current_state][index],
+                    debug_applied_forces[index], debug_applied_torques[index]};
+            }
+            output.fluid_particles.clear();
+            for (std::uint32_t slot = 0U; slot < fluids.size(); ++slot) {
+                const auto &owner = fluids[slot];
+                if (!owner || !owner->alive) continue;
+                const FluidStorage &fluid = *owner;
+                const std::uint32_t count = *fluid.count;
+                output.fluid_particles.reserve(
+                    output.fluid_particles.size() + count);
+                for (std::uint32_t index = 0U; index < count; ++index)
+                    output.fluid_particles.push_back({
+                        {slot, fluid.generation}, fluid.ids[index],
+                        fluid.positions[index], fluid.velocities[index],
+                        fluid.forces[index], fluid.foam[index]});
+            }
+            output.cloth_vertices.clear();
+            for (std::uint32_t slot = 0U; slot < cloths.size(); ++slot) {
+                const auto &owner = cloths[slot];
+                if (!owner || !owner->alive) continue;
+                const ClothStorage &cloth = *owner;
+                output.cloth_vertices.reserve(
+                    output.cloth_vertices.size() + cloth.vertex_count);
+                for (std::uint32_t index = 0U;
+                     index < cloth.vertex_count; ++index)
+                    output.cloth_vertices.push_back({
+                        {slot, cloth.generation}, index,
+                        cloth.positions[index], cloth.velocities[index],
+                        cloth.rigid_contact_forces[index],
+                        cloth.fluid_forces != nullptr
+                            ? cloth.fluid_forces[index] : Vec3{}});
+            }
+            const std::uint32_t retained_rigid_contacts = std::min(
+                *rigid_contact_count, rigid_contact_capacity);
+            output.rigid_contacts.assign(
+                rigid_contact_events,
+                rigid_contact_events + retained_rigid_contacts);
+            const std::uint32_t retained_fluid_contacts = std::min(
+                *fluid_contact_count, options.contact_capacity);
+            output.fluid_contacts.assign(
+                fluid_contact_events,
+                fluid_contact_events + retained_fluid_contacts);
+            debug_next_frame =
+                (debug_next_frame + 1U) % debug_frames.size();
+            debug_frame_count = std::min(
+                debug_frame_count + 1U, debug_frames.size());
+            return success();
+        } catch (...) {
+            return failure(StatusCode::out_of_memory,
+                           "physics debug frame allocation failed");
+        }
+    }
 
     ~Impl() {
         if (frame && !frame->acknowledged) {
@@ -3830,6 +3920,7 @@ struct World::Impl {
         }
         release_managed(meshes);
         release_managed(fluid_neighbor_overflow);
+        release_managed(fluid_maximum_neighbor_count);
         release_managed(rigid_contact_count);
         release_managed(rigid_contact_events);
         release_managed(rigid_leaf_pair_counts);
@@ -3852,6 +3943,8 @@ struct World::Impl {
         release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
         release_managed(states[1]);
+        release_managed(debug_applied_forces);
+        release_managed(debug_applied_torques);
         release_managed(fluid_previous_states);
         release_managed(states[0]);
         release_managed(ids);
@@ -4008,6 +4101,11 @@ Status World::create(WorldOptions options, World &output,
         return failure(StatusCode::invalid_argument,
                        "rigid body and triangle mesh capacities must be positive");
     }
+    if (options.physics_debug.frame_capacity > 3'600U ||
+        options.physics_debug.frame_stride == 0U) {
+        return failure(StatusCode::invalid_argument,
+                       "physics debug frame capacity or stride is invalid");
+    }
     int device = -1;
     cudaError_t error = cudaGetDevice(&device);
     if (error != cudaSuccess) {
@@ -4024,6 +4122,8 @@ Status World::create(WorldOptions options, World &output,
             options.fluid_cloth_coupling_capacity);
         implementation->spawn_planes.resize(options.particle_spawn_plane_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
+        implementation->debug_frames.resize(
+            options.physics_debug.frame_capacity);
     } catch (...) {
         return failure(StatusCode::out_of_memory,
                        "failed to allocate world host storage");
@@ -4043,6 +4143,10 @@ Status World::create(WorldOptions options, World &output,
     status = allocate_managed(implementation->fluid_neighbor_overflow, 1U);
     if (!status) return status;
     *implementation->fluid_neighbor_overflow = 0U;
+    status = allocate_managed(
+        implementation->fluid_maximum_neighbor_count, 1U);
+    if (!status) return status;
+    *implementation->fluid_maximum_neighbor_count = 0U;
     const std::size_t pair_capacity =
         static_cast<std::size_t>(options.rigid_body_capacity) *
         options.rigid_body_capacity;
@@ -4104,6 +4208,14 @@ Status World::create(WorldOptions options, World &output,
                               options.rigid_body_capacity);
     if (!status) {
         return status;
+    }
+    if (options.physics_debug.frame_capacity != 0U) {
+        status = allocate_managed(implementation->debug_applied_forces,
+                                  options.rigid_body_capacity);
+        if (!status) return status;
+        status = allocate_managed(implementation->debug_applied_torques,
+                                  options.rigid_body_capacity);
+        if (!status) return status;
     }
     status = allocate_managed(implementation->fluid_previous_states,
                               options.rigid_body_capacity);
@@ -4229,6 +4341,12 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->states[1], options.rigid_body_capacity,
                 RigidBodyState{});
+    if (implementation->debug_applied_forces != nullptr) {
+        std::fill_n(implementation->debug_applied_forces,
+                    options.rigid_body_capacity, Vec3{});
+        std::fill_n(implementation->debug_applied_torques,
+                    options.rigid_body_capacity, Vec3{});
+    }
     std::fill_n(implementation->rigid_manifolds, manifold_count,
                 ContactManifold{});
     std::fill_n(implementation->rigid_world_bounds,
@@ -4444,8 +4562,8 @@ Status World::fluid_view(FluidId id, FluidDeviceView &output) const noexcept {
         return failure(StatusCode::busy, "fluid view requires a completed frame");
     const std::uint32_t count = *fluid->count;
     output = {{fluid->positions, count}, {fluid->velocities, count},
-              {fluid->ids, count}, {fluid->foam, count}, count,
-              fluid->options.particle_radius,
+              {fluid->forces, count}, {fluid->ids, count},
+              {fluid->foam, count}, count, fluid->options.particle_radius,
               fluid->options.support_radius, impl_->revision};
     return success();
 }
@@ -5351,6 +5469,7 @@ Status World::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
         return failure(StatusCode::invalid_handle, "cloth handle is stale");
     const ClothStorage &cloth = *impl_->cloths[id.index];
     output.positions = {cloth.positions, cloth.vertex_count};
+    output.velocities = {cloth.velocities, cloth.vertex_count};
     output.triangle_indices = {cloth.indices, cloth.index_count};
     output.vertex_count = cloth.vertex_count;
     if (cloth.surface_positions != nullptr) {
@@ -5712,6 +5831,7 @@ Status World::apply_impulse(RigidBodyId body, Vec3 impulse,
 }
 
 Status World::rigid_body_view(RigidBodyDeviceView &output) const noexcept {
+    output = {};
     if (!impl_) {
         return failure(StatusCode::invalid_argument, "world is not initialized");
     }
@@ -5722,6 +5842,12 @@ Status World::rigid_body_view(RigidBodyDeviceView &output) const noexcept {
     output.ids = {impl_->ids, impl_->rigid_body_count};
     output.states = {impl_->states[impl_->current_state],
                      impl_->rigid_body_count};
+    if (impl_->debug_applied_forces != nullptr) {
+        output.applied_forces = {
+            impl_->debug_applied_forces, impl_->rigid_body_count};
+        output.applied_torques = {
+            impl_->debug_applied_torques, impl_->rigid_body_count};
+    }
     output.revision = impl_->revision;
     return success();
 }
@@ -5780,10 +5906,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         return failure(StatusCode::invalid_argument,
                        "step timestep, substeps, or gravity is invalid");
     }
+    const bool debug_enabled =
+        impl_->options.physics_debug.frame_capacity != 0U;
+    const bool collect_rigid_contacts =
+        options.collect_rigid_contacts || debug_enabled;
+    const bool collect_fluid_contacts =
+        options.collect_fluid_contacts || debug_enabled;
     if (impl_->rigid_body_count == 0U) {
         *impl_->rigid_contact_count = 0U;
     }
     *impl_->fluid_neighbor_overflow = 0U;
+    *impl_->fluid_maximum_neighbor_count = 0U;
     *impl_->fluid_contact_count = 0U;
     *impl_->fluid_contact_overflow = 0U;
 
@@ -5807,6 +5940,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                        "failed to allocate frame completion state");
     }
     frame->fluid_neighbor_overflow = impl_->fluid_neighbor_overflow;
+    if (debug_enabled) {
+        try {
+            frame->on_complete = [implementation = impl_.get(), options]() {
+                return implementation->record_debug_frame(options);
+            };
+        } catch (...) {
+            return failure(StatusCode::out_of_memory,
+                           "physics debug completion allocation failed");
+        }
+    }
     cudaError_t error =
         cudaEventCreateWithFlags(&frame->event, cudaEventDisableTiming);
     if (error != cudaSuccess) {
@@ -5858,6 +6001,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     constexpr std::uint32_t block_size = 128U;
     const std::uint32_t block_count =
         (impl_->rigid_body_count + block_size - 1U) / block_size;
+    if (debug_enabled && impl_->rigid_body_count != 0U) {
+        capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
+            impl_->accumulators, impl_->debug_applied_forces,
+            impl_->debug_applied_torques, impl_->rigid_body_count);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess)
+            return cuda_failure(error,
+                                "rigid debug input capture launch failed");
+    }
     const bool has_cloth = std::any_of(impl_->cloths.begin(), impl_->cloths.end(),
         [](const auto &cloth) { return cloth && cloth->alive; });
     bool any_moving_body = false;
@@ -6137,7 +6289,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->ids, impl_->rigid_contact_event_offsets,
             impl_->rigid_contact_events, impl_->rigid_contact_capacity,
             impl_->rigid_contact_count,
-            options.collect_rigid_contacts, substep == 0U);
+            collect_rigid_contacts, substep == 0U);
         initialize_parallel_colors_kernel<<<
             contact_block_count, block_size, 0, stream>>>(
                 impl_->rigid_active_pair_count,
@@ -6176,7 +6328,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_pair_colors, impl_->rigid_color_state,
                     impl_->rigid_contact_event_offsets,
                     impl_->rigid_contact_events,
-                    options.collect_rigid_contacts
+                    collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
                     color, pass == 0U);
             }
@@ -6187,7 +6339,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_pair_colors, impl_->rigid_color_state,
                 impl_->rigid_contact_event_offsets,
                 impl_->rigid_contact_events,
-                options.collect_rigid_contacts
+                collect_rigid_contacts
                     ? impl_->rigid_contact_capacity : 0U,
                 pass == 0U);
         }
@@ -6320,7 +6472,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             status = record_timing_stage(TimingStage::fluid_body_index);
             if (!status) return status;
         }
-        if (options.collect_fluid_contacts) {
+        if (collect_fluid_contacts) {
             error = cudaMemsetAsync(fluid.contact_flags, 0,
                 fluid.options.capacity * sizeof(std::uint8_t), stream);
             if (error != cudaSuccess)
@@ -6348,7 +6500,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 fluid.options, normalized_or(multiply(options.gravity, -1.0F),
                                              {0.0F, 1.0F, 0.0F}),
                 fluid.forces, fluid.foam_source,
-                impl_->fluid_neighbor_overflow);
+                impl_->fluid_neighbor_overflow,
+                impl_->fluid_maximum_neighbor_count);
             status = record_timing_stage(TimingStage::fluid_neighbor_forces);
             if (!status) return status;
             for (FluidClothCouplingResource &coupling :
@@ -6452,7 +6605,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->fluid_body_masks, impl_->fluid_global_body_masks,
                     body_words, iteration == 0U, fluid.body_impulses,
                     impl_->fluid_body_contact_flags,
-                    options.collect_fluid_contacts, fluid.contact_samples,
+                    collect_fluid_contacts, fluid.contact_samples,
                     fluid.contact_flags, fluid_id, impl_->ids,
                     impl_->paint_rule_count != 0U,
                     impl_->paint_fields, impl_->options.paint_field_capacity,
@@ -6481,7 +6634,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                                   {0.0F, 1.0F, 0.0F}),
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, body, particle_mass,
-                    options.collect_fluid_contacts, fluid.contact_samples,
+                    collect_fluid_contacts, fluid.contact_samples,
                     fluid.contact_flags, fluid_id, impl_->ids[body],
                     impl_->paint_rule_count != 0U,
                     impl_->paint_fields, impl_->options.paint_field_capacity,
@@ -6515,7 +6668,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 fluid_gather<<<blocks, block_size, 0, stream>>>(
                     fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
                     fluid.contact_samples, fluid.contact_flags,
-                    options.collect_fluid_contacts,
+                    collect_fluid_contacts,
                     fluid.selected, fluid.count, fluid.options.capacity,
                     fluid.next_positions, fluid.next_velocities,
                     fluid.next_ids, fluid.next_foam,
@@ -6531,7 +6684,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 if (!status) return status;
             }
         }
-        if (options.collect_fluid_contacts) {
+        if (collect_fluid_contacts) {
             const auto sequence =
                 thrust::make_counting_iterator<std::uint32_t>(0U);
             error = cub::DeviceSelect::Flagged(
@@ -6603,6 +6756,82 @@ RigidContactDeviceView World::rigid_contacts() const noexcept {
     }
     return {{impl_->rigid_contact_events, *impl_->rigid_contact_count},
             *impl_->rigid_contact_count, impl_->frame_index};
+}
+
+Status World::physics_debug_frame(
+    PhysicsDebugFrameView &output) const noexcept {
+    output = {};
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (impl_->options.physics_debug.frame_capacity == 0U) {
+        return failure(StatusCode::not_supported,
+                       "physics debug capture was not enabled at world creation");
+    }
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        status = wait_for_completion(impl_->frame);
+        if (!status) return status;
+    }
+    if (impl_->debug_frame_count == 0U) {
+        return failure(StatusCode::not_supported,
+                       "physics debug capture has no completed frame");
+    }
+    const std::size_t index =
+        (impl_->debug_next_frame + impl_->debug_frames.size() - 1U) %
+        impl_->debug_frames.size();
+    const PhysicsDebugFrame &frame = impl_->debug_frames[index];
+    output.frame_index = frame.frame_index;
+    output.timestep = frame.timestep;
+    output.gravity = frame.gravity;
+    output.maximum_fluid_neighbor_count =
+        frame.maximum_fluid_neighbor_count;
+    output.rigid_bodies = {
+        frame.rigid_bodies.data(), frame.rigid_bodies.size()};
+    output.fluid_particles = {
+        frame.fluid_particles.data(), frame.fluid_particles.size()};
+    output.cloth_vertices = {
+        frame.cloth_vertices.data(), frame.cloth_vertices.size()};
+    output.rigid_contacts = {
+        frame.rigid_contacts.data(), frame.rigid_contacts.size()};
+    output.fluid_contacts = {
+        frame.fluid_contacts.data(), frame.fluid_contacts.size()};
+    return success();
+}
+
+Status World::copy_physics_debug_capture(
+    PhysicsDebugCapture &output) const noexcept {
+    output.frames.clear();
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (impl_->options.physics_debug.frame_capacity == 0U) {
+        return failure(StatusCode::not_supported,
+                       "physics debug capture was not enabled at world creation");
+    }
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        status = wait_for_completion(impl_->frame);
+        if (!status) return status;
+    }
+    try {
+        output.frames.reserve(impl_->debug_frame_count);
+        const std::size_t first =
+            (impl_->debug_next_frame + impl_->debug_frames.size() -
+             impl_->debug_frame_count) % impl_->debug_frames.size();
+        for (std::size_t offset = 0U;
+             offset < impl_->debug_frame_count; ++offset) {
+            output.frames.push_back(impl_->debug_frames[
+                (first + offset) % impl_->debug_frames.size()]);
+        }
+    } catch (...) {
+        output.frames.clear();
+        return failure(StatusCode::out_of_memory,
+                       "physics debug capture copy failed");
+    }
+    return success();
 }
 
 Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
@@ -6779,6 +7008,8 @@ Status World::collect_statistics(WorldStatistics &output,
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;
     output.contact_count = *impl_->fluid_contact_count;
     output.contact_overflow_count = *impl_->fluid_contact_overflow;
+    output.maximum_fluid_neighbor_count =
+        *impl_->fluid_maximum_neighbor_count;
     for (const auto &fluid : impl_->fluids) {
         if (!fluid || !fluid->alive) continue;
         const std::uint32_t live = *fluid->count;
@@ -6799,7 +7030,9 @@ Status World::collect_statistics(WorldStatistics &output,
     output.allocated_bytes +=
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
-                    3U * sizeof(RigidBodyState)) +
+                    3U * sizeof(RigidBodyState) +
+                    (impl_->debug_applied_forces != nullptr
+                         ? 2U * sizeof(Vec3) : 0U)) +
         capacity * (capacity - 1U) / 2U * sizeof(ContactManifold) +
         capacity * sizeof(std::uint32_t) +
         capacity * (capacity - 1U) / 2U * sizeof(std::uint8_t) +
@@ -6816,10 +7049,20 @@ Status World::collect_statistics(WorldStatistics &output,
         k_fluid_body_buckets *
             ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
         ((capacity + 63U) / 64U) * sizeof(unsigned long long) +
-        3U * sizeof(std::uint32_t) +
+        4U * sizeof(std::uint32_t) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource) +
         impl_->options.paint_field_capacity * sizeof(PaintFieldResource) +
         impl_->options.paint_rule_capacity * sizeof(PaintRuleResource);
+    output.allocated_bytes +=
+        impl_->debug_frames.capacity() * sizeof(PhysicsDebugFrame);
+    for (const PhysicsDebugFrame &frame : impl_->debug_frames) {
+        output.allocated_bytes +=
+            frame.rigid_bodies.capacity() * sizeof(PhysicsDebugRigidSample) +
+            frame.fluid_particles.capacity() * sizeof(PhysicsDebugFluidSample) +
+            frame.cloth_vertices.capacity() * sizeof(PhysicsDebugClothSample) +
+            frame.rigid_contacts.capacity() * sizeof(RigidContactEvent) +
+            frame.fluid_contacts.capacity() * sizeof(ContactEvent);
+    }
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index) {
         const PaintFieldResource &field = impl_->paint_fields[index];
