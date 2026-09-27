@@ -1,7 +1,8 @@
 """Derive the tear and rigid-paint gallery sources from Cloth.blend.
 
-Run with `blender --background --python tools/blender/make_cloth_variants.py`.
-This never saves over Cloth.blend.
+Run with `blender --background --python examples/assets/tools/make_cloth_variants.py`.
+This authors example source files only, never exports or saves over Cloth.blend.
+Export either source with tools/blender/export_parallel_mater_scene.py.
 """
 
 from pathlib import Path
@@ -9,7 +10,7 @@ from pathlib import Path
 import bpy
 
 
-ASSETS = Path(__file__).resolve().parents[2] / "examples" / "assets"
+ASSETS = Path(__file__).resolve().parents[1]
 bpy.context.preferences.filepaths.save_version = 0
 
 

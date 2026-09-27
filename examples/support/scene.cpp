@@ -1002,8 +1002,10 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                     std::sqrt(0.5F) * spacing * spacing * spacing,
                                 .maximum_pair_acceleration = 55.0F};
     }
-    if (output.rigid_bodies.empty()) {
-        error = "GLB contains no ParallelMater rigid bodies";
+    if (output.rigid_bodies.empty() && output.cloths.empty() &&
+        output.spawn_planes.empty() && output.destroy_planes.empty() &&
+        output.initial_particles.empty()) {
+        error = "GLB contains no ParallelMater physics objects";
         return false;
     }
     return true;

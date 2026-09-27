@@ -216,6 +216,21 @@ if(BUILD_TESTING)
              COMMAND parallel-mater-paint-geometry-tests)
 
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+        find_program(PARALLEL_MATER_BLENDER_EXECUTABLE NAMES blender)
+        if(PARALLEL_MATER_BLENDER_EXECUTABLE)
+            add_executable(parallel-mater-blender-scene-check
+                           tests/gallery/blender_scene_check.cpp)
+            target_link_libraries(parallel-mater-blender-scene-check
+                                 PRIVATE parallel-mater-gallery-scene)
+            add_test(NAME parallel-mater-blender-export-tests
+                COMMAND ${PARALLEL_MATER_BLENDER_EXECUTABLE}
+                        --background --factory-startup --threads 1
+                        --python-exit-code 1
+                        --python ${CMAKE_CURRENT_SOURCE_DIR}/tests/blender/export_scene_tests.py
+                        -- --loader $<TARGET_FILE:parallel-mater-blender-scene-check>)
+            set_tests_properties(parallel-mater-blender-export-tests
+                                 PROPERTIES TIMEOUT 300)
+        endif()
         add_executable(parallel-mater-camera-controller-tests
                        tests/gallery/camera_controller_tests.cpp)
         target_link_libraries(
@@ -452,6 +467,8 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES tools/blender/export_parallel_mater_scene.py
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender)
 install(
     EXPORT ParallelMaterTargets
     FILE ParallelMaterTargets.cmake

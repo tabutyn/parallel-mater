@@ -46,9 +46,18 @@ glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
 alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
 materials remain visible regardless of their alpha value.
 
-## Export the open `.blend`
+## One Blender–ParallelMater export interface
 
-Run this inside Blender's Scripting workspace, or from a shell:
+`tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid
+bodies, collision proxies, Arrays, cloth/pins/fracture, liquid
+Inflow/Outflow/Geometry, and paint metadata. New physics systems extend this
+script and the versioned scene contract, not a per-example exporter. It has no
+gallery scene names or scene-specific physics settings.
+
+In Blender 4.5+, install that one `.py` file as an add-on, or open it in the
+Scripting workspace and run it once. Use **File → Export → ParallelMater Scene
+(.glb)** in Object Mode. The file browser uses the same `export_scene()` entry
+point as headless export:
 
 ```bash
 blender --background examples/assets/PassiveActive.blend \
@@ -61,6 +70,21 @@ open `.blend` using the same filename stem. The script is non-destructive:
 it exports evaluated rigid copies and undeformed cloth rest copies, bakes scale
 into their vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
 the temporary data. The source `.blend` is not saved or changed.
+Selection and the active object are restored on success and failure. Cloth-only
+and fluid-only scenes are supported; a dummy rigid body is not required.
+
+Other Blender automation can import this file and call
+`export_scene(filepath)` (or omit `filepath` to use the open blend's stem).
+Importing the module does not export, register a UI, or edit the scene.
+`register()` / `unregister()` manage the optional menu. Installation of the
+CMake package also ships this same file under
+`share/parallel-mater/blender/`; it does not add a Blender dependency to the
+physics library.
+
+The exporter is the Blender-facing boundary. GLB schema 2 is the interchange
+contract; the current gallery loader consumes it and constructs public API
+resources. A reusable runtime scene importer and Blender property panels can
+grow around this boundary without introducing another export implementation.
 
 The generated metadata is:
 
@@ -84,10 +108,31 @@ When a proxy is selected, the exporter adds a non-rendered
 node. The gallery still renders the detailed mesh. Proxies are explicit
 authored data: the loader does not decimate or invent collision geometry.
 
-Users do not need to type these properties by hand. Names are labels only;
-physics behavior comes from Blender's Rigid Body settings.
+Built-in rigid-body settings are exported automatically. The optional `pm_*`
+properties configure features without a standard Blender panel yet. Names are
+labels except for explicit references such as collision proxies and paint
+sources; they do not select scene-specific physics.
 
 ## Validate the result
+
+With Blender installed, the gallery build adds
+`parallel-mater-blender-export-tests` to CTest. This exports all seven committed
+source scenes into temporary files and checks them with the runtime loader,
+plus cloth-only/fluid-only scenes, the menu operator, CLI, and error cleanup.
+No committed assets are rewritten.
+
+```bash
+ctest --test-dir build-gallery --output-on-failure -R blender-export
+```
+
+To run the Blender checks without building the gallery loader:
+
+```bash
+blender --background --factory-startup --threads 1 --python-exit-code 1 \
+  --python tests/blender/export_scene_tests.py
+```
+
+To render an exported scene:
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
@@ -166,8 +211,9 @@ binds the cloth UVs to a `World` paint field and registers a rigid-to-cloth
 paint rule. Rigid–cloth collision and disk-shaped texel stamping are in the API;
 the gallery chooses blue and cubic filtering, while the variant has a neutral
 dry material so contact marks are visible. The cloth remains intact.
-The derivation script `tools/blender/make_cloth_variants.py` preserves the
-original `.blend` file.
+The example authoring helper `examples/assets/tools/make_cloth_variants.py`
+preserves the original `.blend` file. It only creates source `.blend` variants;
+export both through the common exporter above.
 
 ## Liquid Flow scene
 

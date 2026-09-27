@@ -4,6 +4,19 @@ Every stage is a separate pull request. A stage is merged only after its public
 example, deterministic tests, sanitizer checks, and unprofiled measurements
 pass.
 
+## Blender interface direction
+
+- Keep one exporter, `tools/blender/export_parallel_mater_scene.py`, for every
+  supported physics system. CLI, Blender File → Export, and automation call
+  the same `export_scene()` function and write the same versioned schema.
+- Keep example source authoring helpers under `examples/assets/tools/`; they
+  do not export or implement runtime physics.
+- Test real Blender exports, failure cleanup, source preservation, and the
+  runtime loader contract. Ship the exporter with the installed package.
+- Next steps: Blender property panels and a reusable runtime scene importer
+  outside gallery support. Extend this interface instead of adding per-scene
+  scripts or moving simulation behavior into Blender export code.
+
 ## PR 1 — API review RFC (merged)
 
 - Agree on ownership, handles, stepping, views, contacts, and scope.

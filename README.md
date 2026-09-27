@@ -63,6 +63,13 @@ The optional gallery loads a committed Blender-authored `.glb`, creates its
 rigid bodies through the public API, and ray traces its render meshes with
 OptiX. It is deliberately separate from the installed physics library.
 
+All Blender scenes use one exporter,
+`tools/blender/export_parallel_mater_scene.py`: as a Blender File → Export menu
+entry, a headless script, or its `export_scene()` Python function. See the
+[Blender interface guide](docs/BLENDER_SCENES.md). If Blender is installed when
+configuring the gallery, CTest also checks fresh exports against the runtime
+loader without changing the source assets.
+
 ```bash
 cmake -S . -B build-gallery \
   -DCMAKE_BUILD_TYPE=Release \
