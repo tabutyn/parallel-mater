@@ -1,8 +1,8 @@
-# Physics API: rigid bodies, fluid, and cloth
+# Physics API: rigid bodies, fluid, cloth, and soft bodies
 
 ## The central decision
 
-`parallel_mater::World` owns every simulated fluid, cloth, and rigid body and advances
+`parallel_mater::World` owns every simulated fluid, cloth, soft body, and rigid body and advances
 their interactions in one call. This replaces the former design where an
 application manually called `begin_frame`, `prepare_substep`, contact helpers,
 solver-specific completion functions, and telemetry readbacks in the correct
@@ -21,6 +21,9 @@ kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid contact is velocity-gated through conservative swept triangle-pair
 tests. Fluid and particle-lifecycle calls are implemented in PR 7, including
 passive triangle contacts; balanced reactions on dynamic bodies remain PR 8.
+Soft bodies use world-owned volumetric spring lattices and currently collide
+with passive rigid triangles; dynamic rigid, fluid, and cloth coupling are the
+next separate roadmap stages.
 
 ## Minimal use
 
@@ -67,7 +70,7 @@ if (!status) return report(status);
 ## Ownership and handles
 
 - `World` owns all CPU and CUDA allocations.
-- `FluidId` and `RigidBodyId` contain an index and generation. Removing an
+- `FluidId`, `ClothId`, `SoftBodyId`, and `RigidBodyId` contain an index and generation. Removing an
   object invalidates its old handle; reusing the slot cannot make the old
   handle valid again.
 - Initial particles are supplied as a device span. `add_fluid` enqueues a
@@ -123,6 +126,24 @@ opt-in `RigidBodyDeviceView::applied_forces`/`applied_torques` provide the
 remaining live force and motion inputs needed by client visualizers. The
 library never draws these spans.
 
+## Volumetric soft bodies
+
+`World::add_soft_body` copies host nodes, fixed-topology bonds, optional inverse
+masses, an indexed render surface, and four-node delta-skinning bindings.
+`SoftBodyId` is generation checked, and `soft_body_view` exposes borrowed device
+spans for physical nodes, velocities, bonds, the deforming surface, and passive
+rigid contact forces.
+
+The first solver stage follows the proven lab ordering: integrate nodes under
+gravity, resolve node spheres against passive rigid triangle BVHs, project the
+spring graph with compliant Jacobi iterations, reconstruct velocity from the
+corrected positions, damp bond-relative velocity, and update the authored
+surface. Node radius, mass/inverse masses, compliance, global and spring
+damping, contact friction, maximum speed, and iteration count are API
+configuration rather than gallery constants. Dynamic rigid reactions and
+fluid/cloth coupling are intentionally deferred without changing this resource
+or surface contract.
+
 ## Fluid sources and contact paint
 
 Continuous inflow is configured with `ParticleSpawnPlaneOptions` and
@@ -171,8 +192,9 @@ frame. `step` is the convenience wrapper that enqueues and waits.
 The fixed frame duration and substep count are explicit. A slow application
 lags physical time; the physics layer never invents, drops, or catches up
 ticks. Every implemented rigid substep performs integration followed by
-deterministic triangle-mesh contact resolution. Fluid ordering will be
-documented when that solver is implemented.
+deterministic triangle-mesh contact resolution. Fluids then run their
+configured neighbor-force and contact iterations; cloth and
+soft-body stages advance once per rigid substep.
 
 `apply_force` and `apply_impulse` queue contributions for the next submitted
 frame and consume them exactly once. `set_kinematic_target` replaces the target
@@ -189,6 +211,8 @@ broad/narrow-phase fields. Fluid frames additionally measure spawn, cell
 sorting, neighbor forces, integration, static triangle contacts, and outflow
 compaction. `total_gpu_milliseconds` covers all active solvers in the frame.
 Cloth frames also report prediction, link projection, and contact stages.
+Soft-body frames report node prediction, spring projection, and passive
+triangle contact stages.
 `collect_step_timings` reads those events after
 frame completion. Timing is diagnostic data rather than solver input and is
 unavailable for frames that did not request it.

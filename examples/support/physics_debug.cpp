@@ -65,7 +65,8 @@ bool write_physics_debug_capture(World &world,
                << frame.maximum_fluid_neighbor_count << " rigid "
                << frame.rigid_bodies.size() << " fluid "
                << frame.fluid_particles.size() << " cloth "
-               << frame.cloth_vertices.size() << " rigid_contacts "
+               << frame.cloth_vertices.size() << " soft_body "
+               << frame.soft_body_nodes.size() << " rigid_contacts "
                << frame.rigid_contacts.size() << " fluid_contacts "
                << frame.fluid_contacts.size() << '\n';
         for (const PhysicsDebugRigidSample &sample : frame.rigid_bodies) {
@@ -106,6 +107,17 @@ bool write_physics_debug_capture(World &world,
             vector(stream, sample.rigid_contact_force);
             stream << " fluid_contact_force ";
             vector(stream, sample.fluid_contact_force);
+            stream << '\n';
+        }
+        for (const PhysicsDebugSoftBodySample &sample : frame.soft_body_nodes) {
+            stream << "soft_body " << sample.soft_body.index << ' '
+                   << sample.soft_body.generation << ' ' << sample.node
+                   << " position ";
+            vector(stream, sample.position);
+            stream << " velocity ";
+            vector(stream, sample.velocity);
+            stream << " rigid_contact_force ";
+            vector(stream, sample.rigid_contact_force);
             stream << '\n';
         }
         for (const RigidContactEvent &contact : frame.rigid_contacts) {

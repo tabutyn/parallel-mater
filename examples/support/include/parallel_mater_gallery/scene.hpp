@@ -62,11 +62,29 @@ struct ClothDefinition {
     float paint_brush_radius{0.15F};
 };
 
+struct SoftBodyDefinition {
+    std::string name{};
+    std::uint32_t mesh_index{};
+    std::vector<Vec3> nodes{};
+    std::vector<SoftBodyBond> bonds{};
+    std::vector<float> inverse_masses{};
+    std::vector<SoftBodySurfaceBinding> surface_bindings{};
+    float node_mass{0.02F};
+    float node_radius{0.05F};
+    float stretch_compliance{1.0e-7F};
+    float velocity_damping{0.8F};
+    float spring_damping{0.85F};
+    float contact_friction{0.5F};
+    float maximum_speed{12.0F};
+    std::uint32_t solver_iterations{8U};
+};
+
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
     std::vector<ClothDefinition> cloths{};
+    std::vector<SoftBodyDefinition> soft_bodies{};
     FluidOptions fluid_options{};
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.
@@ -83,6 +101,7 @@ struct SceneInstance {
     };
     std::vector<RigidBodyId> rigid_bodies{};
     std::vector<ClothId> cloths{};
+    std::vector<SoftBodyId> soft_bodies{};
     std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};

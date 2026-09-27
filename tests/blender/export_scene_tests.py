@@ -80,13 +80,14 @@ class ExportSceneTests(unittest.TestCase):
             subprocess.run([options.loader, str(self.output),
                             str(expected["rigid_body"]), str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
-                            str(int(expected["fluid_initial_volume"] > 0))],
+                            str(int(expected["fluid_initial_volume"] > 0)),
+                            str(expected["soft_body"])],
                            check=True, timeout=60)
         return document
 
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
-                     "ClothTear", "ClothPaint", "ClothWater"):
+                     "ClothTear", "ClothPaint", "ClothWater", "Softbody"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -109,6 +110,13 @@ class ExportSceneTests(unittest.TestCase):
                 bpy.data.objects.remove(obj, do_unlink=True)
         self.check_export(Counter(fluid_inflow=1, fluid_outflow=1))
 
+    def test_soft_body_without_rigid_bodies(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Softbody.blend"))
+        for obj in list(bpy.context.scene.objects):
+            if not any(mod.type == "SOFT_BODY" for mod in obj.modifiers):
+                bpy.data.objects.remove(obj, do_unlink=True)
+        self.check_export(Counter(soft_body=1))
+
     def test_failed_export_cleans_up_and_restores_selection(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))
         body = next(obj for obj in bpy.context.scene.objects if obj.rigid_body)
@@ -128,7 +136,7 @@ class ExportSceneTests(unittest.TestCase):
             exporter.export_scene(self.output.with_suffix(".blend"))
         with self.assertRaisesRegex(RuntimeError, "save the .blend"):
             exporter.export_scene()
-        with self.assertRaisesRegex(RuntimeError, "no rigid bodies, cloth, or liquid flows"):
+        with self.assertRaisesRegex(RuntimeError, "no rigid bodies, soft bodies, cloth, or liquid flows"):
             exporter.export_scene(self.output)
 
     def test_blender_menu_operator_uses_same_export(self):

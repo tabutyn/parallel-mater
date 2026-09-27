@@ -23,7 +23,7 @@ bl_info = {
     "version": (0, 1, 0),
     "blender": (4, 5, 0),
     "location": "File > Export > ParallelMater Scene (.glb)",
-    "description": "Export rigid bodies, cloth, liquid sources, and paint metadata",
+    "description": "Export rigid, soft, cloth, liquid, and paint metadata",
     "category": "Import-Export",
 }
 
@@ -423,6 +423,70 @@ def copy_cloth_for_export(
     return exported
 
 
+def copy_soft_body_for_export(
+    source: bpy.types.Object,
+    index: int,
+    collection: bpy.types.Collection,
+    created_meshes: list[bpy.types.Mesh],
+    created_materials: list[bpy.types.Material],
+) -> bpy.types.Object:
+    modifiers = [modifier for modifier in source.modifiers
+                 if modifier.type == "SOFT_BODY"]
+    if len(modifiers) != 1 or source.parent is not None or source.rigid_body is not None:
+        raise RuntimeError(
+            f"{source.name}: expected one scene-root Soft Body modifier")
+    settings = modifiers[0].settings
+    mesh = source.data.copy()
+    created_meshes.append(mesh)
+    location, rotation, scale = source.matrix_world.decompose()
+    scale_matrix = Matrix.Diagonal(Vector((scale.x, scale.y, scale.z, 1.0)))
+    geometry = bmesh.new()
+    geometry.from_mesh(mesh)
+    bmesh.ops.transform(geometry, matrix=scale_matrix, verts=geometry.verts)
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.normal_update()
+    geometry.to_mesh(mesh)
+    geometry.free()
+    mesh.validate(clean_customdata=False)
+    mesh.update()
+    if not mesh.vertices or not mesh.polygons:
+        raise RuntimeError(f"{source.name}: Soft Body requires a closed mesh")
+    minimum = Vector(tuple(min(vertex.co[axis] for vertex in mesh.vertices)
+                           for axis in range(3)))
+    maximum = Vector(tuple(max(vertex.co[axis] for vertex in mesh.vertices)
+                           for axis in range(3)))
+    default_spacing = max(1.0e-4, min(maximum - minimum) / 9.0)
+
+    exported = bpy.data.objects.new(source.name, mesh)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    exported["pm_schema"] = SCHEMA_VERSION
+    exported["pm_system"] = "soft_body"
+    exported["pm_name"] = source.name
+    exported["pm_total_mass"] = float(source.get("pm_total_mass", settings.mass))
+    exported["pm_node_spacing"] = float(
+        source.get("pm_node_spacing", default_spacing))
+    exported["pm_node_radius"] = float(source.get(
+        "pm_node_radius", exported["pm_node_spacing"] * 0.35))
+    exported["pm_stretch_compliance"] = float(
+        source.get("pm_stretch_compliance", 1.0e-7))
+    exported["pm_velocity_damping"] = float(
+        source.get("pm_velocity_damping", max(0.0, settings.damping)))
+    exported["pm_spring_damping"] = float(
+        source.get("pm_spring_damping", 0.85))
+    exported["pm_contact_friction"] = float(
+        source.get("pm_contact_friction", settings.friction))
+    exported["pm_maximum_speed"] = float(
+        source.get("pm_maximum_speed", 12.0))
+    exported["pm_solver_iterations"] = int(
+        source.get("pm_solver_iterations", 8))
+    if len(mesh.materials) == 0:
+        material = fallback_material(index, False)
+        created_materials.append(material)
+        mesh.materials.append(material)
+    return exported
+
+
 def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
     """Export the current scene through the same path used by CLI and UI.
 
@@ -447,8 +511,13 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH" and any(mod.type == "CLOTH" for mod in obj.modifiers)
     ]
-    if not (sources or flows or cloths):
-        raise RuntimeError("the scene contains no rigid bodies, cloth, or liquid flows")
+    soft_bodies = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == "MESH" and any(mod.type == "SOFT_BODY" for mod in obj.modifiers)
+    ]
+    if not (sources or flows or cloths or soft_bodies):
+        raise RuntimeError(
+            "the scene contains no rigid bodies, soft bodies, cloth, or liquid flows")
 
     previous_selection = list(bpy.context.selected_objects)
     previous_active = bpy.context.view_layer.objects.active
@@ -525,6 +594,10 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
             )
         for index, source in enumerate(cloths):
             created_objects.append(copy_cloth_for_export(
+                source, index, collection, created_meshes, created_materials
+            ))
+        for index, source in enumerate(soft_bodies):
+            created_objects.append(copy_soft_body_for_export(
                 source, index, collection, created_meshes, created_materials
             ))
 

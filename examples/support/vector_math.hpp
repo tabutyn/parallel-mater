@@ -37,6 +37,10 @@ namespace parallel_mater::gallery::math {
     return std::sqrt(dot(value, value));
 }
 
+[[nodiscard]] inline float length_squared(Vec3 value) noexcept {
+    return dot(value, value);
+}
+
 [[nodiscard]] inline Vec3 normalize_or(Vec3 value, Vec3 fallback,
                                        float epsilon = 1.0e-8F) noexcept {
     const float size = length(value);

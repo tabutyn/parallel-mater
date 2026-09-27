@@ -20,6 +20,7 @@ enum class GalleryContext : std::uint8_t {
     cloth_tear,
     cloth_paint,
     water_cloth,
+    soft_body,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -32,6 +33,7 @@ enum class GallerySceneSource : std::uint8_t {
     cloth_tear,
     cloth_paint,
     water_cloth,
+    soft_body,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -70,6 +72,7 @@ struct GalleryEntry {
     bool has_cloth{};
     std::uint32_t minimum_count{};
     std::uint32_t maximum_count{};
+    bool has_soft_body{};
 };
 
 inline constexpr std::array gallery_entries{
@@ -124,6 +127,12 @@ inline constexpr std::array gallery_entries{
         {45, 190, 235}, {.target = {0.0F, 1.1F, 1.2F},
                          .distance_scale = 0.55F, .pitch = 0.42F},
         true, true, 100U, 100'000U},
+    GalleryEntry{GalleryContext::soft_body, GallerySceneSource::soft_body,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--soft-body", "SOFT BODY", "ARROWS GRAVITY  R RESET",
+        {49, 35, 67, 235}, {166, 102, 255},
+        {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.72F,
+         .pitch = 0.35F}, false, false, 0U, 0U, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(
@@ -146,6 +155,11 @@ inline constexpr std::array gallery_entries{
 
 [[nodiscard]] constexpr bool is_fluid_context(GalleryContext context) noexcept {
     return gallery_entry(context).has_fluid;
+}
+
+[[nodiscard]] constexpr bool is_soft_body_context(
+    GalleryContext context) noexcept {
+    return gallery_entry(context).has_soft_body;
 }
 
 } // namespace parallel_mater::gallery
