@@ -361,3 +361,84 @@ test also checks finite state, all 10,032 API-visible bonds,
 generation-invalidated handles, API capture, and the real Blender export.
 These are local acceptance measurements rather than a cross-hardware
 guarantee.
+
+## Soft body dynamic rigid coupling, 2026-09-28
+
+`SoftbodyRigidBody.blend` reuses the 673-node, 10,032-bond soft lattice and
+adds two 100 kg active triangle-mesh spheres. Dynamic contacts run through the
+same interleaved soft-body contact pass as passive geometry. Per-node contact
+impulses are deterministically reduced into the existing rigid states, while a
+post-constraint lattice momentum correction preserves the matching soft-body
+impulse. No second solver or gallery-only coupling is involved.
+
+On the local RTX 3050 Ti, a timed frame after 1,200 settling frames measured
+about 5.6 ms total GPU physics time. Maximum settled bond strain was 44.5%,
+maximum rigid speed was 0.076 m/s, maximum soft-node speed was 0.019 m/s, and no
+node crossed the passive floor. In the focused 1.5 m/s control impact, a 1 kg
+sphere produced 30 transfer steps with 4.3% mean and 15.6% worst per-step
+momentum imbalance and moved the soft-body center 0.757 m. Under the same
+conditions the authored 100 kg sphere moved it 1.160 m, a 53% increase, and
+retained 1.410 m/s forward speed. A separate 4 m/s heavy impact moved the
+soft-body center 2.412 m, remained finite and non-tunneling, and duplicate
+heavy runs matched byte-for-byte.
+
+The reusable co-rotated shape constraint maps the authored Blender Goal weight
+and stiffness to a 0.35 API stiffness. Two symmetric 100 kg impacts produced a
+15.5% peak radial shape error. Shape restoration yields while those dynamic
+contacts are active instead of pushing through them. A quarter second after
+both loads were removed, the normalized radial error was 0.00032%, versus
+0.0064% for the same spring lattice with shape matching disabled. A 300-frame
+camera-relative gravity-steering regression left zero nodes beyond the passive
+arena bounds. Recovery preserves the body's center and best-fit rotation, so
+the existing rolling regression remains unchanged.
+These values are local acceptance measurements rather than a cross-hardware
+guarantee.
+
+### Contact audit and containment regression, 2026-09-28
+
+The revised user asset contains two passive objects and has Blender Goal
+disabled. A new stress test steers gravity through eight directions at 45°,
+180 frames per direction, using four substeps at 60 Hz. It checks every frame,
+including physical nodes and skin-triangle centroids and edge midpoints, rather
+than only checking final bounds. The original solver put nodes as much as
+0.4395 units inside a rigid sphere; 1,356 of 1,440 frames exceeded 0.02 units.
+The final frame still had zero escaped nodes, so the old check missed this.
+
+The shared solver now recovers interior nodes toward the outside of verified
+closed convex triangle meshes, shares positional reaction by inverse mass,
+and constrains actual skin triangles through their API bindings. A final
+geometric cleanup follows friction. Its small recovery skin avoids contradictory
+full-node-radius margins in narrow gaps, while the main contact/friction solve
+retains the authored node radius. Keeping only one adjacent face correction
+left brief face-interior penetration; combining contact normals resolved it.
+Increasing cleanup iterations alone, with the conflicting full-radius margins,
+did not resolve the problem and was not retained.
+
+With Goal disabled, the final 1,440-frame run measured 0.00281334 units maximum
+sampled penetration. With shape-matching stiffness 0.35, the corresponding run
+measured zero sampled penetration. Both had zero wall escapes and zero frames
+above the 0.005-unit collision-margin tolerance. These are sampled, discrete
+contact measurements, not a guarantee of continuous triangle collision at
+arbitrary speeds or timesteps. The checks run as
+`parallel-mater-soft-body-contact-stress` and
+`parallel-mater-soft-body-shape-contact-stress` in CTest.
+
+On the local RTX 3050 Ti, the revised asset's timed frame after 1,200 settling
+frames measured 6.68 ms GPU physics time, with 41.3% maximum bond strain,
+0.055 m/s maximum rigid speed, and 0.018 m/s maximum soft-node speed. This
+single-frame timing is not a like-for-like speedup comparison with the earlier
+one-passive-object asset. The focused momentum-transfer, heavy-impact,
+deterministic-replay, shape-recovery, and passive rolling checks still pass.
+
+The unfinished surface experiment also exceeded the kernel-timing event budget
+and mixed cross-block position reads and writes. The retained implementation
+uses separate detection and deterministic gather kernels, budgets the cleanup
+timing boundary, and checks event capacity before recording it.
+
+Validation: all 41 CTest cases passed. A targeted CUDA memcheck of 2,048
+collision/surface/reduction kernel launches after skipping 10,880 matching
+launches completed with zero errors in the 180-frame `--contact-smoke`
+reproducer. This covers the initial collision window, including the former
+frame-87 failure; it is not a full-run memory-check claim. The long instrumented
+regression did not complete, so the short reproducer is available for repeatable
+memory checking without shortening either full CTest stress case.

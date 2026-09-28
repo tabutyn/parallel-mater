@@ -1075,6 +1075,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_spring_damping").value_or(0.85));
         body.contact_friction = static_cast<float>(
             extras.number("pm_contact_friction").value_or(0.5));
+        body.shape_matching_stiffness = static_cast<float>(extras.number(
+            "pm_shape_matching_stiffness").value_or(0.0));
         body.maximum_projection_fraction = static_cast<float>(extras.number(
             "pm_maximum_projection_fraction").value_or(0.20));
         body.constraint_velocity_response = static_cast<float>(extras.number(
@@ -1093,6 +1095,9 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             !finite(body.spring_damping) || body.spring_damping < 0.0F ||
             body.spring_damping > 1.0F || !finite(body.contact_friction) ||
             body.contact_friction < 0.0F ||
+            !finite(body.shape_matching_stiffness) ||
+            body.shape_matching_stiffness < 0.0F ||
+            body.shape_matching_stiffness > 1.0F ||
             !finite(body.maximum_projection_fraction) ||
             body.maximum_projection_fraction <= 0.0F ||
             body.maximum_projection_fraction > 1.0F ||
@@ -1615,6 +1620,8 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .velocity_damping = definition.velocity_damping,
             .spring_damping = definition.spring_damping,
             .contact_friction = definition.contact_friction,
+            .shape_matching_stiffness =
+                definition.shape_matching_stiffness,
             .maximum_projection_fraction =
                 definition.maximum_projection_fraction,
             .constraint_velocity_response =

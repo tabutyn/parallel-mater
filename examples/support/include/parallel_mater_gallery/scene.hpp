@@ -75,6 +75,7 @@ struct SoftBodyDefinition {
     float velocity_damping{0.8F};
     float spring_damping{0.85F};
     float contact_friction{0.5F};
+    float shape_matching_stiffness{};
     float maximum_projection_fraction{0.20F};
     float constraint_velocity_response{0.70F};
     float maximum_speed{2.0F};

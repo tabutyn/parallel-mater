@@ -191,6 +191,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
             PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
+            PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -311,6 +312,24 @@ if(BUILD_TESTING)
             COMMAND parallel-mater-soft-body-tests)
         set_tests_properties(parallel-mater-soft-body-tests
             PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-soft-body-rigid-tests
+            tests/gallery/soft_body_rigid_tests.cpp)
+        target_link_libraries(parallel-mater-soft-body-rigid-tests
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-soft-body-rigid-tests PRIVATE
+            PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb")
+        add_test(NAME parallel-mater-soft-body-rigid-tests
+            COMMAND parallel-mater-soft-body-rigid-tests)
+        set_tests_properties(parallel-mater-soft-body-rigid-tests
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+        add_test(NAME parallel-mater-soft-body-contact-stress
+            COMMAND parallel-mater-soft-body-rigid-tests --contact-stress)
+        add_test(NAME parallel-mater-soft-body-shape-contact-stress
+            COMMAND parallel-mater-soft-body-rigid-tests --shape-contact-stress)
+        set_tests_properties(parallel-mater-soft-body-contact-stress
+            parallel-mater-soft-body-shape-contact-stress
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
 
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
@@ -433,6 +452,10 @@ if(BUILD_TESTING)
             parallel-mater-soft-body-tilt-headless-test
             parallel-mater-soft-body-tilt-test.ppm 180
             --soft-body --cloth-tilt-degrees 45)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-rigid-headless-test
+            parallel-mater-soft-body-rigid-test.ppm 180
+            --soft-body-rigid --cloth-tilt-degrees 45)
         add_gallery_headless_test(
             parallel-mater-physics-capture-headless-test
             parallel-mater-physics-capture-test.ppm 10

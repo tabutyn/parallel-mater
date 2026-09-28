@@ -87,7 +87,8 @@ class ExportSceneTests(unittest.TestCase):
 
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
-                     "ClothTear", "ClothPaint", "ClothWater", "Softbody"):
+                     "ClothTear", "ClothPaint", "ClothWater", "Softbody",
+                     "SoftbodyRigidBody"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -120,6 +121,8 @@ class ExportSceneTests(unittest.TestCase):
                       if node["extras"].get("pm_system") == "soft_body")
         self.assertEqual(extras["pm_maximum_projection_fraction"], 0.20)
         self.assertEqual(extras["pm_constraint_velocity_response"], 0.70)
+        self.assertAlmostEqual(extras["pm_shape_matching_stiffness"], 0.35,
+                               places=6)
         self.assertEqual(extras["pm_maximum_speed"], 2.0)
         self.assertEqual(extras["pm_solver_iterations"], 16)
 

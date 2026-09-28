@@ -131,8 +131,17 @@ library never draws these spans.
 `World::add_soft_body` copies host nodes, fixed-topology bonds, optional inverse
 masses, an indexed render surface, and four-node delta-skinning bindings.
 `SoftBodyId` is generation checked, and `soft_body_view` exposes borrowed device
-spans for physical nodes, velocities, bonds, the deforming surface, and passive
-rigid contact forces.
+spans for physical nodes, velocities, bonds, the deforming surface, and rigid
+contact forces.
+
+`SoftBodyOptions::shape_matching_stiffness` optionally restores the best-fit
+rest shape after spring projection. The constraint solves the body's current
+center and rotation before applying a bounded correction, so it removes crush
+deformation without tethering translation or rolling to the original world
+pose. A substep that records dynamic rigid contact suppresses restoration so
+the goal cannot project nodes through the active collider; restoration resumes
+on the next contact-free substep. Zero disables it; values through one increase
+per-substep restoration.
 
 The first solver stage follows the proven lab model: integrate nodes under
 gravity, jointly solve node-sphere/passive-triangle contacts and bounded
@@ -140,12 +149,40 @@ compliant Jacobi spring constraints, blend projected motion back into velocity,
 damp bond-relative velocity, apply Coulomb traction bounded by accumulated
 normal constraint work, and update the authored surface. Interleaving a contact
 pass after every two graph passes prevents a later spring projection from
-stranding a node beyond a wall. Contact restitution comes from the passive
-rigid material rather than penetration depth. Node radius,
+stranding a node beyond a wall. Contact restitution comes from the contacted
+rigid material rather than penetration depth. Static and dynamic triangle
+bodies share this contact pass. A dynamic contact applies equal-and-opposite
+linear and angular impulses to the existing rigid-body state; the soft solver
+restores the corresponding total lattice momentum after spring projection so
+constraints cannot silently erase the exchanged impulse. The passive-only path
+retains its original damping behavior. Swept deformable contact transforms the
+start and end samples by the corresponding previous and current rigid poses,
+so contact queries include relative collider motion.
+
+Mesh upload identifies closed convex solids from welded triangle topology and
+supporting face planes. Soft nodes inside those solids recover outward; leaving
+a solid is not mistaken for entering the back of a two-sided triangle. Dynamic
+contacts also share positional corrections according to inverse mass. Open and
+concave meshes retain the two-sided swept triangle path.
+
+After traction, a bounded cleanup solve checks the actual soft surface triangles
+against closed convex rigid meshes and transfers corrections through their
+four-node bindings. Adjacent triangle corrections are gathered deterministically
+per node, combining different contact normals instead of discarding all but the
+largest correction. Passive boundaries are resolved last. This final recovery
+uses a small geometric skin (1% of node radius plus the rigid collision margin),
+because full node-radius safety margins can overlap when heavy colliders squeeze
+a soft body.
+The normal contact/friction solve continues to use the configured node radius.
+Recovery adds no artificial second velocity impulse and does not replace rigid
+triangle geometry with bounding spheres. It is a discrete overlap cleanup, not
+continuous triangle/triangle collision detection for arbitrary timesteps.
+
+Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
-and spring damping, contact friction, maximum speed, and iteration count are
-API configuration rather than gallery constants. Dynamic rigid reactions and
-fluid/cloth coupling are intentionally deferred without changing this resource
+and spring damping, contact friction, shape-matching stiffness, maximum speed,
+and iteration count are API configuration rather than gallery constants.
+Fluid/cloth coupling is intentionally deferred without changing this resource
 or surface contract.
 
 ## Fluid sources and contact paint

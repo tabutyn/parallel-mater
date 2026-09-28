@@ -56,6 +56,9 @@ Headless physics builds remain free of OpenGL and OptiX.
 10. **Soft Body** — Blender's native Soft Body modifier marks a closed
     Icosphere. The loader converts it into a volumetric spring lattice and the
     public API deforms it against the authored passive triangle arena.
+11. **Soft Body Rigid** — the same API lattice collides with two Blender-authored
+    active spheres, transferring equal-and-opposite linear and angular impulses
+    without a second soft-body solver.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -66,7 +69,8 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
-Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body.
+Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
+Soft Body Rigid.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -106,6 +110,8 @@ gravity; arrow keys steer gravity through the shared deformable control path,
 `R` rebuilds the API resource, and `F` reports node prediction, spring
 projection, and passive triangle contact timings. `V` draws every generated
 internal API spring; `B` draws the authored surface wireframe.
+Soft Body Rigid can be selected with `--soft-body-rigid`. It reuses all of those
+controls and diagnostics while two active spheres collide with the lattice.
 
 All gallery entries create `World` with opt-in rolling physics capture. `Z`
 shows available contact and deformable-surface normals, `X` rigid inputs/contact forces,

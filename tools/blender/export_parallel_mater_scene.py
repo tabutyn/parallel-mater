@@ -476,6 +476,10 @@ def copy_soft_body_for_export(
         source.get("pm_spring_damping", 0.85))
     exported["pm_contact_friction"] = float(
         source.get("pm_contact_friction", settings.friction))
+    default_shape_stiffness = (settings.goal_default * settings.goal_spring
+                               if settings.use_goal else 0.0)
+    exported["pm_shape_matching_stiffness"] = float(source.get(
+        "pm_shape_matching_stiffness", default_shape_stiffness))
     exported["pm_maximum_projection_fraction"] = float(
         source.get("pm_maximum_projection_fraction", 0.20))
     exported["pm_constraint_velocity_response"] = float(
