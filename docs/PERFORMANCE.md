@@ -1,5 +1,43 @@
 # Rigid contact performance, 2026-09-21
 
+## Soft Body Fluid (PR 15, 2026-09-28)
+
+Local Release measurements on the RTX 3050 Ti Laptop GPU, 1/60 s frames,
+four substeps and the shared fluid's two iterations per substep:
+
+- The original thin-axis export resolution generated 16,189 nodes and
+  273,227 bonds for the authored slab. Aspect-ratio-aware sampling produces
+  883 nodes and 11,884 bonds, retaining all four Goal pins and the authored
+  triangle surface. The `.blend` is unchanged; spacing remains overridable.
+- An early independent-reaction prototype reached 43.36 m/s at soft nodes.
+  Rejected. Shared contact-degree relaxation and a symmetric velocity-budget
+  bound keep the final implementation at its configured 2 m/s ceiling without
+  discarding the opposing water impulse.
+- 600 frames, 4,000 particle capacity: approximately 10.04 ms GPU/frame,
+  3.89 ms coupling, versus 21.14 ms / 6.27 ms with the oversampled lattice.
+  Four pins remain exact, no inside-skin particles in the every-ten-frame
+  winding checks, and 21,426 particles leave through the authored outflow.
+- 1,200 frames, 30,000 capacity, alternating 45-degree gravity tilt after
+  frame 240: 11.85 ms GPU/frame, 4.90 ms coupling, 12,023 live particles at
+  the end, 35,977 outflow removals, zero pin drift and zero sampled inside
+  particles. This measures physics, not rendering/capture/readback wall time.
+  The finite outflow only removes particles crossing its authored rectangle;
+  water spilling outside it under tilt remains live until reset/capacity.
+- API fixtures test a fast particle crossing a thin closed surface, reversed
+  winding, pinned and free nodes, duplicated binding influences, and 64
+  simultaneous impacts. Maximum paired-impulse error was 1.42e-11 in the dense
+  case. A zero-gravity fixture verifies that water itself moves the soft body.
+
+All 49 CTest cases passed, including the real Blender exporter and headless
+scene. Focused API tests passed CUDA memcheck with zero errors. This is not a
+full-scene sanitizer claim. The gallery reuses its existing renderer and foam;
+the default-capacity 240-frame render and opt-in physics capture were inspected.
+Contact diagnostics report proposal counts and maximum pre-recovery depth;
+they are not measurements of residual penetration. Dense high-triangle skins
+still need a refittable triangle acceleration structure for comparable cost.
+
+## Original rigid-contact investigation
+
 These are local engineering measurements, not general CUDA or hardware
 claims. The objective was to remove the observed 20+ ms rigid-contact frame
 without weakening determinism, containment, or authored geometry contracts.

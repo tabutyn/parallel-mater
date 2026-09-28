@@ -116,6 +116,15 @@ struct SoftBodyClothCouplingId {
     }
 };
 
+struct FluidSoftBodyCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        FluidSoftBodyCouplingId left, FluidSoftBodyCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -194,6 +203,7 @@ struct WorldOptions {
     std::uint32_t soft_body_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
     std::uint32_t soft_body_cloth_coupling_capacity{1U};
+    std::uint32_t fluid_soft_body_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -284,6 +294,19 @@ struct SoftBodyClothCouplingOptions {
     bool enabled{true};
 };
 
+// External fluid contact with the current closed, consistently wound soft
+// surface. Reactions follow its skin bindings, including fixed nodes. No
+// analytic collider or renderer geometry is involved.
+struct FluidSoftBodyCouplingOptions {
+    FluidId fluid{};
+    SoftBodyId soft_body{};
+    // Zero selects the fluid particle radius.
+    float contact_distance{};
+    float friction{0.05F};
+    std::uint32_t solver_iterations{4U}; // 1..16
+    bool enabled{true};
+};
+
 struct ClothDeviceView {
     // Physical nodes and current connectivity. Tearing can append nodes and
     // reindex faces at the next frame boundary; reacquire this view each frame.
@@ -359,6 +382,7 @@ struct SoftBodyDeviceView {
     DeviceSpan<const std::uint32_t> surface_triangle_indices{};
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> cloth_contact_forces{};
+    DeviceSpan<const Vec3> fluid_contact_forces{};
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
@@ -582,6 +606,7 @@ struct PhysicsDebugSoftBodySample {
     Vec3 velocity{};
     Vec3 rigid_contact_force{};
     Vec3 cloth_contact_force{};
+    Vec3 fluid_contact_force{};
 };
 
 struct PhysicsDebugFrame {
@@ -650,6 +675,7 @@ struct WorldStepTimings {
     KernelTiming soft_body_constraints{};
     KernelTiming soft_body_contacts{};
     KernelTiming soft_body_cloth_contacts{};
+    KernelTiming fluid_soft_body_contacts{};
 };
 
 struct WorldStatistics {
@@ -669,6 +695,10 @@ struct WorldStatistics {
     std::uint32_t cloth_vertex_count{};
     std::uint32_t soft_body_count{};
     std::uint32_t soft_body_node_count{};
+    // Contact proposals (including repeated solver passes) and maximum
+    // pre-correction penetration during the last frame, not residual overlap.
+    std::uint32_t fluid_soft_body_contact_count{};
+    float maximum_fluid_soft_body_penetration{};
 };
 
 class FrameToken {
@@ -746,6 +776,16 @@ class World {
         SoftBodyClothCouplingOptions options) noexcept;
     [[nodiscard]] Status remove_soft_body_cloth_coupling(
         SoftBodyClothCouplingId coupling) noexcept;
+
+    [[nodiscard]] Status add_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingOptions options,
+        FluidSoftBodyCouplingId &output) noexcept;
+    // Endpoints are immutable. Remove/re-add to change either endpoint.
+    [[nodiscard]] Status update_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingId coupling,
+        FluidSoftBodyCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_particle_spawn_plane(
         ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;

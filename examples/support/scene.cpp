@@ -360,6 +360,34 @@ void weld_pressure_cloth(TriangleMesh &mesh) {
     mesh.vertices = std::move(vertices);
 }
 
+struct Pin { Vec3 position; float weight; bool matched{}; };
+
+[[nodiscard]] bool read_pins(const FlatJson &extras, const std::string &name,
+                            std::vector<Pin> &pins, std::string &error) {
+    const std::string encoded = extras.string("pm_pin_vertices").value_or("");
+    const char *cursor = encoded.c_str();
+    while (*cursor != '\0') {
+        float fields[4]{};
+        for (int component = 0; component < 4; ++component) {
+            char *next = nullptr;
+            fields[component] = std::strtof(cursor, &next);
+            if (next == cursor || !std::isfinite(fields[component]) ||
+                (component < 3 && *next != ',') ||
+                (component == 3 && *next != ';' && *next != '\0')) {
+                error = name + ": invalid exported pin coordinate";
+                return false;
+            }
+            cursor = next + (component < 3 || *next == ';' ? 1 : 0);
+        }
+        if (fields[3] <= 0.0F || fields[3] > 1.0F) {
+            error = name + ": invalid pin weight";
+            return false;
+        }
+        pins.push_back({{fields[0], fields[1], fields[2]}, fields[3]});
+    }
+    return true;
+}
+
 [[nodiscard]] bool build_soft_body_lattice(
     const TriangleMesh &mesh, float spacing, float total_mass,
     SoftBodyDefinition &body, std::string &error) {
@@ -959,31 +987,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = name + ": invalid cloth tear, solver, or paint settings";
             return false;
         }
-        const std::string encoded_pins =
-            extras.string("pm_pin_vertices").value_or("");
-        struct Pin { Vec3 position; float weight; bool matched{}; };
         std::vector<Pin> pins;
-        const char *cursor = encoded_pins.c_str();
-        const char *end = cursor + encoded_pins.size();
-        while (cursor < end) {
-            float fields[4]{};
-            for (int component = 0; component < 4; ++component) {
-                char *next = nullptr;
-                fields[component] = std::strtof(cursor, &next);
-                if (next == cursor || !std::isfinite(fields[component]) ||
-                    (component < 3 && *next != ',') ||
-                    (component == 3 && *next != ';' && *next != '\0')) {
-                    error = name + ": invalid exported cloth pin coordinate";
-                    return false;
-                }
-                cursor = next + (component < 3 || *next == ';' ? 1 : 0);
-            }
-            if (fields[3] <= 0.0F || fields[3] > 1.0F) {
-                error = name + ": invalid cloth pin weight";
-                return false;
-            }
-            pins.push_back({{fields[0], fields[1], fields[2]}, fields[3]});
-        }
+        if (!read_pins(extras, name, pins, error)) return false;
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[0], scale, false,
                               name, mesh, error)) return false;
@@ -1124,6 +1129,25 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         }
         if (!build_soft_body_lattice(mesh, spacing, total_mass, body, error))
             return false;
+        std::vector<Pin> pins;
+        if (!read_pins(extras, body.name, pins, error)) return false;
+        for (Pin &pin : pins) {
+            if (pin.weight != 1.0F) {
+                error = body.name + ": soft-body pins require full Goal weight";
+                return false;
+            }
+            const Vec3 target = add(state.position, rotate(state.orientation, pin.position));
+            for (std::size_t node = 0; node < body.nodes.size(); ++node) {
+                if (math::length_squared(subtract(body.nodes[node], target)) > 1.0e-8F)
+                    continue;
+                body.inverse_masses[node] = 0.0F;
+                pin.matched = true;
+            }
+            if (!pin.matched) {
+                error = body.name + ": Goal pin did not match exported mesh";
+                return false;
+            }
+        }
         body.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
         output.meshes.push_back(std::move(mesh));
         output.soft_bodies.push_back(std::move(body));
@@ -1424,6 +1448,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             std::max<std::size_t>(1U, scene.cloths.size())),
         .soft_body_cloth_coupling_capacity = static_cast<std::uint32_t>(
             scene.cloths.size() * scene.soft_bodies.size()),
+        .fluid_soft_body_coupling_capacity = static_cast<std::uint32_t>(
+            scene.soft_bodies.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1678,6 +1704,13 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         cudaFree(device_initial);
         if (!status) return status;
         output.has_fluid = true;
+        for (SoftBodyId body : output.soft_bodies) {
+            FluidSoftBodyCouplingId coupling{};
+            status = world.add_fluid_soft_body_coupling(
+                {.fluid = output.fluid, .soft_body = body}, coupling);
+            if (!status) return status;
+            output.fluid_soft_body_couplings.push_back(coupling);
+        }
         for (ParticleSpawnPlaneOptions options : scene.spawn_planes) {
             options.fluid = output.fluid;
             ParticleSpawnPlaneId id{};

@@ -190,10 +190,10 @@ and 16 graph iterations. The first stage supports passive rigid triangle
 collision. Active rigid triangle bodies use the same collision pass and receive
 balanced reaction impulses automatically; no extra Blender property or
 scene-specific force is needed. `SoftbodyRigidBody.blend` demonstrates two
-active spheres contacting one soft body. Fluid and cloth coupling remain
-separate roadmap PRs.
+active spheres contacting one soft body. Authored cloth and fluid systems can
+also register the API's explicit soft-body coupling resources.
 
-When Blender **Soft Body → Goal** is enabled, the exporter maps Default Weight
+When Blender **Soft Body → Goal** is enabled **without a vertex group**, the exporter maps Default Weight
 times Stiffness to `pm_shape_matching_stiffness`. ParallelMater interprets that
 signal as co-rotated rest-shape matching rather than a world-space pin: the
 body can translate and roll, compresses under load, and restores its authored
@@ -201,6 +201,22 @@ shape after the load leaves. Restoration yields during any substep with active
 rigid contact, preventing the Goal projection from rebuilding through a
 collider. A custom `pm_shape_matching_stiffness` overrides the Blender-derived
 value; zero disables restoration.
+
+With a Goal vertex group, full effective weight (`Min + weight * (Max - Min)`
+equal to 1) instead exports an exact fixed node. This uses API inverse mass
+zero, not a gallery force. Matching is position-based so triangulation and
+glTF normal/UV seams do not lose pins. Partial Goal weights remain movable;
+animated targets and weighted attachment springs are not implemented. A group
+does not implicitly enable whole-body shape matching; the explicit custom
+property remains available. See Blender's [Goal settings](https://docs.blender.org/manual/en/5.0/physics/soft_body/settings/goal.html).
+
+`SoftbodyFluid.blend` demonstrates four pinned Goal vertices, one liquid inflow,
+one liquid outflow, and passive rigid boundaries. Export it with the same
+`export_parallel_mater_scene.py` script. The source blend is not modified.
+Default lattice spacing retains the existing nine-sample thin-axis rule for
+roughly isotropic bodies; for slabs it targets 18 samples along the long axis
+while retaining at least three through the thickness. `pm_node_spacing`
+overrides this resolution choice.
 
 ## Cloth Shape Pin Group
 

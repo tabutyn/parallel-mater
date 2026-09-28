@@ -88,7 +88,7 @@ class ExportSceneTests(unittest.TestCase):
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
-                     "SoftbodyRigidBody", "SoftbodyCloth"):
+                     "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -125,6 +125,29 @@ class ExportSceneTests(unittest.TestCase):
             if not any(mod.type == "FLUID" for mod in obj.modifiers):
                 bpy.data.objects.remove(obj, do_unlink=True)
         self.check_export(Counter(fluid_inflow=1, fluid_outflow=1))
+
+    def test_soft_goal_group_exports_only_full_weight_pins(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyFluid.blend"))
+        document = self.check_export(Counter(rigid_body=2, soft_body=1,
+                                            fluid_inflow=1, fluid_outflow=1))
+        extras = next(node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "soft_body")
+        self.assertEqual(extras["pm_pin_group"], "Goal")
+        pins = extras["pm_pin_vertices"].split(";")
+        self.assertEqual(len(pins), 4)
+        self.assertTrue(all(pin.endswith(",1") for pin in pins))
+        self.assertEqual(extras["pm_shape_matching_stiffness"], 0.0)
+        obj = next(obj for obj in bpy.context.scene.objects
+                   if any(m.type == "SOFT_BODY" for m in obj.modifiers))
+        settings = next(m.settings for m in obj.modifiers if m.type == "SOFT_BODY")
+        from mathutils import Matrix
+        # Min/max remapping, partial weights, disabled Goal, and missing groups.
+        obj.vertex_groups["Goal"].add([0], 0.5, "REPLACE")
+        self.assertEqual(len(exporter.soft_body_goal_pins(obj, settings, Matrix.Identity(4))), 4)
+        settings.goal_max = 0.8
+        self.assertEqual(exporter.soft_body_goal_pins(obj, settings, Matrix.Identity(4)), [])
+        settings.use_goal = False
+        self.assertEqual(exporter.soft_body_goal_pins(obj, settings, Matrix.Identity(4)), [])
 
     def test_soft_body_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Softbody.blend"))

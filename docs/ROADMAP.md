@@ -222,6 +222,19 @@ pass.
 - Couple existing fluid particles to the PR 12 soft lattice/surface through an
   explicit API resource with balanced forces and bounded contact diagnostics.
 - Reuse the common fluid renderer, foam, particle cap, and capture facilities.
+- Added `SoftbodyFluid.blend` and the Soft Body Fluid gallery entry. Gravity
+  starts down; arrows tilt 45 degrees. Goal-group full-weight vertices remain
+  fixed through the existing API inverse-mass contract.
+- External closed-triangle contact maps reactions through skin bindings.
+  Shared contact-degree relaxation and symmetric speed-bounded impulses avoid
+  launching lightweight nodes under dense water. Current-skin recovery runs
+  after rigid boundaries; no scene-specific collision shape or force exists.
+- Added contact counters, penetration diagnostics, timings, and fluid reactions
+  to soft-body views and opt-in captures. Reused flow source/sink resources,
+  renderer, foam, particle cap, reset, camera, and debug controls.
+- Aspect-ratio-aware export sampling avoids excessive thin-slab lattices.
+  Blender pin export, API impulse balance/lifecycle, dense impacts, and the
+  authored inflow/outflow scene have automated regressions.
 
 ## Later — Gallery game shell
 

@@ -193,10 +193,15 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
             PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
             PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
+            PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-fluid-soft-body-tests tests/fluid_soft_body_tests.cpp)
+    target_link_libraries(parallel-mater-fluid-soft-body-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-fluid-soft-body-tests COMMAND parallel-mater-fluid-soft-body-tests)
+    set_tests_properties(parallel-mater-fluid-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(parallel-mater-api-contract-tests tests/api_contract.cpp)
     target_link_libraries(
         parallel-mater-api-contract-tests PRIVATE ParallelMater::parallel_mater)
@@ -361,6 +366,17 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-cloth-fracture-tests PROPERTIES
                              SKIP_RETURN_CODE 77 TIMEOUT 60)
 
+        add_executable(parallel-mater-soft-body-fluid-tests
+                       tests/gallery/soft_body_fluid_tests.cpp)
+        target_link_libraries(parallel-mater-soft-body-fluid-tests PRIVATE
+            parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-soft-body-fluid-tests PRIVATE
+            PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb")
+        add_test(NAME parallel-mater-soft-body-fluid-tests
+                 COMMAND parallel-mater-soft-body-fluid-tests)
+        set_tests_properties(parallel-mater-soft-body-fluid-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 180)
+
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
         target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
@@ -489,6 +505,9 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-soft-body-cloth-headless-test
             parallel-mater-soft-body-cloth-test.ppm 180 --soft-body-cloth)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-fluid-headless-test
+            parallel-mater-soft-body-fluid-test.ppm 240 --soft-body-fluid --fluid-particles 4000)
         add_gallery_headless_test(
             parallel-mater-soft-body-cloth-tear-debug-test
             parallel-mater-soft-body-cloth-tear-debug.ppm 600 --soft-body-cloth
