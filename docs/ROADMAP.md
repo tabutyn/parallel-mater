@@ -191,8 +191,11 @@ pass.
 
 - Reuse PR 12 soft-body resources and surface bindings; add balanced impulses
   against dynamic rigid triangle bodies without a second soft-body solver.
+- Map Blender Goal strength to rotation-invariant rest-shape matching so a
+  crushed soft body recovers without pinning its translation or rotation.
 - Validate momentum transfer, high-speed contact, settling, and deterministic
-  replay in a focused Blender-authored gallery scene.
+  replay, crush recovery, and free rolling in a focused Blender-authored
+  gallery scene.
 
 ## PR 14 — Soft body and fluid coupling
 

@@ -181,6 +181,7 @@ forces.
 Optional object properties tune conversion and the reusable solver:
 `pm_node_spacing`, `pm_node_radius`, `pm_stretch_compliance`,
 `pm_velocity_damping`, `pm_spring_damping`, `pm_contact_friction`,
+`pm_shape_matching_stiffness`,
 `pm_maximum_projection_fraction`, `pm_constraint_velocity_response`,
 `pm_maximum_speed`, and `pm_solver_iterations`. Smaller spacing creates more
 nodes and bonds. The gallery export defaults to the old lab's `2 m/s` soft-body
@@ -191,6 +192,13 @@ balanced reaction impulses automatically; no extra Blender property or
 scene-specific force is needed. `SoftbodyRigidBody.blend` demonstrates two
 active spheres contacting one soft body. Fluid and cloth coupling remain
 separate roadmap PRs.
+
+When Blender **Soft Body → Goal** is enabled, the exporter maps Default Weight
+times Stiffness to `pm_shape_matching_stiffness`. ParallelMater interprets that
+signal as co-rotated rest-shape matching rather than a world-space pin: the
+body can translate and roll, compresses under load, and restores its authored
+shape after the load leaves. A custom `pm_shape_matching_stiffness` overrides
+the Blender-derived value; zero disables restoration.
 
 ## Cloth Shape Pin Group
 

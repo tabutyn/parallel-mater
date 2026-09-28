@@ -5,6 +5,7 @@
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -71,6 +72,92 @@ float soft_momentum_x(
             momentum += velocities[node].x / inverse_mass;
     }
     return momentum;
+}
+
+float radial_shape_error(const std::vector<Vec3> &rest,
+                         const std::vector<Vec3> &positions) {
+    const Vec3 rest_center = center(rest);
+    const Vec3 current_center = center(positions);
+    float error_squared = 0.0F;
+    float radius_squared = 0.0F;
+    for (std::size_t node = 0U; node < rest.size(); ++node) {
+        const float rest_radius = length({rest[node].x - rest_center.x,
+            rest[node].y - rest_center.y, rest[node].z - rest_center.z});
+        const float current_radius = length({
+            positions[node].x - current_center.x,
+            positions[node].y - current_center.y,
+            positions[node].z - current_center.z});
+        const float difference = current_radius - rest_radius;
+        error_squared += difference * difference;
+        radius_squared += rest_radius * rest_radius;
+    }
+    return std::sqrt(error_squared / std::max(radius_squared, 1.0e-12F));
+}
+
+struct RecoveryResult {
+    float peak_error{};
+    float loaded_error{};
+    float recovered_error{};
+    float recovered_speed{};
+};
+
+bool run_symmetric_crush(parallel_mater::gallery::SceneDefinition scene,
+                         float shape_stiffness, RecoveryResult &output) {
+    using namespace parallel_mater;
+    using namespace parallel_mater::gallery;
+    scene.soft_bodies.front().shape_matching_stiffness = shape_stiffness;
+    scene.rigid_bodies.erase(std::remove_if(
+        scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
+        [](const RigidBodyDefinition &body) {
+            return body.options.motion != MotionType::dynamic;
+        }), scene.rigid_bodies.end());
+    if (scene.rigid_bodies.size() != 2U) return false;
+    World world;
+    SceneInstance instance{};
+    if (!require(create_scene_world(scene, world, instance),
+                 "create symmetric crush world")) return false;
+    const Vec3 soft_center = center(scene.soft_bodies.front().nodes);
+    const auto order = scene.rigid_bodies[0].options.initial_state.position.x <
+            scene.rigid_bodies[1].options.initial_state.position.x
+        ? std::array<std::size_t, 2U>{0U, 1U}
+        : std::array<std::size_t, 2U>{1U, 0U};
+    for (std::size_t side = 0U; side < 2U; ++side) {
+        RigidBodyState state =
+            scene.rigid_bodies[order[side]].options.initial_state;
+        const float direction = side == 0U ? 1.0F : -1.0F;
+        state.position = {soft_center.x - direction * 2.5F,
+                          soft_center.y, soft_center.z};
+        state.linear_velocity = {direction * 1.5F, 0.0F, 0.0F};
+        state.angular_velocity = {};
+        if (!require(world.set_rigid_body_state(
+                instance.rigid_bodies[order[side]], state),
+                "set symmetric crush sphere")) return false;
+    }
+    const StepOptions step{.timestep = 1.0F / 240.0F, .substeps = 1U,
+                           .gravity = {}};
+    std::vector<Vec3> positions, velocities;
+    for (std::uint32_t frame = 0U; frame < 180U; ++frame) {
+        if (!require(world.step(step), "step symmetric crush") ||
+            !read_soft_state(world, instance.soft_bodies.front(), positions,
+                             velocities)) return false;
+        output.peak_error = std::max(output.peak_error,
+            radial_shape_error(scene.soft_bodies.front().nodes, positions));
+    }
+    output.loaded_error = radial_shape_error(
+        scene.soft_bodies.front().nodes, positions);
+    for (RigidBodyId body : instance.rigid_bodies)
+        if (!require(world.remove_rigid_body(body),
+                     "remove symmetric crush sphere")) return false;
+    for (std::uint32_t frame = 0U; frame < 60U; ++frame)
+        if (!require(world.step(step), "recover symmetric crush")) return false;
+    if (!read_soft_state(world, instance.soft_bodies.front(), positions,
+                         velocities)) return false;
+    output.recovered_error = radial_shape_error(
+        scene.soft_bodies.front().nodes, positions);
+    for (Vec3 velocity : velocities)
+        output.recovered_speed = std::max(
+            output.recovered_speed, length(velocity));
+    return true;
 }
 
 struct ImpactResult {
@@ -219,7 +306,8 @@ int main() {
                    std::fabs(body.options.mass - 100.0F) < 1.0e-4F;
         });
     if (scene.soft_bodies.size() != 1U || dynamic_count != 2U ||
-        static_count != 1U || !authored_heavy_spheres) {
+        static_count != 1U || !authored_heavy_spheres ||
+        scene.soft_bodies.front().shape_matching_stiffness <= 0.0F) {
         std::cerr << "SoftbodyRigidBody scene needs one soft body, two active "
                      "100 kg rigid bodies, and one passive arena\n";
         return 1;
@@ -303,6 +391,28 @@ int main() {
         return 1;
     }
 
+    RecoveryResult matched_recovery{}, spring_recovery{};
+    if (!run_symmetric_crush(scene,
+            scene.soft_bodies.front().shape_matching_stiffness,
+            matched_recovery) ||
+        !run_symmetric_crush(scene, 0.0F, spring_recovery)) return 1;
+    if (matched_recovery.peak_error < 0.05F ||
+        matched_recovery.recovered_error >
+            matched_recovery.loaded_error * 0.01F ||
+        matched_recovery.recovered_error >
+            spring_recovery.recovered_error * 0.25F ||
+        matched_recovery.recovered_speed >
+            scene.soft_bodies.front().maximum_speed + 0.05F) {
+        std::cerr << "Soft-body rest-shape recovery regressed: peak="
+                  << matched_recovery.peak_error
+                  << " loaded=" << matched_recovery.loaded_error
+                  << " recovered=" << matched_recovery.recovered_error
+                  << " spring_recovered="
+                  << spring_recovery.recovered_error
+                  << " speed=" << matched_recovery.recovered_speed << '\n';
+        return 1;
+    }
+
     ImpactResult light{}, heavy{}, heavy_repeat{}, high_speed{};
     if (!run_impact(scene, 1.5F, 1.0F, light) ||
         !run_impact(scene, 1.5F, 100.0F, heavy) ||
@@ -368,6 +478,15 @@ int main() {
               << " settled_soft_speed=" << maximum_soft_speed
               << " settled_strain=" << maximum_bond_strain
               << " escaped_nodes=" << escaped_nodes
+              << " matched_peak_error=" << matched_recovery.peak_error
+              << " matched_loaded_error=" << matched_recovery.loaded_error
+              << " matched_recovered_error="
+              << matched_recovery.recovered_error
+              << " matched_recovered_speed="
+              << matched_recovery.recovered_speed
+              << " spring_peak_error=" << spring_recovery.peak_error
+              << " spring_recovered_error="
+              << spring_recovery.recovered_error
               << " gpu_ms=" << timings.total_gpu_milliseconds << '\n';
     return 0;
 }

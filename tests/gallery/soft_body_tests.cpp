@@ -93,6 +93,7 @@ int main() {
         definition.surface_bindings.size() !=
             surface_mesh.vertices.size() ||
         definition.maximum_speed > 2.01F ||
+        std::fabs(definition.shape_matching_stiffness - 0.35F) > 1.0e-5F ||
         std::fabs(definition.maximum_projection_fraction - 0.20F) > 1.0e-5F ||
         std::fabs(definition.constraint_velocity_response - 0.70F) > 1.0e-5F) {
         std::cerr << "Softbody export did not produce a volumetric lattice\n";

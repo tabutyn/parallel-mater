@@ -308,6 +308,10 @@ struct SoftBodyOptions {
     float velocity_damping{0.8F};
     float spring_damping{0.85F};
     float contact_friction{0.5F};
+    // Rotation-invariant projection toward the best-fit rest shape. Zero
+    // disables shape matching; one applies the full bounded correction each
+    // substep without anchoring translation or rotation in world space.
+    float shape_matching_stiffness{};
     // Clamp each graph projection relative to that node's shortest live bond.
     float maximum_projection_fraction{0.20F};
     // Fraction of projection displacement reconstructed as velocity.

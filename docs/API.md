@@ -134,6 +134,12 @@ masses, an indexed render surface, and four-node delta-skinning bindings.
 spans for physical nodes, velocities, bonds, the deforming surface, and rigid
 contact forces.
 
+`SoftBodyOptions::shape_matching_stiffness` optionally restores the best-fit
+rest shape after spring projection. The constraint solves the body's current
+center and rotation before applying a bounded correction, so it removes crush
+deformation without tethering translation or rolling to the original world
+pose. Zero disables it; values through one increase per-substep restoration.
+
 The first solver stage follows the proven lab model: integrate nodes under
 gravity, jointly solve node-sphere/passive-triangle contacts and bounded
 compliant Jacobi spring constraints, blend projected motion back into velocity,
@@ -148,9 +154,10 @@ restores the corresponding total lattice momentum after spring projection so
 constraints cannot silently erase the exchanged impulse. The passive-only path
 retains its original damping behavior. Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
-and spring damping, contact friction, maximum speed, and iteration count are
-API configuration rather than gallery constants. Fluid/cloth coupling is
-intentionally deferred without changing this resource or surface contract.
+and spring damping, contact friction, shape-matching stiffness, maximum speed,
+and iteration count are API configuration rather than gallery constants.
+Fluid/cloth coupling is intentionally deferred without changing this resource
+or surface contract.
 
 ## Fluid sources and contact paint
 

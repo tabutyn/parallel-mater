@@ -121,6 +121,8 @@ class ExportSceneTests(unittest.TestCase):
                       if node["extras"].get("pm_system") == "soft_body")
         self.assertEqual(extras["pm_maximum_projection_fraction"], 0.20)
         self.assertEqual(extras["pm_constraint_velocity_response"], 0.70)
+        self.assertAlmostEqual(extras["pm_shape_matching_stiffness"], 0.35,
+                               places=6)
         self.assertEqual(extras["pm_maximum_speed"], 2.0)
         self.assertEqual(extras["pm_solver_iterations"], 16)
 

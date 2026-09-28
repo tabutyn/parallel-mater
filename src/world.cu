@@ -1952,6 +1952,10 @@ struct FluidBodyImpulse {
     std::uint32_t body{k_invalid_dense};
 };
 
+struct ShapeMatrix {
+    Vec3 columns[3]{};
+};
+
 struct DeformableNeighbor {
     std::uint32_t index{};
     float rest_length{};
@@ -2049,10 +2053,14 @@ struct SoftBodyStorage {
     float velocity_damping{};
     float spring_damping{};
     float contact_friction{};
+    float shape_matching_stiffness{};
+    float shape_maximum_projection{};
     float maximum_projection_fraction{};
     float constraint_velocity_response{};
     float maximum_speed{};
     float movable_mass{};
+    Vec3 shape_rest_center{};
+    ShapeMatrix shape_inverse_rest{};
     std::uint32_t solver_iterations{};
     Vec3 *positions{};
     Vec3 *rest_positions{};
@@ -2077,6 +2085,7 @@ struct SoftBodyStorage {
     Vec3 *contact_friction_delta{};
     float *contact_normal_delta{};
     Vec3 *predicted_momentum{};
+    Quaternion *shape_orientation{};
     std::uint32_t *dynamic_contact_flag{};
     std::uint32_t *contact_count{};
     std::uint32_t *count{};
@@ -2105,6 +2114,7 @@ struct SoftBodyStorage {
         release_managed(contact_friction_delta);
         release_managed(contact_normal_delta);
         release_managed(predicted_momentum);
+        release_managed(shape_orientation);
         release_managed(dynamic_contact_flag);
         release_managed(contact_count);
         release_managed(count);
@@ -3166,6 +3176,110 @@ __global__ void soft_body_restore_momentum(
         if (inverse_masses[node] > 0.0F)
             velocities[node] = clamp_length(
                 add(velocities[node], correction), maximum_speed);
+    }
+}
+
+__device__ ShapeMatrix shape_matrix_multiply(
+    const ShapeMatrix &first, const ShapeMatrix &second) {
+    ShapeMatrix result{};
+    for (std::uint32_t column = 0U; column < 3U; ++column) {
+        const Vec3 weights = second.columns[column];
+        result.columns[column] = add(
+            multiply(first.columns[0], weights.x),
+            add(multiply(first.columns[1], weights.y),
+                multiply(first.columns[2], weights.z)));
+    }
+    return result;
+}
+
+// One deterministic thread computes the best-fit rigid transform of the rest
+// lattice, then projects movable nodes toward it. The current center of mass
+// and best-fit rotation keep this goal free to translate and roll; unlike a
+// world-space tether it restores shape without pinning the body in place.
+__global__ void soft_body_project_rest_shape(
+    Vec3 *positions, const Vec3 *rest_positions,
+    const float *inverse_masses, std::uint32_t count, float movable_mass,
+    Vec3 rest_center, ShapeMatrix inverse_rest,
+    Quaternion *stored_orientation, float stiffness,
+    float maximum_projection) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U || stiffness <= 0.0F) return;
+    Vec3 current_center{};
+    for (std::uint32_t node = 0U; node < count; ++node) {
+        const float inverse_mass = inverse_masses[node];
+        if (inverse_mass > 0.0F)
+            current_center = add(current_center,
+                multiply(positions[node], 1.0F / inverse_mass));
+    }
+    current_center = multiply(current_center, 1.0F / movable_mass);
+
+    ShapeMatrix covariance{};
+    for (std::uint32_t node = 0U; node < count; ++node) {
+        const float inverse_mass = inverse_masses[node];
+        if (inverse_mass <= 0.0F) continue;
+        const float mass = 1.0F / inverse_mass;
+        const Vec3 current = subtract(positions[node], current_center);
+        const Vec3 rest = subtract(rest_positions[node], rest_center);
+        covariance.columns[0] = add(covariance.columns[0],
+            multiply(current, mass * rest.x));
+        covariance.columns[1] = add(covariance.columns[1],
+            multiply(current, mass * rest.y));
+        covariance.columns[2] = add(covariance.columns[2],
+            multiply(current, mass * rest.z));
+    }
+    const ShapeMatrix deformation = shape_matrix_multiply(
+        covariance, inverse_rest);
+    Quaternion orientation = normalized_quaternion(*stored_orientation);
+    if (orientation.x == 0.0F && orientation.y == 0.0F &&
+        orientation.z == 0.0F && orientation.w == 0.0F)
+        orientation.w = 1.0F;
+    for (std::uint32_t iteration = 0U; iteration < 12U; ++iteration) {
+        const Vec3 axes[3]{
+            rotate(orientation, {1.0F, 0.0F, 0.0F}),
+            rotate(orientation, {0.0F, 1.0F, 0.0F}),
+            rotate(orientation, {0.0F, 0.0F, 1.0F})};
+        Vec3 angular = add(cross(axes[0], deformation.columns[0]),
+            add(cross(axes[1], deformation.columns[1]),
+                cross(axes[2], deformation.columns[2])));
+        const float denominator = fabsf(
+            dot(axes[0], deformation.columns[0]) +
+            dot(axes[1], deformation.columns[1]) +
+            dot(axes[2], deformation.columns[2])) + 1.0e-9F;
+        angular = multiply(angular, 1.0F / denominator);
+        const float magnitude = vector_length(angular);
+        if (magnitude < 1.0e-6F) break;
+        const float angle = fminf(magnitude, 0.5F);
+        const float half = 0.5F * angle;
+        const Vec3 axis = multiply(angular, 1.0F / magnitude);
+        const Quaternion delta{axis.x * sinf(half), axis.y * sinf(half),
+                               axis.z * sinf(half), cosf(half)};
+        orientation = normalized_quaternion(
+            quaternion_multiply(delta, orientation));
+    }
+    *stored_orientation = orientation;
+
+    Vec3 weighted_correction{};
+    for (std::uint32_t node = 0U; node < count; ++node) {
+        const float inverse_mass = inverse_masses[node];
+        if (inverse_mass <= 0.0F) continue;
+        const Vec3 target = add(current_center, rotate(orientation,
+            subtract(rest_positions[node], rest_center)));
+        const Vec3 correction = clamp_length(multiply(
+            subtract(target, positions[node]), stiffness),
+            maximum_projection);
+        weighted_correction = add(weighted_correction,
+            multiply(correction, 1.0F / inverse_mass));
+    }
+    const Vec3 center_correction = multiply(
+        weighted_correction, 1.0F / movable_mass);
+    for (std::uint32_t node = 0U; node < count; ++node) {
+        if (inverse_masses[node] <= 0.0F) continue;
+        const Vec3 target = add(current_center, rotate(orientation,
+            subtract(rest_positions[node], rest_center)));
+        const Vec3 correction = clamp_length(multiply(
+            subtract(target, positions[node]), stiffness),
+            maximum_projection);
+        positions[node] = add(positions[node],
+            subtract(correction, center_correction));
     }
 }
 
@@ -5862,6 +5976,9 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
         !finite(options.spring_damping) || options.spring_damping < 0.0F ||
         options.spring_damping > 1.0F ||
         !finite(options.contact_friction) || options.contact_friction < 0.0F ||
+        !finite(options.shape_matching_stiffness) ||
+        options.shape_matching_stiffness < 0.0F ||
+        options.shape_matching_stiffness > 1.0F ||
         !finite(options.maximum_projection_fraction) ||
         options.maximum_projection_fraction <= 0.0F ||
         options.maximum_projection_fraction > 1.0F ||
@@ -5930,6 +6047,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::vector<std::vector<DeformableNeighbor>> adjacency;
     std::vector<std::uint32_t> offsets;
     std::vector<DeformableNeighbor> neighbors;
+    float minimum_bond_length = FLT_MAX;
     try {
         adjacency.resize(node_count);
         std::unordered_set<std::uint64_t> unique;
@@ -5948,6 +6066,8 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
             if (!unique.insert(key).second)
                 return failure(StatusCode::invalid_argument,
                                "soft-body bond is duplicated");
+            minimum_bond_length = std::min(
+                minimum_bond_length, bond.rest_length);
             adjacency[bond.first].push_back({bond.second, bond.rest_length,
                                              options.stretch_compliance,
                                              bond_index});
@@ -5973,6 +6093,51 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
                        "failed to build soft-body adjacency");
     }
 
+    Vec3 shape_rest_center{};
+    ShapeMatrix shape_inverse_rest{};
+    if (options.shape_matching_stiffness > 0.0F) {
+        for (std::uint32_t node = 0U; node < node_count; ++node) {
+            const float inverse_mass = options.inverse_masses.size != 0U
+                ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
+            if (inverse_mass > 0.0F)
+                shape_rest_center = add(shape_rest_center,
+                    multiply(options.nodes.data[node], 1.0F / inverse_mass));
+        }
+        shape_rest_center = multiply(shape_rest_center, 1.0F / movable_mass);
+        ShapeMatrix rest_covariance{};
+        for (std::uint32_t node = 0U; node < node_count; ++node) {
+            const float inverse_mass = options.inverse_masses.size != 0U
+                ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
+            if (inverse_mass <= 0.0F) continue;
+            const Vec3 rest = subtract(
+                options.nodes.data[node], shape_rest_center);
+            const float mass = 1.0F / inverse_mass;
+            rest_covariance.columns[0] = add(
+                rest_covariance.columns[0], multiply(rest, mass * rest.x));
+            rest_covariance.columns[1] = add(
+                rest_covariance.columns[1], multiply(rest, mass * rest.y));
+            rest_covariance.columns[2] = add(
+                rest_covariance.columns[2], multiply(rest, mass * rest.z));
+        }
+        const Vec3 row0 = cross(rest_covariance.columns[1],
+                                rest_covariance.columns[2]);
+        const Vec3 row1 = cross(rest_covariance.columns[2],
+                                rest_covariance.columns[0]);
+        const Vec3 row2 = cross(rest_covariance.columns[0],
+                                rest_covariance.columns[1]);
+        const float determinant = dot(rest_covariance.columns[0], row0);
+        if (!finite(determinant) || fabsf(determinant) <= 1.0e-10F)
+            return failure(StatusCode::invalid_argument,
+                "shape-matched soft body needs a volumetric rest lattice");
+        const float inverse_determinant = 1.0F / determinant;
+        shape_inverse_rest.columns[0] = multiply(
+            {row0.x, row1.x, row2.x}, inverse_determinant);
+        shape_inverse_rest.columns[1] = multiply(
+            {row0.y, row1.y, row2.y}, inverse_determinant);
+        shape_inverse_rest.columns[2] = multiply(
+            {row0.z, row1.z, row2.z}, inverse_determinant);
+    }
+
     std::unique_ptr<SoftBodyStorage> body;
     try {
         body = std::make_unique<SoftBodyStorage>();
@@ -5993,10 +6158,15 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     body->velocity_damping = options.velocity_damping;
     body->spring_damping = options.spring_damping;
     body->contact_friction = options.contact_friction;
+    body->shape_matching_stiffness = options.shape_matching_stiffness;
+    body->shape_maximum_projection = options.maximum_projection_fraction *
+                                     minimum_bond_length;
     body->maximum_projection_fraction = options.maximum_projection_fraction;
     body->constraint_velocity_response = options.constraint_velocity_response;
     body->maximum_speed = options.maximum_speed;
     body->movable_mass = movable_mass;
+    body->shape_rest_center = shape_rest_center;
+    body->shape_inverse_rest = shape_inverse_rest;
     body->solver_iterations = options.solver_iterations;
 #define PM_ALLOC_SOFT(member, count)                                            \
     status = allocate_managed(body->member, count);                             \
@@ -6024,6 +6194,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(contact_friction_delta, body->node_count);
     PM_ALLOC_SOFT(contact_normal_delta, body->node_count);
     PM_ALLOC_SOFT(predicted_momentum, 1U);
+    PM_ALLOC_SOFT(shape_orientation, 1U);
     PM_ALLOC_SOFT(dynamic_contact_flag, 1U);
     PM_ALLOC_SOFT(contact_count, 1U);
     PM_ALLOC_SOFT(count, 1U);
@@ -6059,6 +6230,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     *body->count = body->node_count;
     *body->contact_count = 0U;
     *body->predicted_momentum = {};
+    *body->shape_orientation = {0.0F, 0.0F, 0.0F, 1.0F};
     *body->dynamic_contact_flag = 0U;
     body->alive = true;
     output = {slot, body->generation};
@@ -6902,6 +7074,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.node_count, substep_timestep,
                     body.maximum_projection_fraction);
                 std::swap(body.positions, body.scratch);
+                if (iteration + 1U == body.solver_iterations &&
+                    body.shape_matching_stiffness > 0.0F) {
+                    soft_body_project_rest_shape<<<1U, 1U, 0, stream>>>(
+                        body.positions, body.rest_positions,
+                        body.inverse_masses, body.node_count,
+                        body.movable_mass, body.shape_rest_center,
+                        body.shape_inverse_rest, body.shape_orientation,
+                        body.shape_matching_stiffness,
+                        body.shape_maximum_projection);
+                }
                 body_status = record_timing_stage(
                     TimingStage::soft_body_constraints);
                 if (!body_status) return body_status;
@@ -7835,7 +8017,7 @@ Status World::collect_statistics(WorldStatistics &output,
                 (2U * sizeof(Vec3) + sizeof(SoftBodySurfaceBinding)) +
             static_cast<std::size_t>(body->surface_index_count) *
                 sizeof(std::uint32_t) + 3U * sizeof(std::uint32_t) +
-                sizeof(Vec3);
+                sizeof(Vec3) + sizeof(Quaternion);
     }
     output.emitted_particle_count = impl_->emitted_particle_count;
     output.destroyed_particle_count = impl_->destroyed_particle_count;
