@@ -34,6 +34,25 @@ bool read_nodes(const parallel_mater::World &world,
         cudaMemcpyDeviceToHost) == cudaSuccess;
 }
 
+bool read_state(const parallel_mater::World &world,
+                parallel_mater::SoftBodyId id,
+                std::vector<parallel_mater::Vec3> &positions,
+                std::vector<parallel_mater::Vec3> &velocities) {
+    parallel_mater::SoftBodyDeviceView view{};
+    if (!require(world.soft_body_view(id, view), "borrow soft body state"))
+        return false;
+    positions.resize(view.node_count);
+    velocities.resize(view.node_count);
+    return (positions.empty() || cudaMemcpy(
+        positions.data(), view.positions.data,
+        positions.size() * sizeof(positions[0]),
+        cudaMemcpyDeviceToHost) == cudaSuccess) &&
+        (velocities.empty() || cudaMemcpy(
+        velocities.data(), view.velocities.data,
+        velocities.size() * sizeof(velocities[0]),
+        cudaMemcpyDeviceToHost) == cudaSuccess);
+}
+
 float distance(parallel_mater::Vec3 a, parallel_mater::Vec3 b) {
     const float x = a.x - b.x, y = a.y - b.y, z = a.z - b.z;
     return std::sqrt(x * x + y * y + z * z);
@@ -72,7 +91,10 @@ int main() {
     if (!has_interior_node ||
         definition.bonds.size() < definition.nodes.size() ||
         definition.surface_bindings.size() !=
-            surface_mesh.vertices.size()) {
+            surface_mesh.vertices.size() ||
+        definition.maximum_speed > 2.01F ||
+        std::fabs(definition.maximum_projection_fraction - 0.20F) > 1.0e-5F ||
+        std::fabs(definition.constraint_velocity_response - 0.70F) > 1.0e-5F) {
         std::cerr << "Softbody export did not produce a volumetric lattice\n";
         return 1;
     }
@@ -101,6 +123,10 @@ int main() {
     SoftBodyDeviceView settled_view{};
     if (!require(world.soft_body_view(instance.soft_bodies.front(), settled_view),
                  "borrow settled soft body")) return 1;
+    if (settled_view.bonds.size != definition.bonds.size()) {
+        std::cerr << "Soft-body API view omitted internal spring bonds\n";
+        return 1;
+    }
     std::vector<Vec3> settled_velocities(settled_view.node_count);
     if (cudaMemcpy(settled_velocities.data(), settled_view.velocities.data,
                    settled_velocities.size() * sizeof(Vec3),
@@ -211,6 +237,123 @@ int main() {
         std::cerr << "Soft-body physics capture omitted lattice nodes\n";
         return 1;
     }
+
+    std::vector<Vec3> rolling_positions;
+    std::vector<Vec3> rolling_velocities;
+    const Vec3 rolling_start = final_center;
+    float rolling_radius = 0.0F;
+    for (Vec3 node : final)
+        rolling_radius = std::max(
+            rolling_radius, std::fabs(node.y - rolling_start.y));
+    float peak_rolling_ratio = 0.0F;
+    float rolling_ratio_sum = 0.0F;
+    std::uint32_t rolling_ratio_samples = 0U;
+    float peak_rolling_speed = 0.0F;
+    float peak_node_speed = 0.0F;
+    float rolling_distance_before_wall = 0.0F;
+    float maximum_rolling_bond_strain = 0.0F;
+    std::uint32_t wall_escape_count = 0U;
+    Vec3 rolling_center = rolling_start;
+    const StepOptions tilted_step{.timestep = 1.0F / 60.0F,
+                                  .substeps = 4U,
+                                  .gravity = {6.936718F, -6.936718F, 0.0F}};
+    float minimum_wall_velocity = 0.0F;
+    for (int frame = 0; frame < 180; ++frame) {
+        if (!require(world.step(tilted_step), "step rolling soft body") ||
+            !read_state(world, instance.soft_bodies.front(), rolling_positions,
+                        rolling_velocities)) return 1;
+        rolling_center = {};
+        Vec3 center_velocity{};
+        for (std::size_t node = 0U; node < rolling_positions.size(); ++node) {
+            rolling_center.x += rolling_positions[node].x;
+            rolling_center.y += rolling_positions[node].y;
+            rolling_center.z += rolling_positions[node].z;
+            center_velocity.x += rolling_velocities[node].x;
+            center_velocity.y += rolling_velocities[node].y;
+            center_velocity.z += rolling_velocities[node].z;
+        }
+        rolling_center = {rolling_center.x * inverse_count,
+                          rolling_center.y * inverse_count,
+                          rolling_center.z * inverse_count};
+        center_velocity = {center_velocity.x * inverse_count,
+                           center_velocity.y * inverse_count,
+                           center_velocity.z * inverse_count};
+        float angular_numerator = 0.0F;
+        float angular_denominator = 0.0F;
+        for (std::size_t node = 0U; node < rolling_positions.size(); ++node) {
+            const float x = rolling_positions[node].x - rolling_center.x;
+            const float y = rolling_positions[node].y - rolling_center.y;
+            const float vx = rolling_velocities[node].x - center_velocity.x;
+            const float vy = rolling_velocities[node].y - center_velocity.y;
+            angular_numerator += x * vy - y * vx;
+            angular_denominator += x * x + y * y;
+        }
+        const float angular_speed = angular_denominator > 1.0e-6F
+            ? std::fabs(angular_numerator / angular_denominator) : 0.0F;
+        const float rolling_speed = std::fabs(center_velocity.x);
+        for (Vec3 velocity : rolling_velocities)
+            peak_node_speed = std::max(
+                peak_node_speed, distance(velocity, {}));
+        const Vec3 passive_minimum = passive_surface.minimum();
+        const Vec3 passive_maximum = passive_surface.maximum();
+        wall_escape_count += static_cast<std::uint32_t>(std::count_if(
+            rolling_positions.begin(), rolling_positions.end(),
+            [&](Vec3 node) {
+                return node.x < passive_minimum.x - 0.02F ||
+                       node.x > passive_maximum.x + 0.02F ||
+                       node.z < passive_minimum.z - 0.02F ||
+                       node.z > passive_maximum.z + 0.02F;
+            }));
+        for (const SoftBodyBond &bond : definition.bonds)
+            maximum_rolling_bond_strain = std::max(
+                maximum_rolling_bond_strain,
+                std::fabs(distance(rolling_positions[bond.first],
+                                   rolling_positions[bond.second]) /
+                          bond.rest_length - 1.0F));
+        if (frame >= 60)
+            minimum_wall_velocity = std::min(
+                minimum_wall_velocity, center_velocity.x);
+        peak_rolling_speed = std::max(peak_rolling_speed, rolling_speed);
+        if (frame < 60 && rolling_speed > 0.1F) {
+            const float rolling_ratio =
+                angular_speed * rolling_radius / rolling_speed;
+            peak_rolling_ratio = std::max(
+                peak_rolling_ratio, rolling_ratio);
+            if (frame >= 20) {
+                rolling_ratio_sum += rolling_ratio;
+                ++rolling_ratio_samples;
+            }
+        }
+        if (frame == 59)
+            rolling_distance_before_wall =
+                rolling_center.x - rolling_start.x;
+    }
+    const float rolling_distance = rolling_center.x - rolling_start.x;
+    const float mean_rolling_ratio = rolling_ratio_samples != 0U
+        ? rolling_ratio_sum / static_cast<float>(rolling_ratio_samples) : 0.0F;
+    if (rolling_distance_before_wall < 1.0F || mean_rolling_ratio < 0.75F ||
+        peak_node_speed > definition.maximum_speed + 0.05F ||
+        minimum_wall_velocity > -0.15F ||
+        minimum_wall_velocity < -1.8F ||
+        maximum_rolling_bond_strain > 0.5F || wall_escape_count != 0U) {
+        std::cerr << "Soft-body traction or passive impact response regressed: "
+                  << "distance=" << rolling_distance_before_wall
+                  << " rolling_ratio=" << mean_rolling_ratio
+                  << " node_speed=" << peak_node_speed
+                  << " rebound=" << minimum_wall_velocity
+                  << " strain=" << maximum_rolling_bond_strain
+                  << " wall_escapes=" << wall_escape_count << '\n';
+        return 1;
+    }
+    std::cout << "Soft body rolling distance=" << rolling_distance
+              << " pre_wall_distance=" << rolling_distance_before_wall
+              << " peak_speed=" << peak_rolling_speed
+              << " peak_node_speed=" << peak_node_speed
+              << " peak_ratio=" << peak_rolling_ratio
+              << " mean_ratio=" << mean_rolling_ratio
+              << " minimum_wall_velocity=" << minimum_wall_velocity
+              << " maximum_strain=" << maximum_rolling_bond_strain
+              << " wall_escapes=" << wall_escape_count << '\n';
 
     const SoftBodyId removed = instance.soft_bodies.front();
     if (!require(world.remove_soft_body(removed), "remove soft body")) return 1;

@@ -179,9 +179,12 @@ forces.
 Optional object properties tune conversion and the reusable solver:
 `pm_node_spacing`, `pm_node_radius`, `pm_stretch_compliance`,
 `pm_velocity_damping`, `pm_spring_damping`, `pm_contact_friction`,
+`pm_maximum_projection_fraction`, `pm_constraint_velocity_response`,
 `pm_maximum_speed`, and `pm_solver_iterations`. Smaller spacing creates more
-nodes and bonds. The first stage supports passive rigid triangle collision;
-dynamic rigid, fluid, and cloth coupling are separate roadmap PRs.
+nodes and bonds. The gallery export defaults to the old lab's `2 m/s` soft-body
+speed cap, `0.2` per-pass projection bound, `0.7` projection velocity response,
+and 16 graph iterations. The first stage supports passive rigid triangle
+collision; dynamic rigid, fluid, and cloth coupling are separate roadmap PRs.
 
 ## Cloth Shape Pin Group
 

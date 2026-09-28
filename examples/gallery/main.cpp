@@ -1191,8 +1191,8 @@ int main(int argc, char **argv) {
                         pixels, runtime.renderer.width(),
                         runtime.renderer.height(), body, current_camera,
                         {.normals = debug.normals,
-                         .wireframe = debug.structure,
-                         .bonds = debug.cloth_bonds}, error)) {
+                         .wireframe = debug.cloth_bonds,
+                         .bonds = debug.structure}, error)) {
                     soft_debug_ok = false;
                     break;
                 }

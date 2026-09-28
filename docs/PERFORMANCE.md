@@ -348,12 +348,16 @@ require nonzero patches, and a CPU test covers scaling and rigid occlusion.
 The supplied `Softbody.blend` exports one closed Icosphere and one passive
 triangle arena. At 0.222 m authored node spacing, the shared volume sampler and
 graph builder produce 673 physical nodes and 10,032 unique spring bonds. The
-solver uses four substeps and eight Jacobi spring iterations per frame.
+solver uses four substeps and 16 bounded Jacobi spring iterations per frame.
 
 On the local RTX 3050 Ti, one opt-in timed frame after a 600-frame settling run
-measured 1.74 ms total GPU physics time. Maximum bond strain was 9.96%, peak
-residual node speed was 0.0086 m/s, and no node crossed below the passive mesh;
-the minimum measured node clearance was 0.039 m. The test also checks finite
-state, visible deformation, generation-invalidated handles, API capture, and
-the real Blender export. These are local acceptance measurements rather than a
-cross-hardware guarantee.
+measured about 4.0 ms total GPU physics time. Maximum settled bond strain was
+25.3%, peak residual node speed was 0.033 m/s, and no node crossed below the
+passive mesh; the minimum measured node clearance was 0.083 m. A 45-degree
+traction run stays under the authored 2 m/s node cap, averages 0.90 of the
+no-slip angular/linear rolling ratio, rebounds at 0.72 m/s, remains below 31.1%
+bond strain through impact, and records no node beyond the arena walls. The
+test also checks finite state, all 10,032 API-visible bonds,
+generation-invalidated handles, API capture, and the real Blender export.
+These are local acceptance measurements rather than a cross-hardware
+guarantee.

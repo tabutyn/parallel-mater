@@ -113,8 +113,9 @@ debug controls.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
 normals, `X` rigid and rigid-contact forces, `C` fluid acceleration/reaction
 forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.
-`V` exposes particles and/or deformable wireframe where those systems exist;
-`B` shows cloth or soft-body bonds. The gallery opts into capture when it creates each `World`;
+`V` exposes particles, cloth structure, or every soft-body spring where those
+systems exist; `B` shows cloth bonds or the soft-body surface wireframe. The
+gallery opts into capture when it creates each `World`;
 ordinary library consumers pay no capture/readback cost unless they do the
 same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 

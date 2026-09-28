@@ -2049,7 +2049,10 @@ struct SoftBodyStorage {
     float velocity_damping{};
     float spring_damping{};
     float contact_friction{};
+    float maximum_projection_fraction{};
+    float constraint_velocity_response{};
     float maximum_speed{};
+    float movable_mass{};
     std::uint32_t solver_iterations{};
     Vec3 *positions{};
     Vec3 *rest_positions{};
@@ -2068,6 +2071,10 @@ struct SoftBodyStorage {
     SoftBodySurfaceBinding *surface_bindings{};
     FluidBodyImpulse *body_impulses{};
     Vec3 *rigid_contact_forces{};
+    Vec3 *contact_normals{};
+    Vec3 *contact_friction_delta{};
+    float *contact_normal_delta{};
+    std::uint32_t *contact_count{};
     std::uint32_t *count{};
 
     void release() noexcept {
@@ -2088,6 +2095,10 @@ struct SoftBodyStorage {
         release_managed(surface_bindings);
         release_managed(body_impulses);
         release_managed(rigid_contact_forces);
+        release_managed(contact_normals);
+        release_managed(contact_friction_delta);
+        release_managed(contact_normal_delta);
+        release_managed(contact_count);
         release_managed(count);
     }
     ~SoftBodyStorage() { release(); }
@@ -3073,7 +3084,8 @@ __global__ void deformable_predict(Vec3 *positions, Vec3 *previous,
         velocities[vertex] = {};
         return;
     }
-    Vec3 velocity = multiply(velocities[vertex], fmaxf(0.0F, 1.0F - damping * dt));
+    Vec3 velocity = multiply(
+        velocities[vertex], 1.0F / (1.0F + damping * dt));
     velocity = add(velocity, multiply(gravity, dt));
     positions[vertex] = add(old, multiply(velocity, dt));
     velocities[vertex] = velocity;
@@ -3082,7 +3094,8 @@ __global__ void deformable_predict(Vec3 *positions, Vec3 *previous,
 __global__ void deformable_project_links(
     const Vec3 *positions, Vec3 *scratch, const float *inverse_masses,
     const std::uint32_t *offsets, const DeformableNeighbor *neighbors,
-    const std::uint8_t *bond_active, std::uint32_t count, float dt) {
+    const std::uint8_t *bond_active, std::uint32_t count, float dt,
+    float maximum_projection_fraction) {
     const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
     if (vertex >= count) return;
     const float self_mass = inverse_masses[vertex];
@@ -3092,11 +3105,14 @@ __global__ void deformable_project_links(
         return;
     }
     Vec3 correction{};
+    float shortest_rest_length = FLT_MAX;
     const std::uint32_t first = offsets[vertex];
     const std::uint32_t last = offsets[vertex + 1U];
     for (std::uint32_t edge = first; edge < last; ++edge) {
         const DeformableNeighbor neighbor = neighbors[edge];
         if (bond_active != nullptr && bond_active[neighbor.bond] == 0U) continue;
+        shortest_rest_length = fminf(shortest_rest_length,
+                                     neighbor.rest_length);
         const Vec3 difference = subtract(position, positions[neighbor.index]);
         const float length = vector_length(difference);
         if (length < 1.0e-7F) continue;
@@ -3110,7 +3126,13 @@ __global__ void deformable_project_links(
     // Keep the rest-graph degree so a broken bond cannot make its surviving
     // neighbors abruptly stiffer and start a fracture cascade.
     const float divisor = static_cast<float>(max(1U, last - first));
-    scratch[vertex] = add(position, multiply(correction, 1.0F / divisor));
+    Vec3 proposal = multiply(correction, 1.0F / divisor);
+    if (maximum_projection_fraction > 0.0F &&
+        shortest_rest_length < FLT_MAX) {
+        proposal = clamp_length(
+            proposal, maximum_projection_fraction * shortest_rest_length);
+    }
+    scratch[vertex] = add(position, proposal);
 }
 
 // Closed-cloth volume is a global constraint. A single deterministic thread
@@ -3265,13 +3287,16 @@ __global__ void deformable_collide(
     float dt, const BodyParameters *parameters,
     const RigidBodyState *states, const TriangleMeshResource *meshes,
     std::uint32_t body_count, FluidBodyImpulse *impulses,
-    Vec3 *contact_forces,
+    Vec3 *contact_forces, Vec3 *contact_normals,
+    float *accumulated_normal_delta,
+    std::uint32_t *deformable_contact_count,
     std::uint32_t *contact_flags, bool static_only,
-    float maximum_speed) {
+    bool reconstruct_free_velocities, float maximum_speed) {
     const std::uint32_t vertex = blockIdx.x * blockDim.x + threadIdx.x;
     if (vertex >= count) return;
     impulses[vertex] = {};
     contact_forces[vertex] = {};
+    if (contact_normals != nullptr) contact_normals[vertex] = {};
     if (inverse_masses[vertex] == 0.0F) return;
     const Vec3 start = previous[vertex];
     Vec3 end = positions[vertex];
@@ -3343,6 +3368,11 @@ __global__ void deformable_collide(
     if (best_body != k_invalid_dense) {
         const BodyParameters body = parameters[best_body];
         const RigidBodyState state = states[best_body];
+        if (contact_normals != nullptr) contact_normals[vertex] = best_normal;
+        if (accumulated_normal_delta != nullptr)
+            accumulated_normal_delta[vertex] += best_penetration;
+        if (deformable_contact_count != nullptr)
+            atomicAdd(deformable_contact_count, 1U);
         Vec3 velocity = multiply(subtract(end, start), 1.0F / dt);
         end = add(end, multiply(best_normal, best_penetration));
         const Vec3 arm = subtract(best_contact, state.position);
@@ -3350,9 +3380,7 @@ __global__ void deformable_collide(
             cross(state.angular_velocity, arm));
         const Vec3 relative = subtract(velocity, body_velocity);
         const float incoming = dot(relative, best_normal);
-        const float recovery = fminf(1.0F,
-            0.1F * best_penetration / dt);
-        if (incoming < recovery) {
+        if (incoming < 0.0F) {
             const float mass = 1.0F / fmaxf(inverse_masses[vertex], 1.0e-6F);
             const Vec3 arm_cross = cross(arm, best_normal);
             const float denominator = 1.0F / mass + body.inverse_mass +
@@ -3360,7 +3388,7 @@ __global__ void deformable_collide(
                     best_normal);
             if (denominator > k_epsilon) {
                 const Vec3 impulse = multiply(best_normal,
-                    fminf(2.0F * mass, (recovery - incoming) / denominator));
+                    -(1.0F + body.restitution) * incoming / denominator);
                 velocity = add(velocity, multiply(impulse, 1.0F / mass));
                 impulses[vertex] = {multiply(impulse, -1.0F),
                     multiply(cross(arm, impulse), -1.0F), best_body};
@@ -3370,7 +3398,7 @@ __global__ void deformable_collide(
         }
         positions[vertex] = end;
         velocities[vertex] = clamp_length(velocity, maximum_speed);
-    } else {
+    } else if (reconstruct_free_velocities) {
         velocities[vertex] = clamp_length(
             multiply(subtract(end, start), 1.0F / dt), maximum_speed);
     }
@@ -3378,27 +3406,71 @@ __global__ void deformable_collide(
 
 __global__ void soft_body_finalize_velocities(
     const Vec3 *positions, const Vec3 *previous, Vec3 *velocities,
-    const float *inverse_masses, const Vec3 *contact_forces,
-    std::uint32_t count, float inverse_dt, float contact_friction,
-    float maximum_speed) {
+    const float *inverse_masses, std::uint32_t count, float inverse_dt,
+    float projection_response, float maximum_speed) {
     const std::uint32_t node = blockIdx.x * blockDim.x + threadIdx.x;
     if (node >= count) return;
     if (inverse_masses[node] == 0.0F) {
         velocities[node] = {};
         return;
     }
-    Vec3 velocity = multiply(subtract(positions[node], previous[node]),
-                             inverse_dt);
+    const Vec3 projected_velocity = multiply(
+        subtract(positions[node], previous[node]), inverse_dt);
+    Vec3 velocity = add(velocities[node], multiply(
+        subtract(projected_velocity, velocities[node]), projection_response));
+    velocities[node] = clamp_length(velocity, maximum_speed);
+}
+
+__global__ void soft_body_apply_contact_friction(
+    Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
+    const Vec3 *contact_forces, const Vec3 *contact_normals,
+    Vec3 *accumulated_friction_delta,
+    const float *accumulated_normal_delta,
+    const std::uint32_t *contact_count, std::uint32_t count,
+    float movable_mass, Vec3 gravity, float dt, float contact_friction,
+    float maximum_speed) {
+    const std::uint32_t node = blockIdx.x * blockDim.x + threadIdx.x;
+    if (node >= count || inverse_masses[node] == 0.0F ||
+        contact_friction <= 0.0F) return;
+    const std::uint32_t supported_nodes = *contact_count;
+    if (supported_nodes == 0U) return;
+    const float normal_squared = length_squared(contact_normals[node]);
+    if (normal_squared <= 1.0e-10F) return;
+    const Vec3 normal = multiply(
+        contact_normals[node], rsqrtf(normal_squared));
+    const Vec3 original_velocity = velocities[node];
+    Vec3 velocity = original_velocity;
     const Vec3 force = contact_forces[node];
     const float force_squared = length_squared(force);
-    if (force_squared > 1.0e-10F && contact_friction > 0.0F) {
-        const Vec3 normal = multiply(force, rsqrtf(force_squared));
-        const Vec3 normal_velocity = multiply(normal, dot(velocity, normal));
-        const Vec3 tangent = subtract(velocity, normal_velocity);
-        velocity = add(normal_velocity,
-            multiply(tangent, expf(-contact_friction * 8.0F / inverse_dt)));
-    }
-    velocities[node] = clamp_length(velocity, maximum_speed);
+    const Vec3 normal_velocity = multiply(normal, dot(velocity, normal));
+    const Vec3 tangent = subtract(velocity, normal_velocity);
+    const float impulse_acceleration = force_squared > 1.0e-10F
+        ? sqrtf(force_squared) * inverse_masses[node] : 0.0F;
+    // Contacts are generated before the graph solve, so a surface node's
+    // direct impulse contains only its own predicted weight. Distribute the
+    // whole movable mass across the active support nodes; otherwise a dense
+    // lattice slides because its interior load never reaches friction.
+    const float supported_acceleration = fabsf(dot(gravity, normal)) *
+        movable_mass * inverse_masses[node] /
+        static_cast<float>(supported_nodes);
+    const float normal_acceleration =
+        fmaxf(impulse_acceleration, supported_acceleration);
+    const float constraint_delta = accumulated_normal_delta != nullptr
+        ? accumulated_normal_delta[node] / dt : 0.0F;
+    const float maximum_delta = contact_friction *
+        fmaxf(normal_acceleration * dt, constraint_delta);
+    Vec3 accumulated = accumulated_friction_delta[node];
+    accumulated = subtract(accumulated,
+        multiply(normal, dot(accumulated, normal)));
+    Vec3 next_accumulated = subtract(accumulated, tangent);
+    next_accumulated = clamp_length(next_accumulated, maximum_delta);
+    const Vec3 applied_delta = subtract(next_accumulated, accumulated);
+    velocity = add(velocity, applied_delta);
+    velocity = clamp_length(velocity, maximum_speed);
+    positions[node] = add(positions[node], multiply(
+        subtract(velocity, original_velocity), dt));
+    velocities[node] = velocity;
+    accumulated_friction_delta[node] = next_accumulated;
 }
 
 __global__ void soft_body_damp_springs(
@@ -5665,6 +5737,12 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
         !finite(options.spring_damping) || options.spring_damping < 0.0F ||
         options.spring_damping > 1.0F ||
         !finite(options.contact_friction) || options.contact_friction < 0.0F ||
+        !finite(options.maximum_projection_fraction) ||
+        options.maximum_projection_fraction <= 0.0F ||
+        options.maximum_projection_fraction > 1.0F ||
+        !finite(options.constraint_velocity_response) ||
+        options.constraint_velocity_response < 0.0F ||
+        options.constraint_velocity_response > 1.0F ||
         !finite(options.maximum_speed) || options.maximum_speed <= 0.0F ||
         options.solver_iterations == 0U || options.solver_iterations > 64U) {
         return failure(StatusCode::invalid_argument,
@@ -5672,6 +5750,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     }
     const std::uint32_t node_count =
         static_cast<std::uint32_t>(options.nodes.size);
+    float movable_mass = 0.0F;
     for (std::uint32_t node = 0U; node < node_count; ++node) {
         if (!finite(options.nodes.data[node]) ||
             (options.inverse_masses.size != 0U &&
@@ -5679,7 +5758,13 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
               options.inverse_masses.data[node] < 0.0F)))
             return failure(StatusCode::invalid_argument,
                            "invalid soft-body node or inverse mass");
+        const float inverse_mass = options.inverse_masses.size != 0U
+            ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
+        if (inverse_mass > 0.0F) movable_mass += 1.0F / inverse_mass;
     }
+    if (!finite(movable_mass) || movable_mass <= 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "soft body needs at least one movable node");
     for (std::uint64_t index = 0U;
          index < options.surface_triangle_indices.size; ++index) {
         if (options.surface_triangle_indices.data[index] >=
@@ -5783,7 +5868,10 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     body->velocity_damping = options.velocity_damping;
     body->spring_damping = options.spring_damping;
     body->contact_friction = options.contact_friction;
+    body->maximum_projection_fraction = options.maximum_projection_fraction;
+    body->constraint_velocity_response = options.constraint_velocity_response;
     body->maximum_speed = options.maximum_speed;
+    body->movable_mass = movable_mass;
     body->solver_iterations = options.solver_iterations;
 #define PM_ALLOC_SOFT(member, count)                                            \
     status = allocate_managed(body->member, count);                             \
@@ -5805,6 +5893,10 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(surface_bindings, body->surface_vertex_count);
     PM_ALLOC_SOFT(body_impulses, body->node_count);
     PM_ALLOC_SOFT(rigid_contact_forces, body->node_count);
+    PM_ALLOC_SOFT(contact_normals, body->node_count);
+    PM_ALLOC_SOFT(contact_friction_delta, body->node_count);
+    PM_ALLOC_SOFT(contact_normal_delta, body->node_count);
+    PM_ALLOC_SOFT(contact_count, 1U);
     PM_ALLOC_SOFT(count, 1U);
 #undef PM_ALLOC_SOFT
     for (std::uint32_t node = 0U; node < body->node_count; ++node) {
@@ -5817,6 +5909,9 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
         body->inverse_masses[node] = options.inverse_masses.size != 0U
             ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
         body->rigid_contact_forces[node] = {};
+        body->contact_normals[node] = {};
+        body->contact_friction_delta[node] = {};
+        body->contact_normal_delta[node] = 0.0F;
     }
     std::copy_n(options.bonds.data, body->bond_count, body->bonds);
     std::fill_n(body->bond_active, body->bond_count, std::uint8_t{1U});
@@ -5831,6 +5926,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::copy_n(options.surface_bindings.data, body->surface_vertex_count,
                 body->surface_bindings);
     *body->count = body->node_count;
+    *body->contact_count = 0U;
     body->alive = true;
     output = {slot, body->generation};
     impl_->soft_bodies[slot] = std::move(body);
@@ -6371,7 +6467,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         for (const auto &body : impl_->soft_bodies) {
             if (body && body->alive)
                 maximum_stages += static_cast<std::size_t>(options.substeps) *
-                    (body->solver_iterations + 3U);
+                    (body->solver_iterations + 2U +
+                     (body->solver_iterations + 1U) / 2U);
         }
         status = impl_->prepare_timing_events(
             maximum_stages + 2U);
@@ -6461,7 +6558,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 deformable_project_links<<<blocks, block_size, 0, stream>>>(
                     cloth.positions, cloth.scratch, cloth.inverse_masses,
                     cloth.offsets, cloth.neighbors, cloth.bond_active,
-                    cloth.vertex_count, substep_timestep);
+                    cloth.vertex_count, substep_timestep, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
                     cloth_project_volume<<<1U, 1U, 0, stream>>>(
@@ -6490,7 +6587,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, impl_->rigid_body_count,
                     cloth.body_impulses, cloth.rigid_contact_forces,
-                    impl_->fluid_body_contact_flags, false, 20.0F);
+                    nullptr, nullptr, nullptr,
+                    impl_->fluid_body_contact_flags,
+                    false, true, 20.0F);
                 fluid_reduce_body_impulses<<<impl_->rigid_body_count,
                                              block_size, 0, stream>>>(
                     cloth.body_impulses, cloth.count, impl_->parameters,
@@ -6529,8 +6628,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.thickness, substep_timestep,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, 0U, cloth.body_impulses,
-                    cloth.rigid_contact_forces,
-                    impl_->fluid_body_contact_flags, false, 20.0F);
+                    cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
+                    impl_->fluid_body_contact_flags, false, true, 20.0F);
             }
             cloth_status = record_timing_stage(TimingStage::cloth_contacts);
             if (!cloth_status) return cloth_status;
@@ -6567,49 +6666,97 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 body.positions, body.previous, body.velocities,
                 body.inverse_masses, body.node_count, options.gravity,
                 substep_timestep, body.velocity_damping);
+            cudaError_t friction_clear_error = cudaMemsetAsync(
+                body.contact_friction_delta, 0,
+                body.node_count * sizeof(Vec3), stream);
+            if (friction_clear_error != cudaSuccess)
+                return cuda_failure(friction_clear_error,
+                    "soft-body friction accumulator clear failed");
+            friction_clear_error = cudaMemsetAsync(
+                body.contact_normal_delta, 0,
+                body.node_count * sizeof(float), stream);
+            if (friction_clear_error != cudaSuccess)
+                return cuda_failure(friction_clear_error,
+                    "soft-body normal accumulator clear failed");
             Status body_status = record_timing_stage(
                 TimingStage::soft_body_prediction);
             if (!body_status) return body_status;
-            if (impl_->rigid_body_count != 0U) {
-                const cudaError_t clear_error = cudaMemsetAsync(
-                    impl_->fluid_body_contact_flags, 0,
-                    impl_->rigid_body_count * sizeof(std::uint32_t), stream);
+            const auto resolve_passive_contacts = [&]() noexcept -> Status {
+                cudaError_t clear_error = cudaMemsetAsync(
+                    body.contact_count, 0, sizeof(std::uint32_t), stream);
                 if (clear_error != cudaSuccess)
                     return cuda_failure(clear_error,
-                        "soft-body contact flags clear failed");
-            }
-            deformable_collide<<<blocks, block_size, 0, stream>>>(
-                body.positions, body.velocities, body.previous,
-                body.inverse_masses, body.node_count, body.node_radius,
-                substep_timestep, impl_->parameters,
-                impl_->states[impl_->current_state], impl_->meshes,
-                impl_->rigid_body_count, body.body_impulses,
-                body.rigid_contact_forces, impl_->fluid_body_contact_flags,
-                true, body.maximum_speed);
-            body_status = record_timing_stage(TimingStage::soft_body_contacts);
+                        "soft-body contact count clear failed");
+                if (impl_->rigid_body_count != 0U) {
+                    clear_error = cudaMemsetAsync(
+                        impl_->fluid_body_contact_flags, 0,
+                        impl_->rigid_body_count * sizeof(std::uint32_t),
+                        stream);
+                    if (clear_error != cudaSuccess)
+                        return cuda_failure(clear_error,
+                            "soft-body contact flags clear failed");
+                }
+                deformable_collide<<<blocks, block_size, 0, stream>>>(
+                    body.positions, body.velocities, body.previous,
+                    body.inverse_masses, body.node_count, body.node_radius,
+                    substep_timestep, impl_->parameters,
+                    impl_->states[impl_->current_state], impl_->meshes,
+                    impl_->rigid_body_count, body.body_impulses,
+                    body.rigid_contact_forces, body.contact_normals,
+                    body.contact_normal_delta,
+                    body.contact_count, impl_->fluid_body_contact_flags,
+                    true, false, body.maximum_speed);
+                return record_timing_stage(TimingStage::soft_body_contacts);
+            };
+            const auto apply_contact_traction = [&]() noexcept {
+                soft_body_apply_contact_friction<<<
+                    blocks, block_size, 0, stream>>>(
+                    body.positions, body.velocities, body.inverse_masses,
+                    body.rigid_contact_forces, body.contact_normals,
+                    body.contact_friction_delta,
+                    body.contact_normal_delta,
+                    body.contact_count, body.node_count, body.movable_mass,
+                    options.gravity, substep_timestep, body.contact_friction,
+                    body.maximum_speed);
+            };
+            // Contact and graph constraints form one position solve. Revisit
+            // the triangle boundary after every two graph passes so spring
+            // projection cannot strand nodes across a wall, while the next
+            // passes distribute each contact correction through the volume.
+            body_status = resolve_passive_contacts();
             if (!body_status) return body_status;
+            apply_contact_traction();
             for (std::uint32_t iteration = 0U;
                  iteration < body.solver_iterations; ++iteration) {
                 deformable_project_links<<<blocks, block_size, 0, stream>>>(
                     body.positions, body.scratch, body.inverse_masses,
                     body.offsets, body.neighbors, body.bond_active,
-                    body.node_count, substep_timestep);
+                    body.node_count, substep_timestep,
+                    body.maximum_projection_fraction);
                 std::swap(body.positions, body.scratch);
                 body_status = record_timing_stage(
                     TimingStage::soft_body_constraints);
                 if (!body_status) return body_status;
+                if ((iteration + 1U) % 2U == 0U ||
+                    iteration + 1U == body.solver_iterations) {
+                    body_status = resolve_passive_contacts();
+                    if (!body_status) return body_status;
+                    if (iteration + 1U != body.solver_iterations)
+                        apply_contact_traction();
+                }
             }
             soft_body_finalize_velocities<<<blocks, block_size, 0, stream>>>(
                 body.positions, body.previous, body.velocities,
-                body.inverse_masses, body.rigid_contact_forces,
-                body.node_count, 1.0F / substep_timestep,
-                body.contact_friction, body.maximum_speed);
+                body.inverse_masses, body.node_count,
+                1.0F / substep_timestep,
+                body.constraint_velocity_response, body.maximum_speed);
             soft_body_damp_springs<<<blocks, block_size, 0, stream>>>(
                 body.positions, body.velocities, body.velocity_scratch,
                 body.inverse_masses, body.offsets, body.neighbors,
                 body.bond_active, body.node_count, body.spring_damping,
                 body.maximum_speed);
             std::swap(body.velocities, body.velocity_scratch);
+            apply_contact_traction();
             const std::uint32_t surface_blocks =
                 (body.surface_vertex_count + block_size - 1U) / block_size;
             soft_body_update_surface<<<surface_blocks, block_size, 0, stream>>>(
@@ -7024,7 +7171,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 deformable_project_links<<<cloth_blocks, block_size, 0, stream>>>(
                     cloth.positions, cloth.scratch, cloth.inverse_masses,
                     cloth.offsets, cloth.neighbors, cloth.bond_active,
-                    cloth.vertex_count, dt);
+                    cloth.vertex_count, dt, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
                     cloth_project_volume<<<1U, 1U, 0, stream>>>(
@@ -7499,7 +7646,7 @@ Status World::collect_statistics(WorldStatistics &output,
         output.soft_body_node_count += body->node_count;
         output.allocated_bytes +=
             static_cast<std::size_t>(body->node_count) *
-                (7U * sizeof(Vec3) + sizeof(float) +
+                (9U * sizeof(Vec3) + 2U * sizeof(float) +
                  sizeof(FluidBodyImpulse)) +
             static_cast<std::size_t>(body->bond_count) *
                 (sizeof(SoftBodyBond) + sizeof(std::uint8_t)) +
@@ -7510,7 +7657,7 @@ Status World::collect_statistics(WorldStatistics &output,
             static_cast<std::size_t>(body->surface_vertex_count) *
                 (2U * sizeof(Vec3) + sizeof(SoftBodySurfaceBinding)) +
             static_cast<std::size_t>(body->surface_index_count) *
-                sizeof(std::uint32_t) + sizeof(std::uint32_t);
+                sizeof(std::uint32_t) + 2U * sizeof(std::uint32_t);
     }
     output.emitted_particle_count = impl_->emitted_particle_count;
     output.destroyed_particle_count = impl_->destroyed_particle_count;

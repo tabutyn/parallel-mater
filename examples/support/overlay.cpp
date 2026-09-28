@@ -785,9 +785,7 @@ bool draw_soft_body_debug_overlay(std::vector<std::uint32_t> &rgba,
     if (options.bonds) {
         std::vector<SoftBodyBond> bonds;
         if (!copy(body.bonds, bonds, "soft-body bonds")) return false;
-        const std::size_t stride = std::max<std::size_t>(
-            1U, (bonds.size() + 2'499U) / 2'500U);
-        for (std::size_t index = 0U; index < bonds.size(); index += stride) {
+        for (std::size_t index = 0U; index < bonds.size(); ++index) {
             const SoftBodyBond &bond = bonds[index];
             if (bond.first >= nodes.size() || bond.second >= nodes.size())
                 continue;
@@ -822,7 +820,7 @@ bool draw_soft_body_debug_overlay(std::vector<std::uint32_t> &rgba,
         rectangle(rgba, width, height, 18, static_cast<int>(height) - 88,
                   650, static_cast<int>(height) - 66, {5, 12, 18, 205});
         text(rgba, width, height, 28, static_cast<int>(height) - 81,
-             "SOFT BODY  Z NORMALS  V WIREFRAME  B BONDS",
+             "SOFT BODY  Z NORMALS  V SPRINGS  B SURFACE",
              {235, 240, 245, 255}, 1);
     }
     return true;

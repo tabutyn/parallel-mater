@@ -134,13 +134,17 @@ masses, an indexed render surface, and four-node delta-skinning bindings.
 spans for physical nodes, velocities, bonds, the deforming surface, and passive
 rigid contact forces.
 
-The first solver stage follows the proven lab ordering: integrate nodes under
-gravity, resolve node spheres against passive rigid triangle BVHs, project the
-spring graph with compliant Jacobi iterations, reconstruct velocity from the
-corrected positions, damp bond-relative velocity, and update the authored
-surface. Node radius, mass/inverse masses, compliance, global and spring
-damping, contact friction, maximum speed, and iteration count are API
-configuration rather than gallery constants. Dynamic rigid reactions and
+The first solver stage follows the proven lab model: integrate nodes under
+gravity, jointly solve node-sphere/passive-triangle contacts and bounded
+compliant Jacobi spring constraints, blend projected motion back into velocity,
+damp bond-relative velocity, apply Coulomb traction bounded by accumulated
+normal constraint work, and update the authored surface. Interleaving a contact
+pass after every two graph passes prevents a later spring projection from
+stranding a node beyond a wall. Contact restitution comes from the passive
+rigid material rather than penetration depth. Node radius,
+mass/inverse masses, compliance, projection bound/velocity response, global
+and spring damping, contact friction, maximum speed, and iteration count are
+API configuration rather than gallery constants. Dynamic rigid reactions and
 fluid/cloth coupling are intentionally deferred without changing this resource
 or surface contract.
 

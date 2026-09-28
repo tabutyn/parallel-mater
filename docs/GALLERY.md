@@ -104,13 +104,14 @@ layer.
 Soft Body can be selected with `--soft-body`. It starts with straight-down
 gravity; arrow keys steer gravity through the shared deformable control path,
 `R` rebuilds the API resource, and `F` reports node prediction, spring
-projection, and passive triangle contact timings.
+projection, and passive triangle contact timings. `V` draws every generated
+internal API spring; `B` draws the authored surface wireframe.
 
 All gallery entries create `World` with opt-in rolling physics capture. `Z`
 shows available contact and deformable-surface normals, `X` rigid inputs/contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
-`V` switches to available particle/deformable structure, `B` shows cloth or
-soft-body bonds, and
+`V` switches to available particle/deformable structure, `B` shows cloth bonds
+or the soft-body surface, and
 `M` copies the common API capture to a self-describing log in `/tmp`. Missing
 systems simply contribute no vectors. Rendering and log persistence stay in
 gallery support; state, forces, contacts, and the chronological capture come

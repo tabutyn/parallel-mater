@@ -308,6 +308,10 @@ struct SoftBodyOptions {
     float velocity_damping{0.8F};
     float spring_damping{0.85F};
     float contact_friction{0.5F};
+    // Clamp each graph projection relative to that node's shortest live bond.
+    float maximum_projection_fraction{0.20F};
+    // Fraction of projection displacement reconstructed as velocity.
+    float constraint_velocity_response{0.70F};
     float maximum_speed{12.0F};
     std::uint32_t solver_iterations{8U};
 };

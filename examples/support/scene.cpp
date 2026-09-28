@@ -1075,10 +1075,14 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             extras.number("pm_spring_damping").value_or(0.85));
         body.contact_friction = static_cast<float>(
             extras.number("pm_contact_friction").value_or(0.5));
+        body.maximum_projection_fraction = static_cast<float>(extras.number(
+            "pm_maximum_projection_fraction").value_or(0.20));
+        body.constraint_velocity_response = static_cast<float>(extras.number(
+            "pm_constraint_velocity_response").value_or(0.70));
         body.maximum_speed = static_cast<float>(
-            extras.number("pm_maximum_speed").value_or(12.0));
+            extras.number("pm_maximum_speed").value_or(2.0));
         const double solver_iterations =
-            extras.number("pm_solver_iterations").value_or(8.0);
+            extras.number("pm_solver_iterations").value_or(16.0);
         if (!finite(scale) || scale.x <= 0.0F || scale.y <= 0.0F ||
             scale.z <= 0.0F || !finite(total_mass) || total_mass <= 0.0F ||
             !finite(spacing) || spacing <= 0.0F || spacing > 10.0F ||
@@ -1088,7 +1092,14 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             !finite(body.velocity_damping) || body.velocity_damping < 0.0F ||
             !finite(body.spring_damping) || body.spring_damping < 0.0F ||
             body.spring_damping > 1.0F || !finite(body.contact_friction) ||
-            body.contact_friction < 0.0F || !finite(body.maximum_speed) ||
+            body.contact_friction < 0.0F ||
+            !finite(body.maximum_projection_fraction) ||
+            body.maximum_projection_fraction <= 0.0F ||
+            body.maximum_projection_fraction > 1.0F ||
+            !finite(body.constraint_velocity_response) ||
+            body.constraint_velocity_response < 0.0F ||
+            body.constraint_velocity_response > 1.0F ||
+            !finite(body.maximum_speed) ||
             body.maximum_speed <= 0.0F || solver_iterations < 1.0 ||
             solver_iterations > 64.0 ||
             std::floor(solver_iterations) != solver_iterations) {
@@ -1604,6 +1615,10 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .velocity_damping = definition.velocity_damping,
             .spring_damping = definition.spring_damping,
             .contact_friction = definition.contact_friction,
+            .maximum_projection_fraction =
+                definition.maximum_projection_fraction,
+            .constraint_velocity_response =
+                definition.constraint_velocity_response,
             .maximum_speed = definition.maximum_speed,
             .solver_iterations = definition.solver_iterations}, body);
         if (!status) return status;

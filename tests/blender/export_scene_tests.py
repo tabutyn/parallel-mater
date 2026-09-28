@@ -115,7 +115,13 @@ class ExportSceneTests(unittest.TestCase):
         for obj in list(bpy.context.scene.objects):
             if not any(mod.type == "SOFT_BODY" for mod in obj.modifiers):
                 bpy.data.objects.remove(obj, do_unlink=True)
-        self.check_export(Counter(soft_body=1))
+        document = self.check_export(Counter(soft_body=1))
+        extras = next(node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "soft_body")
+        self.assertEqual(extras["pm_maximum_projection_fraction"], 0.20)
+        self.assertEqual(extras["pm_constraint_velocity_response"], 0.70)
+        self.assertEqual(extras["pm_maximum_speed"], 2.0)
+        self.assertEqual(extras["pm_solver_iterations"], 16)
 
     def test_failed_export_cleans_up_and_restores_selection(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))

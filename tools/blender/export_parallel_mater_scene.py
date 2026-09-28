@@ -476,10 +476,14 @@ def copy_soft_body_for_export(
         source.get("pm_spring_damping", 0.85))
     exported["pm_contact_friction"] = float(
         source.get("pm_contact_friction", settings.friction))
+    exported["pm_maximum_projection_fraction"] = float(
+        source.get("pm_maximum_projection_fraction", 0.20))
+    exported["pm_constraint_velocity_response"] = float(
+        source.get("pm_constraint_velocity_response", 0.70))
     exported["pm_maximum_speed"] = float(
-        source.get("pm_maximum_speed", 12.0))
+        source.get("pm_maximum_speed", 2.0))
     exported["pm_solver_iterations"] = int(
-        source.get("pm_solver_iterations", 8))
+        source.get("pm_solver_iterations", 16))
     if len(mesh.materials) == 0:
         material = fallback_material(index, False)
         created_materials.append(material)
