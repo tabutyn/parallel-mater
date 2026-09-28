@@ -317,9 +317,17 @@ void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
              timings.rigid_contact_solve.launch_count}},
         TimingRow{"PREDICT", timings.soft_body_prediction},
         TimingRow{"SPRINGS", timings.soft_body_constraints},
-        TimingRow{"CONTACTS", timings.soft_body_contacts}};
-    timing_panel(rgba, width, height, 430, 230, "SOFT BODY GPU KERNELS",
-                 timings.available, rows, 26, 177,
+        TimingRow{"CONTACTS", timings.soft_body_contacts},
+        TimingRow{"CLOTH STEP",
+            {timings.cloth_prediction.total_milliseconds +
+             timings.cloth_constraints.total_milliseconds +
+             timings.cloth_contacts.total_milliseconds,
+             timings.cloth_prediction.launch_count +
+             timings.cloth_constraints.launch_count +
+             timings.cloth_contacts.launch_count}},
+        TimingRow{"SOFT CLOTH", timings.soft_body_cloth_contacts}};
+    timing_panel(rgba, width, height, 430, 282, "SOFT BODY GPU KERNELS",
+                 timings.available, rows, 26, 229,
                  timings.total_gpu_milliseconds);
 }
 
@@ -338,6 +346,7 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"BODY INDEX", physics.fluid_body_index},
         TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
         TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
+        TimingRow{"SOFT CLOTH", physics.soft_body_cloth_contacts},
         TimingRow{"EVENTS", physics.fluid_contact_events},
         TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
     timing_panel(rgba, width, height, 480, 502,
@@ -492,6 +501,8 @@ void draw_physics_debug_overlay(
                 frame.cloth_vertices.data[index];
             draw_vector(sample.position, sample.rigid_contact_force,
                         {52, 135, 255, 238}, 0.025F);
+            draw_vector(sample.position, sample.soft_body_contact_force,
+                        {205, 110, 255, 238}, 0.025F);
         }
         for (std::uint64_t index = 0U; index < frame.soft_body_nodes.size;
              index += stride_for(frame.soft_body_nodes.size)) {
@@ -499,6 +510,8 @@ void draw_physics_debug_overlay(
                 frame.soft_body_nodes.data[index];
             draw_vector(sample.position, sample.rigid_contact_force,
                         {145, 92, 255, 238}, 0.025F);
+            draw_vector(sample.position, sample.cloth_contact_force,
+                        {205, 110, 255, 238}, 0.025F);
         }
         const float inverse_timestep = frame.timestep > 0.0F
             ? 1.0F / frame.timestep : 0.0F;
@@ -564,7 +577,7 @@ void draw_physics_debug_overlay(
         rectangle(rgba, width, height, 18, static_cast<int>(height) - 62,
                   690, static_cast<int>(height) - 14, {5, 12, 18, 205});
         text(rgba, width, height, 28, static_cast<int>(height) - 55,
-             "Z NORMALS  X RIGID FORCES  C FLUID FORCES  N VELOCITIES",
+             "Z NORMALS  X CONTACT FORCES  C FLUID FORCES  N VELOCITIES",
              {235, 240, 245, 255}, 1);
         char summary[128]{};
         std::snprintf(summary, sizeof(summary),
@@ -594,13 +607,34 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         return false;
     };
     std::vector<Vec3> positions;
+    std::vector<Vec3> surface;
     std::vector<std::uint32_t> triangles;
-    if (!copy(cloth.positions, positions, "cloth positions") ||
-        !copy(cloth.triangle_indices, triangles, "cloth triangles"))
-        return false;
-    if (triangles.size() % 3U != 0U) {
-        error = "cloth debug triangle index count is not divisible by three";
-        return false;
+    if (!copy(cloth.positions, positions, "cloth positions")) return false;
+    const bool fractured_surface = cloth.surface_positions.size != 0U;
+    const auto &triangle_positions = fractured_surface ? surface : positions;
+    if (options.wireframe || options.normals) {
+        if (fractured_surface != (cloth.surface_triangle_indices.size != 0U)) {
+            error = "cloth debug surface positions and indices disagree";
+            return false;
+        }
+        // Authored connectivity belongs to the physical graph. After tearing,
+        // draw the same triangle-local surface that the solid renderer uses.
+        if (fractured_surface &&
+            !copy(cloth.surface_positions, surface, "cloth surface positions"))
+            return false;
+        if (!copy(fractured_surface ? cloth.surface_triangle_indices
+                                    : cloth.triangle_indices,
+                  triangles, "cloth surface triangles")) return false;
+        if (triangles.size() % 3U != 0U) {
+            error = "cloth debug triangle index count is not divisible by three";
+            return false;
+        }
+        for (const std::uint32_t index : triangles) {
+            if (index >= triangle_positions.size()) {
+                error = "cloth debug triangle index is out of range";
+                return false;
+            }
+        }
     }
     if (options.wireframe) {
         const Color wire{26, 230, 255, 225};
@@ -608,17 +642,11 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
              triangle += 3U) {
             const std::uint32_t indices[3]{triangles[triangle],
                 triangles[triangle + 1U], triangles[triangle + 2U]};
-            if (indices[0] >= positions.size() ||
-                indices[1] >= positions.size() ||
-                indices[2] >= positions.size()) {
-                error = "cloth debug triangle index is out of range";
-                return false;
-            }
             for (int edge = 0; edge < 3; ++edge) {
                 const ScreenPoint first = project(
-                    positions[indices[edge]], camera, width, height);
+                    triangle_positions[indices[edge]], camera, width, height);
                 const ScreenPoint second = project(
-                    positions[indices[(edge + 1) % 3]], camera, width, height);
+                    triangle_positions[indices[(edge + 1) % 3]], camera, width, height);
                 if (first.visible && second.visible)
                     line(rgba, width, height, first.x, first.y,
                          second.x, second.y, wire);
@@ -634,6 +662,7 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         const std::size_t stride = std::max<std::size_t>(
             1U, (bonds.size() + 2'499U) / 2'500U);
         for (std::size_t index = 0U; index < bonds.size(); index += stride) {
+            if (index < active.size() && active[index] == 0U) continue;
             const ClothBond &bond = bonds[index];
             if (bond.first >= positions.size() ||
                 bond.second >= positions.size()) continue;
@@ -642,33 +671,30 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
             const ScreenPoint second = project(
                 positions[bond.second], camera, width, height);
             if (!first.visible || !second.visible) continue;
-            const bool enabled = index >= active.size() || active[index] != 0U;
             line(rgba, width, height, first.x, first.y, second.x, second.y,
-                 enabled ? Color{255, 155, 25, 220}
-                         : Color{255, 45, 70, 235});
+                 {255, 155, 25, 220});
         }
     }
     std::vector<Vec3> normals;
     if (options.normals) {
-        normals.assign(positions.size(), {});
+        normals.assign(triangle_positions.size(), {});
         for (std::size_t triangle = 0U; triangle < triangles.size();
              triangle += 3U) {
             const std::uint32_t a = triangles[triangle];
             const std::uint32_t b = triangles[triangle + 1U];
             const std::uint32_t c = triangles[triangle + 2U];
-            if (a >= positions.size() || b >= positions.size() ||
-                c >= positions.size()) continue;
-            const Vec3 face = cross(subtract(positions[b], positions[a]),
-                                    subtract(positions[c], positions[a]));
+            const Vec3 face = cross(subtract(triangle_positions[b], triangle_positions[a]),
+                                    subtract(triangle_positions[c], triangle_positions[a]));
             normals[a] = add(normals[a], face);
             normals[b] = add(normals[b], face);
             normals[c] = add(normals[c], face);
         }
         for (Vec3 &normal : normals) normal = normalized(normal);
     }
-    const auto draw_vectors = [&](const std::vector<Vec3> &vectors,
+    const auto draw_vectors = [&](const std::vector<Vec3> &origins,
+                                  const std::vector<Vec3> &vectors,
                                   float fixed_length, Color color) {
-        const std::size_t count = std::min(positions.size(), vectors.size());
+        const std::size_t count = std::min(origins.size(), vectors.size());
         for (std::size_t index = 0U; index < count; ++index) {
             const float magnitude = length(vectors[index]);
             if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) continue;
@@ -676,26 +702,29 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
                 ? fixed_length
                 : std::clamp(0.003F * magnitude, 0.012F, 0.14F);
             const Vec3 endpoint = add(
-                positions[index], multiply(vectors[index],
+                origins[index], multiply(vectors[index],
                                             arrow_length / magnitude));
             arrow(rgba, width, height,
-                  project(positions[index], camera, width, height),
+                  project(origins[index], camera, width, height),
                   project(endpoint, camera, width, height), color);
         }
     };
     if (options.normals)
-        draw_vectors(normals, 0.065F, {31, 255, 56, 242});
+        draw_vectors(triangle_positions, normals, 0.065F, {31, 255, 56, 242});
     if (options.rigid_contact_forces) {
         std::vector<Vec3> forces;
         if (!copy(cloth.rigid_contact_forces, forces,
                   "cloth rigid contact forces")) return false;
-        draw_vectors(forces, 0.0F, {31, 122, 255, 242});
+        draw_vectors(positions, forces, 0.0F, {31, 122, 255, 242});
+        if (!copy(cloth.soft_body_contact_forces, forces,
+                  "cloth soft-body contact forces")) return false;
+        draw_vectors(positions, forces, 0.0F, {205, 110, 255, 242});
     }
     if (options.fluid_contact_forces) {
         std::vector<Vec3> forces;
         if (!copy(cloth.fluid_contact_forces, forces,
                   "cloth fluid contact forces")) return false;
-        draw_vectors(forces, 0.0F, {255, 219, 20, 242});
+        draw_vectors(positions, forces, 0.0F, {255, 219, 20, 242});
     }
     if (options.normals || options.rigid_contact_forces ||
         options.fluid_contact_forces || options.wireframe || options.bonds) {
@@ -799,20 +828,21 @@ bool draw_soft_body_debug_overlay(std::vector<std::uint32_t> &rgba,
         }
     }
     if (options.rigid_contact_forces) {
-        std::vector<Vec3> forces;
-        if (!copy(body.rigid_contact_forces, forces,
-                  "soft-body rigid contact forces")) return false;
-        const std::size_t count = std::min(nodes.size(), forces.size());
-        for (std::size_t node = 0U; node < count; ++node) {
-            const float magnitude = length(forces[node]);
-            if (!(magnitude > 1.0e-5F)) continue;
-            const float arrow_length =
-                std::clamp(0.003F * magnitude, 0.012F, 0.14F);
-            arrow(rgba, width, height,
-                project(nodes[node], camera, width, height),
-                project(add(nodes[node], multiply(forces[node],
-                    arrow_length / magnitude)), camera, width, height),
-                {31, 122, 255, 242});
+        for (auto source : {body.rigid_contact_forces, body.cloth_contact_forces}) {
+            std::vector<Vec3> forces;
+            if (!copy(source, forces, "soft-body contact forces")) return false;
+            const std::size_t count = std::min(nodes.size(), forces.size());
+            for (std::size_t node = 0U; node < count; ++node) {
+                const float magnitude = length(forces[node]);
+                if (!(magnitude > 1.0e-5F)) continue;
+                const float arrow_length =
+                    std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+                arrow(rgba, width, height,
+                    project(nodes[node], camera, width, height),
+                    project(add(nodes[node], multiply(forces[node],
+                        arrow_length / magnitude)), camera, width, height),
+                    {31, 122, 255, 242});
+            }
         }
     }
     if (options.normals || options.rigid_contact_forces ||
@@ -831,8 +861,11 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
     constexpr int row_height = 68;
-    const int panel_height = 81 + row_height *
-        static_cast<int>(gallery_entries.size());
+    const int count = static_cast<int>(gallery_entries.size());
+    const int visible = std::clamp((static_cast<int>(height) - 110) / row_height, 1, count);
+    const int selected = static_cast<int>(gallery_context_index(selection));
+    const int first = std::clamp(selected - visible / 2, 0, count - visible);
+    const int panel_height = 81 + row_height * visible;
     const int top = std::max(14, (static_cast<int>(height) - panel_height) / 2);
     rectangle(rgba, width, height, center - 255, top, center + 255,
               top + panel_height,
@@ -859,7 +892,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
     };
 
     int y = top + 78;
-    for (const GalleryEntry &entry : gallery_entries) {
+    for (int index = first; index < first + visible; ++index) {
+        const GalleryEntry &entry = gallery_entries[static_cast<std::size_t>(index)];
         row(y, entry.context, color(entry.background), color(entry.icon),
             entry.name, entry.help, {105, 255, 155, 255});
         y += row_height;

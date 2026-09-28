@@ -22,6 +22,7 @@ enum class GalleryContext : std::uint8_t {
     water_cloth,
     soft_body,
     soft_body_rigid,
+    soft_body_cloth,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -36,6 +37,7 @@ enum class GallerySceneSource : std::uint8_t {
     water_cloth,
     soft_body,
     soft_body_rigid,
+    soft_body_cloth,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -143,6 +145,14 @@ inline constexpr std::array gallery_entries{
         {46, 38, 64, 235}, {190, 118, 255},
         {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.72F,
          .pitch = 0.35F}, false, false, 0U, 0U, true},
+    GalleryEntry{GalleryContext::soft_body_cloth,
+        GallerySceneSource::soft_body_cloth,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--soft-body-cloth", "SOFT BODY CLOTH",
+        "INTACT BRIDGE  TEARABLE CURTAIN  ARROWS GRAVITY",
+        {42, 40, 62, 235}, {174, 128, 245},
+        {.target = {0.0F, 0.6F, -1.5F}, .distance_scale = 0.78F,
+         .pitch = 0.70F}, false, true, 0U, 0U, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(

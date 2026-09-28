@@ -59,6 +59,9 @@ Headless physics builds remain free of OpenGL and OptiX.
 11. **Soft Body Rigid** — the same API lattice collides with two Blender-authored
     active spheres, transferring equal-and-opposite linear and angular impulses
     without a second soft-body solver.
+12. **Soft Body Cloth** — a soft sphere lands on an intact pinned bridge over a
+    pit, then arrow-key gravity rolls it into a tearable curtain. Both sheets
+    share the API coupling and use independently authored fracture settings.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -70,7 +73,7 @@ body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
-Soft Body Rigid.
+Soft Body Rigid, Soft Body Cloth.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -112,18 +115,26 @@ projection, and passive triangle contact timings. `V` draws every generated
 internal API spring; `B` draws the authored surface wireframe.
 Soft Body Rigid can be selected with `--soft-body-rigid`. It reuses all of those
 controls and diagnostics while two active spheres collide with the lattice.
+Soft Body Cloth can be selected with `--soft-body-cloth`. It starts with
+gravity down and reuses those controls. `F` also reports cloth stepping and
+soft/cloth coupling. The bridge's Blender `pm_break_strain` is zero; the
+curtain's is 0.10. Both use the common exporter and API fracture implementation.
 
 All gallery entries create `World` with opt-in rolling physics capture. `Z`
-shows available contact and deformable-surface normals, `X` rigid inputs/contact forces,
+shows available contact and deformable-surface normals, `X` rigid inputs and
+rigid/deformable contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
-`V` switches to available particle/deformable structure, `B` shows cloth bonds
+`V` switches to available particle/deformable structure, `B` shows active cloth bonds
 or the soft-body surface, and
 `M` copies the common API capture to a self-describing log in `/tmp`. Missing
 systems simply contribute no vectors. Rendering and log persistence stay in
 gallery support; state, forces, contacts, and the chronological capture come
 from the public API. `--physics-capture file.log` exercises the same writer in
-headless runs. `--water-cloth-debug` exercises the original four Water Cloth
-overlays in a headless render.
+headless runs. `--cloth-debug` draws overlays for every cloth in the selected
+scene; the legacy `--water-cloth-debug` also selects Water Cloth. Wireframe and
+normals follow the API's separated triangle surface after tearing; broken
+bonds are omitted rather than drawn across detached fragments. Force vectors
+remain attached to physical nodes.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.

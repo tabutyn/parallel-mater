@@ -42,6 +42,8 @@ struct ClothDebugOptions {
 
 // Shared cloth diagnostics. Data comes directly from ClothDeviceView so any
 // client renderer can reproduce the gallery's Z/X/C/V inspection modes.
+// Surface normals/wireframe follow fracture topology; bonds show only live
+// physical constraints, and force vectors remain anchored to physical nodes.
 [[nodiscard]] bool draw_cloth_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, ClothDeviceView cloth, Camera camera,

@@ -107,6 +107,8 @@ bool write_physics_debug_capture(World &world,
             vector(stream, sample.rigid_contact_force);
             stream << " fluid_contact_force ";
             vector(stream, sample.fluid_contact_force);
+            stream << " soft_body_contact_force ";
+            vector(stream, sample.soft_body_contact_force);
             stream << '\n';
         }
         for (const PhysicsDebugSoftBodySample &sample : frame.soft_body_nodes) {
@@ -118,6 +120,8 @@ bool write_physics_debug_capture(World &world,
             vector(stream, sample.velocity);
             stream << " rigid_contact_force ";
             vector(stream, sample.rigid_contact_force);
+            stream << " cloth_contact_force ";
+            vector(stream, sample.cloth_contact_force);
             stream << '\n';
         }
         for (const RigidContactEvent &contact : frame.rigid_contacts) {

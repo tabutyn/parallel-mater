@@ -65,6 +65,7 @@ bool run_api_fracture() {
     for (int frame = 0; frame < 12; ++frame)
         if (!check(world.step({.gravity = {0.0F, -50.0F, 0.0F}}),
                    "step API fracture cloth")) return false;
+    if (!check(world.cloth_view(cloth, view), "refresh split cloth")) return false;
     std::vector<std::uint8_t> active(view.active_bonds.size);
     std::vector<ClothBond> bonds(view.bonds.size);
     std::vector<std::uint32_t> source(view.surface_source_indices.size);
@@ -88,7 +89,7 @@ bool run_api_fracture() {
     const std::size_t broken = std::count(active.begin(), active.end(), std::uint8_t{0U});
     const bool valid_bonds = std::all_of(bonds.begin(), bonds.end(),
         [&](const ClothBond &bond) {
-            return bond.first < vertices.size() && bond.second < vertices.size() &&
+            return bond.first < view.vertex_count && bond.second < view.vertex_count &&
                    bond.rest_length > 0.0F;
         });
     const bool stable_surface = std::all_of(surface.begin(), surface.end(),
@@ -102,7 +103,7 @@ bool run_api_fracture() {
         if (source[corner] != triangles[corner] ||
             surface_triangles[corner] != corner) return false;
     return broken > 0U && broken < bonds.size() && valid_bonds && stable_surface &&
-           original_triangles == triangles;
+           view.vertex_count > vertices.size() && original_triangles != triangles;
 }
 
 bool run_tear() {
@@ -162,6 +163,12 @@ bool run_tear() {
                                .gravity = {0.0F, -6.93671752F,
                                            -6.93671752F}}),
                    "roll tear ball")) return false;
+        if (!check(world.cloth_view(instance.cloths[0], view), "refresh torn cloth")) return false;
+        physical.resize(view.vertex_count);
+        std::vector<std::uint32_t> current_indices(view.triangle_indices.size);
+        if (cudaMemcpy(current_indices.data(), view.triangle_indices.data,
+                       current_indices.size() * sizeof(std::uint32_t), cudaMemcpyDeviceToHost) != cudaSuccess)
+            return false;
         RigidBodyState sampled_body{};
         if (!check(world.read_rigid_body_state(instance.rigid_bodies[active],
                                                sampled_body), "sample tear body") ||
@@ -176,7 +183,8 @@ bool run_tear() {
             for (std::size_t edge = 0U; edge < 3U; ++edge) {
                 const auto a = mesh.indices[base + edge];
                 const auto b = mesh.indices[base + (edge + 1U) % 3U];
-                const float ratio = length(physical[a], physical[b]) /
+                const float ratio = length(physical[current_indices[base + edge]],
+                    physical[current_indices[base + (edge + 1U) % 3U]]) /
                     length(mesh.vertices[a].position, mesh.vertices[b].position);
                 if (sampled_body.position.z > 1.0F)
                     remote_max_ratio = std::max(remote_max_ratio, ratio);
@@ -204,10 +212,20 @@ bool run_tear() {
                    indices.size() * sizeof(std::uint32_t),
                    cudaMemcpyDeviceToHost) != cudaSuccess) return false;
     float maximum_ratio = 0.0F;
+    float maximum_detached_ratio = 0.0F;
+    std::vector<std::uint32_t> degrees(view.vertex_count);
+    std::vector<float> inverse_masses(view.vertex_count);
+    if (cudaMemcpy(inverse_masses.data(), view.inverse_masses.data,
+                   inverse_masses.size()*sizeof(float),cudaMemcpyDeviceToHost) != cudaSuccess)
+        return false;
+    for (auto node : indices) {
+        if (node >= view.vertex_count) return false;
+        ++degrees[node];
+    }
     for (std::size_t base = 0U; base < indices.size(); base += 3U) {
-        if (indices[base] != mesh.indices[base] ||
-            indices[base + 1U] != mesh.indices[base + 1U] ||
-            indices[base + 2U] != mesh.indices[base + 2U]) return false;
+        if (indices[base] >= view.vertex_count ||
+            indices[base + 1U] >= view.vertex_count ||
+            indices[base + 2U] >= view.vertex_count) return false;
         for (std::size_t edge = 0U; edge < 3U; ++edge) {
             const auto a = mesh.indices[base + edge];
             const auto b = mesh.indices[base + (edge + 1U) % 3U];
@@ -215,6 +233,12 @@ bool run_tear() {
                 length(surface[base + edge],
                        surface[base + (edge + 1U) % 3U]) /
                 length(mesh.vertices[a].position, mesh.vertices[b].position));
+            if (degrees[indices[base]] == 1U && degrees[indices[base+1]] == 1U &&
+                degrees[indices[base+2]] == 1U && inverse_masses[indices[base]] > 0 &&
+                inverse_masses[indices[base+1]] > 0 && inverse_masses[indices[base+2]] > 0)
+                maximum_detached_ratio = std::max(maximum_detached_ratio,
+                    length(surface[base+edge],surface[base+(edge+1U)%3U]) /
+                    length(mesh.vertices[a].position,mesh.vertices[b].position));
         }
     }
     std::cout << "Tear settled_broken=" << settled_broken
@@ -227,6 +251,7 @@ bool run_tear() {
               << " remote_max_ratio=" << remote_max_ratio
               << " contact_max_ratio=" << contact_max_ratio
               << " remaining_max_edge_ratio=" << maximum_ratio
+              << " detached_max_edge_ratio=" << maximum_detached_ratio
               << " initial_body_y=" << initial_body.position.y
               << " settled_body_y=" << settled_body.position.y
               << " final_body_y=" << final_body.position.y
@@ -268,7 +293,11 @@ bool run_tear() {
            initial_body.position.y > settled_body.position.y &&
            std::abs(settled_body.position.z - initial_body.position.z) < 0.2F &&
            final_body.position.z < -0.5F &&
-           maximum_ratio <= 1.15F;
+           // Connected material follows authored compliance/break strain;
+           // detached triangles retain their local material shape. The old
+           // test measured fitted render triangles, not physical geometry.
+           maximum_ratio <= 1.05F + scene.cloths[0].break_strain &&
+           maximum_detached_ratio <= 1.15F;
 }
 
 bool run_paint() {

@@ -115,8 +115,12 @@ deformable debug controls. `--soft-body-rigid` loads
 `SoftbodyRigidBody.blend` and uses the
 same API solver while two active spheres exchange balanced linear and angular
 contact impulses with the lattice.
+`--soft-body-cloth` loads `SoftbodyCloth.blend`: a soft sphere lands on an intact
+cloth bridge over a pit and can be rolled into a separate tearable curtain.
+Each cloth carries its own `pm_break_strain` Blender custom property. The shared
+API handles contacts, friction, and fracture, with gravity initially down.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
-normals, `X` rigid and rigid-contact forces, `C` fluid acceleration/reaction
+normals, `X` rigid and deformable contact forces, `C` fluid acceleration/reaction
 forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.
 `V` exposes particles, cloth structure, or every soft-body spring where those
 systems exist; `B` shows cloth bonds or the soft-body surface wireframe. The

@@ -88,7 +88,7 @@ class ExportSceneTests(unittest.TestCase):
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
-                     "SoftbodyRigidBody"):
+                     "SoftbodyRigidBody", "SoftbodyCloth"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -103,6 +103,21 @@ class ExportSceneTests(unittest.TestCase):
             if not any(mod.type == "CLOTH" for mod in obj.modifiers):
                 bpy.data.objects.remove(obj, do_unlink=True)
         self.check_export(Counter(cloth=1))
+
+    def test_soft_cloth_materials_are_independent(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyCloth.blend"))
+        document = self.check_export(Counter(rigid_body=2, cloth=2, soft_body=1))
+        sheets = sorted((node["extras"] for node in document["nodes"]
+                         if node["extras"].get("pm_system") == "cloth"),
+                        key=lambda sheet: sheet["pm_break_strain"])
+        self.assertEqual(sheets[0]["pm_break_strain"], 0.0)
+        self.assertAlmostEqual(sheets[1]["pm_break_strain"], 0.10)
+        self.assertEqual(sheets[0]["pm_solver_iterations"], 48)
+        self.assertEqual(sheets[1]["pm_solver_iterations"], 24)
+        for sheet in sheets:
+            self.assertTrue(sheet["pm_pin_vertices"])
+            self.assertEqual(sheet["pm_pin_stiffness"], 1.0)
+            self.assertEqual(sheet["pm_fracture_persistence_substeps"], 4)
 
     def test_flows_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Fluid.blend"))

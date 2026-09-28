@@ -106,6 +106,7 @@ struct SceneInstance {
     std::vector<ClothId> cloths{};
     std::vector<SoftBodyId> soft_bodies{};
     std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
+    std::vector<SoftBodyClothCouplingId> soft_body_cloth_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};

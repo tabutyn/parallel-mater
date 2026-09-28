@@ -202,18 +202,26 @@ pass.
   traction. Test eight gravity directions with Goal both disabled and enabled,
   checking node and sampled face penetration throughout 1,440 frames per mode.
 
-## PR 14 — Soft body and fluid coupling
+## PR 14 — Soft body and cloth coupling
+
+- Couple soft-body nodes to current cloth triangles through an explicit API
+  resource, with mass-weighted reactions, contact friction, and force capture.
+- Sample fracture strain before projection, preserving the existing triangle
+  surface and each cloth's independent tear settings.
+- Add `SoftbodyCloth.blend`: an intact pinned bridge over a pit and a tearable
+  vertical curtain. Reuse gravity steering, camera, timing, reset, and debug.
+- Validate sampled bridge clearance, fixed pins, force balance, selective
+  tearing, passage, deterministic replay, disabled-coupling and two-sided
+  intact-curtain controls, stale handles, Blender export, and headless rendering.
+- Split physical vertex fans when seams tear; preserve triangle topology,
+  source/paint mappings, mass, and velocity. Test independent fragment motion
+  and exclude torn triangles trapped within the deforming soft-body skin.
+
+## PR 15 — Soft body and fluid coupling
 
 - Couple existing fluid particles to the PR 12 soft lattice/surface through an
   explicit API resource with balanced forces and bounded contact diagnostics.
 - Reuse the common fluid renderer, foam, particle cap, and capture facilities.
-
-## PR 15 — Soft body and cloth coupling
-
-- Couple the existing cloth graph to the PR 12 soft-body graph through public
-  API configuration; keep both solvers independently reusable.
-- Validate nonpenetration, force transfer, bounded strain, and stable recovery
-  in a Blender-authored two-deformable scene.
 
 ## Later — Gallery game shell
 
