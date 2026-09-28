@@ -342,3 +342,22 @@ and support radius. This does not change the fluid solver or foam signal.
 At 14,400 Fluid particles, the bounded 2,048-patch renderer took 4.7 ms CPU
 on the local test frame; Fluid + Rigid took 4.1 ms. Headless scene checks
 require nonzero patches, and a CPU test covers scaling and rigid occlusion.
+
+## Soft body passive collision, 2026-09-27
+
+The supplied `Softbody.blend` exports one closed Icosphere and one passive
+triangle arena. At 0.222 m authored node spacing, the shared volume sampler and
+graph builder produce 673 physical nodes and 10,032 unique spring bonds. The
+solver uses four substeps and 16 bounded Jacobi spring iterations per frame.
+
+On the local RTX 3050 Ti, one opt-in timed frame after a 600-frame settling run
+measured about 4.0 ms total GPU physics time. Maximum settled bond strain was
+25.3%, peak residual node speed was 0.033 m/s, and no node crossed below the
+passive mesh; the minimum measured node clearance was 0.083 m. A 45-degree
+traction run stays under the authored 2 m/s node cap, averages 0.90 of the
+no-slip angular/linear rolling ratio, rebounds at 0.72 m/s, remains below 31.1%
+bond strain through impact, and records no node beyond the arena walls. The
+test also checks finite state, all 10,032 API-visible bonds,
+generation-invalidated handles, API capture, and the real Blender export.
+These are local acceptance measurements rather than a cross-hardware
+guarantee.

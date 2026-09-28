@@ -170,6 +170,43 @@ pass.
 - Measure volume drift, escaped particles, and frame cost in a GPU regression
   test, then verify the scene through the common exporter and headless render.
 
+## PR 12 — Soft body and passive rigid collision
+
+- Export Blender's native Soft Body modifier through the single scene exporter.
+  Convert each closed authored surface into a deterministic volumetric spring
+  lattice while retaining the authored triangle surface for rendering.
+- Add world-owned, generation-checked soft-body nodes, bonds, surface bindings,
+  device views, timings, statistics, and opt-in physics capture to the public API.
+- Follow the old lab's stable substep order: predict nodes, resolve passive
+  triangle contacts, project the fixed spring graph, reconstruct velocity,
+  damp bond-relative motion, and delta-skin the surface.
+- Add the Blender-authored `Softbody` gallery context with common reset, camera,
+  gravity steering, timing, capture, normal, wireframe, bond, force, and velocity
+  diagnostics.
+- Test connected volume generation, finite deformation, bounded bond strain,
+  passive-mesh containment, stale handles, real Blender re-export, and headless
+  rendering.
+
+## PR 13 — Soft body and dynamic rigid coupling
+
+- Reuse PR 12 soft-body resources and surface bindings; add balanced impulses
+  against dynamic rigid triangle bodies without a second soft-body solver.
+- Validate momentum transfer, high-speed contact, settling, and deterministic
+  replay in a focused Blender-authored gallery scene.
+
+## PR 14 — Soft body and fluid coupling
+
+- Couple existing fluid particles to the PR 12 soft lattice/surface through an
+  explicit API resource with balanced forces and bounded contact diagnostics.
+- Reuse the common fluid renderer, foam, particle cap, and capture facilities.
+
+## PR 15 — Soft body and cloth coupling
+
+- Couple the existing cloth graph to the PR 12 soft-body graph through public
+  API configuration; keep both solvers independently reusable.
+- Validate nonpenetration, force transfer, bounded strain, and stable recovery
+  in a Blender-authored two-deformable scene.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
@@ -185,6 +222,6 @@ pass.
 
 ## Later, one solver at a time
 
-Soft body, rope, and smoke each require an approved API extension, one
+Rope and smoke each require an approved API extension, one
 focused gallery scene, two-system coupling tests, and performance evidence.
 No campaign or presentation concept is promoted into the installed library.

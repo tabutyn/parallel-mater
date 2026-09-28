@@ -27,6 +27,8 @@
 namespace {
 
 using parallel_mater::RigidBodyState;
+using parallel_mater::SoftBodyDeviceView;
+using parallel_mater::SoftBodyId;
 using parallel_mater::Status;
 using parallel_mater::World;
 using parallel_mater::gallery::CameraController;
@@ -44,6 +46,7 @@ using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_context_index;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
+using parallel_mater::gallery::is_soft_body_context;
 using parallel_mater::gallery::OptixRenderer;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
@@ -561,7 +564,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH)};
+            std::filesystem::path(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_SOFT_BODY_SCENE_PATH)};
         const std::filesystem::path &scene_path = scene_paths[
             static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
@@ -1176,6 +1180,28 @@ int main(int argc, char **argv) {
                 break;
             }
         }
+        if (is_soft_body_context(runtime.context) &&
+            (debug.normals || debug.structure || debug.cloth_bonds)) {
+            bool soft_debug_ok = true;
+            for (SoftBodyId id : runtime.instance.soft_bodies) {
+                SoftBodyDeviceView body{};
+                if (!require(runtime.world.soft_body_view(id, body),
+                             "borrow soft-body debug view") ||
+                    !draw_soft_body_debug_overlay(
+                        pixels, runtime.renderer.width(),
+                        runtime.renderer.height(), body, current_camera,
+                        {.normals = debug.normals,
+                         .wireframe = debug.cloth_bonds,
+                         .bonds = debug.structure}, error)) {
+                    soft_debug_ok = false;
+                    break;
+                }
+            }
+            if (!soft_debug_ok) {
+                std::cerr << "Soft-body debug overlay failed: " << error << '\n';
+                break;
+            }
+        }
         if (debug.vectors_visible()) {
             PhysicsDebugFrameView debug_frame{};
             const Status debug_status =
@@ -1206,6 +1232,10 @@ int main(int argc, char **argv) {
                 draw_fluid_timing_overlay(
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     timings, renderer_timings, statistics, fluid_particles);
+            else if (is_soft_body_context(runtime.context))
+                draw_soft_body_timing_overlay(
+                    pixels, runtime.renderer.width(),
+                    runtime.renderer.height(), timings);
             else if (is_cloth_context(runtime.context))
                 draw_cloth_timing_overlay(pixels, runtime.renderer.width(),
                                           runtime.renderer.height(), timings);

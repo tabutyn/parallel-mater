@@ -25,9 +25,9 @@ struct GalleryDebugState {
 
     void toggle_primary(GalleryContext context) noexcept {
         const GalleryEntry &entry = gallery_entry(context);
-        if (entry.has_cloth) structure = !structure;
+        if (entry.has_cloth || entry.has_soft_body) structure = !structure;
         if (entry.has_fluid) particle_view = !particle_view;
-        if (!entry.has_cloth && !entry.has_fluid)
+        if (!entry.has_cloth && !entry.has_fluid && !entry.has_soft_body)
             rigid_contacts = !rigid_contacts;
     }
 

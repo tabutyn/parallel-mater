@@ -49,7 +49,7 @@ materials remain visible regardless of their alpha value.
 ## One Blender–ParallelMater export interface
 
 `tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid
-bodies, collision proxies, Arrays, cloth/pins/fracture, liquid
+bodies, collision proxies, Arrays, soft bodies, cloth/pins/fracture, liquid
 Inflow/Outflow/Geometry, and paint metadata. New physics systems extend this
 script and the versioned scene contract, not a per-example exporter. It has no
 gallery scene names or scene-specific physics settings.
@@ -67,11 +67,11 @@ blender --background examples/assets/PassiveActive.blend \
 
 When `--output` is omitted, the script writes a `.glb` beside the currently
 open `.blend` using the same filename stem. The script is non-destructive:
-it exports evaluated rigid copies and undeformed cloth rest copies, bakes scale
+it exports evaluated rigid copies and undeformed soft/cloth rest copies, bakes scale
 into their vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
 the temporary data. The source `.blend` is not saved or changed.
-Selection and the active object are restored on success and failure. Cloth-only
-and fluid-only scenes are supported; a dummy rigid body is not required.
+Selection and the active object are restored on success and failure. Soft-body,
+cloth-only, and fluid-only scenes are supported; a dummy rigid body is not required.
 
 Other Blender automation can import this file and call
 `export_scene(filepath)` (or omit `filepath` to use the open blend's stem).
@@ -116,9 +116,9 @@ sources; they do not select scene-specific physics.
 ## Validate the result
 
 With Blender installed, the gallery build adds
-`parallel-mater-blender-export-tests` to CTest. This exports all eight committed
+`parallel-mater-blender-export-tests` to CTest. This exports all nine committed
 source scenes into temporary files and checks them with the runtime loader,
-plus cloth-only/fluid-only scenes, the menu operator, CLI, and error cleanup.
+plus soft-body-only/cloth-only/fluid-only scenes, the menu operator, CLI, and error cleanup.
 No committed assets are rewritten.
 
 ```bash
@@ -161,9 +161,30 @@ rotational trajectories. Substeps remain the accuracy control for extreme
 angular motion and multiple impacts. The collision margin remains numerical
 thickness rather than visible geometry.
 
-Future soft-body, rope, and smoke schemas will be introduced only
+Future rope and smoke schemas will be introduced only
 with their reviewed public APIs. Unknown systems and schema versions fail
 explicitly rather than silently changing scene meaning.
+
+## Soft Body closed volume
+
+Add Blender's **Physics → Soft Body** modifier to one closed, scene-root mesh.
+The shared exporter writes its undeformed triangle surface as
+`pm_system = "soft_body"`, including Blender mass, damping, and friction. The
+runtime loader samples that closed surface into an HCP volume, connects nearby
+nodes and authored surface edges into one spring graph, and binds the original
+render vertices to the physical nodes. The installed API owns and advances the
+resulting lattice; the gallery does not run Blender or invent scene-specific
+forces.
+
+Optional object properties tune conversion and the reusable solver:
+`pm_node_spacing`, `pm_node_radius`, `pm_stretch_compliance`,
+`pm_velocity_damping`, `pm_spring_damping`, `pm_contact_friction`,
+`pm_maximum_projection_fraction`, `pm_constraint_velocity_response`,
+`pm_maximum_speed`, and `pm_solver_iterations`. Smaller spacing creates more
+nodes and bonds. The gallery export defaults to the old lab's `2 m/s` soft-body
+speed cap, `0.2` per-pass projection bound, `0.7` projection velocity response,
+and 16 graph iterations. The first stage supports passive rigid triangle
+collision; dynamic rigid, fluid, and cloth coupling are separate roadmap PRs.
 
 ## Cloth Shape Pin Group
 

@@ -16,6 +16,9 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings);
+void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
+                                   std::uint32_t width, std::uint32_t height,
+                                   const WorldStepTimings &timings);
 
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
@@ -42,6 +45,11 @@ struct ClothDebugOptions {
 [[nodiscard]] bool draw_cloth_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, ClothDeviceView cloth, Camera camera,
+    ClothDebugOptions options, std::string &error);
+
+[[nodiscard]] bool draw_soft_body_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, SoftBodyDeviceView body, Camera camera,
     ClothDebugOptions options, std::string &error);
 
 struct PhysicsDebugVisualizationOptions {

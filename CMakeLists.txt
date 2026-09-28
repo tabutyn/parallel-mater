@@ -190,6 +190,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
             PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
             PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
+            PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -299,6 +300,17 @@ if(BUILD_TESTING)
             COMMAND parallel-mater-cloth-water-tests)
         set_tests_properties(parallel-mater-cloth-water-tests
             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
+        add_executable(parallel-mater-soft-body-tests
+            tests/gallery/soft_body_tests.cpp)
+        target_link_libraries(parallel-mater-soft-body-tests
+            PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-soft-body-tests PRIVATE
+            PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb")
+        add_test(NAME parallel-mater-soft-body-tests
+            COMMAND parallel-mater-soft-body-tests)
+        set_tests_properties(parallel-mater-soft-body-tests
+            PROPERTIES SKIP_RETURN_CODE 77)
 
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
@@ -414,6 +426,13 @@ if(BUILD_TESTING)
         set_tests_properties(
             parallel-mater-water-cloth-left-regression-test PROPERTIES
             TIMEOUT 120)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-headless-test
+            parallel-mater-soft-body-test.ppm 180 --soft-body)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-tilt-headless-test
+            parallel-mater-soft-body-tilt-test.ppm 180
+            --soft-body --cloth-tilt-degrees 45)
         add_gallery_headless_test(
             parallel-mater-physics-capture-headless-test
             parallel-mater-physics-capture-test.ppm 10

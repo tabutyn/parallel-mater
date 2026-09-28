@@ -86,6 +86,16 @@ struct ClothId {
     }
 };
 
+struct SoftBodyId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(SoftBodyId left,
+                                                   SoftBodyId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct FluidClothCouplingId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -172,6 +182,7 @@ struct WorldOptions {
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
     std::uint32_t cloth_capacity{1U};
+    std::uint32_t soft_body_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
@@ -267,6 +278,53 @@ struct ClothDeviceView {
     // renderers and tools to inspect cloth coupling through the public API.
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> fluid_contact_forces{};
+};
+
+struct SoftBodyBond {
+    std::uint32_t first{};
+    std::uint32_t second{};
+    float rest_length{};
+};
+
+// Delta-skinning binding from one authored surface vertex to up to four
+// physical lattice nodes. Weights must be finite, nonnegative, and sum to one.
+struct SoftBodySurfaceBinding {
+    std::uint32_t nodes[4]{};
+    float weights[4]{};
+};
+
+// Host buffers are copied during add_soft_body. Nodes and bonds describe the
+// physical volume; the independently indexed surface is presentation geometry.
+struct SoftBodyOptions {
+    HostSpan<Vec3> nodes{};
+    HostSpan<SoftBodyBond> bonds{};
+    HostSpan<float> inverse_masses{};
+    HostSpan<Vec3> surface_vertices{};
+    HostSpan<std::uint32_t> surface_triangle_indices{};
+    HostSpan<SoftBodySurfaceBinding> surface_bindings{};
+    float node_mass{0.02F};
+    float node_radius{0.05F};
+    float stretch_compliance{1.0e-7F};
+    float velocity_damping{0.8F};
+    float spring_damping{0.85F};
+    float contact_friction{0.5F};
+    // Clamp each graph projection relative to that node's shortest live bond.
+    float maximum_projection_fraction{0.20F};
+    // Fraction of projection displacement reconstructed as velocity.
+    float constraint_velocity_response{0.70F};
+    float maximum_speed{12.0F};
+    std::uint32_t solver_iterations{8U};
+};
+
+struct SoftBodyDeviceView {
+    DeviceSpan<const Vec3> positions{};
+    DeviceSpan<const Vec3> velocities{};
+    DeviceSpan<const SoftBodyBond> bonds{};
+    DeviceSpan<const Vec3> surface_positions{};
+    DeviceSpan<const std::uint32_t> surface_triangle_indices{};
+    DeviceSpan<const Vec3> rigid_contact_forces{};
+    std::uint32_t node_count{};
+    std::uint32_t surface_vertex_count{};
 };
 
 struct FluidOptions {
@@ -480,6 +538,14 @@ struct PhysicsDebugClothSample {
     Vec3 fluid_contact_force{};
 };
 
+struct PhysicsDebugSoftBodySample {
+    SoftBodyId soft_body{};
+    std::uint32_t node{};
+    Vec3 position{};
+    Vec3 velocity{};
+    Vec3 rigid_contact_force{};
+};
+
 struct PhysicsDebugFrame {
     std::uint64_t frame_index{};
     float timestep{};
@@ -488,6 +554,7 @@ struct PhysicsDebugFrame {
     std::vector<PhysicsDebugRigidSample> rigid_bodies{};
     std::vector<PhysicsDebugFluidSample> fluid_particles{};
     std::vector<PhysicsDebugClothSample> cloth_vertices{};
+    std::vector<PhysicsDebugSoftBodySample> soft_body_nodes{};
     std::vector<RigidContactEvent> rigid_contacts{};
     std::vector<ContactEvent> fluid_contacts{};
 };
@@ -500,6 +567,7 @@ struct PhysicsDebugFrameView {
     HostSpan<PhysicsDebugRigidSample> rigid_bodies{};
     HostSpan<PhysicsDebugFluidSample> fluid_particles{};
     HostSpan<PhysicsDebugClothSample> cloth_vertices{};
+    HostSpan<PhysicsDebugSoftBodySample> soft_body_nodes{};
     HostSpan<RigidContactEvent> rigid_contacts{};
     HostSpan<ContactEvent> fluid_contacts{};
 };
@@ -540,6 +608,9 @@ struct WorldStepTimings {
     KernelTiming cloth_prediction{};
     KernelTiming cloth_constraints{};
     KernelTiming cloth_contacts{};
+    KernelTiming soft_body_prediction{};
+    KernelTiming soft_body_constraints{};
+    KernelTiming soft_body_contacts{};
 };
 
 struct WorldStatistics {
@@ -557,6 +628,8 @@ struct WorldStatistics {
     std::size_t allocated_bytes{};
     std::uint32_t cloth_count{};
     std::uint32_t cloth_vertex_count{};
+    std::uint32_t soft_body_count{};
+    std::uint32_t soft_body_node_count{};
 };
 
 class FrameToken {
@@ -608,6 +681,13 @@ class World {
     [[nodiscard]] Status remove_cloth(ClothId cloth) noexcept;
     [[nodiscard]] Status cloth_view(ClothId cloth,
                                     ClothDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_soft_body(SoftBodyOptions options,
+                                       SoftBodyId &output,
+                                       cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status remove_soft_body(SoftBodyId soft_body) noexcept;
+    [[nodiscard]] Status soft_body_view(
+        SoftBodyId soft_body, SoftBodyDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_fluid_cloth_coupling(
         FluidClothCouplingOptions options,

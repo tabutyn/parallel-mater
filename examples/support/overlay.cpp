@@ -304,6 +304,25 @@ void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                  timings.total_gpu_milliseconds);
 }
 
+void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
+                                   std::uint32_t width, std::uint32_t height,
+                                   const WorldStepTimings &timings) {
+    const std::array rows{
+        TimingRow{"RIGID STEP",
+            {timings.rigid_integration.total_milliseconds +
+             timings.rigid_contact_generation.total_milliseconds +
+             timings.rigid_contact_solve.total_milliseconds,
+             timings.rigid_integration.launch_count +
+             timings.rigid_contact_generation.launch_count +
+             timings.rigid_contact_solve.launch_count}},
+        TimingRow{"PREDICT", timings.soft_body_prediction},
+        TimingRow{"SPRINGS", timings.soft_body_constraints},
+        TimingRow{"CONTACTS", timings.soft_body_contacts}};
+    timing_panel(rgba, width, height, 430, 230, "SOFT BODY GPU KERNELS",
+                 timings.available, rows, 26, 177,
+                 timings.total_gpu_milliseconds);
+}
+
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &physics,
@@ -474,6 +493,13 @@ void draw_physics_debug_overlay(
             draw_vector(sample.position, sample.rigid_contact_force,
                         {52, 135, 255, 238}, 0.025F);
         }
+        for (std::uint64_t index = 0U; index < frame.soft_body_nodes.size;
+             index += stride_for(frame.soft_body_nodes.size)) {
+            const PhysicsDebugSoftBodySample &sample =
+                frame.soft_body_nodes.data[index];
+            draw_vector(sample.position, sample.rigid_contact_force,
+                        {145, 92, 255, 238}, 0.025F);
+        }
         const float inverse_timestep = frame.timestep > 0.0F
             ? 1.0F / frame.timestep : 0.0F;
         for (std::uint64_t index = 0U; index < frame.rigid_contacts.size;
@@ -524,6 +550,13 @@ void draw_physics_debug_overlay(
                 frame.cloth_vertices.data[index];
             draw_vector(sample.position, sample.velocity,
                         {255, 80, 230, 220}, 0.085F);
+        }
+        for (std::uint64_t index = 0U; index < frame.soft_body_nodes.size;
+             index += stride_for(frame.soft_body_nodes.size)) {
+            const PhysicsDebugSoftBodySample &sample =
+                frame.soft_body_nodes.data[index];
+            draw_vector(sample.position, sample.velocity,
+                        {190, 95, 255, 220}, 0.085F);
         }
     }
     if (options.contact_normals || options.rigid_forces ||
@@ -670,6 +703,124 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
                   620, static_cast<int>(height) - 66, {5, 12, 18, 205});
         text(rgba, width, height, 28, static_cast<int>(height) - 81,
              "CLOTH  Z NORMALS  V WIREFRAME  B BONDS",
+             {235, 240, 245, 255}, 1);
+    }
+    return true;
+}
+
+bool draw_soft_body_debug_overlay(std::vector<std::uint32_t> &rgba,
+                                  std::uint32_t width, std::uint32_t height,
+                                  SoftBodyDeviceView body, Camera camera,
+                                  ClothDebugOptions options,
+                                  std::string &error) {
+    error.clear();
+    const auto copy = [&](auto span, auto &host, const char *label) {
+        using Value = typename std::decay_t<decltype(host)>::value_type;
+        host.resize(span.size);
+        if (host.empty()) return true;
+        const cudaError_t result = cudaMemcpy(
+            host.data(), span.data, host.size() * sizeof(Value),
+            cudaMemcpyDeviceToHost);
+        if (result == cudaSuccess) return true;
+        error = std::string("copy ") + label + ": " +
+                cudaGetErrorString(result);
+        return false;
+    };
+    std::vector<Vec3> nodes;
+    std::vector<Vec3> surface;
+    std::vector<std::uint32_t> triangles;
+    if (!copy(body.positions, nodes, "soft-body nodes") ||
+        !copy(body.surface_positions, surface, "soft-body surface") ||
+        !copy(body.surface_triangle_indices, triangles,
+              "soft-body triangles")) return false;
+    if (triangles.size() % 3U != 0U) {
+        error = "soft-body triangle index count is not divisible by three";
+        return false;
+    }
+    if (options.wireframe || options.normals) {
+        const Color wire{186, 105, 255, 225};
+        std::vector<Vec3> normals(surface.size(), Vec3{});
+        for (std::size_t triangle = 0U; triangle < triangles.size();
+             triangle += 3U) {
+            const std::uint32_t ids[3]{triangles[triangle],
+                triangles[triangle + 1U], triangles[triangle + 2U]};
+            if (ids[0] >= surface.size() || ids[1] >= surface.size() ||
+                ids[2] >= surface.size()) {
+                error = "soft-body triangle index is out of range";
+                return false;
+            }
+            if (options.wireframe) {
+                for (std::uint32_t edge = 0U; edge < 3U; ++edge) {
+                    const ScreenPoint first = project(
+                        surface[ids[edge]], camera, width, height);
+                    const ScreenPoint second = project(
+                        surface[ids[(edge + 1U) % 3U]], camera, width, height);
+                    if (first.visible && second.visible)
+                        line(rgba, width, height, first.x, first.y,
+                             second.x, second.y, wire);
+                }
+            }
+            if (options.normals) {
+                const Vec3 face = cross(
+                    subtract(surface[ids[1]], surface[ids[0]]),
+                    subtract(surface[ids[2]], surface[ids[0]]));
+                for (std::uint32_t corner = 0U; corner < 3U; ++corner)
+                    normals[ids[corner]] = add(normals[ids[corner]], face);
+            }
+        }
+        if (options.normals) {
+            const std::size_t stride = std::max<std::size_t>(
+                1U, (surface.size() + 699U) / 700U);
+            for (std::size_t vertex = 0U; vertex < surface.size();
+                 vertex += stride) {
+                const Vec3 normal = normalized(normals[vertex]);
+                arrow(rgba, width, height,
+                    project(surface[vertex], camera, width, height),
+                    project(add(surface[vertex], multiply(normal, 0.065F)),
+                            camera, width, height),
+                    {31, 255, 56, 242});
+            }
+        }
+    }
+    if (options.bonds) {
+        std::vector<SoftBodyBond> bonds;
+        if (!copy(body.bonds, bonds, "soft-body bonds")) return false;
+        for (std::size_t index = 0U; index < bonds.size(); ++index) {
+            const SoftBodyBond &bond = bonds[index];
+            if (bond.first >= nodes.size() || bond.second >= nodes.size())
+                continue;
+            const ScreenPoint first = project(
+                nodes[bond.first], camera, width, height);
+            const ScreenPoint second = project(
+                nodes[bond.second], camera, width, height);
+            if (first.visible && second.visible)
+                line(rgba, width, height, first.x, first.y,
+                     second.x, second.y, {255, 155, 25, 190});
+        }
+    }
+    if (options.rigid_contact_forces) {
+        std::vector<Vec3> forces;
+        if (!copy(body.rigid_contact_forces, forces,
+                  "soft-body rigid contact forces")) return false;
+        const std::size_t count = std::min(nodes.size(), forces.size());
+        for (std::size_t node = 0U; node < count; ++node) {
+            const float magnitude = length(forces[node]);
+            if (!(magnitude > 1.0e-5F)) continue;
+            const float arrow_length =
+                std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+            arrow(rgba, width, height,
+                project(nodes[node], camera, width, height),
+                project(add(nodes[node], multiply(forces[node],
+                    arrow_length / magnitude)), camera, width, height),
+                {31, 122, 255, 242});
+        }
+    }
+    if (options.normals || options.rigid_contact_forces ||
+        options.wireframe || options.bonds) {
+        rectangle(rgba, width, height, 18, static_cast<int>(height) - 88,
+                  650, static_cast<int>(height) - 66, {5, 12, 18, 205});
+        text(rgba, width, height, 28, static_cast<int>(height) - 81,
+             "SOFT BODY  Z NORMALS  V SPRINGS  B SURFACE",
              {235, 240, 245, 255}, 1);
     }
     return true;

@@ -11,7 +11,7 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, ClothId, geometry sampling, inflow/outflow,
+  World, FluidId, RigidBodyId, ClothId, SoftBodyId, geometry sampling, inflow/outflow,
   paint fields and rules, device views, contacts
 
 examples/gallery (not installed)
@@ -53,6 +53,9 @@ Headless physics builds remain free of OpenGL and OptiX.
    Geometry-flow water volume. Fluid pressure deforms the cloth and the moving
    cloth surface contains and accelerates the particles through a public
    two-way coupling resource.
+10. **Soft Body** — Blender's native Soft Body modifier marks a closed
+    Icosphere. The loader converts it into a volumetric spring lattice and the
+    public API deforms it against the authored passive triangle arena.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -63,7 +66,7 @@ and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
-Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth.
+Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -98,11 +101,17 @@ straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
 Water Cloth can be selected with `--water-cloth`; it also accepts the common
 fluid particle cap. Its pressure cloth is a transparent refractive render
 layer.
+Soft Body can be selected with `--soft-body`. It starts with straight-down
+gravity; arrow keys steer gravity through the shared deformable control path,
+`R` rebuilds the API resource, and `F` reports node prediction, spring
+projection, and passive triangle contact timings. `V` draws every generated
+internal API spring; `B` draws the authored surface wireframe.
 
 All gallery entries create `World` with opt-in rolling physics capture. `Z`
-shows available contact and cloth normals, `X` rigid inputs/contact forces,
-`C` fluid accelerations and reactions, and `N` rigid/fluid/cloth velocities.
-`V` switches to available particle/cloth structure, `B` shows cloth bonds, and
+shows available contact and deformable-surface normals, `X` rigid inputs/contact forces,
+`C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
+`V` switches to available particle/deformable structure, `B` shows cloth bonds
+or the soft-body surface, and
 `M` copies the common API capture to a self-describing log in `/tmp`. Missing
 systems simply contribute no vectors. Rendering and log persistence stay in
 gallery support; state, forces, contacts, and the chronological capture come

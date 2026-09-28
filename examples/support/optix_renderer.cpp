@@ -32,6 +32,7 @@
 namespace parallel_mater::gallery {
 namespace {
 
+using math::add;
 using math::cross;
 using math::dot;
 using math::multiply;
@@ -202,7 +203,7 @@ struct RenderBinding {
 constexpr unsigned int k_opaque_visibility = 1U;
 constexpr unsigned int k_transparent_skin_visibility = 2U;
 
-constexpr std::uint32_t k_cloth_binding =
+constexpr std::uint32_t k_deformable_binding =
     std::numeric_limits<std::uint32_t>::max();
 
 [[nodiscard]] float3 make_float(Vec3 value) {
@@ -444,7 +445,11 @@ struct OptixRenderer::Impl {
             gpu.dynamic = std::any_of(scene.cloths.begin(), scene.cloths.end(),
                 [index](const ClothDefinition &cloth) {
                     return cloth.mesh_index == index;
-                });
+                }) || std::any_of(
+                    scene.soft_bodies.begin(), scene.soft_bodies.end(),
+                    [index](const SoftBodyDefinition &body) {
+                        return body.mesh_index == index;
+                    });
             std::vector<Vertex> vertices = mesh.vertices;
             smooth_render_normals(mesh, vertices);
             gpu.fracture_surface = std::any_of(scene.cloths.begin(),
@@ -518,7 +523,7 @@ struct OptixRenderer::Impl {
         for (std::size_t index = 0; index < bindings.size(); ++index) {
             const RenderBinding binding = bindings[index];
             OptixInstance &instance = result[index];
-            write_transform(binding.body_index == k_cloth_binding
+            write_transform(binding.body_index == k_deformable_binding
                                 ? RigidBodyState{} : states[binding.body_index],
                             instance.transform);
             instance.instanceId = static_cast<unsigned int>(index);
@@ -547,10 +552,15 @@ struct OptixRenderer::Impl {
             has_transparent_skin = has_transparent_skin ||
                 (scene.meshes[cloth.mesh_index].visible &&
                  cloth.contains_fluid);
-            bindings.push_back({k_cloth_binding, cloth.mesh_index,
+            bindings.push_back({k_deformable_binding, cloth.mesh_index,
                 !scene.meshes[cloth.mesh_index].visible ? 0U :
                 cloth.contains_fluid ? k_transparent_skin_visibility :
                                        k_opaque_visibility});
+        }
+        for (const SoftBodyDefinition &body : scene.soft_bodies) {
+            bindings.push_back({k_deformable_binding, body.mesh_index,
+                scene.meshes[body.mesh_index].visible
+                    ? k_opaque_visibility : 0U});
         }
         std::vector<OptixInstance> authored_instances = make_instances(states);
         instances.upload(authored_instances);
@@ -698,9 +708,9 @@ struct OptixRenderer::Impl {
                     "update OptiX instance acceleration");
     }
 
-    void update_cloth_geometry(const SceneDefinition &scene,
-                               const World &world,
-                               const SceneInstance &instance) {
+    void update_deformable_geometry(const SceneDefinition &scene,
+                                    const World &world,
+                                    const SceneInstance &instance) {
         if (scene.cloths.size() != instance.cloths.size())
             fail("cloth render bindings do not match the scene");
         for (std::size_t cloth_index = 0U; cloth_index < scene.cloths.size();
@@ -786,6 +796,69 @@ struct OptixRenderer::Impl {
                 gpu.update_scratch.device_pointer(), gpu.update_scratch_size,
                 gpu.acceleration.device_pointer(), gpu.acceleration.size(),
                 &gpu.handle, nullptr, 0U), "update OptiX cloth geometry");
+        }
+        if (scene.soft_bodies.size() != instance.soft_bodies.size())
+            fail("soft-body render bindings do not match the scene");
+        for (std::size_t body_index = 0U;
+             body_index < scene.soft_bodies.size(); ++body_index) {
+            const SoftBodyDefinition &body = scene.soft_bodies[body_index];
+            const TriangleMesh &mesh = scene.meshes[body.mesh_index];
+            Geometry &gpu = geometry[body.mesh_index];
+            SoftBodyDeviceView view{};
+            const Status status = world.soft_body_view(
+                instance.soft_bodies[body_index], view);
+            if (!status) fail(status.message != nullptr ? status.message :
+                              "cannot borrow soft-body view");
+            if (view.surface_vertex_count != mesh.vertices.size())
+                fail("soft-body renderer vertex count changed");
+            std::vector<Vertex> vertices = mesh.vertices;
+            std::vector<Vec3> positions(view.surface_positions.size);
+            check_cuda(cudaMemcpy(positions.data(), view.surface_positions.data,
+                                  positions.size() * sizeof(Vec3),
+                                  cudaMemcpyDeviceToHost),
+                       "copy soft-body surface positions");
+            for (std::size_t index = 0U; index < vertices.size(); ++index) {
+                vertices[index].position = positions[index];
+                vertices[index].normal = {};
+            }
+            for (std::size_t index = 0U; index < mesh.indices.size();
+                 index += 3U) {
+                Vertex &a = vertices[mesh.indices[index]];
+                Vertex &b = vertices[mesh.indices[index + 1U]];
+                Vertex &c = vertices[mesh.indices[index + 2U]];
+                const Vec3 normal = cross(subtract(b.position, a.position),
+                                          subtract(c.position, a.position));
+                a.normal = add(a.normal, normal);
+                b.normal = add(b.normal, normal);
+                c.normal = add(c.normal, normal);
+            }
+            for (Vertex &vertex : vertices)
+                vertex.normal = normalize(vertex.normal);
+            gpu.vertices.upload(vertices);
+            CUdeviceptr vertex_buffer = gpu.vertices.device_pointer();
+            std::uint32_t flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
+            OptixBuildInput input{};
+            input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+            input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+            input.triangleArray.vertexStrideInBytes = sizeof(Vertex);
+            input.triangleArray.numVertices =
+                static_cast<unsigned int>(vertices.size());
+            input.triangleArray.vertexBuffers = &vertex_buffer;
+            input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+            input.triangleArray.indexStrideInBytes = 3U * sizeof(std::uint32_t);
+            input.triangleArray.numIndexTriplets =
+                static_cast<unsigned int>(mesh.indices.size() / 3U);
+            input.triangleArray.indexBuffer = gpu.triangles.device_pointer();
+            input.triangleArray.flags = &flags;
+            input.triangleArray.numSbtRecords = 1U;
+            OptixAccelBuildOptions options{};
+            options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE |
+                                 OPTIX_BUILD_FLAG_ALLOW_UPDATE;
+            options.operation = OPTIX_BUILD_OPERATION_UPDATE;
+            check_optix(optixAccelBuild(context, nullptr, &options, &input, 1U,
+                gpu.update_scratch.device_pointer(), gpu.update_scratch_size,
+                gpu.acceleration.device_pointer(), gpu.acceleration.size(),
+                &gpu.handle, nullptr, 0U), "update OptiX soft-body geometry");
         }
     }
 
@@ -977,7 +1050,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         sample.particle_view = fluid_mode != FluidRenderMode::surface;
         const std::vector<RigidBodyState> states =
             impl_->read_states(world, instance);
-        impl_->update_cloth_geometry(impl_->scene, world, instance);
+        impl_->update_deformable_geometry(impl_->scene, world, instance);
         impl_->update_instances(states);
         std::vector<Vec3> positions;
         std::vector<float> foam;

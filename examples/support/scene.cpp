@@ -360,6 +360,150 @@ void weld_pressure_cloth(TriangleMesh &mesh) {
     mesh.vertices = std::move(vertices);
 }
 
+[[nodiscard]] bool build_soft_body_lattice(
+    const TriangleMesh &mesh, float spacing, float total_mass,
+    SoftBodyDefinition &body, std::string &error) {
+    std::vector<Vec3> surface;
+    try {
+        surface.reserve(mesh.vertices.size());
+        for (const Vertex &vertex : mesh.vertices)
+            surface.push_back(vertex.position);
+        body.surface_bindings.resize(surface.size());
+    } catch (...) {
+        error = body.name + ": could not allocate soft-body surface data";
+        return false;
+    }
+    const float weld_distance_squared = spacing * spacing * 1.0e-4F;
+    for (std::size_t vertex = 0U; vertex < surface.size(); ++vertex) {
+        std::uint32_t node = UINT32_MAX;
+        for (std::uint32_t candidate = 0U; candidate < body.nodes.size();
+             ++candidate) {
+            if (math::length_squared(math::subtract(
+                    surface[vertex], body.nodes[candidate])) <=
+                weld_distance_squared) {
+                node = candidate;
+                break;
+            }
+        }
+        if (node == UINT32_MAX) {
+            if (body.nodes.size() == UINT32_MAX) {
+                error = body.name + ": soft-body node count exceeds uint32";
+                return false;
+            }
+            node = static_cast<std::uint32_t>(body.nodes.size());
+            body.nodes.push_back(surface[vertex]);
+        }
+        SoftBodySurfaceBinding binding{};
+        binding.nodes[0] = node;
+        binding.weights[0] = 1.0F;
+        body.surface_bindings[vertex] = binding;
+    }
+
+    std::vector<FluidParticle> samples;
+    const Status sample_status = sample_fluid_geometry(
+        {{surface.data(), surface.size()},
+         {mesh.indices.data(), mesh.indices.size()}, {}, {}, spacing}, samples);
+    if (!sample_status) {
+        error = body.name + ": " +
+            (sample_status.message != nullptr ? sample_status.message
+                                              : "volume sampling failed");
+        return false;
+    }
+    const float duplicate_distance_squared = spacing * spacing * 0.04F;
+    try {
+        for (const FluidParticle &sample : samples) {
+            const bool duplicate = std::any_of(
+                body.nodes.begin(), body.nodes.end(), [&](Vec3 node) {
+                    return math::length_squared(
+                        math::subtract(sample.position, node)) <=
+                        duplicate_distance_squared;
+                });
+            if (!duplicate) body.nodes.push_back(sample.position);
+        }
+    } catch (...) {
+        error = body.name + ": could not allocate soft-body volume nodes";
+        return false;
+    }
+    if (body.nodes.size() < 4U || body.nodes.size() > UINT32_MAX) {
+        error = body.name + ": volume sampling produced an invalid node count";
+        return false;
+    }
+
+    std::unordered_set<std::uint64_t> edges;
+    const auto add_bond = [&](std::uint32_t first,
+                              std::uint32_t second) -> bool {
+        if (first == second) return true;
+        if (first > second) std::swap(first, second);
+        const std::uint64_t key =
+            (static_cast<std::uint64_t>(first) << 32U) | second;
+        if (!edges.insert(key).second) return true;
+        const float rest = math::length(
+            math::subtract(body.nodes[first], body.nodes[second]));
+        if (!(rest > 1.0e-6F) || !std::isfinite(rest)) return false;
+        body.bonds.push_back({first, second, rest});
+        return true;
+    };
+    try {
+        for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
+            const std::uint32_t vertices[3]{
+                mesh.indices[index], mesh.indices[index + 1U],
+                mesh.indices[index + 2U]};
+            for (std::uint32_t edge = 0U; edge < 3U; ++edge) {
+                if (!add_bond(
+                        body.surface_bindings[vertices[edge]].nodes[0],
+                        body.surface_bindings[vertices[(edge + 1U) % 3U]].nodes[0])) {
+                    error = body.name + ": invalid surface bond";
+                    return false;
+                }
+            }
+        }
+        const float reach_squared = spacing * spacing * 3.24F;
+        for (std::uint32_t first = 0U; first < body.nodes.size(); ++first) {
+            for (std::uint32_t second = first + 1U;
+                 second < body.nodes.size(); ++second) {
+                const float distance_squared = math::length_squared(
+                    math::subtract(body.nodes[first], body.nodes[second]));
+                if (distance_squared <= reach_squared &&
+                    distance_squared > 1.0e-12F &&
+                    !add_bond(first, second)) {
+                    error = body.name + ": invalid volume bond";
+                    return false;
+                }
+            }
+        }
+    } catch (...) {
+        error = body.name + ": could not allocate soft-body bonds";
+        return false;
+    }
+    std::vector<std::uint32_t> degree(body.nodes.size(), 0U);
+    for (const SoftBodyBond &bond : body.bonds) {
+        ++degree[bond.first];
+        ++degree[bond.second];
+    }
+    for (std::uint32_t node = 0U; node < degree.size(); ++node) {
+        if (degree[node] != 0U) continue;
+        std::uint32_t nearest = node == 0U ? 1U : 0U;
+        float nearest_distance = std::numeric_limits<float>::max();
+        for (std::uint32_t candidate = 0U; candidate < body.nodes.size();
+             ++candidate) {
+            if (candidate == node) continue;
+            const float distance = math::length_squared(
+                math::subtract(body.nodes[node], body.nodes[candidate]));
+            if (distance < nearest_distance) {
+                nearest_distance = distance;
+                nearest = candidate;
+            }
+        }
+        if (!add_bond(node, nearest)) {
+            error = body.name + ": could not connect an isolated volume node";
+            return false;
+        }
+    }
+    body.node_mass = total_mass / static_cast<float>(body.nodes.size());
+    body.inverse_masses.assign(body.nodes.size(), 1.0F / body.node_mass);
+    return true;
+}
+
 [[nodiscard]] bool sample_initial_volume(
     const cgltf_node &node, Vec3 scale, Vec3 velocity, float spacing,
     std::vector<FluidParticle> &particles, std::string &error) {
@@ -901,6 +1045,84 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         output.meshes.push_back(std::move(mesh));
         output.cloths.push_back(std::move(cloth));
     }
+    for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) continue;
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "soft_body") continue;
+        SoftBodyDefinition body{};
+        body.name = extras.string("pm_name").value_or(
+            node.name != nullptr ? node.name : "soft_body");
+        if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
+            node.parent != nullptr || node.has_matrix || node.mesh == nullptr ||
+            node.mesh->primitives_count != 1U) {
+            error = body.name +
+                ": soft body needs schema 2 and one scene-root TRS mesh";
+            return false;
+        }
+        const Vec3 scale = node_scale(node);
+        const float total_mass = static_cast<float>(
+            extras.number("pm_total_mass").value_or(1.0));
+        const float spacing = static_cast<float>(
+            extras.number("pm_node_spacing").value_or(0.22));
+        body.node_radius = static_cast<float>(
+            extras.number("pm_node_radius").value_or(spacing * 0.35));
+        body.stretch_compliance = static_cast<float>(
+            extras.number("pm_stretch_compliance").value_or(1.0e-7));
+        body.velocity_damping = static_cast<float>(
+            extras.number("pm_velocity_damping").value_or(0.8));
+        body.spring_damping = static_cast<float>(
+            extras.number("pm_spring_damping").value_or(0.85));
+        body.contact_friction = static_cast<float>(
+            extras.number("pm_contact_friction").value_or(0.5));
+        body.maximum_projection_fraction = static_cast<float>(extras.number(
+            "pm_maximum_projection_fraction").value_or(0.20));
+        body.constraint_velocity_response = static_cast<float>(extras.number(
+            "pm_constraint_velocity_response").value_or(0.70));
+        body.maximum_speed = static_cast<float>(
+            extras.number("pm_maximum_speed").value_or(2.0));
+        const double solver_iterations =
+            extras.number("pm_solver_iterations").value_or(16.0);
+        if (!finite(scale) || scale.x <= 0.0F || scale.y <= 0.0F ||
+            scale.z <= 0.0F || !finite(total_mass) || total_mass <= 0.0F ||
+            !finite(spacing) || spacing <= 0.0F || spacing > 10.0F ||
+            !finite(body.node_radius) || body.node_radius <= 0.0F ||
+            body.node_radius > spacing || !finite(body.stretch_compliance) ||
+            body.stretch_compliance < 0.0F ||
+            !finite(body.velocity_damping) || body.velocity_damping < 0.0F ||
+            !finite(body.spring_damping) || body.spring_damping < 0.0F ||
+            body.spring_damping > 1.0F || !finite(body.contact_friction) ||
+            body.contact_friction < 0.0F ||
+            !finite(body.maximum_projection_fraction) ||
+            body.maximum_projection_fraction <= 0.0F ||
+            body.maximum_projection_fraction > 1.0F ||
+            !finite(body.constraint_velocity_response) ||
+            body.constraint_velocity_response < 0.0F ||
+            body.constraint_velocity_response > 1.0F ||
+            !finite(body.maximum_speed) ||
+            body.maximum_speed <= 0.0F || solver_iterations < 1.0 ||
+            solver_iterations > 64.0 ||
+            std::floor(solver_iterations) != solver_iterations) {
+            error = body.name + ": invalid soft-body solver settings";
+            return false;
+        }
+        body.solver_iterations =
+            static_cast<std::uint32_t>(solver_iterations);
+        TriangleMesh mesh{};
+        if (!append_primitive(node.mesh->primitives[0], scale, false,
+                              body.name, mesh, error)) return false;
+        const RigidBodyState state = node_state(node);
+        for (Vertex &vertex : mesh.vertices) {
+            vertex.position = add(state.position,
+                rotate(state.orientation, vertex.position));
+            vertex.normal = rotate(state.orientation, vertex.normal);
+        }
+        if (!build_soft_body_lattice(mesh, spacing, total_mass, body, error))
+            return false;
+        body.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
+        output.meshes.push_back(std::move(mesh));
+        output.soft_bodies.push_back(std::move(body));
+    }
     std::optional<float> initial_spacing;
     std::optional<float> initial_gravity_scale;
     for (cgltf_size node_index = 0; node_index < data->nodes_count;
@@ -1041,6 +1263,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                 .maximum_pair_acceleration = 55.0F};
     }
     if (output.rigid_bodies.empty() && output.cloths.empty() &&
+        output.soft_bodies.empty() &&
         output.spawn_planes.empty() && output.destroy_planes.empty() &&
         output.initial_particles.empty()) {
         error = "GLB contains no ParallelMater physics objects";
@@ -1171,7 +1394,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
     if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
         scene.spawn_planes.size() > maximum ||
         scene.destroy_planes.size() > maximum || paint_fields > maximum ||
-        scene.cloths.size() > maximum) {
+        scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum) {
         return {StatusCode::capacity_exceeded, cudaSuccess,
                 "gallery scene exceeds world capacity range"};
     }
@@ -1189,6 +1412,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         .paint_rule_capacity = static_cast<std::uint32_t>(paint_fields),
         .cloth_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.cloths.size())),
+        .soft_body_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.soft_bodies.size())),
         .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.cloths.size())),
         .physics_debug = physics_debug};
@@ -1357,6 +1582,47 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .volume_compliance = definition.volume_compliance}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
+    }
+    for (const SoftBodyDefinition &definition : scene.soft_bodies) {
+        if (definition.mesh_index >= scene.meshes.size())
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "gallery soft-body mesh index is invalid"};
+        const TriangleMesh &mesh = scene.meshes[definition.mesh_index];
+        std::vector<Vec3> surface_vertices;
+        try {
+            surface_vertices.reserve(mesh.vertices.size());
+            for (const Vertex &vertex : mesh.vertices)
+                surface_vertices.push_back(vertex.position);
+        } catch (...) {
+            return {StatusCode::out_of_memory, cudaSuccess,
+                    "failed to assemble gallery soft-body surface"};
+        }
+        SoftBodyId body{};
+        const Status status = world.add_soft_body({
+            .nodes = {definition.nodes.data(), definition.nodes.size()},
+            .bonds = {definition.bonds.data(), definition.bonds.size()},
+            .inverse_masses = {definition.inverse_masses.data(),
+                               definition.inverse_masses.size()},
+            .surface_vertices = {surface_vertices.data(),
+                                 surface_vertices.size()},
+            .surface_triangle_indices = {mesh.indices.data(),
+                                         mesh.indices.size()},
+            .surface_bindings = {definition.surface_bindings.data(),
+                                 definition.surface_bindings.size()},
+            .node_mass = definition.node_mass,
+            .node_radius = definition.node_radius,
+            .stretch_compliance = definition.stretch_compliance,
+            .velocity_damping = definition.velocity_damping,
+            .spring_damping = definition.spring_damping,
+            .contact_friction = definition.contact_friction,
+            .maximum_projection_fraction =
+                definition.maximum_projection_fraction,
+            .constraint_velocity_response =
+                definition.constraint_velocity_response,
+            .maximum_speed = definition.maximum_speed,
+            .solver_iterations = definition.solver_iterations}, body);
+        if (!status) return status;
+        output.soft_bodies.push_back(body);
     }
     if (scene.fluid_options.capacity != 0U) {
         const std::size_t requested = std::min<std::size_t>(
