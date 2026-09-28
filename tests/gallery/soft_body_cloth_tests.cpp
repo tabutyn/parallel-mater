@@ -33,6 +33,23 @@ Vec3 mean(const std::vector<Vec3> &points) {
     return math::multiply(sum, 1.0F / points.size());
 }
 
+// Winding test against the actual deformed closed skin, not a bounding sphere.
+bool inside_skin(Vec3 point, const std::vector<Vec3> &skin,
+                 const std::vector<std::uint32_t> &indices, Vec3 lo, Vec3 hi) {
+    if (point.x < lo.x || point.x > hi.x || point.y < lo.y || point.y > hi.y ||
+        point.z < lo.z || point.z > hi.z) return false;
+    double angle = 0;
+    for (std::size_t i = 0; i < indices.size(); i += 3) {
+        const Vec3 a = math::subtract(skin[indices[i]], point);
+        const Vec3 b = math::subtract(skin[indices[i + 1]], point);
+        const Vec3 c = math::subtract(skin[indices[i + 2]], point);
+        const double x = length(a), y = length(b), z = length(c);
+        angle += 2 * std::atan2(static_cast<double>(math::dot(a, math::cross(b,c))),
+            x*y*z + math::dot(a,b)*z + math::dot(b,c)*x + math::dot(c,a)*y);
+    }
+    return std::abs(angle) > 6.283185307179586;
+}
+
 // During the initial drop the bridge is a height field. Check its actual
 // deformed triangles, not its rest plane or the arena's much lower floor.
 float bridge_clearance(const std::vector<Vec3> &points,
@@ -188,10 +205,12 @@ int main(int argc, char **argv) {
         std::uint32_t clearance_frame = 0U;
         std::uint32_t contact_frames = 0U, curtain_contact_frames = 0U;
         std::uint32_t bridge_breaks = 0U, curtain_breaks = 0U;
+        std::uint32_t inside_triangle_frames = 0U;
+        float surface_mismatch = 0.0F;
         Vec3 center{};
-        for (std::uint32_t frame = 0U; frame < (smoke ? 240U : 900U); ++frame) {
+        for (std::uint32_t frame = 0U; frame < (smoke ? 240U : 1200U); ++frame) {
             const StepOptions step{.timestep = 1.0F / 60.0F, .substeps = 4U,
-                .gravity = frame < 240U ? Vec3{0, -9.81F, 0}
+                .gravity = frame < 240U || frame >= 900U ? Vec3{0, -9.81F, 0}
                                       : Vec3{0, -6.936718F, -6.936718F},
                 .collect_kernel_timings = frame == 239U};
             check(world.step(step), "step soft-cloth scene");
@@ -200,6 +219,13 @@ int main(int argc, char **argv) {
             const auto points = read(soft.positions);
             const auto velocities = read(soft.velocities);
             const auto forces = read(soft.cloth_contact_forces);
+            const auto skin = read(soft.surface_positions);
+            const auto skin_indices = read(soft.surface_triangle_indices);
+            Vec3 lo=skin[0], hi=lo;
+            for (Vec3 p:skin) {
+                lo={std::min(lo.x,p.x), std::min(lo.y,p.y), std::min(lo.z,p.z)};
+                hi={std::max(hi.x,p.x), std::max(hi.y,p.y), std::max(hi.z,p.z)};
+            }
             if (frame == 239U) {
                 PhysicsDebugFrameView capture;
                 check(world.physics_debug_frame(capture), "coupling debug capture");
@@ -231,6 +257,7 @@ int main(int argc, char **argv) {
                 const auto cloth_forces = read(cloth.soft_body_contact_forces);
                 const auto active = read(cloth.active_bonds);
                 const auto bonds = read(cloth.bonds);
+                const auto sources = read(cloth.vertex_source_indices);
                 const auto &definition = scene.cloths[sheet];
                 const auto &rest = scene.meshes[definition.mesh_index].vertices;
                 check(cloth.triangle_indices.size ==
@@ -262,10 +289,11 @@ int main(int argc, char **argv) {
                 }
                 float sheet_force = 0.0F;
                 for (std::size_t node = 0U; node < cloth_points.size(); ++node) {
+                    const auto source = sources.empty() ? node : sources[node];
                     check(std::isfinite(length(cloth_points[node])), "nonfinite cloth");
-                    if (definition.inverse_masses[node] == 0.0F)
+                    if (definition.inverse_masses[source] == 0.0F)
                         pin_error = std::max(pin_error,
-                            length(math::subtract(cloth_points[node], rest[node].position)));
+                            length(math::subtract(cloth_points[node], rest[source].position)));
                     if (sheet == bridge && frame < 240U)
                         bridge_sag = std::max(bridge_sag,
                             rest[node].position.y - cloth_points[node].y);
@@ -287,6 +315,29 @@ int main(int argc, char **argv) {
                     curtain_contact_frames += sheet_force > 1.0e-5F;
                     check(curtain_breaks == 0U || curtain_contact_frames > 0U,
                           "curtain broke before contact");
+                    const auto surface = read(cloth.surface_positions);
+                    const auto indices = read(cloth.triangle_indices);
+                    const auto masses = read(cloth.inverse_masses);
+                    double original_mass = 0, split_mass = 0;
+                    for (float inverse:definition.inverse_masses)
+                        if (inverse>0) original_mass += 1.0/inverse;
+                    for (float inverse:masses) if (inverse>0) split_mass += 1.0/inverse;
+                    check(std::abs(split_mass-original_mass) < original_mass*1.0e-5,
+                          "tearing changed cloth mass");
+                    for (std::size_t i=0; i<indices.size(); i+=3) {
+                        bool inside = true;
+                        Vec3 centroid{};
+                        for (std::size_t c=0; c<3; ++c) {
+                            check(sources[indices[i+c]] == scene.meshes[definition.mesh_index].indices[i+c],
+                                  "tear changed authored triangle/source mapping");
+                            surface_mismatch = std::max(surface_mismatch,
+                                length(math::subtract(surface[i+c],cloth_points[indices[i+c]])));
+                            inside &= inside_skin(surface[i+c],skin,skin_indices,lo,hi);
+                            centroid = math::add(centroid,surface[i+c]);
+                        }
+                        inside_triangle_frames += inside && inside_skin(
+                            math::multiply(centroid,1.0F/3),skin,skin_indices,lo,hi);
+                    }
                 }
             }
             force_balance = std::max(force_balance,
@@ -318,6 +369,10 @@ int main(int argc, char **argv) {
                   << " node_clearance=" << minimum_node_clearance
                   << " clearance_frame=" << clearance_frame
                   << " final_z=" << center.z << std::endl;
+        std::cout << "inside_triangle_frames=" << inside_triangle_frames
+                  << " physical_surface_mismatch=" << surface_mismatch << std::endl;
+        check(inside_triangle_frames == 0U, "torn triangle trapped inside soft skin");
+        check(surface_mismatch < 1.0e-7F, "cloth surface detached from physical vertices");
         check(settled_height > 0.0F && minimum_settled_y > -0.45F && bridge_sag > 0.005F,
               "cloth failed to support the soft sphere over the pit");
         check(minimum_bridge_clearance > -0.005F,

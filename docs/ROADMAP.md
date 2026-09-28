@@ -213,6 +213,9 @@ pass.
 - Validate sampled bridge clearance, fixed pins, force balance, selective
   tearing, passage, deterministic replay, disabled-coupling and two-sided
   intact-curtain controls, stale handles, Blender export, and headless rendering.
+- Split physical vertex fans when seams tear; preserve triangle topology,
+  source/paint mappings, mass, and velocity. Test independent fragment motion
+  and exclude torn triangles trapped within the deforming soft-body skin.
 
 ## PR 15 — Soft body and fluid coupling
 

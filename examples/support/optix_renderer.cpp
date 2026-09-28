@@ -722,7 +722,7 @@ struct OptixRenderer::Impl {
             const Status status = world.cloth_view(instance.cloths[cloth_index], view);
             if (!status) fail(status.message != nullptr ? status.message :
                               "cannot borrow cloth view");
-            if (view.vertex_count != mesh.vertices.size())
+            if (!gpu.fracture_surface && view.vertex_count != mesh.vertices.size())
                 fail("cloth renderer vertex count changed");
             const bool fracture_surface = gpu.fracture_surface;
             if (fracture_surface &&

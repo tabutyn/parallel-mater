@@ -285,11 +285,16 @@ struct SoftBodyClothCouplingOptions {
 };
 
 struct ClothDeviceView {
-    // Physical nodes and their authored connectivity.
+    // Physical nodes and current connectivity. Tearing can append nodes and
+    // reindex faces at the next frame boundary; reacquire this view each frame.
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const std::uint32_t> triangle_indices{};
     std::uint32_t vertex_count{};
+    // Tearable cloth: authored vertex for each physical node, and split masses.
+    // New nodes inherit velocity and share their source's original mass.
+    DeviceSpan<const std::uint32_t> vertex_source_indices{};
+    DeviceSpan<const float> inverse_masses{};
     // For tearable cloth, every triangle owns three surface corners. The
     // triangle count stays fixed as bonds fail; source indices preserve UVs.
     DeviceSpan<const Vec3> surface_positions{};

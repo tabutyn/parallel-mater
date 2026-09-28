@@ -461,7 +461,7 @@ over-relaxed the independent soft nodes. Scaling the effective inverse mass
 of the shared cloth instead removed that penetration without extra passes.
 Both bodies still receive the same opposing impulse.
 
-The final 900-frame run at 60 Hz/four substeps measured:
+The initial 900-frame run at 60 Hz/four substeps, before the fragment fix below, measured:
 
 - Minimum bridge clearance 0.0414 units over the initial 240 frames, sampling
   every soft node, skin vertex, triangle centroid, and edge midpoint against
@@ -487,6 +487,48 @@ averaged 8.97 ms/frame; disabled coupling averaged 5.22 ms/frame. These are
 different workloads, not a full-scene speedup claim. Contacts currently scan
 cloth triangles per soft node; these measurements do not establish scaling
 to large collections of deformables or continuous collision guarantees.
+
+### Independent cloth fragments
+
+The later tear audit exposed a missing test: fitted surface triangles could
+follow original vertices belonging to different physical components. In a
+1,200-frame replay, up to four torn faces had all three corners and their
+centroid inside the soft skin; one stayed inside for 172 frames. Such faces
+occurred in 191 frames. Surface corners jumped at an apparent 100.35 units/s,
+although sampled physical cloth nodes peaked at 6.37 units/s.
+
+The API now splits physical vertex fans at broken seams, disables spanning
+bends, and uses those same vertices for rendering and collision. It reserves
+node/link capacity up front and rebuilds connectivity only after a bond-state
+change at an idle frame boundary. Mass and velocity are inherited through
+incident-face shares; authored source indices remain stable for painting.
+
+The extended 1,200-frame regression (240 down, 660 tilted, 300 down) measured
+zero fully-inside sampled faces and zero surface/physical-position mismatch.
+The sphere passed through the curtain and finished at z = -4.477. The bridge
+retained all bonds and pins, with 0.0414 minimum sampled clearance; normalized
+force imbalance stayed below 4.1e-7. All 512 curtain triangles remain present.
+The two-fragment isolation test preserves mass and inherited velocity, then
+kicks only one fragment with gravity/contact disabled: maximum error from the
+expected independent trajectories was 6.35e-5 units over 120 frames.
+A separate 2,400-frame replay, reversing gravity every 180 frames after frame
+900, also found zero fully-inside sampled faces. Physical/rendered corner
+motion now agrees; maximum frame-to-frame corner speed was 13.25 units/s,
+instead of the previous fitted-surface jumps. The complete 46-test suite and
+the fragment-isolation CUDA memory check passed (zero reported memory errors).
+The focused memory-check regression also allocates a soft/cloth coupling
+before splitting, then drives contact into appended cloth vertices: peak
+split-node force 4.674 N, exactly zero force on the remote fragment, and zero
+memory errors. An instrumented full-scene replay exceeded its 240-second bound
+before the selected tear window; no full-scene sanitizer coverage is claimed.
+
+A global strain clamp was rejected: it prevented continued tearing and could
+push attached faces inside the soft body. Only isolated, unpinned triangles
+receive the additional 10% strain projection, within the contact solve.
+Attached material still follows its authored compliance/break threshold.
+The settled pre-tear frame measured 16.88 ms GPU time (7.77 ms coupling),
+versus the earlier 16.36 ms sample. This is not a speedup claim or a measurement
+of host-side topology rebuilding during fracture.
 
 Validation: all 43 CTest cases passed, including the real Blender exporter and
 headless scene. Targeted CUDA memcheck checked 2,048 `soft_cloth_` launches after

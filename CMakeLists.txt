@@ -352,6 +352,15 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-cloth-debug-tests PROPERTIES
                              SKIP_RETURN_CODE 77)
 
+        add_executable(parallel-mater-cloth-fracture-tests
+                       tests/gallery/cloth_fracture_tests.cpp)
+        target_link_libraries(parallel-mater-cloth-fracture-tests PRIVATE
+            parallel-mater CUDA::cudart)
+        add_test(NAME parallel-mater-cloth-fracture-tests
+                 COMMAND parallel-mater-cloth-fracture-tests)
+        set_tests_properties(parallel-mater-cloth-fracture-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 60)
+
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
         target_link_libraries(parallel-mater-material-visibility-tests PRIVATE

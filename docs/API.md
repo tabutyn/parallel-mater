@@ -105,13 +105,25 @@ shear, or bending bond has a stable ID, rest length, active state, and damage
 counter. A bond breaks after its extension exceeds `break_strain` for
 `fracture_persistence_substeps` consecutive substeps. Optional
 `impact_break_impulse > 0` also breaks bonds whose endpoint contact impulses
-exceed that threshold. Fracture never deletes a triangle. The constraint
-solver ignores broken tensile bonds and retains the original graph degree
-when normalizing corrections, avoiding a stiffness jump after fracture.
+exceed that threshold. Fracture never deletes a triangle. At the next idle
+frame boundary the API splits vertex fans across failed shared edges and
+removes bending links across those seams. Every triangle retains its own
+material edge constraints. Split nodes inherit position, velocity, and pins;
+incident-face mass shares preserve the original mass and momentum. Isolated,
+unpinned triangles have an additional 10% physical stretch projection during
+contact solving. Attached material keeps its authored compliance and break
+strain: globally clamping it would erase the strain needed to continue tearing.
 For tearable cloth, `cloth_view` exposes triangle-local `surface_positions`,
 stable `surface_triangle_indices`, `surface_source_indices` for UV lookup,
-and `bonds`/`active_bonds` for diagnostics. A face whose bond fails remains
-attached to an intact edge or corner and keeps approximately its rest shape.
+and `bonds`/`active_bonds` for diagnostics. Surface corners are exact copies
+of their physical vertices, including after tearing; no rest-shape fitting
+to disconnected vertices is performed. `triangle_indices` contains current
+physical connectivity and may change after a tear. Reacquire `cloth_view`
+each frame: its physical vertex count can grow. `vertex_source_indices` maps
+physical nodes to authored vertices, and `inverse_masses` exposes their split
+masses. `surface_source_indices` remains stable for UV lookup. Storage for
+split nodes and links is reserved at creation; graph rebuilding happens only
+when bond states change, outside the asynchronous GPU frame.
 The gallery renders that API-owned surface; rigid-body response on fracturing
 cloth uses physical node contacts, not a triangle-radius barrier. The gallery
 does not choose a cut shape.
