@@ -361,3 +361,22 @@ test also checks finite state, all 10,032 API-visible bonds,
 generation-invalidated handles, API capture, and the real Blender export.
 These are local acceptance measurements rather than a cross-hardware
 guarantee.
+
+## Soft body dynamic rigid coupling, 2026-09-28
+
+`SoftbodyRigidBody.blend` reuses the 673-node, 10,032-bond soft lattice and
+adds two active triangle-mesh spheres. Dynamic contacts run through the same
+interleaved soft-body contact pass as passive geometry. Per-node contact
+impulses are deterministically reduced into the existing rigid states, while a
+post-constraint lattice momentum correction preserves the matching soft-body
+impulse. No second solver or gallery-only coupling is involved.
+
+On the local RTX 3050 Ti, a timed frame after 600 settling frames measured
+about 4.0 ms total GPU physics time. Maximum settled bond strain was 41.0%, maximum
+rigid speed was 0.059 m/s, maximum soft-node speed was 0.029 m/s, and no node
+crossed the passive floor. In the focused 1.5 m/s impact, 30 transfer steps had
+4.3% mean and 15.6% worst per-step momentum imbalance; the sphere slowed to
+0.073 m/s while the soft-body center moved 0.757 m. A separate 4 m/s impact
+remained finite and non-tunneling, and duplicate runs matched byte-for-byte.
+These values are local acceptance measurements rather than a cross-hardware
+guarantee.

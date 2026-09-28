@@ -87,7 +87,8 @@ class ExportSceneTests(unittest.TestCase):
 
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
-                     "ClothTear", "ClothPaint", "ClothWater", "Softbody"):
+                     "ClothTear", "ClothPaint", "ClothWater", "Softbody",
+                     "SoftbodyRigidBody"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()

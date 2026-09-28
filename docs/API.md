@@ -131,8 +131,8 @@ library never draws these spans.
 `World::add_soft_body` copies host nodes, fixed-topology bonds, optional inverse
 masses, an indexed render surface, and four-node delta-skinning bindings.
 `SoftBodyId` is generation checked, and `soft_body_view` exposes borrowed device
-spans for physical nodes, velocities, bonds, the deforming surface, and passive
-rigid contact forces.
+spans for physical nodes, velocities, bonds, the deforming surface, and rigid
+contact forces.
 
 The first solver stage follows the proven lab model: integrate nodes under
 gravity, jointly solve node-sphere/passive-triangle contacts and bounded
@@ -140,13 +140,17 @@ compliant Jacobi spring constraints, blend projected motion back into velocity,
 damp bond-relative velocity, apply Coulomb traction bounded by accumulated
 normal constraint work, and update the authored surface. Interleaving a contact
 pass after every two graph passes prevents a later spring projection from
-stranding a node beyond a wall. Contact restitution comes from the passive
-rigid material rather than penetration depth. Node radius,
+stranding a node beyond a wall. Contact restitution comes from the contacted
+rigid material rather than penetration depth. Static and dynamic triangle
+bodies share this contact pass. A dynamic contact applies equal-and-opposite
+linear and angular impulses to the existing rigid-body state; the soft solver
+restores the corresponding total lattice momentum after spring projection so
+constraints cannot silently erase the exchanged impulse. The passive-only path
+retains its original damping behavior. Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
 and spring damping, contact friction, maximum speed, and iteration count are
-API configuration rather than gallery constants. Dynamic rigid reactions and
-fluid/cloth coupling are intentionally deferred without changing this resource
-or surface contract.
+API configuration rather than gallery constants. Fluid/cloth coupling is
+intentionally deferred without changing this resource or surface contract.
 
 ## Fluid sources and contact paint
 

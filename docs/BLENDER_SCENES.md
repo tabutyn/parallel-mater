@@ -184,7 +184,11 @@ Optional object properties tune conversion and the reusable solver:
 nodes and bonds. The gallery export defaults to the old lab's `2 m/s` soft-body
 speed cap, `0.2` per-pass projection bound, `0.7` projection velocity response,
 and 16 graph iterations. The first stage supports passive rigid triangle
-collision; dynamic rigid, fluid, and cloth coupling are separate roadmap PRs.
+collision. Active rigid triangle bodies use the same collision pass and receive
+balanced reaction impulses automatically; no extra Blender property or
+scene-specific force is needed. `SoftbodyRigidBody.blend` demonstrates two
+active spheres contacting one soft body. Fluid and cloth coupling remain
+separate roadmap PRs.
 
 ## Cloth Shape Pin Group
 

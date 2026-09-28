@@ -83,7 +83,7 @@ ctest --test-dir build-gallery --output-on-failure
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
-Cloth Tear, Cloth Paint, Water Cloth, and Soft Body; use
+Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
 Up/Down and Enter to switch.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
@@ -109,7 +109,9 @@ the cloth. Its containing skin is rendered as refractive transparent water.
 Body surface, the loader builds a volumetric spring lattice, and the public API
 deforms it against the authored passive triangle arena. It starts with gravity
 straight down and shares arrow steering, reset, timing, capture, and deformable
-debug controls.
+debug controls. `--soft-body-rigid` loads `SoftbodyRigidBody.blend` and uses the
+same API solver while two active spheres exchange balanced linear and angular
+contact impulses with the lattice.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
 normals, `X` rigid and rigid-contact forces, `C` fluid acceleration/reaction
 forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.

@@ -21,6 +21,7 @@ enum class GalleryContext : std::uint8_t {
     cloth_paint,
     water_cloth,
     soft_body,
+    soft_body_rigid,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -34,6 +35,7 @@ enum class GallerySceneSource : std::uint8_t {
     cloth_paint,
     water_cloth,
     soft_body,
+    soft_body_rigid,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -131,6 +133,14 @@ inline constexpr std::array gallery_entries{
         GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
         "--soft-body", "SOFT BODY", "ARROWS GRAVITY  R RESET",
         {49, 35, 67, 235}, {166, 102, 255},
+        {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.72F,
+         .pitch = 0.35F}, false, false, 0U, 0U, true},
+    GalleryEntry{GalleryContext::soft_body_rigid,
+        GallerySceneSource::soft_body_rigid,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--soft-body-rigid", "SOFT BODY RIGID",
+        "TWO-WAY IMPACTS  ARROWS GRAVITY  R RESET",
+        {46, 38, 64, 235}, {190, 118, 255},
         {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.72F,
          .pitch = 0.35F}, false, false, 0U, 0U, true},
 };
