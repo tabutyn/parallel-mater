@@ -81,14 +81,13 @@ struct ImpactResult {
     float peak_soft_speed{};
     float mean_balance_error{1.0F};
     float maximum_balance_error{};
-    float balanced_rigid_transfer{};
-    float balanced_soft_transfer{};
     float minimum_separation{std::numeric_limits<float>::max()};
     std::uint32_t transfer_steps{};
 };
 
 bool run_impact(parallel_mater::gallery::SceneDefinition scene,
-                float impact_speed, ImpactResult &output) {
+                float impact_speed, float projectile_mass,
+                ImpactResult &output) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
     const auto soft_center = center(scene.soft_bodies.front().nodes);
@@ -105,6 +104,7 @@ bool run_impact(parallel_mater::gallery::SceneDefinition scene,
         });
     if (left == scene.rigid_bodies.end()) return false;
     RigidBodyDefinition projectile = *left;
+    projectile.options.mass = projectile_mass;
     scene.rigid_bodies.assign(1U, projectile);
 
     World world;
@@ -131,7 +131,6 @@ bool run_impact(parallel_mater::gallery::SceneDefinition scene,
         scene.soft_bodies.front(), velocities);
     const StepOptions step{.timestep = 1.0F / 240.0F, .substeps = 1U,
                            .gravity = {}};
-    float best_balance_error = 1.0F;
     float balance_error_sum = 0.0F;
     float maximum_balance_error = 0.0F;
     std::uint32_t transfer_steps = 0U;
@@ -166,11 +165,6 @@ bool run_impact(parallel_mater::gallery::SceneDefinition scene,
                 std::fabs(rigid_transfer - soft_transfer) / transfer;
             balance_error_sum += error;
             maximum_balance_error = std::max(maximum_balance_error, error);
-            if (error < best_balance_error) {
-                best_balance_error = error;
-                output.balanced_rigid_transfer = rigid_transfer;
-                output.balanced_soft_transfer = soft_transfer;
-            }
             ++transfer_steps;
         }
         previous_rigid_momentum = rigid_momentum;
@@ -218,10 +212,16 @@ int main() {
         [](const RigidBodyDefinition &body) {
             return body.options.motion == MotionType::static_body;
         }));
+    const bool authored_heavy_spheres = std::all_of(
+        scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
+        [](const RigidBodyDefinition &body) {
+            return body.options.motion != MotionType::dynamic ||
+                   std::fabs(body.options.mass - 100.0F) < 1.0e-4F;
+        });
     if (scene.soft_bodies.size() != 1U || dynamic_count != 2U ||
-        static_count != 1U) {
+        static_count != 1U || !authored_heavy_spheres) {
         std::cerr << "SoftbodyRigidBody scene needs one soft body, two active "
-                     "rigid bodies, and one passive arena\n";
+                     "100 kg rigid bodies, and one passive arena\n";
         return 1;
     }
 
@@ -231,7 +231,7 @@ int main() {
                  "create authored soft-rigid scene")) return 1;
     const StepOptions settle_step{.timestep = 1.0F / 60.0F, .substeps = 4U,
                                   .gravity = {0.0F, -9.81F, 0.0F}};
-    for (std::uint32_t frame = 0U; frame < 600U; ++frame)
+    for (std::uint32_t frame = 0U; frame < 1'200U; ++frame)
         if (!require(settled_world.step(settle_step),
                      "settle authored soft-rigid scene")) return 1;
     float maximum_rigid_speed = 0.0F;
@@ -303,54 +303,65 @@ int main() {
         return 1;
     }
 
-    ImpactResult first{}, second{}, high_speed{};
-    if (!run_impact(scene, 1.5F, first) ||
-        !run_impact(scene, 1.5F, second) ||
-        !run_impact(scene, 4.0F, high_speed)) return 1;
+    ImpactResult light{}, heavy{}, heavy_repeat{}, high_speed{};
+    if (!run_impact(scene, 1.5F, 1.0F, light) ||
+        !run_impact(scene, 1.5F, 100.0F, heavy) ||
+        !run_impact(scene, 1.5F, 100.0F, heavy_repeat) ||
+        !run_impact(scene, 4.0F, 100.0F, high_speed)) return 1;
     const bool deterministic =
-        std::memcmp(&first.rigid, &second.rigid, sizeof(first.rigid)) == 0 &&
-        first.soft_positions.size() == second.soft_positions.size() &&
-        std::memcmp(first.soft_positions.data(), second.soft_positions.data(),
-                    first.soft_positions.size() * sizeof(Vec3)) == 0 &&
-        std::memcmp(first.soft_velocities.data(), second.soft_velocities.data(),
-                    first.soft_velocities.size() * sizeof(Vec3)) == 0;
-    if (first.transfer_steps == 0U || first.mean_balance_error > 0.08F ||
-        first.maximum_balance_error > 0.25F ||
-        first.soft_displacement < 0.02F ||
-        first.rigid.linear_velocity.x > 1.3F ||
-        first.peak_soft_speed > scene.soft_bodies.front().maximum_speed + 0.05F ||
-        first.minimum_separation < 1.25F ||
+        std::memcmp(&heavy.rigid, &heavy_repeat.rigid,
+                    sizeof(heavy.rigid)) == 0 &&
+        heavy.soft_positions.size() == heavy_repeat.soft_positions.size() &&
+        std::memcmp(heavy.soft_positions.data(),
+                    heavy_repeat.soft_positions.data(),
+                    heavy.soft_positions.size() * sizeof(Vec3)) == 0 &&
+        std::memcmp(heavy.soft_velocities.data(),
+                    heavy_repeat.soft_velocities.data(),
+                    heavy.soft_velocities.size() * sizeof(Vec3)) == 0;
+    if (light.transfer_steps == 0U || light.mean_balance_error > 0.08F ||
+        light.maximum_balance_error > 0.25F ||
+        light.soft_displacement < 0.02F ||
+        light.rigid.linear_velocity.x > 1.3F ||
+        light.peak_soft_speed >
+            scene.soft_bodies.front().maximum_speed + 0.05F ||
+        light.minimum_separation < 1.25F ||
+        heavy.soft_displacement < light.soft_displacement * 1.25F ||
+        heavy.rigid.linear_velocity.x < light.rigid.linear_velocity.x + 0.5F ||
+        heavy.peak_soft_speed >
+            scene.soft_bodies.front().maximum_speed + 0.05F ||
+        heavy.minimum_separation < 1.25F ||
         high_speed.transfer_steps == 0U ||
         high_speed.soft_displacement < 0.05F ||
         high_speed.peak_soft_speed >
             scene.soft_bodies.front().maximum_speed + 0.05F ||
         high_speed.minimum_separation < 1.25F || !deterministic) {
-        std::cerr << "Soft-rigid coupling regression: transfers="
-                  << first.transfer_steps
-                  << " mean_balance_error=" << first.mean_balance_error
+        std::cerr << "Soft-rigid coupling regression: light_transfers="
+                  << light.transfer_steps
+                  << " light_mean_balance_error=" << light.mean_balance_error
                   << " maximum_balance_error="
-                  << first.maximum_balance_error
-                  << " rigid_transfer=" << first.balanced_rigid_transfer
-                  << " soft_transfer=" << first.balanced_soft_transfer
-                  << " soft_dx=" << first.soft_displacement
-                  << " rigid_vx=" << first.rigid.linear_velocity.x
-                  << " peak_soft_speed=" << first.peak_soft_speed
-                  << " separation=" << first.minimum_separation
+                  << light.maximum_balance_error
+                  << " light_soft_dx=" << light.soft_displacement
+                  << " light_rigid_vx=" << light.rigid.linear_velocity.x
+                  << " heavy_soft_dx=" << heavy.soft_displacement
+                  << " heavy_rigid_vx=" << heavy.rigid.linear_velocity.x
+                  << " heavy_peak_soft_speed=" << heavy.peak_soft_speed
+                  << " heavy_separation=" << heavy.minimum_separation
                   << " high_speed_dx=" << high_speed.soft_displacement
                   << " high_speed_separation="
                   << high_speed.minimum_separation
                   << " deterministic=" << deterministic << '\n';
         return 1;
     }
-    std::cout << "Soft-rigid transfers=" << first.transfer_steps
-              << " mean_balance_error=" << first.mean_balance_error
-              << " maximum_balance_error=" << first.maximum_balance_error
-              << " rigid_transfer=" << first.balanced_rigid_transfer
-              << " soft_transfer=" << first.balanced_soft_transfer
-              << " soft_dx=" << first.soft_displacement
-              << " rigid_vx=" << first.rigid.linear_velocity.x
-              << " peak_soft_speed=" << first.peak_soft_speed
-              << " separation=" << first.minimum_separation
+    std::cout << "Soft-rigid light_transfers=" << light.transfer_steps
+              << " light_mean_balance_error=" << light.mean_balance_error
+              << " light_maximum_balance_error="
+              << light.maximum_balance_error
+              << " light_soft_dx=" << light.soft_displacement
+              << " light_rigid_vx=" << light.rigid.linear_velocity.x
+              << " heavy_soft_dx=" << heavy.soft_displacement
+              << " heavy_rigid_vx=" << heavy.rigid.linear_velocity.x
+              << " heavy_peak_soft_speed=" << heavy.peak_soft_speed
+              << " heavy_separation=" << heavy.minimum_separation
               << " high_speed_dx=" << high_speed.soft_displacement
               << " high_speed_separation=" << high_speed.minimum_separation
               << " settled_rigid_speed=" << maximum_rigid_speed

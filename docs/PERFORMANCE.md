@@ -365,18 +365,21 @@ guarantee.
 ## Soft body dynamic rigid coupling, 2026-09-28
 
 `SoftbodyRigidBody.blend` reuses the 673-node, 10,032-bond soft lattice and
-adds two active triangle-mesh spheres. Dynamic contacts run through the same
-interleaved soft-body contact pass as passive geometry. Per-node contact
+adds two 100 kg active triangle-mesh spheres. Dynamic contacts run through the
+same interleaved soft-body contact pass as passive geometry. Per-node contact
 impulses are deterministically reduced into the existing rigid states, while a
 post-constraint lattice momentum correction preserves the matching soft-body
 impulse. No second solver or gallery-only coupling is involved.
 
-On the local RTX 3050 Ti, a timed frame after 600 settling frames measured
-about 4.0 ms total GPU physics time. Maximum settled bond strain was 41.0%, maximum
-rigid speed was 0.059 m/s, maximum soft-node speed was 0.029 m/s, and no node
-crossed the passive floor. In the focused 1.5 m/s impact, 30 transfer steps had
-4.3% mean and 15.6% worst per-step momentum imbalance; the sphere slowed to
-0.073 m/s while the soft-body center moved 0.757 m. A separate 4 m/s impact
-remained finite and non-tunneling, and duplicate runs matched byte-for-byte.
+On the local RTX 3050 Ti, a timed frame after 1,200 settling frames measured
+about 4.5 ms total GPU physics time. Maximum settled bond strain was 25.3%,
+maximum rigid speed was 0.076 m/s, maximum soft-node speed was 0.064 m/s, and no
+node crossed the passive floor. In the focused 1.5 m/s control impact, a 1 kg
+sphere produced 30 transfer steps with 4.3% mean and 15.6% worst per-step
+momentum imbalance and moved the soft-body center 0.757 m. Under the same
+conditions the authored 100 kg sphere moved it 1.160 m, a 53% increase, and
+retained 1.410 m/s forward speed. A separate 4 m/s heavy impact moved the
+soft-body center 2.412 m, remained finite and non-tunneling, and duplicate
+heavy runs matched byte-for-byte.
 These values are local acceptance measurements rather than a cross-hardware
 guarantee.

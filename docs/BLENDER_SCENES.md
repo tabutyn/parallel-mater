@@ -70,6 +70,8 @@ open `.blend` using the same filename stem. The script is non-destructive:
 it exports evaluated rigid copies and undeformed soft/cloth rest copies, bakes scale
 into their vertices, triangulates all polygons, writes schema-2 glTF extras, and removes
 the temporary data. The source `.blend` is not saved or changed.
+Saving a `.blend` does not update the gallery by itself; re-export its `.glb`
+after changing physics properties such as mass.
 Selection and the active object are restored on success and failure. Soft-body,
 cloth-only, and fluid-only scenes are supported; a dummy rigid body is not required.
 
