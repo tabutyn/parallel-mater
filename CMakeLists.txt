@@ -343,6 +343,15 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-soft-body-cloth-tests PROPERTIES
                              SKIP_RETURN_CODE 77 TIMEOUT 180)
 
+        add_executable(parallel-mater-cloth-debug-tests
+                       tests/gallery/cloth_debug_tests.cpp)
+        target_link_libraries(parallel-mater-cloth-debug-tests PRIVATE
+            parallel-mater-gallery-renderer CUDA::cudart)
+        add_test(NAME parallel-mater-cloth-debug-tests
+                 COMMAND parallel-mater-cloth-debug-tests)
+        set_tests_properties(parallel-mater-cloth-debug-tests PROPERTIES
+                             SKIP_RETURN_CODE 77)
+
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
         target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
@@ -471,6 +480,12 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-soft-body-cloth-headless-test
             parallel-mater-soft-body-cloth-test.ppm 180 --soft-body-cloth)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-cloth-tear-debug-test
+            parallel-mater-soft-body-cloth-tear-debug.ppm 600 --soft-body-cloth
+            --cloth-tilt-after-frames 240 --cloth-tilt-degrees 45 --cloth-debug)
+        set_tests_properties(parallel-mater-soft-body-cloth-tear-debug-test PROPERTIES
+                             PASS_REGULAR_EXPRESSION "Cloth debug surfaces=2")
         add_gallery_headless_test(
             parallel-mater-physics-capture-headless-test
             parallel-mater-physics-capture-test.ppm 10

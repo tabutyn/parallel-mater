@@ -124,14 +124,17 @@ All gallery entries create `World` with opt-in rolling physics capture. `Z`
 shows available contact and deformable-surface normals, `X` rigid inputs and
 rigid/deformable contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
-`V` switches to available particle/deformable structure, `B` shows cloth bonds
+`V` switches to available particle/deformable structure, `B` shows active cloth bonds
 or the soft-body surface, and
 `M` copies the common API capture to a self-describing log in `/tmp`. Missing
 systems simply contribute no vectors. Rendering and log persistence stay in
 gallery support; state, forces, contacts, and the chronological capture come
 from the public API. `--physics-capture file.log` exercises the same writer in
-headless runs. `--water-cloth-debug` exercises the original four Water Cloth
-overlays in a headless render.
+headless runs. `--cloth-debug` draws overlays for every cloth in the selected
+scene; the legacy `--water-cloth-debug` also selects Water Cloth. Wireframe and
+normals follow the API's separated triangle surface after tearing; broken
+bonds are omitted rather than drawn across detached fragments. Force vectors
+remain attached to physical nodes.
 The gallery supplies cloth UVs to `World::add_paint_field` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.

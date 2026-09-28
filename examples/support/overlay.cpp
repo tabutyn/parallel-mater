@@ -607,13 +607,34 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         return false;
     };
     std::vector<Vec3> positions;
+    std::vector<Vec3> surface;
     std::vector<std::uint32_t> triangles;
-    if (!copy(cloth.positions, positions, "cloth positions") ||
-        !copy(cloth.triangle_indices, triangles, "cloth triangles"))
-        return false;
-    if (triangles.size() % 3U != 0U) {
-        error = "cloth debug triangle index count is not divisible by three";
-        return false;
+    if (!copy(cloth.positions, positions, "cloth positions")) return false;
+    const bool fractured_surface = cloth.surface_positions.size != 0U;
+    const auto &triangle_positions = fractured_surface ? surface : positions;
+    if (options.wireframe || options.normals) {
+        if (fractured_surface != (cloth.surface_triangle_indices.size != 0U)) {
+            error = "cloth debug surface positions and indices disagree";
+            return false;
+        }
+        // Authored connectivity belongs to the physical graph. After tearing,
+        // draw the same triangle-local surface that the solid renderer uses.
+        if (fractured_surface &&
+            !copy(cloth.surface_positions, surface, "cloth surface positions"))
+            return false;
+        if (!copy(fractured_surface ? cloth.surface_triangle_indices
+                                    : cloth.triangle_indices,
+                  triangles, "cloth surface triangles")) return false;
+        if (triangles.size() % 3U != 0U) {
+            error = "cloth debug triangle index count is not divisible by three";
+            return false;
+        }
+        for (const std::uint32_t index : triangles) {
+            if (index >= triangle_positions.size()) {
+                error = "cloth debug triangle index is out of range";
+                return false;
+            }
+        }
     }
     if (options.wireframe) {
         const Color wire{26, 230, 255, 225};
@@ -621,17 +642,11 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
              triangle += 3U) {
             const std::uint32_t indices[3]{triangles[triangle],
                 triangles[triangle + 1U], triangles[triangle + 2U]};
-            if (indices[0] >= positions.size() ||
-                indices[1] >= positions.size() ||
-                indices[2] >= positions.size()) {
-                error = "cloth debug triangle index is out of range";
-                return false;
-            }
             for (int edge = 0; edge < 3; ++edge) {
                 const ScreenPoint first = project(
-                    positions[indices[edge]], camera, width, height);
+                    triangle_positions[indices[edge]], camera, width, height);
                 const ScreenPoint second = project(
-                    positions[indices[(edge + 1) % 3]], camera, width, height);
+                    triangle_positions[indices[(edge + 1) % 3]], camera, width, height);
                 if (first.visible && second.visible)
                     line(rgba, width, height, first.x, first.y,
                          second.x, second.y, wire);
@@ -647,6 +662,7 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         const std::size_t stride = std::max<std::size_t>(
             1U, (bonds.size() + 2'499U) / 2'500U);
         for (std::size_t index = 0U; index < bonds.size(); index += stride) {
+            if (index < active.size() && active[index] == 0U) continue;
             const ClothBond &bond = bonds[index];
             if (bond.first >= positions.size() ||
                 bond.second >= positions.size()) continue;
@@ -655,33 +671,30 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
             const ScreenPoint second = project(
                 positions[bond.second], camera, width, height);
             if (!first.visible || !second.visible) continue;
-            const bool enabled = index >= active.size() || active[index] != 0U;
             line(rgba, width, height, first.x, first.y, second.x, second.y,
-                 enabled ? Color{255, 155, 25, 220}
-                         : Color{255, 45, 70, 235});
+                 {255, 155, 25, 220});
         }
     }
     std::vector<Vec3> normals;
     if (options.normals) {
-        normals.assign(positions.size(), {});
+        normals.assign(triangle_positions.size(), {});
         for (std::size_t triangle = 0U; triangle < triangles.size();
              triangle += 3U) {
             const std::uint32_t a = triangles[triangle];
             const std::uint32_t b = triangles[triangle + 1U];
             const std::uint32_t c = triangles[triangle + 2U];
-            if (a >= positions.size() || b >= positions.size() ||
-                c >= positions.size()) continue;
-            const Vec3 face = cross(subtract(positions[b], positions[a]),
-                                    subtract(positions[c], positions[a]));
+            const Vec3 face = cross(subtract(triangle_positions[b], triangle_positions[a]),
+                                    subtract(triangle_positions[c], triangle_positions[a]));
             normals[a] = add(normals[a], face);
             normals[b] = add(normals[b], face);
             normals[c] = add(normals[c], face);
         }
         for (Vec3 &normal : normals) normal = normalized(normal);
     }
-    const auto draw_vectors = [&](const std::vector<Vec3> &vectors,
+    const auto draw_vectors = [&](const std::vector<Vec3> &origins,
+                                  const std::vector<Vec3> &vectors,
                                   float fixed_length, Color color) {
-        const std::size_t count = std::min(positions.size(), vectors.size());
+        const std::size_t count = std::min(origins.size(), vectors.size());
         for (std::size_t index = 0U; index < count; ++index) {
             const float magnitude = length(vectors[index]);
             if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) continue;
@@ -689,29 +702,29 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
                 ? fixed_length
                 : std::clamp(0.003F * magnitude, 0.012F, 0.14F);
             const Vec3 endpoint = add(
-                positions[index], multiply(vectors[index],
+                origins[index], multiply(vectors[index],
                                             arrow_length / magnitude));
             arrow(rgba, width, height,
-                  project(positions[index], camera, width, height),
+                  project(origins[index], camera, width, height),
                   project(endpoint, camera, width, height), color);
         }
     };
     if (options.normals)
-        draw_vectors(normals, 0.065F, {31, 255, 56, 242});
+        draw_vectors(triangle_positions, normals, 0.065F, {31, 255, 56, 242});
     if (options.rigid_contact_forces) {
         std::vector<Vec3> forces;
         if (!copy(cloth.rigid_contact_forces, forces,
                   "cloth rigid contact forces")) return false;
-        draw_vectors(forces, 0.0F, {31, 122, 255, 242});
+        draw_vectors(positions, forces, 0.0F, {31, 122, 255, 242});
         if (!copy(cloth.soft_body_contact_forces, forces,
                   "cloth soft-body contact forces")) return false;
-        draw_vectors(forces, 0.0F, {205, 110, 255, 242});
+        draw_vectors(positions, forces, 0.0F, {205, 110, 255, 242});
     }
     if (options.fluid_contact_forces) {
         std::vector<Vec3> forces;
         if (!copy(cloth.fluid_contact_forces, forces,
                   "cloth fluid contact forces")) return false;
-        draw_vectors(forces, 0.0F, {255, 219, 20, 242});
+        draw_vectors(positions, forces, 0.0F, {255, 219, 20, 242});
     }
     if (options.normals || options.rigid_contact_forces ||
         options.fluid_contact_forces || options.wireframe || options.bonds) {

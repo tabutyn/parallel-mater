@@ -80,7 +80,7 @@ struct Options {
     bool headless_cloth_tilt_left{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
-    bool water_cloth_debug{};
+    bool cloth_debug{};
 };
 
 struct InputState {
@@ -401,9 +401,10 @@ struct FluidEscapeTrace {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
             output.trace_fluid_escapes = true;
-        } else if (argument == "--water-cloth-debug") {
-            output.initial_context = GalleryContext::water_cloth;
-            output.water_cloth_debug = true;
+        } else if (argument == "--water-cloth-debug" || argument == "--cloth-debug") {
+            if (argument == "--water-cloth-debug")
+                output.initial_context = GalleryContext::water_cloth;
+            output.cloth_debug = true;
         } else if (argument == "--physics-capture" && index + 1 < argc) {
             output.physics_capture_output = argv[++index];
         } else if (argument == "--help") {
@@ -420,7 +421,7 @@ struct FluidEscapeTrace {
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
-                         "[--water-cloth-debug] "
+                         "[--cloth-debug | --water-cloth-debug] "
                          "[--physics-capture output.log] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
@@ -841,7 +842,7 @@ int main(int argc, char **argv) {
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      input_state.camera.camera(),
                                      pixels, error, &headless_render_timings,
-                                     options.water_cloth_debug
+                                     options.cloth_debug
                                          ? FluidRenderMode::wireframe
                                          : options.fluid_particle_view
                                          ? FluidRenderMode::particles
@@ -849,21 +850,26 @@ int main(int argc, char **argv) {
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
-        if (options.water_cloth_debug) {
-            ClothDeviceView cloth{};
-            if (runtime.instance.cloths.empty() ||
-                !require(runtime.world.cloth_view(
-                             runtime.instance.cloths.front(), cloth),
-                         "borrow headless cloth debug view") ||
-                !draw_cloth_debug_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    cloth, input_state.camera.camera(),
-                    {.normals = true, .rigid_contact_forces = true,
-                     .fluid_contact_forces = true, .wireframe = true,
-                     .bonds = true}, error)) {
-                std::cerr << "Cloth debug overlay failed: " << error << '\n';
+        if (options.cloth_debug) {
+            if (runtime.instance.cloths.empty()) {
+                std::cerr << "Cloth debug overlay needs a cloth resource\n";
                 return 1;
             }
+            for (ClothId id : runtime.instance.cloths) {
+                ClothDeviceView cloth{};
+                if (!require(runtime.world.cloth_view(id, cloth),
+                             "borrow headless cloth debug view") ||
+                    !draw_cloth_debug_overlay(
+                        pixels, runtime.renderer.width(), runtime.renderer.height(),
+                        cloth, input_state.camera.camera(),
+                        {.normals = true, .rigid_contact_forces = true,
+                         .fluid_contact_forces = true, .wireframe = true,
+                         .bonds = true}, error)) {
+                    std::cerr << "Cloth debug overlay failed: " << error << '\n';
+                    return 1;
+                }
+            }
+            std::cout << "Cloth debug surfaces=" << runtime.instance.cloths.size() << '\n';
             PhysicsDebugFrameView debug_frame{};
             if (!require(runtime.world.physics_debug_frame(debug_frame),
                          "borrow headless physics debug frame")) return 1;
@@ -887,7 +893,7 @@ int main(int argc, char **argv) {
             std::cout << "Painted texels=" << painted << '\n';
         }
         if (runtime.instance.has_fluid && !options.fluid_particle_view &&
-            !options.water_cloth_debug)
+            !options.cloth_debug)
             std::cout << "Fluid surface outliers="
                       << headless_render_timings.surface_excluded_particle_count
                       << " surface_gpu_ms="
