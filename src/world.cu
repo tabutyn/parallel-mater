@@ -3201,8 +3201,9 @@ __global__ void soft_body_project_rest_shape(
     const float *inverse_masses, std::uint32_t count, float movable_mass,
     Vec3 rest_center, ShapeMatrix inverse_rest,
     Quaternion *stored_orientation, float stiffness,
-    float maximum_projection) {
-    if (blockIdx.x != 0U || threadIdx.x != 0U || stiffness <= 0.0F) return;
+    float maximum_projection, const std::uint32_t *dynamic_contact_flag) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U || stiffness <= 0.0F ||
+        *dynamic_contact_flag != 0U) return;
     Vec3 current_center{};
     for (std::uint32_t node = 0U; node < count; ++node) {
         const float inverse_mass = inverse_masses[node];
@@ -3478,7 +3479,8 @@ __global__ void deformable_collide(
     Vec3 *positions, Vec3 *velocities, const Vec3 *previous,
     const float *inverse_masses, std::uint32_t count, float thickness,
     float dt, const BodyParameters *parameters,
-    const RigidBodyState *states, const TriangleMeshResource *meshes,
+    const RigidBodyState *previous_states, const RigidBodyState *states,
+    const TriangleMeshResource *meshes,
     std::uint32_t body_count, FluidBodyImpulse *impulses,
     Vec3 *contact_forces, Vec3 *contact_normals, Vec3 *contact_arms,
     Vec3 *contact_momentum_delta,
@@ -3503,10 +3505,15 @@ __global__ void deformable_collide(
         const BodyParameters body = parameters[body_index];
         if (static_only && body.motion != MotionType::static_body) continue;
         const RigidBodyState state = states[body_index];
+        const RigidBodyState previous_state = previous_states != nullptr
+            ? previous_states[body_index] : state;
         const TriangleMeshResource mesh = meshes[body.mesh.index];
         if (mesh.bvh_node_count == 0U) continue;
-        const Vec3 local_start = inverse_rotate(state.orientation,
-            subtract(start, state.position));
+        // Sweep in collider-local space at both ends. Reusing the current body
+        // transform for the start sample lets a moving closed body engulf a
+        // node without the relative segment ever crossing its surface.
+        const Vec3 local_start = inverse_rotate(previous_state.orientation,
+            subtract(start, previous_state.position));
         const Vec3 local_end = inverse_rotate(state.orientation,
             subtract(end, state.position));
         if (!fluid_segment_bounds(local_start, local_end, mesh.bvh_nodes[0],
@@ -6889,7 +6896,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.positions, cloth.velocities, cloth.previous,
                     cloth.inverse_masses, cloth.vertex_count,
                     cloth.thickness, substep_timestep,
-                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->parameters, previous_states,
+                    impl_->states[impl_->current_state],
                     impl_->meshes, impl_->rigid_body_count,
                     cloth.body_impulses, cloth.rigid_contact_forces,
                     nullptr, nullptr, nullptr, nullptr, nullptr,
@@ -6932,7 +6940,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.positions, cloth.velocities, cloth.previous,
                     cloth.inverse_masses, cloth.vertex_count,
                     cloth.thickness, substep_timestep,
-                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->parameters, previous_states,
+                    impl_->states[impl_->current_state],
                     impl_->meshes, 0U, cloth.body_impulses,
                     cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
                     nullptr, nullptr, nullptr,
@@ -6963,7 +6972,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         return success();
     };
-    const auto advance_soft_bodies = [&]() noexcept -> Status {
+    const auto advance_soft_bodies = [&](const RigidBodyState *previous_states)
+        noexcept -> Status {
         for (const auto &body_pointer : impl_->soft_bodies) {
             if (!body_pointer || !body_pointer->alive) continue;
             SoftBodyStorage &body = *body_pointer;
@@ -7021,7 +7031,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 deformable_collide<true><<<blocks, block_size, 0, stream>>>(
                     body.positions, body.velocities, body.previous,
                     body.inverse_masses, body.node_count, body.node_radius,
-                    substep_timestep, impl_->parameters,
+                    substep_timestep, impl_->parameters, previous_states,
                     impl_->states[impl_->current_state], impl_->meshes,
                     impl_->rigid_body_count, body.body_impulses,
                     body.rigid_contact_forces, body.contact_normals,
@@ -7082,7 +7092,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         body.movable_mass, body.shape_rest_center,
                         body.shape_inverse_rest, body.shape_orientation,
                         body.shape_matching_stiffness,
-                        body.shape_maximum_projection);
+                        body.shape_maximum_projection,
+                        body.dynamic_contact_flag);
                 }
                 body_status = record_timing_stage(
                     TimingStage::soft_body_constraints);
@@ -7339,7 +7350,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (!status) return status;
         }
         if (has_soft_body) {
-            status = advance_soft_bodies();
+            status = advance_soft_bodies(
+                impl_->states[1U - impl_->current_state]);
             if (!status) return status;
         }
     }
@@ -7367,7 +7379,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     }
     if (has_soft_body && impl_->rigid_body_count == 0U) {
         for (std::uint32_t substep = 0U; substep < options.substeps; ++substep) {
-            status = advance_soft_bodies();
+            status = advance_soft_bodies(nullptr);
             if (!status) return status;
         }
     }

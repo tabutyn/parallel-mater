@@ -138,7 +138,10 @@ contact forces.
 rest shape after spring projection. The constraint solves the body's current
 center and rotation before applying a bounded correction, so it removes crush
 deformation without tethering translation or rolling to the original world
-pose. Zero disables it; values through one increase per-substep restoration.
+pose. A substep that records dynamic rigid contact suppresses restoration so
+the goal cannot project nodes through the active collider; restoration resumes
+on the next contact-free substep. Zero disables it; values through one increase
+per-substep restoration.
 
 The first solver stage follows the proven lab model: integrate nodes under
 gravity, jointly solve node-sphere/passive-triangle contacts and bounded
@@ -152,7 +155,10 @@ bodies share this contact pass. A dynamic contact applies equal-and-opposite
 linear and angular impulses to the existing rigid-body state; the soft solver
 restores the corresponding total lattice momentum after spring projection so
 constraints cannot silently erase the exchanged impulse. The passive-only path
-retains its original damping behavior. Node radius,
+retains its original damping behavior. Swept deformable contact transforms the
+start and end samples by the corresponding previous and current rigid poses,
+so a moving closed collider cannot engulf a stationary node between samples.
+Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
 and spring damping, contact friction, shape-matching stiffness, maximum speed,
 and iteration count are API configuration rather than gallery constants.

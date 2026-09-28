@@ -372,21 +372,24 @@ post-constraint lattice momentum correction preserves the matching soft-body
 impulse. No second solver or gallery-only coupling is involved.
 
 On the local RTX 3050 Ti, a timed frame after 1,200 settling frames measured
-about 5.3 ms total GPU physics time. Maximum settled bond strain was 26.6%,
-maximum rigid speed was 0.076 m/s, maximum soft-node speed was 0.021 m/s, and no
+about 5.6 ms total GPU physics time. Maximum settled bond strain was 44.5%,
+maximum rigid speed was 0.076 m/s, maximum soft-node speed was 0.019 m/s, and no
 node crossed the passive floor. In the focused 1.5 m/s control impact, a 1 kg
-sphere produced 29 transfer steps with 4.6% mean and 18.4% worst per-step
-momentum imbalance and moved the soft-body center 0.759 m. Under the same
-conditions the authored 100 kg sphere moved it 1.169 m, a 54% increase, and
+sphere produced 30 transfer steps with 4.3% mean and 15.6% worst per-step
+momentum imbalance and moved the soft-body center 0.757 m. Under the same
+conditions the authored 100 kg sphere moved it 1.160 m, a 53% increase, and
 retained 1.410 m/s forward speed. A separate 4 m/s heavy impact moved the
-soft-body center 2.400 m, remained finite and non-tunneling, and duplicate
+soft-body center 2.412 m, remained finite and non-tunneling, and duplicate
 heavy runs matched byte-for-byte.
 
 The reusable co-rotated shape constraint maps the authored Blender Goal weight
 and stiffness to a 0.35 API stiffness. Two symmetric 100 kg impacts produced a
-14.5% peak radial shape error. A quarter second after both loads were removed,
-the normalized radial error was 0.00024%, versus 0.0064% for the same spring
-lattice with shape matching disabled. The recovery preserves the body's center
-and best-fit rotation, so the existing rolling regression remains unchanged.
+15.5% peak radial shape error. Shape restoration yields while those dynamic
+contacts are active instead of pushing through them. A quarter second after
+both loads were removed, the normalized radial error was 0.00032%, versus
+0.0064% for the same spring lattice with shape matching disabled. A 300-frame
+camera-relative gravity-steering regression left zero nodes beyond the passive
+arena bounds. Recovery preserves the body's center and best-fit rotation, so
+the existing rolling regression remains unchanged.
 These values are local acceptance measurements rather than a cross-hardware
 guarantee.

@@ -108,10 +108,11 @@ the cloth. Its containing skin is rendered as refractive transparent water.
 `--soft-body` loads `Softbody.blend`: the exporter marks its native Blender Soft
 Body surface, the loader builds a volumetric spring lattice, and the public API
 deforms it against the authored passive triangle arena. Blender Goal settings
-drive rotation-invariant shape restoration without preventing rolling. It
-starts with gravity straight down and shares arrow steering, reset, timing,
-capture, and deformable
-debug controls. `--soft-body-rigid` loads `SoftbodyRigidBody.blend` and uses the
+drive rotation-invariant shape restoration without preventing rolling and
+yield while a dynamic collider is actively loading the lattice. It starts with
+gravity straight down and shares arrow steering, reset, timing, capture, and
+deformable debug controls. `--soft-body-rigid` loads
+`SoftbodyRigidBody.blend` and uses the
 same API solver while two active spheres exchange balanced linear and angular
 contact impulses with the lattice.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable

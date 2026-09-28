@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include <parallel_mater_gallery/gallery_context.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 
@@ -100,6 +101,59 @@ struct RecoveryResult {
     float recovered_error{};
     float recovered_speed{};
 };
+
+struct ContainmentResult {
+    std::uint32_t escaped_nodes{};
+    float minimum_z{std::numeric_limits<float>::max()};
+    float maximum_z{-std::numeric_limits<float>::max()};
+};
+
+bool run_steered_containment(
+    const parallel_mater::gallery::SceneDefinition &scene,
+    ContainmentResult &output) {
+    using namespace parallel_mater;
+    using namespace parallel_mater::gallery;
+    World world;
+    SceneInstance instance{};
+    if (!require(create_scene_world(scene, world, instance),
+                 "create steered soft-rigid world")) return false;
+    constexpr float timestep = 1.0F / 60.0F;
+    constexpr float gravity_magnitude = 9.81F;
+    constexpr float diagonal = 0.70710678118F;
+    CameraController camera;
+    camera.set_preset(gallery_entry(GalleryContext::soft_body_rigid).camera);
+    Vec3 gravity{0.0F, -gravity_magnitude * diagonal,
+                 -gravity_magnitude * diagonal};
+    for (std::uint32_t frame = 0U; frame < 300U; ++frame) {
+        gravity = steer_gravity(gravity, camera.camera(), -1.0F, 0.0F,
+                                gravity_magnitude, 45.0F, timestep);
+        const StepOptions step{.timestep = timestep, .substeps = 4U,
+                               .gravity = gravity};
+        if (!require(world.step(step), "step steered soft-rigid world"))
+            return false;
+    }
+    std::vector<Vec3> positions, velocities;
+    if (!read_soft_state(world, instance.soft_bodies.front(), positions,
+                         velocities)) return false;
+    StaticTriangleSurface passive_surface;
+    std::string error;
+    if (!StaticTriangleSurface::create(scene, passive_surface, error)) {
+        std::cerr << error << '\n';
+        return false;
+    }
+    const Vec3 minimum = passive_surface.minimum();
+    const Vec3 maximum = passive_surface.maximum();
+    const float tolerance = scene.soft_bodies.front().node_radius + 0.02F;
+    for (Vec3 node : positions) {
+        output.minimum_z = std::min(output.minimum_z, node.z);
+        output.maximum_z = std::max(output.maximum_z, node.z);
+        output.escaped_nodes += node.x < minimum.x - tolerance ||
+            node.x > maximum.x + tolerance ||
+            node.z < minimum.z - tolerance ||
+            node.z > maximum.z + tolerance;
+    }
+    return true;
+}
 
 bool run_symmetric_crush(parallel_mater::gallery::SceneDefinition scene,
                          float shape_stiffness, RecoveryResult &output) {
@@ -392,11 +446,15 @@ int main() {
     }
 
     RecoveryResult matched_recovery{}, spring_recovery{};
+    ContainmentResult containment{};
     if (!run_symmetric_crush(scene,
             scene.soft_bodies.front().shape_matching_stiffness,
             matched_recovery) ||
-        !run_symmetric_crush(scene, 0.0F, spring_recovery)) return 1;
+        !run_symmetric_crush(scene, 0.0F, spring_recovery) ||
+        !run_steered_containment(scene, containment)) return 1;
     if (matched_recovery.peak_error < 0.05F ||
+        matched_recovery.loaded_error <
+            spring_recovery.loaded_error * 0.98F ||
         matched_recovery.recovered_error >
             matched_recovery.loaded_error * 0.01F ||
         matched_recovery.recovered_error >
@@ -410,6 +468,13 @@ int main() {
                   << " spring_recovered="
                   << spring_recovery.recovered_error
                   << " speed=" << matched_recovery.recovered_speed << '\n';
+        return 1;
+    }
+    if (containment.escaped_nodes != 0U) {
+        std::cerr << "Contact-aware shape restoration crossed the arena: "
+                  << containment.escaped_nodes << " nodes, z="
+                  << containment.minimum_z << ".."
+                  << containment.maximum_z << '\n';
         return 1;
     }
 
@@ -487,6 +552,9 @@ int main() {
               << " spring_peak_error=" << spring_recovery.peak_error
               << " spring_recovered_error="
               << spring_recovery.recovered_error
+              << " steered_escaped_nodes=" << containment.escaped_nodes
+              << " steered_z=" << containment.minimum_z << ".."
+              << containment.maximum_z
               << " gpu_ms=" << timings.total_gpu_milliseconds << '\n';
     return 0;
 }

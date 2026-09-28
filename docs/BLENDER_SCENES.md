@@ -197,8 +197,10 @@ When Blender **Soft Body → Goal** is enabled, the exporter maps Default Weight
 times Stiffness to `pm_shape_matching_stiffness`. ParallelMater interprets that
 signal as co-rotated rest-shape matching rather than a world-space pin: the
 body can translate and roll, compresses under load, and restores its authored
-shape after the load leaves. A custom `pm_shape_matching_stiffness` overrides
-the Blender-derived value; zero disables restoration.
+shape after the load leaves. Restoration yields during any substep with active
+rigid contact, preventing the Goal projection from rebuilding through a
+collider. A custom `pm_shape_matching_stiffness` overrides the Blender-derived
+value; zero disables restoration.
 
 ## Cloth Shape Pin Group
 
