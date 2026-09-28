@@ -116,8 +116,9 @@ The gallery renders that API-owned surface; rigid-body response on fracturing
 cloth uses physical node contacts, not a triangle-radius barrier. The gallery
 does not choose a cut shape.
 `ClothDeviceView` also exposes the last-substep per-node
-`rigid_contact_forces` and `fluid_contact_forces`. They are ordinary borrowed
-device spans and are available without enabling the bounded contact-event
+`rigid_contact_forces`, `fluid_contact_forces`, and `soft_body_contact_forces`.
+They are ordinary borrowed device spans and are available without enabling
+the bounded contact-event
 streams, so an application can build force diagnostics without reaching into
 solver storage.
 
@@ -182,8 +183,39 @@ Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
 and spring damping, contact friction, shape-matching stiffness, maximum speed,
 and iteration count are API configuration rather than gallery constants.
-Fluid/cloth coupling is intentionally deferred without changing this resource
-or surface contract.
+Fluid coupling is deferred without changing this resource or surface contract.
+
+`add_soft_body_cloth_coupling` binds one soft body to one cloth through
+`SoftBodyClothCouplingOptions`. Contact uses the cloth's current triangles on
+either side, including the separated surface after fracture. Relative previous
+positions guard crossings; inverse masses and triangle barycentric weights
+distribute contact corrections and opposing normal/friction impulses. Separate
+detection and gather kernels avoid concurrent position reads and writes.
+Shared contact relaxation applies the same scale to both sides, including
+the reported reaction at pinned vertices. Its effective-mass adjustment
+accounts for shared cloth vertices without weakening each independent soft
+node by the same contact count. Speed caps may limit momentum at extreme
+impacts. This is node-to-triangle contact with a crossing guard, not continuous
+triangle-to-triangle collision for arbitrary timesteps or deformation.
+
+The API steps both deformables at each substep, interleaves their graph
+constraints with contact, and samples cloth fracture once before those graph
+projections remove the impact strain. `ClothOptions::break_strain = 0` and
+`impact_break_impulse = 0` keep that cloth intact. A positive break strain
+enables its existing persistent, triangle-preserving fracture independently
+of every other cloth. There is no scene-dependent tear rule.
+
+Coupling options expose contact distance, friction, iteration count, and an
+enable switch. Iteration requests range from 1 to 16; the highest enabled
+request sets the shared pass count, keeping every pair constrained while
+shared bodies continue projecting. Endpoints stay fixed; remove and add a
+resource to bind a new pair. Remove couplings before their cloth or soft body;
+handles become stale
+after removal. Reserve pairs with `WorldOptions::soft_body_cloth_coupling_capacity`.
+Device views and opt-in physics captures expose `cloth_contact_forces` on soft
+bodies and `soft_body_contact_forces` on cloth. Timings include
+`soft_body_cloth_contacts`. The gallery connects each authored soft body to
+each authored cloth using this API.
 
 ## Fluid sources and contact paint
 

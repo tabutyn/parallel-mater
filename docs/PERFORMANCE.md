@@ -442,3 +442,54 @@ reproducer. This covers the initial collision window, including the former
 frame-87 failure; it is not a full-run memory-check claim. The long instrumented
 regression did not complete, so the short reproducer is available for repeatable
 memory checking without shortening either full CTest stress case.
+
+## Soft body and cloth coupling, 2026-09-28
+
+`SoftbodyCloth.blend` contains one soft sphere, two 289-vertex/512-triangle
+cloths, and two passive triangle meshes. Each cloth uses its own material:
+the pinned bridge has fracture disabled and 48 spring iterations; the vertical
+curtain has 10% break strain, four-substep persistence, and 24 iterations.
+The shared API uses four contact passes per substep, triangle barycentric
+reactions, Coulomb friction, and deterministic gathers. Gravity starts down;
+the regression begins a 45-degree roll toward the curtain after 240 frames.
+
+The first eight-iteration bridge sagged 0.825 units and trapped the sphere.
+Increasing authored spring convergence let it roll out. A stronger clearance
+test then found 0.0875 units of local impact penetration despite successful
+support. Dividing both contact responses by the full cloth contact degree
+over-relaxed the independent soft nodes. Scaling the effective inverse mass
+of the shared cloth instead removed that penetration without extra passes.
+Both bodies still receive the same opposing impulse.
+
+The final 900-frame run at 60 Hz/four substeps measured:
+
+- Minimum bridge clearance 0.0414 units over the initial 240 frames, sampling
+  every soft node, skin vertex, triangle centroid, and edge midpoint against
+  the deformed bridge triangles.
+- Zero pin displacement and zero broken bridge bonds. Maximum bridge sag was
+  0.516 units; maximum live bridge-bond strain over the full run was 31.3%.
+- 237 broken curtain bonds, none before contact, with all 512 triangles
+  retained. The sphere passed through and finished at z = -4.936.
+- Maximum soft-node speed 2 m/s; normalized contact-force imbalance below
+  3.8e-7, including reactions at pinned vertices.
+
+Controls remove all rigid geometry and disable the API coupling: after 180
+frames the sphere falls to y = -4.883 instead of being supported at y = 0.082.
+Two enabled runs match node positions exactly. Disabling curtain fracture
+keeps its bonds intact and blocks the sphere from both sides, with 160 contact
+frames in each 180-frame run. Lifecycle, capture-force, and timing checks are
+part of the same test.
+
+On the local RTX 3050 Ti, the full scene's opt-in timed frame measured 16.36 ms
+GPU physics, including 7.67 ms in soft/cloth coupling and cleanup. In the
+one-cloth/no-rigid support control, unprofiled stepping with capture disabled
+averaged 8.97 ms/frame; disabled coupling averaged 5.22 ms/frame. These are
+different workloads, not a full-scene speedup claim. Contacts currently scan
+cloth triangles per soft node; these measurements do not establish scaling
+to large collections of deformables or continuous collision guarantees.
+
+Validation: all 43 CTest cases passed, including the real Blender exporter and
+headless scene. Targeted CUDA memcheck checked 2,048 `soft_cloth_` launches after
+skipping 3,456 matching launches (the bridge-impact window) with zero errors in
+the 240-frame `--smoke` run. This is a bounded new-kernel check, not a claim of
+full-run sanitizer coverage.

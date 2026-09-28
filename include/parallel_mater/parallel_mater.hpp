@@ -107,6 +107,15 @@ struct FluidClothCouplingId {
     }
 };
 
+struct SoftBodyClothCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        SoftBodyClothCouplingId left, SoftBodyClothCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -184,6 +193,7 @@ struct WorldOptions {
     std::uint32_t cloth_capacity{1U};
     std::uint32_t soft_body_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
+    std::uint32_t soft_body_cloth_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -260,6 +270,20 @@ struct FluidClothCouplingOptions {
     bool enabled{true};
 };
 
+// Two-sided contact with the cloth's current triangles, including its torn
+// surface. Fracture is configured on ClothOptions, independently per cloth.
+struct SoftBodyClothCouplingOptions {
+    SoftBodyId soft_body{};
+    ClothId cloth{};
+    // Zero selects soft node radius + cloth thickness.
+    float contact_distance{};
+    float friction{0.4F};
+    // 1..16. The highest enabled request sets the shared contact pass count;
+    // all pairs stay constrained while shared bodies continue projecting.
+    std::uint32_t solver_iterations{4U};
+    bool enabled{true};
+};
+
 struct ClothDeviceView {
     // Physical nodes and their authored connectivity.
     DeviceSpan<const Vec3> positions{};
@@ -278,6 +302,7 @@ struct ClothDeviceView {
     // renderers and tools to inspect cloth coupling through the public API.
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> fluid_contact_forces{};
+    DeviceSpan<const Vec3> soft_body_contact_forces{};
 };
 
 struct SoftBodyBond {
@@ -328,6 +353,7 @@ struct SoftBodyDeviceView {
     DeviceSpan<const Vec3> surface_positions{};
     DeviceSpan<const std::uint32_t> surface_triangle_indices{};
     DeviceSpan<const Vec3> rigid_contact_forces{};
+    DeviceSpan<const Vec3> cloth_contact_forces{};
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
@@ -541,6 +567,7 @@ struct PhysicsDebugClothSample {
     Vec3 velocity{};
     Vec3 rigid_contact_force{};
     Vec3 fluid_contact_force{};
+    Vec3 soft_body_contact_force{};
 };
 
 struct PhysicsDebugSoftBodySample {
@@ -549,6 +576,7 @@ struct PhysicsDebugSoftBodySample {
     Vec3 position{};
     Vec3 velocity{};
     Vec3 rigid_contact_force{};
+    Vec3 cloth_contact_force{};
 };
 
 struct PhysicsDebugFrame {
@@ -616,6 +644,7 @@ struct WorldStepTimings {
     KernelTiming soft_body_prediction{};
     KernelTiming soft_body_constraints{};
     KernelTiming soft_body_contacts{};
+    KernelTiming soft_body_cloth_contacts{};
 };
 
 struct WorldStatistics {
@@ -702,6 +731,16 @@ class World {
         FluidClothCouplingOptions options) noexcept;
     [[nodiscard]] Status remove_fluid_cloth_coupling(
         FluidClothCouplingId coupling) noexcept;
+
+    [[nodiscard]] Status add_soft_body_cloth_coupling(
+        SoftBodyClothCouplingOptions options,
+        SoftBodyClothCouplingId &output) noexcept;
+    // Endpoints are immutable; remove and add to bind another pair.
+    [[nodiscard]] Status update_soft_body_cloth_coupling(
+        SoftBodyClothCouplingId coupling,
+        SoftBodyClothCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_soft_body_cloth_coupling(
+        SoftBodyClothCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_particle_spawn_plane(
         ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;

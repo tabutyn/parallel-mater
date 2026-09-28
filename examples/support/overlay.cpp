@@ -317,9 +317,17 @@ void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
              timings.rigid_contact_solve.launch_count}},
         TimingRow{"PREDICT", timings.soft_body_prediction},
         TimingRow{"SPRINGS", timings.soft_body_constraints},
-        TimingRow{"CONTACTS", timings.soft_body_contacts}};
-    timing_panel(rgba, width, height, 430, 230, "SOFT BODY GPU KERNELS",
-                 timings.available, rows, 26, 177,
+        TimingRow{"CONTACTS", timings.soft_body_contacts},
+        TimingRow{"CLOTH STEP",
+            {timings.cloth_prediction.total_milliseconds +
+             timings.cloth_constraints.total_milliseconds +
+             timings.cloth_contacts.total_milliseconds,
+             timings.cloth_prediction.launch_count +
+             timings.cloth_constraints.launch_count +
+             timings.cloth_contacts.launch_count}},
+        TimingRow{"SOFT CLOTH", timings.soft_body_cloth_contacts}};
+    timing_panel(rgba, width, height, 430, 282, "SOFT BODY GPU KERNELS",
+                 timings.available, rows, 26, 229,
                  timings.total_gpu_milliseconds);
 }
 
@@ -338,6 +346,7 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"BODY INDEX", physics.fluid_body_index},
         TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
         TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
+        TimingRow{"SOFT CLOTH", physics.soft_body_cloth_contacts},
         TimingRow{"EVENTS", physics.fluid_contact_events},
         TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
     timing_panel(rgba, width, height, 480, 502,
@@ -492,6 +501,8 @@ void draw_physics_debug_overlay(
                 frame.cloth_vertices.data[index];
             draw_vector(sample.position, sample.rigid_contact_force,
                         {52, 135, 255, 238}, 0.025F);
+            draw_vector(sample.position, sample.soft_body_contact_force,
+                        {205, 110, 255, 238}, 0.025F);
         }
         for (std::uint64_t index = 0U; index < frame.soft_body_nodes.size;
              index += stride_for(frame.soft_body_nodes.size)) {
@@ -499,6 +510,8 @@ void draw_physics_debug_overlay(
                 frame.soft_body_nodes.data[index];
             draw_vector(sample.position, sample.rigid_contact_force,
                         {145, 92, 255, 238}, 0.025F);
+            draw_vector(sample.position, sample.cloth_contact_force,
+                        {205, 110, 255, 238}, 0.025F);
         }
         const float inverse_timestep = frame.timestep > 0.0F
             ? 1.0F / frame.timestep : 0.0F;
@@ -564,7 +577,7 @@ void draw_physics_debug_overlay(
         rectangle(rgba, width, height, 18, static_cast<int>(height) - 62,
                   690, static_cast<int>(height) - 14, {5, 12, 18, 205});
         text(rgba, width, height, 28, static_cast<int>(height) - 55,
-             "Z NORMALS  X RIGID FORCES  C FLUID FORCES  N VELOCITIES",
+             "Z NORMALS  X CONTACT FORCES  C FLUID FORCES  N VELOCITIES",
              {235, 240, 245, 255}, 1);
         char summary[128]{};
         std::snprintf(summary, sizeof(summary),
@@ -690,6 +703,9 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         if (!copy(cloth.rigid_contact_forces, forces,
                   "cloth rigid contact forces")) return false;
         draw_vectors(forces, 0.0F, {31, 122, 255, 242});
+        if (!copy(cloth.soft_body_contact_forces, forces,
+                  "cloth soft-body contact forces")) return false;
+        draw_vectors(forces, 0.0F, {205, 110, 255, 242});
     }
     if (options.fluid_contact_forces) {
         std::vector<Vec3> forces;
@@ -799,20 +815,21 @@ bool draw_soft_body_debug_overlay(std::vector<std::uint32_t> &rgba,
         }
     }
     if (options.rigid_contact_forces) {
-        std::vector<Vec3> forces;
-        if (!copy(body.rigid_contact_forces, forces,
-                  "soft-body rigid contact forces")) return false;
-        const std::size_t count = std::min(nodes.size(), forces.size());
-        for (std::size_t node = 0U; node < count; ++node) {
-            const float magnitude = length(forces[node]);
-            if (!(magnitude > 1.0e-5F)) continue;
-            const float arrow_length =
-                std::clamp(0.003F * magnitude, 0.012F, 0.14F);
-            arrow(rgba, width, height,
-                project(nodes[node], camera, width, height),
-                project(add(nodes[node], multiply(forces[node],
-                    arrow_length / magnitude)), camera, width, height),
-                {31, 122, 255, 242});
+        for (auto source : {body.rigid_contact_forces, body.cloth_contact_forces}) {
+            std::vector<Vec3> forces;
+            if (!copy(source, forces, "soft-body contact forces")) return false;
+            const std::size_t count = std::min(nodes.size(), forces.size());
+            for (std::size_t node = 0U; node < count; ++node) {
+                const float magnitude = length(forces[node]);
+                if (!(magnitude > 1.0e-5F)) continue;
+                const float arrow_length =
+                    std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+                arrow(rgba, width, height,
+                    project(nodes[node], camera, width, height),
+                    project(add(nodes[node], multiply(forces[node],
+                        arrow_length / magnitude)), camera, width, height),
+                    {31, 122, 255, 242});
+            }
         }
     }
     if (options.normals || options.rigid_contact_forces ||
@@ -831,8 +848,11 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           GalleryContext selection) {
     const int center = static_cast<int>(width) / 2;
     constexpr int row_height = 68;
-    const int panel_height = 81 + row_height *
-        static_cast<int>(gallery_entries.size());
+    const int count = static_cast<int>(gallery_entries.size());
+    const int visible = std::clamp((static_cast<int>(height) - 110) / row_height, 1, count);
+    const int selected = static_cast<int>(gallery_context_index(selection));
+    const int first = std::clamp(selected - visible / 2, 0, count - visible);
+    const int panel_height = 81 + row_height * visible;
     const int top = std::max(14, (static_cast<int>(height) - panel_height) / 2);
     rectangle(rgba, width, height, center - 255, top, center + 255,
               top + panel_height,
@@ -859,7 +879,8 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
     };
 
     int y = top + 78;
-    for (const GalleryEntry &entry : gallery_entries) {
+    for (int index = first; index < first + visible; ++index) {
+        const GalleryEntry &entry = gallery_entries[static_cast<std::size_t>(index)];
         row(y, entry.context, color(entry.background), color(entry.icon),
             entry.name, entry.help, {105, 255, 155, 255});
         y += row_height;

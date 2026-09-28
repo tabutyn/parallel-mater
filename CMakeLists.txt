@@ -192,6 +192,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
             PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
             PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
+            PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -331,6 +332,17 @@ if(BUILD_TESTING)
             parallel-mater-soft-body-shape-contact-stress
             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
 
+        add_executable(parallel-mater-soft-body-cloth-tests
+                       tests/gallery/soft_body_cloth_tests.cpp)
+        target_link_libraries(parallel-mater-soft-body-cloth-tests PRIVATE
+            parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-soft-body-cloth-tests PRIVATE
+            PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb")
+        add_test(NAME parallel-mater-soft-body-cloth-tests
+                 COMMAND parallel-mater-soft-body-cloth-tests)
+        set_tests_properties(parallel-mater-soft-body-cloth-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 180)
+
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)
         target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
@@ -456,6 +468,9 @@ if(BUILD_TESTING)
             parallel-mater-soft-body-rigid-headless-test
             parallel-mater-soft-body-rigid-test.ppm 180
             --soft-body-rigid --cloth-tilt-degrees 45)
+        add_gallery_headless_test(
+            parallel-mater-soft-body-cloth-headless-test
+            parallel-mater-soft-body-cloth-test.ppm 180 --soft-body-cloth)
         add_gallery_headless_test(
             parallel-mater-physics-capture-headless-test
             parallel-mater-physics-capture-test.ppm 10

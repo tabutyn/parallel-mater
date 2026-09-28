@@ -1399,7 +1399,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
     if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
         scene.spawn_planes.size() > maximum ||
         scene.destroy_planes.size() > maximum || paint_fields > maximum ||
-        scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum) {
+        scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum ||
+        (!scene.cloths.empty() && scene.soft_bodies.size() > maximum / scene.cloths.size())) {
         return {StatusCode::capacity_exceeded, cudaSuccess,
                 "gallery scene exceeds world capacity range"};
     }
@@ -1421,6 +1422,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             std::max<std::size_t>(1U, scene.soft_bodies.size())),
         .fluid_cloth_coupling_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.cloths.size())),
+        .soft_body_cloth_coupling_capacity = static_cast<std::uint32_t>(
+            scene.cloths.size() * scene.soft_bodies.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1630,6 +1633,16 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .solver_iterations = definition.solver_iterations}, body);
         if (!status) return status;
         output.soft_bodies.push_back(body);
+    }
+    for (SoftBodyId body : output.soft_bodies) {
+        for (std::size_t sheet = 0U; sheet < output.cloths.size(); ++sheet) {
+            SoftBodyClothCouplingId coupling{};
+            const Status status = world.add_soft_body_cloth_coupling(
+                {.soft_body = body, .cloth = output.cloths[sheet],
+                 .friction = scene.cloths[sheet].contact_friction}, coupling);
+            if (!status) return status;
+            output.soft_body_cloth_couplings.push_back(coupling);
+        }
     }
     if (scene.fluid_options.capacity != 0U) {
         const std::size_t requested = std::min<std::size_t>(

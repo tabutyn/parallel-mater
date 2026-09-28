@@ -118,7 +118,7 @@ sources; they do not select scene-specific physics.
 ## Validate the result
 
 With Blender installed, the gallery build adds
-`parallel-mater-blender-export-tests` to CTest. This exports all nine committed
+`parallel-mater-blender-export-tests` to CTest. This exports all committed
 source scenes into temporary files and checks them with the runtime loader,
 plus soft-body-only/cloth-only/fluid-only scenes, the menu operator, CLI, and error cleanup.
 No committed assets are rewritten.
@@ -255,6 +255,25 @@ its original position and ground friction, so it falls first and can then be
 rolled into the sheet with arrow-key gravity. The API breaks loaded bonds and
 separates triangle-local surface faces without deleting them; the gallery does
 not decide which bonds fail.
+
+`SoftbodyCloth.blend` contains two independent cloths. Select a cloth object and
+open **Object Properties → Custom Properties** to edit its ParallelMater settings:
+
+- `Plane.002`, the bridge: `pm_break_strain = 0` keeps all bonds intact.
+- `Plane.003`, the curtain: `pm_break_strain = 0.10` permits a bond to tear after
+  extending 10% beyond its rest length for `pm_fracture_persistence_substeps = 4`
+  consecutive substeps. It uses no impact-triggered fracture.
+- Both retain their authored `PinEdge` groups and pin stiffness 1.0.
+- `pm_solver_iterations` is 48 for the loaded bridge and 24 for the curtain.
+  Increasing this improves spring convergence under load, at additional cost.
+
+Blender's Cloth modifier does not supply a native tearing toggle for this
+export contract; the custom properties travel through the same exporter used
+by all scenes. Zero break strain and zero impact threshold mean unbreakable.
+Change these properties, save, then export through **ParallelMater Scene**.
+The gallery starts with gravity down; arrow steering tilts it up to 45°.
+`X` includes cloth/soft-body reactions, `V` and `B` show the two systems' spring
+and surface structures, and `M` includes both systems' contact forces.
 
 `ClothPaint.blend` derives from the supplied `Cloth.blend`. It retains the pinned
 top and bottom rows and the active rigid sphere, authors `pm_paintable = true`,
