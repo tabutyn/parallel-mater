@@ -157,7 +157,27 @@ restores the corresponding total lattice momentum after spring projection so
 constraints cannot silently erase the exchanged impulse. The passive-only path
 retains its original damping behavior. Swept deformable contact transforms the
 start and end samples by the corresponding previous and current rigid poses,
-so a moving closed collider cannot engulf a stationary node between samples.
+so contact queries include relative collider motion.
+
+Mesh upload identifies closed convex solids from welded triangle topology and
+supporting face planes. Soft nodes inside those solids recover outward; leaving
+a solid is not mistaken for entering the back of a two-sided triangle. Dynamic
+contacts also share positional corrections according to inverse mass. Open and
+concave meshes retain the two-sided swept triangle path.
+
+After traction, a bounded cleanup solve checks the actual soft surface triangles
+against closed convex rigid meshes and transfers corrections through their
+four-node bindings. Adjacent triangle corrections are gathered deterministically
+per node, combining different contact normals instead of discarding all but the
+largest correction. Passive boundaries are resolved last. This final recovery
+uses a small geometric skin (1% of node radius plus the rigid collision margin),
+because full node-radius safety margins can overlap when heavy colliders squeeze
+a soft body.
+The normal contact/friction solve continues to use the configured node radius.
+Recovery adds no artificial second velocity impulse and does not replace rigid
+triangle geometry with bounding spheres. It is a discrete overlap cleanup, not
+continuous triangle/triangle collision detection for arbitrary timesteps.
+
 Node radius,
 mass/inverse masses, compliance, projection bound/velocity response, global
 and spring damping, contact friction, shape-matching stiffness, maximum speed,

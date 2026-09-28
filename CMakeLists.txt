@@ -323,6 +323,13 @@ if(BUILD_TESTING)
             COMMAND parallel-mater-soft-body-rigid-tests)
         set_tests_properties(parallel-mater-soft-body-rigid-tests
             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+        add_test(NAME parallel-mater-soft-body-contact-stress
+            COMMAND parallel-mater-soft-body-rigid-tests --contact-stress)
+        add_test(NAME parallel-mater-soft-body-shape-contact-stress
+            COMMAND parallel-mater-soft-body-rigid-tests --shape-contact-stress)
+        set_tests_properties(parallel-mater-soft-body-contact-stress
+            parallel-mater-soft-body-shape-contact-stress
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
 
         add_executable(parallel-mater-material-visibility-tests
                        tests/gallery/material_visibility_tests.cpp)

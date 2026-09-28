@@ -197,6 +197,10 @@ pass.
 - Validate momentum transfer, high-speed contact, settling, and deterministic
   replay, crush recovery, and free rolling in a focused Blender-authored
   gallery scene.
+- Recover nodes from closed convex triangle solids, constrain the skinned
+  triangles through API bindings, and resolve final passive barriers after
+  traction. Test eight gravity directions with Goal both disabled and enabled,
+  checking node and sampled face penetration throughout 1,440 frames per mode.
 
 ## PR 14 — Soft body and fluid coupling
 

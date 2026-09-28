@@ -294,7 +294,8 @@ struct SoftBodySurfaceBinding {
 };
 
 // Host buffers are copied during add_soft_body. Nodes and bonds describe the
-// physical volume; the independently indexed surface is presentation geometry.
+// physical volume. The independently indexed surface is skinned for rendering
+// and constrained against closed convex rigid triangle meshes through bindings.
 struct SoftBodyOptions {
     HostSpan<Vec3> nodes{};
     HostSpan<SoftBodyBond> bonds{};

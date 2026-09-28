@@ -2,6 +2,7 @@
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
+#include "../../examples/support/vector_math.hpp"
 
 #include <cuda_runtime_api.h>
 
@@ -20,6 +21,10 @@ using parallel_mater::RigidBodyState;
 using parallel_mater::SoftBodyId;
 using parallel_mater::Vec3;
 using parallel_mater::World;
+
+// Match the authored rigid collision margin; check every frame, not just the
+// final settled state. Include face interiors as well as physical lattice nodes.
+constexpr float contact_tolerance = 0.005F;
 
 bool require(parallel_mater::Status status, const char *operation) {
     if (status) return true;
@@ -48,6 +53,13 @@ bool read_soft_state(const World &world, SoftBodyId id,
 float length(Vec3 value) {
     return std::sqrt(value.x * value.x + value.y * value.y +
                      value.z * value.z);
+}
+
+Vec3 rotate(parallel_mater::Quaternion q, Vec3 value) {
+    using namespace parallel_mater::gallery::math;
+    const Vec3 axis{q.x, q.y, q.z};
+    const Vec3 twice = multiply(cross(axis, value), 2.0F);
+    return add(value, add(multiply(twice, q.w), cross(axis, twice)));
 }
 
 Vec3 center(const std::vector<Vec3> &positions) {
@@ -104,13 +116,17 @@ struct RecoveryResult {
 
 struct ContainmentResult {
     std::uint32_t escaped_nodes{};
+    std::uint32_t penetrating_frames{};
+    float maximum_rigid_penetration{};
+    float maximum_wall_escape{};
     float minimum_z{std::numeric_limits<float>::max()};
     float maximum_z{-std::numeric_limits<float>::max()};
 };
 
 bool run_steered_containment(
     const parallel_mater::gallery::SceneDefinition &scene,
-    ContainmentResult &output) {
+    ContainmentResult &output, bool stress = false,
+    std::uint32_t stress_frames = 1'440U) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
     World world;
@@ -124,17 +140,24 @@ bool run_steered_containment(
     camera.set_preset(gallery_entry(GalleryContext::soft_body_rigid).camera);
     Vec3 gravity{0.0F, -gravity_magnitude * diagonal,
                  -gravity_magnitude * diagonal};
-    for (std::uint32_t frame = 0U; frame < 300U; ++frame) {
-        gravity = steer_gravity(gravity, camera.camera(), -1.0F, 0.0F,
-                                gravity_magnitude, 45.0F, timestep);
-        const StepOptions step{.timestep = timestep, .substeps = 4U,
-                               .gravity = gravity};
-        if (!require(world.step(step), "step steered soft-rigid world"))
-            return false;
+    struct Plane { Vec3 normal; float offset; };
+    std::vector<std::vector<Plane>> rigid_planes(scene.rigid_bodies.size());
+    for (std::size_t body = 0U; body < scene.rigid_bodies.size(); ++body) {
+        const auto &definition = scene.rigid_bodies[body];
+        if (definition.options.motion != MotionType::dynamic) continue;
+        const auto &mesh = scene.meshes[definition.mesh_indices.front()];
+        for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
+            const Vec3 a = mesh.vertices[mesh.indices[index]].position;
+            const Vec3 b = mesh.vertices[mesh.indices[index + 1U]].position;
+            const Vec3 c = mesh.vertices[mesh.indices[index + 2U]].position;
+            Vec3 normal = math::normalize_or(math::cross(
+                math::subtract(b, a), math::subtract(c, a)), {});
+            if (math::dot(normal, a) < 0.0F)
+                normal = math::multiply(normal, -1.0F);
+            rigid_planes[body].push_back({normal, math::dot(normal, a)});
+        }
     }
     std::vector<Vec3> positions, velocities;
-    if (!read_soft_state(world, instance.soft_bodies.front(), positions,
-                         velocities)) return false;
     StaticTriangleSurface passive_surface;
     std::string error;
     if (!StaticTriangleSurface::create(scene, passive_surface, error)) {
@@ -143,6 +166,97 @@ bool run_steered_containment(
     }
     const Vec3 minimum = passive_surface.minimum();
     const Vec3 maximum = passive_surface.maximum();
+    const std::array<std::array<float, 2>, 8> controls{{
+        {-1, 0}, {1, 0}, {0, 1}, {0, -1},
+        {-1, -1}, {1, 1}, {-1, 1}, {1, -1}}};
+    for (std::uint32_t frame = 0U; frame < (stress ? stress_frames : 300U); ++frame) {
+        const auto control = controls[stress ? frame / 180U : 0U];
+        gravity = steer_gravity(gravity, camera.camera(), control[0], control[1],
+                                gravity_magnitude, 45.0F, timestep);
+        const StepOptions step{.timestep = timestep, .substeps = 4U,
+                               .gravity = gravity};
+        if (!require(world.step(step), "step steered soft-rigid world"))
+            return false;
+        if (!stress) continue;
+        if (!read_soft_state(world, instance.soft_bodies.front(), positions,
+                             velocities)) return false;
+        for (Vec3 position : positions) {
+            if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
+                !std::isfinite(position.z)) return false;
+            float escape = std::max({0.0F, minimum.x - position.x,
+                position.x - maximum.x, minimum.z - position.z,
+                position.z - maximum.z});
+            const auto floor = passive_surface.height(
+                position.x, position.z, SurfaceSelection::lowest);
+            if (floor) escape = std::max(escape, *floor - position.y);
+            if (escape > contact_tolerance &&
+                output.maximum_wall_escape <= contact_tolerance)
+                std::cout << "first wall frame=" << frame << " position="
+                          << position.x << ',' << position.y << ',' << position.z
+                          << " escape=" << escape << std::endl;
+            output.maximum_wall_escape = std::max(output.maximum_wall_escape,
+                                                  escape);
+        }
+        SoftBodyDeviceView view{};
+        if (!require(world.soft_body_view(instance.soft_bodies.front(), view),
+                     "read stress surface")) return false;
+        std::vector<Vec3> surface(view.surface_vertex_count);
+        if (cudaMemcpy(surface.data(), view.surface_positions.data,
+                surface.size() * sizeof(Vec3), cudaMemcpyDeviceToHost) !=
+                cudaSuccess) return false;
+        std::vector<Vec3> samples = positions;
+        const auto &surface_mesh = scene.meshes[scene.soft_bodies.front().mesh_index];
+        for (std::size_t triangle = 0U;
+             triangle < surface_mesh.indices.size(); triangle += 3U) {
+            const Vec3 a = surface[surface_mesh.indices[triangle]];
+            const Vec3 b = surface[surface_mesh.indices[triangle + 1U]];
+            const Vec3 c = surface[surface_mesh.indices[triangle + 2U]];
+            samples.push_back(math::multiply(math::add(a, math::add(b, c)), 1.0F / 3.0F));
+            samples.push_back(math::multiply(math::add(a, b), 0.5F));
+            samples.push_back(math::multiply(math::add(b, c), 0.5F));
+            samples.push_back(math::multiply(math::add(c, a), 0.5F));
+        }
+        float frame_penetration = 0.0F;
+        float node_penetration = 0.0F;
+        for (std::size_t body = 0U; body < rigid_planes.size(); ++body) {
+            if (rigid_planes[body].empty()) continue;
+            RigidBodyState state{};
+            if (!require(world.read_rigid_body_state(
+                    instance.rigid_bodies[body], state), "read stress rigid"))
+                return false;
+            const Quaternion inverse{-state.orientation.x,
+                -state.orientation.y, -state.orientation.z, state.orientation.w};
+            for (std::size_t sample = 0U; sample < samples.size(); ++sample) {
+                const Vec3 position = samples[sample];
+                const Vec3 local = rotate(inverse,
+                    math::subtract(position, state.position));
+                float depth = std::numeric_limits<float>::max();
+                for (const Plane &plane : rigid_planes[body]) {
+                    depth = std::min(depth,
+                        plane.offset - math::dot(local, plane.normal));
+                    if (depth <= 0.0F) break;
+                }
+                frame_penetration = std::max(frame_penetration, depth);
+                if (sample < positions.size())
+                    node_penetration = std::max(node_penetration, depth);
+            }
+        }
+        if (frame_penetration > contact_tolerance && output.penetrating_frames == 0U)
+            std::cout << "first overlap frame=" << frame << " depth="
+                      << frame_penetration << " node_depth="
+                      << node_penetration << std::endl;
+        output.maximum_rigid_penetration = std::max(
+            output.maximum_rigid_penetration, frame_penetration);
+        output.penetrating_frames += frame_penetration > contact_tolerance;
+        if ((frame + 1U) % 180U == 0U)
+            std::cout << "stress frame=" << frame + 1U
+                      << " penetration=" << frame_penetration
+                      << " peak=" << output.maximum_rigid_penetration
+                      << " wall=" << output.maximum_wall_escape
+                      << std::endl;
+    }
+    if (!read_soft_state(world, instance.soft_bodies.front(), positions,
+                         velocities)) return false;
     const float tolerance = scene.soft_bodies.front().node_radius + 0.02F;
     for (Vec3 node : positions) {
         output.minimum_z = std::min(output.minimum_z, node.z);
@@ -327,7 +441,7 @@ bool run_impact(parallel_mater::gallery::SceneDefinition scene,
 
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
     int devices = 0;
@@ -342,6 +456,26 @@ int main() {
                         scene, error)) {
         std::cerr << error << '\n';
         return 1;
+    }
+    // Short reproducer for instrumented CUDA runs; CTest retains the full
+    // eight-direction stress cases. The original failure occurs at frame 87.
+    const bool contact_smoke = argc > 1 &&
+        std::string(argv[1]) == "--contact-smoke";
+    if (argc > 1 && (contact_smoke || std::string(argv[1]) == "--contact-stress" ||
+                     std::string(argv[1]) == "--shape-contact-stress")) {
+        scene.soft_bodies.front().shape_matching_stiffness =
+            std::string(argv[1]) == "--shape-contact-stress" ? 0.35F : 0.0F;
+        ContainmentResult contact{};
+        if (!run_steered_containment(scene, contact, true,
+                                     contact_smoke ? 180U : 1'440U)) return 1;
+        std::cout << "Contact stress escaped=" << contact.escaped_nodes
+                  << " penetrating_frames=" << contact.penetrating_frames
+                  << " maximum_rigid_penetration="
+                  << contact.maximum_rigid_penetration
+                  << " wall_escape=" << contact.maximum_wall_escape << '\n';
+        return contact.maximum_wall_escape <= contact_tolerance &&
+               contact.escaped_nodes == 0U && contact.penetrating_frames == 0U
+            ? 0 : 1;
     }
     const std::size_t dynamic_count = static_cast<std::size_t>(std::count_if(
         scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
@@ -360,13 +494,11 @@ int main() {
                    std::fabs(body.options.mass - 100.0F) < 1.0e-4F;
         });
     if (scene.soft_bodies.size() != 1U || dynamic_count != 2U ||
-        static_count != 1U || !authored_heavy_spheres ||
-        scene.soft_bodies.front().shape_matching_stiffness <= 0.0F) {
+        static_count == 0U || !authored_heavy_spheres) {
         std::cerr << "SoftbodyRigidBody scene needs one soft body, two active "
-                     "100 kg rigid bodies, and one passive arena\n";
+                     "100 kg rigid bodies, and a passive arena\n";
         return 1;
     }
-
     World settled_world;
     SceneInstance settled_instance{};
     if (!require(create_scene_world(scene, settled_world, settled_instance),
@@ -447,9 +579,7 @@ int main() {
 
     RecoveryResult matched_recovery{}, spring_recovery{};
     ContainmentResult containment{};
-    if (!run_symmetric_crush(scene,
-            scene.soft_bodies.front().shape_matching_stiffness,
-            matched_recovery) ||
+    if (!run_symmetric_crush(scene, 0.35F, matched_recovery) ||
         !run_symmetric_crush(scene, 0.0F, spring_recovery) ||
         !run_steered_containment(scene, containment)) return 1;
     if (matched_recovery.peak_error < 0.05F ||
