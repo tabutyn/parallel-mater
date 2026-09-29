@@ -90,15 +90,15 @@ int main() {
     check(fluid_scene.rigid_bodies.size() == 1U &&
           fluid_scene.rigid_bodies[0].options.motion == MotionType::static_body,
           "Fluid scene must retain its passive triangle collider");
-    check(fluid_scene.spawn_planes.size() == 1U &&
+    check(fluid_scene.particle_sources.size() == 1U &&
           fluid_scene.destroy_planes.size() == 1U,
           "Blender Liquid Inflow and Outflow must export as lifecycle planes");
-    if (fluid_scene.spawn_planes.size() == 1U) {
-        check(fluid_scene.spawn_planes[0].initial_velocity.y < -0.9F,
+    if (fluid_scene.particle_sources.size() == 1U) {
+        check(fluid_scene.particle_sources[0].options.initial_velocity.y < -0.9F,
               "Blender downward flow velocity must become gallery -Y");
-        check(fluid_scene.spawn_planes[0].plane.half_extents.x > 0.9F &&
-              fluid_scene.spawn_planes[0].plane.half_extents.y > 0.9F,
-              "inflow dimensions must survive Blender export");
+        check(fluid_scene.particle_sources[0].vertices.size() >= 4 &&
+              fluid_scene.particle_sources[0].indices.size() == 6,
+              "inflow triangles must survive Blender export");
     }
     SceneDefinition fluid_rigid_scene;
     std::string fluid_rigid_error;
@@ -122,7 +122,7 @@ int main() {
     check(fluid_rigid_scene.rigid_bodies.size() == 65U &&
           dynamic_spheres == 64U && sphere_centers.size() == 64U &&
           fluid_rigid_scene.meshes.size() == 2U &&
-          fluid_rigid_scene.spawn_planes.size() == 1U &&
+          fluid_rigid_scene.particle_sources.size() == 1U &&
           fluid_rigid_scene.destroy_planes.size() == 1U,
           "FluidRigid exports 64 detached shared-mesh spheres and flow planes");
 
@@ -161,7 +161,7 @@ int main() {
     }
     check(passive_peg_bodies == 6U && active_peg_bodies == 1U &&
           paintable_peg_bodies == 1U &&
-          pegs_scene.spawn_planes.empty() &&
+          pegs_scene.particle_sources.empty() &&
           pegs_scene.destroy_planes.empty() &&
           pegs_scene.initial_particles.size() > 500U &&
           pegs_scene.initial_particles.size() < 10'000U,

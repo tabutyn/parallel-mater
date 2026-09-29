@@ -172,11 +172,13 @@ explicitly rather than silently changing scene meaning.
 Add Blender's **Physics → Soft Body** modifier to one closed, scene-root mesh.
 The shared exporter writes its undeformed triangle surface as
 `pm_system = "soft_body"`, including Blender mass, damping, and friction. The
-runtime loader samples that closed surface into an HCP volume, connects nearby
-nodes and authored surface edges into one spring graph, and binds the original
-render vertices to the physical nodes. The installed API owns and advances the
-resulting lattice; the gallery does not run Blender or invent scene-specific
-forces.
+runtime loader calls the API's `build_soft_body_geometry`: it subdivides long
+surface edges to the same spacing as the HCP interior, then connects surface
+and interior nodes into one spring graph. Every refined surface vertex is a
+physical node, not interpolation between distant authored corners. Refinement
+preserves the authored piecewise-planar shape, closed seams, normals and UVs;
+it does not round or inflate the object. The installed API builds and advances
+the lattice; the gallery only transfers rendering attributes.
 
 Optional object properties tune conversion and the reusable solver:
 `pm_node_spacing`, `pm_node_radius`, `pm_stretch_compliance`,
@@ -190,10 +192,10 @@ and 16 graph iterations. The first stage supports passive rigid triangle
 collision. Active rigid triangle bodies use the same collision pass and receive
 balanced reaction impulses automatically; no extra Blender property or
 scene-specific force is needed. `SoftbodyRigidBody.blend` demonstrates two
-active spheres contacting one soft body. Fluid and cloth coupling remain
-separate roadmap PRs.
+active spheres contacting one soft body. Authored cloth and fluid systems can
+also register the API's explicit soft-body coupling resources.
 
-When Blender **Soft Body → Goal** is enabled, the exporter maps Default Weight
+When Blender **Soft Body → Goal** is enabled **without a vertex group**, the exporter maps Default Weight
 times Stiffness to `pm_shape_matching_stiffness`. ParallelMater interprets that
 signal as co-rotated rest-shape matching rather than a world-space pin: the
 body can translate and roll, compresses under load, and restores its authored
@@ -201,6 +203,63 @@ shape after the load leaves. Restoration yields during any substep with active
 rigid contact, preventing the Goal projection from rebuilding through a
 collider. A custom `pm_shape_matching_stiffness` overrides the Blender-derived
 value; zero disables restoration.
+
+With a Goal vertex group, full effective weight (`Min + weight * (Max - Min)`
+equal to 1) instead exports an exact fixed node. This uses API inverse mass
+zero, not a gallery force. Matching is position-based so triangulation and
+glTF normal/UV seams do not lose pins. Refined vertices on an edge or face whose
+original vertices are all pinned also stay fixed, preserving the attached area
+rather than only its original corners. Partial Goal weights remain movable;
+animated targets and weighted attachment springs are not implemented. A group
+does not implicitly enable whole-body shape matching; the explicit custom
+property remains available. See Blender's [Goal settings](https://docs.blender.org/manual/en/5.0/physics/soft_body/settings/goal.html).
+
+`SoftbodyFluid.blend` demonstrates four pinned Goal vertices, one liquid inflow,
+one liquid outflow, and passive rigid boundaries. Export it with the same
+`export_parallel_mater_scene.py` script. The exporter does not modify the source blend.
+Default lattice spacing retains the existing nine-sample thin-axis rule for
+roughly isotropic bodies; for slabs it targets 18 samples along the long axis
+while retaining at least three through the thickness. `pm_node_spacing`
+overrides this resolution choice.
+
+The fixture now explicitly authors a **coarser, firm material** on its soft
+object: `pm_node_spacing = 0.12`, `pm_shape_matching_stiffness = 1.0`,
+`pm_solver_iterations = 64`, `pm_maximum_projection_fraction = 0.5`, and
+`pm_stretch_compliance = 0.0`. It uses 777 nodes rather than 2,104, with 944
+supported surface triangles and 19 fixed nodes across the same Goal attachment.
+Mass, gravity, source geometry and Goal weights are unchanged. This is material
+configuration passed through the exporter and shared API, not a gallery force.
+
+### Stiffening the exported soft body
+
+On the soft object, use **Object Properties → Custom Properties** and re-export:
+
+- `pm_shape_matching_stiffness = 0.35` restores the co-rotated rest shape while
+  retaining the fixed Goal region. Increase toward 1 for stronger restoration;
+  this is whole-body form recovery, not a local bending modulus.
+- `pm_solver_iterations = 32` gives the spring graph more time to transmit load
+  from the fixed region. Up to 64 is supported, at additional simulation cost.
+- `pm_stretch_compliance` controls spring softness: smaller is stiffer, zero is
+  the hard-constraint limit. The default `1e-7` is already nearly hard; simply
+  reducing it cannot compensate for insufficient solver convergence.
+
+Before the coarser preset, on the 2,104-node `SoftbodyFluid` fixture, after four seconds of gravity without
+water, maximum node displacement was 1.79 m at defaults and 0.65 m with shape
+matching 0.35 plus 32 graph iterations.
+Shape matching 0.5 plus 64 iterations reduced it further to 0.38 m.
+That firmer preset roughly doubled physics time in a short water-loaded run
+(20.4 to 40.9 ms/frame on the test GPU); use 0.35/32 as a cheaper starting point.
+These are displacement measurements (including rotation), not vertical sag or
+material guarantees. The current 777-node preset holds the slab much closer to
+its authored position: about 8 cm of unloaded sag after ten seconds, while
+still flexing under the water stream. The stronger correction bound is a tested
+setting for this material, not a new global solver default.
+
+Blender's native **Edges → Pull, Push, Bending, Stiff Quads** affect Blender's
+own solver but are **not currently exported** to ParallelMater. Do not expect
+those controls to change this runtime. For Blender-only simulation, Pull/Push
+resist stretching/compression and Bending resists angular deformation; damping
+reduces motion, not static sag. See the [Blender Edges reference](https://docs.blender.org/manual/en/5.0/physics/soft_body/settings/edges.html).
 
 ## Cloth Shape Pin Group
 
@@ -297,9 +356,13 @@ modifiers to `pm_system = "fluid_inflow"` and `"fluid_outflow"` glTF nodes.
 Plane geometry, transform, initial velocity, and flow behavior come from the
 authored file. Blender's fluid solver and Domain are not used at runtime.
 
-By default an inflow emits 2,400 particles/s. Set the optional Blender custom
-property `pm_particles_per_second` on the inflow object to change it. The
-gallery uses a 30,000-particle capacity, 0.045 m particle radius, and 0.18 m
+An inflow exports its actual triangle surface. The API subdivides it into
+coarse sites; a site emits only after nearby water clears. Blender's enabled
+Initial Velocity controls the new particles and naturally changes throughput.
+Optional `pm_source_spacing` sets site spacing/clearance in metres; zero uses
+the fluid support radius. The old `pm_particles_per_second` property is ignored.
+No rectangular approximation is used for inflow. Outflow remains a rectangle.
+The gallery uses a 30,000-particle capacity, 0.045 m particle radius, and 0.18 m
 support radius; those are example settings, not hidden physics-world defaults.
 The passive surface is exported as its authored triangles and collides on both
 sides. Bright agitated surface particles visualize foam; the gallery also

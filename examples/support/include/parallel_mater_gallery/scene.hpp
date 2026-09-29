@@ -82,6 +82,13 @@ struct SoftBodyDefinition {
     std::uint32_t solver_iterations{16U};
 };
 
+struct ParticleSourceDefinition {
+    std::vector<Vec3> vertices{};
+    std::vector<std::uint32_t> indices{};
+    float spacing{};
+    ParticleSourceOptions options{};
+};
+
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
@@ -92,7 +99,7 @@ struct SceneDefinition {
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.
     std::vector<FluidParticle> initial_particles{};
-    std::vector<ParticleSpawnPlaneOptions> spawn_planes{};
+    std::vector<ParticleSourceDefinition> particle_sources{};
     std::vector<ParticleDestroyPlaneOptions> destroy_planes{};
 };
 
@@ -107,6 +114,7 @@ struct SceneInstance {
     std::vector<SoftBodyId> soft_bodies{};
     std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
     std::vector<SoftBodyClothCouplingId> soft_body_cloth_couplings{};
+    std::vector<FluidSoftBodyCouplingId> fluid_soft_body_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};

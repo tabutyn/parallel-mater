@@ -346,13 +346,19 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"BODY INDEX", physics.fluid_body_index},
         TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
         TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
+        TimingRow{"FLUID SOFT BODY", physics.fluid_soft_body_contacts},
         TimingRow{"SOFT CLOTH", physics.soft_body_cloth_contacts},
+        TimingRow{"SOFT PREDICT", physics.soft_body_prediction},
+        TimingRow{"SOFT SPRINGS", physics.soft_body_constraints},
+        TimingRow{"SOFT RIGID", physics.soft_body_contacts},
         TimingRow{"EVENTS", physics.fluid_contact_events},
         TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
-    timing_panel(rgba, width, height, 480, 502,
+    const int total_y = 58 + static_cast<int>(rows.size()) * 18 + 8;
+    const int details_y = total_y + 24;
+    timing_panel(rgba, width, height, 480, details_y + 238,
                  renderer.particle_view ? "FLUID PARTICLE TIMINGS"
                                         : "FLUID SURFACE TIMINGS",
-                 physics.available, rows, 20, 264,
+                 physics.available, rows, 18, total_y,
                  physics.total_gpu_milliseconds);
     if (!physics.available) return;
     char line[128]{};
@@ -361,10 +367,10 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
     else
         std::snprintf(line, sizeof(line), "SURFACE GPU    %7.3f MS",
                       renderer.surface_gpu_milliseconds);
-    text(rgba, width, height, 32, 288, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, details_y, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
                   renderer.raytrace_wall_milliseconds);
-    text(rgba, width, height, 32, 308, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, details_y + 20, line, {225, 235, 242, 255}, 2);
     if (renderer.particle_view)
         std::snprintf(line, sizeof(line), "SPRITES CPU   %7.3f MS",
                       renderer.foam_wall_milliseconds);
@@ -372,32 +378,38 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         std::snprintf(line, sizeof(line), "FOAM CPU      %7.3f MS  %u PATCHES",
                       renderer.foam_wall_milliseconds,
                       renderer.foam_patch_count);
-    text(rgba, width, height, 32, 328, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, details_y + 40, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
                   renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, 352, line, {100, 255, 155, 255}, 2);
+    text(rgba, width, height, 32, details_y + 64, line, {100, 255, 155, 255}, 2);
     std::snprintf(line, sizeof(line), "LIVE %u / MAX %u",
                   statistics.particle_count, capacity);
-    text(rgba, width, height, 32, 384, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, details_y + 96, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
                   static_cast<unsigned long long>(statistics.emitted_particle_count),
                   static_cast<unsigned long long>(statistics.destroyed_particle_count));
-    text(rgba, width, height, 32, 404, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, details_y + 116, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
                   static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
-    text(rgba, width, height, 32, 424, line,
+    text(rgba, width, height, 32, details_y + 136, line,
          statistics.spawn_capacity_miss_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
                   renderer.surface_excluded_particle_count);
-    text(rgba, width, height, 32, 448, line,
+    text(rgba, width, height, 32, details_y + 160, line,
          renderer.surface_excluded_particle_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CONTACTS %u  OVERFLOW %u",
                   statistics.contact_count, statistics.contact_overflow_count);
-    text(rgba, width, height, 32, 472, line,
+    text(rgba, width, height, 32, details_y + 184, line,
          statistics.contact_overflow_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
+    if (statistics.soft_body_count != 0U) {
+        std::snprintf(line, sizeof(line), "WATER SOFT %u  MAX DEPTH %.4f",
+            statistics.fluid_soft_body_contact_count,
+            statistics.maximum_fluid_soft_body_penetration);
+        text(rgba, width, height, 32, details_y + 208, line, {225, 235, 242, 255}, 2);
+    }
 }
 
 bool draw_rigid_contact_overlay(std::vector<std::uint32_t> &rgba,
@@ -527,6 +539,12 @@ void draw_physics_debug_overlay(
         }
     }
     if (options.fluid_forces) {
+        for (std::uint64_t index = 0; index < frame.soft_body_nodes.size;
+             index += stride_for(frame.soft_body_nodes.size)) {
+            const auto &sample = frame.soft_body_nodes.data[index];
+            draw_vector(sample.position, sample.fluid_contact_force,
+                        {255, 225, 30, 238}, 0.025F);
+        }
         for (std::uint64_t index = 0U; index < frame.fluid_particles.size;
              index += stride_for(frame.fluid_particles.size)) {
             const PhysicsDebugFluidSample &sample =

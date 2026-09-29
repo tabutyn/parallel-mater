@@ -116,6 +116,15 @@ struct SoftBodyClothCouplingId {
     }
 };
 
+struct FluidSoftBodyCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        FluidSoftBodyCouplingId left, FluidSoftBodyCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidBodyId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -151,12 +160,12 @@ struct PaintRuleId {
     std::uint32_t generation{};
 };
 
-struct ParticleSpawnPlaneId {
+struct ParticleSourceId {
     std::uint32_t index{};
     std::uint32_t generation{};
 
     [[nodiscard]] friend constexpr bool operator==(
-        ParticleSpawnPlaneId left, ParticleSpawnPlaneId right) noexcept {
+        ParticleSourceId left, ParticleSourceId right) noexcept {
         return left.index == right.index && left.generation == right.generation;
     }
 };
@@ -183,7 +192,7 @@ struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
-    std::uint32_t particle_spawn_plane_capacity{8U};
+    std::uint32_t particle_source_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
     std::uint32_t paint_field_capacity{8U};
     std::uint32_t paint_rule_capacity{8U};
@@ -194,6 +203,7 @@ struct WorldOptions {
     std::uint32_t soft_body_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
     std::uint32_t soft_body_cloth_coupling_capacity{1U};
+    std::uint32_t fluid_soft_body_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -284,6 +294,19 @@ struct SoftBodyClothCouplingOptions {
     bool enabled{true};
 };
 
+// External fluid contact with the current closed, consistently wound soft
+// surface. Reactions follow its skin bindings, including fixed nodes. No
+// analytic collider or renderer geometry is involved.
+struct FluidSoftBodyCouplingOptions {
+    FluidId fluid{};
+    SoftBodyId soft_body{};
+    // Zero selects the fluid particle radius.
+    float contact_distance{};
+    float friction{0.05F};
+    std::uint32_t solver_iterations{4U}; // 1..16
+    bool enabled{true};
+};
+
 struct ClothDeviceView {
     // Physical nodes and current connectivity. Tearing can append nodes and
     // reindex faces at the next frame boundary; reacquire this view each frame.
@@ -323,6 +346,43 @@ struct SoftBodySurfaceBinding {
     float weights[4]{};
 };
 
+// Mapping back to the input surface, for interpolating renderer-owned UVs,
+// normals, or other vertex attributes after conforming triangle refinement.
+struct SoftBodySurfaceSource {
+    std::uint32_t vertices[3]{};
+    float weights[3]{};
+};
+
+struct SoftBodyGeometrySource {
+    HostSpan<Vec3> vertices{};
+    HostSpan<std::uint32_t> triangle_indices{};
+    // Optional full-weight Goal pins. Refined edges/faces interpolate weights;
+    // only weight one is fixed. Rendering seams share one physical node.
+    HostSpan<float> pin_weights{};
+    float spacing{0.2F};
+    float total_mass{1.0F};
+    std::uint32_t maximum_nodes{100'000U};
+    std::uint32_t maximum_surface_triangles{200'000U};
+};
+
+struct SoftBodyGeometry {
+    std::vector<Vec3> nodes{};
+    std::vector<SoftBodyBond> bonds{};
+    std::vector<float> inverse_masses{};
+    std::vector<Vec3> surface_vertices{};
+    std::vector<std::uint32_t> surface_triangle_indices{};
+    std::vector<SoftBodySurfaceBinding> surface_bindings{};
+    std::vector<SoftBodySurfaceSource> surface_sources{};
+    float node_mass{};
+};
+
+// Host-side preparation; no CUDA device is needed. Refine long surface edges
+// to lattice resolution (maximum edge 1.5 * spacing allows triangle diagonals),
+// preserve the closed input shape/winding, and connect every new physical
+// surface node to the same volumetric spring lattice. Output is transactional.
+[[nodiscard]] Status build_soft_body_geometry(
+    SoftBodyGeometrySource source, SoftBodyGeometry &output) noexcept;
+
 // Host buffers are copied during add_soft_body. Nodes and bonds describe the
 // physical volume. The independently indexed surface is skinned for rendering
 // and constrained against closed convex rigid triangle meshes through bindings.
@@ -359,6 +419,7 @@ struct SoftBodyDeviceView {
     DeviceSpan<const std::uint32_t> surface_triangle_indices{};
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> cloth_contact_forces{};
+    DeviceSpan<const Vec3> fluid_contact_forces{};
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
@@ -393,14 +454,27 @@ struct ParticlePlane {
     Vec2 half_extents{0.5F, 0.5F};
 };
 
-struct ParticleSpawnPlaneOptions {
+struct ParticleSourceOptions {
     FluidId fluid{};
-    ParticlePlane plane{};
-    float particles_per_second{};
     Vec3 initial_velocity{};
-    std::uint32_t sequence_seed{};
     bool enabled{true};
 };
+
+// Arbitrary open or closed triangle surface, in world coordinates. Copied and
+// sampled at registration; the caller may release these host buffers afterward.
+struct ParticleSourceMesh {
+    HostSpan<const Vec3> vertices{};
+    HostSpan<const std::uint32_t> triangle_indices{};
+    // Minimum distance between emission sites AND clearance from existing water.
+    // Zero at registration selects the fluid support radius. Must be at least
+    // the particle diameter. A site emits only when its clearance is empty.
+    float spacing{};
+};
+
+// Host-only deterministic surface subdivision/thinning. Explicit spacing > 0.
+// Transactional: replaces output on success, leaves it unchanged on failure.
+[[nodiscard]] Status sample_fluid_source(
+    ParticleSourceMesh mesh, std::vector<Vec3> &output) noexcept;
 
 enum class CrossingDirection : std::uint8_t {
     along_normal,
@@ -582,6 +656,7 @@ struct PhysicsDebugSoftBodySample {
     Vec3 velocity{};
     Vec3 rigid_contact_force{};
     Vec3 cloth_contact_force{};
+    Vec3 fluid_contact_force{};
 };
 
 struct PhysicsDebugFrame {
@@ -650,6 +725,7 @@ struct WorldStepTimings {
     KernelTiming soft_body_constraints{};
     KernelTiming soft_body_contacts{};
     KernelTiming soft_body_cloth_contacts{};
+    KernelTiming fluid_soft_body_contacts{};
 };
 
 struct WorldStatistics {
@@ -669,6 +745,10 @@ struct WorldStatistics {
     std::uint32_t cloth_vertex_count{};
     std::uint32_t soft_body_count{};
     std::uint32_t soft_body_node_count{};
+    // Contact proposals (including repeated solver passes) and maximum
+    // pre-correction penetration during the last frame, not residual overlap.
+    std::uint32_t fluid_soft_body_contact_count{};
+    float maximum_fluid_soft_body_penetration{};
 };
 
 class FrameToken {
@@ -707,7 +787,7 @@ class World {
                                    FluidId &output,
                                    cudaStream_t stream = nullptr) noexcept;
     // Samples one authored closed volume and creates a fluid. Continuous
-    // inflow is configured separately with add_particle_spawn_plane.
+    // inflow is configured separately with add_particle_source.
     [[nodiscard]] Status add_fluid_geometry(
         FluidOptions options, FluidGeometrySource source, FluidId &output,
         cudaStream_t stream = nullptr) noexcept;
@@ -747,12 +827,24 @@ class World {
     [[nodiscard]] Status remove_soft_body_cloth_coupling(
         SoftBodyClothCouplingId coupling) noexcept;
 
-    [[nodiscard]] Status add_particle_spawn_plane(
-        ParticleSpawnPlaneOptions options, ParticleSpawnPlaneId &output) noexcept;
-    [[nodiscard]] Status update_particle_spawn_plane(
-        ParticleSpawnPlaneId plane, ParticleSpawnPlaneOptions options) noexcept;
-    [[nodiscard]] Status remove_particle_spawn_plane(
-        ParticleSpawnPlaneId plane) noexcept;
+    [[nodiscard]] Status add_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingOptions options,
+        FluidSoftBodyCouplingId &output) noexcept;
+    // Endpoints are immutable. Remove/re-add to change either endpoint.
+    [[nodiscard]] Status update_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingId coupling,
+        FluidSoftBodyCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_fluid_soft_body_coupling(
+        FluidSoftBodyCouplingId coupling) noexcept;
+
+    [[nodiscard]] Status add_particle_source(
+        ParticleSourceMesh mesh, ParticleSourceOptions options,
+        ParticleSourceId &output) noexcept;
+    // Mesh/spacing and destination fluid are immutable; remove/re-add to change.
+    [[nodiscard]] Status update_particle_source(
+        ParticleSourceId plane, ParticleSourceOptions options) noexcept;
+    [[nodiscard]] Status remove_particle_source(
+        ParticleSourceId plane) noexcept;
     [[nodiscard]] Status add_particle_destroy_plane(
         ParticleDestroyPlaneOptions options, ParticleDestroyPlaneId &output) noexcept;
     [[nodiscard]] Status update_particle_destroy_plane(

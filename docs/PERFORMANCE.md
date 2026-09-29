@@ -1,5 +1,115 @@
 # Rigid contact performance, 2026-09-21
 
+## Soft Body Fluid (PR 15, 2026-09-28)
+
+### Initial coarse surface (superseded by refinement below)
+
+Local Release measurements on the RTX 3050 Ti Laptop GPU, 1/60 s frames,
+four substeps and the shared fluid's two iterations per substep:
+
+- The original thin-axis export resolution generated 16,189 nodes and
+  273,227 bonds for the authored slab. Aspect-ratio-aware sampling produces
+  883 nodes and 11,884 bonds, retaining all four Goal pins and the authored
+  triangle surface. The `.blend` is unchanged; spacing remains overridable.
+- An early independent-reaction prototype reached 43.36 m/s at soft nodes.
+  Rejected. Shared contact-degree relaxation and a symmetric velocity-budget
+  bound keep the final implementation at its configured 2 m/s ceiling without
+  discarding the opposing water impulse.
+- 600 frames, 4,000 particle capacity: approximately 10.04 ms GPU/frame,
+  3.89 ms coupling, versus 21.14 ms / 6.27 ms with the oversampled lattice.
+  Four pins remain exact, no inside-skin particles in the every-ten-frame
+  winding checks, and 21,426 particles leave through the authored outflow.
+- 1,200 frames, 30,000 capacity, alternating 45-degree gravity tilt after
+  frame 240: 11.85 ms GPU/frame, 4.90 ms coupling, 12,023 live particles at
+  the end, 35,977 outflow removals, zero pin drift and zero sampled inside
+  particles. This measures physics, not rendering/capture/readback wall time.
+  The finite outflow only removes particles crossing its authored rectangle;
+  water spilling outside it under tilt remains live until reset/capacity.
+- API fixtures test a fast particle crossing a thin closed surface, reversed
+  winding, pinned and free nodes, duplicated binding influences, and 64
+  simultaneous impacts. Maximum paired-impulse error was 1.42e-11 in the dense
+  case. A zero-gravity fixture verifies that water itself moves the soft body.
+
+All 49 CTest cases passed, including the real Blender exporter and headless
+scene. Focused API tests passed CUDA memcheck with zero errors. This is not a
+full-scene sanitizer claim. The gallery reuses its existing renderer and foam;
+the default-capacity 240-frame render and opt-in physics capture were inspected.
+Contact diagnostics report proposal counts and maximum pre-recovery depth;
+they are not measurements of residual penetration.
+
+### Lattice-resolution surface support
+
+The earlier surface only simulated the 16 authored corners. The shared API
+now refines oversized faces, preserving the closed shape and rendering seams,
+and connects all new surface nodes into the volume. Surface edges are limited
+to `1.5 * spacing` to allow triangle diagonals; existing lattice-scale spheres
+are not unnecessarily subdivided. Sorted spring insertion preserves their
+previous accumulation order. Before material tuning, the slab had 2,104 nodes, 41,990 bonds,
+2,488 skin triangles (formerly 28), and 27 exact pins covering the authored
+attachment face.
+
+An initially over-dense 3,090-node version measured 161.04 ms/frame at 120 frames,
+149.12 ms in fluid coupling: every nearby particle scanned every triangle.
+A refitted swept triangle BVH and accelerated winding query reduced that same
+mesh to 32.09 ms/frame, 20.25 ms coupling, with zero sampled inside particles
+and zero pin drift. The final resolution avoids that unnecessary over-density.
+These are short, 4,000-capacity physics-only measurements, not rendering times.
+At the final resolution, the same 120-frame run measured 20.42 ms/frame,
+12.69 ms coupling. The firmer material below measured 40.86 ms/frame,
+17.55 ms coupling; both retained exact pins and zero sampled inside particles.
+
+Stiffness is independent of mesh support: the final slab's maximum displacement
+after four dry seconds was 1.79 m at defaults, 0.65 m with shape matching 0.35
+and 32 iterations, and 0.38 m with shape matching 0.5 and 64 iterations. The
+source material settings were unchanged in that comparison. See `BLENDER_SCENES.md` for controls
+that are actually exported; native Blender Pull/Push/Bending are not mapped.
+
+All 50 CTest cases pass, including unchanged rigid-containment and cloth
+tear-through limits. CUDA memcheck reports zero errors in the coupling API
+fixtures, including a 1,536-triangle pinned-skin recovery case. This is not a
+full-gallery sanitizer result.
+
+### Coarser, firmer authored material
+
+`SoftbodyFluid.blend` now authors spacing 0.12, shape recovery 1.0, 64 graph
+iterations, projection fraction 0.5 and zero stretch compliance. Its original
+geometry, mass, Goal weights and gravity are preserved; no solver specialization
+is involved. The export produces 777 nodes, 14,400 bonds, 944 surface triangles
+and 19 exact pins (63% fewer nodes than the 2,104-node mesh).
+
+Ten-second dry comparisons at recovery 0.8 and 32 iterations gave 11.8 cm sag
+at spacing 0.12 (777 nodes), 19.0 cm at 0.16 (420 nodes), and 34.6 cm at 0.20
+(219 nodes). The larger spacings lost too much thickness/attachment support.
+At spacing 0.12 the selected firmer settings reduced final dry sag to 8.0 cm.
+The 600-frame water run measured 45.7 cm maximum displacement, zero pin drift,
+zero sampled inside particles, 21,286 outflow removals and 30.46 ms GPU/frame
+(10.60 ms coupling), with 4,000 particle capacity. It still bends under load;
+it is not made static. Timings are physics only on the same RTX 3050 Ti.
+
+All six material-related regressions pass (geometry, coupling API, Blender
+export, 600-frame dry sag, 600-frame water loading, and headless rendering).
+The dry case includes the initial oscillation: peak sag about 14.5 cm, settling
+to about 8 cm. A 1,200-frame alternating 45-degree gravity stress run also kept
+pins exact and found no sampled inside particles (maximum displacement 46 cm).
+
+## Occupancy-driven mesh inflow (PR 15)
+
+The authored 0.7303 m-square SoftbodyFluid emitter at initial velocity -1 m/s
+previously injected 2,400 particles/s regardless of occupancy. At frame 180,
+298 particles were above its surface. API surface sampling now produces 20
+sites at the default 0.18 m clearance. Over the same three seconds it emitted
+520 particles, retained 129, and had zero particles above the source at every
+frame. Capacity was 4,000; gravity, pressure, and collision kernels were unchanged.
+
+A force-free tilted-triangle regression emitted 21 stationary particles and
+stopped, including with an overlapping second source. At 1 m/s it emitted 75
+particles over one second; at 2 m/s, 132. This confirms velocity-driven
+throughput without a fixed rate or accumulated backlog. The per-step occupancy
+index is GPU sorted; the deterministic commit checks only earlier sources, not
+every pair within one already-separated source. All storage is preallocated.
+
+## Original rigid-contact investigation
+
 These are local engineering measurements, not general CUDA or hardware
 claims. The objective was to remove the observed 20+ ms rigid-contact frame
 without weakening determinism, containment, or authored geometry contracts.

@@ -2,6 +2,7 @@
 #include <parallel_mater/parallel_mater.hpp>
 
 #include <cuda_runtime.h>
+#include <cuda/atomic>
 
 #include <cub/device/device_select.cuh>
 #include <cub/device/device_radix_sort.cuh>
@@ -1796,6 +1797,7 @@ enum class TimingStage : std::uint8_t {
     soft_body_contacts,
     soft_body_contact_cleanup,
     soft_body_cloth_contacts,
+    fluid_soft_body_contacts,
     fluid_cloth_contacts,
     fluid_spawn,
     fluid_neighbor_sort,
@@ -2239,6 +2241,7 @@ struct SoftBodyStorage {
     FluidBodyImpulse *body_impulses{};
     Vec3 *body_position_corrections{};
     Vec3 *cloth_forces{};
+    Vec3 *fluid_forces{};
     Vec3 *rigid_contact_forces{};
     Vec3 *contact_normals{};
     Vec3 *contact_arms{};
@@ -2273,6 +2276,7 @@ struct SoftBodyStorage {
         release_managed(body_impulses);
         release_managed(body_position_corrections);
         release_managed(cloth_forces);
+        release_managed(fluid_forces);
         release_managed(rigid_contact_forces);
         release_managed(contact_normals);
         release_managed(contact_arms);
@@ -2292,6 +2296,44 @@ struct FluidClothCouplingResource {
     FluidClothCouplingOptions options{};
     std::uint32_t generation{1U};
     bool alive{};
+};
+
+struct FluidSoftContact {
+    std::uint32_t nodes[12]{};
+    float weights[12]{};
+    std::uint32_t count{};
+    Vec3 normal{}, relative_velocity{};
+    float penetration{};
+};
+
+struct FluidSoftCouplingStorage {
+    FluidSoftBodyCouplingOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
+    float orientation{1.0F};
+    FluidSoftContact *contacts{};
+    std::uint32_t *counts{};
+    Vec3 *position_deltas{}, *impulses{}, *previous_surface{}, *bounds{};
+    std::uint32_t *contact_count{};
+    float *maximum_penetration{};
+    BvhNode *tree{};
+    std::uint32_t *triangle_order{}, *parents{}, *ready{};
+    std::uint32_t tree_count{};
+    void release() noexcept {
+        release_managed(contacts);
+        release_managed(counts);
+        release_managed(position_deltas);
+        release_managed(impulses);
+        release_managed(previous_surface);
+        release_managed(bounds);
+        release_managed(contact_count);
+        release_managed(maximum_penetration);
+        release_managed(tree);
+        release_managed(triangle_order);
+        release_managed(parents);
+        release_managed(ready);
+    }
+    ~FluidSoftCouplingStorage() { release(); }
 };
 
 struct SoftClothContact {
@@ -2403,11 +2445,23 @@ struct FluidStorage {
     }
 };
 
-struct SpawnPlaneSlot {
-    ParticleSpawnPlaneOptions options{};
+struct ParticleSourceData {
+    Vec3 *points{};
+    std::uint8_t *vacant{};
+    std::uint32_t *capacity_misses{};
+    std::uint32_t count{};
+    float spacing{};
+    ~ParticleSourceData() {
+        release_managed(points);
+        release_managed(vacant);
+        release_managed(capacity_misses);
+    }
+};
+
+struct ParticleSourceSlot {
+    ParticleSourceOptions options{};
     std::uint32_t generation{1U};
-    double remainder{};
-    std::uint32_t sequence{};
+    std::unique_ptr<ParticleSourceData> data{};
     bool alive{};
 };
 
@@ -3994,6 +4048,8 @@ __global__ void soft_body_update_surface(
 
 // Detection reads stable position buffers. Integer contact counts provide a
 // shared relaxation for both sides; the later gathers use no float atomics.
+#include "fluid_soft_body.cuh"
+
 __global__ void soft_cloth_detect(
     const Vec3 *positions, const Vec3 *previous, const Vec3 *velocities,
     const float *inverse_masses, std::uint32_t count,
@@ -4560,36 +4616,55 @@ __global__ void fluid_gather_contact_events(
         sample.normal_impulse};
 }
 
-__device__ float fluid_radical_inverse(std::uint32_t index,
-                                      std::uint32_t base) noexcept {
-    float result = 0.0F, factor = 1.0F / static_cast<float>(base);
-    while (index != 0U) {
-        result += factor * static_cast<float>(index % base);
-        index /= base;
-        factor /= static_cast<float>(base);
-    }
-    return result;
-}
-
-__global__ void fluid_spawn(Vec3 *positions, Vec3 *velocities,
-                            std::uint32_t *ids, float *foam,
-                            std::uint32_t first, std::uint32_t amount,
-                            std::uint32_t first_id, std::uint32_t sequence,
-                            ParticleSpawnPlaneOptions options) {
+__global__ void fluid_source_vacancies(
+    const Vec3 *points, std::uint32_t amount, float spacing,
+    const Vec3 *positions, const std::uint64_t *keys,
+    const std::uint32_t *indices, std::uint32_t capacity,
+    float inverse_cell_size, std::uint8_t *vacant) {
     const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
     if (item >= amount) return;
-    const std::uint32_t sample = sequence + item + options.sequence_seed + 1U;
-    const Vec3 local{
-        (2.0F * fluid_radical_inverse(sample, 2U) - 1.0F) *
-            options.plane.half_extents.x,
-        0.0F,
-        (2.0F * fluid_radical_inverse(sample, 3U) - 1.0F) *
-            options.plane.half_extents.y};
-    positions[first + item] = add(options.plane.center,
-        rotate(options.plane.orientation, local));
-    velocities[first + item] = options.initial_velocity;
-    ids[first + item] = first_id + item;
-    foam[first + item] = 0.0F;
+    const Vec3 p = points[item];
+    const int cx = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.x*inverse_cell_size)));
+    const int cy = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.y*inverse_cell_size)));
+    const int cz = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.z*inverse_cell_size)));
+    vacant[item] = 0;
+    for(int z=-1;z<=1;++z) for(int y=-1;y<=1;++y) for(int x=-1;x<=1;++x) {
+        const auto key = fluid_cell_key(cx+x, cy+y, cz+z);
+        for(auto i=fluid_lower_bound(keys,capacity,key);i<capacity && keys[i]==key;++i)
+            if(length_squared(subtract(p,positions[indices[i]])) < spacing*spacing)
+                return;
+    }
+    vacant[item] = 1;
+}
+
+// A bounded deterministic commit pass avoids duplicate emission at seams and
+// intersecting sources. Vacancies above are tested in parallel against the
+// spatial index; only particles appended since that index need a direct check.
+__global__ void fluid_source_emit(
+    const Vec3 *points, const std::uint8_t *vacant, std::uint32_t amount,
+    float spacing, Vec3 velocity, Vec3 *positions, Vec3 *velocities,
+    std::uint32_t *ids, float *foam, std::uint32_t *count,
+    std::uint32_t capacity, std::uint32_t first_spawned,
+    std::uint32_t first_id, std::uint32_t *misses) {
+    if(threadIdx.x || blockIdx.x) return;
+    *misses=0;
+    const auto previous_count=*count;
+    for(std::uint32_t item=0;item<amount;++item) {
+        if(!vacant[item]) continue;
+        const Vec3 p=points[item];
+        bool occupied=false;
+        // This source's sites are already separated by the host sampler.
+        // Only earlier sources need a cross-source conflict check.
+        for(std::uint32_t i=first_spawned;i<previous_count;++i)
+            if(length_squared(subtract(p,positions[i])) < spacing*spacing) {occupied=true;break;}
+        if(occupied) continue;
+        if(*count==capacity) {++*misses;continue;}
+        const auto index=(*count)++;
+        positions[index]=p;
+        velocities[index]=velocity;
+        ids[index]=first_id+index-first_spawned;
+        foam[index]=0;
+    }
 }
 
 __global__ void fluid_destroy_flags(const Vec3 *positions,
@@ -4696,8 +4771,9 @@ struct World::Impl {
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
+    std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
-    std::vector<SpawnPlaneSlot> spawn_planes{};
+    std::vector<ParticleSourceSlot> particle_sources{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
     PaintRuleResource *paint_rules{};
@@ -4741,6 +4817,7 @@ struct World::Impl {
     std::shared_ptr<CompletionState> frame{};
     std::vector<cudaEvent_t> timing_events{};
     std::vector<TimingStage> timing_stages{};
+    std::vector<std::uint32_t> timing_launch_counts{};
     std::size_t timing_boundary_count{};
     std::uint64_t timing_frame_index{};
     bool timing_available{};
@@ -4808,7 +4885,8 @@ struct World::Impl {
                     output.soft_body_nodes.push_back({
                         {slot, body.generation}, index, body.positions[index],
                         body.velocities[index],
-                        body.rigid_contact_forces[index], body.cloth_forces[index]});
+                        body.rigid_contact_forces[index], body.cloth_forces[index],
+                        body.fluid_forces[index]});
             }
             const std::uint32_t retained_rigid_contacts = std::min(
                 *rigid_contact_count, rigid_contact_capacity);
@@ -4897,6 +4975,8 @@ struct World::Impl {
         try {
             timing_events.reserve(boundary_count);
             timing_stages.clear();
+            timing_launch_counts.clear();
+            timing_launch_counts.reserve(boundary_count);
             timing_stages.reserve(boundary_count > 0U ? boundary_count - 1U
                                                        : 0U);
         } catch (...) {
@@ -5060,9 +5140,11 @@ Status World::create(WorldOptions options, World &output,
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->fluid_cloth_couplings.resize(
             options.fluid_cloth_coupling_capacity);
+        implementation->fluid_soft_couplings.resize(
+            options.fluid_soft_body_coupling_capacity);
         implementation->soft_cloth_couplings.resize(
             options.soft_body_cloth_coupling_capacity);
-        implementation->spawn_planes.resize(options.particle_spawn_plane_capacity);
+        implementation->particle_sources.resize(options.particle_source_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
@@ -5461,6 +5543,10 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
     if (!status) return status;
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(id, fluid))) return status;
+    for (const auto &coupling : impl_->fluid_soft_couplings)
+        if (coupling && coupling->alive && coupling->options.fluid == id)
+            return failure(StatusCode::invalid_argument,
+                           "fluid is still referenced by a soft-body coupling");
     for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
         if (impl_->paint_rules[i].alive &&
             impl_->paint_rules[i].options.source == id)
@@ -5481,9 +5567,9 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
         fluid->initial_count + fluid->emitted_count - *fluid->count;
     tombstone->generation = generation;
     impl_->fluids[id.index] = std::move(tombstone);
-    for (SpawnPlaneSlot &plane : impl_->spawn_planes)
+    for (ParticleSourceSlot &plane : impl_->particle_sources)
         if (plane.alive && plane.options.fluid == id) {
-            plane.alive = false; ++plane.generation;
+            plane.alive = false; ++plane.generation; plane.data.reset();
         }
     for (DestroyPlaneSlot &plane : impl_->destroy_planes)
         if (plane.alive && plane.options.fluid == id) {
@@ -5523,61 +5609,69 @@ namespace {
 }
 } // namespace
 
-Status World::add_particle_spawn_plane(ParticleSpawnPlaneOptions options,
-                                       ParticleSpawnPlaneId &output) noexcept {
+Status World::add_particle_source(ParticleSourceMesh mesh, ParticleSourceOptions options,
+                                       ParticleSourceId &output) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
-    if (!valid_particle_plane(options.plane) ||
-        !finite(options.particles_per_second) ||
-        options.particles_per_second < 0.0F ||
-        !finite(options.initial_velocity))
-        return failure(StatusCode::invalid_argument, "spawn plane options are invalid");
-    for (std::uint32_t index = 0; index < impl_->spawn_planes.size(); ++index) {
-        SpawnPlaneSlot &plane = impl_->spawn_planes[index];
+    if (mesh.spacing == 0.0F) mesh.spacing = fluid->options.support_radius;
+    if (!finite(options.initial_velocity) || !finite(mesh.spacing) ||
+        mesh.spacing < 2.0F * fluid->options.particle_radius)
+        return failure(StatusCode::invalid_argument, "fluid source spacing or velocity is invalid");
+    for (std::uint32_t index = 0; index < impl_->particle_sources.size(); ++index) {
+        ParticleSourceSlot &plane = impl_->particle_sources[index];
         if (plane.alive) continue;
+        std::vector<Vec3> points;
+        if (!(status = sample_fluid_source(mesh, points))) return status;
+        std::unique_ptr<ParticleSourceData> data(new (std::nothrow) ParticleSourceData());
+        if (!data) return failure(StatusCode::out_of_memory, "fluid source allocation failed");
+        data->count = static_cast<std::uint32_t>(points.size());
+        data->spacing = mesh.spacing;
+        if (!(status = allocate_managed(data->points, points.size())) ||
+            !(status = allocate_managed(data->vacant, points.size())) ||
+            !(status = allocate_managed(data->capacity_misses, 1))) return status;
+        std::copy(points.begin(), points.end(), data->points);
+        *data->capacity_misses = 0;
         plane.options = options;
-        plane.remainder = 0.0;
-        plane.sequence = 0U;
+        plane.data = std::move(data);
         plane.alive = true;
         output = {index, plane.generation};
         return success();
     }
-    return failure(StatusCode::capacity_exceeded, "spawn plane capacity exhausted");
+    return failure(StatusCode::capacity_exceeded, "fluid source capacity exhausted");
 }
 
-Status World::update_particle_spawn_plane(ParticleSpawnPlaneId id,
-                                          ParticleSpawnPlaneOptions options) noexcept {
+Status World::update_particle_source(ParticleSourceId id,
+                                          ParticleSourceOptions options) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (id.index >= impl_->spawn_planes.size() ||
-        !impl_->spawn_planes[id.index].alive ||
-        impl_->spawn_planes[id.index].generation != id.generation)
-        return failure(StatusCode::invalid_handle, "spawn plane handle is stale");
+    if (id.index >= impl_->particle_sources.size() ||
+        !impl_->particle_sources[id.index].alive ||
+        impl_->particle_sources[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid source handle is stale");
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
-    if (!valid_particle_plane(options.plane) ||
-        !finite(options.particles_per_second) ||
-        options.particles_per_second < 0.0F ||
-        !finite(options.initial_velocity))
-        return failure(StatusCode::invalid_argument, "spawn plane options are invalid");
-    impl_->spawn_planes[id.index].options = options;
+    if (!finite(options.initial_velocity) ||
+        !(options.fluid == impl_->particle_sources[id.index].options.fluid))
+        return failure(StatusCode::invalid_argument, "fluid source destination is immutable or velocity is invalid");
+    impl_->particle_sources[id.index].options = options;
     return success();
 }
 
-Status World::remove_particle_spawn_plane(ParticleSpawnPlaneId id) noexcept {
+Status World::remove_particle_source(ParticleSourceId id) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (id.index >= impl_->spawn_planes.size() ||
-        !impl_->spawn_planes[id.index].alive ||
-        impl_->spawn_planes[id.index].generation != id.generation)
-        return failure(StatusCode::invalid_handle, "spawn plane handle is stale");
-    impl_->spawn_planes[id.index].alive = false;
-    ++impl_->spawn_planes[id.index].generation;
+    if (id.index >= impl_->particle_sources.size() ||
+        !impl_->particle_sources[id.index].alive ||
+        impl_->particle_sources[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid source handle is stale");
+    impl_->particle_sources[id.index].alive = false;
+    impl_->particle_sources[id.index].data.reset();
+    ++impl_->particle_sources[id.index].generation;
     return success();
 }
 
@@ -6852,6 +6946,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(body_impulses, body->node_count);
     PM_ALLOC_SOFT(body_position_corrections, body->node_count);
     PM_ALLOC_SOFT(cloth_forces, body->node_count);
+    PM_ALLOC_SOFT(fluid_forces, body->node_count);
     PM_ALLOC_SOFT(rigid_contact_forces, body->node_count);
     PM_ALLOC_SOFT(contact_normals, body->node_count);
     PM_ALLOC_SOFT(contact_arms, body->node_count);
@@ -6875,6 +6970,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
             ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
         body->rigid_contact_forces[node] = {};
         body->cloth_forces[node] = {};
+        body->fluid_forces[node] = {};
         body->contact_normals[node] = {};
         body->contact_arms[node] = {};
         body->contact_momentum_delta[node] = {};
@@ -6917,6 +7013,10 @@ Status World::remove_soft_body(SoftBodyId id) noexcept {
         impl_->soft_bodies[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "soft-body handle is stale");
     SoftBodyStorage &body = *impl_->soft_bodies[id.index];
+    for (const auto &coupling : impl_->fluid_soft_couplings)
+        if (coupling && coupling->alive && coupling->options.soft_body == id)
+            return failure(StatusCode::invalid_argument,
+                           "soft body is still referenced by a fluid coupling");
     for (const auto &coupling : impl_->soft_cloth_couplings)
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
@@ -6951,8 +7051,181 @@ Status World::soft_body_view(SoftBodyId id,
     output.rigid_contact_forces = {
         body.rigid_contact_forces, body.node_count};
     output.cloth_contact_forces = {body.cloth_forces, body.node_count};
+    output.fluid_contact_forces = {body.fluid_forces, body.node_count};
     output.node_count = body.node_count;
     output.surface_vertex_count = body.surface_vertex_count;
+    return success();
+}
+
+static bool valid_fluid_soft_options(FluidSoftBodyCouplingOptions options) noexcept {
+    return finite(options.contact_distance) && options.contact_distance >= 0.0F &&
+        finite(options.friction) && options.friction >= 0.0F &&
+        options.solver_iterations > 0U && options.solver_iterations <= 16U;
+}
+
+Status World::add_fluid_soft_body_coupling(
+    FluidSoftBodyCouplingOptions options, FluidSoftBodyCouplingId &output) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    FluidStorage *fluid = nullptr;
+    SoftBodyDeviceView view{};
+    if (!(status = impl_->validate_handle(options.fluid, fluid)) ||
+        !(status = soft_body_view(options.soft_body, view))) return status;
+    if (!valid_fluid_soft_options(options))
+        return failure(StatusCode::invalid_argument, "invalid fluid soft-body options");
+    for (const auto &coupling : impl_->fluid_soft_couplings)
+        if (coupling && coupling->alive && coupling->options.fluid == options.fluid &&
+            coupling->options.soft_body == options.soft_body)
+            return failure(StatusCode::invalid_argument, "fluid and soft body are already coupled");
+    std::uint32_t slot = 0;
+    for (; slot < impl_->fluid_soft_couplings.size(); ++slot)
+        if (!impl_->fluid_soft_couplings[slot] || !impl_->fluid_soft_couplings[slot]->alive) break;
+    if (slot == impl_->fluid_soft_couplings.size())
+        return failure(StatusCode::capacity_exceeded, "fluid soft-body coupling capacity exhausted");
+    auto &body = *impl_->soft_bodies[options.soft_body.index];
+    std::unique_ptr<FluidSoftCouplingStorage> coupling;
+    std::vector<BvhNode> tree;
+    std::vector<std::uint32_t> order, parents;
+    double volume = 0;
+    try {
+        // glTF can duplicate a position at normal/UV seams. Validate geometric
+        // edges, not rendering indices, without changing the skin bindings.
+        std::map<std::array<float, 3>, std::uint32_t> vertices;
+        std::vector<std::uint32_t> canonical(body.surface_vertex_count);
+        for (std::uint32_t i = 0; i < body.surface_vertex_count; ++i) {
+            const auto p = body.surface_rest_positions[i];
+            canonical[i] = vertices.emplace(std::array{p.x, p.y, p.z}, vertices.size()).first->second;
+        }
+        struct Edge { std::uint32_t count{}; int winding{}; };
+        std::map<std::pair<std::uint32_t, std::uint32_t>, Edge> edges;
+        const Vec3 origin = body.surface_rest_positions[0];
+        for (std::uint32_t base = 0; base < body.surface_index_count; base += 3) {
+            const auto *tri = body.surface_indices + base;
+            volume += dot(subtract(body.surface_rest_positions[tri[0]], origin),
+                cross(subtract(body.surface_rest_positions[tri[1]], origin),
+                      subtract(body.surface_rest_positions[tri[2]], origin))) / 6.0;
+            for (std::uint32_t e = 0; e < 3; ++e) {
+                auto a = canonical[tri[e]], b = canonical[tri[(e + 1) % 3]];
+                auto &edge = edges[std::minmax(a, b)];
+                ++edge.count;
+                edge.winding += a < b ? 1 : -1;
+            }
+        }
+        if (std::abs(volume) < 1.0e-10 || std::any_of(edges.begin(), edges.end(),
+            [](const auto &edge) { return edge.second.count != 2 || edge.second.winding != 0; }))
+            return failure(StatusCode::invalid_argument,
+                           "fluid soft-body coupling needs a closed consistently wound surface");
+        coupling = std::make_unique<FluidSoftCouplingStorage>();
+        order.resize(body.surface_index_count / 3U);
+        std::iota(order.begin(), order.end(), 0U);
+        const auto centroid = [&](std::uint32_t triangle) {
+            const auto *indices = body.surface_indices + triangle * 3U;
+            return multiply(add(add(body.surface_rest_positions[indices[0]],
+                body.surface_rest_positions[indices[1]]),
+                body.surface_rest_positions[indices[2]]), 1.0F / 3.0F);
+        };
+        std::function<std::uint32_t(std::uint32_t, std::uint32_t, std::uint32_t)> build =
+            [&](std::uint32_t first, std::uint32_t end, std::uint32_t parent) {
+                const auto index = static_cast<std::uint32_t>(tree.size());
+                BvhNode node{};
+                node.minimum = {FLT_MAX, FLT_MAX, FLT_MAX};
+                node.maximum = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+                for (auto item = first; item < end; ++item) {
+                    const Vec3 center = centroid(order[item]);
+                    node.minimum = component_min(node.minimum, center);
+                    node.maximum = component_max(node.maximum, center);
+                }
+                tree.push_back(node);
+                parents.push_back(parent);
+                if (end - first <= 4U) {
+                    tree[index].first_triangle = first;
+                    tree[index].triangle_count = end - first;
+                } else {
+                    const Vec3 extent = subtract(node.maximum, node.minimum);
+                    const int axis = extent.x >= extent.y && extent.x >= extent.z ? 0 :
+                        (extent.y >= extent.z ? 1 : 2);
+                    const auto middle = first + (end - first) / 2U;
+                    std::nth_element(order.begin() + first, order.begin() + middle, order.begin() + end,
+                        [&](auto a, auto b) {
+                            const Vec3 ca = centroid(a), cb = centroid(b);
+                            const float x = axis == 0 ? ca.x : (axis == 1 ? ca.y : ca.z);
+                            const float y = axis == 0 ? cb.x : (axis == 1 ? cb.y : cb.z);
+                            return x < y || (x == y && a < b);
+                        });
+                    const auto left = build(first, middle, index);
+                    const auto right = build(middle, end, index);
+                    tree[index].left = left;
+                    tree[index].right = right;
+                }
+                return index;
+            };
+        build(0U, static_cast<std::uint32_t>(order.size()), k_invalid_dense);
+    } catch (...) { return failure(StatusCode::out_of_memory, "failed to build fluid soft-body coupling"); }
+#define PM_ALLOC_FLUID_SOFT(member, count) \
+    status = allocate_managed(coupling->member, count); if (!status) return status
+    PM_ALLOC_FLUID_SOFT(contacts, fluid->options.capacity);
+    PM_ALLOC_FLUID_SOFT(counts, body.node_count);
+    PM_ALLOC_FLUID_SOFT(position_deltas, body.node_count);
+    PM_ALLOC_FLUID_SOFT(impulses, body.node_count);
+    PM_ALLOC_FLUID_SOFT(previous_surface, body.surface_vertex_count);
+    PM_ALLOC_FLUID_SOFT(bounds, 2U);
+    PM_ALLOC_FLUID_SOFT(contact_count, 1U);
+    PM_ALLOC_FLUID_SOFT(maximum_penetration, 1U);
+    PM_ALLOC_FLUID_SOFT(tree, tree.size());
+    PM_ALLOC_FLUID_SOFT(parents, parents.size());
+    PM_ALLOC_FLUID_SOFT(ready, tree.size());
+    PM_ALLOC_FLUID_SOFT(triangle_order, order.size());
+#undef PM_ALLOC_FLUID_SOFT
+    std::copy(tree.begin(), tree.end(), coupling->tree);
+    std::copy(parents.begin(), parents.end(), coupling->parents);
+    std::copy(order.begin(), order.end(), coupling->triangle_order);
+    coupling->tree_count = static_cast<std::uint32_t>(tree.size());
+    std::copy_n(body.surface_positions, body.surface_vertex_count, coupling->previous_surface);
+    *coupling->contact_count = 0;
+    *coupling->maximum_penetration = 0;
+    coupling->orientation = volume < 0 ? -1.0F : 1.0F;
+    if (impl_->fluid_soft_couplings[slot])
+        coupling->generation = impl_->fluid_soft_couplings[slot]->generation;
+    coupling->options = options;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->fluid_soft_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::update_fluid_soft_body_coupling(
+    FluidSoftBodyCouplingId id, FluidSoftBodyCouplingOptions options) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_soft_couplings.size() || !impl_->fluid_soft_couplings[id.index] ||
+        !impl_->fluid_soft_couplings[id.index]->alive ||
+        impl_->fluid_soft_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid soft-body coupling is stale");
+    auto &coupling = *impl_->fluid_soft_couplings[id.index];
+    if (!valid_fluid_soft_options(options) || !(options.fluid == coupling.options.fluid) ||
+        !(options.soft_body == coupling.options.soft_body))
+        return failure(StatusCode::invalid_argument, "invalid options or changed fluid soft-body endpoints");
+    coupling.options = options;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_fluid_soft_body_coupling(FluidSoftBodyCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_soft_couplings.size() || !impl_->fluid_soft_couplings[id.index] ||
+        !impl_->fluid_soft_couplings[id.index]->alive ||
+        impl_->fluid_soft_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid soft-body coupling is stale");
+    auto &coupling = *impl_->fluid_soft_couplings[id.index];
+    coupling.release();
+    coupling.alive = false;
+    if (++coupling.generation == 0) coupling.generation = 1;
+    ++impl_->revision;
     return success();
 }
 
@@ -7529,7 +7802,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (fluid && fluid->alive) {
                 maximum_stages += 2U +
                     static_cast<std::size_t>(options.substeps) *
-                        fluid->options.solver_iterations * 9U;
+                        fluid->options.solver_iterations *
+                        (9U + 2U * impl_->fluid_soft_couplings.size());
             }
         }
         for (const auto &cloth : impl_->cloths) {
@@ -7554,7 +7828,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
-    const auto record_timing_stage = [&](TimingStage stage) noexcept -> Status {
+    const auto record_timing_stage = [&](TimingStage stage,
+                                         std::uint32_t launches = 0U) noexcept -> Status {
         if (!options.collect_kernel_timings) {
             return success();
         }
@@ -7564,6 +7839,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                            "kernel timing stage budget exhausted");
         }
         impl_->timing_stages.push_back(stage);
+        impl_->timing_launch_counts.push_back(launches);
         const cudaError_t timing_error =
             cudaEventRecord(impl_->timing_events[timing_boundary++], stream);
         return timing_error == cudaSuccess
@@ -7575,6 +7851,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     constexpr std::uint32_t block_size = 128U;
     const std::uint32_t block_count =
         (impl_->rigid_body_count + block_size - 1U) / block_size;
+    for (const auto &coupling : impl_->fluid_soft_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        const auto &body = *impl_->soft_bodies[coupling->options.soft_body.index];
+        error = cudaMemcpyAsync(coupling->previous_surface, body.surface_positions,
+            body.surface_vertex_count * sizeof(Vec3), cudaMemcpyDeviceToDevice, stream);
+        if (error != cudaSuccess) return cuda_failure(error, "previous fluid soft-body skin copy failed");
+    }
     if (debug_enabled && impl_->rigid_body_count != 0U) {
         capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->accumulators, impl_->debug_applied_forces,
@@ -8386,6 +8669,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
 
     // Fluid storage is capacity-sized and all sort/selection workspaces were
     // reserved at creation. No CUDA allocations occur during a frame.
+    for (const auto &body : impl_->soft_bodies) {
+        if (!body || !body->alive) continue;
+        error = cudaMemsetAsync(body->fluid_forces, 0, body->node_count * sizeof(Vec3), stream);
+        if (error != cudaSuccess) return cuda_failure(error, "soft-body fluid force clear failed");
+    }
+    for (const auto &coupling : impl_->fluid_soft_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        error = cudaMemsetAsync(coupling->contact_count, 0, sizeof(std::uint32_t), stream);
+        if (error == cudaSuccess) error = cudaMemsetAsync(coupling->maximum_penetration, 0,
+            sizeof(float), stream);
+        if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body diagnostics clear failed");
+    }
     for (std::uint32_t fluid_index = 0U;
          fluid_index < impl_->fluids.size(); ++fluid_index) {
         if (!impl_->fluids[fluid_index] || !impl_->fluids[fluid_index]->alive)
@@ -8397,37 +8692,52 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         bool spawned = false;
         const std::uint32_t blocks =
             (fluid.options.capacity + block_size - 1U) / block_size;
-        for (SpawnPlaneSlot &slot : impl_->spawn_planes) {
+        float source_cell_size = fluid.options.support_radius;
+        bool has_sources = false;
+        for (const auto &slot : impl_->particle_sources) {
+            if (!slot.alive || !slot.options.enabled || !(slot.options.fluid == fluid_id)) continue;
+            has_sources = true;
+            source_cell_size = std::max(source_cell_size, slot.data->spacing);
+        }
+        if (has_sources) {
+            if (fluid.next_id > UINT32_MAX - (fluid.options.capacity - live))
+                return failure(StatusCode::capacity_exceeded, "stable fluid particle ID range exhausted");
+            fluid_emit_cells<<<blocks, block_size, 0, stream>>>(
+                fluid.positions, fluid.count, fluid.options.capacity,
+                1.0F/source_cell_size, fluid.keys[0], fluid.indices[0]);
+            error = cub::DeviceRadixSort::SortPairs(
+                fluid.sort_workspace, fluid.sort_workspace_size,
+                fluid.keys[0], fluid.keys[1], fluid.indices[0], fluid.indices[1],
+                fluid.options.capacity, 0, 64, stream);
+            if (error != cudaSuccess) return cuda_failure(error, "fluid source spatial index failed");
+        }
+        for (ParticleSourceSlot &slot : impl_->particle_sources) {
             if (!slot.alive || !slot.options.enabled ||
                 !(slot.options.fluid == fluid_id)) continue;
-            const double request = slot.remainder +
-                static_cast<double>(slot.options.particles_per_second) *
-                options.timestep;
-            const std::uint64_t wanted = static_cast<std::uint64_t>(floor(request));
-            slot.remainder = request - static_cast<double>(wanted);
-            const std::uint32_t free = fluid.options.capacity - live;
-            const std::uint32_t amount = static_cast<std::uint32_t>(
-                std::min<std::uint64_t>(wanted, free));
-            impl_->spawn_capacity_miss_count += wanted - amount;
-            if (amount != 0U) {
-                spawned = true;
-                if (fluid.next_id > UINT32_MAX - amount)
-                    return failure(StatusCode::capacity_exceeded,
-                                   "stable fluid particle ID range exhausted");
-                fluid_spawn<<<(amount + block_size - 1U) / block_size,
-                              block_size, 0, stream>>>(
-                    fluid.positions, fluid.velocities, fluid.ids,
-                    fluid.foam, live, amount, fluid.next_id,
-                    slot.sequence, slot.options);
-                live += amount;
-                fluid.next_id += amount;
-                fluid.emitted_count += amount;
-                impl_->emitted_particle_count += amount;
-            }
-            slot.sequence += static_cast<std::uint32_t>(wanted);
+            const auto &data = *slot.data;
+            fluid_source_vacancies<<<(data.count+block_size-1U)/block_size,block_size,0,stream>>>(
+                data.points, data.count, data.spacing, fluid.positions,
+                fluid.keys[1], fluid.indices[1], fluid.options.capacity,
+                1.0F/source_cell_size, data.vacant);
+            fluid_source_emit<<<1U,1U,0,stream>>>(
+                data.points, data.vacant, data.count, data.spacing,
+                slot.options.initial_velocity, fluid.positions, fluid.velocities,
+                fluid.ids, fluid.foam, fluid.count, fluid.options.capacity,
+                first_spawned, fluid.next_id, data.capacity_misses);
         }
-        *fluid.count = live;
-        if (spawned) {
+        if (has_sources) {
+            // One readback per fluid, never one per sample. No frame allocation.
+            error = cudaStreamSynchronize(stream);
+            if (error != cudaSuccess) return cuda_failure(error, "fluid source emission failed");
+            live = *fluid.count;
+            const auto amount = live - first_spawned;
+            spawned = amount != 0;
+            fluid.next_id += amount;
+            fluid.emitted_count += amount;
+            impl_->emitted_particle_count += amount;
+            for (const auto &slot : impl_->particle_sources)
+                if (slot.alive && slot.options.enabled && slot.options.fluid == fluid_id)
+                    impl_->spawn_capacity_miss_count += *slot.data->capacity_misses;
             status = record_timing_stage(TimingStage::fluid_spawn);
             if (!status) return status;
         }
@@ -8553,6 +8863,88 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 options.gravity, dt);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
+            for (const auto &owner : impl_->fluid_soft_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    !(owner->options.fluid == fluid_id)) continue;
+                auto &coupling = *owner;
+                auto &body = *impl_->soft_bodies[coupling.options.soft_body.index];
+                const auto node_blocks = (body.node_count + block_size - 1U) / block_size;
+                const auto skin_blocks = (body.surface_vertex_count + block_size - 1U) / block_size;
+                const float distance = coupling.options.contact_distance > 0
+                    ? coupling.options.contact_distance : fluid.options.particle_radius;
+                const auto refit_surface = [&]() -> Status {
+                    const auto clear = cudaMemsetAsync(coupling.ready, 0,
+                        coupling.tree_count * sizeof(std::uint32_t), stream);
+                    if (clear != cudaSuccess) return cuda_failure(clear, "soft surface BVH clear failed");
+                    fluid_soft_refit<<<(coupling.tree_count + block_size - 1U) / block_size,
+                        block_size, 0, stream>>>(body.surface_positions, coupling.previous_surface,
+                        body.surface_indices, coupling.triangle_order, coupling.tree, coupling.parents,
+                        coupling.ready, coupling.tree_count, coupling.bounds);
+                    return success();
+                };
+                for (std::uint32_t pass = 0; pass < coupling.options.solver_iterations; ++pass) {
+                    error = cudaMemsetAsync(coupling.counts, 0,
+                        body.node_count * sizeof(std::uint32_t), stream);
+                    if (error == cudaSuccess) error = cudaMemsetAsync(coupling.position_deltas, 0,
+                        body.node_count * sizeof(Vec3), stream);
+                    if (error == cudaSuccess) error = cudaMemsetAsync(coupling.impulses, 0,
+                        body.node_count * sizeof(Vec3), stream);
+                    if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body scratch clear failed");
+                    status = refit_surface();
+                    if (!status) return status;
+                    fluid_soft_detect<<<blocks, block_size, 0, stream>>>(
+                        fluid.positions, fluid.previous, fluid.velocities, fluid.count,
+                        body.surface_positions, coupling.previous_surface, body.surface_indices,
+                        body.surface_index_count, body.surface_bindings, body.velocities,
+                        coupling.orientation, distance, coupling.bounds, pass == 0,
+                        coupling.tree, coupling.triangle_order,
+                        coupling.contacts, coupling.counts, coupling.contact_count,
+                        coupling.maximum_penetration);
+                    fluid_soft_solve<<<blocks, block_size, 0, stream>>>(
+                        fluid.positions, fluid.velocities, fluid.forces, fluid.foam, fluid.count,
+                        coupling.contacts, coupling.counts, body.inverse_masses,
+                        body.velocities, body.maximum_speed,
+                        1.0F / particle_mass, coupling.options.friction,
+                        0.2F * body.node_radius, dt, coupling.position_deltas, coupling.impulses);
+                    fluid_soft_apply<<<node_blocks, block_size, 0, stream>>>(
+                        body.positions, body.velocities, body.inverse_masses,
+                        coupling.position_deltas, coupling.impulses, body.fluid_forces,
+                        body.node_count, 1.0F / options.timestep);
+                    deformable_project_links<<<node_blocks, block_size, 0, stream>>>(
+                        body.positions, body.scratch, body.inverse_masses, body.offsets,
+                        body.neighbors, body.bond_active, body.node_count, dt,
+                        body.maximum_projection_fraction);
+                    std::swap(body.positions, body.scratch);
+                    // Keep fluid reaction corrections on the valid side of
+                    // passive/dynamic rigid geometry before updating the skin.
+                    if (impl_->rigid_body_count != 0U)
+                        deformable_collide<true, true><<<node_blocks, block_size, 0, stream>>>(
+                            body.positions, body.velocities, body.previous, body.inverse_masses,
+                            body.node_count, body.node_radius * 0.01F, dt, impl_->parameters,
+                            nullptr, impl_->states[impl_->current_state], impl_->meshes,
+                            impl_->rigid_body_count, body.body_impulses, body.rigid_contact_forces,
+                            body.contact_normals, body.contact_arms, body.contact_momentum_delta,
+                            body.contact_normal_delta, body.contact_count, body.dynamic_contact_flag,
+                            impl_->fluid_body_contact_flags, false, false, body.maximum_speed);
+                    soft_body_update_surface<<<skin_blocks, block_size, 0, stream>>>(
+                        body.positions, body.rest_positions, body.surface_rest_positions,
+                        body.surface_bindings, body.surface_positions, body.surface_vertex_count);
+                }
+                status = refit_surface();
+                if (!status) return status;
+                fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.previous, fluid.count, body.surface_positions,
+                    coupling.previous_surface, body.surface_indices, body.surface_index_count,
+                    coupling.orientation, distance, coupling.bounds, true,
+                    coupling.tree, coupling.triangle_order);
+                error = cudaMemcpyAsync(coupling.previous_surface, body.surface_positions,
+                    body.surface_vertex_count * sizeof(Vec3), cudaMemcpyDeviceToDevice, stream);
+                if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body skin copy failed");
+                status = record_timing_stage(TimingStage::fluid_soft_body_contacts,
+                    (6U + (impl_->rigid_body_count != 0U ? 1U : 0U)) *
+                    coupling.options.solver_iterations + 2U);
+                if (!status) return status;
+            }
             for (const FluidClothCouplingResource &coupling :
                  impl_->fluid_cloth_couplings) {
                 if (!coupling.alive || !coupling.options.enabled ||
@@ -8629,6 +9021,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
             if (any_static_body) {
                 status = record_timing_stage(TimingStage::fluid_static_contacts);
+                if (!status) return status;
+            }
+            // A rigid boundary can push water back into a neighboring soft
+            // face. Finish with current-skin recovery, not the old surface or
+            // an infinite triangle plane. No extra kinetic impulse is added.
+            for (const auto &coupling : impl_->fluid_soft_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    !(coupling->options.fluid == fluid_id)) continue;
+                const auto &body = *impl_->soft_bodies[coupling->options.soft_body.index];
+                const float distance = coupling->options.contact_distance > 0
+                    ? coupling->options.contact_distance : fluid.options.particle_radius;
+                for (std::uint32_t recovery = 0; recovery < 3; ++recovery)
+                    fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
+                        fluid.positions, fluid.positions, fluid.count, body.surface_positions,
+                        body.surface_positions, body.surface_indices, body.surface_index_count,
+                        coupling->orientation, distance, coupling->bounds, false,
+                        coupling->tree, coupling->triangle_order);
+                status = record_timing_stage(TimingStage::fluid_soft_body_contacts, 3U);
                 if (!status) return status;
             }
             bool any_destroy_plane = false;
@@ -8915,6 +9325,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::fluid_cloth_contacts:
             timing = &output.fluid_cloth_contacts;
             break;
+        case TimingStage::fluid_soft_body_contacts:
+            timing = &output.fluid_soft_body_contacts;
+            break;
         case TimingStage::fluid_spawn:
             timing = &output.fluid_spawn;
             break;
@@ -8945,6 +9358,7 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         }
         timing->total_milliseconds += milliseconds;
         const std::uint32_t launches =
+            impl_->timing_launch_counts[index] != 0U ? impl_->timing_launch_counts[index] :
             impl_->timing_stages[index] == TimingStage::soft_body_cloth_contacts
                 ? impl_->soft_cloth_kernels_per_substep
                 : impl_->timing_stages[index] == TimingStage::soft_body_contact_cleanup
@@ -9017,7 +9431,7 @@ Status World::collect_statistics(WorldStatistics &output,
         output.soft_body_node_count += body->node_count;
         output.allocated_bytes +=
             static_cast<std::size_t>(body->node_count) *
-                (13U * sizeof(Vec3) + 2U * sizeof(float) +
+                (14U * sizeof(Vec3) + 2U * sizeof(float) +
                  sizeof(FluidBodyImpulse)) +
             static_cast<std::size_t>(body->bond_count) *
                 (sizeof(SoftBodyBond) + sizeof(std::uint8_t)) +
@@ -9040,8 +9454,23 @@ Status World::collect_statistics(WorldStatistics &output,
                 sizeof(std::uint32_t);
     }
     output.emitted_particle_count = impl_->emitted_particle_count;
+    for (const auto &coupling : impl_->fluid_soft_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        const auto &body = *impl_->soft_bodies[coupling->options.soft_body.index];
+        const auto &fluid = *impl_->fluids[coupling->options.fluid.index];
+        output.allocated_bytes += fluid.options.capacity * sizeof(FluidSoftContact) +
+            body.node_count * (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
+            body.surface_vertex_count * sizeof(Vec3) + 2U * sizeof(Vec3) +
+            sizeof(std::uint32_t) + sizeof(float);
+        output.fluid_soft_body_contact_count += *coupling->contact_count;
+        output.maximum_fluid_soft_body_penetration = std::max(
+            output.maximum_fluid_soft_body_penetration, *coupling->maximum_penetration);
+    }
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;
+    for (const auto &source : impl_->particle_sources)
+        if (source.alive)
+            output.allocated_bytes += source.data->count * (sizeof(Vec3) + sizeof(std::uint8_t)) + sizeof(std::uint32_t);
     output.contact_count = *impl_->fluid_contact_count;
     output.contact_overflow_count = *impl_->fluid_contact_overflow;
     output.maximum_fluid_neighbor_count =

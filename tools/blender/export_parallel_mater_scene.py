@@ -335,9 +335,7 @@ def copy_flow_for_export(
             if name in source:
                 exported[name] = float(source[name])
     if flow.flow_behavior == "INFLOW":
-        exported["pm_particles_per_second"] = float(
-            source.get("pm_particles_per_second", 2400.0)
-        )
+        exported["pm_source_spacing"] = float(source.get("pm_source_spacing", 0.0))
     return exported
 
 
@@ -423,6 +421,24 @@ def copy_cloth_for_export(
     return exported
 
 
+def soft_body_goal_pins(source, settings, scale_matrix):
+    """Full effective Goal weight is a fixed node, not rigid shape matching."""
+    if not settings.use_goal or not settings.vertex_group_goal:
+        return []
+    group = source.vertex_groups.get(settings.vertex_group_goal)
+    if group is None:
+        raise RuntimeError(f"{source.name}: Soft Body Goal group is missing")
+    pins = []
+    for vertex in source.data.vertices:
+        weight = next((g.weight for g in vertex.groups if g.group == group.index), 0.0)
+        effective = settings.goal_min + weight * (settings.goal_max - settings.goal_min)
+        if effective < 1.0 - 1.0e-6:
+            continue
+        position = scale_matrix @ vertex.co
+        pins.append(f"{position.x:.9g},{position.z:.9g},{-position.y:.9g},1")
+    return pins
+
+
 def copy_soft_body_for_export(
     source: bpy.types.Object,
     index: int,
@@ -455,7 +471,12 @@ def copy_soft_body_for_export(
                            for axis in range(3)))
     maximum = Vector(tuple(max(vertex.co[axis] for vertex in mesh.vertices)
                            for axis in range(3)))
-    default_spacing = max(1.0e-4, min(maximum - minimum) / 9.0)
+    extent = maximum - minimum
+    # Nine samples through the thinnest axis grossly oversamples slabs: tens
+    # of thousands of nodes whose support cannot propagate across one solve.
+    # Keep at least three layers, while targeting 18 along the longest axis.
+    default_spacing = max(1.0e-4, min(extent) / 9.0,
+                          min(max(extent) / 18.0, min(extent) / 3.0))
 
     exported = bpy.data.objects.new(source.name, mesh)
     collection.objects.link(exported)
@@ -476,8 +497,14 @@ def copy_soft_body_for_export(
         source.get("pm_spring_damping", 0.85))
     exported["pm_contact_friction"] = float(
         source.get("pm_contact_friction", settings.friction))
+    exported["pm_pin_group"] = settings.vertex_group_goal if settings.use_goal else ""
+    exported["pm_pin_vertices"] = ";".join(
+        soft_body_goal_pins(source, settings, scale_matrix))
+    # A selected Goal group anchors authored vertices. It must not also impose
+    # a whole-body rest-shape projection, which prevents a cantilever bending.
     default_shape_stiffness = (settings.goal_default * settings.goal_spring
-                               if settings.use_goal else 0.0)
+                               if settings.use_goal and not settings.vertex_group_goal
+                               else 0.0)
     exported["pm_shape_matching_stiffness"] = float(source.get(
         "pm_shape_matching_stiffness", default_shape_stiffness))
     exported["pm_maximum_projection_fraction"] = float(

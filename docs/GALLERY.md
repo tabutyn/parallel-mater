@@ -120,6 +120,14 @@ gravity down and reuses those controls. `F` also reports cloth stepping and
 soft/cloth coupling. The bridge's Blender `pm_break_strain` is zero; the
 curtain's is 0.10. Both use the common exporter and API fracture implementation.
 
+Soft Body Fluid (`--soft-body-fluid`) uses `SoftbodyFluid.blend`. Full-weight
+Goal vertices remain fixed while falling water loads the soft body's current
+triangles and exits through the authored outflow. Gravity starts straight down;
+arrows tilt it up to 45 degrees. `P` changes particle capacity and resets;
+`R` resets, `F` includes fluid/soft contact timing, and the shared water surface
+and foam renderer are unchanged. `V` exposes both water particles and internal
+soft springs; `B` shows the soft surface and `C` shows water reactions.
+
 All gallery entries create `World` with opt-in rolling physics capture. `Z`
 shows available contact and deformable-surface normals, `X` rigid inputs and
 rigid/deformable contact forces,

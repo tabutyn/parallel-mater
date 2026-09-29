@@ -360,150 +360,80 @@ void weld_pressure_cloth(TriangleMesh &mesh) {
     mesh.vertices = std::move(vertices);
 }
 
-[[nodiscard]] bool build_soft_body_lattice(
-    const TriangleMesh &mesh, float spacing, float total_mass,
-    SoftBodyDefinition &body, std::string &error) {
-    std::vector<Vec3> surface;
-    try {
-        surface.reserve(mesh.vertices.size());
-        for (const Vertex &vertex : mesh.vertices)
-            surface.push_back(vertex.position);
-        body.surface_bindings.resize(surface.size());
-    } catch (...) {
-        error = body.name + ": could not allocate soft-body surface data";
-        return false;
-    }
-    const float weld_distance_squared = spacing * spacing * 1.0e-4F;
-    for (std::size_t vertex = 0U; vertex < surface.size(); ++vertex) {
-        std::uint32_t node = UINT32_MAX;
-        for (std::uint32_t candidate = 0U; candidate < body.nodes.size();
-             ++candidate) {
-            if (math::length_squared(math::subtract(
-                    surface[vertex], body.nodes[candidate])) <=
-                weld_distance_squared) {
-                node = candidate;
-                break;
-            }
-        }
-        if (node == UINT32_MAX) {
-            if (body.nodes.size() == UINT32_MAX) {
-                error = body.name + ": soft-body node count exceeds uint32";
+struct Pin { Vec3 position; float weight; bool matched{}; };
+
+[[nodiscard]] bool read_pins(const FlatJson &extras, const std::string &name,
+                            std::vector<Pin> &pins, std::string &error) {
+    const std::string encoded = extras.string("pm_pin_vertices").value_or("");
+    const char *cursor = encoded.c_str();
+    while (*cursor != '\0') {
+        float fields[4]{};
+        for (int component = 0; component < 4; ++component) {
+            char *next = nullptr;
+            fields[component] = std::strtof(cursor, &next);
+            if (next == cursor || !std::isfinite(fields[component]) ||
+                (component < 3 && *next != ',') ||
+                (component == 3 && *next != ';' && *next != '\0')) {
+                error = name + ": invalid exported pin coordinate";
                 return false;
             }
-            node = static_cast<std::uint32_t>(body.nodes.size());
-            body.nodes.push_back(surface[vertex]);
+            cursor = next + (component < 3 || *next == ';' ? 1 : 0);
         }
-        SoftBodySurfaceBinding binding{};
-        binding.nodes[0] = node;
-        binding.weights[0] = 1.0F;
-        body.surface_bindings[vertex] = binding;
-    }
-
-    std::vector<FluidParticle> samples;
-    const Status sample_status = sample_fluid_geometry(
-        {{surface.data(), surface.size()},
-         {mesh.indices.data(), mesh.indices.size()}, {}, {}, spacing}, samples);
-    if (!sample_status) {
-        error = body.name + ": " +
-            (sample_status.message != nullptr ? sample_status.message
-                                              : "volume sampling failed");
-        return false;
-    }
-    const float duplicate_distance_squared = spacing * spacing * 0.04F;
-    try {
-        for (const FluidParticle &sample : samples) {
-            const bool duplicate = std::any_of(
-                body.nodes.begin(), body.nodes.end(), [&](Vec3 node) {
-                    return math::length_squared(
-                        math::subtract(sample.position, node)) <=
-                        duplicate_distance_squared;
-                });
-            if (!duplicate) body.nodes.push_back(sample.position);
-        }
-    } catch (...) {
-        error = body.name + ": could not allocate soft-body volume nodes";
-        return false;
-    }
-    if (body.nodes.size() < 4U || body.nodes.size() > UINT32_MAX) {
-        error = body.name + ": volume sampling produced an invalid node count";
-        return false;
-    }
-
-    std::unordered_set<std::uint64_t> edges;
-    const auto add_bond = [&](std::uint32_t first,
-                              std::uint32_t second) -> bool {
-        if (first == second) return true;
-        if (first > second) std::swap(first, second);
-        const std::uint64_t key =
-            (static_cast<std::uint64_t>(first) << 32U) | second;
-        if (!edges.insert(key).second) return true;
-        const float rest = math::length(
-            math::subtract(body.nodes[first], body.nodes[second]));
-        if (!(rest > 1.0e-6F) || !std::isfinite(rest)) return false;
-        body.bonds.push_back({first, second, rest});
-        return true;
-    };
-    try {
-        for (std::size_t index = 0U; index < mesh.indices.size(); index += 3U) {
-            const std::uint32_t vertices[3]{
-                mesh.indices[index], mesh.indices[index + 1U],
-                mesh.indices[index + 2U]};
-            for (std::uint32_t edge = 0U; edge < 3U; ++edge) {
-                if (!add_bond(
-                        body.surface_bindings[vertices[edge]].nodes[0],
-                        body.surface_bindings[vertices[(edge + 1U) % 3U]].nodes[0])) {
-                    error = body.name + ": invalid surface bond";
-                    return false;
-                }
-            }
-        }
-        const float reach_squared = spacing * spacing * 3.24F;
-        for (std::uint32_t first = 0U; first < body.nodes.size(); ++first) {
-            for (std::uint32_t second = first + 1U;
-                 second < body.nodes.size(); ++second) {
-                const float distance_squared = math::length_squared(
-                    math::subtract(body.nodes[first], body.nodes[second]));
-                if (distance_squared <= reach_squared &&
-                    distance_squared > 1.0e-12F &&
-                    !add_bond(first, second)) {
-                    error = body.name + ": invalid volume bond";
-                    return false;
-                }
-            }
-        }
-    } catch (...) {
-        error = body.name + ": could not allocate soft-body bonds";
-        return false;
-    }
-    std::vector<std::uint32_t> degree(body.nodes.size(), 0U);
-    for (const SoftBodyBond &bond : body.bonds) {
-        ++degree[bond.first];
-        ++degree[bond.second];
-    }
-    for (std::uint32_t node = 0U; node < degree.size(); ++node) {
-        if (degree[node] != 0U) continue;
-        std::uint32_t nearest = node == 0U ? 1U : 0U;
-        float nearest_distance = std::numeric_limits<float>::max();
-        for (std::uint32_t candidate = 0U; candidate < body.nodes.size();
-             ++candidate) {
-            if (candidate == node) continue;
-            const float distance = math::length_squared(
-                math::subtract(body.nodes[node], body.nodes[candidate]));
-            if (distance < nearest_distance) {
-                nearest_distance = distance;
-                nearest = candidate;
-            }
-        }
-        if (!add_bond(node, nearest)) {
-            error = body.name + ": could not connect an isolated volume node";
+        if (fields[3] <= 0.0F || fields[3] > 1.0F) {
+            error = name + ": invalid pin weight";
             return false;
         }
+        pins.push_back({{fields[0], fields[1], fields[2]}, fields[3]});
     }
-    body.node_mass = total_mass / static_cast<float>(body.nodes.size());
-    body.inverse_masses.assign(body.nodes.size(), 1.0F / body.node_mass);
     return true;
 }
 
+[[nodiscard]] bool build_soft_body_lattice(
+    TriangleMesh &mesh, float spacing, float total_mass,
+    const std::vector<float> &pin_weights,
+    SoftBodyDefinition &body, std::string &error) {
+    std::vector<Vec3> surface;
+    surface.reserve(mesh.vertices.size());
+    for (const Vertex &vertex : mesh.vertices)
+        surface.push_back(vertex.position);
+    SoftBodyGeometry geometry;
+    const Status status = build_soft_body_geometry(
+        {{surface.data(), surface.size()},
+         {mesh.indices.data(), mesh.indices.size()},
+         {pin_weights.data(), pin_weights.size()}, spacing, total_mass}, geometry);
+    if (!status) {
+        error = body.name + ": " +
+            (status.message != nullptr ? status.message : "soft-body meshing failed");
+        return false;
+    }
+
+    // Rendering attributes stay outside physics. The API supplies the source
+    // interpolation for each newly simulated surface vertex, including seams.
+    std::vector<Vertex> refined;
+    refined.reserve(geometry.surface_vertices.size());
+    for (std::size_t i = 0; i < geometry.surface_vertices.size(); ++i) {
+        Vertex vertex{};
+        vertex.position = geometry.surface_vertices[i];
+        const auto &source = geometry.surface_sources[i];
+        for (unsigned j = 0; j < 3; ++j) {
+            const Vertex &original = mesh.vertices[source.vertices[j]];
+            vertex.normal = math::add(vertex.normal,
+                math::multiply(original.normal, source.weights[j]));
+            vertex.uv.x += original.uv.x * source.weights[j];
+            vertex.uv.y += original.uv.y * source.weights[j];
+        }
+        vertex.normal = math::normalize_or(vertex.normal, {0, 1, 0});
+        refined.push_back(vertex);
+    }
+    mesh.vertices = std::move(refined);
+    mesh.indices = std::move(geometry.surface_triangle_indices);
+    body.nodes = std::move(geometry.nodes);
+    body.bonds = std::move(geometry.bonds);
+    body.inverse_masses = std::move(geometry.inverse_masses);
+    body.surface_bindings = std::move(geometry.surface_bindings);
+    body.node_mass = geometry.node_mass;
+    return true;
+}
 [[nodiscard]] bool sample_initial_volume(
     const cgltf_node &node, Vec3 scale, Vec3 velocity, float spacing,
     std::vector<FluidParticle> &particles, std::string &error) {
@@ -959,31 +889,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = name + ": invalid cloth tear, solver, or paint settings";
             return false;
         }
-        const std::string encoded_pins =
-            extras.string("pm_pin_vertices").value_or("");
-        struct Pin { Vec3 position; float weight; bool matched{}; };
         std::vector<Pin> pins;
-        const char *cursor = encoded_pins.c_str();
-        const char *end = cursor + encoded_pins.size();
-        while (cursor < end) {
-            float fields[4]{};
-            for (int component = 0; component < 4; ++component) {
-                char *next = nullptr;
-                fields[component] = std::strtof(cursor, &next);
-                if (next == cursor || !std::isfinite(fields[component]) ||
-                    (component < 3 && *next != ',') ||
-                    (component == 3 && *next != ';' && *next != '\0')) {
-                    error = name + ": invalid exported cloth pin coordinate";
-                    return false;
-                }
-                cursor = next + (component < 3 || *next == ';' ? 1 : 0);
-            }
-            if (fields[3] <= 0.0F || fields[3] > 1.0F) {
-                error = name + ": invalid cloth pin weight";
-                return false;
-            }
-            pins.push_back({{fields[0], fields[1], fields[2]}, fields[3]});
-        }
+        if (!read_pins(extras, name, pins, error)) return false;
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[0], scale, false,
                               name, mesh, error)) return false;
@@ -1122,7 +1029,27 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 rotate(state.orientation, vertex.position));
             vertex.normal = rotate(state.orientation, vertex.normal);
         }
-        if (!build_soft_body_lattice(mesh, spacing, total_mass, body, error))
+        std::vector<Pin> pins;
+        if (!read_pins(extras, body.name, pins, error)) return false;
+        std::vector<float> pin_weights(mesh.vertices.size(), 0.0F);
+        for (Pin &pin : pins) {
+            if (pin.weight != 1.0F) {
+                error = body.name + ": soft-body pins require full Goal weight";
+                return false;
+            }
+            const Vec3 target = add(state.position, rotate(state.orientation, pin.position));
+            for (std::size_t vertex = 0; vertex < mesh.vertices.size(); ++vertex) {
+                if (math::length_squared(subtract(mesh.vertices[vertex].position, target)) > 1.0e-8F)
+                    continue;
+                pin_weights[vertex] = 1.0F;
+                pin.matched = true;
+            }
+            if (!pin.matched) {
+                error = body.name + ": Goal pin did not match exported mesh";
+                return false;
+            }
+        }
+        if (!build_soft_body_lattice(mesh, spacing, total_mass, pin_weights, body, error))
             return false;
         body.mesh_index = static_cast<std::uint32_t>(output.meshes.size());
         output.meshes.push_back(std::move(mesh));
@@ -1178,6 +1105,29 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             continue;
         }
+        if (system == "fluid_inflow") {
+            ParticleSourceDefinition source;
+            source.spacing = static_cast<float>(extras.number("pm_source_spacing").value_or(0.0));
+            source.options.initial_velocity = {
+                static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
+                static_cast<float>(extras.number("pm_velocity_z").value_or(0.0))};
+            if (!finite(source.spacing) || source.spacing < 0 || !finite(source.options.initial_velocity)) {
+                error = name + ": invalid fluid source spacing or velocity";
+                return false;
+            }
+            const auto state = node_state(node);
+            for (cgltf_size primitive = 0; primitive < node.mesh->primitives_count; ++primitive) {
+                TriangleMesh mesh;
+                if (!append_primitive(node.mesh->primitives[primitive], scale, false, name, mesh, error)) return false;
+                const auto offset = static_cast<std::uint32_t>(source.vertices.size());
+                for (const auto &vertex : mesh.vertices)
+                    source.vertices.push_back(add(state.position, rotate(state.orientation, vertex.position)));
+                for (const auto index : mesh.indices) source.indices.push_back(offset + index);
+            }
+            output.particle_sources.push_back(std::move(source));
+            continue;
+        }
         Vec3 minimum{FLT_MAX, FLT_MAX, FLT_MAX};
         Vec3 maximum{-FLT_MAX, -FLT_MAX, -FLT_MAX};
         for (cgltf_size primitive_index = 0U;
@@ -1219,25 +1169,9 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                           rotate(transform.orientation, local_center)),
             .orientation = transform.orientation,
             .half_extents = {extent.x * 0.5F, extent.z * 0.5F}};
-        if (system == "fluid_inflow") {
-            const float rate = static_cast<float>(
-                extras.number("pm_particles_per_second").value_or(2400.0));
-            const Vec3 velocity{
-                static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
-                static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
-                static_cast<float>(extras.number("pm_velocity_z").value_or(0.0))};
-            if (!finite(rate) || rate < 0.0F || !finite(velocity)) {
-                error = name + ": invalid fluid inflow rate or velocity";
-                return false;
-            }
-            output.spawn_planes.push_back({.plane = plane,
-                                           .particles_per_second = rate,
-                                           .initial_velocity = velocity});
-        } else {
-            output.destroy_planes.push_back({.plane = plane});
-        }
+        output.destroy_planes.push_back({.plane = plane});
     }
-    if (!output.spawn_planes.empty()) {
+    if (!output.particle_sources.empty()) {
         output.fluid_options = {.capacity = 30'000U,
                                 .particle_radius = 0.045F,
                                 .support_radius = 0.18F,
@@ -1269,7 +1203,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
     }
     if (output.rigid_bodies.empty() && output.cloths.empty() &&
         output.soft_bodies.empty() &&
-        output.spawn_planes.empty() && output.destroy_planes.empty() &&
+        output.particle_sources.empty() && output.destroy_planes.empty() &&
         output.initial_particles.empty()) {
         error = "GLB contains no ParallelMater physics objects";
         return false;
@@ -1397,7 +1331,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         paint_fields += cloth.paintable ? 1U : 0U;
     const std::size_t maximum = std::numeric_limits<std::uint32_t>::max();
     if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
-        scene.spawn_planes.size() > maximum ||
+        scene.particle_sources.size() > maximum ||
         scene.destroy_planes.size() > maximum || paint_fields > maximum ||
         scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum ||
         (!scene.cloths.empty() && scene.soft_bodies.size() > maximum / scene.cloths.size())) {
@@ -1410,8 +1344,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, triangle_meshes)),
-        .particle_spawn_plane_capacity = static_cast<std::uint32_t>(
-            std::max<std::size_t>(1U, scene.spawn_planes.size())),
+        .particle_source_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.particle_sources.size())),
         .particle_destroy_plane_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.destroy_planes.size())),
         .paint_field_capacity = static_cast<std::uint32_t>(paint_fields),
@@ -1424,6 +1358,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             std::max<std::size_t>(1U, scene.cloths.size())),
         .soft_body_cloth_coupling_capacity = static_cast<std::uint32_t>(
             scene.cloths.size() * scene.soft_bodies.size()),
+        .fluid_soft_body_coupling_capacity = static_cast<std::uint32_t>(
+            scene.soft_bodies.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1678,10 +1614,20 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         cudaFree(device_initial);
         if (!status) return status;
         output.has_fluid = true;
-        for (ParticleSpawnPlaneOptions options : scene.spawn_planes) {
+        for (SoftBodyId body : output.soft_bodies) {
+            FluidSoftBodyCouplingId coupling{};
+            status = world.add_fluid_soft_body_coupling(
+                {.fluid = output.fluid, .soft_body = body}, coupling);
+            if (!status) return status;
+            output.fluid_soft_body_couplings.push_back(coupling);
+        }
+        for (const auto &source : scene.particle_sources) {
+            auto options = source.options;
             options.fluid = output.fluid;
-            ParticleSpawnPlaneId id{};
-            status = world.add_particle_spawn_plane(options, id);
+            ParticleSourceId id{};
+            status = world.add_particle_source(
+                {{source.vertices.data(), source.vertices.size()},
+                 {source.indices.data(), source.indices.size()}, source.spacing}, options, id);
             if (!status) return status;
         }
         for (ParticleDestroyPlaneOptions options : scene.destroy_planes) {

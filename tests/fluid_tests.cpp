@@ -225,13 +225,14 @@ int main() {
                                .support_radius = 0.2F,
                                .solver_iterations = 1U}, {}, lifecycle_id),
           "add empty lifecycle fluid");
-    ParticleSpawnPlaneId spawn_id{};
-    ParticleSpawnPlaneOptions spawn{
+    ParticleSourceId spawn_id{};
+    const std::array<Vec3,3> source_vertices{{{-0.01F,0,-0.01F},{0.01F,0,-0.01F},{0,0,0.01F}}};
+    const std::array<std::uint32_t,3> source_indices{{0,1,2}};
+    const ParticleSourceMesh source_mesh{{source_vertices.data(),3},{source_indices.data(),3},0.1F};
+    ParticleSourceOptions spawn{
         .fluid = lifecycle_id,
-        .plane = {.half_extents = {0.5F, 0.5F}},
-        .particles_per_second = 120.0F,
         .initial_velocity = {0.0F, -1.0F, 0.0F}};
-    check(lifecycle.add_particle_spawn_plane(spawn, spawn_id),
+    check(lifecycle.add_particle_source(source_mesh, spawn, spawn_id),
           "add spawn plane");
     ParticleDestroyPlaneId destroy_id{};
     check(lifecycle.add_particle_destroy_plane(
@@ -247,11 +248,12 @@ int main() {
     WorldStatistics lifecycle_stats{};
     check(lifecycle.collect_statistics(lifecycle_stats),
           "collect lifecycle statistics");
-    check(lifecycle_stats.emitted_particle_count == 12U &&
+    const auto lifecycle_emitted = lifecycle_stats.emitted_particle_count;
+    check(lifecycle_emitted > 0U &&
           lifecycle_stats.destroyed_particle_count > 0U,
           "inflow and swept outflow update lifecycle counters");
     spawn.enabled = false;
-    check(lifecycle.update_particle_spawn_plane(spawn_id, spawn),
+    check(lifecycle.update_particle_source(spawn_id, spawn),
           "disable lifecycle inflow");
     for (int frame = 0; frame < 8; ++frame)
         check(lifecycle.step({.timestep = 1.0F / 60.0F,
@@ -260,7 +262,7 @@ int main() {
     check(lifecycle.collect_statistics(lifecycle_stats),
           "collect drained lifecycle statistics");
     check(lifecycle_stats.particle_count == 0U &&
-          lifecycle_stats.destroyed_particle_count == 12U,
+          lifecycle_stats.destroyed_particle_count == lifecycle_emitted,
           "stable compaction drains every emitted particle");
 
     World contact_world;
@@ -309,12 +311,11 @@ int main() {
           "read contacted foam");
     check(final_position.y >= 0.099F && final_foam > 0.5F,
           "swept triangle contact prevents tunneling and emits foam");
-    ParticleSpawnPlaneId embedded_spawn{};
-    check(contact_world.add_particle_spawn_plane(
-        {.fluid = drop_id,
-         .plane = {.center = {0.0F, -0.02F, 0.0F},
-                   .half_extents = {0.01F, 0.01F}},
-         .particles_per_second = 10.0F}, embedded_spawn),
+    ParticleSourceId embedded_spawn{};
+    const std::array<Vec3,3> embedded_vertices{{{1.5F,-0.02F,0},{1.51F,-0.02F,0},{1.5F,-0.02F,0.01F}}};
+    check(contact_world.add_particle_source(
+        {{embedded_vertices.data(),3},{source_indices.data(),3},0.2F},
+        {.fluid = drop_id}, embedded_spawn),
           "add slightly embedded inflow");
     check(contact_world.step({.timestep = 0.1F, .substeps = 1U,
                               .gravity = {}}),

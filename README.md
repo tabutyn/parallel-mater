@@ -119,6 +119,10 @@ contact impulses with the lattice.
 cloth bridge over a pit and can be rolled into a separate tearable curtain.
 Each cloth carries its own `pm_break_strain` Blender custom property. The shared
 API handles contacts, friction, and fracture, with gravity initially down.
+`--soft-body-fluid` loads `SoftbodyFluid.blend`: the Soft Body Goal group fixes
+the authored attachment while an inflow loads its triangle surface and water
+drains through the outflow. Fluid/soft-body contact is an explicit API resource;
+the gallery reuses its normal water surface, foam, controls, and diagnostics.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
 normals, `X` rigid and deformable contact forces, `C` fluid acceleration/reaction
 forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.

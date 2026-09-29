@@ -23,6 +23,7 @@ enum class GalleryContext : std::uint8_t {
     soft_body,
     soft_body_rigid,
     soft_body_cloth,
+    soft_body_fluid,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -38,6 +39,7 @@ enum class GallerySceneSource : std::uint8_t {
     soft_body,
     soft_body_rigid,
     soft_body_cloth,
+    soft_body_fluid,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -152,7 +154,14 @@ inline constexpr std::array gallery_entries{
         "INTACT BRIDGE  TEARABLE CURTAIN  ARROWS GRAVITY",
         {42, 40, 62, 235}, {174, 128, 245},
         {.target = {0.0F, 0.6F, -1.5F}, .distance_scale = 0.78F,
-         .pitch = 0.70F}, false, true, 0U, 0U, true},
+        .pitch = 0.70F}, false, true, 0U, 0U, true},
+    GalleryEntry{GalleryContext::soft_body_fluid, GallerySceneSource::soft_body_fluid,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::fluid_particles,
+        "--soft-body-fluid", "SOFT BODY FLUID",
+        "GOAL PINS  INFLOW / OUTFLOW  ARROWS GRAVITY  P CAP",
+        {25, 42, 63, 235}, {80, 160, 240},
+        {.target = {0.0F, 0.8F, 0.0F}, .distance_scale = 0.42F,
+         .pitch = 0.55F}, true, false, 100U, 100'000U, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(

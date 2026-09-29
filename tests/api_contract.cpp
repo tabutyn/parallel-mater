@@ -18,7 +18,7 @@ static_assert(std::is_trivially_copyable_v<PaintFieldId>);
 static_assert(std::is_trivially_copyable_v<PaintRuleId>);
 static_assert(std::is_trivially_copyable_v<PaintFieldOptions>);
 static_assert(std::is_trivially_copyable_v<PaintRuleOptions>);
-static_assert(std::is_trivially_copyable_v<ParticleSpawnPlaneId>);
+static_assert(std::is_trivially_copyable_v<ParticleSourceId>);
 static_assert(std::is_trivially_copyable_v<ParticleDestroyPlaneId>);
 static_assert(std::is_trivially_copyable_v<FluidParticle>);
 static_assert(std::is_trivially_copyable_v<ParticlePlane>);
