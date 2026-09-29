@@ -404,9 +404,12 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-rope-tests 1200 --settle-after-motion)
         add_test(NAME parallel-mater-rope-wrap-tests
                  COMMAND parallel-mater-rope-tests 600 --wrapped)
+        add_test(NAME parallel-mater-rope-winding-tests
+                 COMMAND parallel-mater-rope-tests 500 --winding)
         set_tests_properties(parallel-mater-rope-settle-tests
                              parallel-mater-rope-release-tests
-                             parallel-mater-rope-wrap-tests PROPERTIES
+                             parallel-mater-rope-wrap-tests
+                             parallel-mater-rope-winding-tests PROPERTIES
                              SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-soft-body-fluid-dry-test
                  COMMAND parallel-mater-soft-body-fluid-tests 600 --dry)

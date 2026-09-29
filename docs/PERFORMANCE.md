@@ -667,10 +667,12 @@ attachments. It preserves uniform free-fall velocity in the API regression.
 Active-set flags are synchronized between passes; otherwise a fast warp can
 clear the flag before another warp reads it and split the block's control flow.
 Nominal solves exit below 0.1% segment strain. Contacts still above 0.5% after
-the nominal iteration budget receive bounded recovery passes (up to eight
-times that budget, capped at 128). The looser early-exit tolerance avoids
-spending every iteration chasing micrometre-scale residuals; recovery prevents
-large unresolved corrections from turning into velocity spikes.
+the nominal iteration budget receive bounded recovery passes (up to four
+times that budget, capped at 32). A capped contact solve finishes with eight
+length projections after releasing stale support planes. Each projection
+moves at most one rope radius. The looser early-exit tolerance avoids
+spending every iteration chasing micrometre-scale residuals, while the final
+projection prevents large length errors from becoming velocity spikes.
 
 The 1,200-frame release test uses 72 nodes, 1/60 s frames and 24 nominal
 iterations. The initial solver used four substeps; the corrected API uses eight.
@@ -685,7 +687,7 @@ frames 120–239, then down again. The final 120 frames measure settling. RTX
 | Late RMS node speed | 13.13 mm/s | 1.99 mm/s |
 | Maximum late displacement | 18.38 mm | 4.44 mm |
 
-The straight-down control also improves settling: RMS speed 2.73 to 1.62 mm/s,
+At that stage, the straight-down control also improved settling: RMS speed 2.73 to 1.62 mm/s,
 late displacement 4.38 to 2.39 mm, and strain 2.88% to 0.32%. Its mean GPU cost
 is similar (5.58 versus 5.51 ms). The two runs have 40 and 38 of 72 nodes,
 respectively, within 25 mm of the floor, hook error below
@@ -700,6 +702,39 @@ separately checks segment samples around the triangle post: 0.47% peak strain,
 at least 2.85 retained turns, and 22.29 ms/frame. Its longer curve is a test
 fixture, not a change to the authored rest curve.
 
-All seven targeted rope/export/render regressions pass. The final 12-frame
+All eight targeted rope/export/render regressions pass. The final 12-frame
 wrapped-contact smoke test reports zero Compute Sanitizer memory errors and
 zero racecheck hazards; the normal wrapped regression runs 600 frames.
+
+### Tight winding and bounce
+
+A controlled 500-frame test steers the authored 72-node rope around its post
+with tangential and inward gravity after frame 120. It reaches 2.94 turns,
+tightens, bounces, and begins unwinding. The original solver spent 428 ms in
+the rope kernel at the third wrap and later stretched one segment by 68%.
+Renderer time at the hitch was under 4 ms; the stall was in physics.
+
+On the RTX 3050 Ti, the same physics-only steering sequence measured:
+
+| 500-frame winding run | Original | This change |
+|---|---:|---:|
+| Peak rope GPU / frame | 428.07 ms | 90.98 ms |
+| 95th percentile rope GPU / frame | 125.09 ms | 41.75 ms |
+| Peak segment strain | 68.46% | 0.497% |
+
+The shared triangle solver now checks individual triangle bounds before the
+expensive capsule-to-triangle distance query. A verified separating-plane hint
+skips repeated convex plane tests, including whole-body queries when a static
+collider is provably beyond the rope radius. Bounded contact recovery and the
+final length projection keep the loaded Hook from entering a long solve loop.
+The winding regression checks peak frame time relative to its mean, rope
+strain, Hook drift, active-ball penetration, and node/segment post clearance.
+The 1,200-frame quiet and steering-release tests, 600-frame pre-wrapped test,
+and headless render still pass. A wider triangle candidate cache was rejected
+after it reduced post clearance; warming support planes and applying friction
+only on the first iteration also regressed stability or settling.
+Current quiet and steering-release mean GPU physics times are 5.86 and
+7.69 ms/frame, with late RMS speeds of 1.61 and 3.28 mm/s respectively;
+the pre-wrapped fixture averages 17.06 ms/frame. The steering-release test
+therefore costs slightly more than the earlier 6.68 ms snapshot, while the
+tight-winding peak and pre-wrapped throughput improve substantially.

@@ -28,6 +28,7 @@ int main(int argc,char **argv){
   const bool wrapped=argc>2 && std::string(argv[2])=="--wrapped";
   const bool release=argc>2 && std::string(argv[2])=="--settle-after-motion";
   const bool settle=release || (argc>2 && std::string(argv[2])=="--settle");
+  const bool winding=argc>2 && std::string(argv[2])=="--winding";
   if(argc>2 && std::string(argv[2])=="--no-enclosure") {
    for(const auto &body:scene.rigid_bodies)if(body.source_name=="Plane")for(auto index:body.mesh_indices)
     for(auto &v:scene.meshes[index].vertices)v.position.y+=1000;
@@ -65,7 +66,9 @@ int main(int argc,char **argv){
   }
   float max_ball_penetration=0;
   float max_strain=0,anchor_error=0,maximum_speed=0,min_clearance=100,min_winding=100;
+  float peak_winding=0,last_winding=0;
   double gpu=0,rope_gpu=0;
+  float peak_rope_gpu=0;
   int post=-1;for(unsigned i=0;i<scene.rigid_bodies.size();++i)if(scene.rigid_bodies[i].source_name=="Cylinder")post=i;
   check(post>=0,"post imported");
   const auto post_state=scene.rigid_bodies[post].options.initial_state;
@@ -82,6 +85,13 @@ int main(int argc,char **argv){
    if(!settle && frame>=120){const float a=(frame-120)/60.0F;gravity={6.9367F*std::sin(a),-6.9367F,6.9367F*std::cos(a)};}
    if(wrapped)gravity={frame>=120?6.9367F:0,-9.81F,0};
    if(release && frame>=120 && frame<240)gravity={0,-6.9367F,6.9367F};
+   if(winding && frame>=120) {
+    RigidBodyState ball;
+    check(world.read_rigid_body_state(instance.rigid_bodies[rope.first_body],ball),"read winding body");
+    const auto d=math::subtract(ball.position,post_state.position);
+    const float radial=std::max(0.01F,std::hypot(d.x,d.z));
+    gravity={(-6*d.z-3*d.x)/radial,-6.9367F,(6*d.x-3*d.z)/radial};
+   }
    check(world.step({.timestep=1.0F/60,.substeps=argc>6?unsigned(std::stoul(argv[6])):4U,.gravity=gravity,.collect_kernel_timings=true}),"step rope");
    check(world.rope_view(instance.ropes[0],view),"rope view");auto p=read(view.positions),v=read(view.velocities);
    if(settle && frame>=frames-120) {
@@ -103,7 +113,9 @@ int main(int argc,char **argv){
     if(i){const auto a=math::subtract(p[i-1],post_state.position),b=math::subtract(p[i],post_state.position);
      winding+=std::atan2(a.x*b.z-a.z*b.x,a.x*b.x+a.z*b.z);}
    }
-   min_winding=std::min(min_winding,std::abs(winding)/6.28318530718F);
+   last_winding=std::abs(winding)/6.28318530718F;
+   min_winding=std::min(min_winding,last_winding);
+   peak_winding=std::max(peak_winding,last_winding);
    for(int end=0;end<2;++end){const auto anchor=end?rope.options.last:rope.options.first;RigidBodyState state;
     check(world.read_rigid_body_state(instance.rigid_bodies[end?rope.last_body:rope.first_body],state),"anchor state");
     const auto target=math::add(state.position,rotate(state.orientation,anchor.local_anchor));
@@ -125,9 +137,10 @@ int main(int argc,char **argv){
       min_clearance=std::min(min_clearance,std::hypot(point.x-post_state.position.x,point.z-post_state.position.z)-radius);
    }
    WorldStepTimings timing;check(world.collect_step_timings(timing),"rope timings");gpu+=timing.total_gpu_milliseconds;rope_gpu+=timing.rope_solve.total_milliseconds;
+   peak_rope_gpu=std::max(peak_rope_gpu,timing.rope_solve.total_milliseconds);
    if(frame%60==59)std::cout<<"frame="<<frame+1<<" strain="<<max_strain<<" anchor="<<anchor_error<<" clearance="<<min_clearance<<" gpu_ms="<<gpu/(frame+1)<<std::endl;
   }
-  std::cout<<"nodes="<<view.positions.size<<" strain="<<max_strain<<" anchor_error="<<anchor_error<<" min_post_clearance="<<min_clearance<<" winding="<<min_winding<<" speed="<<maximum_speed<<" gpu_ms="<<gpu/frames<<" rope_ms="<<rope_gpu/frames<<std::endl;
+  std::cout<<"nodes="<<view.positions.size<<" strain="<<max_strain<<" anchor_error="<<anchor_error<<" min_post_clearance="<<min_clearance<<" winding="<<min_winding<<" peak_winding="<<peak_winding<<" last_winding="<<last_winding<<" speed="<<maximum_speed<<" gpu_ms="<<gpu/frames<<" rope_ms="<<rope_gpu/frames<<" peak_rope_ms="<<peak_rope_gpu<<std::endl;
   std::cout<<"max_ball_penetration="<<max_ball_penetration<<std::endl;
   if(settle)std::cout<<"settle_max_speed="<<late_max_speed<<" settle_rms_speed="<<std::sqrt(late_rms_speed/std::max(1U,late_count))<<" settle_drift="<<late_displacement<<" ground_nodes="<<ground_nodes<<std::endl;
   if(settle)std::cout<<"settle_peak_node="<<late_peak_node<<" position="<<late_peak_position.x<<','<<late_peak_position.y<<','<<late_peak_position.z<<std::endl;
@@ -136,6 +149,11 @@ int main(int argc,char **argv){
   check(max_ball_penetration<0.003F,"rope clips through active sphere");
   check(min_clearance>=view.radius-0.003F,"rope clips through post");
   if(wrapped)check(min_winding>2.8F,"wrapped rope slipped through post");
+  if(winding) {
+   check(peak_winding>2.8F,"rope failed to wind nearly three turns");
+   check(last_winding<peak_winding-0.2F,"rope failed to unwind after tightening");
+   check(peak_rope_gpu<12.0F*rope_gpu/frames,"winding hitch exceeds rope GPU budget");
+  }
   if(settle) {
    check(late_max_speed<0.08F,"rope still jitters after settling");
    check(std::sqrt(late_rms_speed/std::max(1U,late_count))<0.004F,"rope retains too much motion");

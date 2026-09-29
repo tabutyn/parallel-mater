@@ -7,6 +7,8 @@ struct RopeData {
     Vec3 *directions{}, *scratch{}, *body_translation{}, *body_rotation{};
     Vec3 *normals{}, *normals2{};
     float *rest{}, *lambda{};
+    unsigned *solid_hint{};
+    unsigned body_capacity{};
 };
 struct RopeStorage {
     RopeData data{};
@@ -20,6 +22,7 @@ struct RopeStorage {
         release_managed(data.body_rotation); release_managed(data.rest);
         release_managed(data.lambda);
         release_managed(data.normals); release_managed(data.normals2);
+        release_managed(data.solid_hint);
     }
     ~RopeStorage() { release(); }
 };
@@ -187,7 +190,9 @@ __device__ void rope_project_stretch(RopeData r,float dt,int first,int last,
         atomicMax(reinterpret_cast<unsigned *>(&maximum),__float_as_uint(vector_length(movement)));
     }
     __syncthreads();
-    const float scale=fminf(1.0F,0.5F*r.options.radius/fmaxf(maximum,1e-10F));
+    // Bound each direct solve to one radius so a loaded endpoint can move
+    // without a single pass jumping across nearby triangles.
+    const float scale=fminf(1.0F,r.options.radius/fmaxf(maximum,1e-10F));
     for(unsigned e=tid;e<edges;e+=blockDim.x) r.lambda[e]+=scale*rhs[e];
     for(unsigned i=tid;i<r.count;i+=blockDim.x) {
         const Vec3 impulse=multiply(r.scratch[i],scale);
@@ -242,20 +247,49 @@ __device__ RopeHit rope_find_contact(RopeData r,unsigned i,bool segment,int firs
         const Vec3 lo=subtract(component_min(a,segment?b:origin),{radius,radius,radius});
         const Vec3 hi=add(component_max(a,segment?b:origin),{radius,radius,radius});
         if(!bounds_overlap(lo,hi,mesh.minimum,mesh.maximum))continue;
-        if(!segment && mesh.solid_planes) {
+        if(mesh.solid_planes) {
+            // A convex solid's separating plane is reusable across contact
+            // passes. Verify it at the current position before using it;
+            // winding changes which face separates the rope from the post.
+            unsigned &hint=r.solid_hint[i*r.body_capacity+body];
+            const unsigned triangles=mesh.index_count/3;
+            const bool stationary=state.position.x==old.position.x &&
+                state.position.y==old.position.y && state.position.z==old.position.z &&
+                state.orientation.x==old.orientation.x && state.orientation.y==old.orientation.y &&
+                state.orientation.z==old.orientation.z && state.orientation.w==old.orientation.w;
+            bool outside=false, separated=false;
+            if(hint<triangles) {
+                const auto plane=mesh.solid_planes[hint];
+                const float side=dot(plane.normal,a)-plane.offset;
+                if(side>0) {
+                    outside=true;
+                    separated=stationary && side>radius &&
+                        (segment ? dot(plane.normal,b)-plane.offset>radius :
+                         dot(plane.normal,origin)-plane.offset>radius);
+                }
+            }
             float side=-FLT_MAX,entry_time=-1;CollisionPlane nearest{},entry{};
-            for(unsigned t=0;t<mesh.index_count/3;++t) {
+            for(unsigned t=0;!outside && t<triangles;++t) {
                 const auto plane=mesh.solid_planes[t];
                 const float s=dot(plane.normal,a)-plane.offset;
                 if(s>side){side=s;nearest=plane;}
-                const float before=dot(plane.normal,origin)-plane.offset;
-                if(before>0 && s<=0) {
-                    const float time=before/(before-s);
-                    if(time>entry_time){entry_time=time;entry=plane;}
+                if(!segment) {
+                    const float before=dot(plane.normal,origin)-plane.offset;
+                    if(before>0 && s<=0) {
+                        const float time=before/(before-s);
+                        if(time>entry_time){entry_time=time;entry=plane;}
+                    }
                 }
-                if(side>0)break;
+                if(s>0) {
+                    hint=t;outside=true;
+                    separated=stationary && s>radius &&
+                        (segment ? dot(plane.normal,b)-plane.offset>radius :
+                         dot(plane.normal,origin)-plane.offset>radius);
+                }
             }
-            if(side<=0) {
+            if(separated)continue;
+            if(!outside && !segment) {
+                hint=~0U;
                 // Recover on the entry side, not the closest exit face. A
                 // rolling body can otherwise expel adjacent rope nodes to
                 // opposite sides and trap the segment through its interior.
@@ -273,6 +307,8 @@ __device__ RopeHit rope_find_contact(RopeData r,unsigned i,bool segment,int firs
             if(!node.triangle_count){if(pending+2<=64){stack[pending++]=node.left;stack[pending++]=node.right;}continue;}
             for(unsigned t=node.first_triangle;t<node.first_triangle+node.triangle_count;++t) {
                 const Vec3 x=mesh.vertices[mesh.indices[3*t]],y=mesh.vertices[mesh.indices[3*t+1]],z=mesh.vertices[mesh.indices[3*t+2]];
+                if(!bounds_overlap(lo,hi,component_min(x,component_min(y,z)),
+                        component_max(x,component_max(y,z))))continue;
                 Vec3 p=a,q;
                 if(segment)rope_closest_segment_triangle(a,b,x,y,z,p,q);
                 else q=closest_on_triangle(a,x,y,z);
@@ -432,7 +468,7 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
     // A sharp contact can need more nonlinear sweeps than a resting chain.
     // Spend the recovery budget only while strain is still above 0.5%; never
     // carry a large residual into the next step as an artificial velocity.
-    const unsigned maximum_iterations=min(128U,8U*r.options.solver_iterations);
+    const unsigned maximum_iterations=min(32U,4U*r.options.solver_iterations);
     for(unsigned iteration=0;iteration<maximum_iterations;++iteration) {
         rope_project_stretch(r,dt,first,last,parameters,states);
         __syncthreads();
@@ -482,6 +518,13 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
         }
         __syncthreads();
         if(converged)break;
+    }
+    if(!converged) {
+        // A taut wrap can exhaust contact passes with stale support planes.
+        // Finish the substep by removing the remaining length error.
+        for(unsigned i=tid;i<r.count;i+=blockDim.x)r.normals[i]=r.normals2[i]={};
+        __syncthreads();
+        for(unsigned pass=0;pass<8;++pass)rope_project_stretch(r,dt,first,last,parameters,states);
     }
     for(unsigned i=tid;i<r.count;i+=blockDim.x) {
         const int body=rope_anchor_body(r,i,first,last);

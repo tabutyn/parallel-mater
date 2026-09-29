@@ -7066,12 +7066,15 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     owner->generation=impl_->ropes[slot]?impl_->ropes[slot]->generation:1;
     auto &r=owner->data;
     r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
+    r.body_capacity=impl_->options.rigid_body_capacity;
     for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
         if(!(status=allocate_managed(*p,r.count)))return status;
     for(float **p:{&r.rest,&r.lambda})
         if(!(status=allocate_managed(*p,r.count)))return status;
     if(!(status=allocate_managed(r.body_translation,impl_->options.rigid_body_capacity)) ||
        !(status=allocate_managed(r.body_rotation,impl_->options.rigid_body_capacity)))return status;
+    if(!(status=allocate_managed(r.solid_hint,r.count*r.body_capacity)))return status;
+    std::fill_n(r.solid_hint,r.count*r.body_capacity,~0U);
     for(unsigned i=0;i<r.count;++i){
         r.positions[i]=r.previous[i]=nodes[i];r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]={};
         if(i+1<r.count){r.rest[i]=vector_length(subtract(nodes[i+1],nodes[i]));
