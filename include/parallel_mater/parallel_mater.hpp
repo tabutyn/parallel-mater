@@ -163,6 +163,15 @@ struct FluidRopeCouplingId {
     }
 };
 
+struct RopeSoftBodyCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        RopeSoftBodyCouplingId left, RopeSoftBodyCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RopeAttachment {
     RigidBodyId body{};
     Vec3 local_anchor{};
@@ -195,6 +204,7 @@ struct RopeDeviceView {
     DeviceSpan<const Vec3> constraint_forces{};
     DeviceSpan<const Vec3> contact_forces{};
     DeviceSpan<const Vec3> fluid_contact_forces{};
+    DeviceSpan<const Vec3> soft_body_contact_forces{};
     DeviceSpan<const float> rest_lengths{};
     float radius{};
 };
@@ -264,6 +274,7 @@ struct WorldOptions {
     std::uint32_t fluid_soft_body_coupling_capacity{1U};
     std::uint32_t rope_capacity{4U};
     std::uint32_t fluid_rope_coupling_capacity{1U};
+    std::uint32_t rope_soft_body_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -376,6 +387,20 @@ struct FluidRopeCouplingOptions {
     float contact_distance{}; // Zero selects particle radius + rope radius.
     float friction{0.05F};
     float maximum_rope_acceleration{30.0F};
+    bool enabled{true};
+};
+
+// Two-way contact against the current closed soft-body skin. An endpoint may
+// additionally follow its closest rest-surface point. Different soft bodies
+// may bind the two ends of the same rope; multiple ropes may share a body.
+struct RopeSoftBodyCouplingOptions {
+    RopeId rope{};
+    SoftBodyId soft_body{};
+    float contact_distance{}; // Zero selects rope radius.
+    float friction{0.4F};
+    float maximum_soft_body_acceleration{80.0F};
+    bool attach_first{};
+    bool attach_last{};
     bool enabled{true};
 };
 
@@ -492,6 +517,7 @@ struct SoftBodyDeviceView {
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> cloth_contact_forces{};
     DeviceSpan<const Vec3> fluid_contact_forces{};
+    DeviceSpan<const Vec3> rope_contact_forces{};
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
@@ -808,6 +834,7 @@ struct WorldStepTimings {
     KernelTiming fluid_soft_body_contacts{};
     KernelTiming fluid_rope_contacts{};
     KernelTiming rope_solve{};
+    KernelTiming rope_soft_body_contacts{};
 };
 
 struct WorldStatistics {
@@ -835,6 +862,8 @@ struct WorldStatistics {
     float maximum_fluid_soft_body_penetration{};
     std::uint32_t fluid_rope_contact_count{};
     float maximum_fluid_rope_penetration{};
+    std::uint32_t rope_soft_body_contact_count{};
+    float maximum_rope_soft_body_penetration{};
 };
 
 class FrameToken {
@@ -904,6 +933,15 @@ class World {
         FluidRopeCouplingId coupling, FluidRopeCouplingOptions options) noexcept;
     [[nodiscard]] Status remove_fluid_rope_coupling(
         FluidRopeCouplingId coupling) noexcept;
+
+    [[nodiscard]] Status add_rope_soft_body_coupling(
+        RopeSoftBodyCouplingOptions options,
+        RopeSoftBodyCouplingId &output) noexcept;
+    [[nodiscard]] Status update_rope_soft_body_coupling(
+        RopeSoftBodyCouplingId coupling,
+        RopeSoftBodyCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_rope_soft_body_coupling(
+        RopeSoftBodyCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_fluid_cloth_coupling(
         FluidClothCouplingOptions options,

@@ -167,8 +167,21 @@ class ExportSceneTests(unittest.TestCase):
                 for actual, wanted in zip(map(float, encoded.split(",")), (point.x, point.z, -point.y)):
                     self.assertAlmostEqual(actual, wanted, places=5)
         hooks[0].object = None
-        with self.assertRaisesRegex(RuntimeError, "Hook target must be a rigid body"):
+        with self.assertRaisesRegex(RuntimeError, "Hook target must be a rigid or soft body"):
             exporter.export_scene(self.output)
+
+    def test_rope_hook_can_target_soft_body(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeSoftbody.blend"))
+        document = self.check_export(Counter(rigid_body=3, soft_body=1, rope=1))
+        extras = next(node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "rope")
+        self.assertEqual(extras["pm_rope_first_body"], "Icosphere")
+        self.assertEqual(extras["pm_rope_last_soft_body"], "Cylinder")
+        post = next(node["extras"] for node in document["nodes"]
+                    if node["extras"].get("pm_system") == "soft_body" and
+                    node["extras"].get("pm_pin_group") == "PostBase")
+        self.assertEqual(post["pm_pin_group"], "PostBase")
+        self.assertEqual(len(post["pm_pin_vertices"].split(";")), 32)
 
     def test_rope_fluid_authored_mass_and_geometry(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeFluid.blend"))

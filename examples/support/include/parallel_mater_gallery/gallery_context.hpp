@@ -26,6 +26,7 @@ enum class GalleryContext : std::uint8_t {
     soft_body_fluid,
     rope,
     rope_fluid,
+    rope_soft_body,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -44,6 +45,7 @@ enum class GallerySceneSource : std::uint8_t {
     soft_body_fluid,
     rope,
     rope_fluid,
+    rope_soft_body,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -179,6 +181,12 @@ inline constexpr std::array gallery_entries{
         {30, 47, 57, 235}, {65, 180, 235},
         {.target = {-0.5F, 0.35F, 0.0F}, .distance_scale = 0.55F,
          .pitch = 0.62F}, true, false, 100U, 100'000U, false, true},
+    GalleryEntry{GalleryContext::rope_soft_body, GallerySceneSource::rope_soft_body,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--rope-soft-body", "ROPE SOFT BODY", "SOFT POST  ARROWS GRAVITY  V SEGMENTS",
+        {45, 35, 54, 235}, {230, 150, 76},
+        {.target = {-0.5F, 0.3F, 0.0F}, .distance_scale = 0.48F,
+         .pitch = 0.60F}, false, false, 0U, 0U, true, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(

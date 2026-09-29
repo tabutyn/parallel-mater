@@ -197,6 +197,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
             PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
             PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb"
+            PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -404,6 +405,16 @@ if(BUILD_TESTING)
             PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb")
         add_test(NAME parallel-mater-rope-tests COMMAND parallel-mater-rope-tests)
         set_tests_properties(parallel-mater-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-rope-soft-body-tests tests/gallery/rope_soft_body_tests.cpp)
+        target_link_libraries(parallel-mater-rope-soft-body-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-rope-soft-body-tests PRIVATE
+            PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb")
+        add_test(NAME parallel-mater-rope-soft-body-tests COMMAND parallel-mater-rope-soft-body-tests)
+        set_tests_properties(parallel-mater-rope-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME parallel-mater-rope-soft-body-winding-tests
+                 COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
+        set_tests_properties(parallel-mater-rope-soft-body-winding-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-settle-tests
                  COMMAND parallel-mater-rope-tests 1200 --settle)
         add_test(NAME parallel-mater-rope-release-tests

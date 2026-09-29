@@ -50,9 +50,9 @@ materials remain visible regardless of their alpha value.
 
 Use one open Bézier spline at the scene root. Select an endpoint control point
 in Edit Mode and use a Hook modifier targeting a native passive or active rigid
-body. Use strength 1 and no distance falloff (a zero falloff radius also works).
+body, or a mesh with Soft Body physics. Use strength 1 and no distance falloff (a zero falloff radius also works).
 Each Hook must contain exactly one endpoint control point, not interior points.
-The two endpoints may target distinct rigid bodies, or an endpoint may be free.
+The endpoints may target distinct rigid or soft bodies, or an endpoint may be free.
 
 The exporter evaluates Blender's actual Hook deformation, including bind
 matrices and moved targets. It removes Soft Body only from a temporary copy so
@@ -79,7 +79,13 @@ Author enough curve length for intended wraps: three turns need at least
 between the wraps and the two attachments. A stiff rope cannot create slack.
 
 The schema stores `pm_system = "rope"`, `pm_rope_points` as world-space Y-up
-polyline samples, and `pm_rope_first_body` / `pm_rope_last_body` as target names.
+polyline samples, and `pm_rope_first_body` / `pm_rope_last_body` or
+`pm_rope_first_soft_body` / `pm_rope_last_soft_body` as target names. A soft Hook
+follows the closest rest-surface triangle, while all other rope segments collide
+with its deformed skin through the shared rope/soft-body API. To keep a soft post
+rooted while the rope winds, assign its bottom vertices to a Blender Soft Body
+Goal group with full effective weight; an ungrouped Goal restores shape but
+does not pin the post in world space.
 Ambiguous instanced Hook targets and unsupported curve modifiers are rejected.
 
 ## One Blender–ParallelMater export interface

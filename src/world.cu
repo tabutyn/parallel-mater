@@ -1802,6 +1802,7 @@ enum class TimingStage : std::uint8_t {
     soft_body_cloth_contacts,
     fluid_soft_body_contacts,
     fluid_rope_contacts,
+    rope_soft_body_contacts,
     fluid_cloth_contacts,
     fluid_spawn,
     fluid_neighbor_sort,
@@ -2247,6 +2248,7 @@ struct SoftBodyStorage {
     Vec3 *body_position_corrections{};
     Vec3 *cloth_forces{};
     Vec3 *fluid_forces{};
+    Vec3 *rope_forces{};
     Vec3 *rigid_contact_forces{};
     Vec3 *contact_normals{};
     Vec3 *contact_arms{};
@@ -2282,6 +2284,7 @@ struct SoftBodyStorage {
         release_managed(body_position_corrections);
         release_managed(cloth_forces);
         release_managed(fluid_forces);
+        release_managed(rope_forces);
         release_managed(rigid_contact_forces);
         release_managed(contact_normals);
         release_managed(contact_arms);
@@ -4782,6 +4785,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
     std::vector<std::unique_ptr<RopeStorage>> ropes{};
     std::vector<std::unique_ptr<FluidRopeCouplingStorage>> fluid_rope_couplings{};
+    std::vector<std::unique_ptr<RopeSoftBodyCouplingStorage>> rope_soft_body_couplings{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
@@ -5161,6 +5165,8 @@ Status World::create(WorldOptions options, World &output,
         implementation->ropes.resize(options.rope_capacity);
         implementation->fluid_rope_couplings.resize(
             options.fluid_rope_coupling_capacity);
+        implementation->rope_soft_body_couplings.resize(
+            options.rope_soft_body_coupling_capacity);
         implementation->fluid_cloth_couplings.resize(
             options.fluid_cloth_coupling_capacity);
         implementation->fluid_soft_couplings.resize(
@@ -6973,6 +6979,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(body_impulses, body->node_count);
     PM_ALLOC_SOFT(body_position_corrections, body->node_count);
     PM_ALLOC_SOFT(cloth_forces, body->node_count);
+    PM_ALLOC_SOFT(rope_forces, body->node_count);
     PM_ALLOC_SOFT(fluid_forces, body->node_count);
     PM_ALLOC_SOFT(rigid_contact_forces, body->node_count);
     PM_ALLOC_SOFT(contact_normals, body->node_count);
@@ -6998,6 +7005,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
         body->rigid_contact_forces[node] = {};
         body->cloth_forces[node] = {};
         body->fluid_forces[node] = {};
+        body->rope_forces[node] = {};
         body->contact_normals[node] = {};
         body->contact_arms[node] = {};
         body->contact_momentum_delta[node] = {};
@@ -7077,8 +7085,10 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     auto &r=owner->data;
     r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
     r.body_capacity=impl_->options.rigid_body_capacity;
-    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.fluid_contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
+    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.fluid_contact_forces,&r.soft_body_contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
         if(!(status=allocate_managed(*p,r.count)))return status;
+    for(Vec3 **p:{&r.soft_anchor_positions,&r.soft_anchor_velocities,&r.soft_anchor_impulses})
+        if(!(status=allocate_managed(*p,2U)))return status;
     for(float **p:{&r.rest,&r.lambda})
         if(!(status=allocate_managed(*p,r.count)))return status;
     if(!(status=allocate_managed(r.body_translation,impl_->options.rigid_body_capacity)) ||
@@ -7087,7 +7097,7 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     std::fill_n(r.solid_hint,r.count*r.body_capacity,~0U);
     for(unsigned i=0;i<r.count;++i){
         r.positions[i]=r.previous[i]=nodes[i];
-        r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]=r.fluid_contact_forces[i]={};
+        r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]=r.fluid_contact_forces[i]=r.soft_body_contact_forces[i]={};
         if(i+1<r.count){r.rest[i]=vector_length(subtract(nodes[i+1],nodes[i]));
             if(!finite(r.rest[i]) || r.rest[i]<1e-6F)return failure(StatusCode::invalid_argument,"rope contains an invalid segment");}
     }
@@ -7104,6 +7114,10 @@ Status World::remove_rope(RopeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
                            "rope is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->rope_soft_body_couplings)
+        if (coupling && coupling->alive && coupling->options.rope == id)
+            return failure(StatusCode::invalid_argument,
+                           "rope is still referenced by a soft-body coupling");
     auto &rope=*impl_->ropes[id.index];rope.alive=false;rope.release();++rope.generation;
     if(rope.generation==0)rope.generation=1;
     ++impl_->revision;return success();
@@ -7119,6 +7133,7 @@ Status World::rope_view(RopeId id, RopeDeviceView &output) const noexcept {
     const auto &r=impl_->ropes[id.index]->data;
     output={{r.positions,r.count},{r.velocities,r.count},{r.constraint_forces,r.count},
         {r.contact_forces,r.count},{r.fluid_contact_forces,r.count},
+        {r.soft_body_contact_forces,r.count},
         {r.rest,r.count-1},r.options.radius};
     return success();
 }
@@ -7208,6 +7223,221 @@ Status World::remove_fluid_rope_coupling(FluidRopeCouplingId id) noexcept {
     return success();
 }
 
+static bool valid_rope_soft_options(RopeSoftBodyCouplingOptions options) noexcept {
+    return finite(options.contact_distance) && options.contact_distance >= 0.0F &&
+        finite(options.friction) && options.friction >= 0.0F &&
+        finite(options.maximum_soft_body_acceleration) &&
+        options.maximum_soft_body_acceleration > 0.0F;
+}
+
+Status World::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
+    RopeSoftBodyCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument,"world is not initialized");
+    auto status=impl_->require_idle();if(!status)return status;
+    if(options.rope.index>=impl_->ropes.size() || !impl_->ropes[options.rope.index] ||
+       !impl_->ropes[options.rope.index]->alive ||
+       impl_->ropes[options.rope.index]->generation!=options.rope.generation ||
+       options.soft_body.index>=impl_->soft_bodies.size() ||
+       !impl_->soft_bodies[options.soft_body.index] ||
+       !impl_->soft_bodies[options.soft_body.index]->alive ||
+       impl_->soft_bodies[options.soft_body.index]->generation!=options.soft_body.generation)
+        return failure(StatusCode::invalid_handle,"rope or soft body handle is stale");
+    if(!valid_rope_soft_options(options))
+        return failure(StatusCode::invalid_argument,"invalid rope soft-body options");
+    auto &rope=impl_->ropes[options.rope.index]->data;
+    auto &body=*impl_->soft_bodies[options.soft_body.index];
+    if((options.attach_first && rope.options.first.enabled) ||
+       (options.attach_last && rope.options.last.enabled))
+        return failure(StatusCode::invalid_argument,"rope endpoint already has an attachment");
+    unsigned existing_targets=0;
+    for(const auto &item:impl_->rope_soft_body_couplings)
+        if(item && item->alive && item->options.rope==options.rope) {
+            ++existing_targets;
+            if(item->options.soft_body==options.soft_body)
+                return failure(StatusCode::invalid_argument,"rope and soft body are already coupled");
+            if((options.attach_first && item->options.attach_first) ||
+               (options.attach_last && item->options.attach_last))
+                return failure(StatusCode::invalid_argument,"rope endpoint already has an attachment");
+        }
+    if(existing_targets>=2U)
+        return failure(StatusCode::capacity_exceeded,
+            "a rope supports at most two soft-body contact targets");
+    unsigned slot=0;
+    while(slot<impl_->rope_soft_body_couplings.size() &&
+          impl_->rope_soft_body_couplings[slot] &&
+          impl_->rope_soft_body_couplings[slot]->alive)++slot;
+    if(slot==impl_->rope_soft_body_couplings.size())
+        return failure(StatusCode::capacity_exceeded,"rope soft-body coupling capacity exhausted");
+    std::unique_ptr<RopeSoftBodyCouplingStorage> owner(
+        new(std::nothrow)RopeSoftBodyCouplingStorage());
+    if(!owner)return failure(StatusCode::out_of_memory,"rope soft-body coupling allocation failed");
+    std::vector<BvhNode> tree;
+    std::vector<std::uint32_t> order,parents;
+    double signed_volume=0.0;
+    const Vec3 volume_origin=body.surface_rest_positions[0];
+    for(unsigned t=0;t<body.surface_index_count/3U;++t) {
+        const auto *idx=body.surface_indices+3U*t;
+        signed_volume+=dot(subtract(body.surface_rest_positions[idx[0]],volume_origin),
+            cross(subtract(body.surface_rest_positions[idx[1]],volume_origin),
+                  subtract(body.surface_rest_positions[idx[2]],volume_origin)))/6.0;
+    }
+    if(std::abs(signed_volume)<1e-10)
+        return failure(StatusCode::invalid_argument,"rope soft-body skin has zero volume");
+    owner->orientation=signed_volume>=0.0?1.0F:-1.0F;
+    try {
+        order.resize(body.surface_index_count/3U);
+        std::iota(order.begin(),order.end(),0U);
+        tree.reserve(order.size()*2U);
+        parents.reserve(order.size()*2U);
+        const auto centroid=[&](unsigned triangle) {
+            const auto *idx=body.surface_indices+triangle*3U;
+            return multiply(add(add(body.surface_rest_positions[idx[0]],
+                body.surface_rest_positions[idx[1]]),
+                body.surface_rest_positions[idx[2]]),1.0F/3.0F);
+        };
+        std::function<unsigned(unsigned,unsigned,unsigned)> build=
+            [&](unsigned begin,unsigned end,unsigned parent) {
+                const unsigned index=static_cast<unsigned>(tree.size());
+                BvhNode node{};
+                node.minimum={FLT_MAX,FLT_MAX,FLT_MAX};
+                node.maximum={-FLT_MAX,-FLT_MAX,-FLT_MAX};
+                for(unsigned item=begin;item<end;++item) {
+                    const auto point=centroid(order[item]);
+                    node.minimum=component_min(node.minimum,point);
+                    node.maximum=component_max(node.maximum,point);
+                }
+                tree.push_back(node);parents.push_back(parent);
+                if(end-begin<=4U) {
+                    tree[index].first_triangle=begin;
+                    tree[index].triangle_count=end-begin;
+                } else {
+                    const auto extent=subtract(node.maximum,node.minimum);
+                    const unsigned axis=extent.x>=extent.y && extent.x>=extent.z?0U:
+                        extent.y>=extent.z?1U:2U;
+                    const unsigned middle=begin+(end-begin)/2U;
+                    std::nth_element(order.begin()+begin,order.begin()+middle,
+                        order.begin()+end,[&](unsigned left,unsigned right) {
+                            const auto a=centroid(left),b=centroid(right);
+                            const float x=axis==0?a.x:axis==1?a.y:a.z;
+                            const float y=axis==0?b.x:axis==1?b.y:b.z;
+                            return x<y || (x==y && left<right);
+                        });
+                    const unsigned left=build(begin,middle,index);
+                    const unsigned right=build(middle,end,index);
+                    tree[index].left=left;tree[index].right=right;
+                }
+                return index;
+            };
+        build(0U,static_cast<unsigned>(order.size()),k_invalid_dense);
+    } catch (...) {
+        return failure(StatusCode::out_of_memory,"rope soft-body BVH build failed");
+    }
+    owner->tree_count=static_cast<unsigned>(tree.size());
+    if(!(status=allocate_managed(owner->tree,tree.size())) ||
+       !(status=allocate_managed(owner->order,order.size())) ||
+       !(status=allocate_managed(owner->parents,parents.size())) ||
+       !(status=allocate_managed(owner->ready,tree.size())))return status;
+    std::copy(tree.begin(),tree.end(),owner->tree);
+    std::copy(order.begin(),order.end(),owner->order);
+    std::copy(parents.begin(),parents.end(),owner->parents);
+    for(unsigned end=0;end<2;++end) {
+        if(!(end?options.attach_last:options.attach_first))continue;
+        const Vec3 point=rope.positions[end?rope.count-1U:0U];
+        float best=FLT_MAX;
+        for(unsigned t=0;t<body.surface_index_count/3U;++t) {
+            const auto *idx=body.surface_indices+3U*t;
+            const Vec3 a=body.surface_rest_positions[idx[0]],
+                       b=body.surface_rest_positions[idx[1]],
+                       c=body.surface_rest_positions[idx[2]];
+            const Vec3 ab=subtract(b,a),ac=subtract(c,a);
+            const float d00=dot(ab,ab),d01=dot(ab,ac),d11=dot(ac,ac);
+            const float denominator=d00*d11-d01*d01;
+            if(denominator<=1e-14F)continue;
+            const Vec3 near=closest_on_triangle(point,a,b,c);
+            const float distance=length_squared(subtract(point,near));
+            if(distance>=best)continue;
+            const Vec3 ap=subtract(near,a);
+            const float d20=dot(ap,ab),d21=dot(ap,ac);
+            const float v=(d11*d20-d01*d21)/denominator;
+            const float w=(d00*d21-d01*d20)/denominator;
+            owner->anchor_triangle[end]=t;
+            owner->anchor_weights[end]={1.0F-v-w,v,w};
+            owner->anchor_offset[end]=subtract(point,near);
+            best=distance;
+        }
+        if(owner->anchor_triangle[end]==~0U)
+            return failure(StatusCode::invalid_argument,"soft body has no usable anchor triangle");
+    }
+    if(!(status=allocate_managed(owner->node_impulses,body.node_count)) ||
+       !(status=allocate_managed(owner->bounds,2U)) ||
+       !(status=allocate_managed(owner->contact_count,1U)) ||
+       !(status=allocate_managed(owner->maximum_penetration,1U)))return status;
+    std::fill_n(owner->node_impulses,body.node_count,Vec3{});
+    *owner->contact_count=0U;*owner->maximum_penetration=0.0F;
+    owner->options=options;
+    owner->generation=impl_->rope_soft_body_couplings[slot]
+        ? impl_->rope_soft_body_couplings[slot]->generation:1U;
+    owner->alive=true;
+    if(options.enabled) {
+        rope.soft_first|=options.attach_first;
+        rope.soft_last|=options.attach_last;
+    }
+    output={slot,owner->generation};
+    impl_->rope_soft_body_couplings[slot]=std::move(owner);
+    ++impl_->revision;return success();
+}
+
+Status World::update_rope_soft_body_coupling(RopeSoftBodyCouplingId id,
+    RopeSoftBodyCouplingOptions options) noexcept {
+    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    auto status=impl_->require_idle();if(!status)return status;
+    if(id.index>=impl_->rope_soft_body_couplings.size() ||
+       !impl_->rope_soft_body_couplings[id.index] ||
+       !impl_->rope_soft_body_couplings[id.index]->alive ||
+       impl_->rope_soft_body_couplings[id.index]->generation!=id.generation)
+        return failure(StatusCode::invalid_handle,"rope soft-body coupling is stale");
+    auto &item=*impl_->rope_soft_body_couplings[id.index];
+    if(!valid_rope_soft_options(options) || !(options.rope==item.options.rope) ||
+       !(options.soft_body==item.options.soft_body) ||
+       options.attach_first!=item.options.attach_first ||
+       options.attach_last!=item.options.attach_last)
+        return failure(StatusCode::invalid_argument,"cannot change rope soft-body endpoints");
+    item.options=options;
+    auto &rope=impl_->ropes[options.rope.index]->data;
+    rope.soft_first=rope.soft_last=false;
+    for(const auto &coupling:impl_->rope_soft_body_couplings)
+        if(coupling && coupling->alive && coupling->options.enabled &&
+           coupling->options.rope==options.rope) {
+            rope.soft_first|=coupling->options.attach_first;
+            rope.soft_last|=coupling->options.attach_last;
+        }
+    ++impl_->revision;return success();
+}
+
+Status World::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId id) noexcept {
+    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    auto status=impl_->require_idle();if(!status)return status;
+    if(id.index>=impl_->rope_soft_body_couplings.size() ||
+       !impl_->rope_soft_body_couplings[id.index] ||
+       !impl_->rope_soft_body_couplings[id.index]->alive ||
+       impl_->rope_soft_body_couplings[id.index]->generation!=id.generation)
+        return failure(StatusCode::invalid_handle,"rope soft-body coupling is stale");
+    auto &item=*impl_->rope_soft_body_couplings[id.index];
+    const auto rope_id=item.options.rope;
+    item.release();item.alive=false;
+    if(++item.generation==0U)item.generation=1U;
+    auto &rope=impl_->ropes[rope_id.index]->data;
+    rope.soft_first=rope.soft_last=false;
+    for(const auto &coupling:impl_->rope_soft_body_couplings)
+        if(coupling && coupling->alive && coupling->options.enabled &&
+           coupling->options.rope==rope_id) {
+            rope.soft_first|=coupling->options.attach_first;
+            rope.soft_last|=coupling->options.attach_last;
+        }
+    ++impl_->revision;return success();
+}
+
 Status World::remove_soft_body(SoftBodyId id) noexcept {
     if (!impl_)
         return failure(StatusCode::invalid_argument, "world is not initialized");
@@ -7226,6 +7456,10 @@ Status World::remove_soft_body(SoftBodyId id) noexcept {
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
                            "soft body is still referenced by a cloth coupling");
+    for (const auto &coupling : impl_->rope_soft_body_couplings)
+        if (coupling && coupling->alive && coupling->options.soft_body == id)
+            return failure(StatusCode::invalid_argument,
+                           "soft body is still referenced by a rope coupling");
     body.alive = false;
     body.release();
     ++body.generation;
@@ -7257,6 +7491,7 @@ Status World::soft_body_view(SoftBodyId id,
         body.rigid_contact_forces, body.node_count};
     output.cloth_contact_forces = {body.cloth_forces, body.node_count};
     output.fluid_contact_forces = {body.fluid_forces, body.node_count};
+    output.rope_contact_forces = {body.rope_forces, body.node_count};
     output.node_count = body.node_count;
     output.surface_vertex_count = body.surface_vertex_count;
     return success();
@@ -8040,7 +8275,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                      (body->solver_iterations + 1U) / 2U);
         }
         status = impl_->prepare_timing_events(
-            maximum_stages + options.substeps * impl_->ropes.size() + 2U);
+            maximum_stages + options.substeps *
+                (impl_->ropes.size()+impl_->rope_soft_body_couplings.size()) + 2U);
         if (!status) {
             return status;
         }
@@ -8633,8 +8869,57 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         return record_timing_stage(TimingStage::soft_body_cloth_contacts);
     };
     const auto advance_ropes = [&](const RigidBodyState *previous_states, bool first_substep) -> Status {
-        for (const auto &rope : impl_->ropes) {
+        if(first_substep)for(const auto &body:impl_->soft_bodies) {
+            if(!body || !body->alive)continue;
+            const auto clear=cudaMemsetAsync(body->rope_forces,0,
+                body->node_count*sizeof(Vec3),stream);
+            if(clear!=cudaSuccess)return cuda_failure(clear,"soft-body rope force clear failed");
+        }
+        for (unsigned rope_index=0;rope_index<impl_->ropes.size();++rope_index) {
+            const auto &rope=impl_->ropes[rope_index];
             if(!rope || !rope->alive)continue;
+            RopeSoftTarget soft_targets[2]{};
+            RopeSoftBodyCouplingStorage *couplings[2]{};
+            unsigned coupled=0;
+            for(const auto &owner:impl_->rope_soft_body_couplings) {
+                if(!owner || !owner->alive || !owner->options.enabled ||
+                   !(owner->options.rope==RopeId{rope_index,rope->generation}))continue;
+                if(coupled>=2U)return failure(StatusCode::capacity_exceeded,
+                    "a rope supports at most two soft-body contact targets");
+                auto &item=*owner;
+                auto &body=*impl_->soft_bodies[item.options.soft_body.index];
+                const auto clear=cudaMemsetAsync(item.node_impulses,0,
+                    body.node_count*sizeof(Vec3),stream);
+                if(clear!=cudaSuccess)return cuda_failure(clear,"rope soft-body impulse clear failed");
+                if(first_substep) {
+                    auto e=cudaMemsetAsync(item.contact_count,0,sizeof(std::uint32_t),stream);
+                    if(e!=cudaSuccess)return cuda_failure(e,"rope soft-body count clear failed");
+                    e=cudaMemsetAsync(item.maximum_penetration,0,sizeof(float),stream);
+                    if(e!=cudaSuccess)return cuda_failure(e,"rope soft-body depth clear failed");
+                }
+                auto refit_error=cudaMemsetAsync(item.ready,0,
+                    item.tree_count*sizeof(std::uint32_t),stream);
+                if(refit_error!=cudaSuccess)
+                    return cuda_failure(refit_error,"rope soft-body BVH clear failed");
+                fluid_soft_refit<<<(item.tree_count+block_size-1U)/block_size,
+                    block_size,0,stream>>>(body.surface_positions,
+                    body.surface_positions,body.surface_indices,item.order,
+                    item.tree,item.parents,item.ready,item.tree_count,item.bounds);
+                for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
+                    rope_soft_sample_anchor<<<1,1,0,stream>>>(rope->data,end,
+                        body.surface_positions,body.velocities,body.surface_indices,
+                        body.surface_bindings,item.anchor_triangle[end],
+                        item.anchor_weights[end],item.anchor_offset[end]);
+                soft_targets[coupled]={body.surface_positions,body.velocities,item.bounds,
+                    item.tree,item.order,
+                    body.surface_indices,body.surface_bindings,body.inverse_masses,
+                    item.node_impulses,item.contact_count,item.maximum_penetration,
+                    body.surface_index_count/3U,body.surface_vertex_count,
+                    item.options.contact_distance>0?item.options.contact_distance:rope->data.options.radius,
+                    item.options.friction,item.orientation,
+                    item.options.attach_first,item.options.attach_last};
+                couplings[coupled++]=&item;
+            }
             int first=-1,last=-1;unsigned dense;
             if(rope->data.options.first.enabled) {
                 auto status=impl_->validate_handle(rope->data.options.first.body,dense);
@@ -8646,11 +8931,36 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
             rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
                 impl_->parameters,impl_->states[impl_->current_state],previous_states,
-                impl_->meshes,impl_->rigid_body_count,first_substep);
+                impl_->meshes,impl_->rigid_body_count,first_substep,
+                soft_targets[0],soft_targets[1]);
             auto error=cudaPeekAtLastError();
             if(error!=cudaSuccess)return cuda_failure(error,"rope solver launch failed");
             auto status=record_timing_stage(TimingStage::rope_solve);
             if(!status)return status;
+            for(unsigned index=0;index<coupled;++index) {
+                auto &item=*couplings[index];
+                auto &body=*impl_->soft_bodies[item.options.soft_body.index];
+                for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
+                    rope_soft_scatter_anchor<<<1,1,0,stream>>>(rope->data,end,
+                        body.surface_indices,body.surface_bindings,
+                        item.anchor_triangle[end],item.anchor_weights[end],
+                        item.node_impulses);
+                rope_soft_apply<<<(body.node_count+block_size-1U)/block_size,
+                    block_size,0,stream>>>(body.positions,body.velocities,
+                    body.rope_forces,body.inverse_masses,item.node_impulses,
+                    body.node_count,item.options.maximum_soft_body_acceleration,
+                    body.maximum_speed,substep_timestep,1.0F/options.timestep);
+                soft_body_update_surface<<<(body.surface_vertex_count+block_size-1U)/block_size,
+                    block_size,0,stream>>>(body.positions,body.rest_positions,
+                    body.surface_rest_positions,body.surface_bindings,
+                    body.surface_positions,body.surface_vertex_count);
+                error=cudaPeekAtLastError();
+                if(error!=cudaSuccess)return cuda_failure(error,"rope soft-body coupling launch failed");
+                status=record_timing_stage(TimingStage::rope_soft_body_contacts,
+                    2U+unsigned(item.anchor_triangle[0]!=~0U)+
+                    unsigned(item.anchor_triangle[1]!=~0U));
+                if(!status)return status;
+            }
         }
         return success();
     };
@@ -9613,6 +9923,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::fluid_rope_contacts:
             timing = &output.fluid_rope_contacts;
             break;
+        case TimingStage::rope_soft_body_contacts:
+            timing = &output.rope_soft_body_contacts;
+            break;
         case TimingStage::fluid_spawn:
             timing = &output.fluid_spawn;
             break;
@@ -9764,6 +10077,17 @@ Status World::collect_statistics(WorldStatistics &output,
         output.fluid_rope_contact_count += *coupling->contact_count;
         output.maximum_fluid_rope_penetration = std::max(
             output.maximum_fluid_rope_penetration, *coupling->maximum_penetration);
+    }
+    for (const auto &coupling : impl_->rope_soft_body_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        output.allocated_bytes += impl_->soft_bodies[coupling->options.soft_body.index]->node_count *
+            sizeof(Vec3) + 2U*sizeof(Vec3) +
+            coupling->tree_count*(sizeof(BvhNode)+2U*sizeof(std::uint32_t))+
+            impl_->soft_bodies[coupling->options.soft_body.index]->surface_index_count/3U*
+                sizeof(std::uint32_t)+sizeof(std::uint32_t)+sizeof(float);
+        output.rope_soft_body_contact_count += *coupling->contact_count;
+        output.maximum_rope_soft_body_penetration = std::max(
+            output.maximum_rope_soft_body_penetration,*coupling->maximum_penetration);
     }
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;

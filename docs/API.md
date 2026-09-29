@@ -98,7 +98,11 @@ unrelated wall. Correct the rest curve or collider before retrying.
 Each endpoint may have a `RopeAttachment` to a rigid body with a body-local
 anchor. The initial endpoint must match that anchor. Passive/kinematic bodies
 drive attachments; dynamic bodies receive tension and contact reactions,
-including torque. Attached bodies cannot be removed before their ropes.
+including torque. Alternatively, `RopeSoftBodyCouplingOptions::attach_first`
+or `attach_last` binds an endpoint to the closest rest-surface triangle of a
+soft body. The attachment follows its skinned triangle and transfers tension
+through the surface bindings to physical soft-body nodes. An endpoint cannot
+have both attachment types. Attached bodies cannot be removed before their ropes.
 The current open-chain solver requires distinct targets when both endpoints
 are attached. Unattached endpoints move freely.
 
@@ -126,11 +130,16 @@ Ropes collide with rigid triangle bodies. Fluid contact is optional: register a
 outside each moving rope segment capsule and transmits a bounded reaction to
 its free nodes. The acceleration limit controls dense-splash stability; it does
 not change fluid/rigid contacts. `fluid_rope_contacts` timing and contact/depth
-statistics expose its cost and activity. Cloth, other ropes, and soft bodies
-are not coupled to ropes.
+statistics expose its cost and activity. A `RopeSoftBodyCouplingOptions` pair
+adds two-way node and segment contacts against the soft body's current triangle
+skin, not its render-only rest mesh or an analytic post. Its independent
+contact/force views, penetration statistics, and timing stage expose the
+interaction. Different soft bodies can bind opposite rope ends; one rope
+supports up to two soft-body contact targets. Cloth and other ropes are not
+coupled to ropes.
 
 `rope_view` exposes node positions, velocities, segment rest lengths, and
-constraint/contact/fluid-contact forces. `RopeId` is generation checked; the usual borrowed
+constraint/contact/fluid-contact/soft-body-contact forces. `RopeId` is generation checked; the usual borrowed
 view lifetime applies. `WorldOptions::rope_capacity` bounds resources, and
 statistics/timings include rope nodes, storage, and solve time. Opt-in physics
 capture includes the fluid reaction in each rope sample. Tube construction and final debug drawing stay
