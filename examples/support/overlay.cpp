@@ -348,6 +348,7 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
         TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
         TimingRow{"FLUID SOFT BODY", physics.fluid_soft_body_contacts},
+        TimingRow{"FLUID ROPE", physics.fluid_rope_contacts},
         TimingRow{"SOFT CLOTH", physics.soft_body_cloth_contacts},
         TimingRow{"SOFT PREDICT", physics.soft_body_prediction},
         TimingRow{"SOFT SPRINGS", physics.soft_body_constraints},
@@ -410,6 +411,12 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
             statistics.fluid_soft_body_contact_count,
             statistics.maximum_fluid_soft_body_penetration);
         text(rgba, width, height, 32, details_y + 208, line, {225, 235, 242, 255}, 2);
+    }
+    if (statistics.rope_count != 0U) {
+        std::snprintf(line, sizeof(line), "WATER ROPE %u  MAX DEPTH %.4f",
+            statistics.fluid_rope_contact_count,
+            statistics.maximum_fluid_rope_penetration);
+        text(rgba, width, height, 32, details_y + 228, line, {225, 235, 242, 255}, 2);
     }
 }
 
@@ -598,6 +605,8 @@ void draw_physics_debug_overlay(
             draw_vector(sample.position,sample.constraint_force,{255,170,40,235},0.02F);
             draw_vector(sample.position,sample.contact_force,{255,70,70,235},0.02F);
         }
+        if(options.fluid_forces)
+            draw_vector(sample.position,sample.fluid_contact_force,{255,225,30,238},0.025F);
         if(options.contact_normals)draw_vector(sample.position,
             math::normalize_or(sample.contact_force,{}),{48,255,95,245},0.12F);
     }

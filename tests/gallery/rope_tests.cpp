@@ -18,7 +18,10 @@ int main(int argc,char **argv){
  int devices=0;if(cudaGetDeviceCount(&devices)!=cudaSuccess||!devices)return 77;
  try{
   SceneDefinition scene;std::string error;
-  check(load_glb_scene(PARALLEL_MATER_ROPE_SCENE_PATH,scene,error),error.c_str());
+  const bool fluid_scene=argc>2 && (std::string(argv[2])=="--fluid" ||
+      std::string(argv[2])=="--fluid-winding");
+  check(load_glb_scene(fluid_scene ? PARALLEL_MATER_ROPE_FLUID_SCENE_PATH :
+      PARALLEL_MATER_ROPE_SCENE_PATH,scene,error),error.c_str());
   check(scene.ropes.size()==1 && scene.rigid_bodies.size()==4,"authored rope systems");
   auto &rope=scene.ropes[0];
   if(argc>3)rope.options.node_spacing=std::stof(argv[3]);
@@ -28,7 +31,8 @@ int main(int argc,char **argv){
   const bool wrapped=argc>2 && std::string(argv[2])=="--wrapped";
   const bool release=argc>2 && std::string(argv[2])=="--settle-after-motion";
   const bool settle=release || (argc>2 && std::string(argv[2])=="--settle");
-  const bool winding=argc>2 && std::string(argv[2])=="--winding";
+  const bool winding=argc>2 && (std::string(argv[2])=="--winding" ||
+      std::string(argv[2])=="--fluid-winding");
   if(argc>2 && std::string(argv[2])=="--no-enclosure") {
    for(const auto &body:scene.rigid_bodies)if(body.source_name=="Plane")for(auto index:body.mesh_indices)
     for(auto &v:scene.meshes[index].vertices)v.position.y+=1000;
@@ -50,6 +54,19 @@ int main(int argc,char **argv){
   }
   check(rope.options.first.enabled&&rope.options.last.enabled,"both Hooks imported");
   World world;SceneInstance instance;check(create_scene_world(scene,world,instance),"create rope scene");
+  check(instance.fluid_rope_couplings.size()==(fluid_scene?1U:0U),
+      "fluid rope coupling registration");
+  if(fluid_scene) {
+   const auto id=instance.fluid_rope_couplings[0];
+   const FluidRopeCouplingOptions valid{.fluid=instance.fluid,.rope=instance.ropes[0]};
+   FluidRopeCouplingId duplicate{};
+   check(!world.add_fluid_rope_coupling(valid,duplicate),"duplicate fluid rope coupling accepted");
+   check(!world.remove_fluid(instance.fluid),"coupled fluid removed");
+   check(!world.remove_rope(instance.ropes[0]),"coupled rope removed");
+   auto invalid=valid;invalid.maximum_rope_acceleration=0;
+   check(!world.update_fluid_rope_coupling(id,invalid),"invalid fluid rope limit accepted");
+   check(world.update_fluid_rope_coupling(id,valid),"update fluid rope coupling");
+  }
   check(!world.remove_rigid_body(instance.rigid_bodies[rope.first_body]),"attached body cannot be removed");
   RopeDeviceView view;check(world.rope_view(instance.ropes[0],view),"view rope");
   const auto rest=read(view.rest_lengths);
@@ -69,6 +86,7 @@ int main(int argc,char **argv){
   float peak_winding=0,last_winding=0;
   double gpu=0,rope_gpu=0;
   float peak_rope_gpu=0;
+  std::uint64_t fluid_contacts=0;
   int post=-1;for(unsigned i=0;i<scene.rigid_bodies.size();++i)if(scene.rigid_bodies[i].source_name=="Cylinder")post=i;
   check(post>=0,"post imported");
   const auto post_state=scene.rigid_bodies[post].options.initial_state;
@@ -137,21 +155,39 @@ int main(int argc,char **argv){
       min_clearance=std::min(min_clearance,std::hypot(point.x-post_state.position.x,point.z-post_state.position.z)-radius);
    }
    WorldStepTimings timing;check(world.collect_step_timings(timing),"rope timings");gpu+=timing.total_gpu_milliseconds;rope_gpu+=timing.rope_solve.total_milliseconds;
+   if(fluid_scene) {
+    WorldStatistics statistics;check(world.collect_statistics(statistics),"fluid rope statistics");
+    fluid_contacts+=statistics.fluid_rope_contact_count;
+    check(std::isfinite(statistics.maximum_fluid_rope_penetration),"finite fluid rope contact");
+    check(timing.fluid_rope_contacts.launch_count>0,"fluid rope kernel timing");
+   }
    peak_rope_gpu=std::max(peak_rope_gpu,timing.rope_solve.total_milliseconds);
-   if(frame%60==59)std::cout<<"frame="<<frame+1<<" strain="<<max_strain<<" anchor="<<anchor_error<<" clearance="<<min_clearance<<" gpu_ms="<<gpu/(frame+1)<<std::endl;
+   if(frame%60==59) {
+    std::cout<<"frame="<<frame+1<<" strain="<<max_strain<<" anchor="<<anchor_error<<" clearance="<<min_clearance<<" gpu_ms="<<gpu/(frame+1);
+    if(winding) {
+     RigidBodyState ball;check(world.read_rigid_body_state(instance.rigid_bodies[rope.first_body],ball),"winding ball state");
+     std::cout<<" ball="<<ball.position.x<<','<<ball.position.y<<','<<ball.position.z
+              <<" velocity="<<ball.linear_velocity.x<<','<<ball.linear_velocity.y<<','<<ball.linear_velocity.z
+              <<" turns="<<last_winding;
+    }
+    std::cout<<std::endl;
+   }
   }
   std::cout<<"nodes="<<view.positions.size<<" strain="<<max_strain<<" anchor_error="<<anchor_error<<" min_post_clearance="<<min_clearance<<" winding="<<min_winding<<" peak_winding="<<peak_winding<<" last_winding="<<last_winding<<" speed="<<maximum_speed<<" gpu_ms="<<gpu/frames<<" rope_ms="<<rope_gpu/frames<<" peak_rope_ms="<<peak_rope_gpu<<std::endl;
   std::cout<<"max_ball_penetration="<<max_ball_penetration<<std::endl;
+  if(fluid_scene)std::cout<<"fluid_rope_contacts="<<fluid_contacts<<std::endl;
   if(settle)std::cout<<"settle_max_speed="<<late_max_speed<<" settle_rms_speed="<<std::sqrt(late_rms_speed/std::max(1U,late_count))<<" settle_drift="<<late_displacement<<" ground_nodes="<<ground_nodes<<std::endl;
   if(settle)std::cout<<"settle_peak_node="<<late_peak_node<<" position="<<late_peak_position.x<<','<<late_peak_position.y<<','<<late_peak_position.z<<std::endl;
   check(max_strain<0.03F,"rope segment stretch/compression exceeds 3 percent");
   check(anchor_error<1e-4F,"hook attachment drift");
   check(max_ball_penetration<0.003F,"rope clips through active sphere");
   check(min_clearance>=view.radius-0.003F,"rope clips through post");
+  if(fluid_scene)check(fluid_contacts>100,"water did not hit rope");
   if(wrapped)check(min_winding>2.8F,"wrapped rope slipped through post");
   if(winding) {
    check(peak_winding>2.8F,"rope failed to wind nearly three turns");
-   check(last_winding<peak_winding-0.2F,"rope failed to unwind after tightening");
+   if(fluid_scene)check(last_winding>2.7F,"wet rope failed to retain its wrap");
+   else check(last_winding<peak_winding-0.2F,"rope failed to unwind after tightening");
    check(peak_rope_gpu<12.0F*rope_gpu/frames,"winding hitch exceeds rope GPU budget");
   }
   if(settle) {
@@ -159,6 +195,13 @@ int main(int argc,char **argv){
    check(std::sqrt(late_rms_speed/std::max(1U,late_count))<0.004F,"rope retains too much motion");
    check(late_displacement<0.008F,"settled rope drifts across ground");
    check(ground_nodes*5>view.positions.size*2,"loose rope does not settle on ground");
+  }
+  for(auto coupling:instance.fluid_rope_couplings)
+   check(world.remove_fluid_rope_coupling(coupling),"remove fluid rope coupling");
+  if(fluid_scene) {
+   const FluidRopeCouplingOptions valid{.fluid=instance.fluid,.rope=instance.ropes[0]};
+   check(!world.update_fluid_rope_coupling(instance.fluid_rope_couplings[0],valid),
+       "stale fluid rope coupling accepted");
   }
   check(world.remove_rope(instance.ropes[0]),"remove rope");check(!world.rope_view(instance.ropes[0],view),"stale rope handle");
   return 0;

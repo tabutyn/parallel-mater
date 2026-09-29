@@ -1801,6 +1801,7 @@ enum class TimingStage : std::uint8_t {
     soft_body_contact_cleanup,
     soft_body_cloth_contacts,
     fluid_soft_body_contacts,
+    fluid_rope_contacts,
     fluid_cloth_contacts,
     fluid_spawn,
     fluid_neighbor_sort,
@@ -4748,6 +4749,7 @@ __global__ void fluid_copy_initial(const FluidParticle *input,
 
 namespace {
 #include "rope.cuh"
+#include "fluid_rope.cuh"
 } // namespace
 
 struct FrameToken::Impl {
@@ -4779,6 +4781,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
     std::vector<std::unique_ptr<RopeStorage>> ropes{};
+    std::vector<std::unique_ptr<FluidRopeCouplingStorage>> fluid_rope_couplings{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
@@ -4889,7 +4892,8 @@ struct World::Impl {
                 if(!ropes[slot] || !ropes[slot]->alive)continue;
                 const auto &r=ropes[slot]->data;
                 for(unsigned i=0;i<r.count;++i)output.rope_nodes.push_back({
-                    {slot,ropes[slot]->generation},i,r.positions[i],r.velocities[i],r.constraint_forces[i],r.contact_forces[i]});
+                    {slot,ropes[slot]->generation},i,r.positions[i],r.velocities[i],
+                    r.constraint_forces[i],r.contact_forces[i],r.fluid_contact_forces[i]});
             }
             for (std::uint32_t slot = 0U; slot < soft_bodies.size(); ++slot) {
                 const auto &owner = soft_bodies[slot];
@@ -5155,6 +5159,8 @@ Status World::create(WorldOptions options, World &output,
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
+        implementation->fluid_rope_couplings.resize(
+            options.fluid_rope_coupling_capacity);
         implementation->fluid_cloth_couplings.resize(
             options.fluid_cloth_coupling_capacity);
         implementation->fluid_soft_couplings.resize(
@@ -5564,6 +5570,10 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
         if (coupling && coupling->alive && coupling->options.fluid == id)
             return failure(StatusCode::invalid_argument,
                            "fluid is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->fluid_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.fluid == id)
+            return failure(StatusCode::invalid_argument,
+                           "fluid is still referenced by a rope coupling");
     for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
         if (impl_->paint_rules[i].alive &&
             impl_->paint_rules[i].options.source == id)
@@ -7067,7 +7077,7 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     auto &r=owner->data;
     r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
     r.body_capacity=impl_->options.rigid_body_capacity;
-    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
+    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.fluid_contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
         if(!(status=allocate_managed(*p,r.count)))return status;
     for(float **p:{&r.rest,&r.lambda})
         if(!(status=allocate_managed(*p,r.count)))return status;
@@ -7076,7 +7086,8 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     if(!(status=allocate_managed(r.solid_hint,r.count*r.body_capacity)))return status;
     std::fill_n(r.solid_hint,r.count*r.body_capacity,~0U);
     for(unsigned i=0;i<r.count;++i){
-        r.positions[i]=r.previous[i]=nodes[i];r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]={};
+        r.positions[i]=r.previous[i]=nodes[i];
+        r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]=r.fluid_contact_forces[i]={};
         if(i+1<r.count){r.rest[i]=vector_length(subtract(nodes[i+1],nodes[i]));
             if(!finite(r.rest[i]) || r.rest[i]<1e-6F)return failure(StatusCode::invalid_argument,"rope contains an invalid segment");}
     }
@@ -7089,6 +7100,10 @@ Status World::remove_rope(RopeId id) noexcept {
     auto status=impl_->require_idle();if(!status)return status;
     if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
         return failure(StatusCode::invalid_handle,"rope handle is stale");
+    for (const auto &coupling : impl_->fluid_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.rope == id)
+            return failure(StatusCode::invalid_argument,
+                           "rope is still referenced by a fluid coupling");
     auto &rope=*impl_->ropes[id.index];rope.alive=false;rope.release();++rope.generation;
     if(rope.generation==0)rope.generation=1;
     ++impl_->revision;return success();
@@ -7102,7 +7117,94 @@ Status World::rope_view(RopeId id, RopeDeviceView &output) const noexcept {
     if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
         return failure(StatusCode::invalid_handle,"rope handle is stale");
     const auto &r=impl_->ropes[id.index]->data;
-    output={{r.positions,r.count},{r.velocities,r.count},{r.constraint_forces,r.count},{r.contact_forces,r.count},{r.rest,r.count-1},r.options.radius};
+    output={{r.positions,r.count},{r.velocities,r.count},{r.constraint_forces,r.count},
+        {r.contact_forces,r.count},{r.fluid_contact_forces,r.count},
+        {r.rest,r.count-1},r.options.radius};
+    return success();
+}
+
+static bool valid_fluid_rope_options(FluidRopeCouplingOptions options) noexcept {
+    return finite(options.contact_distance) && options.contact_distance >= 0.0F &&
+        finite(options.friction) && options.friction >= 0.0F && options.friction <= 1.0F &&
+        finite(options.maximum_rope_acceleration) && options.maximum_rope_acceleration > 0.0F;
+}
+
+Status World::add_fluid_rope_coupling(
+    FluidRopeCouplingOptions options, FluidRopeCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    FluidStorage *fluid = nullptr;
+    if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
+    if (options.rope.index >= impl_->ropes.size() ||
+        !impl_->ropes[options.rope.index] || !impl_->ropes[options.rope.index]->alive ||
+        impl_->ropes[options.rope.index]->generation != options.rope.generation)
+        return failure(StatusCode::invalid_handle, "rope handle is stale");
+    if (!valid_fluid_rope_options(options))
+        return failure(StatusCode::invalid_argument, "invalid fluid rope options");
+    for (const auto &item : impl_->fluid_rope_couplings)
+        if (item && item->alive && item->options.fluid == options.fluid &&
+            item->options.rope == options.rope)
+            return failure(StatusCode::invalid_argument, "fluid and rope are already coupled");
+    std::uint32_t slot = 0;
+    while (slot < impl_->fluid_rope_couplings.size() &&
+           impl_->fluid_rope_couplings[slot] && impl_->fluid_rope_couplings[slot]->alive)
+        ++slot;
+    if (slot == impl_->fluid_rope_couplings.size())
+        return failure(StatusCode::capacity_exceeded, "fluid rope coupling capacity exhausted");
+    std::unique_ptr<FluidRopeCouplingStorage> owner(
+        new (std::nothrow) FluidRopeCouplingStorage());
+    if (!owner) return failure(StatusCode::out_of_memory, "fluid rope coupling allocation failed");
+    if (!(status = allocate_managed(owner->node_impulses,
+            impl_->ropes[options.rope.index]->data.count)) ||
+        !(status = allocate_managed(owner->contact_count, 1U)) ||
+        !(status = allocate_managed(owner->maximum_penetration, 1U))) return status;
+    *owner->contact_count = 0U;
+    *owner->maximum_penetration = 0.0F;
+    owner->options = options;
+    owner->generation = impl_->fluid_rope_couplings[slot]
+        ? impl_->fluid_rope_couplings[slot]->generation : 1U;
+    owner->alive = true;
+    output = {slot, owner->generation};
+    impl_->fluid_rope_couplings[slot] = std::move(owner);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::update_fluid_rope_coupling(
+    FluidRopeCouplingId id, FluidRopeCouplingOptions options) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_rope_couplings.size() ||
+        !impl_->fluid_rope_couplings[id.index] ||
+        !impl_->fluid_rope_couplings[id.index]->alive ||
+        impl_->fluid_rope_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid rope coupling is stale");
+    auto &item = *impl_->fluid_rope_couplings[id.index];
+    if (!valid_fluid_rope_options(options) ||
+        !(options.fluid == item.options.fluid) || !(options.rope == item.options.rope))
+        return failure(StatusCode::invalid_argument, "invalid options or changed fluid rope endpoints");
+    item.options = options;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_fluid_rope_coupling(FluidRopeCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_rope_couplings.size() ||
+        !impl_->fluid_rope_couplings[id.index] ||
+        !impl_->fluid_rope_couplings[id.index]->alive ||
+        impl_->fluid_rope_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid rope coupling is stale");
+    auto &item = *impl_->fluid_rope_couplings[id.index];
+    item.release();
+    item.alive = false;
+    if (++item.generation == 0U) item.generation = 1U;
+    ++impl_->revision;
     return success();
 }
 
@@ -7922,7 +8024,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 maximum_stages += 2U +
                     static_cast<std::size_t>(options.substeps) *
                         fluid->options.solver_iterations *
-                        (9U + 2U * impl_->fluid_soft_couplings.size());
+                        (9U + 2U * impl_->fluid_soft_couplings.size() +
+                         2U * impl_->fluid_rope_couplings.size());
             }
         }
         for (const auto &cloth : impl_->cloths) {
@@ -8826,6 +8929,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             sizeof(float), stream);
         if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body diagnostics clear failed");
     }
+    for (const auto &coupling : impl_->fluid_rope_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        error = cudaMemsetAsync(coupling->contact_count, 0, sizeof(std::uint32_t), stream);
+        if (error == cudaSuccess) error = cudaMemsetAsync(coupling->maximum_penetration, 0,
+            sizeof(float), stream);
+        if (error != cudaSuccess) return cuda_failure(error, "fluid rope diagnostics clear failed");
+    }
     for (std::uint32_t fluid_index = 0U;
          fluid_index < impl_->fluids.size(); ++fluid_index) {
         if (!impl_->fluids[fluid_index] || !impl_->fluids[fluid_index]->alive)
@@ -9008,6 +9118,29 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 options.gravity, dt);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
+            for (const auto &owner : impl_->fluid_rope_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    !(owner->options.fluid == fluid_id)) continue;
+                auto &rope = impl_->ropes[owner->options.rope.index]->data;
+                const float distance = owner->options.contact_distance > 0.0F
+                    ? owner->options.contact_distance
+                    : fluid.options.particle_radius + rope.options.radius;
+                error = cudaMemsetAsync(owner->node_impulses, 0,
+                    rope.count * sizeof(Vec3), stream);
+                if (error != cudaSuccess) return cuda_failure(error, "fluid rope impulse clear failed");
+                fluid_rope_contacts<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.count, particle_mass,
+                    rope, distance, owner->options.friction, owner->node_impulses,
+                    owner->contact_count, owner->maximum_penetration, true);
+                fluid_rope_apply<<<(rope.count + block_size - 1U) / block_size,
+                    block_size, 0, stream>>>(rope,
+                    rope.options.first.enabled ? 0 : -1,
+                    rope.options.last.enabled ? 0 : -1,
+                    owner->node_impulses, owner->options.maximum_rope_acceleration,
+                    dt, 1.0F / options.timestep);
+                status = record_timing_stage(TimingStage::fluid_rope_contacts, 2U);
+                if (!status) return status;
+            }
             for (const auto &owner : impl_->fluid_soft_couplings) {
                 if (!owner || !owner->alive || !owner->options.enabled ||
                     !(owner->options.fluid == fluid_id)) continue;
@@ -9477,6 +9610,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::fluid_soft_body_contacts:
             timing = &output.fluid_soft_body_contacts;
             break;
+        case TimingStage::fluid_rope_contacts:
+            timing = &output.fluid_rope_contacts;
+            break;
         case TimingStage::fluid_spawn:
             timing = &output.fluid_spawn;
             break;
@@ -9606,7 +9742,7 @@ Status World::collect_statistics(WorldStatistics &output,
     for(const auto &rope:impl_->ropes) {
         if(!rope || !rope->alive)continue;
         ++output.rope_count;output.rope_node_count+=rope->data.count;
-        output.allocated_bytes+=rope->data.count*(9*sizeof(Vec3)+2*sizeof(float))+
+        output.allocated_bytes+=rope->data.count*(10*sizeof(Vec3)+2*sizeof(float))+
             2*impl_->options.rigid_body_capacity*sizeof(Vec3);
     }
     for (const auto &coupling : impl_->fluid_soft_couplings) {
@@ -9620,6 +9756,14 @@ Status World::collect_statistics(WorldStatistics &output,
         output.fluid_soft_body_contact_count += *coupling->contact_count;
         output.maximum_fluid_soft_body_penetration = std::max(
             output.maximum_fluid_soft_body_penetration, *coupling->maximum_penetration);
+    }
+    for (const auto &coupling : impl_->fluid_rope_couplings) {
+        if (!coupling || !coupling->alive) continue;
+        output.allocated_bytes += impl_->ropes[coupling->options.rope.index]->data.count *
+            sizeof(Vec3) + sizeof(std::uint32_t) + sizeof(float);
+        output.fluid_rope_contact_count += *coupling->contact_count;
+        output.maximum_fluid_rope_penetration = std::max(
+            output.maximum_fluid_rope_penetration, *coupling->maximum_penetration);
     }
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;

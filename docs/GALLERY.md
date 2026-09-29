@@ -67,6 +67,11 @@ Headless physics builds remain free of OpenGL and OptiX.
 14. **Rope** — a Bézier rest curve connects passive and active rigid bodies
     through native Blender Hooks. The API owns sampling, tension and contacts;
     the gallery builds an orange tube from its node view.
+15. **Rope Fluid** — the same hooked rope, post, and ball under a one-shot
+    Blender liquid volume. The API handles fluid/rope segment contact and
+    bounded two-way reaction, while existing fluid/rigid triangle contact
+    handles the ball and post. The Blender ball has 20 kg mass so it can wind
+    under the authored water volume without floating away.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -78,7 +83,7 @@ body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
-Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope.
+Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope, Rope Fluid.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -124,6 +129,9 @@ Rope can be selected with `--rope`. Gravity starts down; arrows use the shared
 45-degree tilt controller. `R` resets, `F` includes rope solve time, `V`/`B`
 draw physical segments, `X` shows constraint/contact forces, `N` velocities,
 and `M` writes the common opt-in API capture.
+Rope Fluid can be selected with `--rope-fluid` and uses the same gravity,
+camera, reset, and rope debug controls. `P` changes the water-particle cap;
+`V` toggles water particles; `F` includes fluid/rope contact time and depth.
 Soft Body Cloth can be selected with `--soft-body-cloth`. It starts with
 gravity down and reuses those controls. `F` also reports cloth stepping and
 soft/cloth coupling. The bridge's Blender `pm_break_strain` is zero; the

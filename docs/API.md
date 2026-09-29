@@ -121,14 +121,19 @@ Sharp contacts can use up to eight times the nominal `solver_iterations` budget
 an unresolved contact/stretch correction back as a large velocity on the next
 step without paying the recovery cost for already settled chains.
 No analytic post collider is used.
-This milestone couples ropes to rigid triangle bodies, not fluids, cloth,
-other ropes, or soft bodies.
+Ropes collide with rigid triangle bodies. Fluid contact is optional: register a
+`FluidRopeCouplingOptions` pair after creating a fluid and rope. Water is kept
+outside each moving rope segment capsule and transmits a bounded reaction to
+its free nodes. The acceleration limit controls dense-splash stability; it does
+not change fluid/rigid contacts. `fluid_rope_contacts` timing and contact/depth
+statistics expose its cost and activity. Cloth, other ropes, and soft bodies
+are not coupled to ropes.
 
 `rope_view` exposes node positions, velocities, segment rest lengths, and
-constraint/contact forces. `RopeId` is generation checked; the usual borrowed
+constraint/contact/fluid-contact forces. `RopeId` is generation checked; the usual borrowed
 view lifetime applies. `WorldOptions::rope_capacity` bounds resources, and
 statistics/timings include rope nodes, storage, and solve time. Opt-in physics
-capture includes rope samples. Tube construction and final debug drawing stay
+capture includes the fluid reaction in each rope sample. Tube construction and final debug drawing stay
 outside the installed physics library.
 
 ## Cloth meshes and pinning
