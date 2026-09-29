@@ -316,21 +316,24 @@ __host__ __device__ void closest_segments(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2,
     float s = 0.0F;
     float t = 0.0F;
 
-    if (a <= k_epsilon && e <= k_epsilon) {
+    const float squared_epsilon = k_epsilon * k_epsilon;
+    if (a <= squared_epsilon && e <= squared_epsilon) {
         c1 = p1;
         c2 = p2;
         return;
     }
-    if (a <= k_epsilon) {
+    if (a <= squared_epsilon) {
         t = clamp_scalar(f / e, 0.0F, 1.0F);
     } else {
         const float c = dot(d1, r);
-        if (e <= k_epsilon) {
+        if (e <= squared_epsilon) {
             s = clamp_scalar(-c / a, 0.0F, 1.0F);
         } else {
             const float b = dot(d1, d2);
             const float denominator = a * e - b * b;
-            if (fabsf(denominator) > k_epsilon) {
+            // The denominator has units length^4. An absolute tolerance
+            // classified ordinary centimetre-scale edges as parallel.
+            if (fabsf(denominator) > k_epsilon * a * e) {
                 s = clamp_scalar((b * f - c * e) / denominator, 0.0F, 1.0F);
             }
             t = (b * s + f) / e;
@@ -1808,6 +1811,7 @@ enum class TimingStage : std::uint8_t {
     fluid_moving_contacts,
     fluid_contact_events,
     fluid_outflow_compaction,
+    rope_solve,
 };
 
 [[nodiscard]] Status wait_for_completion(
@@ -4742,6 +4746,10 @@ __global__ void fluid_copy_initial(const FluidParticle *input,
 
 } // namespace
 
+namespace {
+#include "rope.cuh"
+} // namespace
+
 struct FrameToken::Impl {
     std::shared_ptr<CompletionState> completion{};
 };
@@ -4770,6 +4778,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
+    std::vector<std::unique_ptr<RopeStorage>> ropes{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
@@ -4875,6 +4884,13 @@ struct World::Impl {
                         cloth.soft_body_forces[index]});
             }
             output.soft_body_nodes.clear();
+            output.rope_nodes.clear();
+            for(unsigned slot=0;slot<ropes.size();++slot) {
+                if(!ropes[slot] || !ropes[slot]->alive)continue;
+                const auto &r=ropes[slot]->data;
+                for(unsigned i=0;i<r.count;++i)output.rope_nodes.push_back({
+                    {slot,ropes[slot]->generation},i,r.positions[i],r.velocities[i],r.constraint_forces[i],r.contact_forces[i]});
+            }
             for (std::uint32_t slot = 0U; slot < soft_bodies.size(); ++slot) {
                 const auto &owner = soft_bodies[slot];
                 if (!owner || !owner->alive) continue;
@@ -5138,6 +5154,7 @@ Status World::create(WorldOptions options, World &output,
         implementation->fluids.resize(options.fluid_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
+        implementation->ropes.resize(options.rope_capacity);
         implementation->fluid_cloth_couplings.resize(
             options.fluid_cloth_coupling_capacity);
         implementation->fluid_soft_couplings.resize(
@@ -7003,6 +7020,92 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     return success();
 }
 
+Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument,"world is not initialized");
+    Status status=impl_->require_idle();
+    if(!status)return status;
+    if(!finite(options.radius)||options.radius<=0 || !finite(options.node_spacing)||
+       options.node_spacing<=0 || options.node_spacing>2*options.radius ||
+       !finite(options.mass)||options.mass<=0 || !finite(options.stretch_compliance)||options.stretch_compliance<0 ||
+       !finite(options.velocity_damping)||options.velocity_damping<0 ||
+       !finite(options.maximum_substep_timestep)||options.maximum_substep_timestep<=0 ||
+       !finite(options.friction)||options.friction<0 ||
+       !finite(options.maximum_speed)||options.maximum_speed<=0 || options.solver_iterations<1 || options.solver_iterations>128)
+        return failure(StatusCode::invalid_argument,"invalid rope material or resolution");
+    for(const auto anchor:{options.first,options.last}) {
+        if(!finite(anchor.local_anchor))return failure(StatusCode::invalid_argument,"invalid rope anchor");
+        if(anchor.enabled){unsigned dense;if(!(status=impl_->validate_handle(anchor.body,dense)))return status;}
+    }
+    if (options.first.enabled && options.last.enabled && options.first.body == options.last.body)
+        return failure(StatusCode::invalid_argument,"rope endpoints must attach to distinct bodies");
+    std::uint32_t slot=0;
+    while(slot<impl_->ropes.size() && impl_->ropes[slot] && impl_->ropes[slot]->alive)++slot;
+    if(slot==impl_->ropes.size())return failure(StatusCode::capacity_exceeded,"rope capacity exhausted");
+    std::vector<Vec3> nodes;
+    if(!(status=sample_rope_centerline(options.centerline,options.node_spacing,nodes)))return status;
+    int attached[2]{-1, -1};
+    // Rest curve endpoints define anchors, not an initial teleport/impulse.
+    for(unsigned end=0;end<2;++end) {
+        const auto anchor=end?options.last:options.first;
+        if(!anchor.enabled)continue;
+        unsigned dense;if(!(status=impl_->validate_handle(anchor.body,dense)))return status;
+        attached[end] = static_cast<int>(dense);
+        const Vec3 target=transform_point(impl_->states[impl_->current_state][dense],anchor.local_anchor);
+        if(vector_length(subtract(target,end?nodes.back():nodes.front()))>1e-3F)
+            return failure(StatusCode::invalid_argument,"rope endpoint must match its body-local attachment");
+    }
+    try {
+        if (rope_rest_crosses_collider(nodes, attached[0], attached[1], impl_->parameters,
+                impl_->states[impl_->current_state], impl_->meshes, impl_->rigid_body_count))
+            return failure(StatusCode::invalid_argument,"rope rest centerline crosses a rigid collider");
+    } catch (...) {
+        return failure(StatusCode::out_of_memory,"rope rest collision validation allocation failed");
+    }
+    std::unique_ptr<RopeStorage> owner(new(std::nothrow)RopeStorage());
+    if(!owner)return failure(StatusCode::out_of_memory,"rope allocation failed");
+    owner->generation=impl_->ropes[slot]?impl_->ropes[slot]->generation:1;
+    auto &r=owner->data;
+    r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
+    r.body_capacity=impl_->options.rigid_body_capacity;
+    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
+        if(!(status=allocate_managed(*p,r.count)))return status;
+    for(float **p:{&r.rest,&r.lambda})
+        if(!(status=allocate_managed(*p,r.count)))return status;
+    if(!(status=allocate_managed(r.body_translation,impl_->options.rigid_body_capacity)) ||
+       !(status=allocate_managed(r.body_rotation,impl_->options.rigid_body_capacity)))return status;
+    if(!(status=allocate_managed(r.solid_hint,r.count*r.body_capacity)))return status;
+    std::fill_n(r.solid_hint,r.count*r.body_capacity,~0U);
+    for(unsigned i=0;i<r.count;++i){
+        r.positions[i]=r.previous[i]=nodes[i];r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]={};
+        if(i+1<r.count){r.rest[i]=vector_length(subtract(nodes[i+1],nodes[i]));
+            if(!finite(r.rest[i]) || r.rest[i]<1e-6F)return failure(StatusCode::invalid_argument,"rope contains an invalid segment");}
+    }
+    owner->alive=true;output={slot,owner->generation};impl_->ropes[slot]=std::move(owner);++impl_->revision;
+    return success();
+}
+
+Status World::remove_rope(RopeId id) noexcept {
+    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    auto status=impl_->require_idle();if(!status)return status;
+    if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
+        return failure(StatusCode::invalid_handle,"rope handle is stale");
+    auto &rope=*impl_->ropes[id.index];rope.alive=false;rope.release();++rope.generation;
+    if(rope.generation==0)rope.generation=1;
+    ++impl_->revision;return success();
+}
+
+Status World::rope_view(RopeId id, RopeDeviceView &output) const noexcept {
+    output={};
+    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    auto status=impl_->require_current_device();if(!status)return status;
+    if(impl_->frame && !impl_->frame->acknowledged)return failure(StatusCode::busy,"rope view requires completed frame");
+    if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
+        return failure(StatusCode::invalid_handle,"rope handle is stale");
+    const auto &r=impl_->ropes[id.index]->data;
+    output={{r.positions,r.count},{r.velocities,r.count},{r.constraint_forces,r.count},{r.contact_forces,r.count},{r.rest,r.count-1},r.options.radius};
+    return success();
+}
+
 Status World::remove_soft_body(SoftBodyId id) noexcept {
     if (!impl_)
         return failure(StatusCode::invalid_argument, "world is not initialized");
@@ -7509,6 +7612,11 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
             impl_->paint_rules[index].options.rigid_source == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint rule");
+    for(const auto &rope:impl_->ropes)
+        if(rope && rope->alive &&
+           ((rope->data.options.first.enabled && rope->data.options.first.body==body) ||
+            (rope->data.options.last.enabled && rope->data.options.last.body==body)))
+            return failure(StatusCode::invalid_argument,"rigid body is still referenced by a rope attachment");
     const std::uint32_t last = impl_->rigid_body_count - 1U;
     if (dense != last) {
         impl_->parameters[dense] = impl_->parameters[last];
@@ -7738,6 +7846,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         return failure(StatusCode::invalid_argument,
                        "step timestep, substeps, or gravity is invalid");
     }
+    // Advance rigid attachments and ropes on the same clock. Splitting only
+    // the rope after a coarse rigid step leaves endpoints discontinuous.
+    for (const auto &rope : impl_->ropes) if (rope && rope->alive) {
+        const float required = std::ceil(options.timestep /
+            rope->data.options.maximum_substep_timestep);
+        if (!finite(required) || required > 1'024.0F)
+            return failure(StatusCode::invalid_argument,
+                           "rope timestep limit requires more than 1024 substeps");
+        options.substeps = std::max(options.substeps,
+                                   static_cast<std::uint32_t>(required));
+    }
     for (auto &cloth : impl_->cloths) if (cloth && cloth->alive) {
         status = rebuild_cloth_topology(*cloth);
         if (!status) return status;
@@ -7818,7 +7937,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                      (body->solver_iterations + 1U) / 2U);
         }
         status = impl_->prepare_timing_events(
-            maximum_stages + 2U);
+            maximum_stages + options.substeps * impl_->ropes.size() + 2U);
         if (!status) {
             return status;
         }
@@ -8410,6 +8529,28 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return cuda_failure(launch_error, "soft-body cloth contact launch failed");
         return record_timing_stage(TimingStage::soft_body_cloth_contacts);
     };
+    const auto advance_ropes = [&](const RigidBodyState *previous_states, bool first_substep) -> Status {
+        for (const auto &rope : impl_->ropes) {
+            if(!rope || !rope->alive)continue;
+            int first=-1,last=-1;unsigned dense;
+            if(rope->data.options.first.enabled) {
+                auto status=impl_->validate_handle(rope->data.options.first.body,dense);
+                if(!status)return status;first=int(dense);
+            }
+            if(rope->data.options.last.enabled) {
+                auto status=impl_->validate_handle(rope->data.options.last.body,dense);
+                if(!status)return status;last=int(dense);
+            }
+            rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
+                impl_->parameters,impl_->states[impl_->current_state],previous_states,
+                impl_->meshes,impl_->rigid_body_count,first_substep);
+            auto error=cudaPeekAtLastError();
+            if(error!=cudaSuccess)return cuda_failure(error,"rope solver launch failed");
+            auto status=record_timing_stage(TimingStage::rope_solve);
+            if(!status)return status;
+        }
+        return success();
+    };
     for (std::uint32_t substep = 0; substep < options.substeps; ++substep) {
         if (impl_->rigid_body_count == 0U) {
             break;
@@ -8625,6 +8766,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         status = advance_soft_cloth(impl_->states[1U - impl_->current_state]);
         if (!status) return status;
+        status = advance_ropes(impl_->states[1U - impl_->current_state], substep == 0);
+        if (!status) return status;
     }
 
     if (impl_->rigid_body_count > 0U) {
@@ -8642,7 +8785,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
-    if ((has_cloth || has_soft_body) && impl_->rigid_body_count == 0U) {
+    if (impl_->rigid_body_count == 0U) {
         for (std::uint32_t substep = 0U; substep < options.substeps; ++substep) {
             if (has_cloth) {
                 status = advance_cloth(nullptr);
@@ -8653,6 +8796,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 if (!status) return status;
             }
             status = advance_soft_cloth(nullptr);
+            if (!status) return status;
+            status = advance_ropes(nullptr, substep == 0);
             if (!status) return status;
         }
     }
@@ -9192,6 +9337,7 @@ Status World::physics_debug_frame(
         frame.cloth_vertices.data(), frame.cloth_vertices.size()};
     output.soft_body_nodes = {
         frame.soft_body_nodes.data(), frame.soft_body_nodes.size()};
+    output.rope_nodes = {frame.rope_nodes.data(), frame.rope_nodes.size()};
     output.rigid_contacts = {
         frame.rigid_contacts.data(), frame.rigid_contacts.size()};
     output.fluid_contacts = {
@@ -9299,6 +9445,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
             break;
         case TimingStage::rigid_input_clear:
             timing = &output.rigid_input_clear;
+            break;
+        case TimingStage::rope_solve:
+            timing = &output.rope_solve;
             break;
         case TimingStage::cloth_prediction:
             timing = &output.cloth_prediction;
@@ -9454,6 +9603,12 @@ Status World::collect_statistics(WorldStatistics &output,
                 sizeof(std::uint32_t);
     }
     output.emitted_particle_count = impl_->emitted_particle_count;
+    for(const auto &rope:impl_->ropes) {
+        if(!rope || !rope->alive)continue;
+        ++output.rope_count;output.rope_node_count+=rope->data.count;
+        output.allocated_bytes+=rope->data.count*(9*sizeof(Vec3)+2*sizeof(float))+
+            2*impl_->options.rigid_body_capacity*sizeof(Vec3);
+    }
     for (const auto &coupling : impl_->fluid_soft_couplings) {
         if (!coupling || !coupling->alive) continue;
         const auto &body = *impl_->soft_bodies[coupling->options.soft_body.index];
@@ -9527,6 +9682,7 @@ Status World::collect_statistics(WorldStatistics &output,
             frame.cloth_vertices.capacity() * sizeof(PhysicsDebugClothSample) +
             frame.soft_body_nodes.capacity() *
                 sizeof(PhysicsDebugSoftBodySample) +
+            frame.rope_nodes.capacity() * sizeof(PhysicsDebugRopeSample) +
             frame.rigid_contacts.capacity() * sizeof(RigidContactEvent) +
             frame.fluid_contacts.capacity() * sizeof(ContactEvent);
     }

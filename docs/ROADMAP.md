@@ -248,6 +248,34 @@ pass.
   clearance and throughput. Shared spatial lookup, seam thinning, overlapping
   source checks, capacity limits, and lifecycle tests cover every fluid gallery.
 
+## PR 16 — Rope and rigid attachments (review)
+
+- Extend the single Blender exporter with open Bézier curves and native Hook
+  attachments, preserving evaluated endpoints without baking Soft Body motion.
+- Add API-owned centerline sampling, rope handles/views, whole-chain tension,
+  rigid-local endpoint constraints, triangle contacts, friction, and self-contact.
+- Reuse gallery gravity, camera, reset, timing, API force capture, and segment
+  visualization; keep tube rendering outside the physics library.
+- Validate three retained wraps around the authored triangle post, bounded
+  strain, hook drift, finite state, and GPU memory safety.
+- The initial hidden enclosure crossed the rest rope, producing segments over
+  100 times their rest length. Widened only that enclosure to the floor bounds;
+  the rest curve, Hook endpoints, ball, post, and materials are unchanged.
+  `add_rope` now rejects rest centerlines crossing rigid triangles before
+  allocating rope storage. Added creation-failure and settling regressions.
+- Contact release now rebuilds the reduced constraint matrix, and a final
+  full-mass velocity constraint suppresses axial jitter without increasing drag.
+  The API enforces a configurable 1/480 s maximum shared integration step so
+  ropes and rigid attachments advance together, independent of gallery code. The
+  steering-release regression checks late speed/drift, ground contact, strain,
+  hook drift, and sphere/post clearance; a free-fall control preserves bulk
+  velocity. Gallery headless coverage includes the settled rope.
+  High-strain contacts receive bounded extra nonlinear recovery passes rather
+  than carrying a large unresolved correction into the next frame's velocity.
+- The pre-wrapped regression uses a longer rest curve around the authored
+  post; it does not reproduce the exact manual winding trajectory. A reported
+  third-wrap bounce/unwind hitch remains a performance-audit follow-up.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
@@ -263,6 +291,6 @@ pass.
 
 ## Later, one solver at a time
 
-Rope and smoke each require an approved API extension, one
+Smoke requires an approved API extension, one
 focused gallery scene, two-system coupling tests, and performance evidence.
 No campaign or presentation concept is promoted into the installed library.

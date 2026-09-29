@@ -61,6 +61,10 @@ struct PhysicsDebugVisualizationOptions {
     bool velocities{};
 };
 
+[[nodiscard]] bool draw_rope_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width, std::uint32_t height,
+    RopeDeviceView rope, Camera camera, std::string &error);
+
 // Draws host-side state and force vectors captured by the opt-in World debug
 // API. Rendering remains a client concern and does not enter the physics API.
 void draw_physics_debug_overlay(

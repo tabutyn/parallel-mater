@@ -48,6 +48,7 @@ def snapshot():
                           tuple(value for row in obj.matrix_world for value in row))
                          for obj in bpy.data.objects),
         "meshes": tuple(mesh.name for mesh in bpy.data.meshes),
+        "curves": tuple(curve.name for curve in bpy.data.curves),
         "materials": tuple(material.name for material in bpy.data.materials),
         "collections": tuple(collection.name for collection in bpy.data.collections),
         "selected": tuple(obj.name for obj in bpy.context.selected_objects),
@@ -81,14 +82,14 @@ class ExportSceneTests(unittest.TestCase):
                             str(expected["rigid_body"]), str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
-                            str(expected["soft_body"])],
+                            str(expected["soft_body"]), str(expected["rope"])],
                            check=True, timeout=60)
         return document
 
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
-                     "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid"):
+                     "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -146,6 +147,27 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(extras["pm_source_spacing"], 0.25)
         self.assertEqual(extras["pm_velocity_y"], -1)
         self.assertNotIn("pm_particles_per_second", extras)
+
+    def test_rope_uses_evaluated_hook_positions(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Rope.blend"))
+        rope = next(obj for obj in bpy.context.scene.objects if obj.type == "CURVE")
+        hooks = [m for m in rope.modifiers if m.type == "HOOK"]
+        for shift in (0.0, 0.1):
+            hooks[0].object.location.x += shift
+            bpy.context.view_layer.update()
+            evaluated = rope.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            expected = [evaluated.matrix_world @ mesh.vertices[i].co for i in (0, len(mesh.vertices)-1)]
+            evaluated.to_mesh_clear()
+            document = self.check_export(Counter(rigid_body=4, rope=1))
+            extras = next(node["extras"] for node in document["nodes"] if node["extras"].get("pm_system") == "rope")
+            points = extras["pm_rope_points"].split(";")
+            for encoded, point in zip((points[0], points[-1]), expected):
+                for actual, wanted in zip(map(float, encoded.split(",")), (point.x, point.z, -point.y)):
+                    self.assertAlmostEqual(actual, wanted, places=5)
+        hooks[0].object = None
+        with self.assertRaisesRegex(RuntimeError, "Hook target must be a rigid body"):
+            exporter.export_scene(self.output)
 
     def test_soft_goal_group_exports_only_full_weight_pins(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyFluid.blend"))

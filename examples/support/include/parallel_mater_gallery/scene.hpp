@@ -89,12 +89,25 @@ struct ParticleSourceDefinition {
     ParticleSourceOptions options{};
 };
 
+struct RopeDefinition {
+    std::string name{};
+    std::vector<Vec3> centerline{};
+    RopeOptions options{};
+    std::int32_t first_body{-1}, last_body{-1};
+    std::uint32_t mesh_index{};
+};
+
+// Presentation-only tube construction, shared by initial load and live drawing.
+void update_rope_render_mesh(const std::vector<Vec3> &nodes, float radius,
+                             TriangleMesh &mesh);
+
 struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
     std::vector<ClothDefinition> cloths{};
     std::vector<SoftBodyDefinition> soft_bodies{};
+    std::vector<RopeDefinition> ropes{};
     FluidOptions fluid_options{};
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.
@@ -112,6 +125,7 @@ struct SceneInstance {
     std::vector<RigidBodyId> rigid_bodies{};
     std::vector<ClothId> cloths{};
     std::vector<SoftBodyId> soft_bodies{};
+    std::vector<RopeId> ropes{};
     std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
     std::vector<SoftBodyClothCouplingId> soft_body_cloth_couplings{};
     std::vector<FluidSoftBodyCouplingId> fluid_soft_body_couplings{};

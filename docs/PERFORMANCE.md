@@ -645,3 +645,96 @@ headless scene. Targeted CUDA memcheck checked 2,048 `soft_cloth_` launches afte
 skipping 3,456 matching launches (the bridge-impact window) with zero errors in
 the 240-frame `--smoke` run. This is a bounded new-kernel check, not a claim of
 full-run sanitizer coverage.
+
+## Rope settling (in-progress PR 16)
+
+The original rest curve crossed an invisible enclosure wall: one segment
+reached over 100 times its rest length. That is an invalid starting topology,
+not a material-stiffness problem. Only the enclosure was widened to the
+existing floor bounds. Curve geometry, Hook endpoints, post, ball, and material
+values were preserved. `World::add_rope` rejects centerlines crossing rigid
+triangles before creating a resource, with a failed-creation regression.
+
+The corrected scene exposed an independent solver problem. Contact normals
+were released after building the reduced inverse-mass matrix, but corrections
+used the newly released masses. Rebuilding after release prevents that energy
+injection; a surviving second support plane remains active. A full-mass
+velocity-level distance solve removes axial relative motion, with balanced
+impulses at dynamic attachments. Contact-reduced velocity solves were rejected:
+incoming normal velocities can be incompatible with the reduced mass matrix.
+The API also enforces a 1/480 s maximum integration step, shared with the rigid
+attachments. It preserves uniform free-fall velocity in the API regression.
+Active-set flags are synchronized between passes; otherwise a fast warp can
+clear the flag before another warp reads it and split the block's control flow.
+Nominal solves exit below 0.1% segment strain. Contacts still above 0.5% after
+the nominal iteration budget receive bounded recovery passes (up to four
+times that budget, capped at 32). A capped contact solve finishes with eight
+length projections after releasing stale support planes. Each projection
+moves at most one rope radius. The looser early-exit tolerance avoids
+spending every iteration chasing micrometre-scale residuals, while the final
+projection prevents large length errors from becoming velocity spikes.
+
+The 1,200-frame release test uses 72 nodes, 1/60 s frames and 24 nominal
+iterations. The initial solver used four substeps; the corrected API uses eight.
+Gravity is down initially, tilted 45 degrees during
+frames 120–239, then down again. The final 120 frames measure settling. RTX
+3050 Ti timings include opt-in CUDA stage events, not rendering:
+
+| Corrected scene, steering release | Initial solver | Contact + velocity + timestep fixes |
+|---|---:|---:|
+| Mean GPU physics / frame | 24.88 ms | 6.68 ms |
+| Peak segment strain | 2.88% | 0.32% |
+| Late RMS node speed | 13.13 mm/s | 1.99 mm/s |
+| Maximum late displacement | 18.38 mm | 4.44 mm |
+
+At that stage, the straight-down control also improved settling: RMS speed 2.73 to 1.62 mm/s,
+late displacement 4.38 to 2.39 mm, and strain 2.88% to 0.32%. Its mean GPU cost
+is similar (5.58 versus 5.51 ms). The two runs have 40 and 38 of 72 nodes,
+respectively, within 25 mm of the floor, hook error below
+0.13 micrometres, and zero measured node penetration into the active sphere.
+The section rising to the elevated post is intentionally suspended. Increasing
+velocity damping from 0.1 to 0.5 /s did not improve the controlled release test
+and was rejected; the material damping remains unchanged. Internal bend damping
+and moving static friction entirely to the velocity stage also regressed
+settling or impact stretch and were removed. Continuous circular steering
+passes at 0.32% peak strain and 7.66 ms/frame. A pre-wrapped three-turn fixture
+separately checks segment samples around the triangle post: 0.47% peak strain,
+at least 2.85 retained turns, and 22.29 ms/frame. Its longer curve is a test
+fixture, not a change to the authored rest curve.
+
+All eight targeted rope/export/render regressions pass. The final 12-frame
+wrapped-contact smoke test reports zero Compute Sanitizer memory errors and
+zero racecheck hazards; the normal wrapped regression runs 600 frames.
+
+### Tight winding and bounce
+
+A controlled 500-frame test steers the authored 72-node rope around its post
+with tangential and inward gravity after frame 120. It reaches 2.94 turns,
+tightens, bounces, and begins unwinding. The original solver spent 428 ms in
+the rope kernel at the third wrap and later stretched one segment by 68%.
+Renderer time at the hitch was under 4 ms; the stall was in physics.
+
+On the RTX 3050 Ti, the same physics-only steering sequence measured:
+
+| 500-frame winding run | Original | This change |
+|---|---:|---:|
+| Peak rope GPU / frame | 428.07 ms | 90.98 ms |
+| 95th percentile rope GPU / frame | 125.09 ms | 41.75 ms |
+| Peak segment strain | 68.46% | 0.497% |
+
+The shared triangle solver now checks individual triangle bounds before the
+expensive capsule-to-triangle distance query. A verified separating-plane hint
+skips repeated convex plane tests, including whole-body queries when a static
+collider is provably beyond the rope radius. Bounded contact recovery and the
+final length projection keep the loaded Hook from entering a long solve loop.
+The winding regression checks peak frame time relative to its mean, rope
+strain, Hook drift, active-ball penetration, and node/segment post clearance.
+The 1,200-frame quiet and steering-release tests, 600-frame pre-wrapped test,
+and headless render still pass. A wider triangle candidate cache was rejected
+after it reduced post clearance; warming support planes and applying friction
+only on the first iteration also regressed stability or settling.
+Current quiet and steering-release mean GPU physics times are 5.86 and
+7.69 ms/frame, with late RMS speeds of 1.61 and 3.28 mm/s respectively;
+the pre-wrapped fixture averages 17.06 ms/frame. The steering-release test
+therefore costs slightly more than the earlier 6.68 ms snapshot, while the
+tight-winding peak and pre-wrapped throughput improve substantially.

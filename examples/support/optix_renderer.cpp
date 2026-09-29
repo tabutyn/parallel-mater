@@ -449,7 +449,8 @@ struct OptixRenderer::Impl {
                     scene.soft_bodies.begin(), scene.soft_bodies.end(),
                     [index](const SoftBodyDefinition &body) {
                         return body.mesh_index == index;
-                    });
+                    }) || std::any_of(scene.ropes.begin(),scene.ropes.end(),
+                        [index](const RopeDefinition &rope){return rope.mesh_index==index;});
             std::vector<Vertex> vertices = mesh.vertices;
             smooth_render_normals(mesh, vertices);
             gpu.fracture_surface = std::any_of(scene.cloths.begin(),
@@ -562,6 +563,8 @@ struct OptixRenderer::Impl {
                 scene.meshes[body.mesh_index].visible
                     ? k_opaque_visibility : 0U});
         }
+        for (const auto &rope:scene.ropes)
+            bindings.push_back({k_deformable_binding,rope.mesh_index,k_opaque_visibility});
         std::vector<OptixInstance> authored_instances = make_instances(states);
         instances.upload(authored_instances);
 
@@ -797,13 +800,24 @@ struct OptixRenderer::Impl {
                 gpu.acceleration.device_pointer(), gpu.acceleration.size(),
                 &gpu.handle, nullptr, 0U), "update OptiX cloth geometry");
         }
-        if (scene.soft_bodies.size() != instance.soft_bodies.size())
+        if (scene.soft_bodies.size() != instance.soft_bodies.size() || scene.ropes.size()!=instance.ropes.size())
             fail("soft-body render bindings do not match the scene");
         for (std::size_t body_index = 0U;
-             body_index < scene.soft_bodies.size(); ++body_index) {
-            const SoftBodyDefinition &body = scene.soft_bodies[body_index];
-            const TriangleMesh &mesh = scene.meshes[body.mesh_index];
-            Geometry &gpu = geometry[body.mesh_index];
+             body_index < scene.soft_bodies.size()+scene.ropes.size(); ++body_index) {
+            const bool is_rope=body_index>=scene.soft_bodies.size();
+            const auto rope_index=body_index-scene.soft_bodies.size();
+            const auto mesh_index=is_rope?scene.ropes[rope_index].mesh_index:scene.soft_bodies[body_index].mesh_index;
+            const TriangleMesh &mesh = scene.meshes[mesh_index];
+            Geometry &gpu = geometry[mesh_index];
+            std::vector<Vertex> vertices = mesh.vertices;
+            if(is_rope) {
+                RopeDeviceView view;const auto status=world.rope_view(instance.ropes[rope_index],view);
+                if(!status)fail(status.message);
+                std::vector<Vec3> nodes(view.positions.size);
+                check_cuda(cudaMemcpy(nodes.data(),view.positions.data,nodes.size()*sizeof(Vec3),cudaMemcpyDeviceToHost),"copy rope centerline");
+                TriangleMesh updated=mesh;update_rope_render_mesh(nodes,view.radius,updated);
+                vertices=std::move(updated.vertices);
+            } else {
             SoftBodyDeviceView view{};
             const Status status = world.soft_body_view(
                 instance.soft_bodies[body_index], view);
@@ -811,7 +825,6 @@ struct OptixRenderer::Impl {
                               "cannot borrow soft-body view");
             if (view.surface_vertex_count != mesh.vertices.size())
                 fail("soft-body renderer vertex count changed");
-            std::vector<Vertex> vertices = mesh.vertices;
             std::vector<Vec3> positions(view.surface_positions.size);
             check_cuda(cudaMemcpy(positions.data(), view.surface_positions.data,
                                   positions.size() * sizeof(Vec3),
@@ -821,6 +834,8 @@ struct OptixRenderer::Impl {
                 vertices[index].position = positions[index];
                 vertices[index].normal = {};
             }
+            }
+            for(auto &vertex:vertices)vertex.normal={};
             for (std::size_t index = 0U; index < mesh.indices.size();
                  index += 3U) {
                 Vertex &a = vertices[mesh.indices[index]];
