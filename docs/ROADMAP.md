@@ -273,8 +273,24 @@ pass.
   High-strain contacts receive bounded extra nonlinear recovery passes rather
   than carrying a large unresolved correction into the next frame's velocity.
 - The pre-wrapped regression uses a longer rest curve around the authored
-  post; it does not reproduce the exact manual winding trajectory. A reported
-  third-wrap bounce/unwind hitch remains a performance-audit follow-up.
+  post; the steering regression also winds nearly three turns. A later PR 16
+  optimization reduced the measured third-wrap rope GPU peak from roughly
+  428 ms to 91 ms while retaining the wrap and release checks.
+
+## PR 17 — Rope and fluid (review)
+
+- `RopeFluid.blend` adds a one-shot liquid volume over the rope, active ball,
+  passive post, and ground. The single exporter emits the same rope hooks and
+  standard fluid initial volume; no gallery-only physics or exporter branch.
+- The API owns an optional fluid/rope coupling with particle-to-segment capsule
+  contacts, a bounded reaction on free rope nodes, handle lifecycle, force
+  views, diagnostics, and per-stage timing. Existing fluid/rigid triangle
+  contact handles the ball and post.
+- Restored the post Hook geometry to the dry rope scene. Blender's active ball
+  mass is 20 kg so it winds through this water volume instead of floating away.
+- Tests cover two-way water/rope response, Blender export, 600-frame wet winding
+  (2.91 peak turns, <0.5% strain), three-system headless rendering, and CUDA
+  memory/race checks.
 
 ## Later — Gallery game shell
 

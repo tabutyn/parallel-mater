@@ -116,7 +116,9 @@ bool write_physics_debug_capture(World &world,
             stream << "rope " << sample.rope.index << ' ' << sample.rope.generation << ' ' << sample.node << " position ";
             vector(stream,sample.position);stream << " velocity ";vector(stream,sample.velocity);
             stream << " constraint_force ";vector(stream,sample.constraint_force);
-            stream << " contact_force ";vector(stream,sample.contact_force);stream << '\n';
+            stream << " contact_force ";vector(stream,sample.contact_force);
+            stream << " fluid_contact_force ";vector(stream,sample.fluid_contact_force);
+            stream << '\n';
         }
         for (const PhysicsDebugSoftBodySample &sample : frame.soft_body_nodes) {
             stream << "soft_body " << sample.soft_body.index << ' '

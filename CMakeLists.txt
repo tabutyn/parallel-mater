@@ -196,6 +196,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
             PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
             PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
+            PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -207,6 +208,10 @@ if(BUILD_TESTING)
     target_link_libraries(parallel-mater-fluid-soft-body-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-fluid-soft-body-tests COMMAND parallel-mater-fluid-soft-body-tests)
     set_tests_properties(parallel-mater-fluid-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(parallel-mater-fluid-rope-tests tests/fluid_rope_tests.cpp)
+    target_link_libraries(parallel-mater-fluid-rope-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-fluid-rope-tests COMMAND parallel-mater-fluid-rope-tests)
+    set_tests_properties(parallel-mater-fluid-rope-tests PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(parallel-mater-api-contract-tests tests/api_contract.cpp)
     target_link_libraries(
         parallel-mater-api-contract-tests PRIVATE ParallelMater::parallel_mater)
@@ -395,7 +400,8 @@ if(BUILD_TESTING)
         add_executable(parallel-mater-rope-tests tests/gallery/rope_tests.cpp)
         target_link_libraries(parallel-mater-rope-tests PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(parallel-mater-rope-tests PRIVATE
-            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb")
+            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
+            PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb")
         add_test(NAME parallel-mater-rope-tests COMMAND parallel-mater-rope-tests)
         set_tests_properties(parallel-mater-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-settle-tests
@@ -406,6 +412,13 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-rope-tests 600 --wrapped)
         add_test(NAME parallel-mater-rope-winding-tests
                  COMMAND parallel-mater-rope-tests 500 --winding)
+        add_test(NAME parallel-mater-rope-fluid-tests
+                 COMMAND parallel-mater-rope-tests 180 --fluid)
+        add_test(NAME parallel-mater-rope-fluid-winding-tests
+                 COMMAND parallel-mater-rope-tests 600 --fluid-winding)
+        set_tests_properties(parallel-mater-rope-fluid-tests
+                             parallel-mater-rope-fluid-winding-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 240)
         set_tests_properties(parallel-mater-rope-settle-tests
                              parallel-mater-rope-release-tests
                              parallel-mater-rope-wrap-tests
@@ -483,6 +496,11 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-rope-headless-test
             parallel-mater-rope-settled.ppm 900 --rope)
+        add_gallery_headless_test(
+            parallel-mater-rope-fluid-headless-test
+            parallel-mater-rope-fluid.ppm 180 --rope-fluid)
+        set_tests_properties(parallel-mater-rope-fluid-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)

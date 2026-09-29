@@ -154,6 +154,15 @@ struct RopeId {
     }
 };
 
+struct FluidRopeCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        FluidRopeCouplingId left, FluidRopeCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RopeAttachment {
     RigidBodyId body{};
     Vec3 local_anchor{};
@@ -185,6 +194,7 @@ struct RopeDeviceView {
     DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const Vec3> constraint_forces{};
     DeviceSpan<const Vec3> contact_forces{};
+    DeviceSpan<const Vec3> fluid_contact_forces{};
     DeviceSpan<const float> rest_lengths{};
     float radius{};
 };
@@ -253,6 +263,7 @@ struct WorldOptions {
     std::uint32_t soft_body_cloth_coupling_capacity{1U};
     std::uint32_t fluid_soft_body_coupling_capacity{1U};
     std::uint32_t rope_capacity{4U};
+    std::uint32_t fluid_rope_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -354,6 +365,17 @@ struct FluidSoftBodyCouplingOptions {
     float contact_distance{};
     float friction{0.05F};
     std::uint32_t solver_iterations{4U}; // 1..16
+    bool enabled{true};
+};
+
+// Fluid particles collide with the moving capsule segments of an open rope.
+// Their impulses push the rope, bounded per node to keep dense splashes stable.
+struct FluidRopeCouplingOptions {
+    FluidId fluid{};
+    RopeId rope{};
+    float contact_distance{}; // Zero selects particle radius + rope radius.
+    float friction{0.05F};
+    float maximum_rope_acceleration{30.0F};
     bool enabled{true};
 };
 
@@ -712,7 +734,7 @@ struct PhysicsDebugSoftBodySample {
 struct PhysicsDebugRopeSample {
     RopeId rope{};
     std::uint32_t node{};
-    Vec3 position{}, velocity{}, constraint_force{}, contact_force{};
+    Vec3 position{}, velocity{}, constraint_force{}, contact_force{}, fluid_contact_force{};
 };
 
 struct PhysicsDebugFrame {
@@ -784,6 +806,7 @@ struct WorldStepTimings {
     KernelTiming soft_body_contacts{};
     KernelTiming soft_body_cloth_contacts{};
     KernelTiming fluid_soft_body_contacts{};
+    KernelTiming fluid_rope_contacts{};
     KernelTiming rope_solve{};
 };
 
@@ -810,6 +833,8 @@ struct WorldStatistics {
     // pre-correction penetration during the last frame, not residual overlap.
     std::uint32_t fluid_soft_body_contact_count{};
     float maximum_fluid_soft_body_penetration{};
+    std::uint32_t fluid_rope_contact_count{};
+    float maximum_fluid_rope_penetration{};
 };
 
 class FrameToken {
@@ -872,6 +897,13 @@ class World {
     [[nodiscard]] Status add_rope(RopeOptions options, RopeId &output) noexcept;
     [[nodiscard]] Status remove_rope(RopeId rope) noexcept;
     [[nodiscard]] Status rope_view(RopeId rope, RopeDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_fluid_rope_coupling(
+        FluidRopeCouplingOptions options, FluidRopeCouplingId &output) noexcept;
+    [[nodiscard]] Status update_fluid_rope_coupling(
+        FluidRopeCouplingId coupling, FluidRopeCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_fluid_rope_coupling(
+        FluidRopeCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_fluid_cloth_coupling(
         FluidClothCouplingOptions options,

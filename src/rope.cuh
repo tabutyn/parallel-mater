@@ -3,7 +3,7 @@
 struct RopeData {
     RopeOptions options{};
     std::uint32_t count{};
-    Vec3 *positions{}, *previous{}, *velocities{}, *constraint_forces{}, *contact_forces{};
+    Vec3 *positions{}, *previous{}, *velocities{}, *constraint_forces{}, *contact_forces{}, *fluid_contact_forces{};
     Vec3 *directions{}, *scratch{}, *body_translation{}, *body_rotation{};
     Vec3 *normals{}, *normals2{};
     float *rest{}, *lambda{};
@@ -17,7 +17,8 @@ struct RopeStorage {
     void release() {
         release_managed(data.positions); release_managed(data.previous);
         release_managed(data.velocities); release_managed(data.constraint_forces);
-        release_managed(data.contact_forces); release_managed(data.directions);
+        release_managed(data.contact_forces); release_managed(data.fluid_contact_forces);
+        release_managed(data.directions);
         release_managed(data.scratch); release_managed(data.body_translation);
         release_managed(data.body_rotation); release_managed(data.rest);
         release_managed(data.lambda);
@@ -455,7 +456,7 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
     for(unsigned i=tid;i<r.count;i+=blockDim.x) {
         r.previous[i]=r.positions[i];
         r.normals[i]=r.normals2[i]={};
-        if(first_substep){r.constraint_forces[i]={};r.contact_forces[i]={};}
+        if(first_substep){r.constraint_forces[i]={};r.contact_forces[i]={};r.fluid_contact_forces[i]={};}
         if(rope_anchor_body(r,i,first,last)<0) {
             r.velocities[i]=clamp_length(multiply(add(r.velocities[i],multiply(gravity,dt)),expf(-r.options.velocity_damping*dt)),r.options.maximum_speed);
             r.positions[i]=add(r.positions[i],multiply(r.velocities[i],dt));

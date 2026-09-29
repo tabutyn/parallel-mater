@@ -1424,6 +1424,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         .fluid_soft_body_coupling_capacity = static_cast<std::uint32_t>(
             scene.soft_bodies.size()),
         .rope_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
+        .fluid_rope_coupling_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1697,6 +1698,13 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 {.fluid = output.fluid, .soft_body = body}, coupling);
             if (!status) return status;
             output.fluid_soft_body_couplings.push_back(coupling);
+        }
+        for (RopeId rope : output.ropes) {
+            FluidRopeCouplingId coupling{};
+            status = world.add_fluid_rope_coupling(
+                {.fluid = output.fluid, .rope = rope}, coupling);
+            if (!status) return status;
+            output.fluid_rope_couplings.push_back(coupling);
         }
         for (const auto &source : scene.particle_sources) {
             auto options = source.options;

@@ -89,7 +89,8 @@ class ExportSceneTests(unittest.TestCase):
     def test_all_authored_scenes_share_exporter(self):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
-                     "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope"):
+                     "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
+                     "RopeFluid"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -168,6 +169,12 @@ class ExportSceneTests(unittest.TestCase):
         hooks[0].object = None
         with self.assertRaisesRegex(RuntimeError, "Hook target must be a rigid body"):
             exporter.export_scene(self.output)
+
+    def test_rope_fluid_authored_mass_and_geometry(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeFluid.blend"))
+        self.assertAlmostEqual(bpy.data.objects["Icosphere"].rigid_body.mass, 20.0)
+        self.assertAlmostEqual(bpy.data.objects["Cylinder"].location.z, 0.30825454)
+        self.check_export(Counter(rigid_body=4, rope=1, fluid_initial_volume=1))
 
     def test_soft_goal_group_exports_only_full_weight_pins(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyFluid.blend"))
