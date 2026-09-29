@@ -174,7 +174,7 @@ pass.
 
 - Export Blender's native Soft Body modifier through the single scene exporter.
   Convert each closed authored surface into a deterministic volumetric spring
-  lattice while retaining the authored triangle surface for rendering.
+  lattice while retaining the authored surface shape for rendering.
 - Add world-owned, generation-checked soft-body nodes, bonds, surface bindings,
   device views, timings, statistics, and opt-in physics capture to the public API.
 - Follow the old lab's stable substep order: predict nodes, resolve passive
@@ -235,6 +235,18 @@ pass.
 - Aspect-ratio-aware export sampling avoids excessive thin-slab lattices.
   Blender pin export, API impulse balance/lifecycle, dense impacts, and the
   authored inflow/outflow scene have automated regressions.
+- Surface preparation now lives in the API: conforming subdivision gives large
+  authored faces physical support at interior-lattice resolution, with exact
+  pinned-region inheritance. Refitted triangle acceleration keeps fluid contact
+  practical on the denser skin. Documented stiffness controls distinguish
+  exported custom properties from Blender-only spring settings.
+- Authored a coarser, firm soft-fluid material in Blender (777 physical nodes),
+  retaining the same mass, Goal attachment and shared API. Dry sag and water-load
+  regressions guard against the slab collapsing; no gallery-only support force.
+- Replaced rate-based inflow rectangles with API-sampled triangle mesh sources.
+  Coarse sites emit only into unoccupied water space; initial velocity controls
+  clearance and throughput. Shared spatial lookup, seam thinning, overlapping
+  source checks, capacity limits, and lifecycle tests cover every fluid gallery.
 
 ## Later — Gallery game shell
 

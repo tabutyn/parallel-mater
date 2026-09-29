@@ -104,10 +104,62 @@ void impact(bool pinned, unsigned particle_count, bool reverse_winding = false) 
               << " impulse_error=" << imbalance << " speed=" << max_speed << '\n';
 }
 
+void refined_recovery() {
+    const std::array<Vec3,8> corners{{{0,0,0},{1,0,0},{1,1,0},{0,1,0},
+                                     {0,0,1},{1,0,1},{1,1,1},{0,1,1}}};
+    const std::array<std::uint32_t,36> triangles{0,2,1,0,3,2,4,5,6,4,6,7,
+        0,1,5,0,5,4,3,7,6,3,6,2,0,4,7,0,7,3,1,2,6,1,6,5};
+    const std::array<float,8> pins{1,1,1,1,1,1,1,1};
+    SoftBodyGeometry geometry;
+    check(build_soft_body_geometry({{corners.data(),corners.size()},
+        {triangles.data(),triangles.size()},{pins.data(),pins.size()},0.1F,1},geometry),
+        "refined geometry");
+    World world;
+    check(World::create({.soft_body_capacity=1,.fluid_soft_body_coupling_capacity=1},world),"refined world");
+    SoftBodyId soft;
+    check(world.add_soft_body({.nodes={geometry.nodes.data(),geometry.nodes.size()},
+        .bonds={geometry.bonds.data(),geometry.bonds.size()},
+        .inverse_masses={geometry.inverse_masses.data(),geometry.inverse_masses.size()},
+        .surface_vertices={geometry.surface_vertices.data(),geometry.surface_vertices.size()},
+        .surface_triangle_indices={geometry.surface_triangle_indices.data(),geometry.surface_triangle_indices.size()},
+        .surface_bindings={geometry.surface_bindings.data(),geometry.surface_bindings.size()},
+        .node_mass=geometry.node_mass,.node_radius=0.02F},soft),"refined soft body");
+    std::vector<FluidParticle> particles;
+    for (int x=1;x<5;++x) for(int y=1;y<5;++y) for(int z=1;z<5;++z)
+        particles.push_back({{x*0.2F,y*0.2F,z*0.2F},{}});
+    // The inside-test ray goes exactly through a corner, exercising its
+    // solid-angle fallback instead of counting adjacent faces multiple times.
+    particles.push_back({{0.5F,0.8145F,0.9135F},{}});
+    particles.push_back({{-0.2F,0.5F,0.5F},{}});
+    particles.push_back({{1.2F,0.5F,0.5F},{}});
+    FluidParticle *device=nullptr;
+    check(cudaMalloc(reinterpret_cast<void **>(&device),particles.size()*sizeof(FluidParticle))==cudaSuccess,"refined upload allocation");
+    check(cudaMemcpy(device,particles.data(),particles.size()*sizeof(FluidParticle),cudaMemcpyHostToDevice)==cudaSuccess,"refined upload");
+    FluidId fluid;
+    auto added=world.add_fluid({.capacity=128,.particle_radius=0.02F,.support_radius=0.08F,
+        .solver_iterations=1,.repulsion=0,.viscosity=0,.velocity_damping=0},
+        {device,particles.size()},fluid);
+    cudaFree(device); check(added,"refined fluid");
+    FluidSoftBodyCouplingId coupling;
+    check(world.add_fluid_soft_body_coupling({.fluid=fluid,.soft_body=soft},coupling),"refined coupling");
+    for(int frame=0;frame<4;++frame) {
+        check(world.step({.timestep=1.0F/60,.substeps=1,.gravity={}}),"refined recovery");
+        FluidDeviceView view;
+        check(world.fluid_view(fluid,view),"refined fluid view");
+        const auto positions=read(view.positions);
+        for (Vec3 p:positions)
+            check(p.x<=-0.019F || p.x>=1.019F || p.y<=-0.019F || p.y>=1.019F ||
+                  p.z<=-0.019F || p.z>=1.019F,"BVH missed embedded water");
+        for(std::size_t i=particles.size()-2;i<particles.size();++i)
+            check(length(add(positions[i],mul(particles[i].position,-1)))<1e-6F,"BVH created exterior contact");
+    }
+    std::cout << "refined recovery triangles=" << geometry.surface_triangle_indices.size()/3 << '\n';
+}
+
 int main() {
     int devices=0;
     if(cudaGetDeviceCount(&devices)!=cudaSuccess || devices==0) return 77;
-    try { impact(true,1); impact(false,1); impact(false,64); impact(true,1,true); }
+    try { impact(true,1); impact(false,1); impact(false,64); impact(true,1,true); refined_recovery(); }
     catch(const std::exception &e) { std::cerr << e.what() << '\n'; return 1; }
     return 0;
 }

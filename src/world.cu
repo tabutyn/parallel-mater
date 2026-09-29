@@ -2,6 +2,7 @@
 #include <parallel_mater/parallel_mater.hpp>
 
 #include <cuda_runtime.h>
+#include <cuda/atomic>
 
 #include <cub/device/device_select.cuh>
 #include <cub/device/device_radix_sort.cuh>
@@ -2315,6 +2316,9 @@ struct FluidSoftCouplingStorage {
     Vec3 *position_deltas{}, *impulses{}, *previous_surface{}, *bounds{};
     std::uint32_t *contact_count{};
     float *maximum_penetration{};
+    BvhNode *tree{};
+    std::uint32_t *triangle_order{}, *parents{}, *ready{};
+    std::uint32_t tree_count{};
     void release() noexcept {
         release_managed(contacts);
         release_managed(counts);
@@ -2324,6 +2328,10 @@ struct FluidSoftCouplingStorage {
         release_managed(bounds);
         release_managed(contact_count);
         release_managed(maximum_penetration);
+        release_managed(tree);
+        release_managed(triangle_order);
+        release_managed(parents);
+        release_managed(ready);
     }
     ~FluidSoftCouplingStorage() { release(); }
 };
@@ -2437,11 +2445,23 @@ struct FluidStorage {
     }
 };
 
-struct SpawnPlaneSlot {
-    ParticleSpawnPlaneOptions options{};
+struct ParticleSourceData {
+    Vec3 *points{};
+    std::uint8_t *vacant{};
+    std::uint32_t *capacity_misses{};
+    std::uint32_t count{};
+    float spacing{};
+    ~ParticleSourceData() {
+        release_managed(points);
+        release_managed(vacant);
+        release_managed(capacity_misses);
+    }
+};
+
+struct ParticleSourceSlot {
+    ParticleSourceOptions options{};
     std::uint32_t generation{1U};
-    double remainder{};
-    std::uint32_t sequence{};
+    std::unique_ptr<ParticleSourceData> data{};
     bool alive{};
 };
 
@@ -4596,36 +4616,55 @@ __global__ void fluid_gather_contact_events(
         sample.normal_impulse};
 }
 
-__device__ float fluid_radical_inverse(std::uint32_t index,
-                                      std::uint32_t base) noexcept {
-    float result = 0.0F, factor = 1.0F / static_cast<float>(base);
-    while (index != 0U) {
-        result += factor * static_cast<float>(index % base);
-        index /= base;
-        factor /= static_cast<float>(base);
-    }
-    return result;
-}
-
-__global__ void fluid_spawn(Vec3 *positions, Vec3 *velocities,
-                            std::uint32_t *ids, float *foam,
-                            std::uint32_t first, std::uint32_t amount,
-                            std::uint32_t first_id, std::uint32_t sequence,
-                            ParticleSpawnPlaneOptions options) {
+__global__ void fluid_source_vacancies(
+    const Vec3 *points, std::uint32_t amount, float spacing,
+    const Vec3 *positions, const std::uint64_t *keys,
+    const std::uint32_t *indices, std::uint32_t capacity,
+    float inverse_cell_size, std::uint8_t *vacant) {
     const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
     if (item >= amount) return;
-    const std::uint32_t sample = sequence + item + options.sequence_seed + 1U;
-    const Vec3 local{
-        (2.0F * fluid_radical_inverse(sample, 2U) - 1.0F) *
-            options.plane.half_extents.x,
-        0.0F,
-        (2.0F * fluid_radical_inverse(sample, 3U) - 1.0F) *
-            options.plane.half_extents.y};
-    positions[first + item] = add(options.plane.center,
-        rotate(options.plane.orientation, local));
-    velocities[first + item] = options.initial_velocity;
-    ids[first + item] = first_id + item;
-    foam[first + item] = 0.0F;
+    const Vec3 p = points[item];
+    const int cx = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.x*inverse_cell_size)));
+    const int cy = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.y*inverse_cell_size)));
+    const int cz = max(-k_fluid_cell_bias, min(k_fluid_cell_bias-1, __float2int_rd(p.z*inverse_cell_size)));
+    vacant[item] = 0;
+    for(int z=-1;z<=1;++z) for(int y=-1;y<=1;++y) for(int x=-1;x<=1;++x) {
+        const auto key = fluid_cell_key(cx+x, cy+y, cz+z);
+        for(auto i=fluid_lower_bound(keys,capacity,key);i<capacity && keys[i]==key;++i)
+            if(length_squared(subtract(p,positions[indices[i]])) < spacing*spacing)
+                return;
+    }
+    vacant[item] = 1;
+}
+
+// A bounded deterministic commit pass avoids duplicate emission at seams and
+// intersecting sources. Vacancies above are tested in parallel against the
+// spatial index; only particles appended since that index need a direct check.
+__global__ void fluid_source_emit(
+    const Vec3 *points, const std::uint8_t *vacant, std::uint32_t amount,
+    float spacing, Vec3 velocity, Vec3 *positions, Vec3 *velocities,
+    std::uint32_t *ids, float *foam, std::uint32_t *count,
+    std::uint32_t capacity, std::uint32_t first_spawned,
+    std::uint32_t first_id, std::uint32_t *misses) {
+    if(threadIdx.x || blockIdx.x) return;
+    *misses=0;
+    const auto previous_count=*count;
+    for(std::uint32_t item=0;item<amount;++item) {
+        if(!vacant[item]) continue;
+        const Vec3 p=points[item];
+        bool occupied=false;
+        // This source's sites are already separated by the host sampler.
+        // Only earlier sources need a cross-source conflict check.
+        for(std::uint32_t i=first_spawned;i<previous_count;++i)
+            if(length_squared(subtract(p,positions[i])) < spacing*spacing) {occupied=true;break;}
+        if(occupied) continue;
+        if(*count==capacity) {++*misses;continue;}
+        const auto index=(*count)++;
+        positions[index]=p;
+        velocities[index]=velocity;
+        ids[index]=first_id+index-first_spawned;
+        foam[index]=0;
+    }
 }
 
 __global__ void fluid_destroy_flags(const Vec3 *positions,
@@ -4734,7 +4773,7 @@ struct World::Impl {
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
-    std::vector<SpawnPlaneSlot> spawn_planes{};
+    std::vector<ParticleSourceSlot> particle_sources{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
     PaintRuleResource *paint_rules{};
@@ -5105,7 +5144,7 @@ Status World::create(WorldOptions options, World &output,
             options.fluid_soft_body_coupling_capacity);
         implementation->soft_cloth_couplings.resize(
             options.soft_body_cloth_coupling_capacity);
-        implementation->spawn_planes.resize(options.particle_spawn_plane_capacity);
+        implementation->particle_sources.resize(options.particle_source_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
@@ -5528,9 +5567,9 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
         fluid->initial_count + fluid->emitted_count - *fluid->count;
     tombstone->generation = generation;
     impl_->fluids[id.index] = std::move(tombstone);
-    for (SpawnPlaneSlot &plane : impl_->spawn_planes)
+    for (ParticleSourceSlot &plane : impl_->particle_sources)
         if (plane.alive && plane.options.fluid == id) {
-            plane.alive = false; ++plane.generation;
+            plane.alive = false; ++plane.generation; plane.data.reset();
         }
     for (DestroyPlaneSlot &plane : impl_->destroy_planes)
         if (plane.alive && plane.options.fluid == id) {
@@ -5570,61 +5609,69 @@ namespace {
 }
 } // namespace
 
-Status World::add_particle_spawn_plane(ParticleSpawnPlaneOptions options,
-                                       ParticleSpawnPlaneId &output) noexcept {
+Status World::add_particle_source(ParticleSourceMesh mesh, ParticleSourceOptions options,
+                                       ParticleSourceId &output) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
-    if (!valid_particle_plane(options.plane) ||
-        !finite(options.particles_per_second) ||
-        options.particles_per_second < 0.0F ||
-        !finite(options.initial_velocity))
-        return failure(StatusCode::invalid_argument, "spawn plane options are invalid");
-    for (std::uint32_t index = 0; index < impl_->spawn_planes.size(); ++index) {
-        SpawnPlaneSlot &plane = impl_->spawn_planes[index];
+    if (mesh.spacing == 0.0F) mesh.spacing = fluid->options.support_radius;
+    if (!finite(options.initial_velocity) || !finite(mesh.spacing) ||
+        mesh.spacing < 2.0F * fluid->options.particle_radius)
+        return failure(StatusCode::invalid_argument, "fluid source spacing or velocity is invalid");
+    for (std::uint32_t index = 0; index < impl_->particle_sources.size(); ++index) {
+        ParticleSourceSlot &plane = impl_->particle_sources[index];
         if (plane.alive) continue;
+        std::vector<Vec3> points;
+        if (!(status = sample_fluid_source(mesh, points))) return status;
+        std::unique_ptr<ParticleSourceData> data(new (std::nothrow) ParticleSourceData());
+        if (!data) return failure(StatusCode::out_of_memory, "fluid source allocation failed");
+        data->count = static_cast<std::uint32_t>(points.size());
+        data->spacing = mesh.spacing;
+        if (!(status = allocate_managed(data->points, points.size())) ||
+            !(status = allocate_managed(data->vacant, points.size())) ||
+            !(status = allocate_managed(data->capacity_misses, 1))) return status;
+        std::copy(points.begin(), points.end(), data->points);
+        *data->capacity_misses = 0;
         plane.options = options;
-        plane.remainder = 0.0;
-        plane.sequence = 0U;
+        plane.data = std::move(data);
         plane.alive = true;
         output = {index, plane.generation};
         return success();
     }
-    return failure(StatusCode::capacity_exceeded, "spawn plane capacity exhausted");
+    return failure(StatusCode::capacity_exceeded, "fluid source capacity exhausted");
 }
 
-Status World::update_particle_spawn_plane(ParticleSpawnPlaneId id,
-                                          ParticleSpawnPlaneOptions options) noexcept {
+Status World::update_particle_source(ParticleSourceId id,
+                                          ParticleSourceOptions options) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (id.index >= impl_->spawn_planes.size() ||
-        !impl_->spawn_planes[id.index].alive ||
-        impl_->spawn_planes[id.index].generation != id.generation)
-        return failure(StatusCode::invalid_handle, "spawn plane handle is stale");
+    if (id.index >= impl_->particle_sources.size() ||
+        !impl_->particle_sources[id.index].alive ||
+        impl_->particle_sources[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid source handle is stale");
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
-    if (!valid_particle_plane(options.plane) ||
-        !finite(options.particles_per_second) ||
-        options.particles_per_second < 0.0F ||
-        !finite(options.initial_velocity))
-        return failure(StatusCode::invalid_argument, "spawn plane options are invalid");
-    impl_->spawn_planes[id.index].options = options;
+    if (!finite(options.initial_velocity) ||
+        !(options.fluid == impl_->particle_sources[id.index].options.fluid))
+        return failure(StatusCode::invalid_argument, "fluid source destination is immutable or velocity is invalid");
+    impl_->particle_sources[id.index].options = options;
     return success();
 }
 
-Status World::remove_particle_spawn_plane(ParticleSpawnPlaneId id) noexcept {
+Status World::remove_particle_source(ParticleSourceId id) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (id.index >= impl_->spawn_planes.size() ||
-        !impl_->spawn_planes[id.index].alive ||
-        impl_->spawn_planes[id.index].generation != id.generation)
-        return failure(StatusCode::invalid_handle, "spawn plane handle is stale");
-    impl_->spawn_planes[id.index].alive = false;
-    ++impl_->spawn_planes[id.index].generation;
+    if (id.index >= impl_->particle_sources.size() ||
+        !impl_->particle_sources[id.index].alive ||
+        impl_->particle_sources[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid source handle is stale");
+    impl_->particle_sources[id.index].alive = false;
+    impl_->particle_sources[id.index].data.reset();
+    ++impl_->particle_sources[id.index].generation;
     return success();
 }
 
@@ -7038,6 +7085,8 @@ Status World::add_fluid_soft_body_coupling(
         return failure(StatusCode::capacity_exceeded, "fluid soft-body coupling capacity exhausted");
     auto &body = *impl_->soft_bodies[options.soft_body.index];
     std::unique_ptr<FluidSoftCouplingStorage> coupling;
+    std::vector<BvhNode> tree;
+    std::vector<std::uint32_t> order, parents;
     double volume = 0;
     try {
         // glTF can duplicate a position at normal/UV seams. Validate geometric
@@ -7068,6 +7117,50 @@ Status World::add_fluid_soft_body_coupling(
             return failure(StatusCode::invalid_argument,
                            "fluid soft-body coupling needs a closed consistently wound surface");
         coupling = std::make_unique<FluidSoftCouplingStorage>();
+        order.resize(body.surface_index_count / 3U);
+        std::iota(order.begin(), order.end(), 0U);
+        const auto centroid = [&](std::uint32_t triangle) {
+            const auto *indices = body.surface_indices + triangle * 3U;
+            return multiply(add(add(body.surface_rest_positions[indices[0]],
+                body.surface_rest_positions[indices[1]]),
+                body.surface_rest_positions[indices[2]]), 1.0F / 3.0F);
+        };
+        std::function<std::uint32_t(std::uint32_t, std::uint32_t, std::uint32_t)> build =
+            [&](std::uint32_t first, std::uint32_t end, std::uint32_t parent) {
+                const auto index = static_cast<std::uint32_t>(tree.size());
+                BvhNode node{};
+                node.minimum = {FLT_MAX, FLT_MAX, FLT_MAX};
+                node.maximum = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+                for (auto item = first; item < end; ++item) {
+                    const Vec3 center = centroid(order[item]);
+                    node.minimum = component_min(node.minimum, center);
+                    node.maximum = component_max(node.maximum, center);
+                }
+                tree.push_back(node);
+                parents.push_back(parent);
+                if (end - first <= 4U) {
+                    tree[index].first_triangle = first;
+                    tree[index].triangle_count = end - first;
+                } else {
+                    const Vec3 extent = subtract(node.maximum, node.minimum);
+                    const int axis = extent.x >= extent.y && extent.x >= extent.z ? 0 :
+                        (extent.y >= extent.z ? 1 : 2);
+                    const auto middle = first + (end - first) / 2U;
+                    std::nth_element(order.begin() + first, order.begin() + middle, order.begin() + end,
+                        [&](auto a, auto b) {
+                            const Vec3 ca = centroid(a), cb = centroid(b);
+                            const float x = axis == 0 ? ca.x : (axis == 1 ? ca.y : ca.z);
+                            const float y = axis == 0 ? cb.x : (axis == 1 ? cb.y : cb.z);
+                            return x < y || (x == y && a < b);
+                        });
+                    const auto left = build(first, middle, index);
+                    const auto right = build(middle, end, index);
+                    tree[index].left = left;
+                    tree[index].right = right;
+                }
+                return index;
+            };
+        build(0U, static_cast<std::uint32_t>(order.size()), k_invalid_dense);
     } catch (...) { return failure(StatusCode::out_of_memory, "failed to build fluid soft-body coupling"); }
 #define PM_ALLOC_FLUID_SOFT(member, count) \
     status = allocate_managed(coupling->member, count); if (!status) return status
@@ -7079,7 +7172,15 @@ Status World::add_fluid_soft_body_coupling(
     PM_ALLOC_FLUID_SOFT(bounds, 2U);
     PM_ALLOC_FLUID_SOFT(contact_count, 1U);
     PM_ALLOC_FLUID_SOFT(maximum_penetration, 1U);
+    PM_ALLOC_FLUID_SOFT(tree, tree.size());
+    PM_ALLOC_FLUID_SOFT(parents, parents.size());
+    PM_ALLOC_FLUID_SOFT(ready, tree.size());
+    PM_ALLOC_FLUID_SOFT(triangle_order, order.size());
 #undef PM_ALLOC_FLUID_SOFT
+    std::copy(tree.begin(), tree.end(), coupling->tree);
+    std::copy(parents.begin(), parents.end(), coupling->parents);
+    std::copy(order.begin(), order.end(), coupling->triangle_order);
+    coupling->tree_count = static_cast<std::uint32_t>(tree.size());
     std::copy_n(body.surface_positions, body.surface_vertex_count, coupling->previous_surface);
     *coupling->contact_count = 0;
     *coupling->maximum_penetration = 0;
@@ -8591,37 +8692,52 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         bool spawned = false;
         const std::uint32_t blocks =
             (fluid.options.capacity + block_size - 1U) / block_size;
-        for (SpawnPlaneSlot &slot : impl_->spawn_planes) {
+        float source_cell_size = fluid.options.support_radius;
+        bool has_sources = false;
+        for (const auto &slot : impl_->particle_sources) {
+            if (!slot.alive || !slot.options.enabled || !(slot.options.fluid == fluid_id)) continue;
+            has_sources = true;
+            source_cell_size = std::max(source_cell_size, slot.data->spacing);
+        }
+        if (has_sources) {
+            if (fluid.next_id > UINT32_MAX - (fluid.options.capacity - live))
+                return failure(StatusCode::capacity_exceeded, "stable fluid particle ID range exhausted");
+            fluid_emit_cells<<<blocks, block_size, 0, stream>>>(
+                fluid.positions, fluid.count, fluid.options.capacity,
+                1.0F/source_cell_size, fluid.keys[0], fluid.indices[0]);
+            error = cub::DeviceRadixSort::SortPairs(
+                fluid.sort_workspace, fluid.sort_workspace_size,
+                fluid.keys[0], fluid.keys[1], fluid.indices[0], fluid.indices[1],
+                fluid.options.capacity, 0, 64, stream);
+            if (error != cudaSuccess) return cuda_failure(error, "fluid source spatial index failed");
+        }
+        for (ParticleSourceSlot &slot : impl_->particle_sources) {
             if (!slot.alive || !slot.options.enabled ||
                 !(slot.options.fluid == fluid_id)) continue;
-            const double request = slot.remainder +
-                static_cast<double>(slot.options.particles_per_second) *
-                options.timestep;
-            const std::uint64_t wanted = static_cast<std::uint64_t>(floor(request));
-            slot.remainder = request - static_cast<double>(wanted);
-            const std::uint32_t free = fluid.options.capacity - live;
-            const std::uint32_t amount = static_cast<std::uint32_t>(
-                std::min<std::uint64_t>(wanted, free));
-            impl_->spawn_capacity_miss_count += wanted - amount;
-            if (amount != 0U) {
-                spawned = true;
-                if (fluid.next_id > UINT32_MAX - amount)
-                    return failure(StatusCode::capacity_exceeded,
-                                   "stable fluid particle ID range exhausted");
-                fluid_spawn<<<(amount + block_size - 1U) / block_size,
-                              block_size, 0, stream>>>(
-                    fluid.positions, fluid.velocities, fluid.ids,
-                    fluid.foam, live, amount, fluid.next_id,
-                    slot.sequence, slot.options);
-                live += amount;
-                fluid.next_id += amount;
-                fluid.emitted_count += amount;
-                impl_->emitted_particle_count += amount;
-            }
-            slot.sequence += static_cast<std::uint32_t>(wanted);
+            const auto &data = *slot.data;
+            fluid_source_vacancies<<<(data.count+block_size-1U)/block_size,block_size,0,stream>>>(
+                data.points, data.count, data.spacing, fluid.positions,
+                fluid.keys[1], fluid.indices[1], fluid.options.capacity,
+                1.0F/source_cell_size, data.vacant);
+            fluid_source_emit<<<1U,1U,0,stream>>>(
+                data.points, data.vacant, data.count, data.spacing,
+                slot.options.initial_velocity, fluid.positions, fluid.velocities,
+                fluid.ids, fluid.foam, fluid.count, fluid.options.capacity,
+                first_spawned, fluid.next_id, data.capacity_misses);
         }
-        *fluid.count = live;
-        if (spawned) {
+        if (has_sources) {
+            // One readback per fluid, never one per sample. No frame allocation.
+            error = cudaStreamSynchronize(stream);
+            if (error != cudaSuccess) return cuda_failure(error, "fluid source emission failed");
+            live = *fluid.count;
+            const auto amount = live - first_spawned;
+            spawned = amount != 0;
+            fluid.next_id += amount;
+            fluid.emitted_count += amount;
+            impl_->emitted_particle_count += amount;
+            for (const auto &slot : impl_->particle_sources)
+                if (slot.alive && slot.options.enabled && slot.options.fluid == fluid_id)
+                    impl_->spawn_capacity_miss_count += *slot.data->capacity_misses;
             status = record_timing_stage(TimingStage::fluid_spawn);
             if (!status) return status;
         }
@@ -8756,6 +8872,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const auto skin_blocks = (body.surface_vertex_count + block_size - 1U) / block_size;
                 const float distance = coupling.options.contact_distance > 0
                     ? coupling.options.contact_distance : fluid.options.particle_radius;
+                const auto refit_surface = [&]() -> Status {
+                    const auto clear = cudaMemsetAsync(coupling.ready, 0,
+                        coupling.tree_count * sizeof(std::uint32_t), stream);
+                    if (clear != cudaSuccess) return cuda_failure(clear, "soft surface BVH clear failed");
+                    fluid_soft_refit<<<(coupling.tree_count + block_size - 1U) / block_size,
+                        block_size, 0, stream>>>(body.surface_positions, coupling.previous_surface,
+                        body.surface_indices, coupling.triangle_order, coupling.tree, coupling.parents,
+                        coupling.ready, coupling.tree_count, coupling.bounds);
+                    return success();
+                };
                 for (std::uint32_t pass = 0; pass < coupling.options.solver_iterations; ++pass) {
                     error = cudaMemsetAsync(coupling.counts, 0,
                         body.node_count * sizeof(std::uint32_t), stream);
@@ -8764,13 +8890,14 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     if (error == cudaSuccess) error = cudaMemsetAsync(coupling.impulses, 0,
                         body.node_count * sizeof(Vec3), stream);
                     if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body scratch clear failed");
-                    fluid_soft_bounds<<<1, 1, 0, stream>>>(body.surface_positions,
-                        coupling.previous_surface, body.surface_vertex_count, coupling.bounds);
+                    status = refit_surface();
+                    if (!status) return status;
                     fluid_soft_detect<<<blocks, block_size, 0, stream>>>(
                         fluid.positions, fluid.previous, fluid.velocities, fluid.count,
                         body.surface_positions, coupling.previous_surface, body.surface_indices,
                         body.surface_index_count, body.surface_bindings, body.velocities,
                         coupling.orientation, distance, coupling.bounds, pass == 0,
+                        coupling.tree, coupling.triangle_order,
                         coupling.contacts, coupling.counts, coupling.contact_count,
                         coupling.maximum_penetration);
                     fluid_soft_solve<<<blocks, block_size, 0, stream>>>(
@@ -8803,12 +8930,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         body.positions, body.rest_positions, body.surface_rest_positions,
                         body.surface_bindings, body.surface_positions, body.surface_vertex_count);
                 }
-                fluid_soft_bounds<<<1, 1, 0, stream>>>(body.surface_positions,
-                    coupling.previous_surface, body.surface_vertex_count, coupling.bounds);
+                status = refit_surface();
+                if (!status) return status;
                 fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
                     fluid.positions, fluid.previous, fluid.count, body.surface_positions,
                     coupling.previous_surface, body.surface_indices, body.surface_index_count,
-                    coupling.orientation, distance, coupling.bounds, true);
+                    coupling.orientation, distance, coupling.bounds, true,
+                    coupling.tree, coupling.triangle_order);
                 error = cudaMemcpyAsync(coupling.previous_surface, body.surface_positions,
                     body.surface_vertex_count * sizeof(Vec3), cudaMemcpyDeviceToDevice, stream);
                 if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body skin copy failed");
@@ -8908,7 +9036,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
                         fluid.positions, fluid.positions, fluid.count, body.surface_positions,
                         body.surface_positions, body.surface_indices, body.surface_index_count,
-                        coupling->orientation, distance, coupling->bounds, false);
+                        coupling->orientation, distance, coupling->bounds, false,
+                        coupling->tree, coupling->triangle_order);
                 status = record_timing_stage(TimingStage::fluid_soft_body_contacts, 3U);
                 if (!status) return status;
             }
@@ -9339,6 +9468,9 @@ Status World::collect_statistics(WorldStatistics &output,
     }
     output.destroyed_particle_count = impl_->destroyed_particle_count;
     output.spawn_capacity_miss_count = impl_->spawn_capacity_miss_count;
+    for (const auto &source : impl_->particle_sources)
+        if (source.alive)
+            output.allocated_bytes += source.data->count * (sizeof(Vec3) + sizeof(std::uint8_t)) + sizeof(std::uint32_t);
     output.contact_count = *impl_->fluid_contact_count;
     output.contact_overflow_count = *impl_->fluid_contact_overflow;
     output.maximum_fluid_neighbor_count =

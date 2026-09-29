@@ -140,6 +140,15 @@ library never draws these spans.
 
 ## Volumetric soft bodies
 
+`build_soft_body_geometry` is a host-only, transactional preparation API for a
+closed, consistently wound triangle surface. It refines long edges to the
+requested lattice spacing, welds rendering seams into physical nodes, fills
+the interior with HCP nodes, and connects both sets with springs. Capacity
+limits bound generated nodes and triangles. Fully pinned source edges/faces
+stay pinned after refinement. `SoftBodyGeometry::surface_sources` supplies
+three source indices/weights per refined vertex so callers can interpolate
+their own UVs, normals or other attributes without putting rendering in physics.
+
 `World::add_soft_body` copies host nodes, fixed-topology bonds, optional inverse
 masses, an indexed render surface, and four-node delta-skinning bindings.
 `SoftBodyId` is generation checked, and `soft_body_view` exposes borrowed device
@@ -242,7 +251,10 @@ pairs are rejected. Remove the resource before either endpoint, even if disabled
 
 Contact follows current triangles and merges their barycentric skin influences
 onto physical nodes. Each fluid iteration alternates contact and soft graph
-projection. Shared-node contact-degree relaxation and a symmetric impulse
+projection. A fixed-topology triangle BVH refits swept bounds after deformation;
+nearest-face and signed-ray winding queries traverse it. Ambiguous shared-edge
+ray hits fall back to solid-angle winding. No coarse collision proxy replaces
+the refined skin. Shared-node contact-degree relaxation and a symmetric impulse
 bound keep node velocities within the configured soft-body speed ceiling.
 Fluid and node impulses are equal and opposite; forces on fixed nodes represent
 reactions absorbed by their external support. Separate non-energetic position
@@ -264,8 +276,8 @@ refittable triangle hierarchy remains a future optimization for dense skins.
 
 ### Sources and paint
 
-Continuous inflow is configured with `ParticleSpawnPlaneOptions` and
-`World::add_particle_spawn_plane`; `ParticleDestroyPlaneOptions` supplies the
+Continuous inflow is configured with `ParticleSourceOptions` and
+`World::add_particle_source`; `ParticleDestroyPlaneOptions` supplies the
 matching outflow. These are physics-owned sources and sinks, so the gallery
 only translates Blender flow-plane metadata into their options.
 
@@ -383,14 +395,24 @@ reconstruction stays outside the public API in the example renderer.
 `FluidDeviceView::foam` exposes a short-lived impact/surface signal for the
 examples-only renderer; it is not a separate foam fluid.
 
-## Spawn and destroy planes
+## Mesh sources and destroy planes
 
-A spawn plane emits into one existing fluid at a rate measured in particles
-per second. It is a finite oriented rectangle with an initial world-space
-velocity. A deterministic fractional accumulator carries the un-emitted part
-of the rate between frames, and a seeded sequence distributes new particles
-over the rectangle. New stable particle IDs increase monotonically and never
-alias a surviving particle. Emission happens before neighbor construction.
+`World::add_particle_source(mesh, options, id)` copies a world-space triangle
+surface and subdivides/thins it into deterministic, separated emission sites.
+Open, tilted, disconnected, and closed surfaces are supported. Sampling belongs
+to the API; `sample_fluid_source` also exposes the host-only sampler.
+`ParticleSourceMesh::spacing` defaults to the fluid support radius and cannot
+be smaller than its particle diameter. Each step, sites query a GPU spatial
+index and emit one particle only if no particle of the destination fluid lies
+within that spacing. Earlier emissions, including overlapping sources, also
+block occupied sites. Faster initial velocity clears sites sooner, increasing
+flow naturally; there is no particles-per-second setting or emission backlog.
+Checks occur once per `World::step`, so callers should use a fixed step small
+enough that water travels less than the site spacing per step.
+Stable particle IDs increase monotonically. All source buffers are preallocated.
+`update_particle_source` changes velocity/enabled state; changing mesh, spacing,
+or destination requires removal and registration. The old rate-based
+`ParticleSpawnPlaneOptions`/`add_particle_spawn_plane` API is removed.
 
 A destroy plane removes a particle when its swept path crosses the finite
 rectangle in the selected normal direction. Using the swept path avoids
@@ -398,11 +420,11 @@ missing a plane when a fast particle moves from one side to the other in one
 substep. Compaction is stable, so surviving particles retain deterministic
 order and IDs.
 
-Spawn and destroy capacity is fixed in `WorldOptions`; neither feature may
+Source and destroy capacity is fixed in `WorldOptions`; neither feature may
 allocate during stepping. If a fluid is full, emission pauses rather than
 overwriting particles, and `spawn_capacity_miss_count` reports how many
-particles could not be created. Planes are generation-checked resources that
-can be enabled, moved, updated, and removed without rebuilding the fluid.
+vacant sites could not emit. Handles are generation-checked. Destroy planes can
+be enabled, moved, updated, and removed without rebuilding the fluid.
 
 ## Rigid-body contract
 

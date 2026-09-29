@@ -715,15 +715,12 @@ int main(int argc, char **argv) {
                       << passive_maximum.z << '\n';
             std::cout << "Passive floor triangles="
                       << floor_index.triangle_count() << '\n';
-            for (const auto &spawn : runtime.scene.spawn_planes) {
-                std::cout << "Fluid inflow center=(" << spawn.plane.center.x
-                          << ',' << spawn.plane.center.y << ','
-                          << spawn.plane.center.z << ") half_extents=("
-                          << spawn.plane.half_extents.x << ','
-                          << spawn.plane.half_extents.y << ") velocity=("
-                          << spawn.initial_velocity.x << ','
-                          << spawn.initial_velocity.y << ','
-                          << spawn.initial_velocity.z << ")\n";
+            for (const auto &spawn : runtime.scene.particle_sources) {
+                std::cout << "Fluid source triangles=" << spawn.indices.size()/3
+                          << " spacing=" << spawn.spacing << " velocity=("
+                          << spawn.options.initial_velocity.x << ','
+                          << spawn.options.initial_velocity.y << ','
+                          << spawn.options.initial_velocity.z << ")\n";
             }
         }
         float headless_dump_angle = k_dump_initial_angle;

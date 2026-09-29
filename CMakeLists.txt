@@ -25,7 +25,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
-add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp)
+add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp src/fluid_source.cpp src/soft_body_geometry.cpp)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 set_target_properties(
@@ -198,6 +198,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
+    target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
     add_executable(parallel-mater-fluid-soft-body-tests tests/fluid_soft_body_tests.cpp)
     target_link_libraries(parallel-mater-fluid-soft-body-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-fluid-soft-body-tests COMMAND parallel-mater-fluid-soft-body-tests)
@@ -219,6 +222,11 @@ if(BUILD_TESTING)
         parallel-mater-fluid-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-fluid-tests COMMAND parallel-mater-fluid-tests)
     set_tests_properties(parallel-mater-fluid-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    add_executable(parallel-mater-fluid-source-tests tests/fluid_source_tests.cpp)
+    target_link_libraries(parallel-mater-fluid-source-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-fluid-source-tests COMMAND parallel-mater-fluid-source-tests)
+    set_tests_properties(parallel-mater-fluid-source-tests PROPERTIES SKIP_RETURN_CODE 77)
 
     add_executable(parallel-mater-paint-geometry-tests
                    tests/paint_geometry_tests.cpp)
@@ -375,6 +383,10 @@ if(BUILD_TESTING)
         add_test(NAME parallel-mater-soft-body-fluid-tests
                  COMMAND parallel-mater-soft-body-fluid-tests)
         set_tests_properties(parallel-mater-soft-body-fluid-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME parallel-mater-soft-body-fluid-dry-test
+                 COMMAND parallel-mater-soft-body-fluid-tests 600 --dry)
+        set_tests_properties(parallel-mater-soft-body-fluid-dry-test PROPERTIES
                              SKIP_RETURN_CODE 77 TIMEOUT 180)
 
         add_executable(parallel-mater-material-visibility-tests

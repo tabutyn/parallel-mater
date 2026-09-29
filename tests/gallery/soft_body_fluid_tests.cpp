@@ -47,32 +47,61 @@ int main(int argc, char **argv) {
     try {
         SceneDefinition scene;
         std::string error;
-        check(load_glb_scene(PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH, scene, error), error.c_str());
-        check(scene.soft_bodies.size() == 1 && scene.spawn_planes.size() == 1 &&
+        const auto scene_path = argc > 6 ? argv[6] : PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH;
+        check(load_glb_scene(scene_path, scene, error), error.c_str());
+        check(scene.soft_bodies.size() == 1 && scene.particle_sources.size() == 1 &&
               scene.destroy_planes.size() == 1, "authored systems missing");
-        const auto &definition = scene.soft_bodies[0];
+        auto &definition = scene.soft_bodies[0];
         const auto pins = std::count(definition.inverse_masses.begin(), definition.inverse_masses.end(), 0.0F);
-        check(pins == 4, "Goal group must fix exactly four authored vertices");
-        check(definition.shape_matching_stiffness == 0, "Goal group must not enable global shape matching");
+        check(pins > 4, "Goal group must also fix refined vertices on the pinned face");
+        const bool authored_material = argc <= 4;
+        if (authored_material) {
+            check(definition.nodes.size() < 900, "authored soft lattice became unnecessarily dense");
+            check(definition.shape_matching_stiffness == 1.0F && definition.solver_iterations == 64 &&
+                  definition.maximum_projection_fraction == 0.5F && definition.stretch_compliance == 0.0F,
+                  "authored firm material was not imported");
+        }
+        // Optional material overrides for comparing anchored-body sag without
+        // modifying the artist's Blender source or exported fixture.
+        if (argc > 4) definition.shape_matching_stiffness = std::stof(argv[4]);
+        if (argc > 5) definition.solver_iterations = std::stoul(argv[5]);
         std::cout << "nodes=" << definition.nodes.size() << " bonds=" << definition.bonds.size()
+                  << " triangles=" << scene.meshes[definition.mesh_index].indices.size()/3
                   << " pins=" << pins << std::endl;
         scene.fluid_options.capacity = argc > 3 ? std::stoul(argv[3]) : 4000;
         if (argc > 2 && std::string(argv[2]) == "--dry") {
             scene.fluid_options.capacity = 0;
-            scene.spawn_planes.clear();
+            scene.particle_sources.clear();
             scene.destroy_planes.clear();
             World dry;
             SceneInstance dry_instance;
             check(create_scene_world(scene, dry, dry_instance), "dry scene");
-            for (int frame = 0; frame < 240; ++frame)
+            const int frames = argc > 1 ? std::stoi(argv[1]) : 240;
+            float displacement = 0, drop = 0, pin_error = 0;
+            float final_displacement = 0, final_drop = 0;
+            for (int frame = 0; frame < frames; ++frame) {
                 check(dry.step({.timestep = 1.0F/60, .substeps = 4, .gravity = {0,-9.81F,0}}), "dry step");
-            SoftBodyDeviceView dry_view;
-            check(dry.soft_body_view(dry_instance.soft_bodies[0], dry_view), "dry view");
-            const auto positions = read(dry_view.positions);
-            float displacement = 0;
-            for (std::size_t i = 0; i < positions.size(); ++i)
-                displacement = std::max(displacement, length(math::subtract(positions[i], definition.nodes[i])));
-            std::cout << "dry_displacement=" << displacement << std::endl;
+                SoftBodyDeviceView dry_view;
+                check(dry.soft_body_view(dry_instance.soft_bodies[0], dry_view), "dry view");
+                const auto positions = read(dry_view.positions);
+                final_displacement = final_drop = 0;
+                for (std::size_t i = 0; i < positions.size(); ++i) {
+                    check(std::isfinite(length(positions[i])), "nonfinite dry soft body");
+                    final_displacement = std::max(final_displacement, length(math::subtract(positions[i], definition.nodes[i])));
+                    final_drop = std::max(final_drop, definition.nodes[i].y - positions[i].y);
+                    if (definition.inverse_masses[i] == 0)
+                        pin_error = std::max(pin_error, length(math::subtract(positions[i], definition.nodes[i])));
+                }
+                displacement = std::max(displacement, final_displacement);
+                drop = std::max(drop, final_drop);
+            }
+            std::cout << "dry_displacement=" << displacement << " drop=" << drop
+                      << " final_displacement=" << final_displacement << " final_drop=" << final_drop
+                      << " pin_error=" << pin_error << std::endl;
+            check(pin_error < 1.0e-6F, "dry Goal pins moved");
+            if (authored_material)
+                check(displacement < 0.18F && drop < 0.18F && final_displacement < 0.11F,
+                      "firm soft body collapsed under its own weight");
             return 0;
         }
         World world;
@@ -144,6 +173,8 @@ int main(int argc, char **argv) {
         check(max_pin < 1.0e-6F, "Goal pins drifted");
         check(max_speed <= definition.maximum_speed + 1.0e-3F, "fluid drove soft body beyond speed bound");
         check(max_displacement < 3.0F, "anchored slab stretched without bound");
+        if (authored_material && !(argc > 2 && std::string(argv[2]) == "--tilt"))
+            check(max_displacement < 0.65F, "firm soft body collapsed under water loading");
         check(contacts > 0 && max_force > 0, "no fluid soft reaction");
         check(inside_count == 0, "water crossed inside soft skin");
         check(stats.destroyed_particle_count > 0, "outflow removed no particles");

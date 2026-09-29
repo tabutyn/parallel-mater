@@ -126,6 +126,27 @@ class ExportSceneTests(unittest.TestCase):
                 bpy.data.objects.remove(obj, do_unlink=True)
         self.check_export(Counter(fluid_inflow=1, fluid_outflow=1))
 
+    def test_nonrectangular_inflow_exports_surface_and_velocity(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyFluid.blend"))
+        obj = next(obj for obj in bpy.context.scene.objects if any(
+            m.type == "FLUID" and m.fluid_type == "FLOW" and
+            m.flow_settings.flow_behavior == "INFLOW" for m in obj.modifiers))
+        mesh = bpy.data.meshes.new("TiltedEmissionTriangle")
+        mesh.from_pydata([(0, 0, 0), (1, 0, 0.5), (0, 1, 0)], [], [(0, 1, 2)])
+        obj.data = mesh
+        obj["pm_source_spacing"] = 0.25
+        obj["pm_particles_per_second"] = 999999
+        flow = next(m.flow_settings for m in obj.modifiers if m.type == "FLUID")
+        flow.use_initial_velocity = True
+        flow.velocity_coord = (0, 0, -1)
+        document = self.check_export(Counter(rigid_body=2, soft_body=1,
+                                            fluid_inflow=1, fluid_outflow=1))
+        extras = next(node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "fluid_inflow")
+        self.assertEqual(extras["pm_source_spacing"], 0.25)
+        self.assertEqual(extras["pm_velocity_y"], -1)
+        self.assertNotIn("pm_particles_per_second", extras)
+
     def test_soft_goal_group_exports_only_full_weight_pins(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyFluid.blend"))
         document = self.check_export(Counter(rigid_body=2, soft_body=1,
@@ -136,9 +157,21 @@ class ExportSceneTests(unittest.TestCase):
         pins = extras["pm_pin_vertices"].split(";")
         self.assertEqual(len(pins), 4)
         self.assertTrue(all(pin.endswith(",1") for pin in pins))
-        self.assertEqual(extras["pm_shape_matching_stiffness"], 0.0)
+        self.assertEqual(extras["pm_node_spacing"], 0.12)
+        self.assertEqual(extras["pm_shape_matching_stiffness"], 1.0)
+        self.assertEqual(extras["pm_solver_iterations"], 64)
+        self.assertEqual(extras["pm_maximum_projection_fraction"], 0.5)
+        self.assertEqual(extras["pm_stretch_compliance"], 0.0)
         obj = next(obj for obj in bpy.context.scene.objects
                    if any(m.type == "SOFT_BODY" for m in obj.modifiers))
+        # Explicit material recovery can coexist with exact Goal pins, but a
+        # Goal group alone must not impose whole-body shape matching.
+        del obj["pm_shape_matching_stiffness"]
+        without_override = self.check_export(Counter(rigid_body=2, soft_body=1,
+                                                     fluid_inflow=1, fluid_outflow=1))
+        default_extras = next(node["extras"] for node in without_override["nodes"]
+                              if node["extras"].get("pm_system") == "soft_body")
+        self.assertEqual(default_extras["pm_shape_matching_stiffness"], 0.0)
         settings = next(m.settings for m in obj.modifiers if m.type == "SOFT_BODY")
         from mathutils import Matrix
         # Min/max remapping, partial weights, disabled Goal, and missing groups.

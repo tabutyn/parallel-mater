@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     const std::array<std::size_t, 6> counts{
-        scene.rigid_bodies.size(), scene.cloths.size(), scene.spawn_planes.size(),
+        scene.rigid_bodies.size(), scene.cloths.size(), scene.particle_sources.size(),
         scene.destroy_planes.size(), scene.initial_particles.empty() ? 0U : 1U,
         scene.soft_bodies.size()};
     for (std::size_t index = 0; index < counts.size(); ++index) {

@@ -335,9 +335,7 @@ def copy_flow_for_export(
             if name in source:
                 exported[name] = float(source[name])
     if flow.flow_behavior == "INFLOW":
-        exported["pm_particles_per_second"] = float(
-            source.get("pm_particles_per_second", 2400.0)
-        )
+        exported["pm_source_spacing"] = float(source.get("pm_source_spacing", 0.0))
     return exported
 
 
