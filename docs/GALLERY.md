@@ -11,7 +11,7 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, ClothId, SoftBodyId, geometry sampling, inflow/outflow,
+  World, FluidId, RigidBodyId, ClothId, SoftBodyId, RopeId, geometry sampling, inflow/outflow,
   paint fields and rules, device views, contacts
 
 examples/gallery (not installed)
@@ -62,6 +62,11 @@ Headless physics builds remain free of OpenGL and OptiX.
 12. **Soft Body Cloth** — a soft sphere lands on an intact pinned bridge over a
     pit, then arrow-key gravity rolls it into a tearable curtain. Both sheets
     share the API coupling and use independently authored fracture settings.
+13. **Soft Body Fluid** — Goal-pinned soft bodies deflect under mesh-source
+    inflow, with shared fluid rendering and outflow lifecycle.
+14. **Rope** — a Bézier rest curve connects passive and active rigid bodies
+    through native Blender Hooks. The API owns sampling, tension and contacts;
+    the gallery builds an orange tube from its node view.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -73,7 +78,7 @@ body list or transforms.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
-Soft Body Rigid, Soft Body Cloth.
+Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
@@ -115,6 +120,10 @@ projection, and passive triangle contact timings. `V` draws every generated
 internal API spring; `B` draws the authored surface wireframe.
 Soft Body Rigid can be selected with `--soft-body-rigid`. It reuses all of those
 controls and diagnostics while two active spheres collide with the lattice.
+Rope can be selected with `--rope`. Gravity starts down; arrows use the shared
+45-degree tilt controller. `R` resets, `F` includes rope solve time, `V`/`B`
+draw physical segments, `X` shows constraint/contact forces, `N` velocities,
+and `M` writes the common opt-in API capture.
 Soft Body Cloth can be selected with `--soft-body-cloth`. It starts with
 gravity down and reuses those controls. `F` also reports cloth stepping and
 soft/cloth coupling. The bridge's Blender `pm_break_strain` is zero; the

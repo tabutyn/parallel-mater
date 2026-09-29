@@ -439,6 +439,92 @@ def soft_body_goal_pins(source, settings, scale_matrix):
     return pins
 
 
+def copy_rope_for_export(source, collection):
+    """Curve shape + Hook references only; rope physics/sampling lives in API."""
+    if source.parent is not None or len(source.data.splines) != 1:
+        raise RuntimeError(f"{source.name}: rope needs one scene-root open spline")
+    spline = source.data.splines[0]
+    if spline.type != "BEZIER" or spline.use_cyclic_u or len(spline.bezier_points) < 2:
+        raise RuntimeError(f"{source.name}: rope needs an open Bezier spline")
+    controls = spline.bezier_points
+    hooks = [m for m in source.modifiers if m.type == "HOOK" and m.show_viewport]
+    anchors = [None, None]
+    for hook in hooks:
+        if hook.object is None or hook.object.rigid_body is None:
+            raise RuntimeError(f"{source.name}: Hook target must be a rigid body")
+        if hook.strength != 1.0 or (hook.falloff_type != "NONE" and hook.falloff_radius != 0):
+            raise RuntimeError(f"{source.name}: rope Hook needs strength 1 and no distance falloff")
+        indices = set(hook.vertex_indices)
+        ends = [end for end, control in enumerate((0, len(controls)-1)) if 3*control+1 in indices]
+        if len(ends) != 1 or any(i//3 not in (0, len(controls)-1) for i in indices):
+            raise RuntimeError(f"{source.name}: each Hook must select exactly one endpoint control point")
+        if anchors[ends[0]] is not None:
+            raise RuntimeError(f"{source.name}: duplicate endpoint Hook")
+        anchors[ends[0]] = hook.object.name
+    # evaluated.data.splines still exposes undeformed controls in Blender.
+    # Evaluate a private, unbevelled copy to a polyline to include native Hooks,
+    # including their bind matrices and moved targets, but not cached Soft Body.
+    temporary = source.copy()
+    temporary.data = source.data.copy()
+    curve = temporary.data
+    collection.objects.link(temporary)
+    try:
+        for modifier in list(temporary.modifiers):
+            if modifier.type == "SOFT_BODY":
+                temporary.modifiers.remove(modifier)
+            elif modifier.type != "HOOK":
+                raise RuntimeError(f"{source.name}: rope currently supports Hook and Soft Body modifiers")
+        curve.bevel_depth = 0
+        curve.extrude = 0
+        curve.resolution_u = max(64, curve.resolution_u)
+        curve.splines[0].resolution_u = curve.resolution_u
+        bpy.context.view_layer.update()
+        evaluated = temporary.evaluated_get(bpy.context.evaluated_depsgraph_get())
+        polyline = evaluated.to_mesh()
+        try:
+            adjacent = [[] for _ in polyline.vertices]
+            for edge in polyline.edges:
+                a, b = edge.vertices
+                adjacent[a].append(b)
+                adjacent[b].append(a)
+            ends = [i for i, links in enumerate(adjacent) if len(links) == 1]
+            if len(ends) != 2 or any(len(links) not in (1, 2) for links in adjacent):
+                raise RuntimeError(f"{source.name}: evaluated rope must be one open polyline")
+            world = []
+            previous, current = -1, min(ends)
+            while True:
+                world.append(evaluated.matrix_world @ polyline.vertices[current].co)
+                following = [index for index in adjacent[current] if index != previous]
+                if not following:
+                    break
+                previous, current = current, following[0]
+            if len(world) != len(polyline.vertices):
+                raise RuntimeError(f"{source.name}: disconnected rope geometry")
+        finally:
+            evaluated.to_mesh_clear()
+    finally:
+        bpy.data.objects.remove(temporary, do_unlink=True)
+        if curve.users == 0:
+            bpy.data.curves.remove(curve)
+    exported = bpy.data.objects.new(source.name, None)
+    collection.objects.link(exported)
+    exported["pm_schema"] = SCHEMA_VERSION
+    exported["pm_system"] = "rope"
+    exported["pm_rope_points"] = ";".join(f"{p.x:.9g},{p.z:.9g},{-p.y:.9g}" for p in world)
+    exported["pm_rope_first_body"] = anchors[0] or ""
+    exported["pm_rope_last_body"] = anchors[1] or ""
+    settings = next((m.settings for m in source.modifiers if m.type == "SOFT_BODY"), None)
+    exported["pm_rope_mass"] = float(source.get("pm_rope_mass", settings.mass if settings else 0.1))
+    exported["pm_rope_radius"] = float(source.get("pm_rope_radius", source.data.bevel_depth or 0.01))
+    exported["pm_rope_spacing"] = float(source.get("pm_rope_spacing", 2 * exported["pm_rope_radius"]))
+    for name, default in (("pm_rope_compliance", 0.0), ("pm_rope_friction", 0.4),
+                          ("pm_rope_damping", 0.1),
+                          ("pm_rope_maximum_substep_timestep", 1.0 / 480),
+                          ("pm_rope_iterations", 24)):
+        exported[name] = float(source.get(name, default))
+    return exported
+
+
 def copy_soft_body_for_export(
     source: bpy.types.Object,
     index: int,
@@ -550,7 +636,9 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH" and any(mod.type == "SOFT_BODY" for mod in obj.modifiers)
     ]
-    if not (sources or flows or cloths or soft_bodies):
+    ropes = [obj for obj in bpy.context.scene.objects if obj.type == "CURVE" and
+             any(m.type in {"HOOK", "SOFT_BODY"} for m in obj.modifiers)]
+    if not (sources or flows or cloths or soft_bodies or ropes):
         raise RuntimeError(
             "the scene contains no rigid bodies, soft bodies, cloth, or liquid flows")
 
@@ -635,6 +723,8 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
             created_objects.append(copy_soft_body_for_export(
                 source, index, collection, created_meshes, created_materials
             ))
+        for source in ropes:
+            created_objects.append(copy_rope_for_export(source, collection))
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:

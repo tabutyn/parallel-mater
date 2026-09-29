@@ -145,6 +145,54 @@ struct TriangleMeshId {
     }
 };
 
+struct RopeId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(RopeId left,
+                                                    RopeId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
+struct RopeAttachment {
+    RigidBodyId body{};
+    Vec3 local_anchor{};
+    bool enabled{};
+};
+
+struct RopeOptions {
+    // World-space open polyline. API resamples it and copies all input data.
+    HostSpan<const Vec3> centerline{};
+    // At most two radii; collisions cover segments, not just sampled nodes.
+    float node_spacing{0.02F};
+    float radius{0.01F};
+    float mass{0.1F}; // Total rope mass, distributed over sampled nodes.
+    float stretch_compliance{0.0F};
+    float velocity_damping{0.1F};
+    // World::step raises the shared substep count to respect live ropes' limits.
+    float maximum_substep_timestep{1.0F / 480.0F};
+    float friction{0.4F};
+    float maximum_speed{8.0F};
+    // Nominal budget; high-strain contact recovery allows up to 8x (max 128).
+    std::uint32_t solver_iterations{24U};
+    bool self_collision{true};
+    RopeAttachment first{};
+    RopeAttachment last{};
+};
+
+struct RopeDeviceView {
+    DeviceSpan<const Vec3> positions{};
+    DeviceSpan<const Vec3> velocities{};
+    DeviceSpan<const Vec3> constraint_forces{};
+    DeviceSpan<const Vec3> contact_forces{};
+    DeviceSpan<const float> rest_lengths{};
+    float radius{};
+};
+
+[[nodiscard]] Status sample_rope_centerline(
+    HostSpan<const Vec3> centerline, float spacing,
+    std::vector<Vec3> &output) noexcept;
+
 struct PaintFieldId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -204,11 +252,13 @@ struct WorldOptions {
     std::uint32_t fluid_cloth_coupling_capacity{1U};
     std::uint32_t soft_body_cloth_coupling_capacity{1U};
     std::uint32_t fluid_soft_body_coupling_capacity{1U};
+    std::uint32_t rope_capacity{4U};
     PhysicsDebugOptions physics_debug{};
 };
 
 struct StepOptions {
     float timestep{1.0F / 60.0F};
+    // Minimum count; live ropes may require smaller shared integration steps.
     std::uint32_t substeps{4U};
     Vec3 gravity{0.0F, -9.81F, 0.0F};
     // Records CUDA-event timings for this frame. Disabled by default so
@@ -659,6 +709,12 @@ struct PhysicsDebugSoftBodySample {
     Vec3 fluid_contact_force{};
 };
 
+struct PhysicsDebugRopeSample {
+    RopeId rope{};
+    std::uint32_t node{};
+    Vec3 position{}, velocity{}, constraint_force{}, contact_force{};
+};
+
 struct PhysicsDebugFrame {
     std::uint64_t frame_index{};
     float timestep{};
@@ -668,6 +724,7 @@ struct PhysicsDebugFrame {
     std::vector<PhysicsDebugFluidSample> fluid_particles{};
     std::vector<PhysicsDebugClothSample> cloth_vertices{};
     std::vector<PhysicsDebugSoftBodySample> soft_body_nodes{};
+    std::vector<PhysicsDebugRopeSample> rope_nodes{};
     std::vector<RigidContactEvent> rigid_contacts{};
     std::vector<ContactEvent> fluid_contacts{};
 };
@@ -681,6 +738,7 @@ struct PhysicsDebugFrameView {
     HostSpan<PhysicsDebugFluidSample> fluid_particles{};
     HostSpan<PhysicsDebugClothSample> cloth_vertices{};
     HostSpan<PhysicsDebugSoftBodySample> soft_body_nodes{};
+    HostSpan<PhysicsDebugRopeSample> rope_nodes{};
     HostSpan<RigidContactEvent> rigid_contacts{};
     HostSpan<ContactEvent> fluid_contacts{};
 };
@@ -726,6 +784,7 @@ struct WorldStepTimings {
     KernelTiming soft_body_contacts{};
     KernelTiming soft_body_cloth_contacts{};
     KernelTiming fluid_soft_body_contacts{};
+    KernelTiming rope_solve{};
 };
 
 struct WorldStatistics {
@@ -745,6 +804,8 @@ struct WorldStatistics {
     std::uint32_t cloth_vertex_count{};
     std::uint32_t soft_body_count{};
     std::uint32_t soft_body_node_count{};
+    std::uint32_t rope_count{};
+    std::uint32_t rope_node_count{};
     // Contact proposals (including repeated solver passes) and maximum
     // pre-correction penetration during the last frame, not residual overlap.
     std::uint32_t fluid_soft_body_contact_count{};
@@ -807,6 +868,10 @@ class World {
     [[nodiscard]] Status remove_soft_body(SoftBodyId soft_body) noexcept;
     [[nodiscard]] Status soft_body_view(
         SoftBodyId soft_body, SoftBodyDeviceView &output) const noexcept;
+
+    [[nodiscard]] Status add_rope(RopeOptions options, RopeId &output) noexcept;
+    [[nodiscard]] Status remove_rope(RopeId rope) noexcept;
+    [[nodiscard]] Status rope_view(RopeId rope, RopeDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_fluid_cloth_coupling(
         FluidClothCouplingOptions options,

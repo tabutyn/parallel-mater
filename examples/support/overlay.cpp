@@ -279,9 +279,10 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"LEAF PAIRS", timings.rigid_leaf_pair_generation},
         TimingRow{"TRI CONTACT", timings.rigid_contact_evaluation},
         TimingRow{"SOLVE", timings.rigid_contact_solve},
-        TimingRow{"CLEAR", timings.rigid_input_clear}};
-    timing_panel(rgba, width, height, 390, 274, "GPU KERNELS",
-                 timings.available, rows, 20, 224,
+        TimingRow{"CLEAR", timings.rigid_input_clear},
+        TimingRow{"ROPE", timings.rope_solve}};
+    timing_panel(rgba, width, height, 390, 294, "GPU KERNELS",
+                 timings.available, rows, 20, 244,
                  timings.total_gpu_milliseconds);
 }
 
@@ -590,6 +591,16 @@ void draw_physics_debug_overlay(
                         {190, 95, 255, 220}, 0.085F);
         }
     }
+    for(std::uint64_t i=0;i<frame.rope_nodes.size;i+=stride_for(frame.rope_nodes.size)) {
+        const auto &sample=frame.rope_nodes.data[i];
+        if(options.velocities)draw_vector(sample.position,sample.velocity,{190,95,255,220},0.085F);
+        if(options.rigid_forces) {
+            draw_vector(sample.position,sample.constraint_force,{255,170,40,235},0.02F);
+            draw_vector(sample.position,sample.contact_force,{255,70,70,235},0.02F);
+        }
+        if(options.contact_normals)draw_vector(sample.position,
+            math::normalize_or(sample.contact_force,{}),{48,255,95,245},0.12F);
+    }
     if (options.contact_normals || options.rigid_forces ||
         options.fluid_forces || options.velocities) {
         rectangle(rgba, width, height, 18, static_cast<int>(height) - 62,
@@ -751,6 +762,18 @@ bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,
         text(rgba, width, height, 28, static_cast<int>(height) - 81,
              "CLOTH  Z NORMALS  V WIREFRAME  B BONDS",
              {235, 240, 245, 255}, 1);
+    }
+    return true;
+}
+
+bool draw_rope_debug_overlay(std::vector<std::uint32_t> &rgba,
+    std::uint32_t width,std::uint32_t height,RopeDeviceView rope,Camera camera,std::string &error) {
+    std::vector<Vec3> nodes(rope.positions.size);
+    const auto status=cudaMemcpy(nodes.data(),rope.positions.data,nodes.size()*sizeof(Vec3),cudaMemcpyDeviceToHost);
+    if(status!=cudaSuccess){error=cudaGetErrorString(status);return false;}
+    for(std::size_t i=1;i<nodes.size();++i) {
+        const auto a=project(nodes[i-1],camera,width,height),b=project(nodes[i],camera,width,height);
+        if(a.visible && b.visible)line(rgba,width,height,a.x,a.y,b.x,b.y,{60,240,255,245});
     }
     return true;
 }

@@ -1,8 +1,8 @@
-# Physics API: rigid bodies, fluid, cloth, and soft bodies
+# Physics API: rigid bodies, fluid, cloth, soft bodies, and ropes
 
 ## The central decision
 
-`parallel_mater::World` owns every simulated fluid, cloth, soft body, and rigid body and advances
+`parallel_mater::World` owns every simulated fluid, cloth, soft body, rope, and rigid body and advances
 their interactions in one call. This replaces the former design where an
 application manually called `begin_frame`, `prepare_substep`, contact helpers,
 solver-specific completion functions, and telemetry readbacks in the correct
@@ -69,7 +69,7 @@ if (!status) return report(status);
 ## Ownership and handles
 
 - `World` owns all CPU and CUDA allocations.
-- `FluidId`, `ClothId`, `SoftBodyId`, and `RigidBodyId` contain an index and generation. Removing an
+- `FluidId`, `ClothId`, `SoftBodyId`, `RopeId`, and `RigidBodyId` contain an index and generation. Removing an
   object invalidates its old handle; reusing the slot cannot make the old
   handle valid again.
 - Initial particles are supplied as a device span. `add_fluid` enqueues a
@@ -81,6 +81,55 @@ if (!status) return report(status);
   change. `revision` makes accidental caching detectable.
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
+
+## Rope centerlines and attachments
+
+`World::add_rope` copies an open world-space polyline and resamples its arc
+length through `sample_rope_centerline`. `RopeOptions` specifies total mass,
+radius, node spacing (no larger than the diameter), stretch compliance,
+velocity damping, contact friction, speed limit, and iteration budget. At most
+1,024 nodes are supported per rope. Zero compliance requests an inextensible
+chain; the finite-iteration solve still has a measurable tolerance.
+The API rejects rest centerlines crossing rigid triangles, apart from the
+immediate Hook attachment neighborhoods. This check runs at creation, not per
+frame: no amount of stiffness can repair a rope initially threaded through an
+unrelated wall. Correct the rest curve or collider before retrying.
+
+Each endpoint may have a `RopeAttachment` to a rigid body with a body-local
+anchor. The initial endpoint must match that anchor. Passive/kinematic bodies
+drive attachments; dynamic bodies receive tension and contact reactions,
+including torque. Attached bodies cannot be removed before their ropes.
+The current open-chain solver requires distinct targets when both endpoints
+are attached. Unattached endpoints move freely.
+
+Rope stepping belongs to `World::step`, not the gallery. A tridiagonal distance
+solve propagates tension along the chain, interleaved with swept node and
+segment/triangle contacts, friction, and non-neighbor self-contact. Contact
+planes constrain the solve's inverse masses; nearly parallel triangle normals
+must not create an indefinite matrix. Releasing a contact rebuilds the matrix
+before applying corrections, retaining any second support plane. A final
+velocity solve removes axial stretch rates and transfers endpoint impulses
+to the attached bodies without damping uniform translation or swing. It uses
+the full mass matrix: positional contact projectors cannot safely resolve
+arbitrary incoming normal velocities.
+`maximum_substep_timestep` defaults to 1/480 s. `World::step` raises the requested
+substep count as needed, advancing rigid attachments and all other systems on
+the same smaller steps. Worlds without ropes are unchanged. The smallest live
+rope limit wins; a request needing more than 1,024 substeps fails before stepping.
+Sharp contacts can use up to eight times the nominal `solver_iterations` budget
+(capped at 128), stopping recovery below 0.5% segment strain. This avoids feeding
+an unresolved contact/stretch correction back as a large velocity on the next
+step without paying the recovery cost for already settled chains.
+No analytic post collider is used.
+This milestone couples ropes to rigid triangle bodies, not fluids, cloth,
+other ropes, or soft bodies.
+
+`rope_view` exposes node positions, velocities, segment rest lengths, and
+constraint/contact forces. `RopeId` is generation checked; the usual borrowed
+view lifetime applies. `WorldOptions::rope_capacity` bounds resources, and
+statistics/timings include rope nodes, storage, and solve time. Opt-in physics
+capture includes rope samples. Tube construction and final debug drawing stay
+outside the installed physics library.
 
 ## Cloth meshes and pinning
 
@@ -500,8 +549,7 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- rope, soft body, smoke, a separate foam-particle simulation, or
-  fracture;
+- smoke or a separate foam-particle simulation;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.
 

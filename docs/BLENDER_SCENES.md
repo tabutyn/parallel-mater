@@ -46,6 +46,42 @@ glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
 alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
 materials remain visible regardless of their alpha value.
 
+## Rope curves and Hook attachments
+
+Use one open Bézier spline at the scene root. Select an endpoint control point
+in Edit Mode and use a Hook modifier targeting a native passive or active rigid
+body. Use strength 1 and no distance falloff (a zero falloff radius also works).
+Each Hook must contain exactly one endpoint control point, not interior points.
+The two endpoints may target distinct rigid bodies, or an endpoint may be free.
+
+The exporter evaluates Blender's actual Hook deformation, including bind
+matrices and moved targets. It removes Soft Body only from a temporary copy so
+cached simulation does not replace the rest curve. Sampling and runtime
+constraints are implemented by the physics API; there is no Blender bake.
+
+Optional curve custom properties:
+
+| Property | Meaning / default |
+|---|---|
+| `pm_rope_radius` | Physical radius; bevel depth, or 0.01 m when unbevelled |
+| `pm_rope_spacing` | Maximum node spacing; default twice the radius |
+| `pm_rope_mass` | Total rope mass; native Soft Body mass, or 0.1 kg |
+| `pm_rope_compliance` | Stretch compliance; 0 requests a stiff rope |
+| `pm_rope_friction` | Coulomb contact friction; 0.4 |
+| `pm_rope_damping` | Velocity damping per second; 0.1 |
+| `pm_rope_maximum_substep_timestep` | Maximum shared integration step in seconds; 1/480 |
+| `pm_rope_iterations` | Nominal constraint/contact budget; 24. High-strain recovery allows up to 8×, capped at 128 |
+
+Keep the rest curve outside collision geometry, except its attachment
+neighborhoods. Material alpha zero hides a collider but does not disable it.
+Author enough curve length for intended wraps: three turns need at least
+`3 * 2 * pi * (post radius + rope radius + margin)`, plus the remaining lengths
+between the wraps and the two attachments. A stiff rope cannot create slack.
+
+The schema stores `pm_system = "rope"`, `pm_rope_points` as world-space Y-up
+polyline samples, and `pm_rope_first_body` / `pm_rope_last_body` as target names.
+Ambiguous instanced Hook targets and unsupported curve modifiers are rejected.
+
 ## One Blender–ParallelMater export interface
 
 `tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid

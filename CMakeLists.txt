@@ -25,7 +25,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
-add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp src/fluid_source.cpp src/soft_body_geometry.cpp)
+add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp src/fluid_source.cpp src/soft_body_geometry.cpp src/rope_geometry.cpp)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 set_target_properties(
@@ -63,6 +63,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     add_library(parallel-mater-gallery-scene STATIC
                 examples/support/scene.cpp
+                examples/support/rope_render.cpp
                 examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
@@ -194,6 +195,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
             PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
             PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
+            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -227,6 +229,11 @@ if(BUILD_TESTING)
     target_link_libraries(parallel-mater-fluid-source-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-fluid-source-tests COMMAND parallel-mater-fluid-source-tests)
     set_tests_properties(parallel-mater-fluid-source-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    add_executable(parallel-mater-rope-api-tests tests/rope_api_tests.cpp)
+    target_link_libraries(parallel-mater-rope-api-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-rope-api-tests COMMAND parallel-mater-rope-api-tests)
+    set_tests_properties(parallel-mater-rope-api-tests PROPERTIES SKIP_RETURN_CODE 77)
 
     add_executable(parallel-mater-paint-geometry-tests
                    tests/paint_geometry_tests.cpp)
@@ -384,6 +391,23 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-soft-body-fluid-tests)
         set_tests_properties(parallel-mater-soft-body-fluid-tests PROPERTIES
                              SKIP_RETURN_CODE 77 TIMEOUT 180)
+
+        add_executable(parallel-mater-rope-tests tests/gallery/rope_tests.cpp)
+        target_link_libraries(parallel-mater-rope-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-rope-tests PRIVATE
+            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb")
+        add_test(NAME parallel-mater-rope-tests COMMAND parallel-mater-rope-tests)
+        set_tests_properties(parallel-mater-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME parallel-mater-rope-settle-tests
+                 COMMAND parallel-mater-rope-tests 1200 --settle)
+        add_test(NAME parallel-mater-rope-release-tests
+                 COMMAND parallel-mater-rope-tests 1200 --settle-after-motion)
+        add_test(NAME parallel-mater-rope-wrap-tests
+                 COMMAND parallel-mater-rope-tests 600 --wrapped)
+        set_tests_properties(parallel-mater-rope-settle-tests
+                             parallel-mater-rope-release-tests
+                             parallel-mater-rope-wrap-tests PROPERTIES
+                             SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-soft-body-fluid-dry-test
                  COMMAND parallel-mater-soft-body-fluid-tests 600 --dry)
         set_tests_properties(parallel-mater-soft-body-fluid-dry-test PROPERTIES
@@ -453,6 +477,9 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-optix-headless-test
             parallel-mater-optix-test.ppm 30)
+        add_gallery_headless_test(
+            parallel-mater-rope-headless-test
+            parallel-mater-rope-settled.ppm 900 --rope)
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)

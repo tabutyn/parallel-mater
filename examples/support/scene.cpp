@@ -1055,6 +1055,68 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         output.meshes.push_back(std::move(mesh));
         output.soft_bodies.push_back(std::move(body));
     }
+    for(cgltf_size n=0;n<data->nodes_count;++n) {
+        const auto &node=data->nodes[n];
+        if(!node.extras.data)continue;
+        const FlatJson extras(node.extras.data);
+        if(extras.string("pm_system").value_or("")!="rope")continue;
+        RopeDefinition rope;rope.name=node.name?node.name:"rope";
+        if(extras.number("pm_schema").value_or(0)!=2 || node.parent){error=rope.name+": invalid rope root/schema";return false;}
+        const std::string encoded=extras.string("pm_rope_points").value_or("");
+        const char *cursor=encoded.c_str();
+        while(*cursor) {
+            float values[3];
+            for(int c=0;c<3;++c) {
+                char *next=nullptr;values[c]=std::strtof(cursor,&next);
+                if(next==cursor || !std::isfinite(values[c]) || (c<2 && *next!=',') || (c==2 && *next!=';' && *next!='\0')) {
+                    error=rope.name+": invalid rope centerline";return false;
+                }
+                cursor=next+((c<2 || *next==';')?1:0);
+            }
+            rope.centerline.push_back({values[0],values[1],values[2]});
+        }
+        auto &options=rope.options;
+        options.radius=static_cast<float>(extras.number("pm_rope_radius").value_or(0.01));
+        options.node_spacing=static_cast<float>(extras.number("pm_rope_spacing").value_or(2*options.radius));
+        options.mass=static_cast<float>(extras.number("pm_rope_mass").value_or(0.1));
+        options.stretch_compliance=static_cast<float>(extras.number("pm_rope_compliance").value_or(0));
+        options.friction=static_cast<float>(extras.number("pm_rope_friction").value_or(0.4));
+        options.velocity_damping=static_cast<float>(extras.number("pm_rope_damping").value_or(0.1));
+        options.maximum_substep_timestep=static_cast<float>(extras.number("pm_rope_maximum_substep_timestep").value_or(1.0/480));
+        const double iterations=extras.number("pm_rope_iterations").value_or(24);
+        if(!finite(options.radius)||options.radius<=0 || !finite(options.node_spacing)||options.node_spacing<=0 || options.node_spacing>2*options.radius ||
+           !finite(options.mass)||options.mass<=0 || !finite(options.stretch_compliance)||options.stretch_compliance<0 ||
+           !finite(options.friction)||options.friction<0 || !finite(options.velocity_damping)||options.velocity_damping<0 ||
+           !finite(options.maximum_substep_timestep)||options.maximum_substep_timestep<=0 ||
+           !std::isfinite(iterations)||iterations<1||iterations>128||std::floor(iterations)!=iterations) {
+            error=rope.name+": invalid rope material";return false;
+        }
+        options.solver_iterations=static_cast<unsigned>(iterations);
+        std::vector<Vec3> nodes;
+        const auto sampled=sample_rope_centerline({rope.centerline.data(),rope.centerline.size()},options.node_spacing,nodes);
+        if(!sampled){error=sampled.message;return false;}
+        for(unsigned end=0;end<2;++end) {
+            const auto target=extras.string(end?"pm_rope_last_body":"pm_rope_first_body").value_or("");
+            if(target.empty())continue;
+            int match=-1;
+            for(unsigned body=0;body<output.rigid_bodies.size();++body)
+                if(output.rigid_bodies[body].source_name==target || output.rigid_bodies[body].name==target) {
+                    if(match>=0){error=rope.name+": Hook target is ambiguous (instanced body)";return false;}
+                    match=int(body);
+                }
+            if(match<0){error=rope.name+": missing rigid Hook target "+target;return false;}
+            const auto state=output.rigid_bodies[match].options.initial_state;
+            const auto q=state.orientation;
+            auto &anchor=end?options.last:options.first;
+            anchor.enabled=true;
+            anchor.local_anchor=rotate({-q.x,-q.y,-q.z,q.w},subtract(end?nodes.back():nodes.front(),state.position));
+            (end?rope.last_body:rope.first_body)=match;
+        }
+        TriangleMesh mesh;mesh.name=rope.name;mesh.base_color={0.85F,0.28F,0.06F};
+        update_rope_render_mesh(nodes,options.radius,mesh);
+        rope.mesh_index=static_cast<unsigned>(output.meshes.size());
+        output.meshes.push_back(std::move(mesh));output.ropes.push_back(std::move(rope));
+    }
     std::optional<float> initial_spacing;
     std::optional<float> initial_gravity_scale;
     for (cgltf_size node_index = 0; node_index < data->nodes_count;
@@ -1202,7 +1264,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                 .maximum_pair_acceleration = 55.0F};
     }
     if (output.rigid_bodies.empty() && output.cloths.empty() &&
-        output.soft_bodies.empty() &&
+        output.soft_bodies.empty() && output.ropes.empty() &&
         output.particle_sources.empty() && output.destroy_planes.empty() &&
         output.initial_particles.empty()) {
         error = "GLB contains no ParallelMater physics objects";
@@ -1334,6 +1396,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         scene.particle_sources.size() > maximum ||
         scene.destroy_planes.size() > maximum || paint_fields > maximum ||
         scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum ||
+        scene.ropes.size() > maximum ||
         (!scene.cloths.empty() && scene.soft_bodies.size() > maximum / scene.cloths.size())) {
         return {StatusCode::capacity_exceeded, cudaSuccess,
                 "gallery scene exceeds world capacity range"};
@@ -1360,6 +1423,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             scene.cloths.size() * scene.soft_bodies.size()),
         .fluid_soft_body_coupling_capacity = static_cast<std::uint32_t>(
             scene.soft_bodies.size()),
+        .rope_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1370,6 +1434,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     std::unordered_map<std::string, TriangleMeshId> mesh_cache;
     try {
         output.rigid_bodies.reserve(scene.rigid_bodies.size());
+        output.ropes.reserve(scene.ropes.size());
         mesh_cache.reserve(scene.meshes.size() + scene.collision_meshes.size());
     } catch (...) {
         return {StatusCode::out_of_memory, cudaSuccess,
@@ -1490,6 +1555,18 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return status;
         }
         output.rigid_bodies.push_back(body);
+    }
+    for (const auto &rope : scene.ropes) {
+        auto options=rope.options;
+        options.centerline={rope.centerline.data(),rope.centerline.size()};
+        for (int body : {rope.first_body, rope.last_body})
+            if (body >= 0 && static_cast<std::size_t>(body) >= output.rigid_bodies.size())
+                return {StatusCode::invalid_argument, cudaSuccess,
+                        "gallery rope attachment index is invalid"};
+        if(rope.first_body>=0)options.first.body=output.rigid_bodies[rope.first_body];
+        if(rope.last_body>=0)options.last.body=output.rigid_bodies[rope.last_body];
+        RopeId id;const auto status=world.add_rope(options,id);if(!status)return status;
+        output.ropes.push_back(id);
     }
     for (const ClothDefinition &definition : scene.cloths) {
         if (definition.mesh_index >= scene.meshes.size())

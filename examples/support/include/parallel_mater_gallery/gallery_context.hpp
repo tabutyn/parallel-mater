@@ -24,6 +24,7 @@ enum class GalleryContext : std::uint8_t {
     soft_body_rigid,
     soft_body_cloth,
     soft_body_fluid,
+    rope,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -40,6 +41,7 @@ enum class GallerySceneSource : std::uint8_t {
     soft_body_rigid,
     soft_body_cloth,
     soft_body_fluid,
+    rope,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -79,6 +81,7 @@ struct GalleryEntry {
     std::uint32_t minimum_count{};
     std::uint32_t maximum_count{};
     bool has_soft_body{};
+    bool has_rope{};
 };
 
 inline constexpr std::array gallery_entries{
@@ -162,6 +165,12 @@ inline constexpr std::array gallery_entries{
         {25, 42, 63, 235}, {80, 160, 240},
         {.target = {0.0F, 0.8F, 0.0F}, .distance_scale = 0.42F,
          .pitch = 0.55F}, true, false, 100U, 100'000U, true},
+    GalleryEntry{GalleryContext::rope, GallerySceneSource::rope,
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--rope", "ROPE", "HOOK ANCHORS  ARROWS GRAVITY  V SEGMENTS",
+        {45, 34, 26, 235}, {240, 130, 50},
+        {.target = {-0.5F, 0.3F, 0.0F}, .distance_scale = 0.48F,
+         .pitch = 0.60F}, false, false, 0U, 0U, false, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(

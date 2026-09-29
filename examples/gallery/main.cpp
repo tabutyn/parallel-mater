@@ -570,7 +570,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(
                 PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH)};
+            std::filesystem::path(PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_ROPE_SCENE_PATH)};
         const std::filesystem::path &scene_path = scene_paths[
             static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
@@ -1207,6 +1208,15 @@ int main(int argc, char **argv) {
             if (!soft_debug_ok) {
                 std::cerr << "Soft-body debug overlay failed: " << error << '\n';
                 break;
+            }
+        }
+        if (debug.structure || debug.cloth_bonds) {
+            for (auto id:runtime.instance.ropes) {
+                parallel_mater::RopeDeviceView view;
+                if(!require(runtime.world.rope_view(id,view),"rope debug view") ||
+                   !draw_rope_debug_overlay(pixels,runtime.renderer.width(),runtime.renderer.height(),view,current_camera,error)) {
+                    std::cerr << "Rope debug failed: " << error << '\n';return 1;
+                }
             }
         }
         if (debug.vectors_visible()) {
