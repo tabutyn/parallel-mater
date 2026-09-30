@@ -117,6 +117,9 @@ struct SceneDefinition {
     std::vector<FluidParticle> initial_particles{};
     std::vector<ParticleSourceDefinition> particle_sources{};
     std::vector<ParticleDestroyPlaneOptions> destroy_planes{};
+    SmokeOptions smoke_options{};
+    std::string smoke_obstacle_name{};
+    bool has_smoke{};
 };
 
 struct SceneInstance {
@@ -138,6 +141,8 @@ struct SceneInstance {
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};
+    SmokeId smoke{};
+    bool has_smoke{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,

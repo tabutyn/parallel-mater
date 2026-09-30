@@ -13,6 +13,13 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
                          const WorldStepTimings &timings);
 
+void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &physics,
+                               const RendererTimings &renderer,
+                               const WorldStatistics &statistics,
+                               std::uint32_t capacity);
+
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings);

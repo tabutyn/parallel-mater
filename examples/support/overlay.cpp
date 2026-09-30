@@ -286,6 +286,35 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                  timings.total_gpu_milliseconds);
 }
 
+void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &physics,
+                               const RendererTimings &renderer,
+                               const WorldStatistics &statistics,
+                               std::uint32_t capacity) {
+    const std::array rows{
+        TimingRow{"ADVECT + WAKE", physics.smoke_advection},
+        TimingRow{"EMIT", physics.smoke_emission}};
+    timing_panel(rgba, width, height, 465, 248, "SMOKE GPU KERNELS",
+                 physics.available, rows, 24, 116,
+                 physics.total_gpu_milliseconds);
+    if (!physics.available) return;
+    char line[128]{};
+    std::snprintf(line, sizeof(line), "RENDER WALL   %7.3f MS",
+                  renderer.total_wall_milliseconds);
+    text(rgba, width, height, 32, 147, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "SMOKE SPLATS  %7.3f MS",
+                  renderer.foam_wall_milliseconds);
+    text(rgba, width, height, 32, 169, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "SLOTS %u / MAX %u",
+                  statistics.smoke_particle_count, capacity);
+    text(rgba, width, height, 32, 191, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "EMITTED %llu",
+                  static_cast<unsigned long long>(
+                      statistics.emitted_smoke_particle_count));
+    text(rgba, width, height, 32, 213, line, {225, 235, 242, 255}, 2);
+}
+
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings) {

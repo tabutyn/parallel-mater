@@ -75,6 +75,20 @@ void read_fluid_visual_samples(const FluidDeviceView &view,
                           cudaMemcpyDeviceToHost), "copy fluid IDs");
 }
 
+void read_smoke_visual_samples(const SmokeDeviceView &view,
+                               std::vector<Vec3> &positions,
+                               std::vector<float> &ages) {
+    positions.resize(view.particle_count);
+    ages.resize(view.particle_count);
+    if (view.particle_count == 0U) return;
+    check_cuda(cudaMemcpy(positions.data(), view.positions.data,
+                          positions.size() * sizeof(Vec3), cudaMemcpyDeviceToHost),
+               "copy smoke positions");
+    check_cuda(cudaMemcpy(ages.data(), view.ages.data,
+                          ages.size() * sizeof(float), cudaMemcpyDeviceToHost),
+               "copy smoke ages");
+}
+
 void check_driver(CUresult result, const char *operation) {
     if (result == CUDA_SUCCESS) {
         return;
@@ -1003,6 +1017,69 @@ void paint_fluid_particle_view(const std::vector<Vec3> &positions,
     }
 }
 
+void paint_smoke_view(const std::vector<Vec3> &positions,
+                      const std::vector<float> &ages,
+                      float lifetime, float radius, Camera camera,
+                      std::uint32_t width, std::uint32_t height,
+                      const std::vector<float> &rigid_depth,
+                      std::vector<std::uint32_t> &rgba) {
+    const Vec3 forward = normalize(subtract(camera.target, camera.eye));
+    const Vec3 right = normalize(cross(forward, camera.up));
+    const Vec3 up = normalize(cross(right, forward));
+    constexpr float radians = 0.017453292519943295F;
+    const float tangent = std::tan(camera.vertical_field_of_view_degrees *
+                                   radians * 0.5F);
+    const float aspect = float(width) / float(height);
+    std::vector<std::pair<float, std::uint32_t>> order;
+    order.reserve(positions.size());
+    for (std::uint32_t index = 0U; index < positions.size(); ++index) {
+        if (ages[index] >= lifetime) continue;
+        const float depth = dot(subtract(positions[index], camera.eye), forward);
+        if (depth > radius) order.emplace_back(depth, index);
+    }
+    std::sort(order.begin(), order.end(), std::greater<>{});
+    for (const auto &[distance, particle] : order) {
+        const Vec3 offset = subtract(positions[particle], camera.eye);
+        const float x = (dot(offset, right) / (distance * tangent * aspect) + 1.0F)
+                        * 0.5F * width;
+        const float y = (dot(offset, up) / (distance * tangent) + 1.0F)
+                        * 0.5F * height;
+        const float pixels = std::max(1.5F,
+            radius * height / (2.0F * distance * tangent));
+        if (x + pixels < 0.0F || x - pixels >= width ||
+            y + pixels < 0.0F || y - pixels >= height) continue;
+        const int x0 = std::max(0, int(x - pixels));
+        const int x1 = std::min(int(width) - 1, int(x + pixels));
+        const int y0 = std::max(0, int(y - pixels));
+        const int y1 = std::min(int(height) - 1, int(y + pixels));
+        const float fade = std::clamp((lifetime - ages[particle]) / 0.7F,
+                                      0.0F, 1.0F);
+        const float depth = std::sqrt(dot(offset, offset));
+        for (int py = y0; py <= y1; ++py)
+            for (int px = x0; px <= x1; ++px) {
+                const float dx = (px + 0.5F - x) / pixels;
+                const float dy = (py + 0.5F - y) / pixels;
+                const float squared = dx * dx + dy * dy;
+                if (squared >= 1.0F) continue;
+                const std::size_t pixel = std::size_t(py) * width + px;
+                if (depth > rigid_depth[pixel] + 0.005F) continue;
+                const float edge = 1.0F - squared;
+                const float alpha = 0.075F * edge * edge * fade;
+                const std::uint32_t old = rgba[pixel];
+                const auto blend = [alpha](std::uint32_t channel, float smoke) {
+                    return std::uint32_t(std::clamp(
+                        float(channel) * (1.0F - alpha) + smoke * alpha,
+                        0.0F, 255.0F));
+                };
+                const auto red = blend(old & 255U, 211.0F);
+                const auto green = blend((old >> 8U) & 255U, 217.0F);
+                const auto blue = blend((old >> 16U) & 255U, 226.0F);
+                rgba[pixel] = 0xff000000U | (blue << 16U) |
+                              (green << 8U) | red;
+            }
+    }
+}
+
 OptixRenderer::OptixRenderer() noexcept = default;
 OptixRenderer::~OptixRenderer() = default;
 OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
@@ -1109,6 +1186,20 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                     impl_->height, impl_->host_depth,
                     impl_->host_rigid_depth, rgba);
             }
+        }
+        if (instance.has_smoke) {
+            SmokeDeviceView smoke{};
+            const Status status = world.smoke_view(instance.smoke, smoke);
+            if (!status) fail(status.message != nullptr ? status.message
+                                                       : "cannot borrow smoke view");
+            std::vector<Vec3> smoke_positions;
+            std::vector<float> smoke_ages;
+            read_smoke_visual_samples(smoke, smoke_positions, smoke_ages);
+            paint_smoke_view(smoke_positions, smoke_ages,
+                smoke.lifetime, smoke.particle_radius, camera,
+                impl_->width, impl_->height, impl_->host_rigid_depth, rgba);
+            sample.particle_count += smoke.particle_count;
+            sample.smoke_particle_count = smoke.particle_count;
         }
         sample.foam_patch_count = static_cast<std::uint32_t>(
             impl_->foam_visuals.patch_count());

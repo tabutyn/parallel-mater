@@ -82,6 +82,24 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Smoke tracer gas
+
+`World::add_smoke` creates a separate dilute-gas particle system; it does not
+reuse the incompressible liquid solver. `SmokeOptions` provides a world-YZ
+emission rectangle, wind and initial velocity, particles per second, lifetime,
+buoyancy, response, wake strength, speed cap, and a spherical rigid obstacle.
+The obstacle must already exist; it cannot be removed while referenced.
+The API advects bounded, recycled tracer slots on the GPU. A no-through-flow
+field diverts smoke around the sphere, alternating vortices shed into its wake,
+and swept segment/sphere tests prevent particles tunneling through it.
+`SmokeDeviceView` exposes positions, velocities, ages, and the active slot count
+after a completed frame. A slot whose age reaches `lifetime` is ignored until
+reused by emission. `remove_smoke` invalidates its generation-tagged handle.
+`WorldStepTimings` reports smoke advection and emission separately, while
+`WorldStatistics` reports occupied slots and total emitted smoke particles.
+This first gas system is a prescribed velocity field, not a pressure-projected
+Navier–Stokes or smoke–rigid momentum coupling solver.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc

@@ -1898,6 +1898,8 @@ enum class TimingStage : std::uint8_t {
     fluid_contact_events,
     fluid_outflow_compaction,
     rope_solve,
+    smoke_advection,
+    smoke_emission,
 };
 
 [[nodiscard]] Status wait_for_completion(
@@ -4981,6 +4983,7 @@ namespace {
 #include "rope.cuh"
 #include "rope_cloth.cuh"
 #include "fluid_rope.cuh"
+#include "smoke.cuh"
 } // namespace
 
 struct FrameToken::Impl {
@@ -5009,6 +5012,7 @@ struct World::Impl {
     std::uint32_t soft_cloth_kernels_per_substep{};
     std::vector<Slot> slots{};
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
+    std::vector<std::unique_ptr<SmokeStorage>> smokes{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
     std::vector<std::unique_ptr<RopeStorage>> ropes{};
@@ -5389,6 +5393,7 @@ Status World::create(WorldOptions options, World &output,
         implementation = std::make_unique<Impl>();
         implementation->slots.resize(options.rigid_body_capacity);
         implementation->fluids.resize(options.fluid_capacity);
+        implementation->smokes.resize(options.smoke_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -5857,6 +5862,86 @@ Status World::fluid_view(FluidId id, FluidDeviceView &output) const noexcept {
               {fluid->forces, count}, {fluid->ids, count},
               {fluid->foam, count}, count, fluid->options.particle_radius,
               fluid->options.support_radius, impl_->revision};
+    return success();
+}
+
+Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    std::uint32_t obstacle = 0U;
+    status = impl_->validate_handle(options.obstacle, obstacle);
+    if (!status) return status;
+    if (options.capacity == 0U || options.capacity > 1'000'000U ||
+        !finite(options.emitter_center) || !finite(options.initial_velocity) ||
+        !finite(options.wind) || !finite(options.emitter_half_extents.x) ||
+        !finite(options.emitter_half_extents.y) ||
+        options.emitter_half_extents.x <= 0.0F ||
+        options.emitter_half_extents.y <= 0.0F ||
+        !finite(options.particles_per_second) || options.particles_per_second <= 0.0F ||
+        options.particles_per_second > 1'000'000.0F ||
+        !finite(options.lifetime) || options.lifetime <= 0.0F ||
+        !finite(options.particle_radius) || options.particle_radius <= 0.0F ||
+        !finite(options.obstacle_radius) || options.obstacle_radius <= 0.0F ||
+        !finite(options.buoyancy) || !finite(options.response) ||
+        options.response <= 0.0F || !finite(options.wake_strength) ||
+        options.wake_strength < 0.0F || !finite(options.maximum_speed) ||
+        options.maximum_speed <= 0.0F)
+        return failure(StatusCode::invalid_argument, "invalid smoke options");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smokes.size() && impl_->smokes[slot] &&
+           impl_->smokes[slot]->alive) ++slot;
+    if (slot == impl_->smokes.size())
+        return failure(StatusCode::capacity_exceeded, "smoke capacity exhausted");
+    std::unique_ptr<SmokeStorage> smoke;
+    try { smoke = std::make_unique<SmokeStorage>(); }
+    catch (...) { return failure(StatusCode::out_of_memory, "smoke owner allocation failed"); }
+    smoke->generation = impl_->smokes[slot] ? impl_->smokes[slot]->generation : 1U;
+    smoke->options = options;
+    if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
+        !(status = allocate_managed(smoke->velocities, options.capacity)) ||
+        !(status = allocate_managed(smoke->ages, options.capacity))) return status;
+    smoke->alive = true;
+    output = {slot, smoke->generation};
+    impl_->smokes[slot] = std::move(smoke);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke(SmokeId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smokes.size() || !impl_->smokes[id.index] ||
+        !impl_->smokes[id.index]->alive ||
+        impl_->smokes[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "smoke handle is stale");
+    std::unique_ptr<SmokeStorage> tombstone;
+    try { tombstone = std::make_unique<SmokeStorage>(); }
+    catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
+    tombstone->generation = impl_->smokes[id.index]->generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smokes[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (id.index >= impl_->smokes.size() || !impl_->smokes[id.index] ||
+        !impl_->smokes[id.index]->alive ||
+        impl_->smokes[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "smoke handle is stale");
+    if (impl_->frame && !impl_->frame->acknowledged)
+        return failure(StatusCode::busy, "smoke view requires a completed frame");
+    const auto &smoke = *impl_->smokes[id.index];
+    output = {{smoke.positions, smoke.count}, {smoke.velocities, smoke.count},
+        {smoke.ages, smoke.count}, smoke.count, smoke.options.lifetime,
+        smoke.options.particle_radius, impl_->revision};
     return success();
 }
 
@@ -8395,6 +8480,10 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
     if (!status) {
         return status;
     }
+    for (const auto &smoke : impl_->smokes)
+        if (smoke && smoke->alive && smoke->options.obstacle == body)
+            return failure(StatusCode::invalid_argument,
+                           "rigid body is still referenced by smoke");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
         if (impl_->paint_fields[index].alive &&
@@ -8721,6 +8810,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                          2U * impl_->fluid_rope_couplings.size());
             }
         }
+        for (const auto &smoke : impl_->smokes)
+            if (smoke && smoke->alive) maximum_stages += 2U;
         for (const auto &cloth : impl_->cloths) {
             if (cloth && cloth->alive)
                 maximum_stages += static_cast<std::size_t>(options.substeps) *
@@ -10261,6 +10352,40 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return cuda_failure(error, "fluid kernel launch failed");
         }
     }
+    for (auto &owner : impl_->smokes) {
+        if (!owner || !owner->alive) continue;
+        auto &smoke = *owner;
+        std::uint32_t obstacle = 0U;
+        status = impl_->validate_handle(smoke.options.obstacle, obstacle);
+        if (!status) return status;
+        if (smoke.count != 0U) {
+            smoke_advect<<<(smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                smoke.positions, smoke.velocities, smoke.ages, smoke.count,
+                smoke.options, impl_->states[impl_->current_state], obstacle,
+                smoke.time, options.timestep);
+            status = record_timing_stage(TimingStage::smoke_advection, 1U);
+            if (!status) return status;
+        }
+        const double exact = double(smoke.emission_fraction) +
+            double(smoke.options.particles_per_second) * options.timestep;
+        const auto requested = static_cast<std::uint32_t>(std::min(
+            std::floor(exact), double(smoke.options.capacity)));
+        smoke.emission_fraction = float(exact - std::floor(exact));
+        if (requested != 0U) {
+            smoke_emit<<<(requested + 127U) / 128U, 128U, 0, stream>>>(
+                smoke.positions, smoke.velocities, smoke.ages, smoke.options,
+                smoke.next_slot, requested, smoke.emitted);
+            smoke.next_slot = (smoke.next_slot + requested) % smoke.options.capacity;
+            smoke.count = std::min(smoke.options.capacity, smoke.count + requested);
+            smoke.emitted += requested;
+            status = record_timing_stage(TimingStage::smoke_emission, 1U);
+            if (!status) return status;
+        }
+        smoke.time = float(std::fmod(
+            double(smoke.time) + double(options.timestep), 1000.0));
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess) return cuda_failure(error, "smoke kernel launch failed");
+    }
     if (options.collect_kernel_timings && timing_boundary == 1U) {
         error = cudaEventRecord(impl_->timing_events[timing_boundary++], stream);
         if (error != cudaSuccess)
@@ -10458,6 +10583,12 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::rope_solve:
             timing = &output.rope_solve;
             break;
+        case TimingStage::smoke_advection:
+            timing = &output.smoke_advection;
+            break;
+        case TimingStage::smoke_emission:
+            timing = &output.smoke_emission;
+            break;
         case TimingStage::cloth_prediction:
             timing = &output.cloth_prediction;
             break;
@@ -10562,6 +10693,14 @@ Status World::collect_statistics(WorldStatistics &output,
     output = {};
     output.frame_index = impl_->frame_index;
     output.fluid_count = impl_->fluid_count;
+    for (const auto &smoke : impl_->smokes) {
+        if (!smoke || !smoke->alive) continue;
+        ++output.smoke_system_count;
+        output.smoke_particle_count += smoke->count;
+        output.emitted_smoke_particle_count += smoke->emitted;
+        output.allocated_bytes += static_cast<std::size_t>(smoke->options.capacity) *
+            (2U * sizeof(Vec3) + sizeof(float));
+    }
     for (const auto &cloth : impl_->cloths) {
         if (!cloth || !cloth->alive) continue;
         ++output.cloth_count;

@@ -199,6 +199,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb"
             PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb"
             PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb"
+            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -418,6 +419,12 @@ if(BUILD_TESTING)
             PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb")
         add_test(NAME parallel-mater-rope-cloth-tests COMMAND parallel-mater-rope-cloth-tests)
         set_tests_properties(parallel-mater-rope-cloth-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-smoke-tests tests/gallery/smoke_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-smoke-tests PRIVATE
+            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb")
+        add_test(NAME parallel-mater-smoke-tests COMMAND parallel-mater-smoke-tests)
+        set_tests_properties(parallel-mater-smoke-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-soft-body-winding-tests
                  COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
         set_tests_properties(parallel-mater-rope-soft-body-winding-tests
@@ -549,6 +556,9 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-rope-cloth-headless-test
             parallel-mater-rope-cloth.ppm 300 --rope-cloth)
+        add_gallery_headless_test(
+            parallel-mater-smoke-headless-test
+            parallel-mater-smoke.ppm 240 --smoke)
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)

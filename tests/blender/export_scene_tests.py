@@ -90,7 +90,7 @@ class ExportSceneTests(unittest.TestCase):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
-                     "RopeFluid"):
+                     "RopeFluid", "RopeCloth", "Smoke"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -198,6 +198,18 @@ class ExportSceneTests(unittest.TestCase):
         mesh = document["meshes"][cloth["mesh"]]
         accessor = document["accessors"][mesh["primitives"][0]["attributes"]["POSITION"]]
         self.assertGreaterEqual(accessor["count"], 289)
+
+    def test_smoke_flow_exports_separate_gas_system(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Smoke.blend"))
+        document = self.check_export(Counter(rigid_body=1, smoke_emitter=1))
+        emitter = next(node["extras"] for node in document["nodes"]
+                       if node["extras"].get("pm_system") == "smoke_emitter")
+        self.assertEqual(emitter["pm_smoke_obstacle"], "VortexSphere")
+        self.assertAlmostEqual(emitter["pm_velocity_x"], 1.6)
+        self.assertGreater(emitter["pm_smoke_wake_strength"], 0)
+        sphere = next(node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "rigid_body")
+        self.assertFalse(sphere["pm_checkerboard"])
 
     def test_rope_fluid_authored_mass_and_geometry(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeFluid.blend"))
