@@ -153,6 +153,7 @@ struct SceneInstance {
     bool has_smoke{};
     std::vector<FluidSmokeCouplingId> fluid_smoke_couplings{};
     std::vector<SmokeSoftBodyCouplingId> smoke_soft_body_couplings{};
+    std::vector<SmokeClothCouplingId> smoke_cloth_couplings{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,

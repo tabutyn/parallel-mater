@@ -73,6 +73,14 @@ refinement's roughly 56,000 nodes and 4.8 million springs. Increase spacing
 or reduce authored face resolution to control cost before reducing solver
 stiffness. The single exporter still owns `.glb` generation.
 
+`SmokeCloth.blend` pairs the same Smoke Inflow with a 17×17 cloth sheet. Its
+Blender Cloth **Pin** group fixes 34 edge vertices. The gallery registers the
+API's smoke/cloth coupling when a scene contains both systems; the exporter
+does not bake a wind force or add a scene-specific property. Wind bends free
+vertices and tracer contact follows the cloth's current triangles. Native
+cloth quality and material properties continue through the regular Cloth
+export path.
+
 ## Smoke and water boiling
 
 `SmokeWater.blend` combines a Smoke Inflow with a Liquid Flow/Geometry volume.

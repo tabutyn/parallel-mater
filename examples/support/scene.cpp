@@ -1587,6 +1587,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             scene.thermal_surfaces.size()),
         .smoke_soft_body_coupling_capacity = scene.has_smoke
             ? static_cast<std::uint32_t>(scene.soft_bodies.size()) : 0U,
+        .smoke_cloth_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(scene.cloths.size()) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
@@ -1814,6 +1816,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .volume_compliance = definition.volume_compliance}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
+    }
+    if (output.has_smoke) {
+        for (const ClothId cloth : output.cloths) {
+            SmokeClothCouplingId coupling{};
+            const Status status = world.add_smoke_cloth_coupling(
+                {.smoke = output.smoke, .cloth = cloth}, coupling);
+            if (!status) return status;
+            output.smoke_cloth_couplings.push_back(coupling);
+        }
     }
     for (const SoftBodyDefinition &definition : scene.soft_bodies) {
         if (definition.mesh_index >= scene.meshes.size())

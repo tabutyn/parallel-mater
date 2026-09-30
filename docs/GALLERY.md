@@ -90,6 +90,10 @@ Headless physics builds remain free of OpenGL and OptiX.
     posts in the smoke plume. The shared API bends them with smoke-carrier
     wind and deflects tracers at their live surfaces. Select with
     `--smoke-softbody`; `V` reveals the internal springs and `R` restarts.
+21. **Smoke Cloth** — `SmokeCloth.blend` pins two edges of a 17×17 sheet in
+    front of the smoke flow. The API's wind coupling bends the free cloth and
+    two-sided triangle contact deflects smoke tracers. Select with
+    `--smoke-cloth`; `V` reveals cloth bonds and `R` restarts.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and

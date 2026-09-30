@@ -94,6 +94,11 @@ struct SmokeSoftBodyCouplingId {
     std::uint32_t generation{};
 };
 
+struct SmokeClothCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+};
+
 struct ClothId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -288,6 +293,7 @@ struct WorldOptions {
     std::uint32_t smoke_capacity{1U};
     std::uint32_t fluid_smoke_coupling_capacity{1U};
     std::uint32_t smoke_soft_body_coupling_capacity{1U};
+    std::uint32_t smoke_cloth_coupling_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_source_capacity{8U};
@@ -368,6 +374,17 @@ struct SmokeSoftBodyCouplingOptions {
     SoftBodyId soft_body{};
     float wind_drag{2.0F}; // inverse seconds
     float contact_distance{}; // zero selects smoke + soft node radii
+    bool enabled{true};
+};
+
+// The smoke carrier bends movable cloth vertices. Massless smoke tracers
+// deflect from the cloth's current triangles, including after tearing.
+struct SmokeClothCouplingOptions {
+    SmokeId smoke{};
+    ClothId cloth{};
+    float wind_drag{2.0F}; // inverse seconds
+    float maximum_wind_acceleration{20.0F};
+    float contact_distance{}; // zero selects smoke radius + cloth thickness
     bool enabled{true};
 };
 
@@ -1037,6 +1054,11 @@ class World {
         SmokeSoftBodyCouplingId &output) noexcept;
     [[nodiscard]] Status remove_smoke_soft_body_coupling(
         SmokeSoftBodyCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_cloth_coupling(
+        SmokeClothCouplingOptions options,
+        SmokeClothCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_cloth_coupling(
+        SmokeClothCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
                                    cudaStream_t stream = nullptr) noexcept;

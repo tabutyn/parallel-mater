@@ -355,6 +355,17 @@ pass.
   57,720 bonds. Four graph iterations keep the 180-frame GPU test stable,
   with exact pins and at most 12% observed bond strain.
 
+## PR 25 — Smoke–cloth coupling (review)
+
+- `SmokeCloth.blend` authors one 17×17 sheet with 34 Pin vertices, the smoke
+  inlet, an active vortex sphere, and a passive ground. The gallery registers
+  a reusable smoke/cloth API coupling without custom scene physics.
+- The carrier wind bends free cloth vertices; massless tracers collide on both
+  sides of its current triangles, including updated tear topology. A 180-frame
+  GPU comparison checks pin stability, spring strain, cloth displacement,
+  and smoke-path divergence against the uncoupled scene. A fast-tracer sweep
+  regression prevents one-frame tunneling through the thin sheet.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
