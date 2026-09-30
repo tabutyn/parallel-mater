@@ -61,6 +61,18 @@ properties. The gallery resolves the obstacle name and radius and registers a
 active centered sphere; smoke collision follows its translation. One smoke
 inlet per scene is supported.
 
+`SmokeSoftbody.blend` uses the same Smoke Inflow and a twenty-object grid of
+Blender Soft Body meshes. Each `Top` Goal group is an exact pin; the smoke
+carrier bends the remaining nodes, and the current soft skin deflects smoke
+tracers through `World::add_smoke_soft_body_coupling`. No extra Blender
+coupling marker is required when both systems exist in the scene. The source
+cylinders use 16 radial sides and nine axial rings, with
+`pm_node_spacing = 0.12` and `pm_solver_iterations = 4`; this keeps the
+entire grid at 3,520 nodes and 57,720 springs rather than the default
+refinement's roughly 56,000 nodes and 4.8 million springs. Increase spacing
+or reduce authored face resolution to control cost before reducing solver
+stiffness. The single exporter still owns `.glb` generation.
+
 ## Smoke and water boiling
 
 `SmokeWater.blend` combines a Smoke Inflow with a Liquid Flow/Geometry volume.

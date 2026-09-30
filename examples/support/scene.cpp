@@ -1585,6 +1585,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         .smoke_capacity = scene.has_smoke ? 1U : 0U,
         .fluid_smoke_coupling_capacity = static_cast<std::uint32_t>(
             scene.thermal_surfaces.size()),
+        .smoke_soft_body_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(scene.soft_bodies.size()) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
@@ -1855,6 +1857,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .solver_iterations = definition.solver_iterations}, body);
         if (!status) return status;
         output.soft_bodies.push_back(body);
+    }
+    if (output.has_smoke) {
+        for (const SoftBodyId body : output.soft_bodies) {
+            SmokeSoftBodyCouplingId coupling{};
+            const Status status = world.add_smoke_soft_body_coupling(
+                {.smoke = output.smoke, .soft_body = body}, coupling);
+            if (!status) return status;
+            output.smoke_soft_body_couplings.push_back(coupling);
+        }
     }
     for (const auto &rope : scene.ropes) {
         auto options=rope.options;

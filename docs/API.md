@@ -117,6 +117,17 @@ temperature survives fluid compaction. Remove the coupling before removing
 either system. This first thermal model has no latent heat, condensation, or
 two-way gas momentum solve.
 
+`World::add_smoke_soft_body_coupling` links any existing smoke and soft-body
+resources. The prescribed smoke carrier velocity applies configurable drag to
+movable soft nodes; exact Goal pins remain fixed. Smoke tracers collide with
+the current skinned soft-body surface samples, using a broad-phase bound so
+posts outside the plume are cheap to skip. Contact follows the moving skin
+and its node velocity. Tracers have no physical mass, so these contacts do not
+apply reaction impulses; the carrier wind is what bends the body. The
+generation-checked coupling must be removed before either resource. The
+gallery registers the same API coupling for every soft body in a smoke scene;
+no scene-specific physics kernel is involved.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc

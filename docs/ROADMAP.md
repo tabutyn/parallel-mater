@@ -345,6 +345,16 @@ pass.
   retained-particle identity, wind-driven water motion, and existing smoke
   and fluid regressions. Full-scene 180-frame smoke/water render is stable.
 
+## Next — Smoke–soft-body coupling
+
+- `SmokeSoftbody.blend` authors 20 Goal-pinned posts and the same smoke inlet.
+  The gallery registers reusable `SmokeSoftBodyCouplingOptions` for each post;
+  smoke drag and tracer contact run in the physics API, not in gallery code.
+- Authoring a 16-sided, nine-ring surface and 0.12 m lattice spacing reduces
+  the scene from about 56,000 nodes / 4.8 million bonds to 3,520 nodes /
+  57,720 bonds. Four graph iterations keep the 180-frame GPU test stable,
+  with exact pins and at most 12% observed bond strain.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.

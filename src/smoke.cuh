@@ -22,6 +22,18 @@ struct SmokeStorage {
     }
 };
 
+struct SmokeSoftBodyCouplingSlot {
+    SmokeSoftBodyCouplingOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
+    Vec3 *minimum{};
+    Vec3 *maximum{};
+    ~SmokeSoftBodyCouplingSlot() {
+        release_managed(minimum);
+        release_managed(maximum);
+    }
+};
+
 __host__ __device__ std::uint32_t smoke_hash(std::uint32_t value) {
     value ^= value >> 16U;
     value *= 0x7feb352dU;
@@ -146,4 +158,63 @@ __global__ void smoke_emit(Vec3 *positions, Vec3 *velocities, float *ages,
     velocities[slot] = options.initial_velocity;
     ages[slot] = 0.0F;
     thermal_lift[slot] = 0.0F;
+}
+
+__global__ void smoke_soft_body_wind(
+    Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
+    std::uint32_t node_count, SmokeOptions smoke,
+    const RigidBodyState *states, std::uint32_t obstacle,
+    float time, float drag, float dt, float maximum_speed) {
+    const auto node = blockIdx.x * blockDim.x + threadIdx.x;
+    if (node >= node_count || inverse_masses[node] == 0.0F) return;
+    const Vec3 desired = smoke_velocity_field(
+        positions[node], states[obstacle].position, smoke, time);
+    const float response = 1.0F - expf(-drag * dt);
+    velocities[node] = clamp_length(add(velocities[node],
+        multiply(subtract(desired, velocities[node]), response)), maximum_speed);
+}
+
+__global__ void smoke_soft_body_bounds(
+    const Vec3 *surface, std::uint32_t count, Vec3 *minimum, Vec3 *maximum) {
+    if (blockIdx.x || threadIdx.x) return;
+    Vec3 low = surface[0], high = surface[0];
+    for (std::uint32_t index = 1U; index < count; ++index) {
+        const Vec3 point = surface[index];
+        low.x = fminf(low.x, point.x); low.y = fminf(low.y, point.y);
+        low.z = fminf(low.z, point.z);
+        high.x = fmaxf(high.x, point.x); high.y = fmaxf(high.y, point.y);
+        high.z = fmaxf(high.z, point.z);
+    }
+    *minimum = low;
+    *maximum = high;
+}
+
+__global__ void smoke_soft_body_contact(
+    Vec3 *positions, Vec3 *velocities, const float *ages,
+    std::uint32_t count, float lifetime,
+    const Vec3 *surface, const SoftBodySurfaceBinding *bindings,
+    std::uint32_t surface_count, const Vec3 *node_velocities,
+    const Vec3 *minimum, const Vec3 *maximum, float clearance) {
+    const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= count || ages[particle] >= lifetime) return;
+    const Vec3 point = positions[particle];
+    const Vec3 low = *minimum, high = *maximum;
+    if (point.x < low.x-clearance || point.x > high.x+clearance ||
+        point.y < low.y-clearance || point.y > high.y+clearance ||
+        point.z < low.z-clearance || point.z > high.z+clearance) return;
+    float nearest = clearance * clearance;
+    std::uint32_t vertex = surface_count;
+    for (std::uint32_t index = 0U; index < surface_count; ++index) {
+        const float distance2 = length_squared(subtract(point, surface[index]));
+        if (distance2 < nearest) { nearest = distance2; vertex = index; }
+    }
+    if (vertex == surface_count) return;
+    const Vec3 normal = normalized_or(subtract(point, surface[vertex]),
+                                       {-1.0F, 0.0F, 0.0F});
+    positions[particle] = add(surface[vertex], multiply(normal, clearance));
+    const Vec3 body_velocity = node_velocities[bindings[vertex].nodes[0]];
+    Vec3 relative = subtract(velocities[particle], body_velocity);
+    relative = subtract(relative,
+        multiply(normal, fminf(0.0F, dot(relative, normal))));
+    velocities[particle] = add(body_velocity, relative);
 }

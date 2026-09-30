@@ -201,6 +201,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb"
             PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
             PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
+            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -432,6 +433,12 @@ if(BUILD_TESTING)
             PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb")
         add_test(NAME parallel-mater-smoke-water-tests COMMAND parallel-mater-smoke-water-tests)
         set_tests_properties(parallel-mater-smoke-water-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-smoke-soft-body-tests tests/gallery/smoke_soft_body_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-soft-body-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-smoke-soft-body-tests PRIVATE
+            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb")
+        add_test(NAME parallel-mater-smoke-soft-body-tests COMMAND parallel-mater-smoke-soft-body-tests)
+        set_tests_properties(parallel-mater-smoke-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-soft-body-winding-tests
                  COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
         set_tests_properties(parallel-mater-rope-soft-body-winding-tests
@@ -566,6 +573,11 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-smoke-headless-test
             parallel-mater-smoke.ppm 240 --smoke)
+        add_gallery_headless_test(
+            parallel-mater-smoke-soft-body-headless-test
+            parallel-mater-smoke-soft-body.ppm 180 --smoke-softbody)
+        set_tests_properties(parallel-mater-smoke-soft-body-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)
