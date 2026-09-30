@@ -392,7 +392,8 @@ struct SmokeDeviceView {
 struct SmokeSoftBodyCouplingOptions {
     SmokeId smoke{};
     SoftBodyId soft_body{};
-    float wind_drag{2.0F}; // inverse seconds
+    float wind_drag{0.5F}; // inverse seconds
+    float maximum_wind_acceleration{2.0F};
     float contact_distance{}; // zero selects smoke + soft node radii
     bool enabled{true};
 };
@@ -419,16 +420,17 @@ struct SmokeRopeCouplingOptions {
     bool enabled{true};
 };
 
-// Opt-in carrier pressure and two-sided tracer deflection against any rigid
-// triangle mesh, including a thin moving panel. Closed meshes have zero net
-// signed area and therefore receive no pressure from this surface model.
+// Carrier drag uses projected triangle area for open panels and closed bodies.
+// Optional two-sided tracer contact handles meshes not already used as the
+// smoke's spherical obstacle.
 struct SmokeRigidCouplingOptions {
     SmokeId smoke{};
     RigidBodyId body{};
     float air_density{1.2F};
-    float drag_coefficient{1.0F};
-    float maximum_force{20.0F};
+    float drag_coefficient{4.0F};
+    float maximum_force{40.0F};
     float contact_distance{}; // zero selects smoke particle radius
+    bool tracer_contact{true};
     bool enabled{true};
 };
 

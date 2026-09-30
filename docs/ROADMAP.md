@@ -369,7 +369,7 @@ pass.
   edges. A 300-frame regression checks that the plume reaches the far side
   without collecting against the windward surface.
 
-## PR 26 — Smoke–rope and suspended panel coupling (ready for review)
+## PR 26 — Smoke–rope and suspended panel coupling (merged)
 
 - `SmokeRope.blend` supplies four Poly ropes, an active panel, two passive
   posts, the vortex sphere, and a smoke inlet. The single exporter infers
@@ -380,6 +380,20 @@ pass.
 - GPU regression compares 300 frames against uncoupled motion, checks rope
   strain and a focused rope-hit plume, and rejects fast tracer tunneling
   through the thin panel.
+
+## PR 27 — Smoke gravity, rigid drag, and soft-body cleanup (review)
+
+- All five smoke gallery contexts reuse the 45° camera-relative arrow gravity
+  controller. Smoke buoyancy and steam lift follow the resulting vector.
+- Projected triangle area replaces signed-area cancellation, so the shared
+  smoke/rigid API can push closed dynamic spheres as well as open panels.
+  The sphere's existing analytic smoke contact remains the only tracer
+  contact for that obstacle.
+- Soft bodies, cloth, and ropes share one bounded wind-response calculation;
+  smoke/soft-body options now expose the acceleration cap. Tuning the shared
+  defaults reduced the 20-post scene's maximum bond stretch from 85% to 41%
+  while retaining visible wind response. GPU regressions cover the sphere,
+  panel, soft bodies, cloth, rope, and tilt.
 
 ## Later — Gallery game shell
 

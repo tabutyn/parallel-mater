@@ -109,7 +109,7 @@ default); `FluidDeviceView::temperatures` exposes the live values. Near the
 heater, water temperature approaches `heater_temperature` at the configured
 `heat_transfer_rate`. At `boiling_temperature` (100°C by default) a water
 particle is removed from the liquid solver and inserted into bounded smoke
-storage with an upward velocity and decaying thermal lift. This is a phase
+storage with velocity and decaying thermal lift opposite gravity. This is a phase
 transfer, not a second copy of the water particle. The same smoke carrier
 field exerts configurable drag on nearby water without scanning all smoke
 tracers. `WorldStatistics::boiled_particle_count` tracks transfers; source
@@ -146,13 +146,20 @@ rigid or deformable attachment. Smoke tracers use swept capsule contact with
 the rope's live segments; they deflect but carry no reaction mass. The
 generation-checked coupling must be removed before its smoke or rope.
 
-`World::add_smoke_rigid_coupling` is opt-in for arbitrary rigid triangle meshes,
-including open moving panels. Tracers make two-sided swept triangle contact
-and flow toward finite surface edges. Signed mesh area supplies a bounded
-carrier-pressure force to dynamic bodies; a consistently wound closed mesh
-has zero net signed area, so this simple pressure model does not load it. The
-coupling must be removed before its smoke or rigid body. Gallery scenes opt in
-with `pm_smoke_collider` on the Blender rigid object.
+`World::add_smoke_rigid_coupling` works with closed bodies and open panels.
+Projected triangle area supplies bounded carrier drag along relative airflow,
+so closed spheres no longer cancel to zero force. Tracers can make two-sided
+swept triangle contact and flow toward finite surface edges. Set
+`tracer_contact=false` when another smoke obstacle already handles collision
+for the same body. The coupling must be removed before its smoke or rigid
+body. The gallery couples all dynamic rigid bodies automatically; the Blender
+`pm_smoke_collider` property additionally opts in a static or kinematic mesh.
+
+Smoke buoyancy, including heated steam, points opposite the current step
+gravity; zero gravity retains world-up buoyancy. Soft-body, cloth, and rope
+wind use one bounded carrier-response calculation. Soft-body couplings expose
+`maximum_wind_acceleration` to keep stronger smoke from injecting an
+unbounded node velocity change.
 
 ## Rope centerlines and attachments
 

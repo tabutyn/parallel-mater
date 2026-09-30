@@ -100,6 +100,11 @@ Headless physics builds remain free of OpenGL and OptiX.
     smoke tracers. Select with `--smoke-rope`; `V` reveals rope segments and
     `R` restarts.
 
+All five smoke scenes use the arrow keys to ease gravity up to 45° from down;
+releasing the arrows returns it to straight down. Buoyancy and steam rise
+follow the tilt. The carrier wind also pushes dynamic rigid spheres and open
+panels; Blender-passive bodies remain fixed.
+
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
 Suzanne through `World`, and ray traces their authored render triangles. The

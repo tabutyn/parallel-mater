@@ -6133,6 +6133,8 @@ Status World::add_smoke_soft_body_coupling(
         return failure(StatusCode::invalid_handle,
                        "smoke or soft-body coupling handle is stale");
     if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
         !finite(options.contact_distance) || options.contact_distance < 0.0F)
         return failure(StatusCode::invalid_argument,
                        "invalid smoke soft-body coupling parameters");
@@ -6371,12 +6373,20 @@ Status World::add_smoke_rigid_coupling(
         ? impl_->smoke_rigid_couplings[slot]->generation : 1U;
     coupling->options = options;
     const auto &mesh = impl_->meshes[impl_->parameters[dense].mesh.index];
-    for (std::uint32_t base = 0U; base < mesh.index_count; base += 3U) {
-        const Vec3 a = mesh.vertices[mesh.indices[base]];
-        const Vec3 b = mesh.vertices[mesh.indices[base + 1U]];
-        const Vec3 c = mesh.vertices[mesh.indices[base + 2U]];
-        coupling->local_area_vector = add(coupling->local_area_vector,
-            multiply(cross(subtract(b, a), subtract(c, a)), 0.5F));
+    try {
+        coupling->local_triangle_areas.reserve(mesh.index_count / 3U);
+        for (std::uint32_t base = 0U; base < mesh.index_count; base += 3U) {
+            const Vec3 a = mesh.vertices[mesh.indices[base]];
+            const Vec3 b = mesh.vertices[mesh.indices[base + 1U]];
+            const Vec3 c = mesh.vertices[mesh.indices[base + 2U]];
+            const Vec3 area = multiply(
+                cross(subtract(b, a), subtract(c, a)), 0.5F);
+            coupling->local_area_vector = add(coupling->local_area_vector, area);
+            coupling->local_triangle_areas.push_back(area);
+        }
+    } catch (...) {
+        return failure(StatusCode::out_of_memory,
+                       "smoke rigid area allocation failed");
     }
     coupling->alive = true;
     output = {slot, coupling->generation};
@@ -9352,19 +9362,25 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!status) return status;
         if (impl_->parameters[body].motion != MotionType::dynamic) continue;
         const auto &state = impl_->states[impl_->current_state][body];
-        const Vec3 area = rotate(state.orientation, coupling->local_area_vector);
-        const float area_size = vector_length(area);
-        if (area_size < 1.0e-8F) continue;
-        const Vec3 normal = multiply(area, 1.0F / area_size);
         const auto &smoke = *impl_->smokes[coupling->options.smoke.index];
         const Vec3 relative = subtract(smoke.options.wind, state.linear_velocity);
-        const float normal_speed = dot(relative, normal);
-        const float pressure = 0.5F * coupling->options.air_density *
-            coupling->options.drag_coefficient * area_size *
-            normal_speed * std::fabs(normal_speed);
+        const float speed = vector_length(relative);
+        if (speed < 1.0e-6F) continue;
+        const Vec3 direction = multiply(relative, 1.0F / speed);
+        const Vec3 local_direction = inverse_rotate(state.orientation, direction);
+        float absolute_projection = 0.0F;
+        for (const Vec3 area : coupling->local_triangle_areas)
+            absolute_projection += std::fabs(dot(area, local_direction));
+        // A closed shell has zero net signed area and presents half the sum
+        // of both sides. An open sheet presents its full face from either side.
+        const float signed_projection = std::fabs(
+            dot(coupling->local_area_vector, local_direction));
+        const float projected_area = 0.5F *
+            (absolute_projection + signed_projection);
+        const float drag = 0.5F * coupling->options.air_density *
+            coupling->options.drag_coefficient * projected_area * speed * speed;
         impl_->accumulators[body].force = add(impl_->accumulators[body].force,
-            clamp_length(multiply(normal, pressure),
-                         coupling->options.maximum_force));
+            multiply(direction, std::min(drag, coupling->options.maximum_force)));
     }
     if (debug_enabled && impl_->rigid_body_count != 0U) {
         capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
@@ -9452,7 +9468,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->states[impl_->current_state], obstacle,
                     smoke.time, owner->options.wind_drag,
                     owner->options.maximum_wind_acceleration,
-                    substep_timestep);
+                    substep_timestep, options.gravity);
             }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 cloth.positions, cloth.previous, cloth.velocities,
@@ -9593,7 +9609,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.node_count, smoke.options,
                     impl_->states[impl_->current_state], obstacle,
                     smoke.time, owner->options.wind_drag,
-                    substep_timestep, body.maximum_speed);
+                    owner->options.maximum_wind_acceleration,
+                    substep_timestep, body.maximum_speed, options.gravity);
             }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 body.positions, body.previous, body.velocities,
@@ -10072,7 +10089,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->states[impl_->current_state], obstacle, smoke.time,
                     owner->options.wind_drag,
                     owner->options.maximum_wind_acceleration,
-                    substep_timestep, first, last);
+                    substep_timestep, options.gravity, first, last);
             }
             rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
                 impl_->parameters,impl_->states[impl_->current_state],previous_states,
@@ -10935,7 +10952,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             smoke.options, impl_->states[impl_->current_state][obstacle].position,
             smoke.time, smoke.count, smoke.positions, smoke.velocities,
             smoke.ages, smoke.thermal_lift, smoke.next_slot,
-            coupling.converted, fluid.keep, options.timestep);
+            coupling.converted, fluid.keep, options.timestep,
+            options.gravity);
         error = cudaGetLastError();
         if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
         if (error != cudaSuccess)
@@ -10987,7 +11005,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 smoke.thermal_lift, smoke.count,
                 smoke.options, impl_->states[impl_->current_state],
                 impl_->fluid_previous_states, any_moving_body, obstacle,
-                smoke.time, options.timestep);
+                smoke.time, options.timestep, options.gravity);
             for (const auto &coupling : impl_->smoke_soft_body_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
                     coupling->options.smoke.index >= impl_->smokes.size() ||
@@ -11036,6 +11054,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
             for (const auto &coupling : impl_->smoke_rigid_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    !coupling->options.tracer_contact ||
                     coupling->options.smoke.index >= impl_->smokes.size() ||
                     impl_->smokes[coupling->options.smoke.index].get() != &smoke)
                     continue;

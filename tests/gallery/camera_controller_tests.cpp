@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/gallery_context.hpp>
 
 #include <array>
 #include <cmath>
@@ -80,6 +81,14 @@ void check_pan(CameraController &controller, const char *message) {
 } // namespace
 
 int main() {
+    using parallel_mater::gallery::GalleryContext;
+    using parallel_mater::gallery::GalleryControlPolicy;
+    using parallel_mater::gallery::gallery_entry;
+    for (const GalleryContext context : {GalleryContext::smoke,
+            GalleryContext::smoke_water, GalleryContext::smoke_soft_body,
+            GalleryContext::smoke_cloth, GalleryContext::smoke_rope})
+        check(gallery_entry(context).controls == GalleryControlPolicy::cloth_gravity,
+              "every smoke scene shares 45-degree arrow gravity controls");
     const Camera steering_camera{{0.0F, 3.0F, 5.0F},
                                  {0.0F, 0.0F, 0.0F}};
     Vec3 tilted{0.0F, -19.62F, 0.0F};

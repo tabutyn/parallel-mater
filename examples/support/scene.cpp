@@ -1596,7 +1596,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             ? static_cast<std::uint32_t>(std::count_if(
                   scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
                   [](const RigidBodyDefinition &body) {
-                      return body.smoke_collider;
+                      return body.smoke_collider ||
+                          body.options.motion == MotionType::dynamic;
                   })) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
@@ -1790,10 +1791,13 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         if (!status) return status;
         output.has_smoke = true;
         for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
-            if (!scene.rigid_bodies[index].smoke_collider) continue;
+            if (!scene.rigid_bodies[index].smoke_collider &&
+                scene.rigid_bodies[index].options.motion != MotionType::dynamic)
+                continue;
             SmokeRigidCouplingId coupling{};
             const Status coupled = world.add_smoke_rigid_coupling(
-                {.smoke = output.smoke, .body = output.rigid_bodies[index]},
+                {.smoke = output.smoke, .body = output.rigid_bodies[index],
+                 .tracer_contact = static_cast<int>(index) != obstacle},
                 coupling);
             if (!coupled) return coupled;
             output.smoke_rigid_couplings.push_back(coupling);

@@ -603,6 +603,12 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-smoke-rope-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
         add_gallery_headless_test(
+            parallel-mater-smoke-rope-tilt-headless-test
+            parallel-mater-smoke-rope-tilt.ppm 90 --smoke-rope
+            --gravity-tilt-degrees 45)
+        set_tests_properties(parallel-mater-smoke-rope-tilt-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
+        add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)
         add_gallery_headless_test(

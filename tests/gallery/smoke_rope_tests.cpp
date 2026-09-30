@@ -62,8 +62,8 @@ int main() {
                 "create uncoupled reference world");
         require(coupled.smoke_rope_couplings.size() == 4U,
                 "four smoke-rope API couplings were not registered");
-        require(coupled.smoke_rigid_couplings.size() == 1U,
-                "active panel smoke collider was not registered");
+        require(coupled.smoke_rigid_couplings.size() == 2U,
+                "sphere and active panel smoke couplings were not registered");
         require(!world.remove_smoke(coupled.smoke),
                 "referenced smoke was removed");
         require(!world.remove_rope(coupled.ropes.front()),
@@ -223,9 +223,9 @@ int main() {
         for (const auto coupling : crossing.smoke_rope_couplings)
             require(crossing_world.remove_smoke_rope_coupling(coupling),
                     "remove crossing rope coupling");
-        require(crossing_world.remove_smoke_rigid_coupling(
-                    crossing.smoke_rigid_couplings.front()),
-                "remove default crossing panel coupling");
+        for (const auto coupling : crossing.smoke_rigid_couplings)
+            require(crossing_world.remove_smoke_rigid_coupling(coupling),
+                    "remove default crossing rigid coupling");
         SmokeRigidCouplingId contact_only{};
         require(crossing_world.add_smoke_rigid_coupling(
                     {.smoke = crossing.smoke,

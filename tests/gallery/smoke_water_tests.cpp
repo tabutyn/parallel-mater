@@ -100,6 +100,9 @@ int main() {
         check(!world.remove_fluid_smoke_coupling(instance.fluid_smoke_couplings[0]),
               "stale coupling handle was accepted");
         check(world.remove_fluid(instance.fluid), "remove former coupled fluid");
+        for (const auto coupling : instance.smoke_rigid_couplings)
+            check(world.remove_smoke_rigid_coupling(coupling),
+                  "remove smoke-rigid coupling");
         check(world.remove_smoke(instance.smoke), "remove former coupled smoke");
 
         // The carrier-gas field, not just the tracer visualization, pushes water.

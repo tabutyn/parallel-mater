@@ -85,12 +85,19 @@ int main(int argc, char **argv) {
         SceneInstance instance;
         require(create_scene_world(scene, world, instance), "instantiate scene");
         require(instance.has_smoke && instance.soft_bodies.size() == 20U &&
-                instance.smoke_soft_body_couplings.size() == 20U,
+                instance.smoke_soft_body_couplings.size() == 20U &&
+                instance.smoke_rigid_couplings.size() == 1U,
                 "smoke/soft-body API couplings were not registered");
         require(!world.remove_smoke(instance.smoke),
                 "referenced smoke could be removed");
         require(!world.remove_soft_body(instance.soft_bodies.front()),
                 "referenced soft body could be removed");
+        SmokeSoftBodyCouplingId invalid_coupling{};
+        require(!world.add_smoke_soft_body_coupling(
+                    {.smoke = instance.smoke,
+                     .soft_body = instance.soft_bodies.front(),
+                     .maximum_wind_acceleration = -1.0F}, invalid_coupling),
+                "negative soft-body wind acceleration accepted");
         constexpr unsigned frames = 180U;
         const auto started = std::chrono::steady_clock::now();
         for (unsigned frame = 0; frame < frames; ++frame)
@@ -100,6 +107,8 @@ int main(int argc, char **argv) {
             std::chrono::steady_clock::now() - started).count();
         float maximum_speed = 0.0F;
         float maximum_strain = 0.0F;
+        float maximum_stretch = 0.0F;
+        float maximum_compression = 0.0F;
         std::size_t displaced = 0U;
         for (std::size_t body_index = 0; body_index < instance.soft_bodies.size();
              ++body_index) {
@@ -128,19 +137,24 @@ int main(int argc, char **argv) {
                 const Vec3 a = positions[bond.first], b = positions[bond.second];
                 const float length = std::sqrt((a.x-b.x)*(a.x-b.x) +
                     (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
-                maximum_strain = std::max(maximum_strain,
-                    std::abs(length / bond.rest_length - 1.0F));
+                const float strain = length / bond.rest_length - 1.0F;
+                maximum_strain = std::max(maximum_strain, std::abs(strain));
+                maximum_stretch = std::max(maximum_stretch, strain);
+                maximum_compression = std::max(maximum_compression, -strain);
             }
         }
         SmokeDeviceView smoke{};
         require(world.smoke_view(instance.smoke, smoke), "read smoke");
         require(smoke.particle_count > 0U, "smoke was not emitted");
-        require(displaced > 100U && maximum_speed < 10.0F,
+        require(displaced > 100U && maximum_speed < 10.0F &&
+                maximum_stretch < 0.5F,
                 "soft bodies did not move stably");
         std::cout << "frames=" << frames << " ms_per_frame=" << elapsed / frames
                   << " displaced_nodes=" << displaced
                   << " max_soft_speed=" << maximum_speed
                   << " max_bond_strain=" << maximum_strain
+                  << " max_stretch=" << maximum_stretch
+                  << " max_compression=" << maximum_compression
                   << " smoke_particles=" << smoke.particle_count << '\n';
 
         World scene_reference_world;
@@ -154,6 +168,24 @@ int main(int argc, char **argv) {
             require(scene_reference_world.step({.timestep = 1.0F / 60.0F,
                                                 .substeps = 4U}),
                     "step gallery reference");
+        float reference_stretch = 0.0F;
+        for (std::size_t body_index = 0U;
+             body_index < scene_reference.soft_bodies.size(); ++body_index) {
+            SoftBodyDeviceView reference_body{};
+            require(scene_reference_world.soft_body_view(
+                        scene_reference.soft_bodies[body_index], reference_body),
+                    "read gallery reference body");
+            const auto reference_positions = read(reference_body.positions);
+            for (const SoftBodyBond &bond : scene.soft_bodies[body_index].bonds) {
+                const Vec3 a = reference_positions[bond.first];
+                const Vec3 b = reference_positions[bond.second];
+                const float length = std::sqrt((a.x-b.x)*(a.x-b.x) +
+                    (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
+                reference_stretch = std::max(reference_stretch,
+                    length / bond.rest_length - 1.0F);
+            }
+        }
+        std::cout << "reference_max_stretch=" << reference_stretch << '\n';
         SmokeDeviceView reference_smoke{};
         require(scene_reference_world.smoke_view(scene_reference.smoke,
                                                 reference_smoke),
@@ -231,6 +263,9 @@ int main(int argc, char **argv) {
         require(!world.remove_smoke_soft_body_coupling(
                     instance.smoke_soft_body_couplings.front()),
                 "stale smoke soft-body coupling was accepted");
+        for (const auto coupling : instance.smoke_rigid_couplings)
+            require(world.remove_smoke_rigid_coupling(coupling),
+                    "remove smoke-rigid sphere coupling");
         require(world.remove_smoke(instance.smoke), "remove smoke");
         require(world.remove_soft_body(instance.soft_bodies.front()),
                 "remove soft body");

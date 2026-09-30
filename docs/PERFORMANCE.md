@@ -1,5 +1,17 @@
 # Physics performance
 
+## Shared smoke force and soft-body wind (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The closed 1 kg sphere moves 1.45 m farther along the carrier wind than an
+identical uncoupled sphere after 90 frames with no gravity. In SmokeRope,
+the suspended panel differs by 0.31 m after 300 frames while final rope
+strain remains below 0.1%; coupled physics costs about 7 ms/frame versus
+2.8 ms/frame without smoke couplings. For SmokeSoftbody's 20 posts, reducing
+the shared soft-body wind default from 2.0 to 0.5 inverse seconds and capping
+wind acceleration at 2 m/s² lowered peak bond stretch from 85% to 41% at
+180 frames. Wind still displaces the posts, and the physics step remains about
+21 ms/frame. These measurements exclude rendering.
+
 ## Smoke–rope suspended panel (RTX 3050 Ti Laptop GPU, 2026-09-30)
 
 `SmokeRope.blend` exports four roughly 40-node ropes between an active panel

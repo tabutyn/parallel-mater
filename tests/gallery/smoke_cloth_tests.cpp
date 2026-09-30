@@ -179,6 +179,9 @@ int main() {
         SceneInstance crossing;
         require(create_scene_world(crossing_scene, crossing_world, crossing),
                 "create fast-tracer crossing world");
+        for (const auto coupling : crossing.smoke_rigid_couplings)
+            require(crossing_world.remove_smoke_rigid_coupling(coupling),
+                    "isolate cloth from sphere pressure");
         require(crossing_world.remove_smoke_cloth_coupling(
                     crossing.smoke_cloth_couplings.front()),
                 "remove default crossing coupling");
@@ -205,6 +208,9 @@ int main() {
         require(!world.remove_smoke_cloth_coupling(
                     coupled.smoke_cloth_couplings.front()),
                 "stale coupling handle accepted");
+        for (const auto coupling : coupled.smoke_rigid_couplings)
+            require(world.remove_smoke_rigid_coupling(coupling),
+                    "remove smoke-rigid sphere coupling");
         require(world.remove_smoke(coupled.smoke), "remove smoke");
         require(world.remove_cloth(coupled.cloths.front()), "remove cloth");
         return 0;

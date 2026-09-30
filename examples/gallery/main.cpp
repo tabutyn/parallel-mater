@@ -385,7 +385,8 @@ struct FluidEscapeTrace {
                 output.initial_context = GalleryContext::fluid;
         } else if (const GalleryEntry *entry = entry_for_option(argument)) {
             output.initial_context = entry->context;
-        } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
+        } else if ((argument == "--cloth-tilt-degrees" ||
+                    argument == "--gravity-tilt-degrees") && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,
                              output.headless_cloth_tilt_degrees)) return false;
         } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
@@ -417,7 +418,7 @@ struct FluidEscapeTrace {
                 first = false;
             }
             std::cout << "] [--fluid-particles N] "
-                         "[--cloth-tilt-degrees 1..45 (headless)] "
+                         "[--gravity-tilt-degrees 1..45 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "

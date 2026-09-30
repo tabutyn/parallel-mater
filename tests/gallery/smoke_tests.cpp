@@ -167,6 +167,11 @@ int main() {
         SceneInstance moving_instance;
         require(create_scene_world(moving, moving_world, moving_instance),
                 "create moving-obstacle smoke");
+        require(moving_instance.smoke_rigid_couplings.size() == 1U,
+                "dynamic obstacle lacks reusable smoke-rigid coupling");
+        require(moving_world.remove_smoke_rigid_coupling(
+                    moving_instance.smoke_rigid_couplings.front()),
+                "isolate moving-sphere collision from carrier drag");
         float final_center_x = center.x;
         for (unsigned frame = 0U; frame < 60U; ++frame) {
             require(moving_world.step({.timestep = 1.0F / 60.0F,
@@ -196,6 +201,73 @@ int main() {
         }
         require(final_center_x < center.x - 0.5F,
                 "active smoke sphere did not move");
+
+        SceneDefinition pushed = moving;
+        pushed.rigid_bodies[0].options.initial_state.linear_velocity = {};
+        World pushed_world, unforced_world;
+        SceneInstance pushed_instance, unforced_instance;
+        require(create_scene_world(pushed, pushed_world, pushed_instance),
+                "create wind-pushed sphere");
+        require(create_scene_world(pushed, unforced_world, unforced_instance),
+                "create unforced sphere reference");
+        require(unforced_world.remove_smoke_rigid_coupling(
+                    unforced_instance.smoke_rigid_couplings.front()),
+                "disable reference sphere drag");
+        for (unsigned frame = 0U; frame < 90U; ++frame) {
+            const StepOptions step{.timestep = 1.0F / 60.0F,
+                                   .substeps = 1U, .gravity = {}};
+            require(pushed_world.step(step), "step wind-pushed sphere");
+            require(unforced_world.step(step), "step unforced sphere");
+        }
+        RigidBodyState pushed_state{}, unforced_state{};
+        require(pushed_world.read_rigid_body_state(
+                    pushed_instance.rigid_bodies[0], pushed_state),
+                "read wind-pushed sphere");
+        require(unforced_world.read_rigid_body_state(
+                    unforced_instance.rigid_bodies[0], unforced_state),
+                "read unforced sphere");
+        const float carrier_displacement =
+            pushed_state.position.x - unforced_state.position.x;
+        std::cout << "sphere_wind_displacement=" << carrier_displacement << '\n';
+        require(carrier_displacement > 0.2F,
+                "smoke carrier did not push the closed rigid sphere");
+
+        SceneDefinition buoyant = scene;
+        buoyant.smoke_options.capacity = 32U;
+        buoyant.smoke_options.particles_per_second = 32.0F;
+        buoyant.smoke_options.emitter_center = {-2.0F, 0.0F, 0.0F};
+        buoyant.smoke_options.emitter_half_extents = {0.001F, 0.001F};
+        buoyant.smoke_options.initial_velocity = {};
+        buoyant.smoke_options.wind = {};
+        buoyant.smoke_options.wake_strength = 0.0F;
+        buoyant.smoke_options.buoyancy = 0.8F;
+        World vertical_world, tilted_world;
+        SceneInstance vertical, tilted;
+        require(create_scene_world(buoyant, vertical_world, vertical),
+                "create vertical buoyancy scene");
+        require(create_scene_world(buoyant, tilted_world, tilted),
+                "create tilted buoyancy scene");
+        for (unsigned frame = 0U; frame < 90U; ++frame) {
+            require(vertical_world.step({.timestep = 1.0F / 60.0F,
+                    .substeps = 1U, .gravity = {0.0F, -9.81F, 0.0F}}),
+                    "step vertical smoke buoyancy");
+            require(tilted_world.step({.timestep = 1.0F / 60.0F,
+                    .substeps = 1U, .gravity = {6.93672F, -6.93672F, 0.0F}}),
+                    "step tilted smoke buoyancy");
+        }
+        SmokeDeviceView vertical_smoke{}, tilted_smoke{};
+        require(vertical_world.smoke_view(vertical.smoke, vertical_smoke),
+                "read vertical smoke buoyancy");
+        require(tilted_world.smoke_view(tilted.smoke, tilted_smoke),
+                "read tilted smoke buoyancy");
+        const auto vertical_positions = read(vertical_smoke.positions);
+        const auto tilted_positions = read(tilted_smoke.positions);
+        if (!vertical_positions.empty() && !tilted_positions.empty())
+            std::cout << "buoyancy_vertical_x=" << vertical_positions.front().x
+                      << " tilted_x=" << tilted_positions.front().x << '\n';
+        require(!vertical_positions.empty() && !tilted_positions.empty() &&
+                tilted_positions.front().x < vertical_positions.front().x - 0.12F,
+                "smoke buoyancy did not follow tilted gravity");
         std::cout << "smoke_particles=" << positions.size()
                   << " wake_particles=" << wake_particles
                   << " mean_transverse_wake_delta="

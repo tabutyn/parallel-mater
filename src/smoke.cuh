@@ -47,6 +47,7 @@ struct SmokeRigidCouplingSlot {
     std::uint32_t generation{1U};
     bool alive{};
     Vec3 local_area_vector{};
+    std::vector<Vec3> local_triangle_areas{};
 };
 
 __host__ __device__ std::uint32_t smoke_hash(std::uint32_t value) {
@@ -62,7 +63,7 @@ __device__ float smoke_random(std::uint32_t seed) {
 }
 
 __device__ Vec3 smoke_velocity_field(Vec3 point, Vec3 center,
-    const SmokeOptions &options, float time) {
+    const SmokeOptions &options, float time, Vec3 gravity) {
     const Vec3 relative = subtract(point, center);
     const float radius = options.obstacle_radius;
     const float distance2 = fmaxf(length_squared(relative), radius * radius * 1.001F);
@@ -90,7 +91,9 @@ __device__ Vec3 smoke_velocity_field(Vec3 point, Vec3 center,
                 0.38F * strength * -dx});
         }
     }
-    velocity.y += options.buoyancy;
+    velocity = add(velocity, multiply(
+        normalized_or(multiply(gravity, -1.0F), {0.0F, 1.0F, 0.0F}),
+        options.buoyancy));
     return velocity;
 }
 
@@ -99,7 +102,8 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *previous_positions,
     float *thermal_lift,
     std::uint32_t count, SmokeOptions options,
     const RigidBodyState *states, const RigidBodyState *previous_states,
-    bool moving_body, std::uint32_t obstacle, float time, float dt) {
+    bool moving_body, std::uint32_t obstacle, float time, float dt,
+    Vec3 gravity) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= count || ages[index] >= options.lifetime) return;
     Vec3 point = positions[index];
@@ -110,8 +114,10 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *previous_positions,
         ? previous_states[obstacle].position : center;
     const Vec3 center_path = subtract(center, previous_center);
     const Vec3 obstacle_velocity = multiply(center_path, 1.0F / dt);
-    Vec3 desired = smoke_velocity_field(point, center, options, time);
-    desired.y += thermal_lift[index];
+    Vec3 desired = smoke_velocity_field(point, center, options, time, gravity);
+    desired = add(desired, multiply(
+        normalized_or(multiply(gravity, -1.0F), {0.0F, 1.0F, 0.0F}),
+        thermal_lift[index]));
     const float response = 1.0F - expf(-options.response * dt);
     velocity = clamp_length(add(velocity,
         multiply(subtract(desired, velocity), response)), options.maximum_speed);
@@ -179,18 +185,27 @@ __global__ void smoke_emit(Vec3 *positions, Vec3 *previous_positions,
     thermal_lift[slot] = 0.0F;
 }
 
+__device__ Vec3 smoke_wind_delta(Vec3 position, Vec3 velocity,
+    SmokeOptions smoke, Vec3 obstacle_center, float time, float drag,
+    float maximum_acceleration, float dt, Vec3 gravity) {
+    const Vec3 desired = smoke_velocity_field(
+        position, obstacle_center, smoke, time, gravity);
+    const float response = 1.0F - expf(-drag * dt);
+    return clamp_length(multiply(subtract(desired, velocity), response),
+                        maximum_acceleration * dt);
+}
+
 __global__ void smoke_soft_body_wind(
     Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
     std::uint32_t node_count, SmokeOptions smoke,
     const RigidBodyState *states, std::uint32_t obstacle,
-    float time, float drag, float dt, float maximum_speed) {
+    float time, float drag, float maximum_acceleration, float dt,
+    float maximum_speed, Vec3 gravity) {
     const auto node = blockIdx.x * blockDim.x + threadIdx.x;
     if (node >= node_count || inverse_masses[node] == 0.0F) return;
-    const Vec3 desired = smoke_velocity_field(
-        positions[node], states[obstacle].position, smoke, time);
-    const float response = 1.0F - expf(-drag * dt);
-    velocities[node] = clamp_length(add(velocities[node],
-        multiply(subtract(desired, velocities[node]), response)), maximum_speed);
+    velocities[node] = clamp_length(add(velocities[node], smoke_wind_delta(
+        positions[node], velocities[node], smoke, states[obstacle].position,
+        time, drag, maximum_acceleration, dt, gravity)), maximum_speed);
 }
 
 __global__ void smoke_deformable_bounds(
@@ -212,32 +227,30 @@ __global__ void smoke_cloth_wind(
     const Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
     std::uint32_t vertex_count, SmokeOptions smoke,
     const RigidBodyState *states, std::uint32_t obstacle,
-    float time, float drag, float maximum_acceleration, float dt) {
+    float time, float drag, float maximum_acceleration, float dt,
+    Vec3 gravity) {
     const auto vertex = blockIdx.x * blockDim.x + threadIdx.x;
     if (vertex >= vertex_count || inverse_masses[vertex] == 0.0F) return;
-    const Vec3 desired = smoke_velocity_field(
-        positions[vertex], states[obstacle].position, smoke, time);
-    const float response = 1.0F - expf(-drag * dt);
-    const Vec3 change = multiply(subtract(desired, velocities[vertex]), response);
-    velocities[vertex] = add(velocities[vertex],
-        clamp_length(change, maximum_acceleration * dt));
+    velocities[vertex] = add(velocities[vertex], smoke_wind_delta(
+        positions[vertex], velocities[vertex], smoke,
+        states[obstacle].position, time, drag, maximum_acceleration,
+        dt, gravity));
 }
 
 __global__ void smoke_rope_wind(
     RopeData rope, SmokeOptions smoke,
     const RigidBodyState *states, std::uint32_t obstacle,
     float time, float drag, float maximum_acceleration, float dt,
+    Vec3 gravity,
     int first, int last) {
     const auto node = blockIdx.x * blockDim.x + threadIdx.x;
     if (node >= rope.count ||
         rope_anchor_body(rope, node, first, last) >= 0 ||
         rope_soft_anchor(rope, node)) return;
-    const Vec3 desired = smoke_velocity_field(
-        rope.positions[node], states[obstacle].position, smoke, time);
-    const float response = 1.0F - expf(-drag * dt);
-    const Vec3 change = multiply(subtract(desired, rope.velocities[node]), response);
     rope.velocities[node] = clamp_length(add(rope.velocities[node],
-        clamp_length(change, maximum_acceleration * dt)), rope.options.maximum_speed);
+        smoke_wind_delta(rope.positions[node], rope.velocities[node], smoke,
+            states[obstacle].position, time, drag, maximum_acceleration,
+            dt, gravity)), rope.options.maximum_speed);
 }
 
 __global__ void smoke_rope_contact(
