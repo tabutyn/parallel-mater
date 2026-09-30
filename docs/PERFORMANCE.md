@@ -1,5 +1,26 @@
 # Physics performance
 
+## Smoke–cloth sheet (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+`SmokeCloth.blend` exports one 289-vertex, 512-triangle sheet with 34 pinned
+vertices. With 1/60 s frames, four substeps, and zero gravity to isolate wind,
+the 180-frame GPU comparison averaged 1.57 ms/step coupled versus 1.51 ms
+without the API coupling. All pins stayed exact; maximum cloth speed was
+0.21 m/s and maximum bond strain 2.5%. The moving cloth differed from the
+uncoupled reference by 27.8 m of summed vertex displacement; tracer paths
+differed by 149 m summed across the occupied smoke slots. These are physics
+step wall times, not render FPS or conserved two-way momentum measurements.
+A separate 6 m/s tracer test confirms that swept triangle contact prevents
+one-frame tunneling through the thin sheet.
+
+In the five-second follow-up (300 frames), the original normal-only contact
+left 599 live tracers in the upstream surface region and none beyond the
+sheet. Tangential edge flow reduced that region to 479 and placed 1,002
+tracers beyond the sheet, at 1.74 ms coupled versus 1.66 ms uncoupled per
+frame. A wider pre-contact steering zone increased the upstream count to
+653, so it was discarded. Counts use fixed regions around the authored sheet
+and measure distribution, not total mass flux or render time.
+
 ## Smoke–soft-body grid (RTX 3050 Ti Laptop GPU, 2026-09-30)
 
 The 20 authored cylinders originally expanded to 56,280 nodes, 4,791,300

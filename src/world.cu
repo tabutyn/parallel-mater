@@ -5068,6 +5068,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<SmokeStorage>> smokes{};
     std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
     std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
+    std::vector<std::unique_ptr<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
     std::uint64_t boiled_particle_count{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
@@ -5454,6 +5455,8 @@ Status World::create(WorldOptions options, World &output,
             options.fluid_smoke_coupling_capacity);
         implementation->smoke_soft_body_couplings.resize(
             options.smoke_soft_body_coupling_capacity);
+        implementation->smoke_cloth_couplings.resize(
+            options.smoke_cloth_coupling_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -5969,6 +5972,7 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
     smoke->generation = impl_->smokes[slot] ? impl_->smokes[slot]->generation : 1U;
     smoke->options = options;
     if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
+        !(status = allocate_managed(smoke->previous_positions, options.capacity)) ||
         !(status = allocate_managed(smoke->velocities, options.capacity)) ||
         !(status = allocate_managed(smoke->ages, options.capacity)) ||
         !(status = allocate_managed(smoke->thermal_lift, options.capacity))) return status;
@@ -5995,6 +5999,10 @@ Status World::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->smoke_cloth_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a cloth coupling");
     std::unique_ptr<SmokeStorage> tombstone;
     try { tombstone = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
@@ -6161,6 +6169,78 @@ Status World::remove_smoke_soft_body_coupling(
     tombstone->generation = id.generation + 1U;
     if (tombstone->generation == 0U) tombstone->generation = 1U;
     impl_->smoke_soft_body_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_cloth_coupling(
+    SmokeClothCouplingOptions options, SmokeClothCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation ||
+        options.cloth.index >= impl_->cloths.size() ||
+        !impl_->cloths[options.cloth.index] ||
+        !impl_->cloths[options.cloth.index]->alive ||
+        impl_->cloths[options.cloth.index]->generation != options.cloth.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke or cloth coupling handle is stale");
+    if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke cloth coupling parameters");
+    for (const auto &existing : impl_->smoke_cloth_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.cloth == options.cloth)
+            return failure(StatusCode::invalid_argument,
+                           "smoke cloth coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_cloth_couplings.size() &&
+           impl_->smoke_cloth_couplings[slot] &&
+           impl_->smoke_cloth_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_cloth_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke cloth coupling capacity exhausted");
+    std::unique_ptr<SmokeClothCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeClothCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke cloth coupling allocation failed"); }
+    coupling->generation = impl_->smoke_cloth_couplings[slot] ?
+        impl_->smoke_cloth_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->minimum, 1U)) ||
+        !(status = allocate_managed(coupling->maximum, 1U))) return status;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_cloth_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_cloth_coupling(SmokeClothCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_cloth_couplings.size() ||
+        !impl_->smoke_cloth_couplings[id.index] ||
+        !impl_->smoke_cloth_couplings[id.index]->alive ||
+        impl_->smoke_cloth_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke cloth coupling handle is stale");
+    std::unique_ptr<SmokeClothCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeClothCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke cloth coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smoke_cloth_couplings[id.index] = std::move(tombstone);
     ++impl_->revision;
     return success();
 }
@@ -7219,6 +7299,10 @@ Status World::remove_cloth(ClothId id) noexcept {
         if (coupling && coupling->alive && coupling->options.cloth == id)
             return failure(StatusCode::invalid_argument,
                            "cloth is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->smoke_cloth_couplings)
+        if (coupling && coupling->alive && coupling->options.cloth == id)
+            return failure(StatusCode::invalid_argument,
+                           "cloth is still referenced by a smoke coupling");
     cloth.alive = false;
     cloth.release();
     ++cloth.generation;
@@ -9162,6 +9246,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             ClothStorage &cloth = *cloth_pointer;
             const std::uint32_t blocks =
                 (cloth.vertex_count + block_size - 1U) / block_size;
+            for (const auto &owner : impl_->smoke_cloth_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    owner->options.cloth.index != cloth_index ||
+                    owner->options.wind_drag == 0.0F) continue;
+                const auto &smoke = *impl_->smokes[owner->options.smoke.index];
+                std::uint32_t obstacle = 0U;
+                Status wind_status = impl_->validate_handle(
+                    smoke.options.obstacle, obstacle);
+                if (!wind_status) return wind_status;
+                smoke_cloth_wind<<<blocks, block_size, 0, stream>>>(
+                    cloth.positions, cloth.velocities, cloth.inverse_masses,
+                    cloth.vertex_count, smoke.options,
+                    impl_->states[impl_->current_state], obstacle,
+                    smoke.time, owner->options.wind_drag,
+                    owner->options.maximum_wind_acceleration,
+                    substep_timestep);
+            }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 cloth.positions, cloth.previous, cloth.velocities,
                 cloth.inverse_masses, cloth.vertex_count, options.gravity,
@@ -10673,7 +10774,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!status) return status;
         if (smoke.count != 0U) {
             smoke_advect<<<(smoke.count + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages,
+                smoke.positions, smoke.previous_positions,
+                smoke.velocities, smoke.ages,
                 smoke.thermal_lift, smoke.count,
                 smoke.options, impl_->states[impl_->current_state],
                 impl_->fluid_previous_states, any_moving_body, obstacle,
@@ -10688,7 +10790,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius + body.node_radius;
-                smoke_soft_body_bounds<<<1U, 1U, 0, stream>>>(
+                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
                     body.surface_positions, body.surface_vertex_count,
                     coupling->minimum, coupling->maximum);
                 smoke_soft_body_contact<<<
@@ -10698,6 +10800,31 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.surface_positions, body.surface_bindings,
                     body.surface_vertex_count, body.velocities,
                     coupling->minimum, coupling->maximum, clearance);
+            }
+            for (const auto &coupling : impl_->smoke_cloth_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                const auto &cloth = *impl_->cloths[coupling->options.cloth.index];
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius + cloth.thickness;
+                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                    cloth.positions, cloth.vertex_count,
+                    coupling->minimum, coupling->maximum);
+                smoke_cloth_contact<<<
+                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages,
+                    smoke.count, smoke.options.lifetime,
+                    cloth.positions, cloth.velocities,
+                    cloth.indices, cloth.index_count,
+                    coupling->minimum, coupling->maximum, clearance,
+                    std::min(smoke.options.maximum_speed, 2.0F * std::sqrt(
+                        length_squared(smoke.options.wind) +
+                        smoke.options.buoyancy * smoke.options.buoyancy)),
+                    smoke.options.maximum_speed);
             }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
             if (!status) return status;
@@ -10709,7 +10836,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         smoke.emission_fraction = float(exact - std::floor(exact));
         if (requested != 0U) {
             smoke_emit<<<(requested + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages,
+                smoke.positions, smoke.previous_positions,
+                smoke.velocities, smoke.ages,
                 smoke.thermal_lift, smoke.options,
                 smoke.next_slot, requested, smoke.emitted);
             smoke.next_slot = (smoke.next_slot + requested) % smoke.options.capacity;

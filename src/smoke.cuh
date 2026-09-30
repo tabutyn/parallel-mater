@@ -6,6 +6,7 @@ struct SmokeStorage {
     std::uint32_t generation{1U};
     bool alive{};
     Vec3 *positions{};
+    Vec3 *previous_positions{};
     Vec3 *velocities{};
     float *ages{};
     float *thermal_lift{};
@@ -16,23 +17,29 @@ struct SmokeStorage {
     float time{};
     ~SmokeStorage() {
         release_managed(positions);
+        release_managed(previous_positions);
         release_managed(velocities);
         release_managed(ages);
         release_managed(thermal_lift);
     }
 };
 
-struct SmokeSoftBodyCouplingSlot {
-    SmokeSoftBodyCouplingOptions options{};
+template <class Options> struct SmokeDeformableCouplingSlot {
+    Options options{};
     std::uint32_t generation{1U};
     bool alive{};
     Vec3 *minimum{};
     Vec3 *maximum{};
-    ~SmokeSoftBodyCouplingSlot() {
+    ~SmokeDeformableCouplingSlot() {
         release_managed(minimum);
         release_managed(maximum);
     }
 };
+
+using SmokeSoftBodyCouplingSlot =
+    SmokeDeformableCouplingSlot<SmokeSoftBodyCouplingOptions>;
+using SmokeClothCouplingSlot =
+    SmokeDeformableCouplingSlot<SmokeClothCouplingOptions>;
 
 __host__ __device__ std::uint32_t smoke_hash(std::uint32_t value) {
     value ^= value >> 16U;
@@ -79,7 +86,8 @@ __device__ Vec3 smoke_velocity_field(Vec3 point, Vec3 center,
     return velocity;
 }
 
-__global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
+__global__ void smoke_advect(Vec3 *positions, Vec3 *previous_positions,
+    Vec3 *velocities, float *ages,
     float *thermal_lift,
     std::uint32_t count, SmokeOptions options,
     const RigidBodyState *states, const RigidBodyState *previous_states,
@@ -87,6 +95,7 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= count || ages[index] >= options.lifetime) return;
     Vec3 point = positions[index];
+    previous_positions[index] = point;
     Vec3 velocity = velocities[index];
     const Vec3 center = states[obstacle].position;
     const Vec3 previous_center = moving_body
@@ -142,7 +151,8 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
     thermal_lift[index] *= expf(-dt / 3.0F);
 }
 
-__global__ void smoke_emit(Vec3 *positions, Vec3 *velocities, float *ages,
+__global__ void smoke_emit(Vec3 *positions, Vec3 *previous_positions,
+    Vec3 *velocities, float *ages,
     float *thermal_lift,
     SmokeOptions options, std::uint32_t first_slot,
     std::uint32_t count, std::uint64_t first_serial) {
@@ -155,6 +165,7 @@ __global__ void smoke_emit(Vec3 *positions, Vec3 *velocities, float *ages,
     positions[slot] = add(options.emitter_center, {0.0F,
         y * options.emitter_half_extents.x,
         z * options.emitter_half_extents.y});
+    previous_positions[slot] = positions[slot];
     velocities[slot] = options.initial_velocity;
     ages[slot] = 0.0F;
     thermal_lift[slot] = 0.0F;
@@ -174,7 +185,7 @@ __global__ void smoke_soft_body_wind(
         multiply(subtract(desired, velocities[node]), response)), maximum_speed);
 }
 
-__global__ void smoke_soft_body_bounds(
+__global__ void smoke_deformable_bounds(
     const Vec3 *surface, std::uint32_t count, Vec3 *minimum, Vec3 *maximum) {
     if (blockIdx.x || threadIdx.x) return;
     Vec3 low = surface[0], high = surface[0];
@@ -187,6 +198,122 @@ __global__ void smoke_soft_body_bounds(
     }
     *minimum = low;
     *maximum = high;
+}
+
+__global__ void smoke_cloth_wind(
+    const Vec3 *positions, Vec3 *velocities, const float *inverse_masses,
+    std::uint32_t vertex_count, SmokeOptions smoke,
+    const RigidBodyState *states, std::uint32_t obstacle,
+    float time, float drag, float maximum_acceleration, float dt) {
+    const auto vertex = blockIdx.x * blockDim.x + threadIdx.x;
+    if (vertex >= vertex_count || inverse_masses[vertex] == 0.0F) return;
+    const Vec3 desired = smoke_velocity_field(
+        positions[vertex], states[obstacle].position, smoke, time);
+    const float response = 1.0F - expf(-drag * dt);
+    const Vec3 change = multiply(subtract(desired, velocities[vertex]), response);
+    velocities[vertex] = add(velocities[vertex],
+        clamp_length(change, maximum_acceleration * dt));
+}
+
+__global__ void smoke_cloth_contact(
+    Vec3 *positions, const Vec3 *previous_positions,
+    Vec3 *velocities, const float *ages,
+    std::uint32_t count, float lifetime,
+    const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
+    const std::uint32_t *indices, std::uint32_t index_count,
+    const Vec3 *minimum, const Vec3 *maximum, float clearance,
+    float edge_flow_speed, float maximum_speed) {
+    const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= count || ages[particle] >= lifetime) return;
+    const Vec3 point = positions[particle];
+    const Vec3 before = previous_positions[particle];
+    const Vec3 low = *minimum, high = *maximum;
+    if (fmaxf(point.x, before.x) < low.x-clearance ||
+        fminf(point.x, before.x) > high.x+clearance ||
+        fmaxf(point.y, before.y) < low.y-clearance ||
+        fminf(point.y, before.y) > high.y+clearance ||
+        fmaxf(point.z, before.z) < low.z-clearance ||
+        fminf(point.z, before.z) > high.z+clearance) return;
+    float nearest2 = clearance * clearance;
+    std::uint32_t best = index_count;
+    Vec3 nearest{}, face_normal{}, weights{};
+    float earliest = 2.0F;
+    std::uint32_t swept_best = index_count;
+    Vec3 swept_nearest{}, swept_normal{}, swept_weights{};
+    for (std::uint32_t base = 0U; base < index_count; base += 3U) {
+        const Vec3 a = cloth_positions[indices[base]];
+        const Vec3 b = cloth_positions[indices[base+1U]];
+        const Vec3 c = cloth_positions[indices[base+2U]];
+        const Vec3 normal = cross(subtract(b, a), subtract(c, a));
+        if (length_squared(normal) < 1.0e-12F) continue;
+        const float side_before = dot(subtract(before, a), normal);
+        const float side_after = dot(subtract(point, a), normal);
+        if (side_before * side_after < 0.0F) {
+            const float fraction = side_before / (side_before - side_after);
+            if (fraction < earliest) {
+                const Vec3 hit = add(before,
+                    multiply(subtract(point, before), fraction));
+                Vec3 hit_weights{};
+                const Vec3 hit_nearest = fluid_closest_triangle_barycentric(
+                    hit, a, b, c, hit_weights);
+                if (length_squared(subtract(hit, hit_nearest)) < 1.0e-8F) {
+                    earliest = fraction;
+                    swept_best = base;
+                    swept_nearest = hit_nearest;
+                    swept_normal = normalized_or(normal, {1.0F, 0.0F, 0.0F});
+                    swept_weights = hit_weights;
+                }
+            }
+        }
+        Vec3 barycentric{};
+        const Vec3 candidate = fluid_closest_triangle_barycentric(
+            point, a, b, c, barycentric);
+        const float distance2 = length_squared(subtract(point, candidate));
+        if (distance2 < nearest2) {
+            nearest2 = distance2;
+            best = base;
+            nearest = candidate;
+            face_normal = normalized_or(normal, {1.0F, 0.0F, 0.0F});
+            weights = barycentric;
+        }
+    }
+    if (swept_best != index_count) {
+        best = swept_best;
+        nearest = swept_nearest;
+        face_normal = swept_normal;
+        weights = swept_weights;
+    }
+    if (best == index_count) return;
+    // Restore the side occupied before this step, even when the tracer
+    // crossed a thin moving sheet during advection.
+    float side = dot(subtract(before, nearest), face_normal);
+    if (fabsf(side) < 1.0e-5F)
+        side = dot(subtract(point, nearest), face_normal);
+    const Vec3 normal = side >= 0.0F ? face_normal : multiply(face_normal, -1.0F);
+    positions[particle] = add(nearest, multiply(normal, clearance));
+    const Vec3 cloth_velocity = add(
+        multiply(cloth_velocities[indices[best]], weights.x),
+        add(multiply(cloth_velocities[indices[best+1U]], weights.y),
+            multiply(cloth_velocities[indices[best+2U]], weights.z)));
+    Vec3 relative = subtract(velocities[particle], cloth_velocity);
+    relative = subtract(relative,
+        multiply(normal, fminf(0.0F, dot(relative, normal))));
+    // A no-through response alone leaves a steady carrier wind pushing every
+    // tracer back into the same face. Redirect that blocked flow along the
+    // local tangent, away from the finite sheet's center, so it can clear an
+    // edge. The same rule works on either side and on moving/rotated cloth.
+    const Vec3 center = multiply(add(low, high), 0.5F);
+    const Vec3 from_center = subtract(nearest, center);
+    const Vec3 projected = subtract(from_center,
+        multiply(normal, dot(from_center, normal)));
+    if (length_squared(projected) > 1.0e-8F && edge_flow_speed > 0.0F) {
+        const Vec3 toward_edge = normalized_or(projected, {0.0F, 1.0F, 0.0F});
+        const float outward_speed = dot(relative, toward_edge);
+        relative = add(relative, multiply(toward_edge,
+            fmaxf(0.0F, edge_flow_speed - outward_speed)));
+        relative = clamp_length(relative, maximum_speed);
+    }
+    velocities[particle] = add(cloth_velocity, relative);
 }
 
 __global__ void smoke_soft_body_contact(

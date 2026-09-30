@@ -128,6 +128,18 @@ generation-checked coupling must be removed before either resource. The
 gallery registers the same API coupling for every soft body in a smoke scene;
 no scene-specific physics kernel is involved.
 
+`World::add_smoke_cloth_coupling` links a smoke system to any cloth, including
+an open or tearing sheet. Carrier-gas velocity adds bounded wind acceleration
+to movable cloth vertices, leaving authored pins exact. Smoke tracers make
+two-sided swept contact with the cloth's current triangles; the contact normal
+uses the tracer's incoming side so a thin sheet does not flip particles through
+it. Triangle barycentric weights transfer the local cloth velocity to the
+tracer response. As with smoke/soft body, tracers have no reaction mass: wind
+loads the cloth, while tracers are deflected by it. The coupling has a
+generation-tagged handle and must be removed before the smoke or cloth.
+Blocked carrier flow is redirected along the local cloth tangent toward the
+finite sheet's edges, rather than leaving tracers parked on the windward face.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc
