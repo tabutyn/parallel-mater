@@ -65,6 +65,7 @@ __global__ void rope_soft_sample_anchor(RopeData rope, unsigned end,
     rope.soft_anchor_positions[end] = position;
     rope.soft_anchor_velocities[end] = velocity;
     rope.soft_anchor_impulses[end] = {};
+    rope.soft_anchor_inverse_masses[end] = 0.0F;
 }
 
 __global__ void rope_soft_scatter_anchor(RopeData rope, unsigned end,

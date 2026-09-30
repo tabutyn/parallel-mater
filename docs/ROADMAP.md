@@ -305,6 +305,20 @@ pass.
   matching retain the wrap with 1.2% peak rope strain and roughly 70 ms/frame
   in the 320-frame GPU stress test; four soft-body iterations were unstable.
 
+## PR 19 — Rope and cloth bridge
+
+- `RopeCloth.blend` has four passive posts, four open Poly ropes, one subdivided
+  cloth sheet, and an active rigid sphere. Coincident rope/cloth vertices and
+  rope endpoints inside passive posts author the joints without Hooks.
+- The exporter preserves pre-Cloth Simple subdivision and emits inferred target
+  names. The gallery resolves those names to explicit rope/cloth vertex joints
+  in the shared physics API; no gallery-specific constraint solver is used.
+- The rope solver includes the cloth endpoint's effective supported-patch mass
+  and applies a bounded, reciprocal position/velocity correction to the sheet.
+  A 1,200-frame GPU bridge check holds all four corners with zero endpoint gap
+  and less than 0.003% measured peak rope strain; disabling the joints lets the
+  cloth fall. The new gallery entry also has a headless render regression.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.

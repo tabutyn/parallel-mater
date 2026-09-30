@@ -46,13 +46,28 @@ glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
 alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
 materials remain visible regardless of their alpha value.
 
-## Rope curves and Hook attachments
+## Rope curves and attachments
 
 Use one open Bézier spline at the scene root. Select an endpoint control point
 in Edit Mode and use a Hook modifier targeting a native passive or active rigid
 body, or a mesh with Soft Body physics. Use strength 1 and no distance falloff (a zero falloff radius also works).
 Each Hook must contain exactly one endpoint control point, not interior points.
 The endpoints may target distinct rigid or soft bodies, or an endpoint may be free.
+
+For a rope-to-cloth joint, use an open **Poly** curve with a Soft Body modifier
+and place its endpoint exactly on an authored cloth vertex. The exporter infers
+that endpoint joint without a Hook. It also infers a rigid attachment when an
+unhooked endpoint lies on or inside one passive rigid mesh. If several targets
+overlap, the nearest surface wins only when clearly closer; ambiguous targets
+are rejected. A Hook, where present, takes precedence over inference. Poly
+curves with Hooks are not supported; use Bézier for explicit Hook attachments.
+The geometry decides *which* objects connect; `World::add_rope_cloth_coupling`
+implements the physical joint after export.
+
+`RopeCloth.blend` has four such post-to-corner curves. Its Simple Subdivision
+modifier sits before Cloth and becomes a 17×17 physical sheet during export;
+the original four corner positions remain exact for rope binding. Only Simple
+pre-Cloth subdivision, up to five viewport levels, is currently mapped.
 
 The exporter evaluates Blender's actual Hook deformation, including bind
 matrices and moved targets. It removes Soft Body only from a temporary copy so
@@ -79,8 +94,9 @@ Author enough curve length for intended wraps: three turns need at least
 between the wraps and the two attachments. A stiff rope cannot create slack.
 
 The schema stores `pm_system = "rope"`, `pm_rope_points` as world-space Y-up
-polyline samples, and `pm_rope_first_body` / `pm_rope_last_body` or
-`pm_rope_first_soft_body` / `pm_rope_last_soft_body` as target names. A soft Hook
+polyline samples, and `pm_rope_first_body` / `pm_rope_last_body`,
+`pm_rope_first_soft_body` / `pm_rope_last_soft_body`, or
+`pm_rope_first_cloth` / `pm_rope_last_cloth` as target names. A soft Hook
 follows the closest rest-surface triangle, while all other rope segments collide
 with its deformed skin through the shared rope/soft-body API. To keep a soft post
 rooted while the rope winds, assign its bottom vertices to a Blender Soft Body

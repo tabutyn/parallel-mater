@@ -894,7 +894,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[0], scale, false,
                               name, mesh, error)) return false;
-        if (pressure_enabled) weld_pressure_cloth(mesh);
+        if (pressure_enabled || extras.boolean("pm_weld_vertices").value_or(false))
+            weld_pressure_cloth(mesh);
         ClothDefinition cloth{};
         cloth.name = name;
         cloth.vertex_mass = mass;
@@ -1098,8 +1099,31 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         for(unsigned end=0;end<2;++end) {
             const auto target=extras.string(end?"pm_rope_last_body":"pm_rope_first_body").value_or("");
             const auto soft_target=extras.string(end?"pm_rope_last_soft_body":"pm_rope_first_soft_body").value_or("");
-            if(!target.empty() && !soft_target.empty()) {
-                error=rope.name+": Hook cannot target both rigid and soft bodies";return false;
+            const auto cloth_target=extras.string(end?"pm_rope_last_cloth":"pm_rope_first_cloth").value_or("");
+            if(unsigned(!target.empty())+unsigned(!soft_target.empty())+
+               unsigned(!cloth_target.empty())>1U) {
+                error=rope.name+": endpoint has multiple attachment targets";return false;
+            }
+            if(!cloth_target.empty()) {
+                int match=-1;
+                for(unsigned sheet=0;sheet<output.cloths.size();++sheet)
+                    if(output.cloths[sheet].name==cloth_target) {
+                        if(match>=0){error=rope.name+": cloth target is ambiguous";return false;}
+                        match=int(sheet);
+                    }
+                if(match<0){error=rope.name+": missing cloth target "+cloth_target;return false;}
+                const auto &mesh=output.meshes[output.cloths[match].mesh_index];
+                const Vec3 point=end?nodes.back():nodes.front();
+                int vertex=-1;
+                for(unsigned index=0;index<mesh.vertices.size();++index)
+                    if(math::length_squared(subtract(mesh.vertices[index].position,point))<=1.0e-8F) {
+                        if(vertex>=0){error=rope.name+": cloth vertex is ambiguous";return false;}
+                        vertex=int(index);
+                    }
+                if(vertex<0){error=rope.name+": endpoint misses cloth vertex";return false;}
+                (end?rope.last_cloth:rope.first_cloth)=match;
+                (end?rope.last_cloth_vertex:rope.first_cloth_vertex)=unsigned(vertex);
+                continue;
             }
             if(!soft_target.empty()) {
                 int match=-1;
@@ -1442,6 +1466,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         .fluid_rope_coupling_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
         .rope_soft_body_coupling_capacity = static_cast<std::uint32_t>(
             scene.ropes.size()*scene.soft_bodies.size()),
+        .rope_cloth_coupling_capacity = static_cast<std::uint32_t>(
+            scene.ropes.size()*scene.cloths.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1672,6 +1698,18 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 .attach_last=rope.last_soft_body==static_cast<int>(soft)},coupling);
             if(!coupled)return coupled;
             output.rope_soft_body_couplings.push_back(coupling);
+        }
+        for(std::size_t sheet=0;sheet<output.cloths.size();++sheet) {
+            const bool first=rope.first_cloth==static_cast<int>(sheet);
+            const bool last=rope.last_cloth==static_cast<int>(sheet);
+            if(!first && !last)continue;
+            RopeClothCouplingId coupling{};
+            const auto coupled=world.add_rope_cloth_coupling({
+                .rope=id,.cloth=output.cloths[sheet],
+                .first_vertex=first?rope.first_cloth_vertex:UINT32_MAX,
+                .last_vertex=last?rope.last_cloth_vertex:UINT32_MAX},coupling);
+            if(!coupled)return coupled;
+            output.rope_cloth_couplings.push_back(coupling);
         }
     }
     for (SoftBodyId body : output.soft_bodies) {

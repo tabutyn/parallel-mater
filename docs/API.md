@@ -91,7 +91,7 @@ velocity damping, contact friction, speed limit, and iteration budget. At most
 1,024 nodes are supported per rope. Zero compliance requests an inextensible
 chain; the finite-iteration solve still has a measurable tolerance.
 The API rejects rest centerlines crossing rigid triangles, apart from the
-immediate Hook attachment neighborhoods. This check runs at creation, not per
+short attachment path that starts inside its own rigid collider. This check runs at creation, not per
 frame: no amount of stiffness can repair a rope initially threaded through an
 unrelated wall. Correct the rest curve or collider before retrying.
 
@@ -102,7 +102,13 @@ including torque. Alternatively, `RopeSoftBodyCouplingOptions::attach_first`
 or `attach_last` binds an endpoint to the closest rest-surface triangle of a
 soft body. The attachment follows its skinned triangle and transfers tension
 through the surface bindings to physical soft-body nodes. An endpoint cannot
-have both attachment types. Attached bodies cannot be removed before their ropes.
+have both attachment types. `RopeClothCouplingOptions` instead binds an endpoint
+to a cloth vertex by index. That vertex participates in the rope's distance
+solve with an effective supported-patch mass, and its position/velocity receive
+the same bounded correction. Rope tension appears in
+`ClothDeviceView::rope_contact_forces`. The coupling has add/update/remove
+lifecycle and prevents removal of its rope or cloth while active. Attached
+bodies cannot be removed before their ropes.
 The current open-chain solver requires distinct targets when both endpoints
 are attached. Unattached endpoints move freely.
 
