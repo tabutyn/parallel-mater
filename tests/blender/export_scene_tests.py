@@ -79,7 +79,10 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
         if options.loader:
             subprocess.run([options.loader, str(self.output),
-                            str(expected["rigid_body"]), str(expected["cloth"]),
+                            # The loader turns each heated surface into a
+                            # passive collision body as well as a heat plane.
+                            str(expected["rigid_body"] + expected["thermal_surface"]),
+                            str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
                             str(expected["soft_body"]), str(expected["rope"])],
@@ -90,7 +93,8 @@ class ExportSceneTests(unittest.TestCase):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
-                     "RopeFluid", "RopeCloth", "Smoke", "SmokeWater"):
+                     "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
+                     "SmokeRope"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -98,6 +102,21 @@ class ExportSceneTests(unittest.TestCase):
                 expected = systems(read_glb(source.with_suffix(".glb")))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_smoke_rope_active_panel_attachments(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeRope.blend"))
+        document = self.check_export(Counter(rigid_body=5, rope=4,
+                                             smoke_emitter=1))
+        ropes = [node["extras"] for node in document["nodes"]
+                 if node.get("extras", {}).get("pm_system") == "rope"]
+        self.assertEqual(len(ropes), 4)
+        self.assertTrue(all(rope["pm_rope_first_body"] == "Plane.001"
+                            for rope in ropes))
+        self.assertEqual(Counter(rope["pm_rope_last_body"] for rope in ropes),
+                         Counter({"Cylinder": 2, "Cylinder.001": 2}))
+        panel = next(node["extras"] for node in document["nodes"]
+                     if node.get("extras", {}).get("pm_source_name") == "Plane.001")
+        self.assertTrue(panel["pm_smoke_collider"])
 
     def test_cloth_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))

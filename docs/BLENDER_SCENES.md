@@ -106,7 +106,7 @@ The endpoints may target distinct rigid or soft bodies, or an endpoint may be fr
 For a rope-to-cloth joint, use an open **Poly** curve with a Soft Body modifier
 and place its endpoint exactly on an authored cloth vertex. The exporter infers
 that endpoint joint without a Hook. It also infers a rigid attachment when an
-unhooked endpoint lies on or inside one passive rigid mesh. If several targets
+unhooked endpoint lies on or inside one rigid mesh, passive or active. If several targets
 overlap, the nearest surface wins only when clearly closer; ambiguous targets
 are rejected. A Hook, where present, takes precedence over inference. Poly
 curves with Hooks are not supported; use Bézier for explicit Hook attachments.
@@ -117,6 +117,14 @@ implements the physical joint after export.
 modifier sits before Cloth and becomes a 17×17 physical sheet during export;
 the original four corner positions remain exact for rope binding. Only Simple
 pre-Cloth subdivision, up to five viewport levels, is currently mapped.
+
+`SmokeRope.blend` uses four Poly curves with a Soft Body modifier as rope
+markers. Their panel ends touch an active rigid plane; their other ends lie
+inside two passive rigid posts. The exporter infers all four joints from that
+geometry, without Hooks. The active panel sets Boolean `pm_smoke_collider` so
+the gallery registers the API's generic smoke/rigid coupling as well as the
+four smoke/rope couplings. The ground and vortex sphere remain separate rigid
+bodies. Re-export with the same single exporter after editing the source.
 
 The exporter evaluates Blender's actual Hook deformation, including bind
 matrices and moved targets. It removes Soft Body only from a temporary copy so
@@ -209,6 +217,7 @@ The generated metadata is:
 | `pm_initial_velocity` | Optional 3-component Blender-space custom property for a rigid body's initial linear velocity |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
 | `pm_paintable` | Optional Boolean source custom property; gallery registers a persistent API paint field and fluid-to-rigid rule for that body |
+| `pm_smoke_collider` | Optional Boolean; gallery registers smoke-to-rigid triangle contact and carrier pressure for that body |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
 

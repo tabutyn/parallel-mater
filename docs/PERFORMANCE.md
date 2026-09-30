@@ -1,5 +1,18 @@
 # Physics performance
 
+## Smoke–rope suspended panel (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+`SmokeRope.blend` exports four roughly 40-node ropes between an active panel
+and two passive posts. At 300 frames of 1/60 s with four requested substeps
+(the ropes raise the shared step count to 8), the coupled scene averaged
+4.43 ms/frame versus 2.98 ms for the same scene with smoke couplings removed.
+The panel center differed by 0.145 m, summed rope-node positions by 12.2 m,
+and summed tracer positions by 1,749 m. Peak rope strain at the final frame
+was 0.04%. A focused emitter aimed at a rope produced 88.1 m of summed
+tracer-path divergence; the authored narrow plume instead passes between the
+four corner ropes and interacts mainly with the suspended panel. These are
+physics step wall times, excluding rendering and readback.
+
 ## Smoke–cloth sheet (RTX 3050 Ti Laptop GPU, 2026-09-30)
 
 `SmokeCloth.blend` exports one 289-vertex, 512-triangle sheet with 34 pinned

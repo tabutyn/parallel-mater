@@ -40,6 +40,14 @@ using SmokeSoftBodyCouplingSlot =
     SmokeDeformableCouplingSlot<SmokeSoftBodyCouplingOptions>;
 using SmokeClothCouplingSlot =
     SmokeDeformableCouplingSlot<SmokeClothCouplingOptions>;
+using SmokeRopeCouplingSlot =
+    SmokeDeformableCouplingSlot<SmokeRopeCouplingOptions>;
+struct SmokeRigidCouplingSlot {
+    SmokeRigidCouplingOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
+    Vec3 local_area_vector{};
+};
 
 __host__ __device__ std::uint32_t smoke_hash(std::uint32_t value) {
     value ^= value >> 16U;
@@ -213,6 +221,193 @@ __global__ void smoke_cloth_wind(
     const Vec3 change = multiply(subtract(desired, velocities[vertex]), response);
     velocities[vertex] = add(velocities[vertex],
         clamp_length(change, maximum_acceleration * dt));
+}
+
+__global__ void smoke_rope_wind(
+    RopeData rope, SmokeOptions smoke,
+    const RigidBodyState *states, std::uint32_t obstacle,
+    float time, float drag, float maximum_acceleration, float dt,
+    int first, int last) {
+    const auto node = blockIdx.x * blockDim.x + threadIdx.x;
+    if (node >= rope.count ||
+        rope_anchor_body(rope, node, first, last) >= 0 ||
+        rope_soft_anchor(rope, node)) return;
+    const Vec3 desired = smoke_velocity_field(
+        rope.positions[node], states[obstacle].position, smoke, time);
+    const float response = 1.0F - expf(-drag * dt);
+    const Vec3 change = multiply(subtract(desired, rope.velocities[node]), response);
+    rope.velocities[node] = clamp_length(add(rope.velocities[node],
+        clamp_length(change, maximum_acceleration * dt)), rope.options.maximum_speed);
+}
+
+__global__ void smoke_rope_contact(
+    Vec3 *positions, const Vec3 *previous_positions,
+    Vec3 *velocities, const float *ages,
+    std::uint32_t count, float lifetime, RopeData rope,
+    const Vec3 *minimum, const Vec3 *maximum, float clearance) {
+    const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= count || ages[particle] >= lifetime) return;
+    const Vec3 point = positions[particle];
+    const Vec3 before = previous_positions[particle];
+    const Vec3 low = *minimum, high = *maximum;
+    if (fmaxf(point.x, before.x) < low.x - clearance ||
+        fminf(point.x, before.x) > high.x + clearance ||
+        fmaxf(point.y, before.y) < low.y - clearance ||
+        fminf(point.y, before.y) > high.y + clearance ||
+        fmaxf(point.z, before.z) < low.z - clearance ||
+        fminf(point.z, before.z) > high.z + clearance) return;
+    float earliest = 2.0F, nearest2 = clearance * clearance;
+    std::uint32_t segment = rope.count;
+    Vec3 smoke_hit{}, rope_hit{};
+    const Vec3 path = subtract(point, before);
+    const float path2 = length_squared(path);
+    for (std::uint32_t index = 0U; index + 1U < rope.count; ++index) {
+        const Vec3 a = rope.positions[index], b = rope.positions[index + 1U];
+        if (fmaxf(point.x, before.x) < fminf(a.x, b.x) - clearance ||
+            fminf(point.x, before.x) > fmaxf(a.x, b.x) + clearance ||
+            fmaxf(point.y, before.y) < fminf(a.y, b.y) - clearance ||
+            fminf(point.y, before.y) > fmaxf(a.y, b.y) + clearance ||
+            fmaxf(point.z, before.z) < fminf(a.z, b.z) - clearance ||
+            fminf(point.z, before.z) > fmaxf(a.z, b.z) + clearance) continue;
+        Vec3 on_path{}, on_rope{};
+        closest_segments(before, point, a, b, on_path, on_rope);
+        const float distance2 = length_squared(subtract(on_path, on_rope));
+        if (distance2 >= clearance * clearance) continue;
+        const float fraction = path2 > 1.0e-12F
+            ? clamp_scalar(dot(subtract(on_path, before), path) / path2, 0.0F, 1.0F)
+            : 0.0F;
+        if (fraction > earliest + 1.0e-6F ||
+            (fabsf(fraction - earliest) <= 1.0e-6F && distance2 >= nearest2))
+            continue;
+        earliest = fraction;
+        nearest2 = distance2;
+        segment = index;
+        smoke_hit = on_path;
+        rope_hit = on_rope;
+    }
+    if (segment == rope.count) return;
+    const Vec3 a = rope.positions[segment], b = rope.positions[segment + 1U];
+    const Vec3 axis = subtract(b, a);
+    const float fraction = clamp_scalar(dot(subtract(rope_hit, a), axis) /
+        fmaxf(length_squared(axis), 1.0e-12F), 0.0F, 1.0F);
+    const Vec3 rope_velocity = add(
+        multiply(rope.velocities[segment], 1.0F - fraction),
+        multiply(rope.velocities[segment + 1U], fraction));
+    Vec3 normal = subtract(smoke_hit, rope_hit);
+    if (length_squared(normal) < 1.0e-10F)
+        normal = subtract(before, rope_hit);
+    if (length_squared(normal) < 1.0e-10F) {
+        const Vec3 relative = subtract(velocities[particle], rope_velocity);
+        normal = subtract(multiply(relative, -1.0F),
+            multiply(axis, -dot(relative, axis) /
+                fmaxf(length_squared(axis), 1.0e-12F)));
+    }
+    normal = normalized_or(normal, {0.0F, 1.0F, 0.0F});
+    positions[particle] = add(rope_hit, multiply(normal, clearance));
+    Vec3 relative = subtract(velocities[particle], rope_velocity);
+    relative = subtract(relative,
+        multiply(normal, fminf(0.0F, dot(relative, normal))));
+    velocities[particle] = add(rope_velocity, relative);
+}
+
+__global__ void smoke_rigid_contact(
+    Vec3 *positions, const Vec3 *previous_positions,
+    Vec3 *velocities, const float *ages,
+    std::uint32_t count, float lifetime,
+    TriangleMeshResource mesh, const RigidBodyState *states,
+    const RigidBodyState *previous_states, std::uint32_t body,
+    float clearance,
+    float edge_flow_speed, float maximum_speed) {
+    const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= count || ages[particle] >= lifetime) return;
+    const RigidBodyState state = states[body];
+    const RigidBodyState previous_state = previous_states[body];
+    const Vec3 before = inverse_rotate(previous_state.orientation,
+        subtract(previous_positions[particle], previous_state.position));
+    const Vec3 point = inverse_rotate(state.orientation,
+        subtract(positions[particle], state.position));
+    if (fmaxf(point.x, before.x) < mesh.minimum.x - clearance ||
+        fminf(point.x, before.x) > mesh.maximum.x + clearance ||
+        fmaxf(point.y, before.y) < mesh.minimum.y - clearance ||
+        fminf(point.y, before.y) > mesh.maximum.y + clearance ||
+        fmaxf(point.z, before.z) < mesh.minimum.z - clearance ||
+        fminf(point.z, before.z) > mesh.maximum.z + clearance) return;
+    float nearest2 = clearance * clearance;
+    float earliest = 2.0F;
+    bool found = false, swept = false;
+    Vec3 nearest{}, face_normal{};
+    const Vec3 path = subtract(point, before);
+    for (std::uint32_t base = 0U; base < mesh.index_count; base += 3U) {
+        const Vec3 a = mesh.vertices[mesh.indices[base]];
+        const Vec3 b = mesh.vertices[mesh.indices[base + 1U]];
+        const Vec3 c = mesh.vertices[mesh.indices[base + 2U]];
+        const Vec3 low = component_min(component_min(a, b), c);
+        const Vec3 high = component_max(component_max(a, b), c);
+        if (fmaxf(point.x, before.x) < low.x - clearance ||
+            fminf(point.x, before.x) > high.x + clearance ||
+            fmaxf(point.y, before.y) < low.y - clearance ||
+            fminf(point.y, before.y) > high.y + clearance ||
+            fmaxf(point.z, before.z) < low.z - clearance ||
+            fminf(point.z, before.z) > high.z + clearance) continue;
+        const Vec3 raw_normal = cross(subtract(b, a), subtract(c, a));
+        if (length_squared(raw_normal) < 1.0e-12F) continue;
+        const float side_before = dot(subtract(before, a), raw_normal);
+        const float side_after = dot(subtract(point, a), raw_normal);
+        if (side_before * side_after < 0.0F) {
+            const float fraction = side_before / (side_before - side_after);
+            if (fraction < earliest) {
+                const Vec3 hit = add(before, multiply(path, fraction));
+                Vec3 weights{};
+                const Vec3 on_face = fluid_closest_triangle_barycentric(
+                    hit, a, b, c, weights);
+                if (length_squared(subtract(hit, on_face)) < 1.0e-8F) {
+                    earliest = fraction;
+                    nearest = on_face;
+                    face_normal = normalized_or(raw_normal, {1.0F, 0.0F, 0.0F});
+                    swept = true;
+                    found = true;
+                }
+            }
+        }
+        if (swept) continue;
+        Vec3 weights{};
+        const Vec3 candidate = fluid_closest_triangle_barycentric(
+            point, a, b, c, weights);
+        const float distance2 = length_squared(subtract(point, candidate));
+        if (distance2 < nearest2) {
+            nearest2 = distance2;
+            nearest = candidate;
+            face_normal = normalized_or(raw_normal, {1.0F, 0.0F, 0.0F});
+            found = true;
+        }
+    }
+    if (!found) return;
+    float side = dot(subtract(before, nearest), face_normal);
+    if (fabsf(side) < 1.0e-5F)
+        side = dot(subtract(point, nearest), face_normal);
+    const Vec3 local_normal = side >= 0.0F
+        ? face_normal : multiply(face_normal, -1.0F);
+    const Vec3 normal = rotate(state.orientation, local_normal);
+    const Vec3 arm = rotate(state.orientation, nearest);
+    positions[particle] = add(state.position,
+        rotate(state.orientation, add(nearest,
+            multiply(local_normal, clearance))));
+    const Vec3 surface_velocity = add(state.linear_velocity,
+        cross(state.angular_velocity, arm));
+    Vec3 relative = subtract(velocities[particle], surface_velocity);
+    relative = subtract(relative,
+        multiply(normal, fminf(0.0F, dot(relative, normal))));
+    const Vec3 from_center = subtract(nearest, mesh.bounding_center);
+    const Vec3 projected = subtract(from_center,
+        multiply(local_normal, dot(from_center, local_normal)));
+    if (length_squared(projected) > 1.0e-8F && edge_flow_speed > 0.0F) {
+        const Vec3 toward_edge = rotate(state.orientation,
+            normalized_or(projected, {0.0F, 1.0F, 0.0F}));
+        relative = add(relative, multiply(toward_edge,
+            fmaxf(0.0F, edge_flow_speed - dot(relative, toward_edge))));
+        relative = clamp_length(relative, maximum_speed);
+    }
+    velocities[particle] = add(surface_velocity, relative);
 }
 
 __global__ void smoke_cloth_contact(
