@@ -183,6 +183,22 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(post["pm_pin_group"], "PostBase")
         self.assertEqual(len(post["pm_pin_vertices"].split(";")), 32)
 
+    def test_rope_cloth_geometry_infers_four_joints(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeCloth.blend"))
+        document = self.check_export(Counter(rigid_body=7, cloth=1, rope=4))
+        rope_nodes = [node["extras"] for node in document["nodes"]
+                      if node["extras"].get("pm_system") == "rope"]
+        self.assertEqual({node["pm_rope_first_body"] for node in rope_nodes},
+                         {"Cylinder", "Cylinder.001", "Cylinder.002", "Cylinder.003"})
+        self.assertTrue(all(node["pm_rope_last_cloth"] == "Plane.009"
+                            for node in rope_nodes))
+        cloth = next(node for node in document["nodes"]
+                     if node["extras"].get("pm_system") == "cloth")
+        self.assertTrue(cloth["extras"]["pm_weld_vertices"])
+        mesh = document["meshes"][cloth["mesh"]]
+        accessor = document["accessors"][mesh["primitives"][0]["attributes"]["POSITION"]]
+        self.assertGreaterEqual(accessor["count"], 289)
+
     def test_rope_fluid_authored_mass_and_geometry(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeFluid.blend"))
         self.assertAlmostEqual(bpy.data.objects["Icosphere"].rigid_body.mass, 20.0)
@@ -283,7 +299,8 @@ class ExportSceneTests(unittest.TestCase):
                          systems(read_glb(ASSETS / "Cloth.glb")))
 
 
-result = unittest.TextTestRunner(verbosity=2).run(
-    unittest.defaultTestLoader.loadTestsFromTestCase(ExportSceneTests))
-if not result.wasSuccessful():
-    raise RuntimeError("ParallelMater Blender export tests failed")
+if __name__ == "__main__":
+    result = unittest.TextTestRunner(verbosity=2).run(
+        unittest.defaultTestLoader.loadTestsFromTestCase(ExportSceneTests))
+    if not result.wasSuccessful():
+        raise RuntimeError("ParallelMater Blender export tests failed")

@@ -172,6 +172,15 @@ struct RopeSoftBodyCouplingId {
     }
 };
 
+struct RopeClothCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        RopeClothCouplingId left, RopeClothCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RopeAttachment {
     RigidBodyId body{};
     Vec3 local_anchor{};
@@ -275,6 +284,7 @@ struct WorldOptions {
     std::uint32_t rope_capacity{4U};
     std::uint32_t fluid_rope_coupling_capacity{1U};
     std::uint32_t rope_soft_body_coupling_capacity{1U};
+    std::uint32_t rope_cloth_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
 };
 
@@ -409,6 +419,21 @@ struct RopeSoftBodyCouplingOptions {
     bool enabled{true};
 };
 
+// Binds rope endpoints to authored cloth vertices. This is a physical,
+// bidirectional joint; the endpoint follows the cloth and rope tension moves
+// the vertex. UINT32_MAX leaves an endpoint unattached to this cloth.
+struct RopeClothCouplingOptions {
+    RopeId rope{};
+    ClothId cloth{};
+    std::uint32_t first_vertex{UINT32_MAX};
+    std::uint32_t last_vertex{UINT32_MAX};
+    // Effective mass of the cloth patch supported by one endpoint, not the
+    // often much smaller mass of its single authored vertex.
+    float anchor_effective_mass{0.05F};
+    float maximum_cloth_acceleration{20'000.0F};
+    bool enabled{true};
+};
+
 struct ClothDeviceView {
     // Physical nodes and current connectivity. Tearing can append nodes and
     // reindex faces at the next frame boundary; reacquire this view each frame.
@@ -433,6 +458,7 @@ struct ClothDeviceView {
     DeviceSpan<const Vec3> rigid_contact_forces{};
     DeviceSpan<const Vec3> fluid_contact_forces{};
     DeviceSpan<const Vec3> soft_body_contact_forces{};
+    DeviceSpan<const Vec3> rope_contact_forces{};
 };
 
 struct SoftBodyBond {
@@ -947,6 +973,13 @@ class World {
         RopeSoftBodyCouplingOptions options) noexcept;
     [[nodiscard]] Status remove_rope_soft_body_coupling(
         RopeSoftBodyCouplingId coupling) noexcept;
+
+    [[nodiscard]] Status add_rope_cloth_coupling(
+        RopeClothCouplingOptions options, RopeClothCouplingId &output) noexcept;
+    [[nodiscard]] Status update_rope_cloth_coupling(
+        RopeClothCouplingId coupling, RopeClothCouplingOptions options) noexcept;
+    [[nodiscard]] Status remove_rope_cloth_coupling(
+        RopeClothCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_fluid_cloth_coupling(
         FluidClothCouplingOptions options,

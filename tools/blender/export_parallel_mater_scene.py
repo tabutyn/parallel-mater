@@ -370,8 +370,24 @@ def copy_cloth_for_export(
         pins.append(f"{position.x:.9g},{position.z:.9g},{-position.y:.9g},{weight:.9g}")
     if group is not None and not pins:
         raise RuntimeError(f"{source.name}: Cloth pin group is empty")
+    subdivision_applied = False
     geometry = bmesh.new()
     geometry.from_mesh(mesh)
+    for modifier in source.modifiers:
+        if modifier.type == "CLOTH":
+            break
+        if modifier.type != "SUBSURF" or not modifier.show_viewport:
+            continue
+        if modifier.subdivision_type != "SIMPLE" or modifier.levels > 5:
+            raise RuntimeError(
+                f"{source.name}: pre-Cloth subdivision needs Simple, at most 5 levels"
+            )
+        if modifier.levels:
+            subdivision_applied = True
+            bmesh.ops.subdivide_edges(
+                geometry, edges=list(geometry.edges),
+                cuts=(1 << modifier.levels) - 1, use_grid_fill=True,
+            )
     bmesh.ops.transform(geometry, matrix=scale_matrix, verts=geometry.verts)
     bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
     geometry.normal_update()
@@ -385,6 +401,7 @@ def copy_cloth_for_export(
     exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
     exported["pm_schema"] = SCHEMA_VERSION
     exported["pm_system"] = "cloth"
+    exported["pm_weld_vertices"] = subdivision_applied
     exported["pm_name"] = source.name
     exported["pm_pin_group"] = group_name if group is not None else ""
     exported["pm_pin_vertices"] = ";".join(pins)
@@ -439,15 +456,60 @@ def soft_body_goal_pins(source, settings, scale_matrix):
     return pins
 
 
-def copy_rope_for_export(source, collection):
+def _rope_endpoint_targets(point, radius, cloths, rigid_bodies):
+    """Infer only unambiguous cloth-vertex and passive-mesh endpoint joints."""
+    matches = []
+    tolerance = max(1.0e-4, radius * 0.05)
+    for cloth in cloths:
+        for vertex in cloth.data.vertices:
+            distance = ((cloth.matrix_world @ vertex.co) - point).length
+            if distance <= tolerance:
+                matches.append(("cloth", cloth.name, distance))
+                break
+    for body in rigid_bodies:
+        if body.rigid_body.type != "PASSIVE":
+            continue
+        inverse = body.matrix_world.inverted_safe()
+        local = inverse @ point
+        hit, nearest, _, _ = body.closest_point_on_mesh(local)
+        if not hit:
+            continue
+        distance = ((body.matrix_world @ nearest) - point).length
+        on_surface = distance <= tolerance
+        # Count ray crossings in mesh-local space, so an endpoint inside a
+        # closed post is a joint even when its center is far from the skin.
+        direction = (inverse.to_3x3() @ Vector((0.593, 0.714, 0.365))).normalized()
+        origin = local + direction * 1.0e-6
+        crossings = 0
+        for _ in range(128):
+            crossed, location, _, _ = body.ray_cast(origin, direction)
+            if not crossed:
+                break
+            crossings += 1
+            origin = location + direction * 1.0e-5
+        if on_surface or crossings % 2:
+            matches.append(("body", body.name, distance))
+    matches.sort(key=lambda match: match[2])
+    if len(matches) > 1 and matches[1][2] <= max(
+        tolerance, matches[0][2] * 1.5
+    ):
+        raise RuntimeError(
+            f"rope endpoint intersects multiple attachment targets: {matches}"
+        )
+    return matches[0][:2] if matches else None
+
+
+def copy_rope_for_export(source, collection, cloths, rigid_bodies):
     """Curve shape + Hook references only; rope physics/sampling lives in API."""
     if source.parent is not None or len(source.data.splines) != 1:
         raise RuntimeError(f"{source.name}: rope needs one scene-root open spline")
     spline = source.data.splines[0]
-    if spline.type != "BEZIER" or spline.use_cyclic_u or len(spline.bezier_points) < 2:
-        raise RuntimeError(f"{source.name}: rope needs an open Bezier spline")
-    controls = spline.bezier_points
+    controls = spline.bezier_points if spline.type == "BEZIER" else spline.points
+    if spline.type not in {"BEZIER", "POLY"} or spline.use_cyclic_u or len(controls) < 2:
+        raise RuntimeError(f"{source.name}: rope needs one open Bezier or Poly spline")
     hooks = [m for m in source.modifiers if m.type == "HOOK" and m.show_viewport]
+    if spline.type == "POLY" and hooks:
+        raise RuntimeError(f"{source.name}: Poly rope Hooks are not supported; use Bezier")
     anchors = [None, None]
     for hook in hooks:
         if hook.object is None:
@@ -465,51 +527,57 @@ def copy_rope_for_export(source, collection):
         if anchors[ends[0]] is not None:
             raise RuntimeError(f"{source.name}: duplicate endpoint Hook")
         anchors[ends[0]] = ("body" if rigid else "soft_body", hook.object.name)
-    # evaluated.data.splines still exposes undeformed controls in Blender.
-    # Evaluate a private, unbevelled copy to a polyline to include native Hooks,
-    # including their bind matrices and moved targets, but not cached Soft Body.
-    temporary = source.copy()
-    temporary.data = source.data.copy()
-    curve = temporary.data
-    collection.objects.link(temporary)
-    try:
-        for modifier in list(temporary.modifiers):
-            if modifier.type == "SOFT_BODY":
-                temporary.modifiers.remove(modifier)
-            elif modifier.type != "HOOK":
-                raise RuntimeError(f"{source.name}: rope currently supports Hook and Soft Body modifiers")
-        curve.bevel_depth = 0
-        curve.extrude = 0
-        curve.resolution_u = max(64, curve.resolution_u)
-        curve.splines[0].resolution_u = curve.resolution_u
-        bpy.context.view_layer.update()
-        evaluated = temporary.evaluated_get(bpy.context.evaluated_depsgraph_get())
-        polyline = evaluated.to_mesh()
+    if spline.type == "POLY" and not hooks:
+        world = [source.matrix_world @ point.co.xyz for point in controls]
+    else:
+        # evaluated.data.splines still exposes undeformed controls in Blender.
+        # Evaluate a private, unbevelled copy to include native Hook bindings.
+        temporary = source.copy()
+        temporary.data = source.data.copy()
+        curve = temporary.data
+        collection.objects.link(temporary)
         try:
-            adjacent = [[] for _ in polyline.vertices]
-            for edge in polyline.edges:
-                a, b = edge.vertices
-                adjacent[a].append(b)
-                adjacent[b].append(a)
-            ends = [i for i, links in enumerate(adjacent) if len(links) == 1]
-            if len(ends) != 2 or any(len(links) not in (1, 2) for links in adjacent):
-                raise RuntimeError(f"{source.name}: evaluated rope must be one open polyline")
-            world = []
-            previous, current = -1, min(ends)
-            while True:
-                world.append(evaluated.matrix_world @ polyline.vertices[current].co)
-                following = [index for index in adjacent[current] if index != previous]
-                if not following:
-                    break
-                previous, current = current, following[0]
-            if len(world) != len(polyline.vertices):
-                raise RuntimeError(f"{source.name}: disconnected rope geometry")
+            for modifier in list(temporary.modifiers):
+                if modifier.type == "SOFT_BODY":
+                    temporary.modifiers.remove(modifier)
+                elif modifier.type != "HOOK":
+                    raise RuntimeError(f"{source.name}: rope supports Hook and Soft Body modifiers")
+            curve.bevel_depth = 0
+            curve.extrude = 0
+            curve.resolution_u = max(64, curve.resolution_u)
+            curve.splines[0].resolution_u = curve.resolution_u
+            bpy.context.view_layer.update()
+            evaluated = temporary.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            polyline = evaluated.to_mesh()
+            try:
+                adjacent = [[] for _ in polyline.vertices]
+                for edge in polyline.edges:
+                    a, b = edge.vertices
+                    adjacent[a].append(b)
+                    adjacent[b].append(a)
+                ends = [i for i, links in enumerate(adjacent) if len(links) == 1]
+                if len(ends) != 2 or any(len(links) not in (1, 2) for links in adjacent):
+                    raise RuntimeError(f"{source.name}: evaluated rope must be one open polyline")
+                world = []
+                previous, current = -1, min(ends)
+                while True:
+                    world.append(evaluated.matrix_world @ polyline.vertices[current].co)
+                    following = [index for index in adjacent[current] if index != previous]
+                    if not following:
+                        break
+                    previous, current = current, following[0]
+                if len(world) != len(polyline.vertices):
+                    raise RuntimeError(f"{source.name}: disconnected rope geometry")
+            finally:
+                evaluated.to_mesh_clear()
         finally:
-            evaluated.to_mesh_clear()
-    finally:
-        bpy.data.objects.remove(temporary, do_unlink=True)
-        if curve.users == 0:
-            bpy.data.curves.remove(curve)
+            bpy.data.objects.remove(temporary, do_unlink=True)
+            if curve.users == 0:
+                bpy.data.curves.remove(curve)
+    radius = float(source.get("pm_rope_radius", source.data.bevel_depth or 0.01))
+    for end, point in enumerate((world[0], world[-1])):
+        if anchors[end] is None:
+            anchors[end] = _rope_endpoint_targets(point, radius, cloths, rigid_bodies)
     exported = bpy.data.objects.new(source.name, None)
     collection.objects.link(exported)
     exported["pm_schema"] = SCHEMA_VERSION
@@ -519,9 +587,10 @@ def copy_rope_for_export(source, collection):
         anchor = anchors[end]
         exported[f"pm_rope_{label}_body"] = anchor[1] if anchor and anchor[0] == "body" else ""
         exported[f"pm_rope_{label}_soft_body"] = anchor[1] if anchor and anchor[0] == "soft_body" else ""
+        exported[f"pm_rope_{label}_cloth"] = anchor[1] if anchor and anchor[0] == "cloth" else ""
     settings = next((m.settings for m in source.modifiers if m.type == "SOFT_BODY"), None)
     exported["pm_rope_mass"] = float(source.get("pm_rope_mass", settings.mass if settings else 0.1))
-    exported["pm_rope_radius"] = float(source.get("pm_rope_radius", source.data.bevel_depth or 0.01))
+    exported["pm_rope_radius"] = radius
     exported["pm_rope_spacing"] = float(source.get("pm_rope_spacing", 2 * exported["pm_rope_radius"]))
     for name, default in (("pm_rope_compliance", 0.0), ("pm_rope_friction", 0.4),
                           ("pm_rope_damping", 0.1),
@@ -730,7 +799,8 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
                 source, index, collection, created_meshes, created_materials
             ))
         for source in ropes:
-            created_objects.append(copy_rope_for_export(source, collection))
+            created_objects.append(copy_rope_for_export(
+                source, collection, cloths, sources))
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:

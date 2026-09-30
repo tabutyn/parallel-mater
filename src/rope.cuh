@@ -8,12 +8,15 @@ struct RopeData {
     // Two rope-owned endpoint slots. Couplings may attach different soft
     // bodies at either end without sharing or invalidating these buffers.
     Vec3 *soft_anchor_positions{}, *soft_anchor_velocities{}, *soft_anchor_impulses{};
+    float *soft_anchor_inverse_masses{};
     bool soft_first{}, soft_last{};
     Vec3 *directions{}, *scratch{}, *body_translation{}, *body_rotation{};
     Vec3 *normals{}, *normals2{};
     float *rest{}, *lambda{};
     unsigned *solid_hint{};
     unsigned body_capacity{};
+    unsigned first_attachment_contact_skip{2U};
+    unsigned last_attachment_contact_skip{2U};
 };
 struct RopeStorage {
     RopeData data{};
@@ -27,6 +30,7 @@ struct RopeStorage {
         release_managed(data.soft_anchor_positions);
         release_managed(data.soft_anchor_velocities);
         release_managed(data.soft_anchor_impulses);
+        release_managed(data.soft_anchor_inverse_masses);
         release_managed(data.directions);
         release_managed(data.scratch); release_managed(data.body_translation);
         release_managed(data.body_rotation); release_managed(data.rest);
@@ -39,15 +43,43 @@ struct RopeStorage {
 
 // Reject topologically invalid rest poses before allocating solver storage.
 // Stretch constraints cannot repair a rope threaded through an unrelated wall.
+unsigned rope_attachment_contact_skip(const std::vector<Vec3> &nodes,
+    bool from_first, int body, const BodyParameters *parameters,
+    const RigidBodyState *states, const TriangleMeshResource *meshes) {
+    if (body < 0 || nodes.empty()) return 2U;
+    const auto &mesh = meshes[parameters[body].mesh.index];
+    if (!mesh.solid_planes) return 2U;
+    unsigned skip = 2U;
+    // Skip only the short path that starts inside an attached convex body and
+    // exits its skin. The rest of the rope still collides with that body.
+    for (unsigned index = 0U; index < nodes.size() / 2U; ++index) {
+        const Vec3 point = nodes[from_first ? index : nodes.size() - 1U - index];
+        const Vec3 local = inverse_rotate(states[body].orientation,
+            subtract(point, states[body].position));
+        bool inside = true;
+        for (unsigned triangle = 0U; triangle < mesh.index_count / 3U; ++triangle) {
+            const auto plane = mesh.solid_planes[triangle];
+            if (dot(plane.normal, local) - plane.offset > 0.0F) {
+                inside = false;
+                break;
+            }
+        }
+        if (!inside) break;
+        skip = std::max(skip, index + 2U);
+    }
+    return skip;
+}
+
 bool rope_rest_crosses_collider(const std::vector<Vec3> &nodes, int first, int last,
+    unsigned first_skip, unsigned last_skip,
     const BodyParameters *parameters, const RigidBodyState *states,
     const TriangleMeshResource *meshes, unsigned body_count) {
     for (unsigned body = 0; body < body_count; ++body) {
         const auto &mesh = meshes[parameters[body].mesh.index];
         const auto &state = states[body];
         for (unsigned i = 0; i + 1 < nodes.size(); ++i) {
-            if ((int(body) == first && i < 2) ||
-                (int(body) == last && i + 3 >= nodes.size())) continue;
+            if ((int(body) == first && i < first_skip) ||
+                (int(body) == last && i + last_skip + 1U >= nodes.size())) continue;
             const auto a = inverse_rotate(state.orientation, subtract(nodes[i], state.position));
             const auto b = inverse_rotate(state.orientation, subtract(nodes[i + 1], state.position));
             const auto low = component_min(a, b), high = component_max(a, b);
@@ -91,8 +123,10 @@ __device__ Vec3 rope_anchor_local(RopeData r, unsigned node) {
     return node==0 ? r.options.first.local_anchor : r.options.last.local_anchor;
 }
 __device__ float rope_node_weight(RopeData r, unsigned node, int first, int last) {
-    return rope_anchor_body(r,node,first,last)>=0 || rope_soft_anchor(r,node)
-        ? 0.0F : float(r.count)/r.options.mass;
+    if (rope_anchor_body(r,node,first,last)>=0) return 0.0F;
+    if (rope_soft_anchor(r,node))
+        return r.soft_anchor_inverse_masses[rope_soft_end(r,node)];
+    return float(r.count)/r.options.mass;
 }
 __device__ Vec3 rope_mass(RopeData r,unsigned node,Vec3 vector,int first,int last) {
     const auto n=length_squared(r.normals[node])>0.5F?r.normals[node]:r.normals2[node];
@@ -225,8 +259,11 @@ __device__ void rope_project_stretch(RopeData r,float dt,int first,int last,
             const int body=rope_anchor_body(r,i,first,last);
             const Vec3 impulse=multiply(r.scratch[i],scale);
             if(rope_soft_anchor(r,i)) {
-                r.soft_anchor_impulses[rope_soft_end(r,i)]=add(
-                    r.soft_anchor_impulses[rope_soft_end(r,i)],multiply(impulse,1.0F/dt));
+                const unsigned end=rope_soft_end(r,i);
+                r.soft_anchor_impulses[end]=add(
+                    r.soft_anchor_impulses[end],multiply(impulse,1.0F/dt));
+                if(r.soft_anchor_inverse_masses[end]>0.0F)
+                    r.soft_anchor_positions[end]=r.positions[i];
                 continue;
             }
             if(body<0)continue;
@@ -260,7 +297,8 @@ __device__ RopeHit rope_find_contact(RopeData r,unsigned i,bool segment,int firs
     for(unsigned body=0;body<body_count;++body) {
         // Only the endpoint neighbourhood is exempt from its own attachment
         // target. Distant sections still collide with that same body.
-        if((int(body)==first && i<2) || (int(body)==last && j+2>=r.count)) continue;
+        if((int(body)==first && i<r.first_attachment_contact_skip) ||
+           (int(body)==last && j+r.last_attachment_contact_skip>=r.count)) continue;
         const auto state=states[body];
         const auto old=old_states?old_states[body]:state;
         const auto mesh=meshes[parameters[body].mesh.index];
@@ -460,9 +498,12 @@ __device__ void rope_project_velocities(RopeData r,float dt,int first,int last,
     __syncthreads();
     if(tid==0)for(unsigned i:{0U,r.count-1}) {
         if(rope_soft_anchor(r,i)) {
-            r.soft_anchor_impulses[rope_soft_end(r,i)]=add(
-                r.soft_anchor_impulses[rope_soft_end(r,i)],r.scratch[i]);
-            r.velocities[i]=r.soft_anchor_velocities[rope_soft_end(r,i)];
+            const unsigned end=rope_soft_end(r,i);
+            r.soft_anchor_impulses[end]=add(
+                r.soft_anchor_impulses[end],r.scratch[i]);
+            if(r.soft_anchor_inverse_masses[end]>0.0F)
+                r.soft_anchor_velocities[end]=r.velocities[i];
+            else r.velocities[i]=r.soft_anchor_velocities[end];
             continue;
         }
         const int body=rope_anchor_body(r,i,first,last);
@@ -575,7 +616,11 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
     }
     for(unsigned i=tid;i<r.count;i+=blockDim.x) {
         const int body=rope_anchor_body(r,i,first,last);
-        r.velocities[i]=rope_soft_anchor(r,i)?r.soft_anchor_velocities[rope_soft_end(r,i)]:
+        r.velocities[i]=rope_soft_anchor(r,i)?
+            (r.soft_anchor_inverse_masses[rope_soft_end(r,i)]>0.0F?
+                clamp_length(multiply(subtract(r.positions[i],r.previous[i]),1/dt),
+                    r.options.maximum_speed):
+                r.soft_anchor_velocities[rope_soft_end(r,i)]):
             body<0?clamp_length(multiply(subtract(r.positions[i],r.previous[i]),1/dt),r.options.maximum_speed):
             add(states[body].linear_velocity,cross(states[body].angular_velocity,rotate(states[body].orientation,rope_anchor_local(r,i))));
     }

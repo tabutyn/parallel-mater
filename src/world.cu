@@ -2133,6 +2133,7 @@ struct ClothStorage {
     std::uint32_t *volume_corner_indices{};
     Vec3 *fluid_forces{};
     Vec3 *soft_body_forces{};
+    Vec3 *rope_forces{};
     float *volume_lambda{};
     std::uint32_t *count{};
 
@@ -2162,6 +2163,7 @@ struct ClothStorage {
         release_managed(volume_corner_indices);
         release_managed(fluid_forces);
         release_managed(soft_body_forces);
+        release_managed(rope_forces);
         release_managed(volume_lambda);
         release_managed(count);
     }
@@ -4977,6 +4979,7 @@ __global__ void fluid_copy_initial(const FluidParticle *input,
 
 namespace {
 #include "rope.cuh"
+#include "rope_cloth.cuh"
 #include "fluid_rope.cuh"
 } // namespace
 
@@ -5011,6 +5014,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<RopeStorage>> ropes{};
     std::vector<std::unique_ptr<FluidRopeCouplingStorage>> fluid_rope_couplings{};
     std::vector<std::unique_ptr<RopeSoftBodyCouplingStorage>> rope_soft_body_couplings{};
+    std::vector<RopeClothCouplingStorage> rope_cloth_couplings{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
     std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
     std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
@@ -5392,6 +5396,8 @@ Status World::create(WorldOptions options, World &output,
             options.fluid_rope_coupling_capacity);
         implementation->rope_soft_body_couplings.resize(
             options.rope_soft_body_coupling_capacity);
+        implementation->rope_cloth_couplings.resize(
+            options.rope_cloth_coupling_capacity);
         implementation->fluid_cloth_couplings.resize(
             options.fluid_cloth_coupling_capacity);
         implementation->fluid_soft_couplings.resize(
@@ -6777,6 +6783,10 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     if (!status) return status;
     status = allocate_managed(cloth->soft_body_forces, capacity);
     if (!status) return status;
+    if (impl_->options.rope_cloth_coupling_capacity != 0U) {
+        status = allocate_managed(cloth->rope_forces, capacity);
+        if (!status) return status;
+    }
     status = allocate_managed(cloth->body_corrections,
                               impl_->options.rigid_body_capacity);
     if (!status) return status;
@@ -6809,6 +6819,7 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         cloth->velocities[index] = {};
         cloth->rigid_contact_forces[index] = {};
         cloth->soft_body_forces[index] = {};
+        if (cloth->rope_forces != nullptr) cloth->rope_forces[index] = {};
         if (cloth->fluid_forces != nullptr) cloth->fluid_forces[index] = {};
         cloth->inverse_masses[index] = options.inverse_masses.size != 0U
             ? options.inverse_masses.data[index] : 1.0F / options.vertex_mass;
@@ -6892,6 +6903,10 @@ Status World::remove_cloth(ClothId id) noexcept {
         if (coupling.alive && coupling.options.cloth == id)
             return failure(StatusCode::invalid_argument,
                 "cloth is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->rope_cloth_couplings)
+        if (coupling.alive && coupling.options.cloth == id)
+            return failure(StatusCode::invalid_argument,
+                "cloth is still referenced by a rope coupling");
     ClothStorage &cloth = *impl_->cloths[id.index];
     for (const auto &coupling : impl_->soft_cloth_couplings)
         if (coupling && coupling->alive && coupling->options.cloth == id)
@@ -6932,6 +6947,8 @@ Status World::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
     output.rigid_contact_forces = {
         cloth.rigid_contact_forces, cloth.vertex_count};
     output.soft_body_contact_forces = {cloth.soft_body_forces, cloth.vertex_count};
+    if (cloth.rope_forces != nullptr)
+        output.rope_contact_forces = {cloth.rope_forces, cloth.vertex_count};
     if (cloth.fluid_forces != nullptr)
         output.fluid_contact_forces = {
             cloth.fluid_forces, cloth.vertex_count};
@@ -7342,8 +7359,13 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
         if(vector_length(subtract(target,end?nodes.back():nodes.front()))>1e-3F)
             return failure(StatusCode::invalid_argument,"rope endpoint must match its body-local attachment");
     }
+    const unsigned first_skip=rope_attachment_contact_skip(nodes,true,attached[0],
+        impl_->parameters,impl_->states[impl_->current_state],impl_->meshes);
+    const unsigned last_skip=rope_attachment_contact_skip(nodes,false,attached[1],
+        impl_->parameters,impl_->states[impl_->current_state],impl_->meshes);
     try {
-        if (rope_rest_crosses_collider(nodes, attached[0], attached[1], impl_->parameters,
+        if (rope_rest_crosses_collider(nodes, attached[0], attached[1],
+                first_skip,last_skip,impl_->parameters,
                 impl_->states[impl_->current_state], impl_->meshes, impl_->rigid_body_count))
             return failure(StatusCode::invalid_argument,"rope rest centerline crosses a rigid collider");
     } catch (...) {
@@ -7354,11 +7376,15 @@ Status World::add_rope(RopeOptions options, RopeId &output) noexcept {
     owner->generation=impl_->ropes[slot]?impl_->ropes[slot]->generation:1;
     auto &r=owner->data;
     r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
+    r.first_attachment_contact_skip=first_skip;
+    r.last_attachment_contact_skip=last_skip;
     r.body_capacity=impl_->options.rigid_body_capacity;
     for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.fluid_contact_forces,&r.soft_body_contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
         if(!(status=allocate_managed(*p,r.count)))return status;
     for(Vec3 **p:{&r.soft_anchor_positions,&r.soft_anchor_velocities,&r.soft_anchor_impulses})
         if(!(status=allocate_managed(*p,2U)))return status;
+    if(!(status=allocate_managed(r.soft_anchor_inverse_masses,2U)))return status;
+    r.soft_anchor_inverse_masses[0]=r.soft_anchor_inverse_masses[1]=0.0F;
     for(float **p:{&r.rest,&r.lambda})
         if(!(status=allocate_managed(*p,r.count)))return status;
     if(!(status=allocate_managed(r.body_translation,impl_->options.rigid_body_capacity)) ||
@@ -7388,6 +7414,10 @@ Status World::remove_rope(RopeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
                            "rope is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->rope_cloth_couplings)
+        if (coupling.alive && coupling.options.rope == id)
+            return failure(StatusCode::invalid_argument,
+                           "rope is still referenced by a cloth coupling");
     auto &rope=*impl_->ropes[id.index];rope.alive=false;rope.release();++rope.generation;
     if(rope.generation==0)rope.generation=1;
     ++impl_->revision;return success();
@@ -7536,6 +7566,12 @@ Status World::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
                (options.attach_last && item->options.attach_last))
                 return failure(StatusCode::invalid_argument,"rope endpoint already has an attachment");
         }
+    for(const auto &item:impl_->rope_cloth_couplings)
+        if(item.alive && item.options.rope==options.rope &&
+           ((options.attach_first && item.options.first_vertex!=UINT32_MAX) ||
+            (options.attach_last && item.options.last_vertex!=UINT32_MAX)))
+            return failure(StatusCode::invalid_argument,
+                "rope endpoint already has a cloth attachment");
     if(existing_targets>=2U)
         return failure(StatusCode::capacity_exceeded,
             "a rope supports at most two soft-body contact targets");
@@ -7691,6 +7727,12 @@ Status World::update_rope_soft_body_coupling(RopeSoftBodyCouplingId id,
             rope.soft_first|=coupling->options.attach_first;
             rope.soft_last|=coupling->options.attach_last;
         }
+    for(const auto &coupling:impl_->rope_cloth_couplings)
+        if(coupling.alive && coupling.options.enabled &&
+           coupling.options.rope==options.rope) {
+            rope.soft_first|=coupling.options.first_vertex!=UINT32_MAX;
+            rope.soft_last|=coupling.options.last_vertex!=UINT32_MAX;
+        }
     ++impl_->revision;return success();
 }
 
@@ -7714,7 +7756,144 @@ Status World::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId id) noexcept
             rope.soft_first|=coupling->options.attach_first;
             rope.soft_last|=coupling->options.attach_last;
         }
+    for(const auto &coupling:impl_->rope_cloth_couplings)
+        if(coupling.alive && coupling.options.enabled &&
+           coupling.options.rope==rope_id) {
+            rope.soft_first|=coupling.options.first_vertex!=UINT32_MAX;
+            rope.soft_last|=coupling.options.last_vertex!=UINT32_MAX;
+        }
     ++impl_->revision;return success();
+}
+
+Status World::add_rope_cloth_coupling(RopeClothCouplingOptions options,
+    RopeClothCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    auto status = impl_->require_idle(); if (!status) return status;
+    if (options.rope.index >= impl_->ropes.size() ||
+        !impl_->ropes[options.rope.index] ||
+        !impl_->ropes[options.rope.index]->alive ||
+        impl_->ropes[options.rope.index]->generation != options.rope.generation ||
+        options.cloth.index >= impl_->cloths.size() ||
+        !impl_->cloths[options.cloth.index] ||
+        !impl_->cloths[options.cloth.index]->alive ||
+        impl_->cloths[options.cloth.index]->generation != options.cloth.generation)
+        return failure(StatusCode::invalid_handle, "rope or cloth handle is stale");
+    if (!finite(options.anchor_effective_mass) ||
+        options.anchor_effective_mass <= 0.0F ||
+        !finite(options.maximum_cloth_acceleration) ||
+        options.maximum_cloth_acceleration <= 0.0F ||
+        (options.first_vertex == UINT32_MAX && options.last_vertex == UINT32_MAX))
+        return failure(StatusCode::invalid_argument, "invalid rope cloth options");
+    auto &rope = impl_->ropes[options.rope.index]->data;
+    auto &cloth = *impl_->cloths[options.cloth.index];
+    const std::uint32_t vertices[2]{options.first_vertex, options.last_vertex};
+    for (unsigned end = 0; end < 2; ++end) {
+        if (vertices[end] == UINT32_MAX) continue;
+        if (vertices[end] >= cloth.vertex_count ||
+            (end ? rope.options.last.enabled : rope.options.first.enabled))
+            return failure(StatusCode::invalid_argument,
+                "rope cloth vertex is invalid or endpoint has a rigid attachment");
+        const Vec3 delta = subtract(rope.positions[end ? rope.count - 1U : 0U],
+                                    cloth.positions[vertices[end]]);
+        if (length_squared(delta) > 1.0e-6F)
+            return failure(StatusCode::invalid_argument,
+                "rope endpoint must coincide with its cloth vertex");
+    }
+    for (const auto &item : impl_->rope_soft_body_couplings)
+        if (item && item->alive && item->options.rope == options.rope &&
+            ((options.first_vertex != UINT32_MAX && item->options.attach_first) ||
+             (options.last_vertex != UINT32_MAX && item->options.attach_last)))
+            return failure(StatusCode::invalid_argument,
+                "rope endpoint already has a soft-body attachment");
+    for (const auto &item : impl_->rope_cloth_couplings)
+        if (item.alive && item.options.rope == options.rope &&
+            (item.options.cloth == options.cloth ||
+             (options.first_vertex != UINT32_MAX && item.options.first_vertex != UINT32_MAX) ||
+             (options.last_vertex != UINT32_MAX && item.options.last_vertex != UINT32_MAX)))
+            return failure(StatusCode::invalid_argument,
+                "rope endpoint already has a cloth attachment");
+    unsigned slot = 0U;
+    while (slot < impl_->rope_cloth_couplings.size() &&
+           impl_->rope_cloth_couplings[slot].alive) ++slot;
+    if (slot == impl_->rope_cloth_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+            "rope cloth coupling capacity exhausted");
+    auto &item = impl_->rope_cloth_couplings[slot];
+    item.options = options;
+    item.alive = true;
+    if (options.enabled) {
+        rope.soft_first |= options.first_vertex != UINT32_MAX;
+        rope.soft_last |= options.last_vertex != UINT32_MAX;
+    }
+    output = {slot, item.generation};
+    ++impl_->revision;
+    return success();
+}
+
+Status World::update_rope_cloth_coupling(RopeClothCouplingId id,
+    RopeClothCouplingOptions options) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    auto status = impl_->require_idle(); if (!status) return status;
+    if (id.index >= impl_->rope_cloth_couplings.size() ||
+        !impl_->rope_cloth_couplings[id.index].alive ||
+        impl_->rope_cloth_couplings[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "rope cloth coupling is stale");
+    auto &item = impl_->rope_cloth_couplings[id.index];
+    if (!(item.options.rope == options.rope) ||
+        !(item.options.cloth == options.cloth) ||
+        item.options.first_vertex != options.first_vertex ||
+        item.options.last_vertex != options.last_vertex ||
+        !finite(options.anchor_effective_mass) ||
+        options.anchor_effective_mass <= 0.0F ||
+        !finite(options.maximum_cloth_acceleration) ||
+        options.maximum_cloth_acceleration <= 0.0F)
+        return failure(StatusCode::invalid_argument,
+            "cannot change rope cloth endpoints or use invalid acceleration");
+    item.options = options;
+    auto &rope = impl_->ropes[options.rope.index]->data;
+    rope.soft_first = rope.soft_last = false;
+    for (const auto &soft : impl_->rope_soft_body_couplings)
+        if (soft && soft->alive && soft->options.enabled &&
+            soft->options.rope == options.rope) {
+            rope.soft_first |= soft->options.attach_first;
+            rope.soft_last |= soft->options.attach_last;
+        }
+    for (const auto &cloth : impl_->rope_cloth_couplings)
+        if (cloth.alive && cloth.options.enabled && cloth.options.rope == options.rope) {
+            rope.soft_first |= cloth.options.first_vertex != UINT32_MAX;
+            rope.soft_last |= cloth.options.last_vertex != UINT32_MAX;
+        }
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_rope_cloth_coupling(RopeClothCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    auto status = impl_->require_idle(); if (!status) return status;
+    if (id.index >= impl_->rope_cloth_couplings.size() ||
+        !impl_->rope_cloth_couplings[id.index].alive ||
+        impl_->rope_cloth_couplings[id.index].generation != id.generation)
+        return failure(StatusCode::invalid_handle, "rope cloth coupling is stale");
+    auto &item = impl_->rope_cloth_couplings[id.index];
+    const RopeId rope_id = item.options.rope;
+    item.alive = false;
+    if (++item.generation == 0U) item.generation = 1U;
+    auto &rope = impl_->ropes[rope_id.index]->data;
+    rope.soft_first = rope.soft_last = false;
+    for (const auto &soft : impl_->rope_soft_body_couplings)
+        if (soft && soft->alive && soft->options.enabled &&
+            soft->options.rope == rope_id) {
+            rope.soft_first |= soft->options.attach_first;
+            rope.soft_last |= soft->options.attach_last;
+        }
+    for (const auto &cloth : impl_->rope_cloth_couplings)
+        if (cloth.alive && cloth.options.enabled && cloth.options.rope == rope_id) {
+            rope.soft_first |= cloth.options.first_vertex != UINT32_MAX;
+            rope.soft_last |= cloth.options.last_vertex != UINT32_MAX;
+        }
+    ++impl_->revision;
+    return success();
 }
 
 Status World::remove_soft_body(SoftBodyId id) noexcept {
@@ -9176,6 +9355,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 body->node_count*sizeof(Vec3),stream);
             if(clear!=cudaSuccess)return cuda_failure(clear,"soft-body rope force clear failed");
         }
+        if(first_substep)for(const auto &body:impl_->cloths) {
+            if(!body || !body->alive || !body->rope_forces)continue;
+            const auto clear=cudaMemsetAsync(body->rope_forces,0,
+                body->vertex_count*sizeof(Vec3),stream);
+            if(clear!=cudaSuccess)return cuda_failure(clear,"cloth rope force clear failed");
+        }
         for (unsigned rope_index=0;rope_index<impl_->ropes.size();++rope_index) {
             const auto &rope=impl_->ropes[rope_index];
             if(!rope || !rope->alive)continue;
@@ -9222,6 +9407,19 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     item.options.attach_first,item.options.attach_last};
                 couplings[coupled++]=&item;
             }
+            for(const auto &item:impl_->rope_cloth_couplings) {
+                if(!item.alive || !item.options.enabled ||
+                   !(item.options.rope==RopeId{rope_index,rope->generation}))continue;
+                auto &cloth=*impl_->cloths[item.options.cloth.index];
+                for(unsigned end=0;end<2;++end) {
+                    const unsigned vertex=end?item.options.last_vertex:
+                        item.options.first_vertex;
+                    if(vertex==UINT32_MAX)continue;
+                    rope_cloth_sample_anchor<<<1,1,0,stream>>>(rope->data,end,
+                        cloth.positions,cloth.velocities,cloth.inverse_masses,
+                        vertex,item.options.anchor_effective_mass);
+                }
+            }
             int first=-1,last=-1;unsigned dense;
             if(rope->data.options.first.enabled) {
                 auto status=impl_->validate_handle(rope->data.options.first.body,dense);
@@ -9237,6 +9435,27 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 soft_targets[0],soft_targets[1]);
             auto error=cudaPeekAtLastError();
             if(error!=cudaSuccess)return cuda_failure(error,"rope solver launch failed");
+            for(const auto &item:impl_->rope_cloth_couplings) {
+                if(!item.alive || !item.options.enabled ||
+                   !(item.options.rope==RopeId{rope_index,rope->generation}))continue;
+                auto &cloth=*impl_->cloths[item.options.cloth.index];
+                for(unsigned end=0;end<2;++end) {
+                    const unsigned vertex=end?item.options.last_vertex:
+                        item.options.first_vertex;
+                    if(vertex==UINT32_MAX)continue;
+                    rope_cloth_apply_anchor<<<1,1,0,stream>>>(rope->data,end,
+                        cloth.positions,cloth.velocities,cloth.rope_forces,
+                        cloth.inverse_masses,vertex,
+                        item.options.maximum_cloth_acceleration,
+                        substep_timestep,1.0F/options.timestep);
+                }
+                if(cloth.surface_positions) {
+                    const unsigned triangles=cloth.index_count/3U;
+                    cloth_update_surface<<<(triangles+block_size-1U)/block_size,
+                        block_size,0,stream>>>(cloth.positions,cloth.indices,
+                        cloth.surface_positions,triangles);
+                }
+            }
             auto status=record_timing_stage(TimingStage::rope_solve);
             if(!status)return status;
             for(unsigned index=0;index<coupled;++index) {

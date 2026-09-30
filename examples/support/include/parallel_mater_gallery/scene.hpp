@@ -95,6 +95,8 @@ struct RopeDefinition {
     RopeOptions options{};
     std::int32_t first_body{-1}, last_body{-1};
     std::int32_t first_soft_body{-1}, last_soft_body{-1};
+    std::int32_t first_cloth{-1}, last_cloth{-1};
+    std::uint32_t first_cloth_vertex{UINT32_MAX}, last_cloth_vertex{UINT32_MAX};
     std::uint32_t mesh_index{};
 };
 
@@ -132,6 +134,7 @@ struct SceneInstance {
     std::vector<FluidSoftBodyCouplingId> fluid_soft_body_couplings{};
     std::vector<FluidRopeCouplingId> fluid_rope_couplings{};
     std::vector<RopeSoftBodyCouplingId> rope_soft_body_couplings{};
+    std::vector<RopeClothCouplingId> rope_cloth_couplings{};
     std::vector<PaintBinding> paint_bindings{};
     FluidId fluid{};
     bool has_fluid{};
