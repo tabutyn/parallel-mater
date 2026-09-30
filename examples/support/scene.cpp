@@ -1757,10 +1757,9 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return {StatusCode::invalid_argument, cudaSuccess,
                     "smoke obstacle rigid sphere was not found"};
         const auto &body = scene.rigid_bodies[obstacle];
-        if (body.options.motion != MotionType::static_body ||
-            body.mesh_indices.size() != 1U)
+        if (body.mesh_indices.size() != 1U)
             return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle must be one passive rigid sphere"};
+                    "smoke obstacle must be one rigid sphere"};
         const auto &mesh = scene.meshes[body.mesh_indices[0]];
         float radius = 0.0F, smallest = FLT_MAX;
         for (const auto &vertex : mesh.vertices) {

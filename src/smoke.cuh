@@ -70,12 +70,17 @@ __device__ Vec3 smoke_velocity_field(Vec3 point, Vec3 center,
 __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
     float *thermal_lift,
     std::uint32_t count, SmokeOptions options,
-    const RigidBodyState *states, std::uint32_t obstacle, float time, float dt) {
+    const RigidBodyState *states, const RigidBodyState *previous_states,
+    bool moving_body, std::uint32_t obstacle, float time, float dt) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= count || ages[index] >= options.lifetime) return;
     Vec3 point = positions[index];
     Vec3 velocity = velocities[index];
     const Vec3 center = states[obstacle].position;
+    const Vec3 previous_center = moving_body
+        ? previous_states[obstacle].position : center;
+    const Vec3 center_path = subtract(center, previous_center);
+    const Vec3 obstacle_velocity = multiply(center_path, 1.0F / dt);
     Vec3 desired = smoke_velocity_field(point, center, options, time);
     desired.y += thermal_lift[index];
     const float response = 1.0F - expf(-options.response * dt);
@@ -83,33 +88,41 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
         multiply(subtract(desired, velocity), response)), options.maximum_speed);
     const Vec3 previous = point;
     point = add(point, multiply(velocity, dt));
-    const Vec3 separation = subtract(point, center);
     const float clearance = options.obstacle_radius + 0.15F * options.particle_radius;
-    const float distance2 = length_squared(separation);
     const Vec3 path = subtract(point, previous);
-    const Vec3 start = subtract(previous, center);
-    const float path2 = length_squared(path);
-    const float projection = dot(start, path);
+    // Solve the swept collision in the obstacle's translating frame.
+    const Vec3 start = subtract(previous, previous_center);
+    const Vec3 relative_path = subtract(path, center_path);
+    const float path2 = length_squared(relative_path);
+    const float projection = dot(start, relative_path);
     const float discriminant = projection * projection - path2 *
         (length_squared(start) - clearance * clearance);
     const bool swept_hit = length_squared(start) >= clearance * clearance &&
         path2 > 1.0e-12F && projection < 0.0F && discriminant >= 0.0F &&
         -projection - sqrtf(discriminant) <= path2;
-    if (distance2 < clearance * clearance || swept_hit) {
+    if (length_squared(subtract(point, center)) < clearance * clearance || swept_hit) {
         float collision_fraction = 1.0F;
         if (swept_hit) {
             collision_fraction = fmaxf(0.0F,
                 (-projection - sqrtf(discriminant)) / path2);
             point = add(previous, multiply(path, collision_fraction));
         }
-        const Vec3 normal = normalized_or(subtract(point, center),
+        const Vec3 contact_center = add(previous_center,
+            multiply(center_path, collision_fraction));
+        const Vec3 normal = normalized_or(subtract(point, contact_center),
             {-1.0F, 0.0F, 0.0F});
-        point = add(center, multiply(normal, clearance));
-        velocity = subtract(velocity,
-            multiply(normal, fminf(0.0F, dot(velocity, normal))));
+        point = add(contact_center, multiply(normal, clearance));
+        Vec3 relative_velocity = subtract(velocity, obstacle_velocity);
+        relative_velocity = subtract(relative_velocity,
+            multiply(normal, fminf(0.0F, dot(relative_velocity, normal))));
+        velocity = add(relative_velocity, obstacle_velocity);
         if (swept_hit)
             point = add(point, multiply(velocity,
                 dt * (1.0F - collision_fraction)));
+        const Vec3 final_separation = subtract(point, center);
+        if (length_squared(final_separation) < clearance * clearance)
+            point = add(center, multiply(normalized_or(final_separation, normal),
+                clearance));
     }
     positions[index] = point;
     velocities[index] = velocity;

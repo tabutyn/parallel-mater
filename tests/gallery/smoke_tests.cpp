@@ -154,6 +154,48 @@ int main() {
         const auto swept_positions = read(swept_view.positions);
         require(!swept_positions.empty() && swept_positions[0].x < center.x,
                 "smoke tunneled through the sphere at a coarse timestep");
+
+        // A translating active sphere must be accepted by the gallery and
+        // remain solid to smoke moving against it.
+        SceneDefinition moving = scene;
+        moving.rigid_bodies[0].options.motion = MotionType::dynamic;
+        moving.rigid_bodies[0].options.initial_state.linear_velocity =
+            {-1.2F, 0.0F, 0.0F};
+        moving.smoke_options.capacity = 256U;
+        moving.smoke_options.particles_per_second = 200.0F;
+        World moving_world;
+        SceneInstance moving_instance;
+        require(create_scene_world(moving, moving_world, moving_instance),
+                "create moving-obstacle smoke");
+        float final_center_x = center.x;
+        for (unsigned frame = 0U; frame < 60U; ++frame) {
+            require(moving_world.step({.timestep = 1.0F / 60.0F,
+                    .substeps = 1U, .gravity = {}}),
+                    "advance moving-obstacle smoke");
+            RigidBodyDeviceView bodies{};
+            SmokeDeviceView moving_smoke{};
+            require(moving_world.rigid_body_view(bodies),
+                    "read moving smoke obstacle");
+            require(moving_world.smoke_view(moving_instance.smoke, moving_smoke),
+                    "read moving smoke tracers");
+            const auto body_states = read(bodies.states);
+            const auto moving_positions = read(moving_smoke.positions);
+            const auto moving_ages = read(moving_smoke.ages);
+            const Vec3 moving_center = body_states[0].position;
+            final_center_x = moving_center.x;
+            for (std::size_t i = 0; i < moving_positions.size(); ++i) {
+                if (moving_ages[i] >= moving_smoke.lifetime) continue;
+                const Vec3 p = moving_positions[i];
+                const float distance = std::sqrt(
+                    (p.x - moving_center.x) * (p.x - moving_center.x) +
+                    (p.y - moving_center.y) * (p.y - moving_center.y) +
+                    (p.z - moving_center.z) * (p.z - moving_center.z));
+                require(distance >= radius - 1.0e-3F,
+                        "smoke penetrated moving sphere");
+            }
+        }
+        require(final_center_x < center.x - 0.5F,
+                "active smoke sphere did not move");
         std::cout << "smoke_particles=" << positions.size()
                   << " wake_particles=" << wake_particles
                   << " mean_transverse_wake_delta="

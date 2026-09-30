@@ -57,8 +57,9 @@ from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
 `pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
 `pm_smoke_response`, and `pm_smoke_wake_strength` are optional emitter
 properties. The gallery resolves the obstacle name and radius and registers a
-`SmokeOptions` resource in the physics API. The initial implementation requires
-one centered passive sphere and one smoke inlet per scene.
+`SmokeOptions` resource in the physics API. The obstacle may be a passive or
+active centered sphere; smoke collision follows its translation. One smoke
+inlet per scene is supported.
 
 ## Smoke and water boiling
 
