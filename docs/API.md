@@ -137,6 +137,8 @@ it. Triangle barycentric weights transfer the local cloth velocity to the
 tracer response. As with smoke/soft body, tracers have no reaction mass: wind
 loads the cloth, while tracers are deflected by it. The coupling has a
 generation-tagged handle and must be removed before the smoke or cloth.
+Blocked carrier flow is redirected along the local cloth tangent toward the
+finite sheet's edges, rather than leaving tracers parked on the windward face.
 
 ## Rope centerlines and attachments
 

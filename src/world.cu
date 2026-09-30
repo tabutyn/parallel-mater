@@ -10820,7 +10820,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     smoke.count, smoke.options.lifetime,
                     cloth.positions, cloth.velocities,
                     cloth.indices, cloth.index_count,
-                    coupling->minimum, coupling->maximum, clearance);
+                    coupling->minimum, coupling->maximum, clearance,
+                    std::min(smoke.options.maximum_speed, 2.0F * std::sqrt(
+                        length_squared(smoke.options.wind) +
+                        smoke.options.buoyancy * smoke.options.buoyancy)),
+                    smoke.options.maximum_speed);
             }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
             if (!status) return status;

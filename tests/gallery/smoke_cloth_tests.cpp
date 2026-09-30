@@ -81,7 +81,7 @@ int main() {
                     reference.smoke_cloth_couplings.front()),
                 "remove reference coupling");
 
-        constexpr unsigned frames = 180U;
+        constexpr unsigned frames = 300U;
         double coupled_milliseconds = 0.0;
         double reference_milliseconds = 0.0;
         for (unsigned frame = 0; frame < frames; ++frame) {
@@ -130,11 +130,23 @@ int main() {
         require(reference_world.smoke_view(reference.smoke, reference_smoke),
                 "read reference smoke");
         const auto smoke_positions = read(smoke.positions);
+        const auto smoke_ages = read(smoke.ages);
         const auto reference_smoke_positions = read(reference_smoke.positions);
         float tracer_difference = 0.0F;
-        for (std::size_t index = 0; index < smoke_positions.size(); ++index)
+        std::size_t upstream_surface_particles = 0U;
+        std::size_t beyond_cloth_particles = 0U;
+        for (std::size_t index = 0; index < smoke_positions.size(); ++index) {
             tracer_difference += distance(smoke_positions[index],
                                           reference_smoke_positions[index]);
+            if (smoke_ages[index] >= smoke.lifetime) continue;
+            const Vec3 p = smoke_positions[index];
+            if (p.x > 0.9F && p.x < 1.33F && p.y > 0.0F && p.y < 2.0F &&
+                std::abs(p.z) < 1.0F)
+                ++upstream_surface_particles;
+            if (p.x > 1.5F && p.y > -0.5F && p.y < 2.5F &&
+                std::abs(p.z) < 1.5F)
+                ++beyond_cloth_particles;
+        }
         std::cout << "frames=" << frames
                   << " coupled_ms_per_frame=" << coupled_milliseconds / frames
                   << " reference_ms_per_frame=" << reference_milliseconds / frames
@@ -142,9 +154,13 @@ int main() {
                   << " tracer_difference=" << tracer_difference
                   << " max_cloth_speed=" << maximum_speed
                   << " max_bond_strain=" << maximum_bond_strain
+                  << " upstream_surface_particles=" << upstream_surface_particles
+                  << " beyond_cloth_particles=" << beyond_cloth_particles
                   << " smoke_particles=" << smoke.particle_count << '\n';
         require(cloth_difference > 0.1F && tracer_difference > 1.0F,
                 "smoke and cloth did not influence each other");
+        require(upstream_surface_particles < 550U && beyond_cloth_particles > 500U,
+                "smoke stalled against the cloth rather than flowing around it");
         require(maximum_speed < 20.0F && maximum_bond_strain < 1.0F,
                 "smoke-cloth simulation became unstable");
 

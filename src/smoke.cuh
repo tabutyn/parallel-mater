@@ -221,7 +221,8 @@ __global__ void smoke_cloth_contact(
     std::uint32_t count, float lifetime,
     const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
     const std::uint32_t *indices, std::uint32_t index_count,
-    const Vec3 *minimum, const Vec3 *maximum, float clearance) {
+    const Vec3 *minimum, const Vec3 *maximum, float clearance,
+    float edge_flow_speed, float maximum_speed) {
     const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= count || ages[particle] >= lifetime) return;
     const Vec3 point = positions[particle];
@@ -297,6 +298,21 @@ __global__ void smoke_cloth_contact(
     Vec3 relative = subtract(velocities[particle], cloth_velocity);
     relative = subtract(relative,
         multiply(normal, fminf(0.0F, dot(relative, normal))));
+    // A no-through response alone leaves a steady carrier wind pushing every
+    // tracer back into the same face. Redirect that blocked flow along the
+    // local tangent, away from the finite sheet's center, so it can clear an
+    // edge. The same rule works on either side and on moving/rotated cloth.
+    const Vec3 center = multiply(add(low, high), 0.5F);
+    const Vec3 from_center = subtract(nearest, center);
+    const Vec3 projected = subtract(from_center,
+        multiply(normal, dot(from_center, normal)));
+    if (length_squared(projected) > 1.0e-8F && edge_flow_speed > 0.0F) {
+        const Vec3 toward_edge = normalized_or(projected, {0.0F, 1.0F, 0.0F});
+        const float outward_speed = dot(relative, toward_edge);
+        relative = add(relative, multiply(toward_edge,
+            fmaxf(0.0F, edge_flow_speed - outward_speed)));
+        relative = clamp_length(relative, maximum_speed);
+    }
     velocities[particle] = add(cloth_velocity, relative);
 }
 

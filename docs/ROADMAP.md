@@ -365,6 +365,9 @@ pass.
   GPU comparison checks pin stability, spring strain, cloth displacement,
   and smoke-path divergence against the uncoupled scene. A fast-tracer sweep
   regression prevents one-frame tunneling through the thin sheet.
+- Follow-up: contact now redirects blocked smoke tangentially toward cloth
+  edges. A 300-frame regression checks that the plume reaches the far side
+  without collecting against the windward surface.
 
 ## Later — Gallery game shell
 
