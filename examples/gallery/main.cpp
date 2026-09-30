@@ -574,7 +574,9 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_ROPE_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_ROPE_FLUID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH)};
+            std::filesystem::path(PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_SMOKE_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_SMOKE_WATER_SCENE_PATH)};
         const std::filesystem::path &scene_path = scene_paths[
             static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
@@ -801,7 +803,10 @@ int main(int argc, char **argv) {
                          "collect headless fluid statistics")) return 1;
             std::cout << "Fluid particles=" << statistics.particle_count
                       << " emitted=" << statistics.emitted_particle_count
-                      << " outflowed=" << statistics.destroyed_particle_count
+                      << " outflowed=" <<
+                          statistics.destroyed_particle_count -
+                              statistics.boiled_particle_count
+                      << " boiled=" << statistics.boiled_particle_count
                       << " capacity_misses="
                       << statistics.spawn_capacity_miss_count << '\n';
             parallel_mater::FluidDeviceView fluid_view{};
@@ -830,6 +835,12 @@ int main(int argc, char **argv) {
                           << " y=" << low.y << ".." << high.y
                           << " z=" << low.z << ".." << high.z << '\n';
             }
+        }
+        if (runtime.instance.has_smoke) {
+            parallel_mater::SmokeDeviceView smoke{};
+            if (!require(runtime.world.smoke_view(runtime.instance.smoke, smoke),
+                         "borrow headless smoke view")) return 1;
+            std::cout << "Smoke particles=" << smoke.particle_count << '\n';
         }
         if (!options.physics_capture_output.empty()) {
             if (!write_physics_debug_capture(
@@ -1248,7 +1259,12 @@ int main(int argc, char **argv) {
             break;
         }
         if (timing_visible) {
-            if (is_fluid_context(runtime.context))
+            if (runtime.context == GalleryContext::smoke)
+                draw_smoke_timing_overlay(
+                    pixels, runtime.renderer.width(), runtime.renderer.height(),
+                    timings, renderer_timings, statistics,
+                    runtime.scene.smoke_options.capacity);
+            else if (is_fluid_context(runtime.context))
                 draw_fluid_timing_overlay(
                     pixels, runtime.renderer.width(), runtime.renderer.height(),
                     timings, renderer_timings, statistics, fluid_particles);

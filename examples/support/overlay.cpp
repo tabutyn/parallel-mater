@@ -286,6 +286,35 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                  timings.total_gpu_milliseconds);
 }
 
+void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
+                               std::uint32_t width, std::uint32_t height,
+                               const WorldStepTimings &physics,
+                               const RendererTimings &renderer,
+                               const WorldStatistics &statistics,
+                               std::uint32_t capacity) {
+    const std::array rows{
+        TimingRow{"ADVECT + WAKE", physics.smoke_advection},
+        TimingRow{"EMIT", physics.smoke_emission}};
+    timing_panel(rgba, width, height, 465, 248, "SMOKE GPU KERNELS",
+                 physics.available, rows, 24, 116,
+                 physics.total_gpu_milliseconds);
+    if (!physics.available) return;
+    char line[128]{};
+    std::snprintf(line, sizeof(line), "RENDER WALL   %7.3f MS",
+                  renderer.total_wall_milliseconds);
+    text(rgba, width, height, 32, 147, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "SMOKE SPLATS  %7.3f MS",
+                  renderer.foam_wall_milliseconds);
+    text(rgba, width, height, 32, 169, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "SLOTS %u / MAX %u",
+                  statistics.smoke_particle_count, capacity);
+    text(rgba, width, height, 32, 191, line, {225, 235, 242, 255}, 2);
+    std::snprintf(line, sizeof(line), "EMITTED %llu",
+                  static_cast<unsigned long long>(
+                      statistics.emitted_smoke_particle_count));
+    text(rgba, width, height, 32, 213, line, {225, 235, 242, 255}, 2);
+}
+
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
                                const WorldStepTimings &timings) {
@@ -354,7 +383,8 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"SOFT SPRINGS", physics.soft_body_constraints},
         TimingRow{"SOFT RIGID", physics.soft_body_contacts},
         TimingRow{"EVENTS", physics.fluid_contact_events},
-        TimingRow{"OUTFLOW", physics.fluid_outflow_compaction}};
+        TimingRow{"OUTFLOW", physics.fluid_outflow_compaction},
+        TimingRow{"SMOKE HEAT", physics.fluid_smoke_exchange}};
     const int total_y = 58 + static_cast<int>(rows.size()) * 18 + 8;
     const int details_y = total_y + 24;
     timing_panel(rgba, width, height, 480, details_y + 238,
@@ -389,13 +419,21 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
     text(rgba, width, height, 32, details_y + 96, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
                   static_cast<unsigned long long>(statistics.emitted_particle_count),
-                  static_cast<unsigned long long>(statistics.destroyed_particle_count));
+                  static_cast<unsigned long long>(
+                      statistics.destroyed_particle_count -
+                      statistics.boiled_particle_count));
     text(rgba, width, height, 32, details_y + 116, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
                   static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
     text(rgba, width, height, 32, details_y + 136, line,
          statistics.spawn_capacity_miss_count
              ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
+    if (statistics.boiled_particle_count != 0U) {
+        std::snprintf(line, sizeof(line), "BOILED TO SMOKE %llu",
+                      static_cast<unsigned long long>(statistics.boiled_particle_count));
+        text(rgba, width, height, 32, details_y + 208, line,
+             {255, 190, 70, 255}, 2);
+    }
     std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
                   renderer.surface_excluded_particle_count);
     text(rgba, width, height, 32, details_y + 160, line,

@@ -82,6 +82,39 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Smoke tracer gas
+
+`World::add_smoke` creates a separate dilute-gas particle system; it does not
+reuse the incompressible liquid solver. `SmokeOptions` provides a world-YZ
+emission rectangle, wind and initial velocity, particles per second, lifetime,
+buoyancy, response, wake strength, speed cap, and a spherical rigid obstacle.
+The obstacle must already exist; it cannot be removed while referenced.
+The API advects bounded, recycled tracer slots on the GPU. A no-through-flow
+field diverts smoke around the sphere, alternating vortices shed into its wake,
+and swept segment/sphere tests prevent particles tunneling through it.
+`SmokeDeviceView` exposes positions, velocities, ages, and the active slot count
+after a completed frame. A slot whose age reaches `lifetime` is ignored until
+reused by emission. `remove_smoke` invalidates its generation-tagged handle.
+`WorldStepTimings` reports smoke advection and emission separately, while
+`WorldStatistics` reports occupied slots and total emitted smoke particles.
+This first gas system is a prescribed velocity field, not a pressure-projected
+Navier–Stokes or smoke–rigid momentum coupling solver.
+
+`World::add_fluid_smoke_coupling` links existing `FluidId` and `SmokeId`
+resources to a finite `ParticlePlane` heater. `FluidParticle::temperature`
+and `ParticleSourceOptions::initial_temperature` are Celsius (20°C by
+default); `FluidDeviceView::temperatures` exposes the live values. Near the
+heater, water temperature approaches `heater_temperature` at the configured
+`heat_transfer_rate`. At `boiling_temperature` (100°C by default) a water
+particle is removed from the liquid solver and inserted into bounded smoke
+storage with an upward velocity and decaying thermal lift. This is a phase
+transfer, not a second copy of the water particle. The same smoke carrier
+field exerts configurable drag on nearby water without scanning all smoke
+tracers. `WorldStatistics::boiled_particle_count` tracks transfers; source
+temperature survives fluid compaction. Remove the coupling before removing
+either system. This first thermal model has no latent heat, condensation, or
+two-way gas momentum solve.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc
@@ -463,7 +496,7 @@ Initial implementation requirements:
 - collision projection plus velocity response against passive triangle meshes;
 - reaction impulses on dynamic bodies are deferred to PR 8.
 
-Cross-fluid interaction and phase changes are deferred. Continuous surface
+Other cross-fluid interactions remain deferred. Continuous surface
 reconstruction stays outside the public API in the example renderer.
 `FluidDeviceView::foam` exposes a short-lived impact/surface signal for the
 examples-only renderer; it is not a separate foam fluid.
@@ -573,7 +606,7 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- smoke or a separate foam-particle simulation;
+- a separate foam-particle simulation;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.
 
