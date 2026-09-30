@@ -72,6 +72,13 @@ Headless physics builds remain free of OpenGL and OptiX.
     bounded two-way reaction, while existing fluid/rigid triangle contact
     handles the ball and post. The Blender ball has 20 kg mass so it can wind
     under the authored water volume without floating away.
+16. **Rope Soft Body** — a hooked rope wraps a Goal-pinned soft post and
+    transfers contact and anchor forces through the shared API.
+17. **Rope Cloth** — four post-to-corner ropes suspend a subdivided cloth sheet
+    and catch a falling rigid sphere through explicit rope/cloth API joints.
+18. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
+    a passive sphere. The API diverts them around the surface and sheds a
+    measurable alternating wake; the gallery composites translucent splats.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and

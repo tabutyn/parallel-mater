@@ -319,6 +319,18 @@ pass.
   and less than 0.003% measured peak rope strain; disabling the joints lets the
   cloth fall. The new gallery entry also has a headless render regression.
 
+## PR 20 — Smoke around a sphere
+
+- `Smoke.blend` authors a Blender Smoke Inflow plane and passive sphere. The
+  single exporter maps them to a separate gas resource, not liquid particles.
+- The API emits bounded GPU tracer slots, diverts them around a spherical
+  obstacle with a no-through-flow field, sweeps contacts to prevent tunneling,
+  and sheds alternating vortices. The gallery only composites smoke visuals.
+- The 300-frame GPU comparison against zero wake measures about 0.19 m/s mean
+  transverse wake difference for 2,887 downstream particles. Exporter, API,
+  smoke physics, headless rendering, gallery, and rope–cloth regressions pass.
+  This is an analytic first gas flow, not full Navier–Stokes pressure projection.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
@@ -334,6 +346,6 @@ pass.
 
 ## Later, one solver at a time
 
-Smoke requires an approved API extension, one
-focused gallery scene, two-system coupling tests, and performance evidence.
-No campaign or presentation concept is promoted into the installed library.
+Extend smoke to general rigid meshes and two-way coupling after measuring
+the spherical-obstacle tracer baseline. No campaign or presentation concept
+is promoted into the installed library.

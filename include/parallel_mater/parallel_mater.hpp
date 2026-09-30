@@ -76,6 +76,14 @@ struct FluidId {
     }
 };
 
+struct SmokeId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(SmokeId a, SmokeId b) noexcept {
+        return a.index == b.index && a.generation == b.generation;
+    }
+};
+
 struct ClothId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -267,6 +275,7 @@ struct PhysicsDebugOptions {
 
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
+    std::uint32_t smoke_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_source_capacity{8U};
@@ -307,6 +316,36 @@ struct StepOptions {
 struct FluidParticle {
     Vec3 position{};
     Vec3 velocity{};
+};
+
+// Smoke is a dilute tracer gas, not the incompressible liquid solver. The
+// spherical obstacle creates a no-through-flow deflection and a shedding wake.
+struct SmokeOptions {
+    std::uint32_t capacity{4'500U};
+    Vec3 emitter_center{};
+    Vec2 emitter_half_extents{0.25F, 0.25F}; // Y and Z on a world-X plane
+    Vec3 initial_velocity{1.6F, 0.0F, 0.0F};
+    Vec3 wind{1.6F, 0.0F, 0.0F};
+    float particles_per_second{900.0F};
+    float lifetime{5.0F};
+    float particle_radius{0.085F};
+    float buoyancy{0.12F};
+    float response{6.0F};
+    float wake_strength{4.0F};
+    float maximum_speed{4.0F};
+    RigidBodyId obstacle{};
+    float obstacle_radius{0.5F};
+};
+
+struct SmokeDeviceView {
+    DeviceSpan<const Vec3> positions{};
+    DeviceSpan<const Vec3> velocities{};
+    DeviceSpan<const float> ages{};
+    // Occupied ring slots; ages >= lifetime are expired and should not draw.
+    std::uint32_t particle_count{};
+    float lifetime{};
+    float particle_radius{};
+    std::uint64_t revision{};
 };
 
 // Host geometry is copied at creation; vertex inverse mass zero pins a vertex
@@ -866,12 +905,18 @@ struct WorldStepTimings {
     KernelTiming fluid_rope_contacts{};
     KernelTiming rope_solve{};
     KernelTiming rope_soft_body_contacts{};
+    KernelTiming smoke_advection{};
+    KernelTiming smoke_emission{};
 };
 
 struct WorldStatistics {
     std::uint64_t frame_index{};
     std::uint32_t fluid_count{};
     std::uint32_t particle_count{};
+    std::uint32_t smoke_system_count{};
+    // Occupied slots, including any expired slots awaiting reuse.
+    std::uint32_t smoke_particle_count{};
+    std::uint64_t emitted_smoke_particle_count{};
     std::uint32_t rigid_body_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
@@ -940,6 +985,9 @@ class World {
     [[nodiscard]] Status remove_fluid(FluidId fluid,
                                       cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
+    [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
+    [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
+    [[nodiscard]] Status smoke_view(SmokeId smoke, SmokeDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
                                    cudaStream_t stream = nullptr) noexcept;

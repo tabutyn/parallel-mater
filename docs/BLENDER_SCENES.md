@@ -46,6 +46,20 @@ glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
 alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
 materials remain visible regardless of their alpha value.
 
+## Smoke flow
+
+`Smoke.blend` is reproducible with `examples/assets/tools/make_smoke_scene.py`.
+It has a passive rigid Icosphere and one mesh with **Fluid → Flow**, **Flow
+Type: Smoke**, **Flow Behavior: Inflow**, and initial velocity along +X. The
+flow mesh is a world-YZ plane. Its `pm_smoke_obstacle` custom string property
+names the rigid sphere. Exporting creates `pm_system=smoke_emitter`, separate
+from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
+`pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
+`pm_smoke_response`, and `pm_smoke_wake_strength` are optional emitter
+properties. The gallery resolves the obstacle name and radius and registers a
+`SmokeOptions` resource in the physics API. The initial implementation requires
+one centered passive sphere and one smoke inlet per scene.
+
 ## Rope curves and attachments
 
 Use one open Bézier spline at the scene root. Select an endpoint control point

@@ -23,7 +23,7 @@ bl_info = {
     "version": (0, 1, 0),
     "blender": (4, 5, 0),
     "location": "File > Export > ParallelMater Scene (.glb)",
-    "description": "Export rigid, soft, cloth, liquid, and paint metadata",
+    "description": "Export rigid, soft, cloth, liquid, smoke, and paint metadata",
     "category": "Import-Export",
 }
 
@@ -295,11 +295,12 @@ def copy_flow_for_export(
     if len(fluid_modifiers) != 1 or fluid_modifiers[0].fluid_type != "FLOW":
         raise RuntimeError(f"{source.name}: expected one Fluid Flow modifier")
     flow = fluid_modifiers[0].flow_settings
-    if flow.flow_type != "LIQUID" or flow.flow_behavior not in {
-        "INFLOW", "OUTFLOW", "GEOMETRY"
-    }:
+    smoke = flow.flow_type == "SMOKE" and flow.flow_behavior == "INFLOW"
+    liquid = flow.flow_type == "LIQUID" and flow.flow_behavior in {
+        "INFLOW", "OUTFLOW", "GEOMETRY"}
+    if not (smoke or liquid):
         raise RuntimeError(
-            f"{source.name}: only Liquid Inflow/Outflow/Geometry is supported"
+            f"{source.name}: use Liquid Inflow/Outflow/Geometry or Smoke Inflow"
         )
     if source.parent is not None:
         raise RuntimeError(f"{source.name}: fluid flow plane must be a scene-root object")
@@ -319,7 +320,7 @@ def copy_flow_for_export(
     collection.objects.link(exported)
     exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
     exported["pm_schema"] = SCHEMA_VERSION
-    exported["pm_system"] = {
+    exported["pm_system"] = "smoke_emitter" if smoke else {
         "INFLOW": "fluid_inflow",
         "OUTFLOW": "fluid_outflow",
         "GEOMETRY": "fluid_initial_volume",
@@ -336,6 +337,21 @@ def copy_flow_for_export(
                 exported[name] = float(source[name])
     if flow.flow_behavior == "INFLOW":
         exported["pm_source_spacing"] = float(source.get("pm_source_spacing", 0.0))
+    if smoke:
+        obstacle = source.get("pm_smoke_obstacle")
+        if not isinstance(obstacle, str) or not obstacle:
+            raise RuntimeError(f"{source.name}: pm_smoke_obstacle must name a rigid sphere")
+        exported["pm_smoke_obstacle"] = obstacle
+        for key, default in (
+            ("pm_smoke_capacity", 4500),
+            ("pm_smoke_rate", 900.0),
+            ("pm_smoke_lifetime", 5.0),
+            ("pm_smoke_radius", 0.085),
+            ("pm_smoke_buoyancy", 0.12),
+            ("pm_smoke_response", 6.0),
+            ("pm_smoke_wake_strength", 4.0),
+        ):
+            exported[key] = source.get(key, default)
     return exported
 
 

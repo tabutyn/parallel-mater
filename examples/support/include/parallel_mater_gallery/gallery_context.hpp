@@ -28,6 +28,7 @@ enum class GalleryContext : std::uint8_t {
     rope_fluid,
     rope_soft_body,
     rope_cloth,
+    smoke,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -48,6 +49,7 @@ enum class GallerySceneSource : std::uint8_t {
     rope_fluid,
     rope_soft_body,
     rope_cloth,
+    smoke,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -195,6 +197,12 @@ inline constexpr std::array gallery_entries{
         {45, 42, 52, 235}, {220, 158, 90},
         {.target = {0.0F, 0.25F, 0.0F}, .distance_scale = 0.54F,
          .pitch = 0.62F}, false, true, 0U, 0U, false, true},
+    GalleryEntry{GalleryContext::smoke, GallerySceneSource::smoke,
+        GalleryControlPolicy::none, GalleryCountKind::none,
+        "--smoke", "SMOKE", "VORTEX SHEDDING AROUND A SPHERE  R RESET",
+        {42, 49, 59, 235}, {205, 215, 225},
+        {.target = {0.25F, 1.5F, 0.0F}, .distance_scale = 0.72F,
+         .pitch = 0.22F}, false, false, 0U, 0U},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(
