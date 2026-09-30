@@ -79,6 +79,13 @@ Headless physics builds remain free of OpenGL and OptiX.
 18. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
     a passive sphere. The API diverts them around the surface and sheds a
     measurable alternating wake; the gallery composites translucent splats.
+19. **Smoke Water** — `SmokeWater.blend` starts water at 80°C above an open
+    container. The finite `Hot` mesh is a visible passive collision plate and
+    a 500°C thermal source. Smoke blows across the falling liquid; contact
+    with the plate warms particles to the 100°C boiling point, transfers them
+    into the smoke solver, and gives the steam buoyant lift. Select with
+    `--smoke-water`; `P` changes water capacity, `V` shows particles, `R`
+    restarts, and headless output reports the boiled-particle count.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and

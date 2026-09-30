@@ -84,6 +84,11 @@ struct SmokeId {
     }
 };
 
+struct FluidSmokeCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+};
+
 struct ClothId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -276,6 +281,7 @@ struct PhysicsDebugOptions {
 struct WorldOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t smoke_capacity{1U};
+    std::uint32_t fluid_smoke_coupling_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_source_capacity{8U};
@@ -316,6 +322,7 @@ struct StepOptions {
 struct FluidParticle {
     Vec3 position{};
     Vec3 velocity{};
+    float temperature{20.0F}; // degrees Celsius
 };
 
 // Smoke is a dilute tracer gas, not the incompressible liquid solver. The
@@ -622,9 +629,23 @@ struct ParticlePlane {
     Vec2 half_extents{0.5F, 0.5F};
 };
 
+// A finite hot plate heats nearby liquid. Boiling transfers the particle to
+// smoke; the smoke carrier flow also drags nearby liquid.
+struct FluidSmokeCouplingOptions {
+    FluidId fluid{};
+    SmokeId smoke{};
+    ParticlePlane heater{};
+    float heater_temperature{500.0F};
+    float boiling_temperature{100.0F};
+    float heat_transfer_rate{0.2F}; // inverse seconds, at contact
+    float wind_drag{2.0F}; // inverse seconds
+    float steam_rise_speed{2.0F};
+};
+
 struct ParticleSourceOptions {
     FluidId fluid{};
     Vec3 initial_velocity{};
+    float initial_temperature{20.0F};
     bool enabled{true};
 };
 
@@ -743,6 +764,7 @@ struct FluidDeviceView {
     DeviceSpan<const std::uint32_t> stable_particle_ids{};
     // Short-lived impact/exposed-surface agitation for renderers; [0, 1].
     DeviceSpan<const float> foam{};
+    DeviceSpan<const float> temperatures{}; // degrees Celsius
     std::uint32_t particle_count{};
     float particle_radius{};
     float support_radius{};
@@ -893,6 +915,7 @@ struct WorldStepTimings {
     KernelTiming fluid_cloth_contacts{};
     KernelTiming fluid_contact_events{};
     KernelTiming fluid_outflow_compaction{};
+    KernelTiming fluid_smoke_exchange{};
     float total_gpu_milliseconds{};
     KernelTiming cloth_prediction{};
     KernelTiming cloth_constraints{};
@@ -917,6 +940,7 @@ struct WorldStatistics {
     // Occupied slots, including any expired slots awaiting reuse.
     std::uint32_t smoke_particle_count{};
     std::uint64_t emitted_smoke_particle_count{};
+    std::uint64_t boiled_particle_count{};
     std::uint32_t rigid_body_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
@@ -988,6 +1012,10 @@ class World {
     [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
     [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
     [[nodiscard]] Status smoke_view(SmokeId smoke, SmokeDeviceView &output) const noexcept;
+    [[nodiscard]] Status add_fluid_smoke_coupling(
+        FluidSmokeCouplingOptions options, FluidSmokeCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_fluid_smoke_coupling(
+        FluidSmokeCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
                                    cudaStream_t stream = nullptr) noexcept;

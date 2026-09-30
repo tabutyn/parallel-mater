@@ -332,11 +332,13 @@ def copy_flow_for_export(
         exported["pm_velocity_y"] = float(velocity.z)
         exported["pm_velocity_z"] = float(-velocity.y)
     if flow.flow_behavior == "GEOMETRY":
-        for name in ("pm_particle_spacing", "pm_gravity_scale"):
+        for name in ("pm_particle_spacing", "pm_gravity_scale", "pm_temperature"):
             if name in source:
                 exported[name] = float(source[name])
     if flow.flow_behavior == "INFLOW":
         exported["pm_source_spacing"] = float(source.get("pm_source_spacing", 0.0))
+        if not smoke and "pm_temperature" in source:
+            exported["pm_temperature"] = float(source["pm_temperature"])
     if smoke:
         obstacle = source.get("pm_smoke_obstacle")
         if not isinstance(obstacle, str) or not obstacle:
@@ -352,6 +354,33 @@ def copy_flow_for_export(
             ("pm_smoke_wake_strength", 4.0),
         ):
             exported[key] = source.get(key, default)
+    return exported
+
+
+def copy_thermal_surface_for_export(source, collection, created_meshes):
+    """Export a finite heated mesh independently of collision rendering."""
+    if source.parent is not None or source.rigid_body is not None or len(source.data.polygons) < 1:
+        raise RuntimeError(f"{source.name}: thermal surface needs a root mesh without rigid body")
+    mesh = source.data.copy()
+    created_meshes.append(mesh)
+    location, rotation, scale = source.matrix_world.decompose()
+    geometry = bmesh.new()
+    geometry.from_mesh(mesh)
+    geometry.transform(Matrix.Diagonal(Vector((scale.x, scale.y, scale.z, 1.0))))
+    bmesh.ops.triangulate(geometry, faces=list(geometry.faces))
+    geometry.to_mesh(mesh)
+    geometry.free()
+    mesh.validate(clean_customdata=False)
+    mesh.update()
+    exported = bpy.data.objects.new(source.name, mesh)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    exported["pm_schema"] = SCHEMA_VERSION
+    exported["pm_system"] = "thermal_surface"
+    for key in ("pm_temperature", "pm_heat_transfer_rate", "pm_smoke_drag",
+                "pm_steam_rise_speed"):
+        if key in source:
+            exported[key] = float(source[key])
     return exported
 
 
@@ -719,6 +748,11 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH" and any(mod.type == "FLUID" for mod in obj.modifiers)
     ]
+    thermal_surfaces = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == "MESH" and "pm_temperature" in obj and
+        obj.rigid_body is None and not any(mod.type == "FLUID" for mod in obj.modifiers)
+    ]
     cloths = [
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH" and any(mod.type == "CLOTH" for mod in obj.modifiers)
@@ -806,6 +840,9 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
             created_objects.append(
                 copy_flow_for_export(source, collection, created_meshes)
             )
+        for source in thermal_surfaces:
+            created_objects.append(copy_thermal_surface_for_export(
+                source, collection, created_meshes))
         for index, source in enumerate(cloths):
             created_objects.append(copy_cloth_for_export(
                 source, index, collection, created_meshes, created_materials

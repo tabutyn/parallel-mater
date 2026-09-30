@@ -1897,6 +1897,7 @@ enum class TimingStage : std::uint8_t {
     fluid_moving_contacts,
     fluid_contact_events,
     fluid_outflow_compaction,
+    fluid_smoke_exchange,
     rope_solve,
     smoke_advection,
     smoke_emission,
@@ -2492,11 +2493,13 @@ struct FluidStorage {
     Vec3 *previous{};
     std::uint32_t *ids{};
     float *foam{};
+    float *temperatures{};
     float *foam_source{};
     Vec3 *next_positions{};
     Vec3 *next_velocities{};
     std::uint32_t *next_ids{};
     float *next_foam{};
+    float *next_temperatures{};
     std::uint8_t *keep{};
     std::uint32_t *selected{};
     std::uint64_t *keys[2]{};
@@ -2524,11 +2527,13 @@ struct FluidStorage {
         release_managed(previous);
         release_managed(ids);
         release_managed(foam);
+        release_managed(temperatures);
         release_managed(foam_source);
         release_managed(next_positions);
         release_managed(next_velocities);
         release_managed(next_ids);
         release_managed(next_foam);
+        release_managed(next_temperatures);
         release_managed(keep);
         release_managed(selected);
         release_managed(keys[0]);
@@ -4880,7 +4885,8 @@ __global__ void fluid_source_vacancies(
 __global__ void fluid_source_emit(
     const Vec3 *points, const std::uint8_t *vacant, std::uint32_t amount,
     float spacing, Vec3 velocity, Vec3 *positions, Vec3 *velocities,
-    std::uint32_t *ids, float *foam, std::uint32_t *count,
+    std::uint32_t *ids, float *foam, float *temperatures,
+    float initial_temperature, std::uint32_t *count,
     std::uint32_t capacity, std::uint32_t first_spawned,
     std::uint32_t first_id, std::uint32_t *misses) {
     if(threadIdx.x || blockIdx.x) return;
@@ -4901,6 +4907,7 @@ __global__ void fluid_source_emit(
         velocities[index]=velocity;
         ids[index]=first_id+index-first_spawned;
         foam[index]=0;
+        temperatures[index]=initial_temperature;
     }
 }
 
@@ -4933,6 +4940,7 @@ __global__ void fluid_destroy_flags(const Vec3 *positions,
 
 __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
                              const std::uint32_t *ids, const float *foam,
+                             const float *temperatures,
                              const FluidContactSample *contact_samples,
                              const std::uint8_t *contact_flags,
                              bool copy_contacts,
@@ -4940,7 +4948,7 @@ __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
                              const std::uint32_t *count,
                              std::uint32_t capacity, Vec3 *next_positions,
                              Vec3 *next_velocities, std::uint32_t *next_ids,
-                             float *next_foam,
+                             float *next_foam, float *next_temperatures,
                              FluidContactSample *next_contact_samples,
                              std::uint8_t *next_contact_flags) {
     const std::uint32_t item = blockIdx.x * blockDim.x + threadIdx.x;
@@ -4950,6 +4958,7 @@ __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
     next_velocities[item] = velocities[source];
     next_ids[item] = ids[source];
     next_foam[item] = foam[source];
+    next_temperatures[item] = temperatures[source];
     if (copy_contacts) {
         next_contact_samples[item] = contact_samples[source];
         next_contact_flags[item] = contact_flags[source];
@@ -4959,7 +4968,8 @@ __global__ void fluid_gather(const Vec3 *positions, const Vec3 *velocities,
 __global__ void fluid_copy_initial(const FluidParticle *input,
                                    std::uint32_t count, Vec3 *positions,
                                    Vec3 *velocities, std::uint32_t *ids,
-                                   float *foam, std::uint32_t *invalid) {
+                                   float *foam, float *temperatures,
+                                   std::uint32_t *invalid) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= count) return;
     if (!isfinite(input[index].position.x) ||
@@ -4967,7 +4977,8 @@ __global__ void fluid_copy_initial(const FluidParticle *input,
         !isfinite(input[index].position.z) ||
         !isfinite(input[index].velocity.x) ||
         !isfinite(input[index].velocity.y) ||
-        !isfinite(input[index].velocity.z)) {
+        !isfinite(input[index].velocity.z) ||
+        !isfinite(input[index].temperature)) {
         atomicExch(invalid, 1U);
         return;
     }
@@ -4975,6 +4986,7 @@ __global__ void fluid_copy_initial(const FluidParticle *input,
     velocities[index] = input[index].velocity;
     ids[index] = index;
     foam[index] = 0.0F;
+    temperatures[index] = input[index].temperature;
 }
 
 } // namespace
@@ -4984,6 +4996,7 @@ namespace {
 #include "rope_cloth.cuh"
 #include "fluid_rope.cuh"
 #include "smoke.cuh"
+#include "fluid_smoke.cuh"
 } // namespace
 
 struct FrameToken::Impl {
@@ -5013,6 +5026,8 @@ struct World::Impl {
     std::vector<Slot> slots{};
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<std::unique_ptr<SmokeStorage>> smokes{};
+    std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
+    std::uint64_t boiled_particle_count{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
     std::vector<std::unique_ptr<RopeStorage>> ropes{};
@@ -5394,6 +5409,8 @@ Status World::create(WorldOptions options, World &output,
         implementation->slots.resize(options.rigid_body_capacity);
         implementation->fluids.resize(options.fluid_capacity);
         implementation->smokes.resize(options.smoke_capacity);
+        implementation->fluid_smoke_couplings.resize(
+            options.fluid_smoke_coupling_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -5704,11 +5721,13 @@ Status World::add_fluid(FluidOptions options,
         !(status = allocate_managed(fluid->previous, capacity)) ||
         !(status = allocate_managed(fluid->ids, capacity)) ||
         !(status = allocate_managed(fluid->foam, capacity)) ||
+        !(status = allocate_managed(fluid->temperatures, capacity)) ||
         !(status = allocate_managed(fluid->foam_source, capacity)) ||
         !(status = allocate_managed(fluid->next_positions, capacity)) ||
         !(status = allocate_managed(fluid->next_velocities, capacity)) ||
         !(status = allocate_managed(fluid->next_ids, capacity)) ||
         !(status = allocate_managed(fluid->next_foam, capacity)) ||
+        !(status = allocate_managed(fluid->next_temperatures, capacity)) ||
         !(status = allocate_managed(fluid->keep, capacity)) ||
         !(status = allocate_managed(fluid->selected, capacity)) ||
         !(status = allocate_managed(fluid->keys[0], capacity)) ||
@@ -5747,6 +5766,7 @@ Status World::add_fluid(FluidOptions options,
                              128U, 0, stream>>>(
             initial_particles.data, static_cast<std::uint32_t>(initial_particles.size),
             fluid->positions, fluid->velocities, fluid->ids, fluid->foam,
+            fluid->temperatures,
             impl_->fluid_neighbor_overflow);
         error = cudaGetLastError();
         if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
@@ -5816,6 +5836,10 @@ Status World::remove_fluid(FluidId id, cudaStream_t) noexcept {
         if (coupling && coupling->alive && coupling->options.fluid == id)
             return failure(StatusCode::invalid_argument,
                            "fluid is still referenced by a rope coupling");
+    for (const auto &coupling : impl_->fluid_smoke_couplings)
+        if (coupling && coupling->alive && coupling->options.fluid == id)
+            return failure(StatusCode::invalid_argument,
+                           "fluid is still referenced by a smoke coupling");
     for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
         if (impl_->paint_rules[i].alive &&
             impl_->paint_rules[i].options.source == id)
@@ -5860,7 +5884,8 @@ Status World::fluid_view(FluidId id, FluidDeviceView &output) const noexcept {
     const std::uint32_t count = *fluid->count;
     output = {{fluid->positions, count}, {fluid->velocities, count},
               {fluid->forces, count}, {fluid->ids, count},
-              {fluid->foam, count}, count, fluid->options.particle_radius,
+              {fluid->foam, count}, {fluid->temperatures, count},
+              count, fluid->options.particle_radius,
               fluid->options.support_radius, impl_->revision};
     return success();
 }
@@ -5901,7 +5926,8 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
     smoke->options = options;
     if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
         !(status = allocate_managed(smoke->velocities, options.capacity)) ||
-        !(status = allocate_managed(smoke->ages, options.capacity))) return status;
+        !(status = allocate_managed(smoke->ages, options.capacity)) ||
+        !(status = allocate_managed(smoke->thermal_lift, options.capacity))) return status;
     smoke->alive = true;
     output = {slot, smoke->generation};
     impl_->smokes[slot] = std::move(smoke);
@@ -5917,6 +5943,10 @@ Status World::remove_smoke(SmokeId id) noexcept {
         !impl_->smokes[id.index]->alive ||
         impl_->smokes[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "smoke handle is stale");
+    for (const auto &coupling : impl_->fluid_smoke_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a fluid coupling");
     std::unique_ptr<SmokeStorage> tombstone;
     try { tombstone = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
@@ -5945,6 +5975,76 @@ Status World::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
     return success();
 }
 
+Status World::add_fluid_smoke_coupling(
+    FluidSmokeCouplingOptions options, FluidSmokeCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    FluidStorage *fluid = nullptr;
+    if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation)
+        return failure(StatusCode::invalid_handle, "smoke handle is invalid or stale");
+    const float rotation_norm_squared =
+        options.heater.orientation.x * options.heater.orientation.x +
+        options.heater.orientation.y * options.heater.orientation.y +
+        options.heater.orientation.z * options.heater.orientation.z +
+        options.heater.orientation.w * options.heater.orientation.w;
+    if (!finite(options.heater.center) || !finite(options.heater.orientation) ||
+        rotation_norm_squared < 0.25F || rotation_norm_squared > 4.0F ||
+        !finite(options.heater.half_extents.x) ||
+        !finite(options.heater.half_extents.y) ||
+        options.heater.half_extents.x <= 0.0F ||
+        options.heater.half_extents.y <= 0.0F ||
+        !finite(options.heater_temperature) ||
+        !finite(options.boiling_temperature) ||
+        !finite(options.heat_transfer_rate) || options.heat_transfer_rate < 0.0F ||
+        !finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.steam_rise_speed) || options.steam_rise_speed < 0.0F)
+        return failure(StatusCode::invalid_argument, "invalid fluid smoke coupling options");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->fluid_smoke_couplings.size() &&
+           impl_->fluid_smoke_couplings[slot] &&
+           impl_->fluid_smoke_couplings[slot]->alive) ++slot;
+    if (slot == impl_->fluid_smoke_couplings.size())
+        return failure(StatusCode::capacity_exceeded, "fluid smoke coupling capacity exhausted");
+    std::unique_ptr<FluidSmokeCouplingSlot> coupling;
+    try { coupling = std::make_unique<FluidSmokeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling allocation failed"); }
+    coupling->generation = impl_->fluid_smoke_couplings[slot] ?
+        impl_->fluid_smoke_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->converted, 1U))) return status;
+    *coupling->converted = 0U;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->fluid_smoke_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_smoke_couplings.size() ||
+        !impl_->fluid_smoke_couplings[id.index] ||
+        !impl_->fluid_smoke_couplings[id.index]->alive ||
+        impl_->fluid_smoke_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "fluid smoke coupling handle is stale");
+    std::unique_ptr<FluidSmokeCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<FluidSmokeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->fluid_smoke_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
 namespace {
 [[nodiscard]] bool valid_particle_plane(ParticlePlane plane) noexcept {
     const float squared = plane.orientation.x * plane.orientation.x +
@@ -5966,7 +6066,8 @@ Status World::add_particle_source(ParticleSourceMesh mesh, ParticleSourceOptions
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
     if (mesh.spacing == 0.0F) mesh.spacing = fluid->options.support_radius;
-    if (!finite(options.initial_velocity) || !finite(mesh.spacing) ||
+    if (!finite(options.initial_velocity) || !finite(options.initial_temperature) ||
+        !finite(mesh.spacing) ||
         mesh.spacing < 2.0F * fluid->options.particle_radius)
         return failure(StatusCode::invalid_argument, "fluid source spacing or velocity is invalid");
     for (std::uint32_t index = 0; index < impl_->particle_sources.size(); ++index) {
@@ -6004,6 +6105,7 @@ Status World::update_particle_source(ParticleSourceId id,
     FluidStorage *fluid = nullptr;
     if (!(status = impl_->validate_handle(options.fluid, fluid))) return status;
     if (!finite(options.initial_velocity) ||
+        !finite(options.initial_temperature) ||
         !(options.fluid == impl_->particle_sources[id.index].options.fluid))
         return failure(StatusCode::invalid_argument, "fluid source destination is immutable or velocity is invalid");
     impl_->particle_sources[id.index].options = options;
@@ -9943,7 +10045,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             fluid_source_emit<<<1U,1U,0,stream>>>(
                 data.points, data.vacant, data.count, data.spacing,
                 slot.options.initial_velocity, fluid.positions, fluid.velocities,
-                fluid.ids, fluid.foam, fluid.count, fluid.options.capacity,
+                fluid.ids, fluid.foam, fluid.temperatures,
+                slot.options.initial_temperature, fluid.count,
+                fluid.options.capacity,
                 first_spawned, fluid.next_id, data.capacity_misses);
         }
         if (has_sources) {
@@ -10309,16 +10413,19 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 }
                 fluid_gather<<<blocks, block_size, 0, stream>>>(
                     fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
+                    fluid.temperatures,
                     fluid.contact_samples, fluid.contact_flags,
                     collect_fluid_contacts,
                     fluid.selected, fluid.count, fluid.options.capacity,
                     fluid.next_positions, fluid.next_velocities,
                     fluid.next_ids, fluid.next_foam,
+                    fluid.next_temperatures,
                     fluid.next_contact_samples, fluid.next_contact_flags);
                 std::swap(fluid.positions, fluid.next_positions);
                 std::swap(fluid.velocities, fluid.next_velocities);
                 std::swap(fluid.ids, fluid.next_ids);
                 std::swap(fluid.foam, fluid.next_foam);
+                std::swap(fluid.temperatures, fluid.next_temperatures);
                 std::swap(fluid.contact_samples, fluid.next_contact_samples);
                 std::swap(fluid.contact_flags, fluid.next_contact_flags);
                 status = record_timing_stage(
@@ -10352,6 +10459,63 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return cuda_failure(error, "fluid kernel launch failed");
         }
     }
+    for (auto &owner : impl_->fluid_smoke_couplings) {
+        if (!owner || !owner->alive) continue;
+        auto &coupling = *owner;
+        auto &fluid = *impl_->fluids[coupling.options.fluid.index];
+        auto &smoke = *impl_->smokes[coupling.options.smoke.index];
+        const auto live = *fluid.count;
+        if (live == 0U) continue;
+        std::uint32_t obstacle = 0U;
+        status = impl_->validate_handle(smoke.options.obstacle, obstacle);
+        if (!status) return status;
+        *coupling.converted = 0U;
+        const auto blocks = (fluid.options.capacity + block_size - 1U) / block_size;
+        fluid_smoke_exchange<<<blocks, block_size, 0, stream>>>(
+            fluid.positions, fluid.velocities, fluid.temperatures,
+            fluid.count, fluid.options.particle_radius, coupling.options,
+            smoke.options, impl_->states[impl_->current_state][obstacle].position,
+            smoke.time, smoke.count, smoke.positions, smoke.velocities,
+            smoke.ages, smoke.thermal_lift, smoke.next_slot,
+            coupling.converted, fluid.keep, options.timestep);
+        error = cudaGetLastError();
+        if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "fluid smoke exchange failed");
+        const auto converted = std::min(*coupling.converted, smoke.options.capacity);
+        if (converted == 0U) {
+            status = record_timing_stage(TimingStage::fluid_smoke_exchange);
+            if (!status) return status;
+            continue;
+        }
+        smoke.next_slot = (smoke.next_slot + converted) % smoke.options.capacity;
+        smoke.count = std::min(smoke.options.capacity, smoke.count + converted);
+        smoke.emitted += converted;
+        impl_->boiled_particle_count += converted;
+        fluid_clear_inactive_keep<<<blocks, block_size, 0, stream>>>(
+            fluid.keep, fluid.count, fluid.options.capacity);
+        const auto sequence = thrust::make_counting_iterator<std::uint32_t>(0U);
+        error = cub::DeviceSelect::Flagged(
+            fluid.select_workspace, fluid.select_workspace_size,
+            sequence, fluid.keep, fluid.selected, fluid.count,
+            fluid.options.capacity, stream);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "boiled fluid compaction failed");
+        fluid_gather<<<blocks, block_size, 0, stream>>>(
+            fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
+            fluid.temperatures, fluid.contact_samples, fluid.contact_flags,
+            false, fluid.selected, fluid.count, fluid.options.capacity,
+            fluid.next_positions, fluid.next_velocities, fluid.next_ids,
+            fluid.next_foam, fluid.next_temperatures,
+            fluid.next_contact_samples, fluid.next_contact_flags);
+        std::swap(fluid.positions, fluid.next_positions);
+        std::swap(fluid.velocities, fluid.next_velocities);
+        std::swap(fluid.ids, fluid.next_ids);
+        std::swap(fluid.foam, fluid.next_foam);
+        std::swap(fluid.temperatures, fluid.next_temperatures);
+        status = record_timing_stage(TimingStage::fluid_smoke_exchange, 3U);
+        if (!status) return status;
+    }
     for (auto &owner : impl_->smokes) {
         if (!owner || !owner->alive) continue;
         auto &smoke = *owner;
@@ -10360,7 +10524,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!status) return status;
         if (smoke.count != 0U) {
             smoke_advect<<<(smoke.count + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages, smoke.count,
+                smoke.positions, smoke.velocities, smoke.ages,
+                smoke.thermal_lift, smoke.count,
                 smoke.options, impl_->states[impl_->current_state], obstacle,
                 smoke.time, options.timestep);
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
@@ -10373,7 +10538,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         smoke.emission_fraction = float(exact - std::floor(exact));
         if (requested != 0U) {
             smoke_emit<<<(requested + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages, smoke.options,
+                smoke.positions, smoke.velocities, smoke.ages,
+                smoke.thermal_lift, smoke.options,
                 smoke.next_slot, requested, smoke.emitted);
             smoke.next_slot = (smoke.next_slot + requested) % smoke.options.capacity;
             smoke.count = std::min(smoke.options.capacity, smoke.count + requested);
@@ -10650,6 +10816,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::fluid_outflow_compaction:
             timing = &output.fluid_outflow_compaction;
             break;
+        case TimingStage::fluid_smoke_exchange:
+            timing = &output.fluid_smoke_exchange;
+            break;
         }
         timing->total_milliseconds += milliseconds;
         const std::uint32_t launches =
@@ -10693,13 +10862,14 @@ Status World::collect_statistics(WorldStatistics &output,
     output = {};
     output.frame_index = impl_->frame_index;
     output.fluid_count = impl_->fluid_count;
+    output.boiled_particle_count = impl_->boiled_particle_count;
     for (const auto &smoke : impl_->smokes) {
         if (!smoke || !smoke->alive) continue;
         ++output.smoke_system_count;
         output.smoke_particle_count += smoke->count;
         output.emitted_smoke_particle_count += smoke->emitted;
         output.allocated_bytes += static_cast<std::size_t>(smoke->options.capacity) *
-            (2U * sizeof(Vec3) + sizeof(float));
+            (2U * sizeof(Vec3) + 2U * sizeof(float));
     }
     for (const auto &cloth : impl_->cloths) {
         if (!cloth || !cloth->alive) continue;
@@ -10817,7 +10987,7 @@ Status World::collect_statistics(WorldStatistics &output,
         const std::size_t capacity = fluid->options.capacity;
         output.allocated_bytes += capacity *
             (6U * sizeof(Vec3) + 5U * sizeof(std::uint32_t) +
-             3U * sizeof(float) + 2U * sizeof(std::uint8_t) +
+             5U * sizeof(float) + 2U * sizeof(std::uint8_t) +
              2U * sizeof(std::uint64_t) + sizeof(FluidBodyImpulse) +
              2U * sizeof(FluidContactSample)) +
              fluid->sort_workspace_size + fluid->select_workspace_size +

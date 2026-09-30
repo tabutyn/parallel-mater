@@ -575,7 +575,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_ROPE_FLUID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_SMOKE_SCENE_PATH)};
+            std::filesystem::path(PARALLEL_MATER_SMOKE_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_SMOKE_WATER_SCENE_PATH)};
         const std::filesystem::path &scene_path = scene_paths[
             static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
@@ -802,7 +803,10 @@ int main(int argc, char **argv) {
                          "collect headless fluid statistics")) return 1;
             std::cout << "Fluid particles=" << statistics.particle_count
                       << " emitted=" << statistics.emitted_particle_count
-                      << " outflowed=" << statistics.destroyed_particle_count
+                      << " outflowed=" <<
+                          statistics.destroyed_particle_count -
+                              statistics.boiled_particle_count
+                      << " boiled=" << statistics.boiled_particle_count
                       << " capacity_misses="
                       << statistics.spawn_capacity_miss_count << '\n';
             parallel_mater::FluidDeviceView fluid_view{};

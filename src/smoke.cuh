@@ -8,6 +8,7 @@ struct SmokeStorage {
     Vec3 *positions{};
     Vec3 *velocities{};
     float *ages{};
+    float *thermal_lift{};
     std::uint32_t count{};
     std::uint32_t next_slot{};
     std::uint64_t emitted{};
@@ -17,6 +18,7 @@ struct SmokeStorage {
         release_managed(positions);
         release_managed(velocities);
         release_managed(ages);
+        release_managed(thermal_lift);
     }
 };
 
@@ -66,6 +68,7 @@ __device__ Vec3 smoke_velocity_field(Vec3 point, Vec3 center,
 }
 
 __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
+    float *thermal_lift,
     std::uint32_t count, SmokeOptions options,
     const RigidBodyState *states, std::uint32_t obstacle, float time, float dt) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -73,7 +76,8 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
     Vec3 point = positions[index];
     Vec3 velocity = velocities[index];
     const Vec3 center = states[obstacle].position;
-    const Vec3 desired = smoke_velocity_field(point, center, options, time);
+    Vec3 desired = smoke_velocity_field(point, center, options, time);
+    desired.y += thermal_lift[index];
     const float response = 1.0F - expf(-options.response * dt);
     velocity = clamp_length(add(velocity,
         multiply(subtract(desired, velocity), response)), options.maximum_speed);
@@ -110,9 +114,11 @@ __global__ void smoke_advect(Vec3 *positions, Vec3 *velocities, float *ages,
     positions[index] = point;
     velocities[index] = velocity;
     ages[index] += dt;
+    thermal_lift[index] *= expf(-dt / 3.0F);
 }
 
 __global__ void smoke_emit(Vec3 *positions, Vec3 *velocities, float *ages,
+    float *thermal_lift,
     SmokeOptions options, std::uint32_t first_slot,
     std::uint32_t count, std::uint64_t first_serial) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -126,4 +132,5 @@ __global__ void smoke_emit(Vec3 *positions, Vec3 *velocities, float *ages,
         z * options.emitter_half_extents.y});
     velocities[slot] = options.initial_velocity;
     ages[slot] = 0.0F;
+    thermal_lift[slot] = 0.0F;
 }

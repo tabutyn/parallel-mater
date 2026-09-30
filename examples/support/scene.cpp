@@ -1166,7 +1166,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         const std::string system = extras.string("pm_system").value_or("");
         if (system != "fluid_inflow" && system != "fluid_outflow" &&
             system != "fluid_initial_volume" &&
-            system != "smoke_emitter") continue;
+            system != "smoke_emitter" &&
+            system != "thermal_surface") continue;
         const std::string name = node.name != nullptr ? node.name : "fluid plane";
         if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
             node.parent != nullptr || node.has_matrix || node.mesh == nullptr ||
@@ -1179,6 +1180,65 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             scale.z <= 0.0F) {
             error = name + ": fluid plane scale is invalid";
             return false;
+        }
+        if (system == "thermal_surface") {
+            Vec3 low{FLT_MAX, FLT_MAX, FLT_MAX};
+            Vec3 high{-FLT_MAX, -FLT_MAX, -FLT_MAX};
+            RigidBodyDefinition plate{};
+            plate.name = name;
+            plate.source_name = name;
+            plate.options.motion = MotionType::static_body;
+            plate.options.initial_state = node_state(node);
+            for (cgltf_size primitive = 0; primitive < node.mesh->primitives_count;
+                 ++primitive) {
+                TriangleMesh mesh;
+                if (!append_primitive(node.mesh->primitives[primitive], scale,
+                                      false, name, mesh, error)) return false;
+                for (const Vertex &vertex : mesh.vertices) {
+                    low = {std::min(low.x, vertex.position.x),
+                           std::min(low.y, vertex.position.y),
+                           std::min(low.z, vertex.position.z)};
+                    high = {std::max(high.x, vertex.position.x),
+                            std::max(high.y, vertex.position.y),
+                            std::max(high.z, vertex.position.z)};
+                }
+                plate.mesh_indices.push_back(
+                    static_cast<std::uint32_t>(output.meshes.size()));
+                output.meshes.push_back(std::move(mesh));
+            }
+            const Vec3 extent = subtract(high, low);
+            if (!finite(low) || !finite(high) || extent.x <= 0.0F ||
+                extent.z <= 0.0F || extent.y > 0.001F) {
+                error = name + ": thermal surface must be a local XZ plane";
+                return false;
+            }
+            const RigidBodyState state = node_state(node);
+            SceneDefinition::ThermalSurfaceDefinition heater{};
+            heater.plane = {
+                .center = add(state.position,
+                              rotate(state.orientation, multiply(add(low, high), 0.5F))),
+                .orientation = state.orientation,
+                .half_extents = {extent.x * 0.5F, extent.z * 0.5F}};
+            heater.temperature = static_cast<float>(
+                extras.number("pm_temperature").value_or(500.0));
+            heater.heat_transfer_rate = static_cast<float>(
+                extras.number("pm_heat_transfer_rate").value_or(0.2));
+            heater.smoke_drag = static_cast<float>(
+                extras.number("pm_smoke_drag").value_or(2.0));
+            heater.steam_rise_speed = static_cast<float>(
+                extras.number("pm_steam_rise_speed").value_or(2.0));
+            if (!std::isfinite(heater.temperature) ||
+                !std::isfinite(heater.heat_transfer_rate) ||
+                heater.heat_transfer_rate < 0.0F ||
+                !std::isfinite(heater.smoke_drag) || heater.smoke_drag < 0.0F ||
+                !std::isfinite(heater.steam_rise_speed) ||
+                heater.steam_rise_speed < 0.0F) {
+                error = name + ": invalid thermal surface settings";
+                return false;
+            }
+            output.thermal_surfaces.push_back(heater);
+            output.rigid_bodies.push_back(std::move(plate));
+            continue;
         }
         if (system == "smoke_emitter") {
             if (output.has_smoke) {
@@ -1269,10 +1329,19 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             initial_spacing = spacing;
             initial_gravity_scale = gravity_scale;
+            const auto first = output.initial_particles.size();
             if (!sample_initial_volume(node, scale, velocity, spacing,
                                        output.initial_particles, error)) {
                 return false;
             }
+            const float temperature = static_cast<float>(
+                extras.number("pm_temperature").value_or(20.0));
+            if (!std::isfinite(temperature)) {
+                error = name + ": invalid fluid temperature";
+                return false;
+            }
+            for (auto index = first; index < output.initial_particles.size(); ++index)
+                output.initial_particles[index].temperature = temperature;
             continue;
         }
         if (system == "fluid_inflow") {
@@ -1282,6 +1351,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
                 static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
                 static_cast<float>(extras.number("pm_velocity_z").value_or(0.0))};
+            source.options.initial_temperature = static_cast<float>(
+                extras.number("pm_temperature").value_or(20.0));
             if (!finite(source.spacing) || source.spacing < 0 || !finite(source.options.initial_velocity)) {
                 error = name + ": invalid fluid source spacing or velocity";
                 return false;
@@ -1512,6 +1583,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
     output = {
         .fluid_capacity = 1U,
         .smoke_capacity = scene.has_smoke ? 1U : 0U,
+        .fluid_smoke_coupling_capacity = static_cast<std::uint32_t>(
+            scene.thermal_surfaces.size()),
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
@@ -1890,6 +1963,22 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             status = world.add_particle_destroy_plane(options, id);
             if (!status) return status;
         }
+    }
+    if (!scene.thermal_surfaces.empty() &&
+        (!output.has_fluid || !output.has_smoke))
+        return {StatusCode::invalid_argument, cudaSuccess,
+                "thermal surfaces require both water and smoke"};
+    for (const auto &surface : scene.thermal_surfaces) {
+        FluidSmokeCouplingId coupling{};
+        const Status status = world.add_fluid_smoke_coupling({
+            .fluid = output.fluid, .smoke = output.smoke,
+            .heater = surface.plane,
+            .heater_temperature = surface.temperature,
+            .heat_transfer_rate = surface.heat_transfer_rate,
+            .wind_drag = surface.smoke_drag,
+            .steam_rise_speed = surface.steam_rise_speed}, coupling);
+        if (!status) return status;
+        output.fluid_smoke_couplings.push_back(coupling);
     }
     for (std::size_t index = 0U; index < scene.cloths.size(); ++index) {
         if (!scene.cloths[index].contains_fluid) continue;

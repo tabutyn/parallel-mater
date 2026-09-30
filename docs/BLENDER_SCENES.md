@@ -60,6 +60,20 @@ properties. The gallery resolves the obstacle name and radius and registers a
 `SmokeOptions` resource in the physics API. The initial implementation requires
 one centered passive sphere and one smoke inlet per scene.
 
+## Smoke and water boiling
+
+`SmokeWater.blend` combines a Smoke Inflow with a Liquid Flow/Geometry volume.
+Put a `pm_temperature` custom property (degrees Celsius) on the liquid object
+to set its initial particle temperature; liquid Inflow objects can set it too.
+Add a scene-root plane with no Fluid modifier or rigid body and set
+`pm_temperature` to make a heated surface. `Hot` uses 500°C. The single
+exporter writes `pm_system=thermal_surface`; the gallery imports its triangles
+as a visible passive collision plate and configures the API coupling from its
+finite plane and temperature. Optional plane properties are
+`pm_heat_transfer_rate`, `pm_smoke_drag`, and `pm_steam_rise_speed`.
+Water particles transfer to the separate smoke system at 100°C, so keep the
+passive container open above the heater. Blender's own fluid cache is unused.
+
 ## Rope curves and attachments
 
 Use one open Bézier spline at the scene root. Select an endpoint control point
