@@ -369,6 +369,18 @@ pass.
   edges. A 300-frame regression checks that the plume reaches the far side
   without collecting against the windward surface.
 
+## PR 26 — Smoke–rope and suspended panel coupling (ready for review)
+
+- `SmokeRope.blend` supplies four Poly ropes, an active panel, two passive
+  posts, the vortex sphere, and a smoke inlet. The single exporter infers
+  rigid endpoints on both active and passive meshes.
+- Reusable API couplings bend free rope nodes with carrier wind, deflect
+  tracers from swept rope capsules, and opt a moving rigid panel into
+  swept triangle contact plus bounded carrier pressure.
+- GPU regression compares 300 frames against uncoupled motion, checks rope
+  strain and a focused rope-hit plume, and rejects fast tracer tunneling
+  through the thin panel.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.

@@ -158,6 +158,15 @@ struct RigidBodyId {
     }
 };
 
+struct SmokeRigidCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        SmokeRigidCouplingId left, SmokeRigidCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct TriangleMeshId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -173,6 +182,15 @@ struct RopeId {
     std::uint32_t generation{};
     [[nodiscard]] friend constexpr bool operator==(RopeId left,
                                                     RopeId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
+struct SmokeRopeCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        SmokeRopeCouplingId left, SmokeRopeCouplingId right) noexcept {
         return left.index == right.index && left.generation == right.generation;
     }
 };
@@ -294,6 +312,8 @@ struct WorldOptions {
     std::uint32_t fluid_smoke_coupling_capacity{1U};
     std::uint32_t smoke_soft_body_coupling_capacity{1U};
     std::uint32_t smoke_cloth_coupling_capacity{1U};
+    std::uint32_t smoke_rope_coupling_capacity{1U};
+    std::uint32_t smoke_rigid_coupling_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_source_capacity{8U};
@@ -385,6 +405,30 @@ struct SmokeClothCouplingOptions {
     float wind_drag{2.0F}; // inverse seconds
     float maximum_wind_acceleration{20.0F};
     float contact_distance{}; // zero selects smoke radius + cloth thickness
+    bool enabled{true};
+};
+
+// Carrier wind bends free rope nodes; massless smoke tracers deflect from
+// the rope's current capsule segments without applying reaction impulses.
+struct SmokeRopeCouplingOptions {
+    SmokeId smoke{};
+    RopeId rope{};
+    float wind_drag{2.0F}; // inverse seconds
+    float maximum_wind_acceleration{20.0F};
+    float contact_distance{}; // zero selects smoke radius + rope radius
+    bool enabled{true};
+};
+
+// Opt-in carrier pressure and two-sided tracer deflection against any rigid
+// triangle mesh, including a thin moving panel. Closed meshes have zero net
+// signed area and therefore receive no pressure from this surface model.
+struct SmokeRigidCouplingOptions {
+    SmokeId smoke{};
+    RigidBodyId body{};
+    float air_density{1.2F};
+    float drag_coefficient{1.0F};
+    float maximum_force{20.0F};
+    float contact_distance{}; // zero selects smoke particle radius
     bool enabled{true};
 };
 
@@ -1059,6 +1103,16 @@ class World {
         SmokeClothCouplingId &output) noexcept;
     [[nodiscard]] Status remove_smoke_cloth_coupling(
         SmokeClothCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_rope_coupling(
+        SmokeRopeCouplingOptions options,
+        SmokeRopeCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_rope_coupling(
+        SmokeRopeCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_rigid_coupling(
+        SmokeRigidCouplingOptions options,
+        SmokeRigidCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_rigid_coupling(
+        SmokeRigidCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
                                    cudaStream_t stream = nullptr) noexcept;

@@ -140,6 +140,20 @@ generation-tagged handle and must be removed before the smoke or cloth.
 Blocked carrier flow is redirected along the local cloth tangent toward the
 finite sheet's edges, rather than leaving tracers parked on the windward face.
 
+`World::add_smoke_rope_coupling` applies bounded carrier-wind drag to free rope
+nodes before the shared rope solve. Anchored endpoints stay governed by their
+rigid or deformable attachment. Smoke tracers use swept capsule contact with
+the rope's live segments; they deflect but carry no reaction mass. The
+generation-checked coupling must be removed before its smoke or rope.
+
+`World::add_smoke_rigid_coupling` is opt-in for arbitrary rigid triangle meshes,
+including open moving panels. Tracers make two-sided swept triangle contact
+and flow toward finite surface edges. Signed mesh area supplies a bounded
+carrier-pressure force to dynamic bodies; a consistently wound closed mesh
+has zero net signed area, so this simple pressure model does not load it. The
+coupling must be removed before its smoke or rigid body. Gallery scenes opt in
+with `pm_smoke_collider` on the Blender rigid object.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc

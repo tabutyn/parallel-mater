@@ -721,6 +721,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         body.name = extras.string("pm_name").value_or(body.name);
         body.source_name = extras.string("pm_source_name").value_or(body.name);
         body.paintable = extras.boolean("pm_paintable").value_or(false);
+        body.smoke_collider = extras.boolean("pm_smoke_collider").value_or(false);
         if (const auto resolution = extras.number("pm_paint_resolution")) {
             if (!std::isfinite(*resolution) || *resolution < 32.0 ||
                 *resolution > 2048.0 || std::floor(*resolution) != *resolution) {
@@ -1589,6 +1590,14 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             ? static_cast<std::uint32_t>(scene.soft_bodies.size()) : 0U,
         .smoke_cloth_coupling_capacity = scene.has_smoke
             ? static_cast<std::uint32_t>(scene.cloths.size()) : 0U,
+        .smoke_rope_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(scene.ropes.size()) : 0U,
+        .smoke_rigid_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(std::count_if(
+                  scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
+                  [](const RigidBodyDefinition &body) {
+                      return body.smoke_collider;
+                  })) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
@@ -1780,6 +1789,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         const Status status = world.add_smoke(options, output.smoke);
         if (!status) return status;
         output.has_smoke = true;
+        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+            if (!scene.rigid_bodies[index].smoke_collider) continue;
+            SmokeRigidCouplingId coupling{};
+            const Status coupled = world.add_smoke_rigid_coupling(
+                {.smoke = output.smoke, .body = output.rigid_bodies[index]},
+                coupling);
+            if (!coupled) return coupled;
+            output.smoke_rigid_couplings.push_back(coupling);
+        }
     }
     for (const ClothDefinition &definition : scene.cloths) {
         if (definition.mesh_index >= scene.meshes.size())
@@ -1909,6 +1927,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 .last_vertex=last?rope.last_cloth_vertex:UINT32_MAX},coupling);
             if(!coupled)return coupled;
             output.rope_cloth_couplings.push_back(coupling);
+        }
+    }
+    if (output.has_smoke) {
+        for (const RopeId rope : output.ropes) {
+            SmokeRopeCouplingId coupling{};
+            const Status status = world.add_smoke_rope_coupling(
+                {.smoke = output.smoke, .rope = rope}, coupling);
+            if (!status) return status;
+            output.smoke_rope_couplings.push_back(coupling);
         }
     }
     for (SoftBodyId body : output.soft_bodies) {

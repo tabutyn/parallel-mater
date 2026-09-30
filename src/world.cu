@@ -5069,6 +5069,8 @@ struct World::Impl {
     std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
     std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
     std::vector<std::unique_ptr<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
+    std::vector<std::unique_ptr<SmokeRopeCouplingSlot>> smoke_rope_couplings{};
+    std::vector<std::unique_ptr<SmokeRigidCouplingSlot>> smoke_rigid_couplings{};
     std::uint64_t boiled_particle_count{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
@@ -5457,6 +5459,10 @@ Status World::create(WorldOptions options, World &output,
             options.smoke_soft_body_coupling_capacity);
         implementation->smoke_cloth_couplings.resize(
             options.smoke_cloth_coupling_capacity);
+        implementation->smoke_rope_couplings.resize(
+            options.smoke_rope_coupling_capacity);
+        implementation->smoke_rigid_couplings.resize(
+            options.smoke_rigid_coupling_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -6003,6 +6009,14 @@ Status World::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a cloth coupling");
+    for (const auto &coupling : impl_->smoke_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a rope coupling");
+    for (const auto &coupling : impl_->smoke_rigid_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a rigid coupling");
     std::unique_ptr<SmokeStorage> tombstone;
     try { tombstone = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
@@ -6241,6 +6255,153 @@ Status World::remove_smoke_cloth_coupling(SmokeClothCouplingId id) noexcept {
     tombstone->generation = id.generation + 1U;
     if (tombstone->generation == 0U) tombstone->generation = 1U;
     impl_->smoke_cloth_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_rope_coupling(
+    SmokeRopeCouplingOptions options, SmokeRopeCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation ||
+        options.rope.index >= impl_->ropes.size() ||
+        !impl_->ropes[options.rope.index] ||
+        !impl_->ropes[options.rope.index]->alive ||
+        impl_->ropes[options.rope.index]->generation != options.rope.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke or rope coupling handle is stale");
+    if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke rope coupling parameters");
+    for (const auto &existing : impl_->smoke_rope_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.rope == options.rope)
+            return failure(StatusCode::invalid_argument,
+                           "smoke rope coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_rope_couplings.size() &&
+           impl_->smoke_rope_couplings[slot] &&
+           impl_->smoke_rope_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_rope_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke rope coupling capacity exhausted");
+    std::unique_ptr<SmokeRopeCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeRopeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rope coupling allocation failed"); }
+    coupling->generation = impl_->smoke_rope_couplings[slot]
+        ? impl_->smoke_rope_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->minimum, 1U)) ||
+        !(status = allocate_managed(coupling->maximum, 1U))) return status;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_rope_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_rope_couplings.size() ||
+        !impl_->smoke_rope_couplings[id.index] ||
+        !impl_->smoke_rope_couplings[id.index]->alive ||
+        impl_->smoke_rope_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke rope coupling handle is stale");
+    std::unique_ptr<SmokeRopeCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeRopeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rope coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smoke_rope_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_rigid_coupling(
+    SmokeRigidCouplingOptions options, SmokeRigidCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation)
+        return failure(StatusCode::invalid_handle, "smoke coupling handle is stale");
+    std::uint32_t dense = 0U;
+    if (!(status = impl_->validate_handle(options.body, dense))) return status;
+    if (!finite(options.air_density) || options.air_density < 0.0F ||
+        !finite(options.drag_coefficient) || options.drag_coefficient < 0.0F ||
+        !finite(options.maximum_force) || options.maximum_force < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke rigid coupling parameters");
+    for (const auto &existing : impl_->smoke_rigid_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.body == options.body)
+            return failure(StatusCode::invalid_argument,
+                           "smoke rigid coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_rigid_couplings.size() &&
+           impl_->smoke_rigid_couplings[slot] &&
+           impl_->smoke_rigid_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_rigid_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke rigid coupling capacity exhausted");
+    std::unique_ptr<SmokeRigidCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeRigidCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rigid coupling allocation failed"); }
+    coupling->generation = impl_->smoke_rigid_couplings[slot]
+        ? impl_->smoke_rigid_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    const auto &mesh = impl_->meshes[impl_->parameters[dense].mesh.index];
+    for (std::uint32_t base = 0U; base < mesh.index_count; base += 3U) {
+        const Vec3 a = mesh.vertices[mesh.indices[base]];
+        const Vec3 b = mesh.vertices[mesh.indices[base + 1U]];
+        const Vec3 c = mesh.vertices[mesh.indices[base + 2U]];
+        coupling->local_area_vector = add(coupling->local_area_vector,
+            multiply(cross(subtract(b, a), subtract(c, a)), 0.5F));
+    }
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_rigid_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_rigid_couplings.size() ||
+        !impl_->smoke_rigid_couplings[id.index] ||
+        !impl_->smoke_rigid_couplings[id.index]->alive ||
+        impl_->smoke_rigid_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke rigid coupling handle is stale");
+    std::unique_ptr<SmokeRigidCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeRigidCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rigid coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smoke_rigid_couplings[id.index] = std::move(tombstone);
     ++impl_->revision;
     return success();
 }
@@ -7801,6 +7962,10 @@ Status World::remove_rope(RopeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
                            "rope is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->smoke_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.rope == id)
+            return failure(StatusCode::invalid_argument,
+                           "rope is still referenced by a smoke coupling");
     for (const auto &coupling : impl_->rope_soft_body_couplings)
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
@@ -8794,6 +8959,10 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
         if (smoke && smoke->alive && smoke->options.obstacle == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by smoke");
+    for (const auto &coupling : impl_->smoke_rigid_couplings)
+        if (coupling && coupling->alive && coupling->options.body == body)
+            return failure(StatusCode::invalid_argument,
+                           "rigid body is still referenced by smoke coupling");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
         if (impl_->paint_fields[index].alive &&
@@ -9174,6 +9343,28 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         error = cudaMemcpyAsync(coupling->previous_surface, body.surface_positions,
             body.surface_vertex_count * sizeof(Vec3), cudaMemcpyDeviceToDevice, stream);
         if (error != cudaSuccess) return cuda_failure(error, "previous fluid soft-body skin copy failed");
+    }
+    for (const auto &coupling : impl_->smoke_rigid_couplings) {
+        if (!coupling || !coupling->alive || !coupling->options.enabled ||
+            coupling->options.maximum_force == 0.0F) continue;
+        std::uint32_t body = 0U;
+        status = impl_->validate_handle(coupling->options.body, body);
+        if (!status) return status;
+        if (impl_->parameters[body].motion != MotionType::dynamic) continue;
+        const auto &state = impl_->states[impl_->current_state][body];
+        const Vec3 area = rotate(state.orientation, coupling->local_area_vector);
+        const float area_size = vector_length(area);
+        if (area_size < 1.0e-8F) continue;
+        const Vec3 normal = multiply(area, 1.0F / area_size);
+        const auto &smoke = *impl_->smokes[coupling->options.smoke.index];
+        const Vec3 relative = subtract(smoke.options.wind, state.linear_velocity);
+        const float normal_speed = dot(relative, normal);
+        const float pressure = 0.5F * coupling->options.air_density *
+            coupling->options.drag_coefficient * area_size *
+            normal_speed * std::fabs(normal_speed);
+        impl_->accumulators[body].force = add(impl_->accumulators[body].force,
+            clamp_length(multiply(normal, pressure),
+                         coupling->options.maximum_force));
     }
     if (debug_enabled && impl_->rigid_body_count != 0U) {
         capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
@@ -9865,6 +10056,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if(rope->data.options.last.enabled) {
                 auto status=impl_->validate_handle(rope->data.options.last.body,dense);
                 if(!status)return status;last=int(dense);
+            }
+            for (const auto &owner : impl_->smoke_rope_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    !(owner->options.rope == RopeId{rope_index, rope->generation}) ||
+                    owner->options.wind_drag == 0.0F) continue;
+                const auto &smoke = *impl_->smokes[owner->options.smoke.index];
+                std::uint32_t obstacle = 0U;
+                auto wind_status = impl_->validate_handle(
+                    smoke.options.obstacle, obstacle);
+                if (!wind_status) return wind_status;
+                smoke_rope_wind<<<
+                    (rope->data.count + block_size - 1U) / block_size,
+                    block_size, 0, stream>>>(rope->data, smoke.options,
+                    impl_->states[impl_->current_state], obstacle, smoke.time,
+                    owner->options.wind_drag,
+                    owner->options.maximum_wind_acceleration,
+                    substep_timestep, first, last);
             }
             rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
                 impl_->parameters,impl_->states[impl_->current_state],previous_states,
@@ -10825,6 +11033,51 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         length_squared(smoke.options.wind) +
                         smoke.options.buoyancy * smoke.options.buoyancy)),
                     smoke.options.maximum_speed);
+            }
+            for (const auto &coupling : impl_->smoke_rigid_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                std::uint32_t body = 0U;
+                status = impl_->validate_handle(coupling->options.body, body);
+                if (!status) return status;
+                const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius;
+                smoke_rigid_contact<<<
+                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages, smoke.count,
+                    smoke.options.lifetime, mesh,
+                    impl_->states[impl_->current_state],
+                    any_moving_body ? impl_->fluid_previous_states
+                                    : impl_->states[impl_->current_state],
+                    body, clearance,
+                    std::min(smoke.options.maximum_speed, 2.0F * std::sqrt(
+                        length_squared(smoke.options.wind) +
+                        smoke.options.buoyancy * smoke.options.buoyancy)),
+                    smoke.options.maximum_speed);
+            }
+            for (const auto &coupling : impl_->smoke_rope_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                const auto &rope = impl_->ropes[coupling->options.rope.index]->data;
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius + rope.options.radius;
+                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                    rope.positions, rope.count,
+                    coupling->minimum, coupling->maximum);
+                smoke_rope_contact<<<
+                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages,
+                    smoke.count, smoke.options.lifetime, rope,
+                    coupling->minimum, coupling->maximum, clearance);
             }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
             if (!status) return status;

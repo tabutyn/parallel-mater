@@ -94,6 +94,11 @@ Headless physics builds remain free of OpenGL and OptiX.
     front of the smoke flow. The API's wind coupling bends the free cloth and
     two-sided triangle contact deflects smoke tracers. Select with
     `--smoke-cloth`; `V` reveals cloth bonds and `R` restarts.
+22. **Smoke Rope** — `SmokeRope.blend` suspends an active rigid panel from four
+    ropes attached to two passive posts. The API's carrier wind bends the
+    ropes and loads the panel; live capsule and panel-triangle contacts divert
+    smoke tracers. Select with `--smoke-rope`; `V` reveals rope segments and
+    `R` restarts.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
