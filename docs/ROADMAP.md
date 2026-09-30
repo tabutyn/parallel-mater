@@ -331,7 +331,7 @@ pass.
   smoke physics, headless rendering, gallery, and rope–cloth regressions pass.
   This is an analytic first gas flow, not full Navier–Stokes pressure projection.
 
-## PR 21 — Smoke–water boiling coupling (review)
+## PR 21 — Smoke–water boiling coupling (merged)
 
 - `SmokeWater.blend` authors a liquid volume at 80°C and a separate 500°C
   finite thermal surface that is also a visible passive collision plate.
@@ -344,6 +344,16 @@ pass.
 - GPU tests check temperature metadata, conservation across phase transfer,
   retained-particle identity, wind-driven water motion, and existing smoke
   and fluid regressions. Full-scene 180-frame smoke/water render is stable.
+
+## PR 24 — Smoke–soft-body coupling (review)
+
+- `SmokeSoftbody.blend` authors 20 Goal-pinned posts and the same smoke inlet.
+  The gallery registers reusable `SmokeSoftBodyCouplingOptions` for each post;
+  smoke drag and tracer contact run in the physics API, not in gallery code.
+- Authoring a 16-sided, nine-ring surface and 0.12 m lattice spacing reduces
+  the scene from about 56,000 nodes / 4.8 million bonds to 3,520 nodes /
+  57,720 bonds. Four graph iterations keep the 180-frame GPU test stable,
+  with exact pins and at most 12% observed bond strain.
 
 ## Later — Gallery game shell
 

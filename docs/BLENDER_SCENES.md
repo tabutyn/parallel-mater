@@ -57,8 +57,21 @@ from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
 `pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
 `pm_smoke_response`, and `pm_smoke_wake_strength` are optional emitter
 properties. The gallery resolves the obstacle name and radius and registers a
-`SmokeOptions` resource in the physics API. The initial implementation requires
-one centered passive sphere and one smoke inlet per scene.
+`SmokeOptions` resource in the physics API. The obstacle may be a passive or
+active centered sphere; smoke collision follows its translation. One smoke
+inlet per scene is supported.
+
+`SmokeSoftbody.blend` uses the same Smoke Inflow and a twenty-object grid of
+Blender Soft Body meshes. Each `Top` Goal group is an exact pin; the smoke
+carrier bends the remaining nodes, and the current soft skin deflects smoke
+tracers through `World::add_smoke_soft_body_coupling`. No extra Blender
+coupling marker is required when both systems exist in the scene. The source
+cylinders use 16 radial sides and nine axial rings, with
+`pm_node_spacing = 0.12` and `pm_solver_iterations = 4`; this keeps the
+entire grid at 3,520 nodes and 57,720 springs rather than the default
+refinement's roughly 56,000 nodes and 4.8 million springs. Increase spacing
+or reduce authored face resolution to control cost before reducing solver
+stiffness. The single exporter still owns `.glb` generation.
 
 ## Smoke and water boiling
 

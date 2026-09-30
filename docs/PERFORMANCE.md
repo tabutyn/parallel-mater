@@ -1,4 +1,23 @@
-# Rigid contact performance, 2026-09-21
+# Physics performance
+
+## Smoke–soft-body grid (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The 20 authored cylinders originally expanded to 56,280 nodes, 4,791,300
+springs, and 105,680 skin triangles. Rebuilding their mesh at 16 radial sides
+and nine axial rings, with 0.12 m node spacing, yields 3,520 nodes, 57,720
+springs, and 5,760 skin triangles while retaining 340 exact Goal pins.
+No solver specialization was added; the shared smoke and soft-body APIs own
+all forces and contacts.
+
+Release GPU measurements use 1/60 s frames and four substeps, excluding
+rendering. The first 30 frames took 42.3 ms/frame at the default 16 graph
+iterations, 22.7 ms at six, and 18.8 ms at four. At four iterations, the
+180-frame test averaged 18.0 ms/frame, retained every pin, and measured
+11.8% maximum spring strain and 0.50 m/s maximum soft-node speed at the end.
+An uncoupled reference diverged by 474 m of summed smoke-tracer positions
+after 180 frames, confirming that the authored plume actually meets the
+posts. A focused one-post comparison also verifies both wind bending and
+tracer deflection. These figures are physics step wall time, not render FPS.
 
 ## Soft Body Fluid (PR 15, 2026-09-28)
 

@@ -576,7 +576,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SMOKE_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_SMOKE_WATER_SCENE_PATH)};
+            std::filesystem::path(PARALLEL_MATER_SMOKE_WATER_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH)};
         const std::filesystem::path &scene_path = scene_paths[
             static_cast<std::size_t>(entry.source)];
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,

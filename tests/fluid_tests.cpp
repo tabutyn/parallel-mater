@@ -405,7 +405,7 @@ int main() {
     WorldStepTimings coupled_timings{};
     check(coupled_world.collect_step_timings(coupled_timings),
           "collect moving contact timing");
-    check(coupled_timings.fluid_moving_contacts.launch_count == 1U,
+    check(coupled_timings.fluid_moving_contacts.launch_count == 3U,
           "moving contacts have their own timing stage");
     FluidDeviceView coupled_view{};
     check(coupled_world.fluid_view(coupled_fluid, coupled_view),
@@ -433,6 +433,61 @@ int main() {
           coupled_event.normal.y > 0.9F &&
           coupled_event.normal_impulse > 1.0F,
           "contact event names the particle, body, normal, and impulse");
+
+    // Two simultaneous impacts share one body. Solving each as an isolated
+    // pair would double-count the body's inverse mass and over-accelerate it.
+    World batch_world;
+    check(World::create({.rigid_body_capacity = 1U,
+                         .triangle_mesh_capacity = 1U}, batch_world),
+          "create batched-impact world");
+    coupled_vertices = upload(vertices.data(), vertices.size());
+    coupled_indices = upload(triangles.data(), triangles.size());
+    TriangleMeshId batch_mesh{};
+    check(batch_world.add_triangle_mesh(
+        {coupled_vertices, vertices.size()},
+        {coupled_indices, triangles.size()}, batch_mesh),
+        "add batched-impact mesh");
+    cudaFree(coupled_vertices);
+    cudaFree(coupled_indices);
+    RigidBodyId batch_body{};
+    check(batch_world.add_rigid_body(
+        {.motion = MotionType::dynamic, .mesh = batch_mesh,
+         .linear_damping = 0.0F, .angular_damping = 0.0F}, batch_body),
+        "add batched-impact body");
+    const std::array<FluidParticle, 2> batch_particles{{
+        {{-1.0F, 0.2F, 0.0F}, {0.0F, -5.0F, 0.0F}},
+        {{1.0F, 0.2F, 0.0F}, {0.0F, -5.0F, 0.0F}}}};
+    FluidParticle *batch_input = upload(batch_particles.data(),
+                                        batch_particles.size());
+    FluidId batch_fluid{};
+    check(batch_world.add_fluid({.capacity = 2U,
+                                 .particle_radius = 0.1F,
+                                 .rest_density = 125.0F,
+                                 .support_radius = 0.2F,
+                                 .solver_iterations = 1U,
+                                 .velocity_damping = 0.0F,
+                                 .maximum_speed = 100.0F},
+                                {batch_input, batch_particles.size()}, batch_fluid),
+          "add batched-impact fluid");
+    cudaFree(batch_input);
+    check(batch_world.step({.timestep = 0.1F, .substeps = 1U,
+                            .gravity = {}}), "step batched impact");
+    RigidBodyState batch_state{};
+    check(batch_world.read_rigid_body_state(batch_body, batch_state),
+          "read batched-impact body");
+    FluidDeviceView batch_view{};
+    check(batch_world.fluid_view(batch_fluid, batch_view),
+          "read batched-impact fluid");
+    std::array<Vec3, 2> batch_velocities{};
+    check(cudaMemcpy(batch_velocities.data(), batch_view.velocities.data,
+                     sizeof(batch_velocities), cudaMemcpyDeviceToHost) ==
+              cudaSuccess, "copy batched-impact velocities");
+    check(batch_state.linear_velocity.y < -1.0F &&
+          batch_state.linear_velocity.y > -3.5F &&
+          std::fabs(batch_state.linear_velocity.y +
+                    batch_velocities[0].y + batch_velocities[1].y + 10.0F) <
+              0.05F,
+          "batched impacts preserve momentum without over-accelerating body");
 
     World overlap_world;
     check(World::create({.rigid_body_capacity = 1U,

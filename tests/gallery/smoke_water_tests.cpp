@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
 #include <cuda_runtime_api.h>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -36,6 +37,14 @@ int main() {
               authored.rigid_bodies.size() == 4U &&
               authored.thermal_surfaces.size() == 1U,
               "SmokeWater systems were not exported");
+        bool active_smoke_sphere = false;
+        for (const auto &body : authored.rigid_bodies)
+            if ((body.name == authored.smoke_obstacle_name ||
+                 body.source_name == authored.smoke_obstacle_name) &&
+                body.options.motion == MotionType::dynamic)
+                active_smoke_sphere = true;
+        check(active_smoke_sphere,
+              "SmokeWater active sphere was not exported");
         check(std::abs(authored.initial_particles.front().temperature - 80.0F) < 0.01F &&
               std::abs(authored.thermal_surfaces.front().temperature - 500.0F) < 0.01F,
               "authored temperatures were not preserved");
@@ -118,6 +127,57 @@ int main() {
         check(windy_velocity.size() == 1U && calm_velocity.size() == 1U &&
               windy_velocity[0].x > calm_velocity[0].x + 0.1F,
               "smoke flow did not push water");
+
+        SceneDefinition interaction = authored;
+        interaction.fluid_options.capacity = 30'000U;
+        World interaction_world;
+        SceneInstance interaction_instance;
+        check(create_scene_world(interaction, interaction_world,
+                                 interaction_instance),
+              "create active sphere water interaction");
+        std::size_t obstacle_index = 0U;
+        for (; obstacle_index < interaction.rigid_bodies.size(); ++obstacle_index)
+            if (interaction.rigid_bodies[obstacle_index].source_name ==
+                interaction.smoke_obstacle_name) break;
+        check(obstacle_index < interaction.rigid_bodies.size(),
+              "active sphere body index missing");
+        Vec3 previous_velocity{};
+        float maximum_speed = 0.0F;
+        float maximum_velocity_jump = 0.0F;
+        float maximum_angular_speed = 0.0F;
+        const auto length = [](Vec3 value) {
+            return std::sqrt(value.x * value.x + value.y * value.y +
+                             value.z * value.z);
+        };
+        for (unsigned frame = 0U; frame < 180U; ++frame) {
+            check(interaction_world.step({.timestep = 1.0F / 60.0F,
+                  .substeps = 1U, .gravity = {0.0F, -9.81F, 0.0F}}),
+                  "step active sphere water interaction");
+            RigidBodyState state{};
+            check(interaction_world.read_rigid_body_state(
+                  interaction_instance.rigid_bodies[obstacle_index], state),
+                  "read active sphere state");
+            check(std::isfinite(length(state.linear_velocity)) &&
+                  std::isfinite(length(state.angular_velocity)),
+                  "active sphere velocity became non-finite");
+            maximum_speed = std::max(maximum_speed,
+                                     length(state.linear_velocity));
+            maximum_velocity_jump = std::max(maximum_velocity_jump,
+                length({state.linear_velocity.x - previous_velocity.x,
+                        state.linear_velocity.y - previous_velocity.y,
+                        state.linear_velocity.z - previous_velocity.z}));
+            maximum_angular_speed = std::max(maximum_angular_speed,
+                                             length(state.angular_velocity));
+            previous_velocity = state.linear_velocity;
+        }
+        check(maximum_speed < 10.0F && maximum_velocity_jump < 10.0F &&
+              maximum_angular_speed < 10.0F,
+              "water impact destabilized the active sphere");
+        check(maximum_angular_speed > 0.1F,
+              "water no longer transfers angular momentum to the sphere");
+        std::cout << "active_sphere_speed=" << maximum_speed
+                  << " max_frame_delta_v=" << maximum_velocity_jump
+                  << " max_angular_speed=" << maximum_angular_speed << '\n';
         std::cout << "boiled=" << statistics.boiled_particle_count
                   << " wind_delta=" << windy_velocity[0].x - calm_velocity[0].x
                   << '\n';

@@ -88,7 +88,9 @@ if (!status) return report(status);
 reuse the incompressible liquid solver. `SmokeOptions` provides a world-YZ
 emission rectangle, wind and initial velocity, particles per second, lifetime,
 buoyancy, response, wake strength, speed cap, and a spherical rigid obstacle.
-The obstacle must already exist; it cannot be removed while referenced.
+The obstacle must already exist; it cannot be removed while referenced. Its
+motion may be static or dynamic, and swept smoke collision follows its
+translation during each frame.
 The API advects bounded, recycled tracer slots on the GPU. A no-through-flow
 field diverts smoke around the sphere, alternating vortices shed into its wake,
 and swept segment/sphere tests prevent particles tunneling through it.
@@ -114,6 +116,17 @@ tracers. `WorldStatistics::boiled_particle_count` tracks transfers; source
 temperature survives fluid compaction. Remove the coupling before removing
 either system. This first thermal model has no latent heat, condensation, or
 two-way gas momentum solve.
+
+`World::add_smoke_soft_body_coupling` links any existing smoke and soft-body
+resources. The prescribed smoke carrier velocity applies configurable drag to
+movable soft nodes; exact Goal pins remain fixed. Smoke tracers collide with
+the current skinned soft-body surface samples, using a broad-phase bound so
+posts outside the plume are cheap to skip. Contact follows the moving skin
+and its node velocity. Tracers have no physical mass, so these contacts do not
+apply reaction impulses; the carrier wind is what bends the body. The
+generation-checked coupling must be removed before either resource. The
+gallery registers the same API coupling for every soft body in a smoke scene;
+no scene-specific physics kernel is involved.
 
 ## Rope centerlines and attachments
 
@@ -494,7 +507,7 @@ Initial implementation requirements:
 - identical same-GPU particle/contact ordering for identical input;
 - no non-finite state;
 - collision projection plus velocity response against passive triangle meshes;
-- reaction impulses on dynamic bodies are deferred to PR 8.
+- equal-and-opposite reaction impulses on dynamic triangle bodies.
 
 Other cross-fluid interactions remain deferred. Continuous surface
 reconstruction stays outside the public API in the example renderer.
@@ -556,7 +569,10 @@ ordinary resting contacts pay the full cost. Compound bodies, joints, and
 sleeping are deferred. Fluid particles collide with static, kinematic, and
 dynamic triangles. Dynamic impacts exchange equal-and-opposite linear and
 angular impulse with the body; the moving-body path uses swept triangle
-contacts and a spatial body index.
+contacts and a spatial body index. Simultaneous particle contacts use a
+mass-ratio-weighted batched effective body mass before equal-and-opposite
+impulses are applied. This prevents a light rigid body from receiving one
+full body reaction per particle without weakening heavy-body contacts.
 
 ```cpp
 TriangleMeshId terrain_mesh;

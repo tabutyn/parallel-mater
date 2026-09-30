@@ -2469,6 +2469,13 @@ struct FluidContactSample {
     std::uint32_t body{k_invalid_dense};
 };
 
+struct FluidMovingContact {
+    Vec3 normal{};
+    Vec3 point{};
+    float penetration{};
+    std::uint32_t body{k_invalid_dense};
+};
+
 struct PaintFieldResource {
     PaintFieldOptions options{};
     Vec2 *uvs{};
@@ -2506,6 +2513,7 @@ struct FluidStorage {
     std::uint32_t *indices[2]{};
     Vec3 *forces{};
     FluidBodyImpulse *body_impulses{};
+    FluidMovingContact *moving_contacts{};
     FluidContactSample *contact_samples{};
     std::uint8_t *contact_flags{};
     FluidContactSample *next_contact_samples{};
@@ -2542,6 +2550,7 @@ struct FluidStorage {
         release_managed(indices[1]);
         release_managed(forces);
         release_managed(body_impulses);
+        release_managed(moving_contacts);
         release_managed(contact_samples);
         release_managed(contact_flags);
         release_managed(next_contact_samples);
@@ -3224,23 +3233,18 @@ __global__ void fluid_index_body_cells(
                          bit);
 }
 
-__global__ void fluid_moving_contacts(
-    Vec3 *positions, Vec3 *velocities, const Vec3 *previous, float *foam,
-    const std::uint32_t *count, float radius, float particle_mass,
-    float timestep, float maximum_speed,
+__global__ void fluid_detect_moving_contacts(
+    const Vec3 *positions, const Vec3 *previous,
+    const std::uint32_t *count, float radius,
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     const RigidBodyState *states, const TriangleMeshResource *meshes,
     const WorldAabb *bounds, std::uint32_t body_count,
     const unsigned long long *masks, const unsigned long long *global_masks,
-    std::uint32_t words, bool first_iteration, FluidBodyImpulse *impulses,
-    std::uint32_t *contact_flags, bool collect_contacts,
-    FluidContactSample *samples, std::uint8_t *particle_contact_flags,
-    FluidId fluid_id, const RigidBodyId *body_ids, bool apply_paint,
-    const PaintFieldResource *paint_fields, std::uint32_t field_capacity,
-    const PaintRuleResource *paint_rules, std::uint32_t rule_capacity) {
+    std::uint32_t words, bool first_iteration,
+    FluidMovingContact *contacts, std::uint32_t *contact_counts) {
     const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= *count) return;
-    impulses[particle] = {};
+    contacts[particle] = {};
     const Vec3 start = previous[particle];
     const Vec3 end = positions[particle];
     float best_penetration = 0.0F;
@@ -3272,62 +3276,89 @@ __global__ void fluid_moving_contacts(
                 ? previous_states[body_index] : state;
             const Vec3 origin = inverse_rotate(old.orientation,
                 subtract(start, old.position));
-        const Vec3 position = inverse_rotate(state.orientation,
-            subtract(end, state.position));
-        const TriangleMeshResource mesh = meshes[body.mesh.index];
-        if (mesh.bvh_node_count == 0U) continue;
-        std::uint32_t stack[64]{};
-        int pending = 1;
-        while (pending != 0) {
-            const BvhNode &node = mesh.bvh_nodes[stack[--pending]];
-            if (!fluid_segment_bounds(origin, position, node, radius))
-                continue;
-            if (node.triangle_count == 0U) {
-                if (pending + 2 > 64) continue;
-                stack[pending++] = node.right;
-                stack[pending++] = node.left;
-                continue;
-            }
-            for (std::uint32_t item = 0U; item < node.triangle_count;
-                 ++item) {
-                const std::uint32_t triangle =
-                    (node.first_triangle + item) * 3U;
-                const Vec3 a = mesh.vertices[mesh.indices[triangle]];
-                const Vec3 b = mesh.vertices[mesh.indices[triangle + 1U]];
-                const Vec3 c = mesh.vertices[mesh.indices[triangle + 2U]];
-                const Vec3 face = normalized_or(cross(subtract(b, a),
-                    subtract(c, a)), {0.0F, 1.0F, 0.0F});
-                const Vec3 closest = fluid_closest_triangle(position, a, b, c);
-                const Vec3 delta = subtract(position, closest);
-                const float distance = vector_length(delta);
-                Vec3 normal = distance > 1.0e-6F
-                    ? multiply(delta, 1.0F / distance)
-                    : multiply(face, dot(subtract(origin, a), face) >= 0.0F
-                                         ? 1.0F : -1.0F);
-                float penetration = radius - distance;
-                const float before = dot(subtract(origin, a), face);
-                const float after = dot(subtract(position, a), face);
-                if (before * after < 0.0F) {
-                    const float fraction = before / (before - after);
-                    const Vec3 crossing = add(origin,
-                        multiply(subtract(position, origin), fraction));
-                    if (length_squared(subtract(fluid_closest_triangle(
-                            crossing, a, b, c), crossing)) < radius * radius) {
-                        normal = multiply(face, before > 0.0F ? 1.0F : -1.0F);
-                        penetration = fmaxf(penetration,
-                                            radius + fabsf(after));
+            const Vec3 position = inverse_rotate(state.orientation,
+                subtract(end, state.position));
+            const TriangleMeshResource mesh = meshes[body.mesh.index];
+            if (mesh.bvh_node_count == 0U) continue;
+            std::uint32_t stack[64]{};
+            int pending = 1;
+            while (pending != 0) {
+                const BvhNode &node = mesh.bvh_nodes[stack[--pending]];
+                if (!fluid_segment_bounds(origin, position, node, radius))
+                    continue;
+                if (node.triangle_count == 0U) {
+                    if (pending + 2 > 64) continue;
+                    stack[pending++] = node.right;
+                    stack[pending++] = node.left;
+                    continue;
+                }
+                for (std::uint32_t item = 0U; item < node.triangle_count;
+                     ++item) {
+                    const std::uint32_t triangle =
+                        (node.first_triangle + item) * 3U;
+                    const Vec3 a = mesh.vertices[mesh.indices[triangle]];
+                    const Vec3 b = mesh.vertices[mesh.indices[triangle + 1U]];
+                    const Vec3 c = mesh.vertices[mesh.indices[triangle + 2U]];
+                    const Vec3 face = normalized_or(cross(subtract(b, a),
+                        subtract(c, a)), {0.0F, 1.0F, 0.0F});
+                    const Vec3 closest = fluid_closest_triangle(position, a, b, c);
+                    const Vec3 delta = subtract(position, closest);
+                    const float distance = vector_length(delta);
+                    Vec3 normal = distance > 1.0e-6F
+                        ? multiply(delta, 1.0F / distance)
+                        : multiply(face, dot(subtract(origin, a), face) >= 0.0F
+                                             ? 1.0F : -1.0F);
+                    float penetration = radius - distance;
+                    const float before = dot(subtract(origin, a), face);
+                    const float after = dot(subtract(position, a), face);
+                    if (before * after < 0.0F) {
+                        const float fraction = before / (before - after);
+                        const Vec3 crossing = add(origin,
+                            multiply(subtract(position, origin), fraction));
+                        if (length_squared(subtract(fluid_closest_triangle(
+                                crossing, a, b, c), crossing)) < radius * radius) {
+                            normal = multiply(face, before > 0.0F ? 1.0F : -1.0F);
+                            penetration = fmaxf(penetration,
+                                                radius + fabsf(after));
+                        }
+                    }
+                    if (penetration > best_penetration) {
+                        best_penetration = penetration;
+                        best_normal = rotate(state.orientation, normal);
+                        best_contact = transform_point(state, closest);
+                        best_body = body_index;
                     }
                 }
-                if (penetration > best_penetration) {
-                    best_penetration = penetration;
-                    best_normal = rotate(state.orientation, normal);
-                    best_contact = transform_point(state, closest);
-                    best_body = body_index;
-                }
             }
         }
-        }
     }
+    if (best_body == k_invalid_dense) return;
+    contacts[particle] = {best_normal, best_contact,
+                          best_penetration, best_body};
+    atomicAdd(contact_counts + best_body, 1U);
+}
+
+__global__ void fluid_resolve_moving_contacts(
+    Vec3 *positions, Vec3 *velocities, float *foam,
+    const std::uint32_t *count, float radius, float particle_mass,
+    float timestep, float maximum_speed,
+    const BodyParameters *parameters, const RigidBodyState *states,
+    const TriangleMeshResource *meshes,
+    const FluidMovingContact *contacts, const std::uint32_t *contact_counts,
+    FluidBodyImpulse *impulses, bool collect_contacts,
+    FluidContactSample *samples, std::uint8_t *particle_contact_flags,
+    FluidId fluid_id, const RigidBodyId *body_ids, bool apply_paint,
+    const PaintFieldResource *paint_fields, std::uint32_t field_capacity,
+    const PaintRuleResource *paint_rules, std::uint32_t rule_capacity) {
+    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= *count) return;
+    impulses[particle] = {};
+    const Vec3 end = positions[particle];
+    const FluidMovingContact contact = contacts[particle];
+    const Vec3 best_normal = contact.normal;
+    const Vec3 best_contact = contact.point;
+    const float best_penetration = contact.penetration;
+    const std::uint32_t best_body = contact.body;
     if (best_body == k_invalid_dense) return;
     const BodyParameters body = parameters[best_body];
     const RigidBodyState state = states[best_body];
@@ -3356,9 +3387,18 @@ __global__ void fluid_moving_contacts(
         fminf(0.5F * radius, 0.2F * best_penetration) / timestep);
     if (incoming >= recovery_speed) return;
     const Vec3 normal_cross = cross(arm, best_normal);
+    // Jacobi contacts all saw the same pre-solve body velocity. A light body
+    // must share its effective mass across simultaneous impacts, otherwise it
+    // receives N full reactions. For a heavy body, isolated pair contacts are
+    // already well conditioned; blend by the particle/body mass ratio to
+    // avoid unnecessarily weakening its established contact response.
+    const float batch_size = 1.0F +
+        float(contact_counts[best_body] - 1U) *
+        fminf(1.0F, 4.0F * particle_mass * body.inverse_mass);
     const float normal_denominator = 1.0F / particle_mass +
-        body.inverse_mass + dot(cross(inverse_inertia_world(body, state,
-            normal_cross), arm), best_normal);
+        batch_size * (body.inverse_mass +
+            dot(cross(inverse_inertia_world(body, state,
+                normal_cross), arm), best_normal));
     if (normal_denominator <= k_epsilon) return;
     const float normal_impulse =
         (recovery_speed - incoming) / normal_denominator;
@@ -3377,8 +3417,9 @@ __global__ void fluid_moving_contacts(
     if (tangent_speed > k_epsilon) {
         const Vec3 tangent = multiply(tangent_velocity, 1.0F / tangent_speed);
         const float tangent_denominator = 1.0F / particle_mass +
-            body.inverse_mass + dot(cross(inverse_inertia_world(body, state,
-                cross(arm, tangent)), arm), tangent);
+            batch_size * (body.inverse_mass +
+                dot(cross(inverse_inertia_world(body, state,
+                    cross(arm, tangent)), arm), tangent));
         if (tangent_denominator > k_epsilon) {
             const float tangent_impulse = fminf(
                 tangent_speed / tangent_denominator,
@@ -3394,7 +3435,6 @@ __global__ void fluid_moving_contacts(
                           fminf(1.0F, -incoming * 0.35F));
     impulses[particle] = {multiply(impulse, -1.0F),
                           multiply(cross(arm, impulse), -1.0F), best_body};
-    atomicExch(contact_flags + best_body, 1U);
 }
 
 __global__ void reduce_point_body_impulses(
@@ -5027,6 +5067,7 @@ struct World::Impl {
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<std::unique_ptr<SmokeStorage>> smokes{};
     std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
+    std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
     std::uint64_t boiled_particle_count{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
@@ -5411,6 +5452,8 @@ Status World::create(WorldOptions options, World &output,
         implementation->smokes.resize(options.smoke_capacity);
         implementation->fluid_smoke_couplings.resize(
             options.fluid_smoke_coupling_capacity);
+        implementation->smoke_soft_body_couplings.resize(
+            options.smoke_soft_body_coupling_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -5736,6 +5779,7 @@ Status World::add_fluid(FluidOptions options,
         !(status = allocate_managed(fluid->indices[1], capacity)) ||
         !(status = allocate_managed(fluid->forces, capacity)) ||
         !(status = allocate_managed(fluid->body_impulses, capacity)) ||
+        !(status = allocate_managed(fluid->moving_contacts, capacity)) ||
         !(status = allocate_managed(fluid->contact_samples, capacity)) ||
         !(status = allocate_managed(fluid->contact_flags, capacity)) ||
         !(status = allocate_managed(fluid->next_contact_samples, capacity)) ||
@@ -5947,6 +5991,10 @@ Status World::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->smoke_soft_body_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a soft-body coupling");
     std::unique_ptr<SmokeStorage> tombstone;
     try { tombstone = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
@@ -6041,6 +6089,78 @@ Status World::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) noexcept {
     tombstone->generation = id.generation + 1U;
     if (tombstone->generation == 0U) tombstone->generation = 1U;
     impl_->fluid_smoke_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_soft_body_coupling(
+    SmokeSoftBodyCouplingOptions options,
+    SmokeSoftBodyCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation ||
+        options.soft_body.index >= impl_->soft_bodies.size() ||
+        !impl_->soft_bodies[options.soft_body.index] ||
+        !impl_->soft_bodies[options.soft_body.index]->alive ||
+        impl_->soft_bodies[options.soft_body.index]->generation != options.soft_body.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke or soft-body coupling handle is stale");
+    if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke soft-body coupling parameters");
+    for (const auto &existing : impl_->smoke_soft_body_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.soft_body == options.soft_body)
+            return failure(StatusCode::invalid_argument,
+                           "smoke soft-body coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_soft_body_couplings.size() &&
+           impl_->smoke_soft_body_couplings[slot] &&
+           impl_->smoke_soft_body_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_soft_body_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke soft-body coupling capacity exhausted");
+    std::unique_ptr<SmokeSoftBodyCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeSoftBodyCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke soft-body coupling allocation failed"); }
+    coupling->generation = impl_->smoke_soft_body_couplings[slot] ?
+        impl_->smoke_soft_body_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->minimum, 1U)) ||
+        !(status = allocate_managed(coupling->maximum, 1U))) return status;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_soft_body_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_soft_body_coupling(
+    SmokeSoftBodyCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_soft_body_couplings.size() ||
+        !impl_->smoke_soft_body_couplings[id.index] ||
+        !impl_->smoke_soft_body_couplings[id.index]->alive ||
+        impl_->smoke_soft_body_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke soft-body coupling handle is stale");
+    std::unique_ptr<SmokeSoftBodyCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeSoftBodyCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke soft-body coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smoke_soft_body_couplings[id.index] = std::move(tombstone);
     ++impl_->revision;
     return success();
 }
@@ -8097,6 +8217,10 @@ Status World::remove_soft_body(SoftBodyId id) noexcept {
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
                            "soft body is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->smoke_soft_body_couplings)
+        if (coupling && coupling->alive && coupling->options.soft_body == id)
+            return failure(StatusCode::invalid_argument,
+                           "soft body is still referenced by a smoke coupling");
     for (const auto &coupling : impl_->soft_cloth_couplings)
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
@@ -8987,8 +9111,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         [](const auto &coupling) {
             return coupling && coupling->alive && coupling->options.enabled;
         });
+    const bool has_smoke = std::any_of(impl_->smokes.begin(), impl_->smokes.end(),
+        [](const auto &smoke) { return smoke && smoke->alive; });
     bool any_moving_body = false;
-    if (impl_->fluid_count != 0U) {
+    if (impl_->fluid_count != 0U || has_smoke) {
         for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
             any_moving_body |= impl_->parameters[body].motion !=
                                MotionType::static_body;
@@ -9160,6 +9286,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             SoftBodyStorage &body = *body_pointer;
             const std::uint32_t blocks =
                 (body.node_count + block_size - 1U) / block_size;
+            for (const auto &owner : impl_->smoke_soft_body_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    owner->options.soft_body.index >= impl_->soft_bodies.size() ||
+                    impl_->soft_bodies[owner->options.soft_body.index].get() != &body ||
+                    owner->options.wind_drag == 0.0F) continue;
+                const auto &smoke = *impl_->smokes[owner->options.smoke.index];
+                std::uint32_t obstacle = 0U;
+                Status wind_status = impl_->validate_handle(
+                    smoke.options.obstacle, obstacle);
+                if (!wind_status) return wind_status;
+                smoke_soft_body_wind<<<blocks, block_size, 0, stream>>>(
+                    body.positions, body.velocities, body.inverse_masses,
+                    body.node_count, smoke.options,
+                    impl_->states[impl_->current_state], obstacle,
+                    smoke.time, owner->options.wind_drag,
+                    substep_timestep, body.maximum_speed);
+            }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 body.positions, body.previous, body.velocities,
                 body.inverse_masses, body.node_count, options.gravity,
@@ -9973,7 +10116,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
-    if (any_moving_body) {
+    if (any_moving_body && impl_->fluid_count != 0U) {
         fluid_body_bounds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->fluid_previous_states,
             impl_->states[impl_->current_state], impl_->meshes,
@@ -10322,17 +10465,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_body_count * sizeof(std::uint32_t), stream);
                 if (error != cudaSuccess)
                     return cuda_failure(error, "fluid contact flags clear failed");
-                fluid_moving_contacts<<<blocks, block_size, 0, stream>>>(
-                    fluid.positions, fluid.velocities, fluid.previous,
-                    fluid.foam, fluid.count, fluid.options.particle_radius,
-                    particle_mass, dt, fluid.options.maximum_speed,
+                fluid_detect_moving_contacts<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.previous, fluid.count,
+                    fluid.options.particle_radius,
                     impl_->parameters,
                     impl_->fluid_previous_states,
                     impl_->states[impl_->current_state], impl_->meshes,
                     impl_->fluid_body_bounds, impl_->rigid_body_count,
                     impl_->fluid_body_masks, impl_->fluid_global_body_masks,
-                    body_words, iteration == 0U, fluid.body_impulses,
-                    impl_->fluid_body_contact_flags,
+                    body_words, iteration == 0U, fluid.moving_contacts,
+                    impl_->fluid_body_contact_flags);
+                fluid_resolve_moving_contacts<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.foam,
+                    fluid.count, fluid.options.particle_radius,
+                    particle_mass, dt, fluid.options.maximum_speed,
+                    impl_->parameters, impl_->states[impl_->current_state],
+                    impl_->meshes, fluid.moving_contacts,
+                    impl_->fluid_body_contact_flags, fluid.body_impulses,
                     collect_fluid_contacts, fluid.contact_samples,
                     fluid.contact_flags, fluid_id, impl_->ids,
                     impl_->paint_rule_count != 0U,
@@ -10344,7 +10493,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->states[impl_->current_state],
                     impl_->fluid_body_contact_flags,
                     impl_->rigid_body_count);
-                status = record_timing_stage(TimingStage::fluid_moving_contacts);
+                status = record_timing_stage(TimingStage::fluid_moving_contacts, 3U);
                 if (!status) return status;
             }
             bool any_static_body = false;
@@ -10526,8 +10675,30 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             smoke_advect<<<(smoke.count + 127U) / 128U, 128U, 0, stream>>>(
                 smoke.positions, smoke.velocities, smoke.ages,
                 smoke.thermal_lift, smoke.count,
-                smoke.options, impl_->states[impl_->current_state], obstacle,
+                smoke.options, impl_->states[impl_->current_state],
+                impl_->fluid_previous_states, any_moving_body, obstacle,
                 smoke.time, options.timestep);
+            for (const auto &coupling : impl_->smoke_soft_body_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                const auto &body = *impl_->soft_bodies[
+                    coupling->options.soft_body.index];
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius + body.node_radius;
+                smoke_soft_body_bounds<<<1U, 1U, 0, stream>>>(
+                    body.surface_positions, body.surface_vertex_count,
+                    coupling->minimum, coupling->maximum);
+                smoke_soft_body_contact<<<
+                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    smoke.positions, smoke.velocities, smoke.ages,
+                    smoke.count, smoke.options.lifetime,
+                    body.surface_positions, body.surface_bindings,
+                    body.surface_vertex_count, body.velocities,
+                    coupling->minimum, coupling->maximum, clearance);
+            }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
             if (!status) return status;
         }

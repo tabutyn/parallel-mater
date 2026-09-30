@@ -30,6 +30,7 @@ enum class GalleryContext : std::uint8_t {
     rope_cloth,
     smoke,
     smoke_water,
+    smoke_soft_body,
 };
 
 enum class GallerySceneSource : std::uint8_t {
@@ -52,6 +53,7 @@ enum class GallerySceneSource : std::uint8_t {
     rope_cloth,
     smoke,
     smoke_water,
+    smoke_soft_body,
 };
 
 enum class GalleryControlPolicy : std::uint8_t {
@@ -211,6 +213,13 @@ inline constexpr std::array gallery_entries{
         {42, 49, 59, 235}, {115, 198, 225},
         {.target = {0.0F, 0.9F, 0.0F}, .distance_scale = 0.80F,
          .pitch = 1.05F}, true, false, 100U, 100'000U},
+    GalleryEntry{GalleryContext::smoke_soft_body,
+        GallerySceneSource::smoke_soft_body, GalleryControlPolicy::none,
+        GalleryCountKind::none, "--smoke-softbody", "SMOKE SOFT BODY",
+        "SMOKE BENDS 20 SOFT BODIES  R RESET  V SPRINGS",
+        {42, 49, 59, 235}, {170, 225, 195},
+        {.target = {1.0F, 0.8F, 0.0F}, .distance_scale = 0.80F,
+         .pitch = 0.35F}, false, false, 0U, 0U, true},
 };
 
 [[nodiscard]] constexpr const GalleryEntry &gallery_entry(

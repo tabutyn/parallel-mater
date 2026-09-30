@@ -86,6 +86,10 @@ Headless physics builds remain free of OpenGL and OptiX.
     into the smoke solver, and gives the steam buoyant lift. Select with
     `--smoke-water`; `P` changes water capacity, `V` shows particles, `R`
     restarts, and headless output reports the boiled-particle count.
+20. **Smoke Soft Body** — `SmokeSoftbody.blend` contains 20 Goal-pinned soft
+    posts in the smoke plume. The shared API bends them with smoke-carrier
+    wind and deflects tracers at their live surfaces. Select with
+    `--smoke-softbody`; `V` reveals the internal springs and `R` restarts.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
