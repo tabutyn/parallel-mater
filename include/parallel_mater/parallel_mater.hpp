@@ -191,7 +191,7 @@ struct RopeOptions {
     float maximum_substep_timestep{1.0F / 480.0F};
     float friction{0.4F};
     float maximum_speed{8.0F};
-    // Nominal budget; high-strain contact recovery allows up to 8x (max 128).
+    // Nominal budget; high-strain contact recovery allows up to 4x (max 32).
     std::uint32_t solver_iterations{24U};
     bool self_collision{true};
     RopeAttachment first{};
@@ -398,7 +398,12 @@ struct RopeSoftBodyCouplingOptions {
     SoftBodyId soft_body{};
     float contact_distance{}; // Zero selects rope radius.
     float friction{0.4F};
-    float maximum_soft_body_acceleration{80.0F};
+    float maximum_soft_body_acceleration{100.0F};
+    // Load an attached endpoint over nearby lattice nodes. The support
+    // shrinks as rope/skin contacts distribute the wrap load. Zero for both
+    // scales retains barycentric point loading; units are node radii.
+    float anchor_support_radius_scale{4.0F};
+    float anchor_contact_support_radius_scale{1.5F};
     bool attach_first{};
     bool attach_last{};
     bool enabled{true};

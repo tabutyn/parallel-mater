@@ -88,6 +88,7 @@ int main(int argc,char **argv) {
             scene.soft_bodies[rope.last_soft_body].inverse_masses.end(),0.0F)>0,
             "post base must be pinned");
         std::cout<<"post_nodes="<<scene.soft_bodies[rope.last_soft_body].nodes.size()
+            <<" post_bonds="<<scene.soft_bodies[rope.last_soft_body].bonds.size()
             <<" post_triangles="<<scene.meshes[scene.soft_bodies[rope.last_soft_body].mesh_index].indices.size()/3U
             <<" fixed_nodes="<<std::count(
                 scene.soft_bodies[rope.last_soft_body].inverse_masses.begin(),
@@ -108,18 +109,35 @@ int main(int argc,char **argv) {
         check(!world.update_rope_soft_body_coupling(
             instance.rope_soft_body_couplings[0],invalid),
             "invalid acceleration accepted");
+        invalid=valid;invalid.anchor_support_radius_scale=-1.0F;
+        check(!world.update_rope_soft_body_coupling(
+            instance.rope_soft_body_couplings[0],invalid),
+            "invalid anchor support radius accepted");
+        invalid=valid;invalid.anchor_contact_support_radius_scale=5.0F;
+        check(!world.update_rope_soft_body_coupling(
+            instance.rope_soft_body_couplings[0],invalid),
+            "contact support wider than free support accepted");
+        if(argc>6)valid.maximum_soft_body_acceleration=std::stof(argv[6]);
+        if(argc>7)valid.anchor_support_radius_scale=std::stof(argv[7]);
+        if(argc>8)valid.contact_distance=std::stof(argv[8])*rope.options.radius;
+        if(argc>9)valid.anchor_contact_support_radius_scale=std::stof(argv[9]);
         check(world.update_rope_soft_body_coupling(
             instance.rope_soft_body_couplings[0],valid),
             "update coupling");
         const int frames=argc>1?std::stoi(argv[1]):120;
-        const bool wind=argc>2 && std::string(argv[2])=="--wind";
+        const bool wind_release=argc>2 && std::string(argv[2])=="--wind-release";
+        const bool wind=argc>2 && (std::string(argv[2])=="--wind" || wind_release);
+        const bool pull=argc>2 && std::string(argv[2])=="--pull";
         float maximum_strain=0,maximum_speed=0,maximum_anchor_distance=0;
         unsigned peak_edge=0;Vec3 peak_a{},peak_b{};
         float peak_winding=0,last_winding=0;
         float ball_turns=0;
         Vec3 previous_ball_offset{};
         float peak_soft_reaction=0;
-        double gpu_ms=0,rope_ms=0,soft_ms=0;
+        float peak_net_rope_force=0,peak_net_rigid_force=0;
+        float peak_rope_anchor_tension=0;
+        double gpu_ms=0,rope_ms=0,soft_ms=0,soft_constraints_ms=0,
+            soft_contacts_ms=0,soft_prediction_ms=0;
         unsigned total_contacts=0;
         const auto center_of=[&](unsigned index) {
             SoftBodyDeviceView view{};
@@ -155,13 +173,25 @@ int main(int argc,char **argv) {
         float minimum_clearance=100;
         float clearance_to_skin=100;
         int minimum_clearance_frame=-1;
-        float maximum_post_bend=0,maximum_base_drift=0,minimum_post_height=100;
+        float maximum_post_bend=0,last_post_bend=0;
+        float maximum_base_drift=0,minimum_post_height=100;
+        int maximum_post_bend_frame=-1;
+        float rope_force_at_maximum_bend=0,rigid_force_at_maximum_bend=0;
         unsigned minimum_segment=0,minimum_sample=0;
         Vec3 minimum_point{};
         for(int frame=0;frame<frames;++frame) {
             const float angle=std::max(0,frame-40)*0.025F;
             Vec3 gravity=(wind || frame<40)?Vec3{0,-9.81F,0}:
                 Vec3{6.0F*std::cos(angle),-7.8F,6.0F*std::sin(angle)};
+            if(pull) {
+                gravity={};
+                RigidBodyState ball_state{};
+                check(world.read_rigid_body_state(
+                    instance.rigid_bodies[rope.first_body],ball_state),
+                    "read pull ball");
+                check(world.apply_force(instance.rigid_bodies[rope.first_body],
+                    {-20.0F,0.0F,0.0F},ball_state.position),"pull rope ball");
+            }
             if(wind && frame>=120) {
                 RigidBodyState ball_state{};
                 check(world.read_rigid_body_state(instance.rigid_bodies[rope.first_body],
@@ -173,11 +203,15 @@ int main(int argc,char **argv) {
                 gravity={(-6.0F*delta.z-3.0F*delta.x)/radius,-6.9367F,
                     (6.0F*delta.x-3.0F*delta.z)/radius};
             }
+            if(wind_release && frame>=500) gravity={0,-9.81F,0};
             check(world.step({.timestep=1.0F/60.0F,.substeps=4,
                 .gravity=gravity,.collect_kernel_timings=true}),"step rope soft-body scene");
             RopeDeviceView view{};
             check(world.rope_view(instance.ropes[0],view),"rope view");
             const auto positions=read(view.positions), velocities=read(view.velocities);
+            const auto constraint_forces=read(view.constraint_forces);
+            const float anchor_tension=math::length(constraint_forces.back());
+            peak_rope_anchor_tension=std::max(peak_rope_anchor_tension,anchor_tension);
             const auto rest=read(view.rest_lengths);
             if(frame==0) {
                 float length=0;for(float edge:rest)length+=edge;
@@ -207,6 +241,8 @@ int main(int argc,char **argv) {
             };
             const auto top=centroid(top_vertices),bottom=centroid(bottom_vertices);
             const float post_bend=std::hypot(top.x-bottom.x,top.z-bottom.z);
+            last_post_bend=post_bend;
+            const bool new_maximum_bend=post_bend>maximum_post_bend;
             maximum_post_bend=std::max(maximum_post_bend,post_bend);
             maximum_base_drift=std::max(maximum_base_drift,
                 math::length(math::subtract(bottom,rest_base)));
@@ -260,8 +296,20 @@ int main(int argc,char **argv) {
                 previous_ball_offset.x*ball_offset.x+
                     previous_ball_offset.z*ball_offset.z)/6.28318530718F;
             previous_ball_offset=ball_offset;
-            for(const auto force:read(soft.rope_contact_forces))
+            Vec3 net_rope_force{},net_rigid_force{};
+            for(const auto force:read(soft.rope_contact_forces)) {
                 peak_soft_reaction=std::max(peak_soft_reaction,math::length(force));
+                net_rope_force=math::add(net_rope_force,force);
+            }
+            for(const auto force:read(soft.rigid_contact_forces))
+                net_rigid_force=math::add(net_rigid_force,force);
+            peak_net_rope_force=std::max(peak_net_rope_force,math::length(net_rope_force));
+            peak_net_rigid_force=std::max(peak_net_rigid_force,math::length(net_rigid_force));
+            if(new_maximum_bend) {
+                maximum_post_bend_frame=frame;
+                rope_force_at_maximum_bend=math::length(net_rope_force);
+                rigid_force_at_maximum_bend=math::length(net_rigid_force);
+            }
             float minimum=100;
             for(unsigned i=0;i<post_mesh.indices.size();i+=3)
                 minimum=std::min(minimum,math::length(
@@ -279,6 +327,9 @@ int main(int argc,char **argv) {
             gpu_ms+=timing.total_gpu_milliseconds;
             rope_ms+=timing.rope_solve.total_milliseconds;
             soft_ms+=timing.rope_soft_body_contacts.total_milliseconds;
+            soft_constraints_ms+=timing.soft_body_constraints.total_milliseconds;
+            soft_contacts_ms+=timing.soft_body_contacts.total_milliseconds;
+            soft_prediction_ms+=timing.soft_body_prediction.total_milliseconds;
             const auto post=center_of(rope.last_soft_body);
             float winding=0;
             for(unsigned i=1;i<positions.size();++i) {
@@ -298,6 +349,9 @@ int main(int argc,char **argv) {
                 <<" post_height="<<top.y-bottom.y
                 <<" ball="<<ball_state.position.x<<','<<ball_state.position.y
                 <<','<<ball_state.position.z<<" ball_turns="<<ball_turns
+                <<" rope_force="<<math::length(net_rope_force)
+                <<" anchor_tension="<<anchor_tension
+                <<" rigid_force="<<math::length(net_rigid_force)
                 <<" clearance="<<minimum_clearance
                 <<" segment="<<minimum_segment<<" sample="<<minimum_sample
                 <<" point="<<minimum_point.x<<','<<minimum_point.y<<','
@@ -308,9 +362,19 @@ int main(int argc,char **argv) {
             <<" contacts="<<total_contacts<<" peak_turns="<<peak_winding
             <<" last_turns="<<last_winding<<" gpu_ms="<<gpu_ms/frames
             <<" rope_ms="<<rope_ms/frames<<" soft_ms="<<soft_ms/frames
+            <<" soft_constraints_ms="<<soft_constraints_ms/frames
+            <<" soft_contacts_ms="<<soft_contacts_ms/frames
+            <<" soft_prediction_ms="<<soft_prediction_ms/frames
             <<" soft_reaction="<<peak_soft_reaction<<'\n';
+        std::cout<<"peak_net_rope_force="<<peak_net_rope_force
+            <<" peak_rope_anchor_tension="<<peak_rope_anchor_tension
+            <<" peak_net_rigid_force="<<peak_net_rigid_force<<'\n';
         std::cout<<"maximum_post_bend="<<maximum_post_bend
+            <<" bend_frame="<<maximum_post_bend_frame
+            <<" rope_force_at_bend="<<rope_force_at_maximum_bend
+            <<" rigid_force_at_bend="<<rigid_force_at_maximum_bend
             <<" maximum_base_drift="<<maximum_base_drift
+            <<" last_post_bend="<<last_post_bend
             <<" minimum_post_height="<<minimum_post_height
             <<" minimum_clearance="<<minimum_clearance
             <<" minimum_clearance_frame="<<minimum_clearance_frame
@@ -318,14 +382,23 @@ int main(int argc,char **argv) {
         check(maximum_speed<15.0F,"rope became unstable");
         check(maximum_strain<0.02F,"rope stretched excessively");
         check(maximum_anchor_distance<0.02F,"soft Hook drifted from its surface");
-        check(maximum_post_bend<0.25F && maximum_base_drift<0.03F &&
-            minimum_post_height>0.50F,
+        // A soft post should visibly flex under a taut wrap. Reject folding
+        // and uprooting, not a moderate tip displacement with height retained.
+        check(maximum_post_bend<0.35F && maximum_base_drift<0.03F &&
+            minimum_post_height>0.55F,
             "soft post collapsed or uprooted");
         if(wind) {
             check(peak_winding>2.8F,"rope failed to wind three times around the soft post");
             check(clearance_to_skin>-0.003F,"rope crossed the soft post");
         }
-        check(total_contacts>0 && peak_soft_reaction>0,
+        if(wind_release)
+            check(last_post_bend<0.05F,"soft post failed to recover after winding release");
+        if(pull) {
+            check(total_contacts==0U && peak_net_rigid_force<6.0F,
+                "isolated pull made direct ball/post contact");
+            check(peak_net_rope_force>5.0F && maximum_post_bend>0.05F,
+                "rope pull did not visibly deflect the soft post");
+        } else check(total_contacts>0 && peak_soft_reaction>0,
             "rope did not transfer contact force to the soft post");
         for(auto coupling:instance.rope_soft_body_couplings)
             check(world.remove_rope_soft_body_coupling(coupling),"remove coupling");

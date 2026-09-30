@@ -482,6 +482,7 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
     RopeSoftTarget soft_a,RopeSoftTarget soft_b) {
     const unsigned tid=threadIdx.x;
     __shared__ bool converged;
+    __shared__ float warp_strain[4];
     if(tid==0)rope_sync_anchors(r,first,last,old_states?old_states:states);
     __syncthreads();
     for(unsigned i=tid;i<r.count;i+=blockDim.x) {
@@ -548,10 +549,17 @@ __global__ void rope_advance(RopeData r,float dt,Vec3 gravity,int first,int last
             for(unsigned i=tid;i<r.count;i+=blockDim.x)r.positions[i]=add(r.positions[i],r.scratch[i]);
             __syncthreads();
         }
+        float strain=0;
+        for(unsigned i=tid;i+1<r.count;i+=blockDim.x)
+            strain=fmaxf(strain,fabsf(vector_length(subtract(r.positions[i+1],r.positions[i]))/r.rest[i]-1));
+        // Maximum is order-independent, unlike the contact and spring sums.
+        for(unsigned offset=16;offset>0;offset>>=1)
+            strain=fmaxf(strain,__shfl_down_sync(0xffffffff,strain,offset));
+        if((tid&31U)==0U)warp_strain[tid>>5U]=strain;
+        __syncthreads();
         if(tid==0) {
-            float strain=0;
-            for(unsigned i=0;i+1<r.count;++i)
-                strain=fmaxf(strain,fabsf(vector_length(subtract(r.positions[i+1],r.positions[i]))/r.rest[i]-1));
+            strain=fmaxf(fmaxf(warp_strain[0],warp_strain[1]),
+                fmaxf(warp_strain[2],warp_strain[3]));
             converged=(iteration>=1 && strain<1e-3F) ||
                 (iteration+1>=r.options.solver_iterations && strain<0.005F);
         }

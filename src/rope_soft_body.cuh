@@ -7,6 +7,7 @@ struct RopeSoftBodyCouplingStorage {
     unsigned anchor_triangle[2]{~0U, ~0U};
     Vec3 anchor_weights[2]{}, anchor_offset[2]{};
     Vec3 *node_impulses{};
+    Vec3 *previous_surface{};
     Vec3 *bounds{};
     BvhNode *tree{};
     std::uint32_t *order{}, *parents{}, *ready{};
@@ -16,6 +17,7 @@ struct RopeSoftBodyCouplingStorage {
     float *maximum_penetration{};
     void release() noexcept {
         release_managed(node_impulses);
+        release_managed(previous_surface);
         release_managed(bounds);
         release_managed(tree);
         release_managed(order);
@@ -28,7 +30,7 @@ struct RopeSoftBodyCouplingStorage {
 };
 
 struct RopeSoftTarget {
-    const Vec3 *surface{}, *velocities{};
+    const Vec3 *surface{}, *previous_surface{}, *velocities{};
     const Vec3 *bounds{};
     const BvhNode *tree{};
     const std::uint32_t *order{};
@@ -66,15 +68,52 @@ __global__ void rope_soft_sample_anchor(RopeData rope, unsigned end,
 }
 
 __global__ void rope_soft_scatter_anchor(RopeData rope, unsigned end,
+    const Vec3 *node_positions, unsigned node_count, float support_radius,
+    float contact_support_radius, const std::uint32_t *contact_count,
     const std::uint32_t *indices, const SoftBodySurfaceBinding *bindings,
     unsigned triangle, Vec3 weights, Vec3 *node_impulses) {
-    if(threadIdx.x!=0 || blockIdx.x!=0)return;
+    if(blockIdx.x!=0)return;
+    __shared__ float sums[256];
+    const Vec3 anchor=rope.soft_anchor_positions[end];
+    // A free endpoint needs a broad load path through the lattice. During a
+    // wrap, the rope's distributed skin contacts already share the load, so
+    // fade the endpoint path to its local support without a discontinuity.
+    support_radius=contact_support_radius+
+        (support_radius-contact_support_radius)/
+        (1.0F+static_cast<float>(*contact_count)/2.0F);
+    const float radius_squared=support_radius*support_radius;
+    float local_sum=0.0F;
+    for(unsigned node=threadIdx.x;node<node_count;node+=blockDim.x) {
+        const float squared=length_squared(subtract(node_positions[node],anchor));
+        if(squared<radius_squared) {
+            const float t=1.0F-squared/radius_squared;
+            local_sum+=t*t;
+        }
+    }
+    sums[threadIdx.x]=local_sum;
+    __syncthreads();
+    for(unsigned stride=blockDim.x/2U;stride;stride/=2U) {
+        if(threadIdx.x<stride)sums[threadIdx.x]+=sums[threadIdx.x+stride];
+        __syncthreads();
+    }
+    if(sums[0]>1.0e-8F) {
+        const Vec3 impulse=multiply(rope.soft_anchor_impulses[end],1.0F/sums[0]);
+        for(unsigned node=threadIdx.x;node<node_count;node+=blockDim.x) {
+            const float squared=length_squared(subtract(node_positions[node],anchor));
+            if(squared>=radius_squared)continue;
+            const float t=1.0F-squared/radius_squared;
+            node_impulses[node]=add(node_impulses[node],multiply(impulse,t*t));
+        }
+        return;
+    }
+    if(threadIdx.x!=0)return;
     const float w[3]{weights.x,weights.y,weights.z};
     for(unsigned corner=0;corner<3;++corner) {
         const auto binding=bindings[indices[3U*triangle+corner]];
         for(unsigned slot=0;slot<4;++slot) {
             const float weight=w[corner]*binding.weights[slot];
-            if(weight>0)atomic_add(node_impulses+binding.nodes[slot],
+            if(weight>0)node_impulses[binding.nodes[slot]]=add(
+                node_impulses[binding.nodes[slot]],
                 multiply(rope.soft_anchor_impulses[end],weight));
         }
     }
@@ -99,7 +138,7 @@ __device__ RopeSoftHit rope_soft_find_contact(RopeData rope, RopeSoftTarget targ
         // Share the closed-skin nearest/swept query with fluid contacts. A
         // local maximum-penetration search can select the back wall of a thin
         // soft solid; nearest-surface classification keeps the rope outside.
-        const auto hit=fluid_soft_nearest(a,old,target.surface,target.surface,
+        const auto hit=fluid_soft_nearest(a,old,target.surface,target.previous_surface,
             target.indices,target.triangle_count*3U,target.orientation,radius,
             target.bounds,true,target.tree,target.order);
         if(hit.triangle!=k_invalid_dense)

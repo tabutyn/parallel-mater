@@ -415,6 +415,30 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
         set_tests_properties(parallel-mater-rope-soft-body-winding-tests
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME parallel-mater-rope-soft-body-release-tests
+                 COMMAND parallel-mater-rope-soft-body-tests 1000 --wind-release)
+        set_tests_properties(parallel-mater-rope-soft-body-release-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        if(TARGET parallel-mater-dump-benchmark)
+            add_test(NAME parallel-mater-dump-small-contact-tests
+                     COMMAND parallel-mater-dump-benchmark 100 240)
+            set_tests_properties(parallel-mater-dump-small-contact-tests
+                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+            add_test(NAME parallel-mater-dump-fused-limit-tests
+                     COMMAND parallel-mater-dump-benchmark 250 240)
+            set_tests_properties(parallel-mater-dump-fused-limit-tests
+                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        endif()
+        if(TARGET parallel-mater-fluid-rigid-benchmark)
+            add_test(NAME parallel-mater-fluid-rigid-small-contact-tests
+                     COMMAND parallel-mater-fluid-rigid-benchmark 100)
+            set_tests_properties(parallel-mater-fluid-rigid-small-contact-tests
+                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        endif()
+        add_test(NAME parallel-mater-rope-soft-body-pull-tests
+                 COMMAND parallel-mater-rope-soft-body-tests 180 --pull)
+        set_tests_properties(parallel-mater-rope-soft-body-pull-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-settle-tests
                  COMMAND parallel-mater-rope-tests 1200 --settle)
         add_test(NAME parallel-mater-rope-release-tests
@@ -512,6 +536,9 @@ if(BUILD_TESTING)
             parallel-mater-rope-fluid.ppm 180 --rope-fluid)
         set_tests_properties(parallel-mater-rope-fluid-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
+        add_gallery_headless_test(
+            parallel-mater-rope-soft-body-headless-test
+            parallel-mater-rope-soft-body.ppm 180 --rope-soft-body)
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)

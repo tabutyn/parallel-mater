@@ -150,7 +150,14 @@ __device__ FluidSoftNearest fluid_soft_nearest(
     // incident triangle's plane from extending indefinitely beyond its edge.
     if (earliest > 1.0F) {
         const float radius = sqrtf(best);
-        const bool inside = fluid_soft_inside(point, surface, indices, index_count, tree, order);
+        // For a unique closest point in a triangle interior, the oriented
+        // face normal is the exact local signed-distance direction of a
+        // closed skin. Only edge/vertex cases need a whole-skin ray query.
+        const bool face_interior=result.weights.x>1.0e-4F &&
+            result.weights.y>1.0e-4F && result.weights.z>1.0e-4F;
+        const bool inside=face_interior ?
+            dot(subtract(point,result.point),result.normal)<0.0F :
+            fluid_soft_inside(point,surface,indices,index_count,tree,order);
         if (!inside) {
             result.penetration = distance - radius;
             if (radius > 1.0e-7F)

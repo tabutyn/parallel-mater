@@ -70,7 +70,7 @@ Optional curve custom properties:
 | `pm_rope_friction` | Coulomb contact friction; 0.4 |
 | `pm_rope_damping` | Velocity damping per second; 0.1 |
 | `pm_rope_maximum_substep_timestep` | Maximum shared integration step in seconds; 1/480 |
-| `pm_rope_iterations` | Nominal constraint/contact budget; 24. High-strain recovery allows up to 8×, capped at 128 |
+| `pm_rope_iterations` | Nominal constraint/contact budget; 24. High-strain recovery allows up to 4×, capped at 32 |
 
 Keep the rest curve outside collision geometry, except its attachment
 neighborhoods. Material alpha zero hides a collider but does not disable it.

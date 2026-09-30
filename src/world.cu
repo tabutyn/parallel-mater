@@ -184,7 +184,9 @@ constexpr std::uint32_t k_leaf_pair_cache_slots_per_body = 8U;
 constexpr std::uint32_t k_minimum_leaf_pair_cache_slots = 4'096U;
 constexpr std::uint32_t k_leaf_pair_overflow =
     std::numeric_limits<std::uint32_t>::max();
-constexpr std::uint32_t k_contact_color_count = 32U;
+// 24 colors cover the 1,000-body pile-up without serial overflow. Fewer
+// rounds pay for their saved launches with much costlier overflow work.
+constexpr std::uint32_t k_contact_color_count = 24U;
 constexpr std::uint8_t k_contact_color_overflow = 0xffU;
 
 struct AppliedContactImpulse {
@@ -1655,6 +1657,82 @@ __global__ void assign_parallel_contact_colors_kernel(
     }
 }
 
+__global__ void color_small_rigid_contacts_kernel(
+    const BodyParameters *parameters, std::uint32_t count,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, std::uint8_t *pair_colors,
+    std::uint32_t *owners, std::uint32_t *color_state,
+    std::uint32_t color_round_count) {
+    if (blockIdx.x != 0U) return;
+    const std::uint32_t active_count = *active_pair_count;
+    for (std::uint32_t color = 0U; color < color_round_count; ++color) {
+        for (std::uint32_t body = threadIdx.x; body < count;
+             body += blockDim.x)
+            owners[body] = UINT32_MAX;
+        __syncthreads();
+        for (std::uint32_t active_index = threadIdx.x;
+             active_index < active_count; active_index += blockDim.x) {
+            if (pair_colors[active_index] != k_contact_color_overflow ||
+                manifolds[active_index].count == 0U) continue;
+            const std::uint32_t pair = active_pairs[active_index];
+            const std::uint32_t first = pair / count;
+            const std::uint32_t second = pair % count;
+            const std::uint32_t priority = contact_color_priority(pair);
+            atomicMin(&owners[first], priority);
+            if (parameters[second].motion == MotionType::dynamic)
+                atomicMin(&owners[second], priority);
+        }
+        __syncthreads();
+        for (std::uint32_t active_index = threadIdx.x;
+             active_index < active_count; active_index += blockDim.x) {
+            if (pair_colors[active_index] != k_contact_color_overflow ||
+                manifolds[active_index].count == 0U) continue;
+            const std::uint32_t pair = active_pairs[active_index];
+            const std::uint32_t first = pair / count;
+            const std::uint32_t second = pair % count;
+            const bool dynamic_second =
+                parameters[second].motion == MotionType::dynamic;
+            const std::uint32_t priority = contact_color_priority(pair);
+            if (owners[first] == priority &&
+                (!dynamic_second || owners[second] == priority)) {
+                pair_colors[active_index] = static_cast<std::uint8_t>(color);
+                atomicMax(&color_state[0], color + 1U);
+            } else if (color + 1U == color_round_count) {
+                atomicAdd(&color_state[1], 1U);
+            }
+        }
+        __syncthreads();
+    }
+}
+
+__device__ void resolve_active_rigid_contact_pair(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity, std::uint32_t active_index,
+    bool correct_position) {
+    const std::uint32_t pair = active_pairs[active_index];
+    const std::uint32_t index = pair / count;
+    const std::uint32_t collider_index = pair % count;
+    const ContactManifold &manifold = manifolds[active_index];
+    RigidContactEvent *pair_events = nullptr;
+    std::uint32_t retained = 0U;
+    if (event_capacity > 0U) {
+        const std::uint32_t offset = event_offsets[active_index];
+        if (offset < event_capacity) {
+            pair_events = events + offset;
+            const std::uint32_t remaining = event_capacity - offset;
+            retained = manifold.count < remaining
+                ? manifold.count : remaining;
+        }
+    }
+    resolve_contacts(parameters[index], states[index],
+                     parameters[collider_index], states[collider_index],
+                     manifold.contacts, manifold.count, correct_position,
+                     pair_events, retained);
+}
+
 __global__ void resolve_colored_rigid_contacts_kernel(
     const BodyParameters *parameters, RigidBodyState *states,
     std::uint32_t count, const ContactManifold *manifolds,
@@ -1674,25 +1752,9 @@ __global__ void resolve_colored_rigid_contacts_kernel(
         if (pair_colors[active_index] != color) {
             continue;
         }
-        const std::uint32_t pair = active_pairs[active_index];
-        const std::uint32_t index = pair / count;
-        const std::uint32_t collider_index = pair % count;
-        const ContactManifold &manifold = manifolds[active_index];
-        RigidContactEvent *pair_events = nullptr;
-        std::uint32_t retained = 0U;
-        if (event_capacity > 0U) {
-            const std::uint32_t offset = event_offsets[active_index];
-            if (offset < event_capacity) {
-                pair_events = events + offset;
-                const std::uint32_t remaining = event_capacity - offset;
-                retained = manifold.count < remaining
-                    ? manifold.count : remaining;
-            }
-        }
-        resolve_contacts(parameters[index], states[index],
-                         parameters[collider_index], states[collider_index],
-                         manifold.contacts, manifold.count, correct_position,
-                         pair_events, retained);
+        resolve_active_rigid_contact_pair(parameters, states, count,
+            manifolds, active_pairs, event_offsets, events, event_capacity,
+            active_index, correct_position);
     }
 }
 
@@ -1714,25 +1776,47 @@ __global__ void resolve_uncolored_rigid_contacts_kernel(
             manifolds[active_index].count == 0U) {
             continue;
         }
-        const std::uint32_t pair = active_pairs[active_index];
-        const std::uint32_t index = pair / count;
-        const std::uint32_t collider_index = pair % count;
-        const ContactManifold &manifold = manifolds[active_index];
-        RigidContactEvent *pair_events = nullptr;
-        std::uint32_t retained = 0U;
-        if (event_capacity > 0U) {
-            const std::uint32_t offset = event_offsets[active_index];
-            if (offset < event_capacity) {
-                pair_events = events + offset;
-                const std::uint32_t remaining = event_capacity - offset;
-                retained = manifold.count < remaining
-                    ? manifold.count : remaining;
+        resolve_active_rigid_contact_pair(parameters, states, count,
+            manifolds, active_pairs, event_offsets, events, event_capacity,
+            active_index, correct_position);
+    }
+}
+
+// One block can synchronize between colors without a kernel launch per round.
+// Pair colors are body-disjoint, so contacts within a color remain parallel.
+__global__ void resolve_small_rigid_contacts_kernel(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const std::uint8_t *pair_colors, const std::uint32_t *color_state,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity) {
+    if (blockIdx.x != 0U) return;
+    const std::uint32_t active_count = *active_pair_count;
+    const std::uint32_t used_colors = color_state[0];
+    for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+        for (std::uint32_t color = 0U; color < used_colors; ++color) {
+            for (std::uint32_t active_index = threadIdx.x;
+                 active_index < active_count; active_index += blockDim.x) {
+                if (pair_colors[active_index] != color) continue;
+                resolve_active_rigid_contact_pair(parameters, states, count,
+                    manifolds, active_pairs, event_offsets, events,
+                    event_capacity, active_index, pass == 0U);
+            }
+            __syncthreads();
+        }
+        if (threadIdx.x == 0U && color_state[1] != 0U) {
+            for (std::uint32_t active_index = 0U;
+                 active_index < active_count; ++active_index) {
+                if (pair_colors[active_index] != k_contact_color_overflow ||
+                    manifolds[active_index].count == 0U) continue;
+                resolve_active_rigid_contact_pair(parameters, states, count,
+                    manifolds, active_pairs, event_offsets, events,
+                    event_capacity, active_index, pass == 0U);
             }
         }
-        resolve_contacts(parameters[index], states[index],
-                         parameters[collider_index], states[collider_index],
-                         manifold.contacts, manifold.count, correct_position,
-                         pair_events, retained);
+        __syncthreads();
     }
 }
 
@@ -2045,6 +2129,8 @@ struct ClothStorage {
     Vec3 *rigid_contact_forces{};
     ClothBodyCorrection *body_corrections{};
     Vec3 *volume_gradients{};
+    std::uint32_t *volume_corner_offsets{};
+    std::uint32_t *volume_corner_indices{};
     Vec3 *fluid_forces{};
     Vec3 *soft_body_forces{};
     float *volume_lambda{};
@@ -2072,6 +2158,8 @@ struct ClothStorage {
         release_managed(rigid_contact_forces);
         release_managed(body_corrections);
         release_managed(volume_gradients);
+        release_managed(volume_corner_offsets);
+        release_managed(volume_corner_indices);
         release_managed(fluid_forces);
         release_managed(soft_body_forces);
         release_managed(volume_lambda);
@@ -2211,6 +2299,7 @@ struct SoftBodyStorage {
     std::uint32_t node_count{};
     std::uint32_t bond_count{};
     std::uint32_t neighbor_count{};
+    std::uint32_t neighbor_ell_count{};
     std::uint32_t surface_vertex_count{};
     std::uint32_t surface_index_count{};
     float node_radius{};
@@ -2237,6 +2326,7 @@ struct SoftBodyStorage {
     std::uint8_t *bond_active{};
     std::uint32_t *offsets{};
     DeformableNeighbor *neighbors{};
+    DeformableNeighbor *neighbors_ell{};
     Vec3 *surface_rest_positions{};
     Vec3 *surface_positions{};
     std::uint32_t *surface_indices{};
@@ -2273,6 +2363,7 @@ struct SoftBodyStorage {
         release_managed(bond_active);
         release_managed(offsets);
         release_managed(neighbors);
+        release_managed(neighbors_ell);
         release_managed(surface_rest_positions);
         release_managed(surface_positions);
         release_managed(surface_indices);
@@ -3450,95 +3541,105 @@ __device__ ShapeMatrix shape_matrix_multiply(
     return result;
 }
 
-// One deterministic thread computes the best-fit rigid transform of the rest
-// lattice, then projects movable nodes toward it. The current center of mass
-// and best-fit rotation keep this goal free to translate and roll; unlike a
-// world-space tether it restores shape without pinning the body in place.
+// Keep the center, transform, and momentum sums in their original order while
+// projecting independent nodes in parallel. The current center of mass and
+// best-fit rotation keep this goal free to translate and roll.
 __global__ void soft_body_project_rest_shape(
-    Vec3 *positions, const Vec3 *rest_positions,
+    Vec3 *positions, Vec3 *corrections, const Vec3 *rest_positions,
     const float *inverse_masses, std::uint32_t count, float movable_mass,
     Vec3 rest_center, ShapeMatrix inverse_rest,
     Quaternion *stored_orientation, float stiffness,
     float maximum_projection, const std::uint32_t *dynamic_contact_flag) {
-    if (blockIdx.x != 0U || threadIdx.x != 0U || stiffness <= 0.0F ||
+    if (blockIdx.x != 0U || stiffness <= 0.0F ||
         *dynamic_contact_flag != 0U) return;
-    Vec3 current_center{};
-    for (std::uint32_t node = 0U; node < count; ++node) {
-        const float inverse_mass = inverse_masses[node];
-        if (inverse_mass > 0.0F)
-            current_center = add(current_center,
-                multiply(positions[node], 1.0F / inverse_mass));
-    }
-    current_center = multiply(current_center, 1.0F / movable_mass);
+    __shared__ Vec3 shared_center, shared_center_correction;
+    __shared__ Quaternion shared_orientation;
+    if (threadIdx.x == 0U) {
+        Vec3 current_center{};
+        for (std::uint32_t node = 0U; node < count; ++node) {
+            const float inverse_mass = inverse_masses[node];
+            if (inverse_mass > 0.0F)
+                current_center = add(current_center,
+                    multiply(positions[node], 1.0F / inverse_mass));
+        }
+        current_center = multiply(current_center, 1.0F / movable_mass);
 
-    ShapeMatrix covariance{};
-    for (std::uint32_t node = 0U; node < count; ++node) {
+        ShapeMatrix covariance{};
+        for (std::uint32_t node = 0U; node < count; ++node) {
+            const float inverse_mass = inverse_masses[node];
+            if (inverse_mass <= 0.0F) continue;
+            const float mass = 1.0F / inverse_mass;
+            const Vec3 current = subtract(positions[node], current_center);
+            const Vec3 rest = subtract(rest_positions[node], rest_center);
+            covariance.columns[0] = add(covariance.columns[0],
+                multiply(current, mass * rest.x));
+            covariance.columns[1] = add(covariance.columns[1],
+                multiply(current, mass * rest.y));
+            covariance.columns[2] = add(covariance.columns[2],
+                multiply(current, mass * rest.z));
+        }
+        const ShapeMatrix deformation = shape_matrix_multiply(
+            covariance, inverse_rest);
+        Quaternion orientation = normalized_quaternion(*stored_orientation);
+        if (orientation.x == 0.0F && orientation.y == 0.0F &&
+            orientation.z == 0.0F && orientation.w == 0.0F)
+            orientation.w = 1.0F;
+        for (std::uint32_t iteration = 0U; iteration < 12U; ++iteration) {
+            const Vec3 axes[3]{
+                rotate(orientation, {1.0F, 0.0F, 0.0F}),
+                rotate(orientation, {0.0F, 1.0F, 0.0F}),
+                rotate(orientation, {0.0F, 0.0F, 1.0F})};
+            Vec3 angular = add(cross(axes[0], deformation.columns[0]),
+                add(cross(axes[1], deformation.columns[1]),
+                    cross(axes[2], deformation.columns[2])));
+            const float denominator = fabsf(
+                dot(axes[0], deformation.columns[0]) +
+                dot(axes[1], deformation.columns[1]) +
+                dot(axes[2], deformation.columns[2])) + 1.0e-9F;
+            angular = multiply(angular, 1.0F / denominator);
+            const float magnitude = vector_length(angular);
+            if (magnitude < 1.0e-6F) break;
+            const float angle = fminf(magnitude, 0.5F);
+            const float half = 0.5F * angle;
+            const Vec3 axis = multiply(angular, 1.0F / magnitude);
+            const Quaternion delta{axis.x * sinf(half), axis.y * sinf(half),
+                                   axis.z * sinf(half), cosf(half)};
+            orientation = normalized_quaternion(
+                quaternion_multiply(delta, orientation));
+        }
+        *stored_orientation = orientation;
+        shared_center = current_center;
+        shared_orientation = orientation;
+    }
+    __syncthreads();
+    for (std::uint32_t node = threadIdx.x; node < count;
+         node += blockDim.x) {
         const float inverse_mass = inverse_masses[node];
         if (inverse_mass <= 0.0F) continue;
-        const float mass = 1.0F / inverse_mass;
-        const Vec3 current = subtract(positions[node], current_center);
-        const Vec3 rest = subtract(rest_positions[node], rest_center);
-        covariance.columns[0] = add(covariance.columns[0],
-            multiply(current, mass * rest.x));
-        covariance.columns[1] = add(covariance.columns[1],
-            multiply(current, mass * rest.y));
-        covariance.columns[2] = add(covariance.columns[2],
-            multiply(current, mass * rest.z));
-    }
-    const ShapeMatrix deformation = shape_matrix_multiply(
-        covariance, inverse_rest);
-    Quaternion orientation = normalized_quaternion(*stored_orientation);
-    if (orientation.x == 0.0F && orientation.y == 0.0F &&
-        orientation.z == 0.0F && orientation.w == 0.0F)
-        orientation.w = 1.0F;
-    for (std::uint32_t iteration = 0U; iteration < 12U; ++iteration) {
-        const Vec3 axes[3]{
-            rotate(orientation, {1.0F, 0.0F, 0.0F}),
-            rotate(orientation, {0.0F, 1.0F, 0.0F}),
-            rotate(orientation, {0.0F, 0.0F, 1.0F})};
-        Vec3 angular = add(cross(axes[0], deformation.columns[0]),
-            add(cross(axes[1], deformation.columns[1]),
-                cross(axes[2], deformation.columns[2])));
-        const float denominator = fabsf(
-            dot(axes[0], deformation.columns[0]) +
-            dot(axes[1], deformation.columns[1]) +
-            dot(axes[2], deformation.columns[2])) + 1.0e-9F;
-        angular = multiply(angular, 1.0F / denominator);
-        const float magnitude = vector_length(angular);
-        if (magnitude < 1.0e-6F) break;
-        const float angle = fminf(magnitude, 0.5F);
-        const float half = 0.5F * angle;
-        const Vec3 axis = multiply(angular, 1.0F / magnitude);
-        const Quaternion delta{axis.x * sinf(half), axis.y * sinf(half),
-                               axis.z * sinf(half), cosf(half)};
-        orientation = normalized_quaternion(
-            quaternion_multiply(delta, orientation));
-    }
-    *stored_orientation = orientation;
-
-    Vec3 weighted_correction{};
-    for (std::uint32_t node = 0U; node < count; ++node) {
-        const float inverse_mass = inverse_masses[node];
-        if (inverse_mass <= 0.0F) continue;
-        const Vec3 target = add(current_center, rotate(orientation,
+        const Vec3 target = add(shared_center, rotate(shared_orientation,
             subtract(rest_positions[node], rest_center)));
-        const Vec3 correction = clamp_length(multiply(
+        corrections[node] = clamp_length(multiply(
             subtract(target, positions[node]), stiffness),
             maximum_projection);
-        weighted_correction = add(weighted_correction,
-            multiply(correction, 1.0F / inverse_mass));
     }
-    const Vec3 center_correction = multiply(
-        weighted_correction, 1.0F / movable_mass);
-    for (std::uint32_t node = 0U; node < count; ++node) {
+    __syncthreads();
+    if (threadIdx.x == 0U) {
+        Vec3 weighted_correction{};
+        for (std::uint32_t node = 0U; node < count; ++node) {
+            const float inverse_mass = inverse_masses[node];
+            if (inverse_mass > 0.0F)
+                weighted_correction = add(weighted_correction,
+                    multiply(corrections[node], 1.0F / inverse_mass));
+        }
+        shared_center_correction = multiply(
+            weighted_correction, 1.0F / movable_mass);
+    }
+    __syncthreads();
+    for (std::uint32_t node = threadIdx.x; node < count;
+         node += blockDim.x) {
         if (inverse_masses[node] <= 0.0F) continue;
-        const Vec3 target = add(current_center, rotate(orientation,
-            subtract(rest_positions[node], rest_center)));
-        const Vec3 correction = clamp_length(multiply(
-            subtract(target, positions[node]), stiffness),
-            maximum_projection);
         positions[node] = add(positions[node],
-            subtract(correction, center_correction));
+            subtract(corrections[node], shared_center_correction));
     }
 }
 
@@ -3587,49 +3688,142 @@ __global__ void deformable_project_links(
     scratch[vertex] = add(position, proposal);
 }
 
-// Closed-cloth volume is a global constraint. A single deterministic thread
-// is preferable here to unordered floating-point atomics: authored pressure
-// skins are small, while the work remains linear in vertices and triangles.
+// ELL transpose keeps each node's original neighbor order but coalesces the
+// kth neighbor load across a warp of nodes in dense, near-uniform lattices.
+__global__ void deformable_project_links_ell(
+    const Vec3 *positions, Vec3 *scratch, const float *inverse_masses,
+    const std::uint32_t *offsets, const DeformableNeighbor *neighbors,
+    const std::uint8_t *bond_active, std::uint32_t count, float dt,
+    float maximum_projection_fraction) {
+    const std::uint32_t vertex=blockIdx.x*blockDim.x+threadIdx.x;
+    if(vertex>=count)return;
+    const float self_mass=inverse_masses[vertex];
+    const Vec3 position=positions[vertex];
+    if(self_mass==0.0F) {
+        scratch[vertex]=position;
+        return;
+    }
+    Vec3 correction{};
+    float shortest_rest_length=FLT_MAX;
+    const std::uint32_t degree=offsets[vertex+1U]-offsets[vertex];
+    for(std::uint32_t slot=0U;slot<degree;++slot) {
+        const DeformableNeighbor neighbor=neighbors[slot*count+vertex];
+        if(bond_active!=nullptr && neighbor.bond!=k_invalid_dense &&
+            bond_active[neighbor.bond]==0U)continue;
+        shortest_rest_length=fminf(shortest_rest_length,neighbor.rest_length);
+        const Vec3 difference=subtract(position,positions[neighbor.index]);
+        const float length=vector_length(difference);
+        if(length<1.0e-7F)continue;
+        const float other_mass=inverse_masses[neighbor.index];
+        const float denominator=self_mass+other_mass+
+            neighbor.compliance/(dt*dt);
+        const float amount=-self_mass*(length-neighbor.rest_length)/
+            (denominator*length);
+        correction=add(correction,multiply(difference,amount));
+    }
+    const float divisor=static_cast<float>(max(1U,degree));
+    Vec3 proposal=multiply(correction,1.0F/divisor);
+    if(maximum_projection_fraction>0.0F && shortest_rest_length<FLT_MAX)
+        proposal=clamp_length(proposal,
+            maximum_projection_fraction*shortest_rest_length);
+    scratch[vertex]=add(position,proposal);
+}
+
+// Give each vertex its incident corners in face order. Triangles and vertices
+// then evaluate independently, while scalar volume/mass sums retain their
+// original order (and do not require unordered floating-point atomics).
+constexpr std::uint32_t k_cloth_volume_threads = 128U;
 __global__ void cloth_project_volume(
     Vec3 *positions, const float *inverse_masses,
     const std::uint32_t *indices, std::uint32_t vertex_count,
-    std::uint32_t triangle_count, Vec3 *gradients, float target_volume,
+    std::uint32_t triangle_count, const std::uint32_t *corner_offsets,
+    const std::uint32_t *corner_indices, Vec3 *gradients, float target_volume,
     float orientation, float compliance, float dt, float *lambda,
     bool reset_lambda) {
-    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
-    if (reset_lambda) *lambda = 0.0F;
-    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex)
-        gradients[vertex] = {};
-    float signed_volume = 0.0F;
-    for (std::uint32_t triangle = 0U; triangle < triangle_count; ++triangle) {
-        const std::uint32_t a_index = indices[3U * triangle];
-        const std::uint32_t b_index = indices[3U * triangle + 1U];
-        const std::uint32_t c_index = indices[3U * triangle + 2U];
-        const Vec3 a = positions[a_index];
-        const Vec3 b = positions[b_index];
-        const Vec3 c = positions[c_index];
-        signed_volume += dot(a, cross(b, c)) / 6.0F;
-        gradients[a_index] = add(
-            gradients[a_index], multiply(cross(b, c), orientation / 6.0F));
-        gradients[b_index] = add(
-            gradients[b_index], multiply(cross(c, a), orientation / 6.0F));
-        gradients[c_index] = add(
-            gradients[c_index], multiply(cross(a, b), orientation / 6.0F));
+    if (blockIdx.x != 0U) return;
+    const std::uint32_t thread = threadIdx.x;
+    __shared__ float scalar_terms[k_cloth_volume_threads];
+    __shared__ float signed_volume, shared_delta_lambda;
+    __shared__ bool apply_correction;
+    if (thread == 0U) {
+        if (reset_lambda) *lambda = 0.0F;
+        signed_volume = 0.0F;
     }
+    __syncthreads();
+    for (std::uint32_t wave = 0U; wave < triangle_count;
+         wave += blockDim.x) {
+        const std::uint32_t triangle = wave + thread;
+        if (triangle < triangle_count) {
+            const std::uint32_t a_index = indices[3U * triangle];
+            const std::uint32_t b_index = indices[3U * triangle + 1U];
+            const std::uint32_t c_index = indices[3U * triangle + 2U];
+            const Vec3 a = positions[a_index];
+            const Vec3 b = positions[b_index];
+            const Vec3 c = positions[c_index];
+            scalar_terms[thread] = dot(a, cross(b, c)) / 6.0F;
+        }
+        __syncthreads();
+        if (thread == 0U) {
+            const std::uint32_t count = min(blockDim.x, triangle_count - wave);
+            for (std::uint32_t item = 0U; item < count; ++item)
+                signed_volume += scalar_terms[item];
+        }
+        __syncthreads();
+    }
+    for (std::uint32_t vertex = thread; vertex < vertex_count;
+         vertex += blockDim.x) {
+        Vec3 gradient{};
+        for (std::uint32_t item = corner_offsets[vertex];
+             item < corner_offsets[vertex + 1U]; ++item) {
+            const std::uint32_t corner = corner_indices[item];
+            const std::uint32_t base = corner - corner % 3U;
+            const Vec3 a = positions[indices[base]];
+            const Vec3 b = positions[indices[base + 1U]];
+            const Vec3 c = positions[indices[base + 2U]];
+            const Vec3 contribution = corner % 3U == 0U ? cross(b, c) :
+                corner % 3U == 1U ? cross(c, a) : cross(a, b);
+            gradient = add(gradient,
+                multiply(contribution, orientation / 6.0F));
+        }
+        gradients[vertex] = gradient;
+    }
+    __syncthreads();
+    if (thread == 0U) {
+        apply_correction = false;
+    }
+    __syncthreads();
     float inverse_mass_sum = 0.0F;
-    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex)
-        inverse_mass_sum += inverse_masses[vertex] *
-            length_squared(gradients[vertex]);
-    if (inverse_mass_sum <= 1.0e-12F) return;
-    const float alpha = compliance / (dt * dt);
-    const float constraint = orientation * signed_volume - target_volume;
-    const float delta_lambda =
-        (-constraint - alpha * *lambda) / (inverse_mass_sum + alpha);
-    *lambda += delta_lambda;
-    for (std::uint32_t vertex = 0U; vertex < vertex_count; ++vertex) {
+    for (std::uint32_t wave = 0U; wave < vertex_count;
+         wave += blockDim.x) {
+        const std::uint32_t vertex = wave + thread;
+        if (vertex < vertex_count)
+            scalar_terms[thread] = inverse_masses[vertex] *
+                length_squared(gradients[vertex]);
+        __syncthreads();
+        if (thread == 0U) {
+            const std::uint32_t count = min(blockDim.x, vertex_count - wave);
+            for (std::uint32_t item = 0U; item < count; ++item)
+                inverse_mass_sum += scalar_terms[item];
+        }
+        __syncthreads();
+    }
+    if (thread == 0U) {
+        apply_correction = inverse_mass_sum > 1.0e-12F;
+        if (apply_correction) {
+            const float alpha = compliance / (dt * dt);
+            const float constraint = orientation * signed_volume - target_volume;
+            shared_delta_lambda =
+                (-constraint - alpha * *lambda) / (inverse_mass_sum + alpha);
+            *lambda += shared_delta_lambda;
+        }
+    }
+    __syncthreads();
+    if (!apply_correction) return;
+    for (std::uint32_t vertex = thread; vertex < vertex_count;
+         vertex += blockDim.x) {
         if (inverse_masses[vertex] == 0.0F) continue;
         positions[vertex] = add(positions[vertex], multiply(
-            gradients[vertex], inverse_masses[vertex] * delta_lambda));
+            gradients[vertex], inverse_masses[vertex] * shared_delta_lambda));
     }
 }
 
@@ -4035,6 +4229,37 @@ __global__ void soft_body_damp_springs(
             0.5F * damping / static_cast<float>(active_count));
     output[node] = clamp_length(add(velocities[node], correction), maximum_speed);
 }
+
+__global__ void soft_body_damp_springs_ell(
+    const Vec3 *positions, const Vec3 *velocities, Vec3 *output,
+    const float *inverse_masses, const std::uint32_t *offsets,
+    const DeformableNeighbor *neighbors, const std::uint8_t *bond_active,
+    std::uint32_t count, float damping, float maximum_speed) {
+    const std::uint32_t node=blockIdx.x*blockDim.x+threadIdx.x;
+    if(node>=count)return;
+    if(inverse_masses[node]==0.0F) {
+        output[node]={};
+        return;
+    }
+    Vec3 correction{};
+    std::uint32_t active_count=0U;
+    const std::uint32_t degree=offsets[node+1U]-offsets[node];
+    for(std::uint32_t slot=0U;slot<degree;++slot) {
+        const DeformableNeighbor neighbor=neighbors[slot*count+node];
+        if(bond_active[neighbor.bond]==0U)continue;
+        const Vec3 axis=normalized_or(
+            subtract(positions[neighbor.index],positions[node]),{});
+        correction=add(correction,multiply(axis,
+            dot(subtract(velocities[neighbor.index],velocities[node]),axis)));
+        ++active_count;
+    }
+    if(active_count!=0U)
+        correction=multiply(correction,
+            0.5F*damping/static_cast<float>(active_count));
+    output[node]=clamp_length(add(velocities[node],correction),maximum_speed);
+}
+
+
 
 __global__ void soft_body_update_surface(
     const Vec3 *positions, const Vec3 *rest_positions,
@@ -6388,6 +6613,8 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     std::vector<Vec3> surface_rest;
     std::vector<std::uint32_t> surface_indices;
     std::vector<std::uint32_t> triangle_bonds;
+    std::vector<std::uint32_t> volume_corner_offsets;
+    std::vector<std::uint32_t> volume_corner_indices;
     float initial_signed_volume = 0.0F;
     try {
         adjacency.resize(count);
@@ -6448,6 +6675,20 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
                     [](const auto &edge) { return edge.second != 2U; }))
                 return failure(StatusCode::invalid_argument,
                     "volume-preserving cloth must be a closed manifold");
+            std::vector<std::vector<std::uint32_t>> corners(count);
+            for (std::uint64_t corner = 0U;
+                 corner < options.triangle_indices.size; ++corner)
+                corners[options.triangle_indices.data[corner]].push_back(
+                    static_cast<std::uint32_t>(corner));
+            volume_corner_offsets.reserve(static_cast<std::size_t>(count) + 1U);
+            volume_corner_indices.reserve(options.triangle_indices.size);
+            volume_corner_offsets.push_back(0U);
+            for (const auto &list : corners) {
+                volume_corner_indices.insert(volume_corner_indices.end(),
+                    list.begin(), list.end());
+                volume_corner_offsets.push_back(
+                    static_cast<std::uint32_t>(volume_corner_indices.size()));
+            }
         }
         for (std::uint64_t triangle = 0U;
              triangle < options.triangle_indices.size; triangle += 3U) {
@@ -6542,9 +6783,19 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
     if (options.preserve_volume) {
         status = allocate_managed(cloth->volume_gradients, count);
         if (!status) return status;
+        status = allocate_managed(cloth->volume_corner_offsets,
+            volume_corner_offsets.size());
+        if (!status) return status;
+        status = allocate_managed(cloth->volume_corner_indices,
+            volume_corner_indices.size());
+        if (!status) return status;
         status = allocate_managed(cloth->volume_lambda, 1U);
         if (!status) return status;
         *cloth->volume_lambda = 0.0F;
+        std::copy(volume_corner_offsets.begin(), volume_corner_offsets.end(),
+            cloth->volume_corner_offsets);
+        std::copy(volume_corner_indices.begin(), volume_corner_indices.end(),
+            cloth->volume_corner_indices);
     }
     if (impl_->options.fluid_cloth_coupling_capacity != 0U) {
         status = allocate_managed(cloth->fluid_forces, capacity);
@@ -6788,6 +7039,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::vector<std::vector<DeformableNeighbor>> adjacency;
     std::vector<std::uint32_t> offsets;
     std::vector<DeformableNeighbor> neighbors;
+    std::vector<DeformableNeighbor> neighbor_ell;
     float minimum_bond_length = FLT_MAX;
     try {
         adjacency.resize(node_count);
@@ -6829,6 +7081,20 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
                         [](const auto &list) { return list.empty(); }))
             return failure(StatusCode::invalid_argument,
                            "every soft-body node needs at least one bond");
+        std::size_t maximum_degree=0U;
+        for(const auto &list:adjacency)
+            maximum_degree=std::max(maximum_degree,list.size());
+        const std::size_t ell_count=maximum_degree*node_count;
+        // The transpose helps dense near-uniform graphs, but sparse hubs
+        // should not pay for mostly empty rows or an unbounded extra buffer.
+        if(node_count>=128U && maximum_degree>=64U &&
+            maximum_degree<=UINT32_MAX/node_count &&
+            ell_count<=2U*neighbors.size() && ell_count<=4'194'304U) {
+            neighbor_ell.resize(ell_count);
+            for(std::uint32_t node=0U;node<node_count;++node)
+                for(std::size_t slot=0U;slot<adjacency[node].size();++slot)
+                    neighbor_ell[slot*node_count+node]=adjacency[node][slot];
+        }
     } catch (...) {
         return failure(StatusCode::out_of_memory,
                        "failed to build soft-body adjacency");
@@ -6937,6 +7203,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     body->node_count = node_count;
     body->bond_count = static_cast<std::uint32_t>(options.bonds.size);
     body->neighbor_count = static_cast<std::uint32_t>(neighbors.size());
+    body->neighbor_ell_count=static_cast<std::uint32_t>(neighbor_ell.size());
     body->surface_vertex_count =
         static_cast<std::uint32_t>(options.surface_vertices.size);
     body->surface_index_count =
@@ -6969,6 +7236,7 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(bond_active, body->bond_count);
     PM_ALLOC_SOFT(offsets, offsets.size());
     PM_ALLOC_SOFT(neighbors, neighbors.size());
+    if(!neighbor_ell.empty())PM_ALLOC_SOFT(neighbors_ell,neighbor_ell.size());
     PM_ALLOC_SOFT(surface_rest_positions, body->surface_vertex_count);
     PM_ALLOC_SOFT(surface_positions, body->surface_vertex_count);
     PM_ALLOC_SOFT(surface_indices, body->surface_index_count);
@@ -7016,6 +7284,8 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::fill_n(body->bond_active, body->bond_count, std::uint8_t{1U});
     std::copy(offsets.begin(), offsets.end(), body->offsets);
     std::copy(neighbors.begin(), neighbors.end(), body->neighbors);
+    if(!neighbor_ell.empty())
+        std::copy(neighbor_ell.begin(),neighbor_ell.end(),body->neighbors_ell);
     std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
                 body->surface_rest_positions);
     std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
@@ -7227,7 +7497,13 @@ static bool valid_rope_soft_options(RopeSoftBodyCouplingOptions options) noexcep
     return finite(options.contact_distance) && options.contact_distance >= 0.0F &&
         finite(options.friction) && options.friction >= 0.0F &&
         finite(options.maximum_soft_body_acceleration) &&
-        options.maximum_soft_body_acceleration > 0.0F;
+        options.maximum_soft_body_acceleration > 0.0F &&
+        finite(options.anchor_support_radius_scale) &&
+        options.anchor_support_radius_scale >= 0.0F &&
+        finite(options.anchor_contact_support_radius_scale) &&
+        options.anchor_contact_support_radius_scale >= 0.0F &&
+        options.anchor_contact_support_radius_scale <=
+            options.anchor_support_radius_scale;
 }
 
 Status World::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
@@ -7370,10 +7646,13 @@ Status World::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
             return failure(StatusCode::invalid_argument,"soft body has no usable anchor triangle");
     }
     if(!(status=allocate_managed(owner->node_impulses,body.node_count)) ||
+       !(status=allocate_managed(owner->previous_surface,body.surface_vertex_count)) ||
        !(status=allocate_managed(owner->bounds,2U)) ||
        !(status=allocate_managed(owner->contact_count,1U)) ||
        !(status=allocate_managed(owner->maximum_penetration,1U)))return status;
     std::fill_n(owner->node_impulses,body.node_count,Vec3{});
+    std::copy_n(body.surface_positions,body.surface_vertex_count,
+        owner->previous_surface);
     *owner->contact_count=0U;*owner->maximum_penetration=0.0F;
     owner->options=options;
     owner->generation=impl_->rope_soft_body_couplings[slot]
@@ -8330,6 +8609,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     const bool has_soft_body = std::any_of(
         impl_->soft_bodies.begin(), impl_->soft_bodies.end(),
         [](const auto &body) { return body && body->alive; });
+    const bool has_rope_soft_body = std::any_of(
+        impl_->rope_soft_body_couplings.begin(),
+        impl_->rope_soft_body_couplings.end(),
+        [](const auto &coupling) {
+            return coupling && coupling->alive && coupling->options.enabled;
+        });
     bool any_moving_body = false;
     if (impl_->fluid_count != 0U) {
         for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
@@ -8353,9 +8638,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         : impl_->rigid_body_count < 9U
             ? impl_->rigid_body_count * (impl_->rigid_body_count - 1U) / 2U
             : k_contact_color_count;
-    impl_->rigid_solve_kernels_per_substep =
-        3U + 3U * color_round_count +
-        8U * (color_round_count + 1U);
+    const bool small_rigid_contacts = impl_->rigid_body_count <= 256U;
+    impl_->rigid_solve_kernels_per_substep = small_rigid_contacts ? 5U :
+        3U + 3U * color_round_count + 8U * (color_round_count + 1U);
     const auto coupled_cloth = [&](std::uint32_t index) {
         return std::any_of(impl_->soft_cloth_couplings.begin(),
             impl_->soft_cloth_couplings.end(), [&](const auto &coupling) {
@@ -8394,9 +8679,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.vertex_count, substep_timestep, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
-                    cloth_project_volume<<<1U, 1U, 0, stream>>>(
+                    cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
                         cloth.positions, cloth.inverse_masses, cloth.indices,
                         cloth.vertex_count, cloth.index_count / 3U,
+                        cloth.volume_corner_offsets, cloth.volume_corner_indices,
                         cloth.volume_gradients, cloth.target_volume,
                         cloth.orientation, cloth.volume_compliance,
                         substep_timestep, cloth.volume_lambda,
@@ -8603,16 +8889,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (!body_status) return body_status;
             for (std::uint32_t iteration = 0U;
                  iteration < body.solver_iterations; ++iteration) {
-                deformable_project_links<<<blocks, block_size, 0, stream>>>(
-                    body.positions, body.scratch, body.inverse_masses,
-                    body.offsets, body.neighbors, body.bond_active,
-                    body.node_count, substep_timestep,
-                    body.maximum_projection_fraction);
+                if(body.neighbors_ell)
+                    deformable_project_links_ell<<<blocks, block_size, 0, stream>>>(
+                        body.positions, body.scratch, body.inverse_masses,
+                        body.offsets, body.neighbors_ell, body.bond_active,
+                        body.node_count, substep_timestep,
+                        body.maximum_projection_fraction);
+                else
+                    deformable_project_links<<<blocks, block_size, 0, stream>>>(
+                        body.positions, body.scratch, body.inverse_masses,
+                        body.offsets, body.neighbors, body.bond_active,
+                        body.node_count, substep_timestep,
+                        body.maximum_projection_fraction);
                 std::swap(body.positions, body.scratch);
                 if (iteration + 1U == body.solver_iterations &&
                     body.shape_matching_stiffness > 0.0F) {
-                    soft_body_project_rest_shape<<<1U, 1U, 0, stream>>>(
-                        body.positions, body.rest_positions,
+                    soft_body_project_rest_shape<<<1U, 128U, 0, stream>>>(
+                        body.positions, body.scratch, body.rest_positions,
                         body.inverse_masses, body.node_count,
                         body.movable_mass, body.shape_rest_center,
                         body.shape_inverse_rest, body.shape_orientation,
@@ -8638,11 +8931,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 body.inverse_masses, body.node_count,
                 1.0F / substep_timestep,
                 body.constraint_velocity_response, body.maximum_speed);
-            soft_body_damp_springs<<<blocks, block_size, 0, stream>>>(
-                body.positions, body.velocities, body.velocity_scratch,
-                body.inverse_masses, body.offsets, body.neighbors,
-                body.bond_active, body.node_count, body.spring_damping,
-                body.maximum_speed);
+            if(body.neighbors_ell)
+                soft_body_damp_springs_ell<<<blocks, block_size, 0, stream>>>(
+                    body.positions, body.velocities, body.velocity_scratch,
+                    body.inverse_masses, body.offsets, body.neighbors_ell,
+                    body.bond_active, body.node_count, body.spring_damping,
+                    body.maximum_speed);
+            else
+                soft_body_damp_springs<<<blocks, block_size, 0, stream>>>(
+                    body.positions, body.velocities, body.velocity_scratch,
+                    body.inverse_masses, body.offsets, body.neighbors,
+                    body.bond_active, body.node_count, body.spring_damping,
+                    body.maximum_speed);
             std::swap(body.velocities, body.velocity_scratch);
             body_status = finish_contact_pass();
             if (!body_status) return body_status;
@@ -8786,9 +9086,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     std::swap(cloth.positions, cloth.scratch);
                     ++impl_->soft_cloth_kernels_per_substep;
                     if (cloth.preserve_volume) {
-                        cloth_project_volume<<<1U, 1U, 0, stream>>>(
+                        cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
                             cloth.positions, cloth.inverse_masses, cloth.indices,
                             cloth.vertex_count, cloth.index_count / 3U,
+                            cloth.volume_corner_offsets, cloth.volume_corner_indices,
                             cloth.volume_gradients, cloth.target_volume,
                             cloth.orientation, cloth.volume_compliance,
                             substep_timestep, cloth.volume_lambda, false);
@@ -8903,14 +9204,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     return cuda_failure(refit_error,"rope soft-body BVH clear failed");
                 fluid_soft_refit<<<(item.tree_count+block_size-1U)/block_size,
                     block_size,0,stream>>>(body.surface_positions,
-                    body.surface_positions,body.surface_indices,item.order,
+                    item.previous_surface,body.surface_indices,item.order,
                     item.tree,item.parents,item.ready,item.tree_count,item.bounds);
                 for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
                     rope_soft_sample_anchor<<<1,1,0,stream>>>(rope->data,end,
                         body.surface_positions,body.velocities,body.surface_indices,
                         body.surface_bindings,item.anchor_triangle[end],
                         item.anchor_weights[end],item.anchor_offset[end]);
-                soft_targets[coupled]={body.surface_positions,body.velocities,item.bounds,
+                soft_targets[coupled]={body.surface_positions,item.previous_surface,
+                    body.velocities,item.bounds,
                     item.tree,item.order,
                     body.surface_indices,body.surface_bindings,body.inverse_masses,
                     item.node_impulses,item.contact_count,item.maximum_penetration,
@@ -8941,7 +9243,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 auto &item=*couplings[index];
                 auto &body=*impl_->soft_bodies[item.options.soft_body.index];
                 for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
-                    rope_soft_scatter_anchor<<<1,1,0,stream>>>(rope->data,end,
+                    rope_soft_scatter_anchor<<<1,256,0,stream>>>(rope->data,end,
+                        body.positions,body.node_count,
+                        item.options.anchor_support_radius_scale*body.node_radius,
+                        item.options.anchor_contact_support_radius_scale*
+                            body.node_radius,item.contact_count,
                         body.surface_indices,body.surface_bindings,
                         item.anchor_triangle[end],item.anchor_weights[end],
                         item.node_impulses);
@@ -8954,6 +9260,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     block_size,0,stream>>>(body.positions,body.rest_positions,
                     body.surface_rest_positions,body.surface_bindings,
                     body.surface_positions,body.surface_vertex_count);
+                error=cudaMemcpyAsync(item.previous_surface,body.surface_positions,
+                    body.surface_vertex_count*sizeof(Vec3),cudaMemcpyDeviceToDevice,stream);
+                if(error!=cudaSuccess)
+                    return cuda_failure(error,"rope soft-body skin snapshot failed");
                 error=cudaPeekAtLastError();
                 if(error!=cudaSuccess)return cuda_failure(error,"rope soft-body coupling launch failed");
                 status=record_timing_stage(TimingStage::rope_soft_body_contacts,
@@ -9062,7 +9372,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        constexpr std::uint32_t contact_evaluation_threads = 64U;
+        // One warp per pair leaves more pairs resident than a two-warp block;
+        // contact reduction still consumes candidates in the same order.
+        constexpr std::uint32_t contact_evaluation_threads = 32U;
         evaluate_rigid_leaf_pairs_kernel<<<
             contact_block_count, contact_evaluation_threads,
             contact_evaluation_threads * sizeof(ContactManifold),
@@ -9103,54 +9415,76 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             contact_block_count, block_size, 0, stream>>>(
                 impl_->rigid_active_pair_count,
                 impl_->rigid_pair_colors, impl_->rigid_color_state);
-        for (std::uint32_t color = 0U;
-             color < color_round_count; ++color) {
-            reset_parallel_color_owners_kernel<<<block_count,
-                block_size, 0, stream>>>(
-                    impl_->rigid_color_owners,
-                    impl_->rigid_body_count);
-            find_parallel_color_owners_kernel<<<
-                contact_block_count, block_size, 0, stream>>>(
-                    impl_->parameters, impl_->rigid_body_count,
-                    impl_->rigid_manifolds, impl_->rigid_active_pairs,
-                    impl_->rigid_active_pair_count,
-                    impl_->rigid_pair_colors,
-                    impl_->rigid_color_owners);
-            assign_parallel_contact_colors_kernel<<<
-                contact_block_count, block_size, 0, stream>>>(
-                    impl_->parameters, impl_->rigid_body_count,
-                    impl_->rigid_manifolds, impl_->rigid_active_pairs,
-                    impl_->rigid_active_pair_count,
-                    impl_->rigid_color_owners,
-                    impl_->rigid_pair_colors,
-                    impl_->rigid_color_state, color, color_round_count);
-        }
-        for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+        if (small_rigid_contacts) {
+            color_small_rigid_contacts_kernel<<<1U, block_size, 0, stream>>>(
+                impl_->parameters, impl_->rigid_body_count,
+                impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count, impl_->rigid_pair_colors,
+                impl_->rigid_color_owners, impl_->rigid_color_state,
+                color_round_count);
+        } else {
             for (std::uint32_t color = 0U;
                  color < color_round_count; ++color) {
-                resolve_colored_rigid_contacts_kernel<<<
+                reset_parallel_color_owners_kernel<<<block_count,
+                    block_size, 0, stream>>>(
+                        impl_->rigid_color_owners,
+                        impl_->rigid_body_count);
+                find_parallel_color_owners_kernel<<<
                     contact_block_count, block_size, 0, stream>>>(
+                        impl_->parameters, impl_->rigid_body_count,
+                        impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                        impl_->rigid_active_pair_count,
+                        impl_->rigid_pair_colors,
+                        impl_->rigid_color_owners);
+                assign_parallel_contact_colors_kernel<<<
+                    contact_block_count, block_size, 0, stream>>>(
+                        impl_->parameters, impl_->rigid_body_count,
+                        impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                        impl_->rigid_active_pair_count,
+                        impl_->rigid_color_owners,
+                        impl_->rigid_pair_colors,
+                        impl_->rigid_color_state, color, color_round_count);
+            }
+        }
+        if (small_rigid_contacts) {
+            resolve_small_rigid_contacts_kernel<<<1U, block_size, 0, stream>>>(
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count, impl_->rigid_manifolds,
+                impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count,
+                impl_->rigid_pair_colors, impl_->rigid_color_state,
+                impl_->rigid_contact_event_offsets,
+                impl_->rigid_contact_events,
+                collect_rigid_contacts
+                    ? impl_->rigid_contact_capacity : 0U);
+        } else {
+            for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+                for (std::uint32_t color = 0U;
+                     color < color_round_count; ++color) {
+                    resolve_colored_rigid_contacts_kernel<<<
+                        contact_block_count, block_size, 0, stream>>>(
+                        impl_->parameters, impl_->states[output_state],
+                        impl_->rigid_body_count, impl_->rigid_manifolds,
+                        impl_->rigid_active_pairs,
+                        impl_->rigid_active_pair_count,
+                        impl_->rigid_pair_colors, impl_->rigid_color_state,
+                        impl_->rigid_contact_event_offsets,
+                        impl_->rigid_contact_events,
+                        collect_rigid_contacts
+                            ? impl_->rigid_contact_capacity : 0U,
+                        color, pass == 0U);
+                }
+                resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
                     impl_->parameters, impl_->states[output_state],
                     impl_->rigid_body_count, impl_->rigid_manifolds,
-                    impl_->rigid_active_pairs,
-                    impl_->rigid_active_pair_count,
+                    impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
                     impl_->rigid_pair_colors, impl_->rigid_color_state,
                     impl_->rigid_contact_event_offsets,
                     impl_->rigid_contact_events,
                     collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
-                    color, pass == 0U);
+                    pass == 0U);
             }
-            resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
-                impl_->parameters, impl_->states[output_state],
-                impl_->rigid_body_count, impl_->rigid_manifolds,
-                impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
-                impl_->rigid_pair_colors, impl_->rigid_color_state,
-                impl_->rigid_contact_event_offsets,
-                impl_->rigid_contact_events,
-                collect_rigid_contacts
-                    ? impl_->rigid_contact_capacity : 0U,
-                pass == 0U);
         }
         clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
@@ -9172,6 +9506,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             status = advance_cloth(impl_->states[1U - impl_->current_state]);
             if (!status) return status;
         }
+        if (has_rope_soft_body) {
+            status = advance_ropes(impl_->states[1U - impl_->current_state], substep == 0);
+            if (!status) return status;
+        }
         if (has_soft_body) {
             status = advance_soft_bodies(
                 impl_->states[1U - impl_->current_state]);
@@ -9179,8 +9517,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         status = advance_soft_cloth(impl_->states[1U - impl_->current_state]);
         if (!status) return status;
-        status = advance_ropes(impl_->states[1U - impl_->current_state], substep == 0);
-        if (!status) return status;
+        if (!has_rope_soft_body) {
+            status = advance_ropes(impl_->states[1U - impl_->current_state], substep == 0);
+            if (!status) return status;
+        }
     }
 
     if (impl_->rigid_body_count > 0U) {
@@ -9204,14 +9544,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 status = advance_cloth(nullptr);
                 if (!status) return status;
             }
+            if (has_rope_soft_body) {
+                status = advance_ropes(nullptr, substep == 0);
+                if (!status) return status;
+            }
             if (has_soft_body) {
                 status = advance_soft_bodies(nullptr);
                 if (!status) return status;
             }
             status = advance_soft_cloth(nullptr);
             if (!status) return status;
-            status = advance_ropes(nullptr, substep == 0);
-            if (!status) return status;
+            if (!has_rope_soft_body) {
+                status = advance_ropes(nullptr, substep == 0);
+                if (!status) return status;
+            }
         }
     }
 
@@ -9410,9 +9756,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.vertex_count, dt, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
-                    cloth_project_volume<<<1U, 1U, 0, stream>>>(
+                    cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
                         cloth.positions, cloth.inverse_masses, cloth.indices,
                         cloth.vertex_count, cloth.index_count / 3U,
+                        cloth.volume_corner_offsets, cloth.volume_corner_indices,
                         cloth.volume_gradients, cloth.target_volume,
                         cloth.orientation, cloth.volume_compliance, dt,
                         cloth.volume_lambda, true);
@@ -10017,6 +10364,8 @@ Status World::collect_statistics(WorldStatistics &output,
                 sizeof(ClothBodyCorrection) +
             (cloth->volume_gradients != nullptr
                 ? static_cast<std::size_t>(cloth->vertex_count) * sizeof(Vec3) +
+                    (static_cast<std::size_t>(cloth->vertex_count) + 1U +
+                        cloth->index_count) * sizeof(std::uint32_t) +
                     sizeof(float) : 0U) +
             (cloth->fluid_forces != nullptr
                 ? static_cast<std::size_t>(cloth->vertex_capacity) * sizeof(Vec3)
@@ -10036,6 +10385,8 @@ Status World::collect_statistics(WorldStatistics &output,
             (static_cast<std::size_t>(body->node_count) + 1U) *
                 sizeof(std::uint32_t) +
             static_cast<std::size_t>(body->neighbor_count) *
+                sizeof(DeformableNeighbor) +
+            static_cast<std::size_t>(body->neighbor_ell_count) *
                 sizeof(DeformableNeighbor) +
             static_cast<std::size_t>(body->surface_vertex_count) *
                 (2U * sizeof(Vec3) + sizeof(SoftBodySurfaceBinding)) +
@@ -10081,6 +10432,7 @@ Status World::collect_statistics(WorldStatistics &output,
     for (const auto &coupling : impl_->rope_soft_body_couplings) {
         if (!coupling || !coupling->alive) continue;
         output.allocated_bytes += impl_->soft_bodies[coupling->options.soft_body.index]->node_count *
+            sizeof(Vec3) + impl_->soft_bodies[coupling->options.soft_body.index]->surface_vertex_count*
             sizeof(Vec3) + 2U*sizeof(Vec3) +
             coupling->tree_count*(sizeof(BvhNode)+2U*sizeof(std::uint32_t))+
             impl_->soft_bodies[coupling->options.soft_body.index]->surface_index_count/3U*

@@ -240,10 +240,9 @@ void test_floor_contact_and_async_contract() {
               timings.rigid_leaf_pair_generation.launch_count == 4U &&
               timings.rigid_contact_evaluation.launch_count == 8U &&
               timings.rigid_contact_generation.launch_count == 24U &&
-              // Two bodies need one parallel color round and eight
-              // color/overflow solve passes per substep.
-              timings.rigid_contact_solve.launch_count ==
-                  4U * (3U + 3U + 8U * 2U) &&
+              // The small-world path fuses coloring and all solve passes;
+              // prepare, initialize, color, solve, and clamp launch once.
+              timings.rigid_contact_solve.launch_count == 4U * 5U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
