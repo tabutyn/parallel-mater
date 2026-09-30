@@ -331,6 +331,20 @@ pass.
   smoke physics, headless rendering, gallery, and rope–cloth regressions pass.
   This is an analytic first gas flow, not full Navier–Stokes pressure projection.
 
+## PR 21 — Smoke–water boiling coupling (review)
+
+- `SmokeWater.blend` authors a liquid volume at 80°C and a separate 500°C
+  finite thermal surface that is also a visible passive collision plate.
+  Its passive container is open above the heater so
+  water can actually reach the plate.
+- The API stores Celsius temperature per water particle, carries it through
+  source emission and compaction, applies smoke-carrier drag, and transfers
+  particles at 100°C into smoke with buoyant thermal lift. The gallery only
+  configures the resources and renders their borrowed views.
+- GPU tests check temperature metadata, conservation across phase transfer,
+  retained-particle identity, wind-driven water motion, and existing smoke
+  and fluid regressions. Full-scene 180-frame smoke/water render is stable.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.

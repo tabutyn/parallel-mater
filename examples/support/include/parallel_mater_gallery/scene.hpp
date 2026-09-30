@@ -119,6 +119,14 @@ struct SceneDefinition {
     std::vector<ParticleDestroyPlaneOptions> destroy_planes{};
     SmokeOptions smoke_options{};
     std::string smoke_obstacle_name{};
+    struct ThermalSurfaceDefinition {
+        ParticlePlane plane{};
+        float temperature{500.0F};
+        float heat_transfer_rate{0.2F};
+        float smoke_drag{2.0F};
+        float steam_rise_speed{2.0F};
+    };
+    std::vector<ThermalSurfaceDefinition> thermal_surfaces{};
     bool has_smoke{};
 };
 
@@ -143,6 +151,7 @@ struct SceneInstance {
     bool has_fluid{};
     SmokeId smoke{};
     bool has_smoke{};
+    std::vector<FluidSmokeCouplingId> fluid_smoke_couplings{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,

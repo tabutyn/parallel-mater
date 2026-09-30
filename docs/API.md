@@ -100,6 +100,21 @@ reused by emission. `remove_smoke` invalidates its generation-tagged handle.
 This first gas system is a prescribed velocity field, not a pressure-projected
 Navier–Stokes or smoke–rigid momentum coupling solver.
 
+`World::add_fluid_smoke_coupling` links existing `FluidId` and `SmokeId`
+resources to a finite `ParticlePlane` heater. `FluidParticle::temperature`
+and `ParticleSourceOptions::initial_temperature` are Celsius (20°C by
+default); `FluidDeviceView::temperatures` exposes the live values. Near the
+heater, water temperature approaches `heater_temperature` at the configured
+`heat_transfer_rate`. At `boiling_temperature` (100°C by default) a water
+particle is removed from the liquid solver and inserted into bounded smoke
+storage with an upward velocity and decaying thermal lift. This is a phase
+transfer, not a second copy of the water particle. The same smoke carrier
+field exerts configurable drag on nearby water without scanning all smoke
+tracers. `WorldStatistics::boiled_particle_count` tracks transfers; source
+temperature survives fluid compaction. Remove the coupling before removing
+either system. This first thermal model has no latent heat, condensation, or
+two-way gas momentum solve.
+
 ## Rope centerlines and attachments
 
 `World::add_rope` copies an open world-space polyline and resamples its arc
@@ -481,7 +496,7 @@ Initial implementation requirements:
 - collision projection plus velocity response against passive triangle meshes;
 - reaction impulses on dynamic bodies are deferred to PR 8.
 
-Cross-fluid interaction and phase changes are deferred. Continuous surface
+Other cross-fluid interactions remain deferred. Continuous surface
 reconstruction stays outside the public API in the example renderer.
 `FluidDeviceView::foam` exposes a short-lived impact/surface signal for the
 examples-only renderer; it is not a separate foam fluid.
@@ -591,7 +606,7 @@ original `cudaError_t`.
 - renderer, camera, lights, materials, meshes, textures, or OptiX objects;
 - gallery recipes, level order, victory conditions, input bindings, or UI;
 - public hierarchy, neighbor, scratch-allocation, or constraint-batch types;
-- smoke or a separate foam-particle simulation;
+- a separate foam-particle simulation;
 - serialization and network replication;
 - CPU fallback or non-CUDA backend.
 
