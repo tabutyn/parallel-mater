@@ -450,8 +450,12 @@ def copy_rope_for_export(source, collection):
     hooks = [m for m in source.modifiers if m.type == "HOOK" and m.show_viewport]
     anchors = [None, None]
     for hook in hooks:
-        if hook.object is None or hook.object.rigid_body is None:
-            raise RuntimeError(f"{source.name}: Hook target must be a rigid body")
+        if hook.object is None:
+            raise RuntimeError(f"{source.name}: Hook target must be a rigid or soft body")
+        rigid = hook.object.rigid_body is not None
+        soft = any(mod.type == "SOFT_BODY" for mod in hook.object.modifiers)
+        if rigid == soft:
+            raise RuntimeError(f"{source.name}: Hook target must be a rigid or soft body")
         if hook.strength != 1.0 or (hook.falloff_type != "NONE" and hook.falloff_radius != 0):
             raise RuntimeError(f"{source.name}: rope Hook needs strength 1 and no distance falloff")
         indices = set(hook.vertex_indices)
@@ -460,7 +464,7 @@ def copy_rope_for_export(source, collection):
             raise RuntimeError(f"{source.name}: each Hook must select exactly one endpoint control point")
         if anchors[ends[0]] is not None:
             raise RuntimeError(f"{source.name}: duplicate endpoint Hook")
-        anchors[ends[0]] = hook.object.name
+        anchors[ends[0]] = ("body" if rigid else "soft_body", hook.object.name)
     # evaluated.data.splines still exposes undeformed controls in Blender.
     # Evaluate a private, unbevelled copy to a polyline to include native Hooks,
     # including their bind matrices and moved targets, but not cached Soft Body.
@@ -511,8 +515,10 @@ def copy_rope_for_export(source, collection):
     exported["pm_schema"] = SCHEMA_VERSION
     exported["pm_system"] = "rope"
     exported["pm_rope_points"] = ";".join(f"{p.x:.9g},{p.z:.9g},{-p.y:.9g}" for p in world)
-    exported["pm_rope_first_body"] = anchors[0] or ""
-    exported["pm_rope_last_body"] = anchors[1] or ""
+    for end, label in enumerate(("first", "last")):
+        anchor = anchors[end]
+        exported[f"pm_rope_{label}_body"] = anchor[1] if anchor and anchor[0] == "body" else ""
+        exported[f"pm_rope_{label}_soft_body"] = anchor[1] if anchor and anchor[0] == "soft_body" else ""
     settings = next((m.settings for m in source.modifiers if m.type == "SOFT_BODY"), None)
     exported["pm_rope_mass"] = float(source.get("pm_rope_mass", settings.mass if settings else 0.1))
     exported["pm_rope_radius"] = float(source.get("pm_rope_radius", source.data.bevel_depth or 0.01))

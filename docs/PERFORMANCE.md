@@ -738,3 +738,66 @@ Current quiet and steering-release mean GPU physics times are 5.86 and
 the pre-wrapped fixture averages 17.06 ms/frame. The steering-release test
 therefore costs slightly more than the earlier 6.68 ms snapshot, while the
 tight-winding peak and pre-wrapped throughput improve substantially.
+
+### Soft post and shared solver profiling (RTX 3050 Ti)
+
+The authored RopeSoftbody post has 912 simulation nodes, 130,033 bonds, and
+33 pinned base nodes. A rope-only pull test verifies that Hook tension bends
+the post without ball/post contact. Distributed anchor loads and swept
+triangle contact keep a 500-frame, three-wrap winding run at 0.50% peak rope
+strain and 0.321 m maximum post bend. The same steering followed by downward
+gravity after frame 500 is a 1,000-frame regression and also passed a manual
+5,000-frame endurance run: strain stayed at 0.50%, the base did not drift,
+and the post ended at about 2.5 mm bend. Continuing the
+tangential drive indefinitely can still overload the post after frame 700;
+that is a stress limit, not covered by the release regression.
+
+Measured hypotheses on the same GPU:
+
+| Workload/change | Before | After | Decision |
+|---|---:|---:|---|
+| 500-frame rope/post, ordered parallel shape projection | 81.45 ms/frame | 80.22 ms/frame | Keep; state metrics identical |
+| Shape projection kernel, 30-frame profile | 497 µs/call | 380 µs/call | Keep |
+| ClothWater, vertex-centric closed-volume projection | 12.47 ms/step | 8.37–8.55 ms/step | Keep; 5,013 particles, zero escapes |
+| Closed-volume kernel, 3,600 calls | 105 µs/call | 11 µs/call | Keep; volume ratio 0.999999–1 |
+| 1,000-body DUMP, 32-thread leaf evaluation | 14.97 ms/frame | 13.74 ms/frame | Keep; identical state hash, settled interval |
+| FluidRigid, 65 bodies, fused small-scene coloring/solve | 9.39 ms/frame | 6.66 ms/frame | Keep; 100 profiled frames, same contacts and final speed |
+| 100-sphere DUMP, fused small-scene coloring/solve | 4.14 ms/frame | 2.72 ms/frame | Keep; identical state hash, last 30 frames |
+
+The cloth volume constraint precomputes incident triangle corners in face
+order. Independent triangle volumes and per-vertex gradients run in parallel;
+the two global scalar sums retain their original order. Soft-body shape
+matching likewise keeps center, transform, and momentum sums ordered while
+projecting nodes in parallel. These avoid unordered floating-point atomics
+and preserve the tested trajectories.
+The old water lab's node-centric spring projection confirmed that the dense
+post should stay parallel across nodes. An ELL-transposed neighbor layout
+coalesces those loads on the current near-uniform lattice while preserving
+each node's spring accumulation order; sparse graphs still use CSR.
+
+Rigid contact coloring at 24 rounds saved roughly 0.3–0.5 ms/frame on the
+1,000-body DUMP versus 32 rounds without changing the state hash. Fewer
+rounds spilled contacts to the serial fallback and were rejected. A 128-thread
+leaf evaluator and an adaptive dual-launch version were slower. Soft graph
+launches at 32 or 64 threads produced no repeatable gain over 128 and were
+reverted. Extra rope recovery passes and narrower post force support worsened
+either runtime or long-run stability and were also rejected.
+
+For at most 256 rigid bodies, color rounds and the eight contact passes now
+run inside single synchronized GPU blocks. Disjoint pairs remain parallel
+within each color; a barrier preserves color order. Larger worlds retain the
+multi-block path. This removes many tiny launches without changing the 100-
+sphere DUMP state hash. At 250 spheres, the last 30-frame GPU mean was 7.32 ms
+with the fused path versus 7.88 ms with the multi-block path; hashes matched.
+Replacing the rope movement maximum's shared atomic
+with another warp reduction was slower (80.63 versus 80.22 ms/frame) and was
+reverted.
+The large-world path also ran a 1,000-sphere DUMP for 10,000 frames. Its final
+state had zero invalid, below-floor, or outside-receiver spheres; the final
+30-frame window averaged 14.16 ms/frame GPU physics.
+The 65-body FluidRigid scene also ran for 10,000 frames. Its final state had
+29,996 live particles and zero invalid or below-mesh particles; the last 100
+frames had zero contact-event overflow and averaged 16.60 ms/frame of GPU
+physics. The higher late cost
+reflects the fluid approaching its 30,000-particle cap; the small rigid solve
+remained about 1.77 ms/frame.

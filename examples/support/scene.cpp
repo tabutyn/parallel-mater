@@ -1097,6 +1097,21 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         if(!sampled){error=sampled.message;return false;}
         for(unsigned end=0;end<2;++end) {
             const auto target=extras.string(end?"pm_rope_last_body":"pm_rope_first_body").value_or("");
+            const auto soft_target=extras.string(end?"pm_rope_last_soft_body":"pm_rope_first_soft_body").value_or("");
+            if(!target.empty() && !soft_target.empty()) {
+                error=rope.name+": Hook cannot target both rigid and soft bodies";return false;
+            }
+            if(!soft_target.empty()) {
+                int match=-1;
+                for(unsigned body=0;body<output.soft_bodies.size();++body)
+                    if(output.soft_bodies[body].name==soft_target) {
+                        if(match>=0){error=rope.name+": soft Hook target is ambiguous";return false;}
+                        match=int(body);
+                    }
+                if(match<0){error=rope.name+": missing soft Hook target "+soft_target;return false;}
+                (end?rope.last_soft_body:rope.first_soft_body)=match;
+                continue;
+            }
             if(target.empty())continue;
             int match=-1;
             for(unsigned body=0;body<output.rigid_bodies.size();++body)
@@ -1425,6 +1440,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             scene.soft_bodies.size()),
         .rope_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
         .fluid_rope_coupling_capacity = static_cast<std::uint32_t>(scene.ropes.size()),
+        .rope_soft_body_coupling_capacity = static_cast<std::uint32_t>(
+            scene.ropes.size()*scene.soft_bodies.size()),
         .physics_debug = physics_debug};
     return {};
 }
@@ -1557,18 +1574,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         }
         output.rigid_bodies.push_back(body);
     }
-    for (const auto &rope : scene.ropes) {
-        auto options=rope.options;
-        options.centerline={rope.centerline.data(),rope.centerline.size()};
-        for (int body : {rope.first_body, rope.last_body})
-            if (body >= 0 && static_cast<std::size_t>(body) >= output.rigid_bodies.size())
-                return {StatusCode::invalid_argument, cudaSuccess,
-                        "gallery rope attachment index is invalid"};
-        if(rope.first_body>=0)options.first.body=output.rigid_bodies[rope.first_body];
-        if(rope.last_body>=0)options.last.body=output.rigid_bodies[rope.last_body];
-        RopeId id;const auto status=world.add_rope(options,id);if(!status)return status;
-        output.ropes.push_back(id);
-    }
     for (const ClothDefinition &definition : scene.cloths) {
         if (definition.mesh_index >= scene.meshes.size())
             return {StatusCode::invalid_argument, cudaSuccess,
@@ -1647,6 +1652,27 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .solver_iterations = definition.solver_iterations}, body);
         if (!status) return status;
         output.soft_bodies.push_back(body);
+    }
+    for (const auto &rope : scene.ropes) {
+        auto options=rope.options;
+        options.centerline={rope.centerline.data(),rope.centerline.size()};
+        for (int body : {rope.first_body, rope.last_body})
+            if (body >= 0 && static_cast<std::size_t>(body) >= output.rigid_bodies.size())
+                return {StatusCode::invalid_argument, cudaSuccess,
+                        "gallery rope attachment index is invalid"};
+        if(rope.first_body>=0)options.first.body=output.rigid_bodies[rope.first_body];
+        if(rope.last_body>=0)options.last.body=output.rigid_bodies[rope.last_body];
+        RopeId id;const auto status=world.add_rope(options,id);if(!status)return status;
+        output.ropes.push_back(id);
+        for(std::size_t soft=0;soft<output.soft_bodies.size();++soft) {
+            RopeSoftBodyCouplingId coupling{};
+            const auto coupled=world.add_rope_soft_body_coupling({
+                .rope=id,.soft_body=output.soft_bodies[soft],
+                .attach_first=rope.first_soft_body==static_cast<int>(soft),
+                .attach_last=rope.last_soft_body==static_cast<int>(soft)},coupling);
+            if(!coupled)return coupled;
+            output.rope_soft_body_couplings.push_back(coupling);
+        }
     }
     for (SoftBodyId body : output.soft_bodies) {
         for (std::size_t sheet = 0U; sheet < output.cloths.size(); ++sheet) {

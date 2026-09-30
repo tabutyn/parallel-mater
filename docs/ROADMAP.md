@@ -292,6 +292,19 @@ pass.
   (2.91 peak turns, <0.5% strain), three-system headless rendering, and CUDA
   memory/race checks.
 
+## PR 18 — Rope and soft body
+
+- `RopeSoftbody.blend` replaces the central rigid post with a soft-body post.
+  Its bottom Goal ring is pinned. The ball is an active 1 kg rigid body as in
+  the original dry-rope scene, while the post Hook targets the soft body.
+- The API adds two-way rope/soft-body triangle-skin contact and surface-bound
+  Hook endpoints. Gallery registration has no scene-specific contact physics.
+- Validation covers export, attachment lifecycle, force/penetration diagnostics,
+  three-wrap winding stability, and a headless render. An 0.08 m generated post
+  lattice, eight soft-body iterations, four rope iterations, and 0.9 shape
+  matching retain the wrap with 1.2% peak rope strain and roughly 70 ms/frame
+  in the 320-frame GPU stress test; four soft-body iterations were unstable.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
