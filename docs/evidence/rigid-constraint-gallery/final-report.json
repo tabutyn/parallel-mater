@@ -1,0 +1,9 @@
+{
+  "schema": "ballroller.room-final-report.v1",
+  "roomId": "rigid-constraint-gallery",
+  "gates": {"function": true, "form": false, "runtime": false},
+  "formChecks": {"floorPlanParity": false, "primaryArrivalOpening": false, "symmetry": false, "shell": false, "manifold": false, "booleans": false, "collisions": false, "support": false, "attachmentOrientation": false, "ceilingAttachmentOrientation": false, "colonnades": false, "screenClearance": false, "scale": false, "camera": false, "ceilingCoverage": false, "provenance": false},
+  "runtimeChecks": {"vlow": false, "textureTiers": false, "lightmap": false, "lightingManifest": false, "performance": false, "browserCapture": "", "errors": []},
+  "postmortem": {"observations": ["Native Blender constraints map cleanly to one generic local-frame API resource."], "corrections": ["Retained the breaking impulse after automatic disable so failure diagnostics remain observable."], "remainingRisks": ["Formal visual and runtime gate approval is pending reviewer inspection."]},
+  "proposedLessons": []
+}

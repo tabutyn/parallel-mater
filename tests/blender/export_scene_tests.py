@@ -79,7 +79,10 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
         if options.loader:
             subprocess.run([options.loader, str(self.output),
-                            str(expected["rigid_body"]), str(expected["cloth"]),
+                            str(expected["rigid_body"] +
+                                expected["thermal_surface"]),
+                            str(expected["rigid_constraint"]),
+                            str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
                             str(expected["soft_body"]), str(expected["rope"])],
@@ -90,7 +93,10 @@ class ExportSceneTests(unittest.TestCase):
         for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
-                     "RopeFluid", "RopeCloth", "Smoke", "SmokeWater"):
+                     "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
+                     "ConstraintFixed", "ConstraintPoint", "ConstraintHinge",
+                     "ConstraintSlider", "ConstraintPiston", "ConstraintGeneric",
+                     "ConstraintGenericSpring", "ConstraintMotor"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
@@ -98,6 +104,48 @@ class ExportSceneTests(unittest.TestCase):
                 expected = systems(read_glb(source.with_suffix(".glb")))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_rigid_constraint_settings(self):
+        expected_types = {
+            "ConstraintFixed": ("fixed", 1),
+            "ConstraintPoint": ("point", 1),
+            "ConstraintHinge": ("hinge", 1),
+            "ConstraintSlider": ("slider", 1),
+            "ConstraintPiston": ("piston", 1),
+            "ConstraintGeneric": ("generic", 1),
+            "ConstraintGenericSpring": ("generic_spring", 1),
+            "ConstraintMotor": ("motor", 4),
+        }
+        for name, (kind, count) in expected_types.items():
+            with self.subTest(scene=name):
+                bpy.ops.wm.open_mainfile(filepath=str(ASSETS / f"{name}.blend"))
+                document = self.check_export(Counter(
+                    rigid_body=6 if kind == "motor" else
+                               3 if kind == "fixed" else 4,
+                    rigid_constraint=count))
+                constraints = [node["extras"] for node in document["nodes"]
+                               if node["extras"].get("pm_system") ==
+                               "rigid_constraint"]
+                self.assertEqual(len(constraints), count)
+                self.assertTrue(all(item["pm_constraint_type"] == kind
+                                    for item in constraints))
+                self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
+                                    for item in constraints))
+                if kind in ("fixed", "point"):
+                    self.assertFalse(constraints[0]["pm_enabled"])
+                if kind == "hinge":
+                    self.assertAlmostEqual(
+                        constraints[0]["pm_limit_ang_z_upper"],
+                        3.141592653589793 / 4.0, places=5)
+                if kind in ("slider", "piston"):
+                    self.assertEqual(constraints[0]["pm_limit_lin_x_lower"], -1.0)
+                    self.assertEqual(constraints[0]["pm_limit_lin_x_upper"], 1.0)
+                if kind == "generic_spring":
+                    self.assertTrue(constraints[0]["pm_use_spring_x"])
+                    self.assertTrue(constraints[0]["pm_use_spring_ang_z"])
+                if kind == "motor":
+                    self.assertTrue(all(item["pm_use_motor_ang"]
+                                        for item in constraints))
 
     def test_cloth_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))
@@ -299,7 +347,7 @@ class ExportSceneTests(unittest.TestCase):
             exporter.export_scene(self.output.with_suffix(".blend"))
         with self.assertRaisesRegex(RuntimeError, "save the .blend"):
             exporter.export_scene()
-        with self.assertRaisesRegex(RuntimeError, "no rigid bodies, soft bodies, cloth, or liquid flows"):
+        with self.assertRaisesRegex(RuntimeError, "no supported physics objects"):
             exporter.export_scene(self.output)
 
     def test_blender_menu_operator_uses_same_export(self):

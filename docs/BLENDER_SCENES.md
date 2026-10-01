@@ -148,7 +148,7 @@ Ambiguous instanced Hook targets and unsupported curve modifiers are rejected.
 ## One Blender–ParallelMater export interface
 
 `tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid
-bodies, collision proxies, Arrays, soft bodies, cloth/pins/fracture, liquid
+bodies, rigid-body constraints, collision proxies, Arrays, soft bodies, cloth/pins/fracture, liquid
 Inflow/Outflow/Geometry, and paint metadata. New physics systems extend this
 script and the versioned scene contract, not a per-example exporter. It has no
 gallery scene names or scene-specific physics settings.
@@ -213,6 +213,26 @@ Built-in rigid-body settings are exported automatically. The optional `pm_*`
 properties configure features without a standard Blender panel yet. Names are
 labels except for explicit references such as collision proxies and paint
 sources; they do not select scene-specific physics.
+
+## Rigid body constraints
+
+Add Blender's native **Rigid Body Constraint** to a scene-root Empty and assign
+two rigid-body objects. Fixed, Point, Hinge, Slider, Piston, Generic, Generic
+Spring, and Motor types map directly to `RigidConstraintType`. The Empty's
+world transform becomes the joint frame; Blender linear and angular limit
+flags, spring stiffness/damping, motor targets/impulses, enabled state,
+collision suppression, breaking threshold, and solver-iteration override are
+preserved. Array-modified rigid bodies are rejected as ambiguous targets.
+
+The exporter writes one `pm_system = "rigid_constraint"` node with both target
+names and all built-in settings. The gallery loader resolves those names,
+converts the world frame to body-local frames, and creates the public API
+resource after both bodies. Runtime interaction changes the API resource, not
+the Blender source or GLB metadata.
+
+`examples/assets/tools/make_constraint_scenes.py` reproducibly authors the
+eight committed constraint `.blend` files. Export each through the same shared
+exporter; no scene-specific export path exists.
 
 ## Validate the result
 

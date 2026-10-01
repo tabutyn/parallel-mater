@@ -1,8 +1,9 @@
-# Physics API: rigid bodies, fluid, cloth, soft bodies, and ropes
+# Physics API: rigid bodies, constraints, fluid, cloth, soft bodies, and ropes
 
 ## The central decision
 
-`parallel_mater::World` owns every simulated fluid, cloth, soft body, rope, and rigid body and advances
+`parallel_mater::World` owns every simulated fluid, cloth, soft body, rope,
+rigid body, and rigid constraint and advances
 their interactions in one call. This replaces the former design where an
 application manually called `begin_frame`, `prepare_substep`, contact helpers,
 solver-specific completion functions, and telemetry readbacks in the correct
@@ -19,7 +20,8 @@ impulses, kinematic targets, device views, GPU integration, and deterministic
 triangle-mesh contact. Every rigid body uses indexed triangles; dynamic,
 kinematic, static, open, and two-sided meshes share one code path. Continuous
 rigid contact is velocity-gated through conservative swept triangle-pair
-tests. Fluid and particle-lifecycle calls are implemented in PR 7, including
+tests. Rigid constraints cover fixed, point, hinge, slider, piston, generic,
+generic spring, and motor joints. Fluid and particle-lifecycle calls are implemented in PR 7, including
 passive triangle contacts and balanced dynamic-rigid reactions. Soft bodies use
 world-owned volumetric spring lattices with passive/dynamic rigid contacts and
 explicit cloth/fluid coupling resources.
@@ -69,7 +71,8 @@ if (!status) return report(status);
 ## Ownership and handles
 
 - `World` owns all CPU and CUDA allocations.
-- `FluidId`, `ClothId`, `SoftBodyId`, `RopeId`, and `RigidBodyId` contain an index and generation. Removing an
+- `FluidId`, `ClothId`, `SoftBodyId`, `RopeId`, `RigidBodyId`, and
+  `RigidConstraintId` contain an index and generation. Removing an
   object invalidates its old handle; reusing the slot cannot make the old
   handle valid again.
 - Initial particles are supplied as a device span. `add_fluid` enqueues a
@@ -81,6 +84,29 @@ if (!status) return report(status);
   change. `revision` makes accidental caching detectable.
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
+
+## Rigid constraints
+
+`World::add_rigid_constraint` connects two existing rigid bodies through
+body-local anchor and orientation frames. At least one body must be dynamic.
+`RigidConstraintType` provides Blender-compatible fixed, point, hinge, slider,
+piston, generic, generic-spring, and motor behavior. Hinge rotation uses local
+Z; slider translation and piston translation/rotation use local X. Generic
+limits and springs use explicit X/Y/Z bit masks. Motor targets act on local X
+and can drive linear or angular relative velocity.
+
+Constraints have generation-checked add/update/remove lifecycle. Updating can
+toggle `enabled`, move the local frames, or change limits, springs, and motor
+targets without recreating the resource. A nonzero breaking threshold disables
+the joint when one active substep exceeds that accumulated impulse;
+`read_rigid_constraint_state` reports enabled/broken state and the latest
+active impulse. `disable_collisions` suppresses rigid contact only while the
+joint is enabled and intact. Referenced bodies cannot be removed first.
+
+Constraint capacity is fixed by `WorldOptions::rigid_constraint_capacity`, and
+`WorldStatistics::rigid_constraint_count` reports live resources. The solver
+runs inside every rigid substep, after contact response; applications still call
+only `World::step`.
 
 ## Smoke tracer gas
 

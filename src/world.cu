@@ -157,6 +157,13 @@ struct KinematicTarget {
     bool active{};
 };
 
+struct RigidConstraintResource {
+    RigidConstraintOptions options{};
+    RigidConstraintState state{};
+    std::uint32_t generation{1U};
+    bool alive{};
+};
+
 struct Contact {
     Vec3 normal{};
     Vec3 point{};
@@ -414,6 +421,21 @@ __host__ __device__ void consider_closest_pair(
 __host__ __device__ Vec3 transform_point(const RigidBodyState &state,
                                          Vec3 point) noexcept {
     return add(state.position, rotate(state.orientation, point));
+}
+
+__host__ __device__ float component(Vec3 value, std::uint32_t axis) noexcept {
+    return axis == 0U ? value.x : axis == 1U ? value.y : value.z;
+}
+
+__host__ __device__ Vec3 basis_axis(std::uint32_t axis) noexcept {
+    return axis == 0U ? Vec3{1.0F, 0.0F, 0.0F}
+                      : axis == 1U ? Vec3{0.0F, 1.0F, 0.0F}
+                                   : Vec3{0.0F, 0.0F, 1.0F};
+}
+
+__host__ __device__ bool same_rigid_body_id(
+    RigidBodyId left, RigidBodyId right) noexcept {
+    return left.index == right.index && left.generation == right.generation;
 }
 
 struct BoundsTransform {
@@ -1196,6 +1218,353 @@ __global__ void integrate_rigid_bodies_kernel(
     output[index] = next;
 }
 
+__device__ std::uint32_t find_rigid_body_dense(
+    RigidBodyId id, const RigidBodyId *ids, std::uint32_t count) noexcept {
+    for (std::uint32_t index = 0U; index < count; ++index)
+        if (ids[index].index == id.index &&
+            ids[index].generation == id.generation) return index;
+    return k_invalid_dense;
+}
+
+__device__ float solve_linear_constraint_axis(
+    const BodyParameters &a, RigidBodyState &state_a,
+    const BodyParameters &b, RigidBodyState &state_b,
+    Vec3 arm_a, Vec3 arm_b, Vec3 axis, float error, float timestep,
+    float stiffness, float damping, bool spring) noexcept {
+    const Vec3 velocity_a = add(
+        state_a.linear_velocity, cross(state_a.angular_velocity, arm_a));
+    const Vec3 velocity_b = add(
+        state_b.linear_velocity, cross(state_b.angular_velocity, arm_b));
+    const float relative_velocity = dot(subtract(velocity_b, velocity_a), axis);
+    const Vec3 angular_a = cross(
+        inverse_inertia_world(a, state_a, cross(arm_a, axis)), arm_a);
+    const Vec3 angular_b = cross(
+        inverse_inertia_world(b, state_b, cross(arm_b, axis)), arm_b);
+    const float denominator = a.inverse_mass + b.inverse_mass +
+        dot(add(angular_a, angular_b), axis);
+    if (denominator <= k_epsilon) return 0.0F;
+    const float impulse = spring
+        ? -(relative_velocity + stiffness * error * timestep) /
+              (denominator + damping * timestep)
+        : -(relative_velocity + 0.35F * error / timestep) / denominator;
+    const Vec3 vector = multiply(axis, impulse);
+    if (a.inverse_mass > 0.0F) {
+        state_a.linear_velocity = subtract(
+            state_a.linear_velocity, multiply(vector, a.inverse_mass));
+        state_a.angular_velocity = subtract(
+            state_a.angular_velocity,
+            inverse_inertia_world(a, state_a, cross(arm_a, vector)));
+    }
+    if (b.inverse_mass > 0.0F) {
+        state_b.linear_velocity = add(
+            state_b.linear_velocity, multiply(vector, b.inverse_mass));
+        state_b.angular_velocity = add(
+            state_b.angular_velocity,
+            inverse_inertia_world(b, state_b, cross(arm_b, vector)));
+    }
+    return fabsf(impulse);
+}
+
+__device__ float solve_angular_constraint_axis(
+    const BodyParameters &a, RigidBodyState &state_a,
+    const BodyParameters &b, RigidBodyState &state_b,
+    Vec3 axis, float error, float timestep, float stiffness, float damping,
+    bool spring) noexcept {
+    const float relative_velocity = dot(
+        subtract(state_b.angular_velocity, state_a.angular_velocity), axis);
+    const Vec3 inverse_a = inverse_inertia_world(a, state_a, axis);
+    const Vec3 inverse_b = inverse_inertia_world(b, state_b, axis);
+    const float denominator = dot(add(inverse_a, inverse_b), axis);
+    if (denominator <= k_epsilon) return 0.0F;
+    const float impulse = spring
+        ? -(relative_velocity + stiffness * error * timestep) /
+              (denominator + damping * timestep)
+        : -(relative_velocity + 0.30F * error / timestep) / denominator;
+    if (a.inverse_mass > 0.0F)
+        state_a.angular_velocity = subtract(
+            state_a.angular_velocity, multiply(inverse_a, impulse));
+    if (b.inverse_mass > 0.0F)
+        state_b.angular_velocity = add(
+            state_b.angular_velocity, multiply(inverse_b, impulse));
+    return fabsf(impulse);
+}
+
+__device__ float solve_motor_axis(
+    const BodyParameters &a, RigidBodyState &state_a,
+    const BodyParameters &b, RigidBodyState &state_b, Vec3 axis,
+    Vec3 arm_a, Vec3 arm_b, float target_velocity, float maximum_impulse,
+    bool angular) noexcept {
+    float denominator = 0.0F;
+    float relative_velocity = 0.0F;
+    if (angular) {
+        relative_velocity = dot(
+            subtract(state_b.angular_velocity, state_a.angular_velocity), axis);
+        denominator = dot(add(inverse_inertia_world(a, state_a, axis),
+                              inverse_inertia_world(b, state_b, axis)), axis);
+    } else {
+        const Vec3 velocity_a = add(
+            state_a.linear_velocity, cross(state_a.angular_velocity, arm_a));
+        const Vec3 velocity_b = add(
+            state_b.linear_velocity, cross(state_b.angular_velocity, arm_b));
+        relative_velocity = dot(subtract(velocity_b, velocity_a), axis);
+        denominator = a.inverse_mass + b.inverse_mass +
+            dot(add(cross(inverse_inertia_world(a, state_a, cross(arm_a, axis)),
+                          arm_a),
+                    cross(inverse_inertia_world(b, state_b, cross(arm_b, axis)),
+                          arm_b)), axis);
+    }
+    if (denominator <= k_epsilon || maximum_impulse <= 0.0F) return 0.0F;
+    const float impulse = clamp_scalar(
+        (target_velocity - relative_velocity) / denominator,
+        -maximum_impulse, maximum_impulse);
+    if (angular) {
+        if (a.inverse_mass > 0.0F)
+            state_a.angular_velocity = subtract(
+                state_a.angular_velocity,
+                multiply(inverse_inertia_world(a, state_a, axis), impulse));
+        if (b.inverse_mass > 0.0F)
+            state_b.angular_velocity = add(
+                state_b.angular_velocity,
+                multiply(inverse_inertia_world(b, state_b, axis), impulse));
+    } else {
+        const Vec3 vector = multiply(axis, impulse);
+        if (a.inverse_mass > 0.0F) {
+            state_a.linear_velocity = subtract(
+                state_a.linear_velocity, multiply(vector, a.inverse_mass));
+            state_a.angular_velocity = subtract(
+                state_a.angular_velocity,
+                inverse_inertia_world(a, state_a, cross(arm_a, vector)));
+        }
+        if (b.inverse_mass > 0.0F) {
+            state_b.linear_velocity = add(
+                state_b.linear_velocity, multiply(vector, b.inverse_mass));
+            state_b.angular_velocity = add(
+                state_b.angular_velocity,
+                inverse_inertia_world(b, state_b, cross(arm_b, vector)));
+        }
+    }
+    return fabsf(impulse);
+}
+
+__device__ Vec3 relative_rotation_vector(
+    Quaternion frame_a, Quaternion frame_b) noexcept {
+    Quaternion relative = normalized_quaternion(
+        quaternion_multiply(conjugate(frame_a), frame_b));
+    if (relative.w < 0.0F)
+        relative = {-relative.x, -relative.y, -relative.z, -relative.w};
+    const float size = sqrtf(relative.x * relative.x + relative.y * relative.y +
+                             relative.z * relative.z);
+    if (size <= k_epsilon) return {};
+    const float angle = 2.0F * atan2f(
+        size, clamp_scalar(relative.w, -1.0F, 1.0F));
+    return {relative.x * angle / size, relative.y * angle / size,
+            relative.z * angle / size};
+}
+
+__host__ __device__ bool axis_enabled(
+    std::uint8_t mask, std::uint32_t axis) noexcept {
+    return (mask & static_cast<std::uint8_t>(1U << axis)) != 0U;
+}
+
+__device__ float limit_error(float value, float lower, float upper) noexcept {
+    return value < lower ? value - lower : value > upper ? value - upper : 0.0F;
+}
+
+__global__ void solve_rigid_constraints_kernel(
+    RigidConstraintResource *constraints, std::uint32_t capacity,
+    const RigidBodyId *ids, const BodyParameters *parameters,
+    RigidBodyState *states, std::uint32_t body_count, float timestep) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    std::uint32_t iterations = 0U;
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        RigidConstraintResource &constraint = constraints[index];
+        if (!constraint.alive) continue;
+        // Preserve the impulse that broke a constraint for later diagnostics.
+        if (!constraint.state.broken)
+            constraint.state.applied_impulse = 0.0F;
+        constraint.state.enabled = constraint.options.enabled && !constraint.state.broken;
+        if (constraint.state.enabled)
+            iterations = constraint.options.solver_iterations > iterations
+                ? constraint.options.solver_iterations : iterations;
+    }
+    for (std::uint32_t iteration = 0U; iteration < iterations; ++iteration) {
+        for (std::uint32_t index = 0U; index < capacity; ++index) {
+            RigidConstraintResource &constraint = constraints[index];
+            RigidConstraintOptions &options = constraint.options;
+            if (!constraint.alive || !constraint.state.enabled ||
+                iteration >= options.solver_iterations) continue;
+            const std::uint32_t dense_a = find_rigid_body_dense(
+                options.body_a, ids, body_count);
+            const std::uint32_t dense_b = find_rigid_body_dense(
+                options.body_b, ids, body_count);
+            if (dense_a == k_invalid_dense || dense_b == k_invalid_dense) continue;
+            const BodyParameters &a = parameters[dense_a];
+            const BodyParameters &b = parameters[dense_b];
+            RigidBodyState &state_a = states[dense_a];
+            RigidBodyState &state_b = states[dense_b];
+            const Vec3 arm_a = rotate(state_a.orientation, options.local_anchor_a);
+            const Vec3 arm_b = rotate(state_b.orientation, options.local_anchor_b);
+            const Vec3 anchor_error = subtract(
+                add(state_b.position, arm_b), add(state_a.position, arm_a));
+            const Quaternion frame_a = normalized_quaternion(
+                quaternion_multiply(state_a.orientation,
+                                    options.local_orientation_a));
+            const Quaternion frame_b = normalized_quaternion(
+                quaternion_multiply(state_b.orientation,
+                                    options.local_orientation_b));
+            const Vec3 rotation_error = relative_rotation_vector(frame_a, frame_b);
+            float applied = 0.0F;
+            for (std::uint32_t axis_index = 0U; axis_index < 3U; ++axis_index) {
+                const Vec3 world_axis = rotate(frame_a, basis_axis(axis_index));
+                const bool generic = options.type == RigidConstraintType::generic ||
+                    options.type == RigidConstraintType::generic_spring;
+                const bool motor = options.type == RigidConstraintType::motor;
+                const bool linear_lock =
+                    options.type == RigidConstraintType::fixed ||
+                    options.type == RigidConstraintType::point ||
+                    options.type == RigidConstraintType::hinge ||
+                    ((options.type == RigidConstraintType::slider ||
+                      options.type == RigidConstraintType::piston) && axis_index != 0U) ||
+                    (motor && (axis_index != 0U || !options.motor.linear_enabled));
+                const bool linear_spring =
+                    options.type == RigidConstraintType::generic_spring &&
+                    axis_enabled(options.linear_springs.axes, axis_index);
+                const bool linear_limit = generic &&
+                    axis_enabled(options.linear_limits.axes, axis_index);
+                float linear_error = dot(anchor_error, world_axis);
+                if (linear_limit && !linear_lock && !linear_spring)
+                    linear_error = limit_error(
+                        linear_error, component(options.linear_limits.lower, axis_index),
+                        component(options.linear_limits.upper, axis_index));
+                if (linear_lock || linear_spring ||
+                    (linear_limit && linear_error != 0.0F)) {
+                    applied += solve_linear_constraint_axis(
+                        a, state_a, b, state_b, arm_a, arm_b, world_axis,
+                        linear_error, timestep,
+                        component(options.linear_springs.stiffness, axis_index),
+                        component(options.linear_springs.damping, axis_index),
+                        linear_spring && !linear_lock);
+                }
+
+                const bool angular_lock =
+                    options.type == RigidConstraintType::fixed ||
+                    options.type == RigidConstraintType::slider ||
+                    (options.type == RigidConstraintType::hinge && axis_index != 2U) ||
+                    (options.type == RigidConstraintType::piston && axis_index != 0U) ||
+                    (motor && (axis_index != 0U || !options.motor.angular_enabled));
+                const bool angular_spring =
+                    options.type == RigidConstraintType::generic_spring &&
+                    axis_enabled(options.angular_springs.axes, axis_index);
+                const bool angular_limit = generic &&
+                    axis_enabled(options.angular_limits.axes, axis_index);
+                float angular_error = component(rotation_error, axis_index);
+                if (angular_limit && !angular_lock && !angular_spring)
+                    angular_error = limit_error(
+                        angular_error, component(options.angular_limits.lower, axis_index),
+                        component(options.angular_limits.upper, axis_index));
+                if (angular_lock || angular_spring ||
+                    (angular_limit && angular_error != 0.0F)) {
+                    applied += solve_angular_constraint_axis(
+                        a, state_a, b, state_b, world_axis, angular_error,
+                        timestep,
+                        component(options.angular_springs.stiffness, axis_index),
+                        component(options.angular_springs.damping, axis_index),
+                        angular_spring && !angular_lock);
+                }
+            }
+            if (options.type == RigidConstraintType::hinge &&
+                axis_enabled(options.angular_limits.axes, 2U)) {
+                const float error = limit_error(
+                    rotation_error.z, options.angular_limits.lower.z,
+                    options.angular_limits.upper.z);
+                if (error != 0.0F)
+                    applied += solve_angular_constraint_axis(
+                        a, state_a, b, state_b,
+                        rotate(frame_a, {0.0F, 0.0F, 1.0F}), error,
+                        timestep, 0.0F, 0.0F, false);
+            }
+            if (options.type == RigidConstraintType::slider &&
+                axis_enabled(options.linear_limits.axes, 0U)) {
+                const float value = dot(
+                    anchor_error, rotate(frame_a, {1.0F, 0.0F, 0.0F}));
+                const float error = limit_error(
+                    value, options.linear_limits.lower.x,
+                    options.linear_limits.upper.x);
+                if (error != 0.0F)
+                    applied += solve_linear_constraint_axis(
+                        a, state_a, b, state_b, arm_a, arm_b,
+                        rotate(frame_a, {1.0F, 0.0F, 0.0F}), error,
+                        timestep, 0.0F, 0.0F, false);
+            }
+            if (options.type == RigidConstraintType::piston) {
+                const Vec3 piston_axis = rotate(frame_a, {1.0F, 0.0F, 0.0F});
+                if (axis_enabled(options.linear_limits.axes, 0U)) {
+                    const float error = limit_error(
+                        dot(anchor_error, piston_axis), options.linear_limits.lower.x,
+                        options.linear_limits.upper.x);
+                    if (error != 0.0F)
+                        applied += solve_linear_constraint_axis(
+                            a, state_a, b, state_b, arm_a, arm_b, piston_axis,
+                            error, timestep, 0.0F, 0.0F, false);
+                }
+                if (axis_enabled(options.angular_limits.axes, 0U)) {
+                    const float error = limit_error(
+                        rotation_error.x, options.angular_limits.lower.x,
+                        options.angular_limits.upper.x);
+                    if (error != 0.0F)
+                        applied += solve_angular_constraint_axis(
+                            a, state_a, b, state_b, piston_axis, error,
+                            timestep, 0.0F, 0.0F, false);
+                }
+            }
+            if (options.type == RigidConstraintType::motor) {
+                const Vec3 motor_axis = rotate(frame_a, {1.0F, 0.0F, 0.0F});
+                const float inverse_iterations =
+                    1.0F / static_cast<float>(options.solver_iterations);
+                if (options.motor.linear_enabled)
+                    applied += solve_motor_axis(
+                        a, state_a, b, state_b, motor_axis, arm_a, arm_b,
+                        options.motor.linear_target_velocity,
+                        options.motor.linear_maximum_impulse * inverse_iterations,
+                        false);
+                if (options.motor.angular_enabled)
+                    applied += solve_motor_axis(
+                        a, state_a, b, state_b, motor_axis, arm_a, arm_b,
+                        options.motor.angular_target_velocity,
+                        options.motor.angular_maximum_impulse * inverse_iterations,
+                        true);
+            }
+            constraint.state.applied_impulse += applied;
+            if (options.breaking_impulse_threshold > 0.0F &&
+                constraint.state.applied_impulse >
+                    options.breaking_impulse_threshold) {
+                constraint.state.broken = true;
+                constraint.state.enabled = false;
+            }
+        }
+    }
+}
+
+__device__ bool constrained_collision_disabled(
+    RigidBodyId first, RigidBodyId second,
+    const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity) noexcept {
+    for (std::uint32_t index = 0U; index < constraint_capacity; ++index) {
+        const RigidConstraintResource &constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken || !constraint.options.disable_collisions)
+            continue;
+        const bool forward = same_rigid_body_id(
+            constraint.options.body_a, first) && same_rigid_body_id(
+            constraint.options.body_b, second);
+        const bool reverse = same_rigid_body_id(
+            constraint.options.body_a, second) && same_rigid_body_id(
+            constraint.options.body_b, first);
+        if (forward || reverse) return true;
+    }
+    return false;
+}
+
 __global__ void compute_rigid_world_bounds_kernel(
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     const RigidBodyState *states,
@@ -1223,7 +1592,9 @@ __global__ void compute_rigid_world_bounds_kernel(
 __global__ void broad_phase_rigid_pairs_kernel(
     const BodyParameters *parameters, const WorldAabb *world_bounds,
     const RigidBodyState *previous_states, const RigidBodyState *states,
-    const TriangleMeshResource *meshes,
+    const TriangleMeshResource *meshes, const RigidBodyId *ids,
+    const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity,
     std::uint32_t count, std::uint8_t *active_flags) {
     const std::uint32_t pair = blockIdx.x * blockDim.x + threadIdx.x;
     if (pair >= count * count) {
@@ -1237,6 +1608,9 @@ __global__ void broad_phase_rigid_pairs_kernel(
         collider_index < index) {
         active = false;
     }
+    if (active && constrained_collision_disabled(
+            ids[index], ids[collider_index], constraints,
+            constraint_capacity)) active = false;
     if (active) {
         const float margin = parameters[index].collision_margin +
                              parameters[collider_index].collision_margin;
@@ -1988,6 +2362,78 @@ enum class TimingStage : std::uint8_t {
         return failure(StatusCode::invalid_argument,
                        "rigid body material and limits are invalid");
     }
+    return success();
+}
+
+[[nodiscard]] bool valid_constraint_mask(std::uint8_t axes) noexcept {
+    return (axes & ~rigid_constraint_all_axes) == 0U;
+}
+
+[[nodiscard]] Status validate_constraint_options(
+    const RigidConstraintOptions &options) noexcept {
+    if (static_cast<std::uint8_t>(options.type) >
+        static_cast<std::uint8_t>(RigidConstraintType::motor))
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint type is invalid");
+    if (options.body_a == options.body_b)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint bodies must be distinct");
+    if (!finite(options.local_anchor_a) || !finite(options.local_anchor_b) ||
+        !finite(options.local_orientation_a) ||
+        !finite(options.local_orientation_b))
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint frames must contain finite values");
+    const auto quaternion_size = [](Quaternion value) {
+        return value.x * value.x + value.y * value.y + value.z * value.z +
+               value.w * value.w;
+    };
+    if (quaternion_size(options.local_orientation_a) <= k_epsilon * k_epsilon ||
+        quaternion_size(options.local_orientation_b) <= k_epsilon * k_epsilon)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint orientations must be nonzero");
+    if (!valid_constraint_mask(options.linear_limits.axes) ||
+        !valid_constraint_mask(options.angular_limits.axes) ||
+        !valid_constraint_mask(options.linear_springs.axes) ||
+        !valid_constraint_mask(options.angular_springs.axes))
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint axis mask is invalid");
+    const auto valid_limits = [](const RigidConstraintLimitOptions &limits) {
+        if (!finite(limits.lower) || !finite(limits.upper)) return false;
+        for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+            if (axis_enabled(limits.axes, axis) &&
+                component(limits.lower, axis) > component(limits.upper, axis))
+                return false;
+        return true;
+    };
+    const auto valid_springs = [](const RigidConstraintSpringOptions &springs) {
+        if (!finite(springs.stiffness) || !finite(springs.damping)) return false;
+        for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+            if (axis_enabled(springs.axes, axis) &&
+                (component(springs.stiffness, axis) < 0.0F ||
+                 component(springs.damping, axis) < 0.0F)) return false;
+        return true;
+    };
+    if (!valid_limits(options.linear_limits) ||
+        !valid_limits(options.angular_limits))
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint limits are invalid");
+    if (!valid_springs(options.linear_springs) ||
+        !valid_springs(options.angular_springs))
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint springs are invalid");
+    if (!finite(options.motor.linear_target_velocity) ||
+        !finite(options.motor.angular_target_velocity) ||
+        !finite(options.motor.linear_maximum_impulse) ||
+        options.motor.linear_maximum_impulse < 0.0F ||
+        !finite(options.motor.angular_maximum_impulse) ||
+        options.motor.angular_maximum_impulse < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint motor is invalid");
+    if (!finite(options.breaking_impulse_threshold) ||
+        options.breaking_impulse_threshold < 0.0F ||
+        options.solver_iterations == 0U || options.solver_iterations > 64U)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint breaking threshold or iterations are invalid");
     return success();
 }
 
@@ -5053,6 +5499,7 @@ struct World::Impl {
     WorldOptions options{};
     int device_ordinal{-1};
     std::uint32_t rigid_body_count{};
+    std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint32_t fluid_count{};
     std::uint64_t emitted_particle_count{};
@@ -5088,6 +5535,7 @@ struct World::Impl {
     BodyParameters *parameters{};
     BodyAccumulator *accumulators{};
     KinematicTarget *targets{};
+    RigidConstraintResource *rigid_constraints{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
     Vec3 *debug_applied_forces{};
@@ -5278,6 +5726,7 @@ struct World::Impl {
         release_managed(fluid_previous_states);
         release_managed(states[0]);
         release_managed(ids);
+        release_managed(rigid_constraints);
         release_managed(targets);
         release_managed(accumulators);
         release_managed(parameters);
@@ -5351,6 +5800,22 @@ struct World::Impl {
                            "rigid body handle is stale");
         }
         dense = slot.dense_index;
+        return success();
+    }
+
+    [[nodiscard]] Status validate_handle(
+        RigidConstraintId id, RigidConstraintResource *&constraint) const noexcept {
+        if (id.index >= options.rigid_constraint_capacity ||
+            rigid_constraints == nullptr) {
+            return failure(StatusCode::invalid_handle,
+                           "rigid constraint handle index is invalid");
+        }
+        RigidConstraintResource &resource = rigid_constraints[id.index];
+        if (!resource.alive || resource.generation != id.generation) {
+            return failure(StatusCode::invalid_handle,
+                           "rigid constraint handle is stale");
+        }
+        constraint = &resource;
         return success();
     }
 
@@ -5543,6 +6008,11 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_constraints,
+                              options.rigid_constraint_capacity);
+    if (!status) {
+        return status;
+    }
     status = allocate_managed(implementation->ids,
                               options.rigid_body_capacity);
     if (!status) {
@@ -5685,6 +6155,8 @@ Status World::create(WorldOptions options, World &output,
                 BodyAccumulator{});
     std::fill_n(implementation->targets, options.rigid_body_capacity,
                 KinematicTarget{});
+    std::fill_n(implementation->rigid_constraints,
+                options.rigid_constraint_capacity, RigidConstraintResource{});
     std::fill_n(implementation->ids, options.rigid_body_capacity, RigidBodyId{});
     std::fill_n(implementation->states[0], options.rigid_body_capacity,
                 RigidBodyState{});
@@ -8706,6 +9178,16 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
     if (!status) {
         return status;
     }
+    for (std::uint32_t index = 0U;
+         index < impl_->options.rigid_constraint_capacity; ++index) {
+        const RigidConstraintResource &constraint =
+            impl_->rigid_constraints[index];
+        if (constraint.alive &&
+            (constraint.options.body_a == body ||
+             constraint.options.body_b == body))
+            return failure(StatusCode::invalid_argument,
+                           "rigid body is still referenced by a constraint");
+    }
     for (const auto &smoke : impl_->smokes)
         if (smoke && smoke->alive && smoke->options.obstacle == body)
             return failure(StatusCode::invalid_argument,
@@ -8933,6 +9415,121 @@ Status World::read_rigid_body_state(RigidBodyId body, RigidBodyState &output,
     if (error != cudaSuccess) {
         return cuda_failure(error, "rigid body state readback synchronization failed");
     }
+    output = temporary;
+    return success();
+}
+
+Status World::add_rigid_constraint(
+    RigidConstraintOptions options, RigidConstraintId &output) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    status = validate_constraint_options(options);
+    if (!status) return status;
+    std::uint32_t dense_a = 0U;
+    std::uint32_t dense_b = 0U;
+    if (!(status = impl_->validate_handle(options.body_a, dense_a)) ||
+        !(status = impl_->validate_handle(options.body_b, dense_b))) return status;
+    if (impl_->parameters[dense_a].motion != MotionType::dynamic &&
+        impl_->parameters[dense_b].motion != MotionType::dynamic)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint needs at least one dynamic body");
+    if (impl_->rigid_constraint_count >= impl_->options.rigid_constraint_capacity)
+        return failure(StatusCode::capacity_exceeded,
+                       "rigid constraint capacity is exhausted");
+    std::uint32_t slot = k_invalid_dense;
+    for (std::uint32_t index = 0U;
+         index < impl_->options.rigid_constraint_capacity; ++index)
+        if (!impl_->rigid_constraints[index].alive) {
+            slot = index;
+            break;
+        }
+    if (slot == k_invalid_dense)
+        return failure(StatusCode::internal_error,
+                       "no free rigid constraint slot was found");
+    options.local_orientation_a = normalized_quaternion(
+        options.local_orientation_a);
+    options.local_orientation_b = normalized_quaternion(
+        options.local_orientation_b);
+    RigidConstraintResource &resource = impl_->rigid_constraints[slot];
+    if (resource.generation == 0U) resource.generation = 1U;
+    resource.options = options;
+    resource.state = {.enabled = options.enabled};
+    resource.alive = true;
+    ++impl_->rigid_constraint_count;
+    ++impl_->revision;
+    output = {slot, resource.generation};
+    return success();
+}
+
+Status World::update_rigid_constraint(
+    RigidConstraintId id, RigidConstraintOptions options) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    status = validate_constraint_options(options);
+    if (!status) return status;
+    RigidConstraintResource *resource = nullptr;
+    status = impl_->validate_handle(id, resource);
+    if (!status) return status;
+    std::uint32_t dense_a = 0U;
+    std::uint32_t dense_b = 0U;
+    if (!(status = impl_->validate_handle(options.body_a, dense_a)) ||
+        !(status = impl_->validate_handle(options.body_b, dense_b))) return status;
+    if (impl_->parameters[dense_a].motion != MotionType::dynamic &&
+        impl_->parameters[dense_b].motion != MotionType::dynamic)
+        return failure(StatusCode::invalid_argument,
+                       "rigid constraint needs at least one dynamic body");
+    options.local_orientation_a = normalized_quaternion(
+        options.local_orientation_a);
+    options.local_orientation_b = normalized_quaternion(
+        options.local_orientation_b);
+    resource->options = options;
+    resource->state = {.enabled = options.enabled};
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_rigid_constraint(RigidConstraintId id) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    RigidConstraintResource *resource = nullptr;
+    status = impl_->validate_handle(id, resource);
+    if (!status) return status;
+    resource->alive = false;
+    resource->state = {};
+    ++resource->generation;
+    if (resource->generation == 0U) resource->generation = 1U;
+    --impl_->rigid_constraint_count;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::read_rigid_constraint_state(
+    RigidConstraintId id, RigidConstraintState &output,
+    cudaStream_t stream) const noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        status = wait_for_completion(impl_->frame);
+        if (!status) return status;
+    }
+    RigidConstraintResource *resource = nullptr;
+    status = impl_->validate_handle(id, resource);
+    if (!status) return status;
+    RigidConstraintState temporary{};
+    cudaError_t error = cudaMemcpyAsync(
+        &temporary, &resource->state, sizeof(temporary),
+        cudaMemcpyDeviceToHost, stream);
+    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+    if (error != cudaSuccess)
+        return cuda_failure(error, "rigid constraint state readback failed");
     output = temporary;
     return success();
 }
@@ -9875,7 +10472,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                                          stream>>>(
             impl_->parameters, impl_->rigid_world_bounds,
             impl_->states[impl_->current_state], impl_->states[output_state],
-            impl_->meshes,
+            impl_->meshes, impl_->ids, impl_->rigid_constraints,
+            impl_->options.rigid_constraint_capacity,
             impl_->rigid_body_count, impl_->rigid_active_pair_flags);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
@@ -10040,6 +10638,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         ? impl_->rigid_contact_capacity : 0U,
                     pass == 0U);
             }
+        }
+        if (impl_->rigid_constraint_count != 0U) {
+            solve_rigid_constraints_kernel<<<1U, 1U, 0, stream>>>(
+                impl_->rigid_constraints,
+                impl_->options.rigid_constraint_capacity, impl_->ids,
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count, substep_timestep);
         }
         clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
@@ -11165,6 +11770,7 @@ Status World::collect_statistics(WorldStatistics &output,
              3U * sizeof(std::uint32_t);
     }
     output.rigid_body_count = impl_->rigid_body_count;
+    output.rigid_constraint_count = impl_->rigid_constraint_count;
     output.triangle_mesh_count = impl_->triangle_mesh_count;
     output.allocated_bytes +=
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
@@ -11191,7 +11797,9 @@ Status World::collect_statistics(WorldStatistics &output,
         4U * sizeof(std::uint32_t) +
         impl_->options.triangle_mesh_capacity * sizeof(TriangleMeshResource) +
         impl_->options.paint_field_capacity * sizeof(PaintFieldResource) +
-        impl_->options.paint_rule_capacity * sizeof(PaintRuleResource);
+        impl_->options.paint_rule_capacity * sizeof(PaintRuleResource) +
+        impl_->options.rigid_constraint_capacity *
+            sizeof(RigidConstraintResource);
     output.allocated_bytes +=
         impl_->debug_frames.capacity() * sizeof(PhysicsDebugFrame);
     for (const PhysicsDebugFrame &frame : impl_->debug_frames) {

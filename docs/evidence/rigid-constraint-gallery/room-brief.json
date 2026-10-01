@@ -1,0 +1,15 @@
+{
+  "schema": "ballroller.room-brief.v1",
+  "roomId": "rigid-constraint-gallery",
+  "family": "ringroller",
+  "purpose": "Exercise every Blender-compatible rigid-body constraint through the installed API and gallery.",
+  "runtimeSurface": "ParallelMater OptiX gallery with Blender-authored schema-2 GLB scenes.",
+  "boundsMeters": [16, 12, 4],
+  "hero": {"id": "rigid-constraint", "role": "Make each joint type and its permitted motion legible under impact or input.", "reservedBoundsMeters": [6, 6, 3]},
+  "symmetry": {"mode": "none", "order": 1, "appliesTo": [], "exceptions": []},
+  "circulation": {"description": "Open inspection pad; moving bodies retain a clear impact or driving lane.", "minimumClearanceMeters": 1},
+  "productionCamera": {"viewport": [960, 720], "location": [6, 5, 6], "target": [0, 0.8, 0], "verticalFovDegrees": 45},
+  "performanceBudget": {"maxSceneTriangles": 10000, "maxVLowBytes": 8388608, "maxHighTextureBytes": 8388608},
+  "creditBudget": {"maximumCredits": 0, "approvalRequired": true},
+  "artifacts": {"floorPlan": "plans/floor-plan.md", "wallElevations": ["plans/elevations-not-applicable.md"], "visualTarget": "renders/contact-sheet.png", "openingContactSheet": "plans/openings-not-applicable.md"}
+}
