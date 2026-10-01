@@ -52,8 +52,11 @@ def main() -> None:
     emitter["pm_smoke_lifetime"] = 5.0
     emitter["pm_smoke_radius"] = 0.085
     emitter["pm_smoke_buoyancy"] = 0.12
-    emitter["pm_smoke_response"] = 6.0
-    emitter["pm_smoke_wake_strength"] = 4.0
+    emitter["pm_smoke_wind_response"] = 0.1
+    emitter["pm_smoke_rest_number_density"] = 6.0
+    emitter["pm_smoke_pressure_stiffness"] = 60.0
+    emitter["pm_smoke_viscosity"] = 0.02
+    emitter["pm_smoke_vorticity_confinement"] = 4.0
 
     bpy.context.scene.render.engine = "BLENDER_EEVEE_NEXT"
     bpy.context.scene.frame_set(1)

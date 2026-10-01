@@ -165,7 +165,6 @@ int main() {
         contact_scene.smoke_options.emitter_half_extents = {0.16F, 0.22F};
         contact_scene.smoke_options.initial_velocity = {2.0F, 0.0F, 0.0F};
         contact_scene.smoke_options.wind = {2.0F, 0.0F, 0.0F};
-        contact_scene.smoke_options.wake_strength = 0.0F;
         contact_scene.smoke_options.buoyancy = 0.0F;
         contact_scene.smoke_options.particles_per_second = 300.0F;
         World contact_world, pass_world;
@@ -214,7 +213,6 @@ int main() {
         crossing_scene.smoke_options.initial_velocity = {20.0F, 0.0F, 0.0F};
         crossing_scene.smoke_options.wind = {20.0F, 0.0F, 0.0F};
         crossing_scene.smoke_options.maximum_speed = 25.0F;
-        crossing_scene.smoke_options.wake_strength = 0.0F;
         crossing_scene.smoke_options.buoyancy = 0.0F;
         World crossing_world;
         SceneInstance crossing;

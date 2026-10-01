@@ -135,6 +135,8 @@ int main() {
         float tracer_difference = 0.0F;
         std::size_t upstream_surface_particles = 0U;
         std::size_t beyond_cloth_particles = 0U;
+        std::size_t downstream_any = 0U;
+        std::size_t lateral_escape = 0U;
         for (std::size_t index = 0; index < smoke_positions.size(); ++index) {
             tracer_difference += distance(smoke_positions[index],
                                           reference_smoke_positions[index]);
@@ -146,6 +148,11 @@ int main() {
             if (p.x > 1.5F && p.y > -0.5F && p.y < 2.5F &&
                 std::abs(p.z) < 1.5F)
                 ++beyond_cloth_particles;
+            if (p.x > 1.5F) {
+                ++downstream_any;
+                if (p.y <= -0.5F || p.y >= 2.5F || std::abs(p.z) >= 1.5F)
+                    ++lateral_escape;
+            }
         }
         std::cout << "frames=" << frames
                   << " coupled_ms_per_frame=" << coupled_milliseconds / frames
@@ -156,11 +163,14 @@ int main() {
                   << " max_bond_strain=" << maximum_bond_strain
                   << " upstream_surface_particles=" << upstream_surface_particles
                   << " beyond_cloth_particles=" << beyond_cloth_particles
+                  << " downstream_any=" << downstream_any
+                  << " lateral_escape=" << lateral_escape
                   << " smoke_particles=" << smoke.particle_count << '\n';
         require(cloth_difference > 0.1F && tracer_difference > 1.0F,
                 "smoke and cloth did not influence each other");
-        require(upstream_surface_particles < 550U && beyond_cloth_particles > 500U,
-                "smoke stalled against the cloth rather than flowing around it");
+        require(upstream_surface_particles < 550U && downstream_any > 500U &&
+                lateral_escape > 500U,
+                "smoke stalled against the cloth rather than flowing around its edges");
         require(maximum_speed < 20.0F && maximum_bond_strain < 1.0F,
                 "smoke-cloth simulation became unstable");
 
@@ -174,7 +184,6 @@ int main() {
         crossing_scene.smoke_options.initial_velocity = {6.0F, 0.0F, 0.0F};
         crossing_scene.smoke_options.wind = {6.0F, 0.0F, 0.0F};
         crossing_scene.smoke_options.maximum_speed = 8.0F;
-        crossing_scene.smoke_options.wake_strength = 0.0F;
         World crossing_world;
         SceneInstance crossing;
         require(create_scene_world(crossing_scene, crossing_world, crossing),

@@ -342,17 +342,21 @@ def copy_flow_for_export(
             exported["pm_temperature"] = float(source["pm_temperature"])
     if smoke:
         obstacle = source.get("pm_smoke_obstacle")
-        if not isinstance(obstacle, str) or not obstacle:
-            raise RuntimeError(f"{source.name}: pm_smoke_obstacle must name a rigid sphere")
-        exported["pm_smoke_obstacle"] = obstacle
+        if obstacle is not None:
+            if not isinstance(obstacle, str) or not obstacle:
+                raise RuntimeError(f"{source.name}: pm_smoke_obstacle must name a rigid mesh")
+            exported["pm_smoke_obstacle"] = obstacle
         for key, default in (
             ("pm_smoke_capacity", 4500),
             ("pm_smoke_rate", 900.0),
             ("pm_smoke_lifetime", 5.0),
             ("pm_smoke_radius", 0.085),
             ("pm_smoke_buoyancy", 0.12),
-            ("pm_smoke_response", 6.0),
-            ("pm_smoke_wake_strength", 4.0),
+            ("pm_smoke_wind_response", 0.1),
+            ("pm_smoke_rest_number_density", 6.0),
+            ("pm_smoke_pressure_stiffness", 60.0),
+            ("pm_smoke_viscosity", 0.02),
+            ("pm_smoke_vorticity_confinement", 4.0),
         ):
             exported[key] = source.get(key, default)
     return exported

@@ -77,8 +77,8 @@ Headless physics builds remain free of OpenGL and OptiX.
 17. **Rope Cloth** — four post-to-corner ropes suspend a subdivided cloth sheet
     and catch a falling rigid sphere through explicit rope/cloth API joints.
 18. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
-    a passive sphere. The API diverts them around the surface and sheds a
-    measurable alternating wake; the gallery composites translucent splats.
+    a passive sphere mesh. Local particle pressure, viscosity, and no-slip
+    triangle contact produce the wake; the gallery composites translucent splats.
 19. **Smoke Water** — `SmokeWater.blend` starts water at 80°C above an open
     container. The finite `Hot` mesh is a visible passive collision plate and
     a 500°C thermal source. Smoke blows across the falling liquid; contact
@@ -87,23 +87,23 @@ Headless physics builds remain free of OpenGL and OptiX.
     `--smoke-water`; `P` changes water capacity, `V` shows particles, `R`
     restarts, and headless output reports the boiled-particle count.
 20. **Smoke Soft Body** — `SmokeSoftbody.blend` contains 20 Goal-pinned soft
-    posts in the smoke plume. The shared API bends them with smoke-carrier
-    wind and deflects tracers at their live surfaces. Select with
+    posts in the smoke plume. The shared API bends them with nearby particle
+    velocities and deflects tracers at their live surfaces. Select with
     `--smoke-softbody`; `V` reveals the internal springs and `R` restarts.
 21. **Smoke Cloth** — `SmokeCloth.blend` pins two edges of a 17×17 sheet in
     front of the smoke flow. The API's wind coupling bends the free cloth and
     two-sided triangle contact deflects smoke tracers. Select with
     `--smoke-cloth`; `V` reveals cloth bonds and `R` restarts.
 22. **Smoke Rope** — `SmokeRope.blend` suspends an active rigid panel from four
-    ropes attached to two passive posts. The API's carrier wind bends the
+    ropes attached to two passive posts. Local smoke-particle motion bends the
     ropes and loads the panel; live capsule and panel-triangle contacts divert
     smoke tracers. Select with `--smoke-rope`; `V` reveals rope segments and
     `R` restarts.
 
 All five smoke scenes use the arrow keys to ease gravity up to 45° from down;
 releasing the arrows returns it to straight down. Buoyancy and steam rise
-follow the tilt. The carrier wind also pushes dynamic rigid spheres and open
-panels; Blender-passive bodies remain fixed.
+follow the tilt. Only smoke particles near dynamic rigid spheres and open
+panels transfer force; Blender-passive bodies remain fixed.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and

@@ -326,6 +326,11 @@ pass.
 - The API emits bounded GPU tracer slots, diverts them around a spherical
   obstacle with a no-through-flow field, sweeps contacts to prevent tunneling,
   and sheds alternating vortices. The gallery only composites smoke visuals.
+- The later mesh-obstacle update supersedes that original analytic sphere
+  flow and collision path; the same API now accepts arbitrary rigid triangles.
+- The local particle-gas update supersedes the prescribed wake and global
+  rigid wind. Neighbor density, pressure, viscosity, and measured curl govern
+  particle motion; near-wall particles alone push rigid meshes.
 - The 300-frame GPU comparison against zero wake measures about 0.19 m/s mean
   transverse wake difference for 2,887 downstream particles. Exporter, API,
   smoke physics, headless rendering, gallery, and rope–cloth regressions pass.
@@ -368,6 +373,8 @@ pass.
 - Follow-up: contact now redirects blocked smoke tangentially toward cloth
   edges. A 300-frame regression checks that the plume reaches the far side
   without collecting against the windward surface.
+- The local-particle update removes that scripted edgeward speed; measured
+  particle pressure and tangential motion still carry the plume around edges.
 
 ## PR 26 — Smoke–rope and suspended panel coupling (merged)
 
@@ -387,13 +394,14 @@ pass.
   controller. Smoke buoyancy and steam lift follow the resulting vector.
 - Projected triangle area replaces signed-area cancellation, so the shared
   smoke/rigid API can push closed dynamic spheres as well as open panels.
-  The sphere's existing analytic smoke contact remains the only tracer
-  contact for that obstacle.
+  The designated obstacle also uses the shared tracer/triangle contact path.
 - Soft bodies, cloth, and ropes share one bounded wind-response calculation;
   smoke/soft-body options now expose the acceleration cap. Tuning the shared
   defaults reduced the 20-post scene's maximum bond stretch from 85% to 41%
   while retaining visible wind response. GPU regressions cover the sphere,
   panel, soft bodies, cloth, rope, and tilt.
+- The subsequent local-particle smoke update replaces projected-area rigid
+  drag with near-wall particle reaction and samples deformable wind locally.
 
 ## Later — Gallery game shell
 
@@ -410,6 +418,6 @@ pass.
 
 ## Later, one solver at a time
 
-Extend smoke to general rigid meshes and two-way coupling after measuring
-the spherical-obstacle tracer baseline. No campaign or presentation concept
-is promoted into the installed library.
+Measure the local-particle smoke baseline and investigate equal-and-opposite
+momentum transfer for the remaining soft-body, cloth, and rope couplings.
+No campaign or presentation concept is promoted into the installed library.

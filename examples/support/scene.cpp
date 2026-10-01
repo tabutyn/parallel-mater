@@ -1271,10 +1271,6 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             const std::string obstacle =
                 extras.string("pm_smoke_obstacle").value_or("");
-            if (obstacle.empty()) {
-                error = name + ": smoke emitter needs pm_smoke_obstacle";
-                return false;
-            }
             const double capacity =
                 extras.number("pm_smoke_capacity").value_or(4500.0);
             if (!std::isfinite(capacity) || capacity < 1.0 ||
@@ -1301,9 +1297,15 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 .buoyancy = static_cast<float>(
                     extras.number("pm_smoke_buoyancy").value_or(0.12)),
                 .response = static_cast<float>(
-                    extras.number("pm_smoke_response").value_or(6.0)),
-                .wake_strength = static_cast<float>(
-                    extras.number("pm_smoke_wake_strength").value_or(4.0)),
+                    extras.number("pm_smoke_wind_response").value_or(0.1)),
+                .rest_number_density = static_cast<float>(
+                    extras.number("pm_smoke_rest_number_density").value_or(6.0)),
+                .pressure_stiffness = static_cast<float>(
+                    extras.number("pm_smoke_pressure_stiffness").value_or(60.0)),
+                .viscosity = static_cast<float>(
+                    extras.number("pm_smoke_viscosity").value_or(0.02)),
+                .vorticity_confinement = static_cast<float>(
+                    extras.number("pm_smoke_vorticity_confinement").value_or(4.0)),
             };
             output.smoke_obstacle_name = obstacle;
             output.has_smoke = true;
@@ -1595,9 +1597,12 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         .smoke_rigid_coupling_capacity = scene.has_smoke
             ? static_cast<std::uint32_t>(std::count_if(
                   scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
-                  [](const RigidBodyDefinition &body) {
+                  [&](const RigidBodyDefinition &body) {
                       return body.smoke_collider ||
-                          body.options.motion == MotionType::dynamic;
+                          body.options.motion == MotionType::dynamic ||
+                          (!scene.smoke_obstacle_name.empty() &&
+                           (body.name == scene.smoke_obstacle_name ||
+                            body.source_name == scene.smoke_obstacle_name));
                   })) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
@@ -1759,45 +1764,32 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     if (scene.has_smoke) {
         int obstacle = -1;
-        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index)
-            if (scene.rigid_bodies[index].name == scene.smoke_obstacle_name ||
-                scene.rigid_bodies[index].source_name == scene.smoke_obstacle_name) {
+        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+            if (!scene.smoke_obstacle_name.empty() &&
+                (scene.rigid_bodies[index].name == scene.smoke_obstacle_name ||
+                 scene.rigid_bodies[index].source_name == scene.smoke_obstacle_name)) {
                 if (obstacle >= 0)
                     return {StatusCode::invalid_argument, cudaSuccess,
                             "smoke obstacle name is ambiguous"};
                 obstacle = static_cast<int>(index);
             }
-        if (obstacle < 0)
-            return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle rigid sphere was not found"};
-        const auto &body = scene.rigid_bodies[obstacle];
-        if (body.mesh_indices.size() != 1U)
-            return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle must be one rigid sphere"};
-        const auto &mesh = scene.meshes[body.mesh_indices[0]];
-        float radius = 0.0F, smallest = FLT_MAX;
-        for (const auto &vertex : mesh.vertices) {
-            const float distance = math::length(vertex.position);
-            radius = std::max(radius, distance);
-            smallest = std::min(smallest, distance);
         }
-        if (radius <= 0.0F || smallest < radius * 0.90F)
+        if (!scene.smoke_obstacle_name.empty() && obstacle < 0)
             return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle mesh must be centered and spherical"};
+                    "smoke obstacle rigid mesh was not found"};
         SmokeOptions options = scene.smoke_options;
-        options.obstacle = output.rigid_bodies[obstacle];
-        options.obstacle_radius = radius;
         const Status status = world.add_smoke(options, output.smoke);
         if (!status) return status;
         output.has_smoke = true;
         for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
-            if (!scene.rigid_bodies[index].smoke_collider &&
+            if (static_cast<int>(index) != obstacle &&
+                !scene.rigid_bodies[index].smoke_collider &&
                 scene.rigid_bodies[index].options.motion != MotionType::dynamic)
                 continue;
             SmokeRigidCouplingId coupling{};
             const Status coupled = world.add_smoke_rigid_coupling(
                 {.smoke = output.smoke, .body = output.rigid_bodies[index],
-                 .tracer_contact = static_cast<int>(index) != obstacle},
+                 .tracer_contact = true},
                 coupling);
             if (!coupled) return coupled;
             output.smoke_rigid_couplings.push_back(coupling);

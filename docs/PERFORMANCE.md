@@ -1,5 +1,40 @@
 # Physics performance
 
+## Local smoke particle pressure and rigid reaction (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The 4,500-slot Smoke regression now uses sorted particle neighbors, local
+number-density pressure, viscosity, and measured-vorticity confinement.
+Compared with identical particle flow without obstacle contact, 2,414 lee
+particles differ by 0.094 m/s in mean transverse velocity. Maximum sampled
+pressure was 21.7 in solver units. Mean lee-region curl was 0.358 versus
+0.222 for the unobstructed control, measured from neighboring velocities.
+Of 170 particles
+within 0.1 m of the sphere surface, mean speed was 0.0037 m/s versus the
+1.6 m/s inlet speed. A 90-frame dynamic-sphere test moved 0.232 m farther
+with particle reaction than its contact-only zero-mass reference; a lower
+particle emission rate produced less push. Pre-emission and distant-body
+controls measured no smoke force.
+
+The 20-post SmokeSoftbody test averaged 27.9 ms/frame at 180 frames, with
+maximum bond stretch 28.8%; this improves on the immediately preceding
+triangle-obstacle prototype at about 30 ms/frame but remains slower than the
+older prescribed-field baseline at about 21 ms/frame. The 300-frame
+SmokeCloth test averaged 3.37 ms/frame coupled and 3.03 ms/frame for its
+reference after removing the old scripted edgeward contact speed, excluding
+rendering. The new gas model is weakly compressible,
+not a pressure-projected incompressible solve; deformable contacts still lack
+equal-and-opposite particle reactions.
+
+## Smoke triangle-obstacle update (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The smoke obstacle now uses a triangle-mesh carrier deflection and swept
+tracer/triangle contact instead of analytic sphere flow and collision. A
+non-spherical box regression confirms both contact and wake. The 20-post
+SmokeSoftbody scene remains stable, but its measured physics step increased
+from about 21 to 30 ms/frame at 180 frames; this is a known cost of the
+former mesh-guided path and needed profiling before further optimization.
+The local-particle update above supersedes that prescribed-field path.
+
 ## Shared smoke force and soft-body wind (RTX 3050 Ti Laptop GPU, 2026-09-30)
 
 The closed 1 kg sphere moves 1.45 m farther along the carrier wind than an

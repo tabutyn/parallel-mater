@@ -105,9 +105,12 @@ int main() {
                   "remove smoke-rigid coupling");
         check(world.remove_smoke(instance.smoke), "remove former coupled smoke");
 
-        // The carrier-gas field, not just the tracer visualization, pushes water.
+        // Nearby smoke particles, not a scene-wide wind field, push water.
         SceneDefinition blown = authored;
-        blown.initial_particles = {{{-0.8F, 1.5F, 0.0F}, {}, 80.0F}};
+        blown.initial_particles = {{
+            {blown.smoke_options.emitter_center.x + 0.2F,
+             blown.smoke_options.emitter_center.y,
+             blown.smoke_options.emitter_center.z}, {}, 80.0F}};
         blown.fluid_options.capacity = 32U;
         blown.thermal_surfaces.front().heat_transfer_rate = 0.0F;
         SceneDefinition still = blown;
@@ -130,6 +133,35 @@ int main() {
         check(windy_velocity.size() == 1U && calm_velocity.size() == 1U &&
               windy_velocity[0].x > calm_velocity[0].x + 0.1F,
               "smoke flow did not push water");
+        SceneDefinition distant = blown;
+        distant.initial_particles[0].position.y += 5.0F;
+        SceneDefinition distant_reference = distant;
+        distant_reference.thermal_surfaces.clear();
+        World distant_world, distant_reference_world;
+        SceneInstance distant_instance, distant_reference_instance;
+        check(create_scene_world(distant, distant_world, distant_instance),
+              "create distant water world");
+        check(create_scene_world(distant_reference, distant_reference_world,
+                                 distant_reference_instance),
+              "create distant water reference");
+        for (int frame = 0; frame < 12; ++frame) {
+            const StepOptions step{.timestep = 1.0F / 60.0F,
+                                   .substeps = 1U, .gravity = {}};
+            check(distant_world.step(step), "step distant water");
+            check(distant_reference_world.step(step),
+                  "step distant water reference");
+        }
+        FluidDeviceView far_water{}, far_reference{};
+        check(distant_world.fluid_view(distant_instance.fluid, far_water),
+              "read distant water");
+        check(distant_reference_world.fluid_view(
+                  distant_reference_instance.fluid, far_reference),
+              "read distant water reference");
+        const auto far_velocity = read(far_water.velocities);
+        const auto far_calm_velocity = read(far_reference.velocities);
+        check(far_velocity.size() == 1U && far_calm_velocity.size() == 1U &&
+              std::abs(far_velocity[0].x - far_calm_velocity[0].x) < 1.0e-4F,
+              "smoke pushed water outside the local particle plume");
 
         SceneDefinition interaction = authored;
         interaction.fluid_options.capacity = 30'000U;

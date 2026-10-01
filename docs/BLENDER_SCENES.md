@@ -51,14 +51,19 @@ materials remain visible regardless of their alpha value.
 `Smoke.blend` is reproducible with `examples/assets/tools/make_smoke_scene.py`.
 It has a passive rigid Icosphere and one mesh with **Fluid → Flow**, **Flow
 Type: Smoke**, **Flow Behavior: Inflow**, and initial velocity along +X. The
-flow mesh is a world-YZ plane. Its `pm_smoke_obstacle` custom string property
-names the rigid sphere. Exporting creates `pm_system=smoke_emitter`, separate
+flow mesh is a world-YZ plane. Its optional `pm_smoke_obstacle` custom string
+property names a rigid obstacle mesh to opt into smoke contact.
+Exporting creates `pm_system=smoke_emitter`, separate
 from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
 `pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
-`pm_smoke_response`, and `pm_smoke_wake_strength` are optional emitter
-properties. The gallery resolves the obstacle name and radius and registers a
-`SmokeOptions` resource in the physics API. The obstacle may be a passive or
-active centered sphere; smoke collision follows its translation. One smoke
+`pm_smoke_wind_response`, `pm_smoke_rest_number_density`,
+`pm_smoke_pressure_stiffness`, `pm_smoke_viscosity`, and
+`pm_smoke_vorticity_confinement` are optional emitter properties. The older
+`pm_smoke_response` and `pm_smoke_wake_strength` properties are ignored.
+The gallery registers a `SmokeOptions` resource and couples dynamic rigid
+bodies automatically; the named passive obstacle is coupled too. Coupled
+obstacles may be any rigid triangle mesh; smoke contact
+follows its translation and rotation. One smoke
 inlet per scene is supported.
 
 `SmokeSoftbody.blend` uses the same Smoke Inflow and a twenty-object grid of

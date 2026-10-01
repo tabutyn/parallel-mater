@@ -357,8 +357,9 @@ struct FluidParticle {
     float temperature{20.0F}; // degrees Celsius
 };
 
-// Smoke is a dilute tracer gas, not the incompressible liquid solver. The
-// spherical obstacle creates a no-through-flow deflection and a shedding wake.
+// Smoke is a weakly compressible particle gas, separate from liquid.
+// Coupled obstacles may be any rigid triangle meshes; wakes emerge from local
+// particle pressure, viscosity, and no-slip contact.
 struct SmokeOptions {
     std::uint32_t capacity{4'500U};
     Vec3 emitter_center{};
@@ -369,17 +370,21 @@ struct SmokeOptions {
     float lifetime{5.0F};
     float particle_radius{0.085F};
     float buoyancy{0.12F};
-    float response{6.0F};
-    float wake_strength{4.0F};
+    float response{0.1F}; // relaxation toward emitter wind, inverse seconds
+    float rest_number_density{6.0F};
+    float pressure_stiffness{60.0F};
+    float viscosity{0.02F};
+    float vorticity_confinement{4.0F};
     float maximum_speed{4.0F};
-    RigidBodyId obstacle{};
-    float obstacle_radius{0.5F};
 };
 
 struct SmokeDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const float> ages{};
+    DeviceSpan<const float> number_densities{};
+    DeviceSpan<const float> pressures{};
+    DeviceSpan<const Vec3> vorticities{};
     // Occupied ring slots; ages >= lifetime are expired and should not draw.
     std::uint32_t particle_count{};
     float lifetime{};
@@ -387,8 +392,7 @@ struct SmokeDeviceView {
     std::uint64_t revision{};
 };
 
-// The smoke carrier wind bends a soft body; its current skin deflects smoke
-// tracers. Tracers are massless, so only the carrier applies body force.
+// Local smoke particle velocity bends a soft body; its skin deflects particles.
 struct SmokeSoftBodyCouplingOptions {
     SmokeId smoke{};
     SoftBodyId soft_body{};
@@ -398,7 +402,7 @@ struct SmokeSoftBodyCouplingOptions {
     bool enabled{true};
 };
 
-// The smoke carrier bends movable cloth vertices. Massless smoke tracers
+// Local smoke particle velocity bends movable cloth vertices. Particles
 // deflect from the cloth's current triangles, including after tearing.
 struct SmokeClothCouplingOptions {
     SmokeId smoke{};
@@ -409,8 +413,8 @@ struct SmokeClothCouplingOptions {
     bool enabled{true};
 };
 
-// Carrier wind bends free rope nodes; massless smoke tracers deflect from
-// the rope's current capsule segments without applying reaction impulses.
+// Local smoke particle velocity bends free rope nodes; particles deflect from
+// the rope's current capsule segments without reaction impulses yet.
 struct SmokeRopeCouplingOptions {
     SmokeId smoke{};
     RopeId rope{};
@@ -420,15 +424,13 @@ struct SmokeRopeCouplingOptions {
     bool enabled{true};
 };
 
-// Carrier drag uses projected triangle area for open panels and closed bodies.
-// Optional two-sided tracer contact handles meshes not already used as the
-// smoke's spherical obstacle.
+// Local no-slip particle contact transfers equal-and-opposite impulses to
+// dynamic rigid meshes. No remote or emitter-wide rigid wind force is applied.
 struct SmokeRigidCouplingOptions {
     SmokeId smoke{};
     RigidBodyId body{};
-    float air_density{1.2F};
-    float drag_coefficient{4.0F};
-    float maximum_force{40.0F};
+    float air_density{1.2F}; // determines mass of each smoke particle
+    float drag_coefficient{4.0F}; // near-wall velocity relaxation
     float contact_distance{}; // zero selects smoke particle radius
     bool tracer_contact{true};
     bool enabled{true};
