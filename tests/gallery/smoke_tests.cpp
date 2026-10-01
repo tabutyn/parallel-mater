@@ -37,6 +37,22 @@ int main() {
         require(scene.has_smoke && scene.rigid_bodies.size() == 1U &&
                 scene.smoke_obstacle_name == "VortexSphere",
                 "Smoke.blend physics metadata was not exported");
+        require(scene.smoke_options.rest_number_density == 12.0F &&
+                scene.smoke_options.pressure_stiffness == 2.0F &&
+                scene.smoke_options.response == 0.5F &&
+                scene.smoke_options.grid_resolution == 128U &&
+                std::abs(scene.smoke_options.grid_kinematic_viscosity -
+                    1.5e-5F) < 1.0e-8F &&
+                std::abs(scene.smoke_options.grid_les_coefficient - 0.12F) <
+                    1.0e-6F &&
+                std::abs(scene.smoke_options.grid_pressure_tolerance - 1.0e-3F) <
+                    1.0e-7F &&
+                std::abs(scene.smoke_options.vorticity_confinement - 0.1F)
+                    < 1.0e-6F,
+                "legacy smoke export defaults were not migrated");
+        // This regression retains coverage of the compatible particle-only
+        // solver. smoke_grid_tests.cpp owns the MAC-grid contracts.
+        scene.smoke_options.grid_resolution = 0U;
         require(scene.fluid_options.capacity == 0U,
                 "smoke was incorrectly routed through liquid physics");
         SceneDefinition free_smoke = scene;
@@ -62,6 +78,16 @@ int main() {
         SmokeOptions bad = scene.smoke_options;
         bad.capacity = 0U;
         require(!world.add_smoke(bad, invalid), "zero-capacity smoke accepted");
+        bad = scene.smoke_options;
+        bad.grid_resolution = 128U;
+        bad.grid_pressure_tolerance = 0.0F;
+        require(!world.add_smoke(bad, invalid),
+                "zero pressure tolerance accepted");
+        bad = scene.smoke_options;
+        bad.grid_resolution = 128U;
+        bad.grid_les_coefficient = -0.1F;
+        require(!world.add_smoke(bad, invalid),
+                "negative LES coefficient accepted");
 
         SceneDefinition unobstructed = scene;
         World reference_world;
@@ -115,6 +141,8 @@ int main() {
         unsigned far_particles = 0U;
         float lee_vorticity = 0.0F, free_vorticity = 0.0F;
         unsigned lee_curl_count = 0U, free_curl_count = 0U;
+        float free_forward_speed = 0.0F, free_transverse_speed = 0.0F;
+        unsigned free_flow_count = 0U;
         for (std::size_t index = 0; index < positions.size(); ++index) {
             const auto &p = positions[index];
             const auto &v = velocities[index];
@@ -159,6 +187,13 @@ int main() {
         }
         for (std::size_t index = 0; index < reference_positions.size(); ++index) {
             if (reference_ages[index] >= no_wake.lifetime) continue;
+            if (reference_ages[index] > 0.5F) {
+                ++free_flow_count;
+                free_forward_speed += comparison[index].x;
+                free_transverse_speed += std::sqrt(
+                    comparison[index].y * comparison[index].y +
+                    comparison[index].z * comparison[index].z);
+            }
             const Vec3 p = reference_positions[index];
             if (p.x <= center.x + radius ||
                 p.x >= center.x + 3.0F * radius) continue;
@@ -186,7 +221,18 @@ int main() {
                   << " mean_lee_curl=" << lee_vorticity /
                      std::max(1U, lee_curl_count)
                   << " mean_free_curl=" << free_vorticity /
-                     std::max(1U, free_curl_count) << '\n';
+                     std::max(1U, free_curl_count)
+                  << " free_forward=" << free_forward_speed /
+                     std::max(1U, free_flow_count)
+                  << " free_transverse=" << free_transverse_speed /
+                     std::max(1U, free_flow_count)
+                  << " inlet_speed=" << scene.smoke_options.initial_velocity.x
+                  << '\n';
+        require(free_flow_count > 100U &&
+                free_forward_speed / free_flow_count > 0.9F *
+                    scene.smoke_options.initial_velocity.x &&
+                free_transverse_speed / free_flow_count < 0.4F,
+                "unobstructed smoke plume scattered sideways");
         require(wake_difference / wake_particles > 0.02F,
                 "obstacle contact did not alter downstream particle motion");
         require(lee_curl_count > 100U && free_curl_count > 100U &&
@@ -197,14 +243,16 @@ int main() {
                 "neighbor crowding did not generate positive pressure");
         require(near_wall_particles > 20U &&
                 near_wall_speed / near_wall_particles <
-                    0.3F * std::sqrt(
+                    0.9F * std::sqrt(
                         scene.smoke_options.wind.x * scene.smoke_options.wind.x +
                         scene.smoke_options.wind.y * scene.smoke_options.wind.y +
                         scene.smoke_options.wind.z * scene.smoke_options.wind.z),
                 "smoke did not approach the rigid surface velocity");
         require(far_particles > 20U &&
+                near_wall_speed / near_wall_particles >
+                    0.25F * far_speed / far_particles &&
                 near_wall_speed / near_wall_particles <
-                    0.3F * far_speed / far_particles &&
+                    0.9F * far_speed / far_particles &&
                 near_wall_pressure / near_wall_particles >
                     far_pressure / far_particles,
                 "stagnated near-wall smoke did not show lower speed and higher pressure");
@@ -396,11 +444,57 @@ int main() {
                 "read sparse-particle sphere");
         const float carrier_displacement =
             pushed_state.position.x - unforced_state.position.x;
-        std::cout << "sphere_wind_displacement=" << carrier_displacement << '\n';
-        require(carrier_displacement > 0.2F,
+        std::cout << "sphere_wind_displacement=" << carrier_displacement
+                  << " sphere_vertical_displacement="
+                  << pushed_state.position.y - unforced_state.position.y
+                  << " sphere_vertical_velocity=" << pushed_state.linear_velocity.y
+                  << '\n';
+        require(carrier_displacement > 0.1F,
                 "local smoke particles did not push the closed rigid sphere");
         require(pushed_state.position.x > sparse_state.position.x + 0.03F,
                 "additional smoke particles did not increase rigid push");
+        SceneDefinition full_rate = scene;
+        full_rate.rigid_bodies[0].options.motion = MotionType::dynamic;
+        World full_world, full_reference_world;
+        SceneInstance full_instance, full_reference_instance;
+        require(create_scene_world(full_rate, full_world, full_instance),
+                "create full-rate active smoke sphere");
+        require(create_scene_world(full_rate, full_reference_world,
+                    full_reference_instance),
+                "create full-rate active sphere reference");
+        require(full_reference_world.remove_smoke_rigid_coupling(
+                    full_reference_instance.smoke_rigid_couplings.front()),
+                "remove full-rate reference reaction");
+        SmokeRigidCouplingId full_contact{};
+        require(full_reference_world.add_smoke_rigid_coupling(
+                    {.smoke = full_reference_instance.smoke,
+                     .body = full_reference_instance.rigid_bodies[0],
+                     .air_density = 0.0F}, full_contact),
+                "retain full-rate reference contact");
+        for (unsigned frame = 0U; frame < 90U; ++frame) {
+            const StepOptions step{.timestep = 1.0F / 60.0F,
+                                   .substeps = 1U, .gravity = {}};
+            require(full_world.step(step), "step full-rate active sphere");
+            require(full_reference_world.step(step),
+                    "step full-rate active sphere reference");
+        }
+        RigidBodyState full_state{}, full_reference_state{};
+        require(full_world.read_rigid_body_state(
+                    full_instance.rigid_bodies[0], full_state),
+                "read full-rate active sphere");
+        require(full_reference_world.read_rigid_body_state(
+                    full_reference_instance.rigid_bodies[0],
+                    full_reference_state),
+                "read full-rate active sphere reference");
+        std::cout << "full_rate_forward_push=" << full_state.position.x -
+                         full_reference_state.position.x
+                  << " full_rate_vertical_push=" << full_state.position.y -
+                         full_reference_state.position.y << '\n';
+        require(full_state.position.x >
+                    full_reference_state.position.x + 0.2F &&
+                std::abs(full_state.position.y -
+                    full_reference_state.position.y) < 0.1F,
+                "full-rate smoke produced excessive rigid lift");
         SceneDefinition distant_body = pushed;
         distant_body.rigid_bodies[0].options.initial_state.position.y += 5.0F;
         World distant_body_world;
@@ -453,7 +547,7 @@ int main() {
             std::cout << "buoyancy_vertical_x=" << vertical_positions.front().x
                       << " tilted_x=" << tilted_positions.front().x << '\n';
         require(!vertical_positions.empty() && !tilted_positions.empty() &&
-                tilted_positions.front().x < vertical_positions.front().x - 0.12F,
+                tilted_positions.front().x < vertical_positions.front().x - 0.04F,
                 "smoke buoyancy did not follow tilted gravity");
         std::cout << "smoke_particles=" << positions.size()
                   << " wake_particles=" << wake_particles

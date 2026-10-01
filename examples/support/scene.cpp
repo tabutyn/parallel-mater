@@ -1278,6 +1278,36 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 error = name + ": smoke capacity must be an integer from 1 to 1000000";
                 return false;
             }
+            const double grid_resolution =
+                extras.number("pm_smoke_grid_resolution").value_or(128.0);
+            const double vertical_resolution =
+                extras.number("pm_smoke_grid_vertical_resolution").value_or(32.0);
+            const double pressure_iterations =
+                extras.number("pm_smoke_grid_pressure_iterations").value_or(24.0);
+            const double kinematic_viscosity = extras.number(
+                "pm_smoke_grid_kinematic_viscosity").value_or(1.5e-5);
+            const double les_coefficient = extras.number(
+                "pm_smoke_grid_les_coefficient").value_or(0.12);
+            const double pressure_tolerance = extras.number(
+                "pm_smoke_grid_pressure_tolerance").value_or(1.0e-3);
+            if (!std::isfinite(grid_resolution) ||
+                std::floor(grid_resolution) != grid_resolution ||
+                (grid_resolution != 0.0 &&
+                 (grid_resolution < 16.0 || grid_resolution > 256.0)) ||
+                !std::isfinite(vertical_resolution) ||
+                std::floor(vertical_resolution) != vertical_resolution ||
+                vertical_resolution < 8.0 || vertical_resolution > 256.0 ||
+                !std::isfinite(pressure_iterations) ||
+                std::floor(pressure_iterations) != pressure_iterations ||
+                pressure_iterations < 4.0 || pressure_iterations > 128.0 ||
+                !std::isfinite(kinematic_viscosity) ||
+                kinematic_viscosity < 0.0 ||
+                !std::isfinite(les_coefficient) || les_coefficient < 0.0 ||
+                !std::isfinite(pressure_tolerance) ||
+                pressure_tolerance <= 0.0 || pressure_tolerance > 1.0) {
+                error = name + ": invalid smoke grid settings";
+                return false;
+            }
             const Vec3 velocity{
                 static_cast<float>(extras.number("pm_velocity_x").value_or(0.0)),
                 static_cast<float>(extras.number("pm_velocity_y").value_or(0.0)),
@@ -1297,15 +1327,25 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 .buoyancy = static_cast<float>(
                     extras.number("pm_smoke_buoyancy").value_or(0.12)),
                 .response = static_cast<float>(
-                    extras.number("pm_smoke_wind_response").value_or(0.1)),
+                    extras.number("pm_smoke_wind_response").value_or(0.5)),
                 .rest_number_density = static_cast<float>(
-                    extras.number("pm_smoke_rest_number_density").value_or(6.0)),
+                    extras.number("pm_smoke_rest_number_density").value_or(12.0)),
                 .pressure_stiffness = static_cast<float>(
-                    extras.number("pm_smoke_pressure_stiffness").value_or(60.0)),
+                    extras.number("pm_smoke_pressure_stiffness").value_or(2.0)),
                 .viscosity = static_cast<float>(
                     extras.number("pm_smoke_viscosity").value_or(0.02)),
                 .vorticity_confinement = static_cast<float>(
-                    extras.number("pm_smoke_vorticity_confinement").value_or(4.0)),
+                    extras.number("pm_smoke_vorticity_confinement").value_or(0.1)),
+                .grid_resolution = static_cast<std::uint32_t>(grid_resolution),
+                .grid_vertical_resolution = static_cast<std::uint32_t>(
+                    vertical_resolution),
+                .grid_pressure_iterations = static_cast<std::uint32_t>(
+                    pressure_iterations),
+                .grid_kinematic_viscosity = static_cast<float>(
+                    kinematic_viscosity),
+                .grid_les_coefficient = static_cast<float>(les_coefficient),
+                .grid_pressure_tolerance = static_cast<float>(
+                    pressure_tolerance),
             };
             output.smoke_obstacle_name = obstacle;
             output.has_smoke = true;

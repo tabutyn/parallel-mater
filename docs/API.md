@@ -84,27 +84,53 @@ if (!status) return report(status);
 
 ## Smoke tracer gas
 
-`World::add_smoke` creates a weakly compressible particle gas, separate from
-the incompressible liquid solver. It needs no designated obstacle. `SmokeOptions`
-configures a world-YZ emitter, initial velocity, emission, lifetime, buoyancy,
-weak relaxation toward an ambient wind, rest number density, pressure
-stiffness, viscosity, vorticity confinement, and a speed cap. A sorted spatial
-grid estimates local number density. Crowding creates positive pressure, whose
-gradient changes particle velocity; viscosity exchanges velocity between
-neighbors. Vorticity confinement reinforces curl measured from neighboring
-particle velocities at this resolution. No wake shape or vortex positions are
-prescribed. This is not a pressure-projected incompressible solver.
+`World::add_smoke` creates smoke tracers, separate from liquid. The optional
+Eulerian air field (`grid_resolution > 0`) stores pressure, deposited smoke
+density and temperature at cell centers and velocity on staggered MAC faces.
+X and Z use `grid_resolution` cells; Y is up and uses
+`grid_vertical_resolution` cells. The gallery uses 128×32×128, or 524,288
+cells. A zero `grid_edge_length` sizes a shallow, uniform-cell domain around
+the emitter's horizontal travel; explicit `grid_minimum` and
+`grid_edge_length` override it. Each step deposits live tracers with a
+quadratic B-spline, rasterizes coupled triangles into thin cut-face apertures
+and moving-wall velocities, RK2/MacCormack-advects momentum, applies buoyancy,
+physical and Smagorinsky LES viscosity, and restrained vorticity confinement,
+then projects with a four-level geometric multigrid solve. Wind is an inlet
+and far-field condition; downstream faces are open outflow rather than a
+whole-domain relaxation. Tracers follow the projected field with RK2. Swept
+triangle contact remains only as a containment safeguard and does not apply a
+second rigid impulse. No sphere-specific flow rule or prescribed wake exists.
+
+`grid_pressure_iterations` is a fine-grid-equivalent maximum work budget;
+`grid_pressure_tolerance` (default `1e-3`) lets scheduled multigrid work stop
+on the GPU when the infinity-norm relative residual converges.
+`grid_kinematic_viscosity` defaults to `1.5e-5 m^2/s`, and
+`grid_les_coefficient` defaults to `0.12`. `vorticity_confinement` is a bounded
+correction for curl lost to grid transport, not a wake generator.
+
+`grid_resolution = 0` retains the older particle-only solver. It uses a
+sorted spatial grid to estimate local number density, particle pressure,
+viscosity, and measured vorticity. The default rest number density is 12,
+pressure stiffness 2, vorticity confinement 0.1, and ambient-flow response
+0.5/s. Grid mode skips particle sorting, pair pressure, pair viscosity, and
+particle-vorticity force kernels; those diagnostic particle fields sample the
+projected grid instead.
 `SmokeDeviceView` exposes positions, velocities, ages, number densities,
-pressures, measured vorticity vectors, and the active slot count
-after a completed frame. A slot whose age reaches `lifetime` is ignored until
+pressures, measured vorticity vectors, cell-centered reconstructed grid
+velocity, grid pressure, density, density-weighted thermal loading, vorticity,
+divergence, dimensions, and the final relative pressure residual. Divide
+`grid_temperature` by nonzero `grid_density` to recover the local mean thermal
+acceleration. The cell-centered velocity remains a
+compatibility/debug view; the solver owns the face velocities. A slot whose
+age reaches `lifetime` is ignored until
 reused by emission. `remove_smoke` invalidates its generation-tagged handle.
-`WorldStepTimings` reports smoke advection and emission separately, while
+`WorldStepTimings` reports the air grid, tracer advection, and emission separately, while
 `WorldStatistics` reports occupied slots and total emitted smoke particles.
 The bounded GPU ring recycles expired particle slots.
 Migration from the prescribed-flow API: remove `SmokeOptions::obstacle` and
 `wake_strength`; register `SmokeRigidCouplingOptions` for each mesh that should
-interact with smoke. `response` now controls weak particle relaxation toward
-ambient wind, not a scene-wide rigid force.
+interact with smoke. `response` only controls particle-only relaxation toward
+ambient wind; grid mode does not relax the domain toward it.
 
 `World::add_fluid_smoke_coupling` links existing `FluidId` and `SmokeId`
 resources to a finite `ParticlePlane` heater. `FluidParticle::temperature`
@@ -114,16 +140,20 @@ heater, water temperature approaches `heater_temperature` at the configured
 `heat_transfer_rate`. At `boiling_temperature` (100°C by default) a water
 particle is removed from the liquid solver and inserted into bounded smoke
 storage with velocity and decaying thermal lift opposite gravity. This is a phase
-transfer, not a second copy of the water particle. Nearby smoke particles
-exert configurable drag on water through the sorted neighbor grid.
+transfer, not a second copy of the water particle. Grid mode samples local
+deposited density and projected air velocity for configurable water drag;
+particle-only mode uses the sorted smoke neighbor grid.
 `WorldStatistics::boiled_particle_count` tracks transfers; source
 temperature survives fluid compaction. Remove the coupling before removing
 either system. This first thermal model has no latent heat, condensation, or
 two-way gas momentum solve.
 
 `World::add_smoke_soft_body_coupling` links any existing smoke and soft-body
-resources. Nearby smoke-particle velocity applies configurable drag to
-movable soft nodes; exact Goal pins remain fixed. Smoke tracers collide with
+resources. In grid mode, surface triangles sample air velocity, density, and
+pressure on both sides and distribute bounded aerodynamic force through their
+node bindings; this reaches the exterior even when interior nodes lie inside
+solid grid cells. In particle-only mode, nearby tracer velocity bends movable
+nodes. Exact Goal pins remain fixed. Smoke tracers collide with
 the current skinned soft-body surface samples, using a broad-phase bound so
 posts outside the plume are cheap to skip. Contact follows the moving skin
 and its node velocity. This deformable coupling is still one-way: its contact
@@ -133,16 +163,18 @@ gallery registers the same API coupling for every soft body in a smoke scene;
 no scene-specific physics kernel is involved.
 
 `World::add_smoke_cloth_coupling` links a smoke system to any cloth, including
-an open or tearing sheet. Nearby particle velocity adds bounded acceleration
-to movable cloth vertices, leaving authored pins exact. Smoke tracers make
+an open or tearing sheet. In grid mode, pressure and tangential surface stress
+on its live triangles add bounded acceleration to movable cloth vertices,
+leaving authored pins exact. Particle-only mode retains local tracer drag. Smoke tracers make
 two-sided swept contact with the cloth's current triangles; the contact normal
 uses the tracer's incoming side so a thin sheet does not flip particles through
 it. Triangle barycentric weights transfer the local cloth velocity to the
 tracer response. As with smoke/soft body, this deformable coupling remains
 one-way. The coupling has a
 generation-tagged handle and must be removed before the smoke or cloth.
-Particle pressure and existing tangential velocity can carry smoke around the
-finite sheet's edges; the contact kernel does not inject edgeward speed.
+Impact pressure and existing tangential velocity carry smoke around the
+finite sheet's edges. The boundary converts measured impact pressure into
+bounded tangential motion toward an open edge; it has no fixed edge speed.
 
 `World::add_smoke_rope_coupling` applies bounded local-particle drag to free rope
 nodes before the shared rope solve. Anchored endpoints stay governed by their
@@ -152,14 +184,14 @@ reaction impulses to particles. The
 generation-checked coupling must be removed before its smoke or rope.
 
 `World::add_smoke_rigid_coupling` works with closed bodies and open panels.
-Only nearby particles contribute force: swept triangle contact blocks
-penetration, near-wall drag reduces relative velocity, and local pressure
-releases crowded particles. A particle's velocity change transfers an
-equal-and-opposite linear and angular impulse to a dynamic rigid body.
-Particle mass derives from `air_density` and particle size. Without nearby
-particles there is no
-smoke force. Set `tracer_contact=false` only when collision is intentionally
-disabled or handled elsewhere.
+In grid mode, pressure and tangential stress are integrated over the body's
+actual triangles, including torque about its center of mass. Deposited smoke
+density scales the traction, so an unreached body receives no smoke force and
+a denser local plume produces more force. The triangle raster uses rigid wall
+velocity `v + omega × r`. Particle-only mode retains equal-and-opposite local
+contact impulses whose mass derives from `air_density` and particle size.
+Set `tracer_contact=false` only when containment is intentionally disabled or
+handled elsewhere.
 The coupling must be removed before its smoke or rigid
 body. The gallery couples all dynamic rigid bodies automatically; the Blender
 `pm_smoke_collider` property additionally opts in a static or kinematic mesh.

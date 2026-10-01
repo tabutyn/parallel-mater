@@ -58,8 +58,20 @@ from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
 `pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
 `pm_smoke_wind_response`, `pm_smoke_rest_number_density`,
 `pm_smoke_pressure_stiffness`, `pm_smoke_viscosity`, and
-`pm_smoke_vorticity_confinement` are optional emitter properties. The older
+`pm_smoke_vorticity_confinement` are optional emitter properties. The shallow
+air grid also accepts `pm_smoke_grid_resolution` (horizontal X and Z, default
+128; zero selects the particle-only mode),
+`pm_smoke_grid_vertical_resolution` (world Y, default 32), and
+`pm_smoke_grid_pressure_iterations` (maximum multigrid work, default 24),
+`pm_smoke_grid_kinematic_viscosity` (default `1.5e-5`),
+`pm_smoke_grid_les_coefficient` (default `0.12`), and
+`pm_smoke_grid_pressure_tolerance` (relative residual, default `1e-3`). The older
 `pm_smoke_response` and `pm_smoke_wake_strength` properties are ignored.
+The exporter now writes smoke model version 3 with defaults of 12, 2, 0.1,
+and 0.5/s for rest number density, pressure stiffness, vorticity confinement,
+and wind response.
+Existing GLBs that omit those optional values inherit the new defaults
+without changing the authored Blender files; explicit values remain intact.
 The gallery registers a `SmokeOptions` resource and couples dynamic rigid
 bodies automatically; the named passive obstacle is coupled too. Coupled
 obstacles may be any rigid triangle mesh; smoke contact

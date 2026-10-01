@@ -78,10 +78,20 @@ int main() {
         const auto smoke_positions = read(smoke.positions);
         const auto smoke_velocities = read(smoke.velocities);
         bool rising_steam = false;
+        float maximum_steam_height = -1.0e9F;
+        float maximum_steam_rise = -1.0e9F;
         for (std::size_t i = 0; i < smoke_positions.size(); ++i)
-            if (smoke_positions[i].x > -0.5F &&
-                smoke_positions[i].y > 0.2F && smoke_velocities[i].y > 0.05F)
-                rising_steam = true;
+            if (smoke_positions[i].x > -0.5F) {
+                maximum_steam_height = std::max(maximum_steam_height,
+                                                 smoke_positions[i].y);
+                maximum_steam_rise = std::max(maximum_steam_rise,
+                                               smoke_velocities[i].y);
+                if (smoke_positions[i].y > 0.2F &&
+                    smoke_velocities[i].y > 0.05F)
+                    rising_steam = true;
+            }
+        std::cout << "steam_height=" << maximum_steam_height
+                  << " steam_rise=" << maximum_steam_rise << '\n';
         check(rising_steam, "transferred steam did not rise");
         const auto remaining_temperature = read(water.temperatures);
         const auto remaining_ids = read(water.stable_particle_ids);

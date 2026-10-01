@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Weakly compressible smoke particles: local pressure, viscosity, measured
 // vorticity, and triangle-mesh contact. Integration stays in the API.
+#include "smoke_grid.cuh"
 struct SmokeStorage {
     SmokeOptions options{};
+    SmokeGridStorage grid{};
     std::uint32_t generation{1U};
     bool alive{};
     Vec3 *positions{};
@@ -139,7 +141,7 @@ __device__ SmokeFlowSample smoke_sample_flow(Vec3 point,
 __global__ void smoke_density_pressure(const Vec3 *positions,
     const float *ages, std::uint32_t count, SmokeOptions options,
     const std::uint64_t *keys, const std::uint32_t *indices,
-    float *densities, float *pressures) {
+    float *densities, float *pressures, float dt) {
     const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= count) return;
     if (ages[particle] >= options.lifetime) {
@@ -149,8 +151,12 @@ __global__ void smoke_density_pressure(const Vec3 *positions,
     const SmokeFlowSample local = smoke_sample_flow(positions[particle],
         positions, positions, keys, indices, options);
     densities[particle] = local.number_density;
-    pressures[particle] = options.pressure_stiffness * fmaxf(0.0F,
+    const float crowding = options.pressure_stiffness * fmaxf(0.0F,
         local.number_density / options.rest_number_density - 1.0F);
+    // Contact-generated stagnation pressure propagates through neighboring
+    // particles for a few frames, then decays in the absence of new impacts.
+    pressures[particle] = fminf(100.0F, crowding +
+        pressures[particle] * expf(-dt / 0.05F));
 }
 
 __global__ void smoke_pair_forces(const Vec3 *positions,
@@ -312,7 +318,17 @@ __global__ void smoke_emit(Vec3 *positions, Vec3 *previous_positions,
 __device__ Vec3 smoke_wind_delta(Vec3 position, Vec3 velocity,
     const Vec3 *smoke_positions, const Vec3 *smoke_velocities,
     const std::uint64_t *keys, const std::uint32_t *indices,
-    SmokeOptions smoke, float drag, float maximum_acceleration, float dt) {
+    SmokeOptions smoke, SmokeGridField grid,
+    float drag, float maximum_acceleration, float dt) {
+    if (grid.n != 0U && smoke_grid_contains(position, grid)) {
+        Vec3 air{};
+        float density{};
+        smoke_grid_sample(position, grid, air, density);
+        const float response = 1.0F - expf(-drag *
+            clamp_scalar(density*smoke.rest_number_density,0.0F,1.0F)*dt);
+        return clamp_length(multiply(subtract(air, velocity), response),
+                            maximum_acceleration * dt);
+    }
     const SmokeFlowSample local = smoke_sample_flow(position, smoke_positions,
         smoke_velocities, keys, indices, smoke);
     if (local.number_density <= 1.0e-6F) return {};
@@ -328,13 +344,14 @@ __global__ void smoke_soft_body_wind(
     std::uint32_t node_count, SmokeOptions smoke,
     const Vec3 *smoke_positions, const Vec3 *smoke_velocities,
     const std::uint64_t *keys, const std::uint32_t *indices,
+    SmokeGridField grid,
     float drag, float maximum_acceleration, float dt,
     float maximum_speed) {
     const auto node = blockIdx.x * blockDim.x + threadIdx.x;
     if (node >= node_count || inverse_masses[node] == 0.0F) return;
     velocities[node] = clamp_length(add(velocities[node], smoke_wind_delta(
         positions[node], velocities[node], smoke_positions, smoke_velocities,
-        keys, indices, smoke, drag, maximum_acceleration, dt)), maximum_speed);
+        keys, indices, smoke, grid, drag, maximum_acceleration, dt)), maximum_speed);
 }
 
 __global__ void smoke_deformable_bounds(
@@ -357,12 +374,12 @@ __global__ void smoke_cloth_wind(
     std::uint32_t vertex_count, SmokeOptions smoke,
     const Vec3 *smoke_positions, const Vec3 *smoke_velocities,
     const std::uint64_t *keys, const std::uint32_t *indices,
-    float drag, float maximum_acceleration, float dt) {
+    SmokeGridField grid, float drag, float maximum_acceleration, float dt) {
     const auto vertex = blockIdx.x * blockDim.x + threadIdx.x;
     if (vertex >= vertex_count || inverse_masses[vertex] == 0.0F) return;
     velocities[vertex] = add(velocities[vertex], smoke_wind_delta(
         positions[vertex], velocities[vertex], smoke_positions,
-        smoke_velocities, keys, indices, smoke, drag,
+        smoke_velocities, keys, indices, smoke, grid, drag,
         maximum_acceleration, dt));
 }
 
@@ -370,7 +387,8 @@ __global__ void smoke_rope_wind(
     RopeData rope, SmokeOptions smoke,
     const Vec3 *smoke_positions, const Vec3 *smoke_velocities,
     const std::uint64_t *keys, const std::uint32_t *indices,
-    float drag, float maximum_acceleration, float dt, int first, int last) {
+    SmokeGridField grid, float drag, float maximum_acceleration, float dt,
+    int first, int last) {
     const auto node = blockIdx.x * blockDim.x + threadIdx.x;
     if (node >= rope.count ||
         rope_anchor_body(rope, node, first, last) >= 0 ||
@@ -378,7 +396,7 @@ __global__ void smoke_rope_wind(
     rope.velocities[node] = clamp_length(add(rope.velocities[node],
         smoke_wind_delta(rope.positions[node], rope.velocities[node],
             smoke_positions, smoke_velocities, keys, indices, smoke,
-            drag, maximum_acceleration, dt)), rope.options.maximum_speed);
+            grid, drag, maximum_acceleration, dt)), rope.options.maximum_speed);
 }
 
 __global__ void smoke_rope_contact(
@@ -453,12 +471,14 @@ __global__ void smoke_rope_contact(
 
 __global__ void smoke_rigid_contact(
     Vec3 *positions, const Vec3 *previous_positions,
-    Vec3 *velocities, const float *ages, const float *pressures,
+    Vec3 *velocities, const float *ages, float *pressures,
     std::uint32_t count, float lifetime,
     TriangleMeshResource mesh, const RigidBodyState *states,
     const RigidBodyState *previous_states, std::uint32_t body,
     float clearance, float particle_mass, float wall_drag,
-    float dt, float maximum_speed, FluidBodyImpulse *impulses) {
+    float pressure_stiffness,
+    float dt, float maximum_speed, SmokeGridField grid,
+    FluidBodyImpulse *impulses) {
     const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= count) return;
     impulses[particle] = {};
@@ -541,32 +561,44 @@ __global__ void smoke_rigid_contact(
     const Vec3 normal = rotate(state.orientation, local_normal);
     const Vec3 arm = rotate(state.orientation, nearest);
     const bool touching = swept || nearest2 < clearance * clearance;
-    if (touching)
-        positions[particle] = add(state.position,
-            rotate(state.orientation, add(nearest,
-                multiply(local_normal, clearance))));
+    const Vec3 surface_point=add(state.position,arm);
+    const Vec3 trace_position=add(surface_point,multiply(normal,
+        grid.n!=0U?1.5F*grid.spacing:clearance));
+    if(touching)positions[particle]=trace_position;
     const Vec3 surface_velocity = add(state.linear_velocity,
         cross(state.angular_velocity, arm));
     const Vec3 old_velocity = velocities[particle];
-    Vec3 relative = subtract(old_velocity, surface_velocity);
+    const Vec3 tracer_velocity=grid.n!=0U&&touching&&
+        smoke_grid_contains(trace_position,grid)?
+        smoke_grid_sample_velocity(trace_position,grid):old_velocity;
+    Vec3 relative = subtract(tracer_velocity, surface_velocity);
+    const float normal_inflow = fmaxf(0.0F, -dot(relative, normal));
     if (touching)
         relative = subtract(relative,
             multiply(normal, fminf(0.0F, dot(relative, normal))));
+    if(grid.n!=0U&&touching){
+        // Contact is only a safeguard for interpolation error in grid mode.
+        // Redirect the penetrative component along the resolved streamline
+        // instead of numerically deleting tracer speed at a thin surface.
+        const float source_speed=fmaxf(vector_length(subtract(
+            tracer_velocity,surface_velocity)),vector_length(subtract(
+            old_velocity,surface_velocity)));
+        const float tangent_speed=vector_length(relative);
+        if(tangent_speed>1.0e-6F&&tangent_speed<source_speed)
+            relative=multiply(relative,source_speed/tangent_speed);
+    }
     const float distance = touching ? clearance : sqrtf(nearest2);
     const float q = fmaxf(0.0F, 1.0F - distance / boundary);
-    // The particle center is one radius from the wall. Strongly damp its
-    // tangential relative motion, but leave a small shear velocity so
-    // pressure can carry it around finite obstacle edges.
-    const float response = fminf(0.95F, fmaxf(
-        touching && wall_drag > 0.0F ? 0.85F : 0.0F,
-        1.0F - expf(-20.0F * wall_drag * q * q * dt)));
-    relative = multiply(relative, 1.0F - response);
-    // A compressed near-wall particle receives the opposite of the pressure
-    // reaction delivered to the rigid surface. Tangential no-slip remains.
-    if (touching && pressures[particle] > 0.0F)
-        relative = add(relative, multiply(normal,
-            fminf(maximum_speed, 0.2F * pressures[particle] * dt /
-                fmaxf(boundary, 1.0e-5F))));
+    // No-slip applies at the surface, not at a particle center one radius
+    // away. Relax tangential velocity over time without freezing a particle
+    // on every repeated contact.
+    if(grid.n==0U){
+        const float response=1.0F-expf(-wall_drag*q*q*dt);
+        relative=multiply(relative,1.0F-response);
+    }
+    if (touching && grid.n == 0U)
+        pressures[particle] = fmaxf(pressures[particle],
+            10.0F * pressure_stiffness * normal_inflow * normal_inflow);
     const Vec3 new_velocity = clamp_length(
         add(surface_velocity, relative), maximum_speed);
     velocities[particle] = new_velocity;
@@ -616,11 +648,12 @@ __global__ void smoke_apply_rigid_impulses(
 
 __global__ void smoke_cloth_contact(
     Vec3 *positions, const Vec3 *previous_positions,
-    Vec3 *velocities, const float *ages,
+    Vec3 *velocities, const float *ages, float *pressures,
     std::uint32_t count, float lifetime,
     const Vec3 *cloth_positions, const Vec3 *cloth_velocities,
     const std::uint32_t *indices, std::uint32_t index_count,
-    const Vec3 *minimum, const Vec3 *maximum, float clearance) {
+    const Vec3 *minimum, const Vec3 *maximum, float clearance,
+    float pressure_stiffness, float maximum_speed, SmokeGridField grid) {
     const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= count || ages[particle] >= lifetime) return;
     const Vec3 point = positions[particle];
@@ -688,43 +721,127 @@ __global__ void smoke_cloth_contact(
     if (fabsf(side) < 1.0e-5F)
         side = dot(subtract(point, nearest), face_normal);
     const Vec3 normal = side >= 0.0F ? face_normal : multiply(face_normal, -1.0F);
-    positions[particle] = add(nearest, multiply(normal, clearance));
+    const Vec3 trace_position=add(nearest,multiply(normal,
+        grid.n!=0U?1.5F*grid.spacing:clearance));
+    positions[particle]=trace_position;
     const Vec3 cloth_velocity = add(
         multiply(cloth_velocities[indices[best]], weights.x),
         add(multiply(cloth_velocities[indices[best+1U]], weights.y),
             multiply(cloth_velocities[indices[best+2U]], weights.z)));
-    Vec3 relative = subtract(velocities[particle], cloth_velocity);
+    const Vec3 incoming = subtract(grid.n!=0U&&
+        smoke_grid_contains(trace_position,grid)?
+        smoke_grid_sample_velocity(trace_position,grid):velocities[particle],
+        cloth_velocity);
+    Vec3 relative = incoming;
+    const float normal_inflow = fmaxf(0.0F, -dot(relative, normal));
     relative = subtract(relative,
         multiply(normal, fminf(0.0F, dot(relative, normal))));
-    velocities[particle] = add(cloth_velocity, relative);
+    if(grid.n!=0U){
+        const float source_speed=fmaxf(vector_length(incoming),vector_length(
+            subtract(velocities[particle],cloth_velocity)));
+        const float tangent_speed=vector_length(relative);
+        if(tangent_speed>1.0e-6F&&tangent_speed<source_speed)
+            relative=multiply(relative,source_speed/tangent_speed);
+    }
+    if(grid.n==0U){
+        pressures[particle]=fmaxf(pressures[particle],
+            5.0F*pressure_stiffness*normal_inflow*normal_inflow);
+        // Particle-only mode retains its finite-sheet pressure release.
+        const Vec3 center=multiply(add(low,high),0.5F);
+        const Vec3 offset=subtract(nearest,center);
+        const Vec3 tangent=subtract(offset,multiply(normal,dot(offset,normal)));
+        if(pressures[particle]>0.1F&&length_squared(tangent)>1.0e-10F){
+            const Vec3 outward=normalized_or(tangent,{0.0F,1.0F,0.0F});
+            const float current=dot(relative,outward);
+            const float target=fminf(maximum_speed,sqrtf(
+                length_squared(incoming)+0.5F*pressures[particle]));
+            relative=add(relative,multiply(outward,
+                fmaxf(0.0F,target-current)));
+        }
+    }
+    velocities[particle] = add(cloth_velocity,
+        clamp_length(relative, maximum_speed));
 }
 
 __global__ void smoke_soft_body_contact(
-    Vec3 *positions, Vec3 *velocities, const float *ages,
+    Vec3 *positions, const Vec3 *previous_positions,
+    Vec3 *velocities, const float *ages,
     std::uint32_t count, float lifetime,
     const Vec3 *surface, const SoftBodySurfaceBinding *bindings,
-    std::uint32_t surface_count, const Vec3 *node_velocities,
-    const Vec3 *minimum, const Vec3 *maximum, float clearance) {
+    const std::uint32_t *indices,std::uint32_t index_count,
+    const Vec3 *node_velocities,
+    const Vec3 *minimum, const Vec3 *maximum, float clearance,
+    SmokeGridField grid) {
     const auto particle = blockIdx.x * blockDim.x + threadIdx.x;
     if (particle >= count || ages[particle] >= lifetime) return;
     const Vec3 point = positions[particle];
+    const Vec3 before = previous_positions[particle];
     const Vec3 low = *minimum, high = *maximum;
-    if (point.x < low.x-clearance || point.x > high.x+clearance ||
-        point.y < low.y-clearance || point.y > high.y+clearance ||
-        point.z < low.z-clearance || point.z > high.z+clearance) return;
-    float nearest = clearance * clearance;
-    std::uint32_t vertex = surface_count;
-    for (std::uint32_t index = 0U; index < surface_count; ++index) {
-        const float distance2 = length_squared(subtract(point, surface[index]));
-        if (distance2 < nearest) { nearest = distance2; vertex = index; }
+    if(fmaxf(point.x,before.x)<low.x-clearance||
+       fminf(point.x,before.x)>high.x+clearance||
+       fmaxf(point.y,before.y)<low.y-clearance||
+       fminf(point.y,before.y)>high.y+clearance||
+       fmaxf(point.z,before.z)<low.z-clearance||
+       fminf(point.z,before.z)>high.z+clearance)return;
+    float nearest2=clearance*clearance,earliest=2.0F;
+    std::uint32_t best=index_count;
+    Vec3 nearest{},face_normal{},weights{};
+    const Vec3 path=subtract(point,before);
+    for(std::uint32_t base=0;base<index_count;base+=3U){
+        const Vec3 a=surface[indices[base]],b=surface[indices[base+1U]];
+        const Vec3 c=surface[indices[base+2U]];
+        const Vec3 raw_normal=cross(subtract(b,a),subtract(c,a));
+        if(length_squared(raw_normal)<1.0e-12F)continue;
+        const float side_before=dot(subtract(before,a),raw_normal);
+        const float side_after=dot(subtract(point,a),raw_normal);
+        if(side_before*side_after<0.0F){
+            const float fraction=side_before/(side_before-side_after);
+            if(fraction<earliest){
+                const Vec3 hit=add(before,multiply(path,fraction));
+                Vec3 hit_weights{};
+                const Vec3 on_face=fluid_closest_triangle_barycentric(
+                    hit,a,b,c,hit_weights);
+                if(length_squared(subtract(hit,on_face))<1.0e-8F){
+                    earliest=fraction;best=base;nearest=on_face;
+                    face_normal=normalized_or(raw_normal,{1,0,0});
+                    weights=hit_weights;
+                }
+            }
+        }
+        if(earliest<=1.0F)continue;
+        Vec3 barycentric{};
+        const Vec3 candidate=fluid_closest_triangle_barycentric(
+            point,a,b,c,barycentric);
+        const float distance2=length_squared(subtract(point,candidate));
+        if(distance2<nearest2){
+            nearest2=distance2;best=base;nearest=candidate;
+            face_normal=normalized_or(raw_normal,{1,0,0});weights=barycentric;
+        }
     }
-    if (vertex == surface_count) return;
-    const Vec3 normal = normalized_or(subtract(point, surface[vertex]),
-                                       {-1.0F, 0.0F, 0.0F});
-    positions[particle] = add(surface[vertex], multiply(normal, clearance));
-    const Vec3 body_velocity = node_velocities[bindings[vertex].nodes[0]];
-    Vec3 relative = subtract(velocities[particle], body_velocity);
-    relative = subtract(relative,
-        multiply(normal, fminf(0.0F, dot(relative, normal))));
-    velocities[particle] = add(body_velocity, relative);
+    if(best==index_count)return;
+    float side=dot(subtract(before,nearest),face_normal);
+    if(fabsf(side)<1.0e-5F)side=dot(subtract(point,nearest),face_normal);
+    const Vec3 normal=side>=0.0F?face_normal:multiply(face_normal,-1.0F);
+    const Vec3 trace_position=add(nearest,multiply(normal,
+        grid.n!=0U?1.5F*grid.spacing:clearance));
+    positions[particle]=trace_position;
+    const Vec3 va=smoke_soft_surface_velocity(
+        bindings[indices[best]],node_velocities);
+    const Vec3 vb=smoke_soft_surface_velocity(
+        bindings[indices[best+1U]],node_velocities);
+    const Vec3 vc=smoke_soft_surface_velocity(
+        bindings[indices[best+2U]],node_velocities);
+    const Vec3 body_velocity=add(multiply(va,weights.x),
+        add(multiply(vb,weights.y),multiply(vc,weights.z)));
+    Vec3 relative=subtract(grid.n!=0U&&smoke_grid_contains(trace_position,grid)?
+        smoke_grid_sample_velocity(trace_position,grid):velocities[particle],
+        body_velocity);
+    const float source_speed=fmaxf(vector_length(relative),vector_length(
+        subtract(velocities[particle],body_velocity)));
+    relative=subtract(relative,multiply(normal,
+        fminf(0.0F,dot(relative,normal))));
+    const float tangent_speed=vector_length(relative);
+    if(grid.n!=0U&&tangent_speed>1.0e-6F&&tangent_speed<source_speed)
+        relative=multiply(relative,source_speed/tangent_speed);
+    velocities[particle]=add(body_velocity,relative);
 }

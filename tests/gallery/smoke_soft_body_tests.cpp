@@ -146,9 +146,6 @@ int main(int argc, char **argv) {
         SmokeDeviceView smoke{};
         require(world.smoke_view(instance.smoke, smoke), "read smoke");
         require(smoke.particle_count > 0U, "smoke was not emitted");
-        require(displaced > 100U && maximum_speed < 10.0F &&
-                maximum_stretch < 0.5F,
-                "soft bodies did not move stably");
         std::cout << "frames=" << frames << " ms_per_frame=" << elapsed / frames
                   << " displaced_nodes=" << displaced
                   << " max_soft_speed=" << maximum_speed
@@ -156,6 +153,9 @@ int main(int argc, char **argv) {
                   << " max_stretch=" << maximum_stretch
                   << " max_compression=" << maximum_compression
                   << " smoke_particles=" << smoke.particle_count << '\n';
+        require(displaced > 100U && maximum_speed < 10.0F &&
+                maximum_stretch < 0.5F,
+                "soft bodies did not move stably");
 
         World scene_reference_world;
         SceneInstance scene_reference;
@@ -169,6 +169,7 @@ int main(int argc, char **argv) {
                                                 .substeps = 4U}),
                     "step gallery reference");
         float reference_stretch = 0.0F;
+        float gallery_body_x_difference = 0.0F;
         for (std::size_t body_index = 0U;
              body_index < scene_reference.soft_bodies.size(); ++body_index) {
             SoftBodyDeviceView reference_body{};
@@ -176,6 +177,13 @@ int main(int argc, char **argv) {
                         scene_reference.soft_bodies[body_index], reference_body),
                     "read gallery reference body");
             const auto reference_positions = read(reference_body.positions);
+            SoftBodyDeviceView driven_body{};
+            require(world.soft_body_view(instance.soft_bodies[body_index],
+                    driven_body), "read gallery driven soft body");
+            const auto driven_positions = read(driven_body.positions);
+            for (std::size_t node = 0U; node < driven_positions.size(); ++node)
+                gallery_body_x_difference += std::abs(
+                    driven_positions[node].x - reference_positions[node].x);
             for (const SoftBodyBond &bond : scene.soft_bodies[body_index].bonds) {
                 const Vec3 a = reference_positions[bond.first];
                 const Vec3 b = reference_positions[bond.second];
@@ -185,7 +193,11 @@ int main(int argc, char **argv) {
                     length / bond.rest_length - 1.0F);
             }
         }
-        std::cout << "reference_max_stretch=" << reference_stretch << '\n';
+        std::cout << "reference_max_stretch=" << reference_stretch
+                  << " gallery_body_x_difference="
+                  << gallery_body_x_difference << '\n';
+        require(gallery_body_x_difference > 1.0F,
+                "authored grid smoke did not push the soft-body posts");
         SmokeDeviceView reference_smoke{};
         require(scene_reference_world.smoke_view(scene_reference.smoke,
                                                 reference_smoke),
@@ -256,6 +268,48 @@ int main(int argc, char **argv) {
                   << " smoke_contact_difference=" << smoke_difference << '\n';
         require(body_difference > 0.1F && smoke_difference > 0.1F,
                 "smoke and soft body did not influence each other");
+
+        // Check the authored floor and active ball without soft-body contact
+        // obscuring the vertical reaction from smoke particles.
+        SceneDefinition floor_ball = scene;
+        floor_ball.soft_bodies.clear();
+        World ball_world, ball_reference_world;
+        SceneInstance ball, ball_reference;
+        require(create_scene_world(floor_ball, ball_world, ball),
+                "create smoke ball and floor");
+        require(create_scene_world(floor_ball, ball_reference_world,
+                    ball_reference), "create smoke ball reference");
+        require(ball.smoke_rigid_couplings.size() == 1U &&
+                ball_reference.smoke_rigid_couplings.size() == 1U,
+                "active smoke ball coupling missing");
+        require(ball_reference_world.remove_smoke_rigid_coupling(
+                    ball_reference.smoke_rigid_couplings.front()),
+                "remove reference smoke reaction");
+        std::size_t ball_index = 0U;
+        for (; ball_index < floor_ball.rigid_bodies.size(); ++ball_index)
+            if (floor_ball.rigid_bodies[ball_index].options.motion ==
+                MotionType::dynamic) break;
+        require(ball_index < floor_ball.rigid_bodies.size(),
+                "authored active smoke ball missing");
+        for (unsigned frame = 0U; frame < 180U; ++frame) {
+            const StepOptions step{.timestep = 1.0F / 60.0F,
+                .substeps = 4U, .gravity = {0.0F, -9.81F, 0.0F}};
+            require(ball_world.step(step), "step smoke ball on floor");
+            require(ball_reference_world.step(step),
+                    "step reference ball on floor");
+        }
+        RigidBodyState ball_state{}, reference_ball_state{};
+        require(ball_world.read_rigid_body_state(ball.rigid_bodies[ball_index],
+                    ball_state), "read smoke ball on floor");
+        require(ball_reference_world.read_rigid_body_state(
+                    ball_reference.rigid_bodies[ball_index],
+                    reference_ball_state), "read reference ball on floor");
+        std::cout << "floor_ball_forward_delta=" <<
+            ball_state.position.x - reference_ball_state.position.x
+                  << " floor_ball_height_delta=" <<
+            ball_state.position.y - reference_ball_state.position.y << '\n';
+        require(ball_state.position.y < reference_ball_state.position.y + 0.1F,
+                "smoke lifted the active ball off the authored floor");
 
         for (const auto coupling : instance.smoke_soft_body_couplings)
             require(world.remove_smoke_soft_body_coupling(coupling),

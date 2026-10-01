@@ -373,8 +373,11 @@ pass.
 - Follow-up: contact now redirects blocked smoke tangentially toward cloth
   edges. A 300-frame regression checks that the plume reaches the far side
   without collecting against the windward surface.
-- The local-particle update removes that scripted edgeward speed; measured
-  particle pressure and tangential motion still carry the plume around edges.
+- The local-particle update removed the fixed edgeward speed. A later surface
+  tuning converts measured impact pressure into speed along finite cloth
+  toward an open edge, capped by the smoke speed limit. The 300-frame
+  regression now counts 797 lateral escapes and 461 particles in the broad
+  windward region, without scattering an unobstructed plume.
 
 ## PR 26 — Smoke–rope and suspended panel coupling (merged)
 
@@ -402,6 +405,25 @@ pass.
   panel, soft bodies, cloth, rope, and tilt.
 - The subsequent local-particle smoke update replaces projected-area rigid
   drag with near-wall particle reaction and samples deformable wind locally.
+- The next hybrid update adds a shallow, API-owned 128×32×128 Eulerian air
+  velocity/pressure/density field and retains particles as smoke tracers.
+  Coupled triangle surfaces obstruct the grid; soft-body surface triangles
+  sample its airflow and distribute force to their bound nodes.
+- The current hybrid replaces that cell-centered prototype with staggered MAC
+  faces, RK2 monotonic MacCormack transport, moving triangle cut faces,
+  density/temperature B-spline deposition, LES viscosity and bounded curl
+  restoration, and a four-level residual-terminated multigrid projection.
+  Grid-mode tracers no longer run a second particle pressure solver. Rigid and
+  deformable loads come from local grid pressure and tangential surface stress;
+  swept tracer contacts remain containment-only. The shared API exposes grid
+  curl, divergence, and relative pressure residual for verification.
+- RTX 3050 Ti acceptance is complete: three 128×32×128 runs measured
+  5.61–5.74 ms/frame, relative residual 8.00e-4, and normalized divergence
+  1.40e-4. Bit-deterministic replay and all smoke coupling regressions pass.
+- Shared smoke inspection maps bind `Z/X/C/V/B/N` to grid/cut cells, velocity,
+  pressure, density/thermal loading, vorticity, and divergence. RGB mapping,
+  slice selection, and legends remain gallery concerns; the API additionally
+  exposes the deposited thermal field through `SmokeDeviceView`.
 
 ## Later — Gallery game shell
 

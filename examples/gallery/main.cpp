@@ -29,6 +29,7 @@ namespace {
 using parallel_mater::RigidBodyState;
 using parallel_mater::SoftBodyDeviceView;
 using parallel_mater::SoftBodyId;
+using parallel_mater::SmokeDeviceView;
 using parallel_mater::Status;
 using parallel_mater::World;
 using parallel_mater::gallery::CameraController;
@@ -47,7 +48,9 @@ using parallel_mater::gallery::gallery_context_index;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
+using parallel_mater::gallery::is_smoke_context;
 using parallel_mater::gallery::OptixRenderer;
+using parallel_mater::gallery::SmokeDebugMode;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
 using parallel_mater::gallery::StaticTriangleSurface;
@@ -1080,19 +1083,33 @@ int main(int argc, char **argv) {
             if (keys.pressed(KeyAction::timing)) {
                 timing_visible = !timing_visible;
             }
+            const bool smoke_debug = is_smoke_context(runtime.context);
             if (keys.pressed(KeyAction::primary_debug)) {
-                debug.toggle_primary(runtime.context);
+                if (smoke_debug)
+                    debug.toggle_smoke(SmokeDebugMode::density_temperature);
+                else
+                    debug.toggle_primary(runtime.context);
             }
-            if (keys.pressed(KeyAction::normals))
-                debug.normals = !debug.normals;
-            if (keys.pressed(KeyAction::rigid_forces))
-                debug.rigid_forces = !debug.rigid_forces;
-            if (keys.pressed(KeyAction::fluid_forces))
-                debug.fluid_forces = !debug.fluid_forces;
-            if (keys.pressed(KeyAction::bonds))
-                debug.cloth_bonds = !debug.cloth_bonds;
-            if (keys.pressed(KeyAction::velocities))
-                debug.velocities = !debug.velocities;
+            if (keys.pressed(KeyAction::normals)) {
+                if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::grid);
+                else debug.normals = !debug.normals;
+            }
+            if (keys.pressed(KeyAction::rigid_forces)) {
+                if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::velocity);
+                else debug.rigid_forces = !debug.rigid_forces;
+            }
+            if (keys.pressed(KeyAction::fluid_forces)) {
+                if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::pressure);
+                else debug.fluid_forces = !debug.fluid_forces;
+            }
+            if (keys.pressed(KeyAction::bonds)) {
+                if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::vorticity);
+                else debug.cloth_bonds = !debug.cloth_bonds;
+            }
+            if (keys.pressed(KeyAction::velocities)) {
+                if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::divergence);
+                else debug.velocities = !debug.velocities;
+            }
             if (keys.pressed(KeyAction::capture))
                 capture_requested = true;
         }
@@ -1180,9 +1197,22 @@ int main(int argc, char **argv) {
         if (!runtime.renderer.render(runtime.world, runtime.instance,
                                      current_camera, pixels, error,
                                      timing_visible ? &renderer_timings : nullptr,
-                                     debug.fluid_render_mode(runtime.context))) {
+                                     debug.fluid_render_mode(runtime.context),
+                                     debug.smoke_mode == SmokeDebugMode::none)) {
             std::cerr << "Render failed: " << error << '\n';
             break;
+        }
+        if (is_smoke_context(runtime.context) &&
+            debug.smoke_mode != SmokeDebugMode::none) {
+            SmokeDeviceView smoke{};
+            if (!require(runtime.world.smoke_view(runtime.instance.smoke, smoke),
+                         "borrow smoke grid debug view") ||
+                !draw_smoke_grid_debug_overlay(
+                    pixels, runtime.renderer.width(), runtime.renderer.height(),
+                    smoke, current_camera, debug.smoke_mode, error)) {
+                std::cerr << "Smoke grid debug overlay failed: " << error << '\n';
+                break;
+            }
         }
         if (is_cloth_context(runtime.context) &&
             (debug.normals || debug.structure || debug.cloth_bonds)) {

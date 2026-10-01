@@ -32,6 +32,22 @@ __global__ void fluid_smoke_drag(
         fmaxf(smoke.maximum_speed, sqrtf(length_squared(velocity))));
 }
 
+__global__ void fluid_smoke_grid_drag(const Vec3 *positions,Vec3 *velocities,
+    const std::uint32_t *water_count,FluidSmokeCouplingOptions coupling,
+    SmokeOptions smoke,SmokeGridField grid,float dt) {
+    const auto i=blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=*water_count||!smoke_grid_contains(positions[i],grid))return;
+    Vec3 air{};float density{};
+    smoke_grid_sample(positions[i],grid,air,density);
+    if(density<=1.0e-6F)return;
+    const float response=1.0F-expf(-coupling.wind_drag*
+        clamp_scalar(density*smoke.rest_number_density,0.0F,1.0F)*dt);
+    const Vec3 velocity=velocities[i];
+    velocities[i]=clamp_length(add(velocity,multiply(
+        subtract(air,velocity),response)),
+        fmaxf(smoke.maximum_speed,sqrtf(length_squared(velocity))));
+}
+
 __global__ void fluid_smoke_exchange(
     const Vec3 *positions, Vec3 *velocities, float *temperatures,
     const std::uint32_t *water_count, float water_radius,

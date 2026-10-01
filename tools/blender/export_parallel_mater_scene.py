@@ -341,6 +341,7 @@ def copy_flow_for_export(
         if not smoke and "pm_temperature" in source:
             exported["pm_temperature"] = float(source["pm_temperature"])
     if smoke:
+        exported["pm_smoke_model_version"] = 3
         obstacle = source.get("pm_smoke_obstacle")
         if obstacle is not None:
             if not isinstance(obstacle, str) or not obstacle:
@@ -352,11 +353,17 @@ def copy_flow_for_export(
             ("pm_smoke_lifetime", 5.0),
             ("pm_smoke_radius", 0.085),
             ("pm_smoke_buoyancy", 0.12),
-            ("pm_smoke_wind_response", 0.1),
-            ("pm_smoke_rest_number_density", 6.0),
-            ("pm_smoke_pressure_stiffness", 60.0),
+            ("pm_smoke_wind_response", 0.5),
+            ("pm_smoke_rest_number_density", 12.0),
+            ("pm_smoke_pressure_stiffness", 2.0),
             ("pm_smoke_viscosity", 0.02),
-            ("pm_smoke_vorticity_confinement", 4.0),
+            ("pm_smoke_vorticity_confinement", 0.1),
+            ("pm_smoke_grid_resolution", 128),
+            ("pm_smoke_grid_vertical_resolution", 32),
+            ("pm_smoke_grid_pressure_iterations", 24),
+            ("pm_smoke_grid_kinematic_viscosity", 1.5e-5),
+            ("pm_smoke_grid_les_coefficient", 0.12),
+            ("pm_smoke_grid_pressure_tolerance", 1.0e-3),
         ):
             exported[key] = source.get(key, default)
     return exported
