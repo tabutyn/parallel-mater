@@ -1,7 +1,0 @@
-{
-  "schema": "ballroller.milestone-reviews.v1",
-  "roomId": "rigid-constraint-gallery",
-  "function": {"status": "approved", "approvedBy": "user prompt", "approvedAt": "2026-10-01", "evidence": ["plans/floor-plan.md"], "strangestElement": "A motorized four-wheel car shares one constraint milestone with seven single-joint impact fixtures.", "notes": "The user explicitly specified every scene, interaction, limit, and control in the task brief."},
-  "form": {"status": "pending", "approvedBy": "", "approvedAt": "", "evidence": ["renders/contact-sheet.png"], "strangestElement": "The motor scene needs a much wider pad and camera than the seven compact impact fixtures.", "notes": "Awaiting visual review of the actual gallery renders."},
-  "runtime": {"status": "pending", "approvedBy": "", "approvedAt": "", "evidence": ["runtime/test-results.md"], "strangestElement": "Fixed and Point create their local frames at toggle time rather than preserving the disabled Blender frame.", "notes": "Automated GPU and renderer checks pass; explicit runtime approval remains pending."}
-}
