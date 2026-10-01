@@ -225,7 +225,20 @@ class ExportSceneTests(unittest.TestCase):
                        if node["extras"].get("pm_system") == "smoke_emitter")
         self.assertEqual(emitter["pm_smoke_obstacle"], "VortexSphere")
         self.assertAlmostEqual(emitter["pm_velocity_x"], 1.6)
-        self.assertGreater(emitter["pm_smoke_wake_strength"], 0)
+        self.assertEqual(emitter["pm_smoke_model_version"], 3)
+        self.assertEqual(emitter["pm_smoke_grid_resolution"], 128)
+        self.assertEqual(emitter["pm_smoke_grid_vertical_resolution"], 32)
+        self.assertEqual(emitter["pm_smoke_grid_pressure_iterations"], 24)
+        self.assertAlmostEqual(
+            emitter["pm_smoke_grid_kinematic_viscosity"], 1.5e-5)
+        self.assertAlmostEqual(emitter["pm_smoke_grid_les_coefficient"], 0.12)
+        self.assertAlmostEqual(
+            emitter["pm_smoke_grid_pressure_tolerance"], 1.0e-3)
+        self.assertEqual(emitter["pm_smoke_wind_response"], 0.5)
+        self.assertEqual(emitter["pm_smoke_pressure_stiffness"], 2.0)
+        self.assertEqual(emitter["pm_smoke_rest_number_density"], 12.0)
+        self.assertEqual(emitter["pm_smoke_vorticity_confinement"], 0.1)
+        self.assertNotIn("pm_smoke_wake_strength", emitter)
 
     def test_smoke_water_temperature_and_heater(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeWater.blend"))

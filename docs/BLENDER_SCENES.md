@@ -51,14 +51,31 @@ materials remain visible regardless of their alpha value.
 `Smoke.blend` is reproducible with `examples/assets/tools/make_smoke_scene.py`.
 It has a passive rigid Icosphere and one mesh with **Fluid → Flow**, **Flow
 Type: Smoke**, **Flow Behavior: Inflow**, and initial velocity along +X. The
-flow mesh is a world-YZ plane. Its `pm_smoke_obstacle` custom string property
-names the rigid sphere. Exporting creates `pm_system=smoke_emitter`, separate
+flow mesh is a world-YZ plane. Its optional `pm_smoke_obstacle` custom string
+property names a rigid obstacle mesh to opt into smoke contact.
+Exporting creates `pm_system=smoke_emitter`, separate
 from Liquid Inflow; no Blender domain cache is needed. `pm_smoke_capacity`,
 `pm_smoke_rate`, `pm_smoke_lifetime`, `pm_smoke_radius`, `pm_smoke_buoyancy`,
-`pm_smoke_response`, and `pm_smoke_wake_strength` are optional emitter
-properties. The gallery resolves the obstacle name and radius and registers a
-`SmokeOptions` resource in the physics API. The obstacle may be a passive or
-active centered sphere; smoke collision follows its translation. One smoke
+`pm_smoke_wind_response`, `pm_smoke_rest_number_density`,
+`pm_smoke_pressure_stiffness`, `pm_smoke_viscosity`, and
+`pm_smoke_vorticity_confinement` are optional emitter properties. The shallow
+air grid also accepts `pm_smoke_grid_resolution` (horizontal X and Z, default
+128; zero selects the particle-only mode),
+`pm_smoke_grid_vertical_resolution` (world Y, default 32), and
+`pm_smoke_grid_pressure_iterations` (maximum multigrid work, default 24),
+`pm_smoke_grid_kinematic_viscosity` (default `1.5e-5`),
+`pm_smoke_grid_les_coefficient` (default `0.12`), and
+`pm_smoke_grid_pressure_tolerance` (relative residual, default `1e-3`). The older
+`pm_smoke_response` and `pm_smoke_wake_strength` properties are ignored.
+The exporter now writes smoke model version 3 with defaults of 12, 2, 0.1,
+and 0.5/s for rest number density, pressure stiffness, vorticity confinement,
+and wind response.
+Existing GLBs that omit those optional values inherit the new defaults
+without changing the authored Blender files; explicit values remain intact.
+The gallery registers a `SmokeOptions` resource and couples dynamic rigid
+bodies automatically; the named passive obstacle is coupled too. Coupled
+obstacles may be any rigid triangle mesh; smoke contact
+follows its translation and rotation. One smoke
 inlet per scene is supported.
 
 `SmokeSoftbody.blend` uses the same Smoke Inflow and a twenty-object grid of
@@ -121,9 +138,10 @@ pre-Cloth subdivision, up to five viewport levels, is currently mapped.
 `SmokeRope.blend` uses four Poly curves with a Soft Body modifier as rope
 markers. Their panel ends touch an active rigid plane; their other ends lie
 inside two passive rigid posts. The exporter infers all four joints from that
-geometry, without Hooks. The active panel sets Boolean `pm_smoke_collider` so
-the gallery registers the API's generic smoke/rigid coupling as well as the
-four smoke/rope couplings. The ground and vortex sphere remain separate rigid
+geometry, without Hooks. The active panel retains the Boolean
+`pm_smoke_collider` authoring marker; dynamic rigid bodies now receive the
+API's generic smoke/rigid coupling automatically alongside the four
+smoke/rope couplings. The ground and vortex sphere remain separate rigid
 bodies. Re-export with the same single exporter after editing the source.
 
 The exporter evaluates Blender's actual Hook deformation, including bind
@@ -217,7 +235,7 @@ The generated metadata is:
 | `pm_initial_velocity` | Optional 3-component Blender-space custom property for a rigid body's initial linear velocity |
 | `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
 | `pm_paintable` | Optional Boolean source custom property; gallery registers a persistent API paint field and fluid-to-rigid rule for that body |
-| `pm_smoke_collider` | Optional Boolean; gallery registers smoke-to-rigid triangle contact and carrier pressure for that body |
+| `pm_smoke_collider` | Optional Boolean; gallery additionally registers smoke/rigid coupling for a static or kinematic mesh (dynamic bodies are coupled automatically) |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
 

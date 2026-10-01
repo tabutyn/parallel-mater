@@ -1129,7 +1129,8 @@ bool OptixRenderer::create(const SceneDefinition &scene,
 bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                            Camera camera, std::vector<std::uint32_t> &rgba,
                            std::string &error, RendererTimings *timings,
-                           FluidRenderMode fluid_mode) {
+                           FluidRenderMode fluid_mode,
+                           bool show_smoke_particles) {
     error.clear();
     if (!impl_) {
         error = "renderer is not initialized";
@@ -1187,7 +1188,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                     impl_->host_rigid_depth, rgba);
             }
         }
-        if (instance.has_smoke) {
+        if (instance.has_smoke && show_smoke_particles) {
             SmokeDeviceView smoke{};
             const Status status = world.smoke_view(instance.smoke, smoke);
             if (!status) fail(status.message != nullptr ? status.message

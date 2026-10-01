@@ -84,23 +84,53 @@ if (!status) return report(status);
 
 ## Smoke tracer gas
 
-`World::add_smoke` creates a separate dilute-gas particle system; it does not
-reuse the incompressible liquid solver. `SmokeOptions` provides a world-YZ
-emission rectangle, wind and initial velocity, particles per second, lifetime,
-buoyancy, response, wake strength, speed cap, and a spherical rigid obstacle.
-The obstacle must already exist; it cannot be removed while referenced. Its
-motion may be static or dynamic, and swept smoke collision follows its
-translation during each frame.
-The API advects bounded, recycled tracer slots on the GPU. A no-through-flow
-field diverts smoke around the sphere, alternating vortices shed into its wake,
-and swept segment/sphere tests prevent particles tunneling through it.
-`SmokeDeviceView` exposes positions, velocities, ages, and the active slot count
-after a completed frame. A slot whose age reaches `lifetime` is ignored until
+`World::add_smoke` creates smoke tracers, separate from liquid. The optional
+Eulerian air field (`grid_resolution > 0`) stores pressure, deposited smoke
+density and temperature at cell centers and velocity on staggered MAC faces.
+X and Z use `grid_resolution` cells; Y is up and uses
+`grid_vertical_resolution` cells. The gallery uses 128×32×128, or 524,288
+cells. A zero `grid_edge_length` sizes a shallow, uniform-cell domain around
+the emitter's horizontal travel; explicit `grid_minimum` and
+`grid_edge_length` override it. Each step deposits live tracers with a
+quadratic B-spline, rasterizes coupled triangles into thin cut-face apertures
+and moving-wall velocities, RK2/MacCormack-advects momentum, applies buoyancy,
+physical and Smagorinsky LES viscosity, and restrained vorticity confinement,
+then projects with a four-level geometric multigrid solve. Wind is an inlet
+and far-field condition; downstream faces are open outflow rather than a
+whole-domain relaxation. Tracers follow the projected field with RK2. Swept
+triangle contact remains only as a containment safeguard and does not apply a
+second rigid impulse. No sphere-specific flow rule or prescribed wake exists.
+
+`grid_pressure_iterations` is a fine-grid-equivalent maximum work budget;
+`grid_pressure_tolerance` (default `1e-3`) lets scheduled multigrid work stop
+on the GPU when the infinity-norm relative residual converges.
+`grid_kinematic_viscosity` defaults to `1.5e-5 m^2/s`, and
+`grid_les_coefficient` defaults to `0.12`. `vorticity_confinement` is a bounded
+correction for curl lost to grid transport, not a wake generator.
+
+`grid_resolution = 0` retains the older particle-only solver. It uses a
+sorted spatial grid to estimate local number density, particle pressure,
+viscosity, and measured vorticity. The default rest number density is 12,
+pressure stiffness 2, vorticity confinement 0.1, and ambient-flow response
+0.5/s. Grid mode skips particle sorting, pair pressure, pair viscosity, and
+particle-vorticity force kernels; those diagnostic particle fields sample the
+projected grid instead.
+`SmokeDeviceView` exposes positions, velocities, ages, number densities,
+pressures, measured vorticity vectors, cell-centered reconstructed grid
+velocity, grid pressure, density, density-weighted thermal loading, vorticity,
+divergence, dimensions, and the final relative pressure residual. Divide
+`grid_temperature` by nonzero `grid_density` to recover the local mean thermal
+acceleration. The cell-centered velocity remains a
+compatibility/debug view; the solver owns the face velocities. A slot whose
+age reaches `lifetime` is ignored until
 reused by emission. `remove_smoke` invalidates its generation-tagged handle.
-`WorldStepTimings` reports smoke advection and emission separately, while
+`WorldStepTimings` reports the air grid, tracer advection, and emission separately, while
 `WorldStatistics` reports occupied slots and total emitted smoke particles.
-This first gas system is a prescribed velocity field, not a pressure-projected
-Navier–Stokes or smoke–rigid momentum coupling solver.
+The bounded GPU ring recycles expired particle slots.
+Migration from the prescribed-flow API: remove `SmokeOptions::obstacle` and
+`wake_strength`; register `SmokeRigidCouplingOptions` for each mesh that should
+interact with smoke. `response` only controls particle-only relaxation toward
+ambient wind; grid mode does not relax the domain toward it.
 
 `World::add_fluid_smoke_coupling` links existing `FluidId` and `SmokeId`
 resources to a finite `ParticlePlane` heater. `FluidParticle::temperature`
@@ -109,50 +139,68 @@ default); `FluidDeviceView::temperatures` exposes the live values. Near the
 heater, water temperature approaches `heater_temperature` at the configured
 `heat_transfer_rate`. At `boiling_temperature` (100°C by default) a water
 particle is removed from the liquid solver and inserted into bounded smoke
-storage with an upward velocity and decaying thermal lift. This is a phase
-transfer, not a second copy of the water particle. The same smoke carrier
-field exerts configurable drag on nearby water without scanning all smoke
-tracers. `WorldStatistics::boiled_particle_count` tracks transfers; source
+storage with velocity and decaying thermal lift opposite gravity. This is a phase
+transfer, not a second copy of the water particle. Grid mode samples local
+deposited density and projected air velocity for configurable water drag;
+particle-only mode uses the sorted smoke neighbor grid.
+`WorldStatistics::boiled_particle_count` tracks transfers; source
 temperature survives fluid compaction. Remove the coupling before removing
 either system. This first thermal model has no latent heat, condensation, or
 two-way gas momentum solve.
 
 `World::add_smoke_soft_body_coupling` links any existing smoke and soft-body
-resources. The prescribed smoke carrier velocity applies configurable drag to
-movable soft nodes; exact Goal pins remain fixed. Smoke tracers collide with
+resources. In grid mode, surface triangles sample air velocity, density, and
+pressure on both sides and distribute bounded aerodynamic force through their
+node bindings; this reaches the exterior even when interior nodes lie inside
+solid grid cells. In particle-only mode, nearby tracer velocity bends movable
+nodes. Exact Goal pins remain fixed. Smoke tracers collide with
 the current skinned soft-body surface samples, using a broad-phase bound so
 posts outside the plume are cheap to skip. Contact follows the moving skin
-and its node velocity. Tracers have no physical mass, so these contacts do not
-apply reaction impulses; the carrier wind is what bends the body. The
+and its node velocity. This deformable coupling is still one-way: its contact
+does not return equal-and-opposite impulses to smoke particles. The
 generation-checked coupling must be removed before either resource. The
 gallery registers the same API coupling for every soft body in a smoke scene;
 no scene-specific physics kernel is involved.
 
 `World::add_smoke_cloth_coupling` links a smoke system to any cloth, including
-an open or tearing sheet. Carrier-gas velocity adds bounded wind acceleration
-to movable cloth vertices, leaving authored pins exact. Smoke tracers make
+an open or tearing sheet. In grid mode, pressure and tangential surface stress
+on its live triangles add bounded acceleration to movable cloth vertices,
+leaving authored pins exact. Particle-only mode retains local tracer drag. Smoke tracers make
 two-sided swept contact with the cloth's current triangles; the contact normal
 uses the tracer's incoming side so a thin sheet does not flip particles through
 it. Triangle barycentric weights transfer the local cloth velocity to the
-tracer response. As with smoke/soft body, tracers have no reaction mass: wind
-loads the cloth, while tracers are deflected by it. The coupling has a
+tracer response. As with smoke/soft body, this deformable coupling remains
+one-way. The coupling has a
 generation-tagged handle and must be removed before the smoke or cloth.
-Blocked carrier flow is redirected along the local cloth tangent toward the
-finite sheet's edges, rather than leaving tracers parked on the windward face.
+Impact pressure and existing tangential velocity carry smoke around the
+finite sheet's edges. The boundary converts measured impact pressure into
+bounded tangential motion toward an open edge; it has no fixed edge speed.
 
-`World::add_smoke_rope_coupling` applies bounded carrier-wind drag to free rope
+`World::add_smoke_rope_coupling` applies bounded local-particle drag to free rope
 nodes before the shared rope solve. Anchored endpoints stay governed by their
 rigid or deformable attachment. Smoke tracers use swept capsule contact with
-the rope's live segments; they deflect but carry no reaction mass. The
+the rope's live segments; this deformable coupling does not yet return
+reaction impulses to particles. The
 generation-checked coupling must be removed before its smoke or rope.
 
-`World::add_smoke_rigid_coupling` is opt-in for arbitrary rigid triangle meshes,
-including open moving panels. Tracers make two-sided swept triangle contact
-and flow toward finite surface edges. Signed mesh area supplies a bounded
-carrier-pressure force to dynamic bodies; a consistently wound closed mesh
-has zero net signed area, so this simple pressure model does not load it. The
-coupling must be removed before its smoke or rigid body. Gallery scenes opt in
-with `pm_smoke_collider` on the Blender rigid object.
+`World::add_smoke_rigid_coupling` works with closed bodies and open panels.
+In grid mode, pressure and tangential stress are integrated over the body's
+actual triangles, including torque about its center of mass. Deposited smoke
+density scales the traction, so an unreached body receives no smoke force and
+a denser local plume produces more force. The triangle raster uses rigid wall
+velocity `v + omega × r`. Particle-only mode retains equal-and-opposite local
+contact impulses whose mass derives from `air_density` and particle size.
+Set `tracer_contact=false` only when containment is intentionally disabled or
+handled elsewhere.
+The coupling must be removed before its smoke or rigid
+body. The gallery couples all dynamic rigid bodies automatically; the Blender
+`pm_smoke_collider` property additionally opts in a static or kinematic mesh.
+
+Smoke buoyancy, including heated steam, points opposite the current step
+gravity; zero gravity retains world-up buoyancy. Soft-body, cloth, and rope
+wind use one bounded local-flow response calculation. Soft-body couplings expose
+`maximum_wind_acceleration` to keep stronger smoke from injecting an
+unbounded node velocity change.
 
 ## Rope centerlines and attachments
 
@@ -236,14 +284,13 @@ links, solved by compliant Jacobi projection over each substep. World-owned
 cloth positions and triangles are borrowed through `cloth_view` and reacquired
 after stepping. `ClothId` is generation checked like other resource handles.
 The cloth contact stage resolves vertices against rigid triangle BVHs and
-transfers equal-and-opposite impulses to dynamic bodies. A conservative
-triangle-side body constraint prevents fast bodies from crossing intact,
-nonfracturing sheets. Fracturing cloth instead uses node contacts to let the
-body keep its incoming momentum while bonds fail; the conservative
-triangle-radius constraint otherwise holds it against the separating faces.
-The broad-phase rigid radius can overestimate non-spherical shapes, so a
-future exact deforming-mesh narrow phase remains possible without changing
-the API.
+transfers equal-and-opposite impulses to dynamic bodies. A second constraint
+prevents fast bodies from crossing intact, nonfracturing sheets, but treats the
+rigid body's bounding sphere as its contact shape against cloth triangles.
+This can overestimate non-spherical bodies. Fracturing cloth instead uses node
+contacts to let the body keep its incoming momentum while bonds fail; the
+bounding-sphere constraint otherwise holds it against the separating faces.
+An exact rigid-mesh/cloth-triangle narrow phase remains future work.
 Optional `break_strain > 0` enables persistent bond fracture: each stretch,
 shear, or bending bond has a stable ID, rest length, active state, and damage
 counter. A bond breaks after its extension exceeds `break_strain` for

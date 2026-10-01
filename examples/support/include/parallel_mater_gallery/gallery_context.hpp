@@ -206,35 +206,35 @@ inline constexpr std::array gallery_entries{
         {.target = {0.0F, 0.25F, 0.0F}, .distance_scale = 0.54F,
          .pitch = 0.62F}, false, true, 0U, 0U, false, true},
     GalleryEntry{GalleryContext::smoke, GallerySceneSource::smoke,
-        GalleryControlPolicy::none, GalleryCountKind::none,
-        "--smoke", "SMOKE", "VORTEX SHEDDING AROUND A SPHERE  R RESET",
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::none,
+        "--smoke", "SMOKE", "Z X C V B N GRID MAPS  R RESET",
         {42, 49, 59, 235}, {205, 215, 225},
         {.target = {0.25F, 1.5F, 0.0F}, .distance_scale = 0.72F,
          .pitch = 0.22F}, false, false, 0U, 0U},
     GalleryEntry{GalleryContext::smoke_water, GallerySceneSource::smoke_water,
-        GalleryControlPolicy::none, GalleryCountKind::fluid_particles,
-        "--smoke-water", "SMOKE WATER", "HOT PLATE BOILS WATER  SMOKE BLOWS WATER  P CAP  R RESET",
+        GalleryControlPolicy::cloth_gravity, GalleryCountKind::fluid_particles,
+        "--smoke-water", "SMOKE WATER", "Z X C V B N GRID MAPS  P CAP",
         {42, 49, 59, 235}, {115, 198, 225},
         {.target = {0.0F, 0.9F, 0.0F}, .distance_scale = 0.80F,
          .pitch = 1.05F}, true, false, 100U, 100'000U},
     GalleryEntry{GalleryContext::smoke_soft_body,
-        GallerySceneSource::smoke_soft_body, GalleryControlPolicy::none,
+        GallerySceneSource::smoke_soft_body, GalleryControlPolicy::cloth_gravity,
         GalleryCountKind::none, "--smoke-softbody", "SMOKE SOFT BODY",
-        "SMOKE BENDS 20 SOFT BODIES  R RESET  V SPRINGS",
+        "Z X C V B N GRID MAPS  ARROWS GRAVITY",
         {42, 49, 59, 235}, {170, 225, 195},
         {.target = {1.0F, 0.8F, 0.0F}, .distance_scale = 0.80F,
          .pitch = 0.35F}, false, false, 0U, 0U, true},
     GalleryEntry{GalleryContext::smoke_cloth,
-        GallerySceneSource::smoke_cloth, GalleryControlPolicy::none,
+        GallerySceneSource::smoke_cloth, GalleryControlPolicy::cloth_gravity,
         GalleryCountKind::none, "--smoke-cloth", "SMOKE CLOTH",
-        "SMOKE BENDS A PINNED CLOTH SHEET  R RESET  V BONDS",
+        "Z X C V B N GRID MAPS  ARROWS GRAVITY",
         {42, 49, 59, 235}, {184, 206, 230},
         {.target = {0.2F, 0.9F, 0.0F}, .distance_scale = 0.82F,
          .pitch = 0.35F}, false, true, 0U, 0U},
     GalleryEntry{GalleryContext::smoke_rope,
-        GallerySceneSource::smoke_rope, GalleryControlPolicy::none,
+        GallerySceneSource::smoke_rope, GalleryControlPolicy::cloth_gravity,
         GalleryCountKind::none, "--smoke-rope", "SMOKE ROPE",
-        "SMOKE BENDS FOUR SUSPENSION ROPES  R RESET  V SEGMENTS",
+        "Z X C V B N GRID MAPS  ARROWS GRAVITY",
         {42, 49, 59, 235}, {230, 170, 95},
         {.target = {0.2F, 1.0F, 0.0F}, .distance_scale = 0.82F,
          .pitch = 0.35F}, false, false, 0U, 0U, false, true},
@@ -265,6 +265,15 @@ inline constexpr std::array gallery_entries{
 [[nodiscard]] constexpr bool is_soft_body_context(
     GalleryContext context) noexcept {
     return gallery_entry(context).has_soft_body;
+}
+
+[[nodiscard]] constexpr bool is_smoke_context(
+    GalleryContext context) noexcept {
+    return context == GalleryContext::smoke ||
+           context == GalleryContext::smoke_water ||
+           context == GalleryContext::smoke_soft_body ||
+           context == GalleryContext::smoke_cloth ||
+           context == GalleryContext::smoke_rope;
 }
 
 } // namespace parallel_mater::gallery

@@ -79,6 +79,14 @@ void draw_physics_debug_overlay(
     std::uint32_t height, PhysicsDebugFrameView frame, Camera camera,
     PhysicsDebugVisualizationOptions options);
 
+// Visualizes cell-centered fields exposed by SmokeDeviceView. The renderer is
+// deliberately outside World: the API supplies solver state while clients
+// choose slices, normalization, and color maps.
+[[nodiscard]] bool draw_smoke_grid_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, SmokeDeviceView smoke, Camera camera,
+    SmokeDebugMode mode, std::string &error);
+
 // Fluid loads the Blender-authored Flow scene. Gallery navigation belongs to
 // examples, not World.
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,

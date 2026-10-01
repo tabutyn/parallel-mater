@@ -77,28 +77,47 @@ Headless physics builds remain free of OpenGL and OptiX.
 17. **Rope Cloth** — four post-to-corner ropes suspend a subdivided cloth sheet
     and catch a falling rigid sphere through explicit rope/cloth API joints.
 18. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
-    a passive sphere. The API diverts them around the surface and sheds a
-    measurable alternating wake; the gallery composites translucent splats.
+    a passive sphere mesh. A shared staggered air grid, triangle cut faces,
+    pressure projection, boundary shear, and resolved curl produce the wake;
+    the gallery composites translucent tracer splats.
 19. **Smoke Water** — `SmokeWater.blend` starts water at 80°C above an open
     container. The finite `Hot` mesh is a visible passive collision plate and
     a 500°C thermal source. Smoke blows across the falling liquid; contact
     with the plate warms particles to the 100°C boiling point, transfers them
     into the smoke solver, and gives the steam buoyant lift. Select with
-    `--smoke-water`; `P` changes water capacity, `V` shows particles, `R`
+    `--smoke-water`; `P` changes water capacity and `R`
     restarts, and headless output reports the boiled-particle count.
 20. **Smoke Soft Body** — `SmokeSoftbody.blend` contains 20 Goal-pinned soft
-    posts in the smoke plume. The shared API bends them with smoke-carrier
-    wind and deflects tracers at their live surfaces. Select with
-    `--smoke-softbody`; `V` reveals the internal springs and `R` restarts.
+    posts in the smoke plume. The shared API integrates air force sampled on
+    their exterior triangles and deflects tracers at their live surfaces.
+    Select with `--smoke-softbody`; `R` restarts.
 21. **Smoke Cloth** — `SmokeCloth.blend` pins two edges of a 17×17 sheet in
     front of the smoke flow. The API's wind coupling bends the free cloth and
     two-sided triangle contact deflects smoke tracers. Select with
-    `--smoke-cloth`; `V` reveals cloth bonds and `R` restarts.
+    `--smoke-cloth`; `R` restarts.
 22. **Smoke Rope** — `SmokeRope.blend` suspends an active rigid panel from four
-    ropes attached to two passive posts. The API's carrier wind bends the
+    ropes attached to two passive posts. Local smoke-particle motion bends the
     ropes and loads the panel; live capsule and panel-triangle contacts divert
-    smoke tracers. Select with `--smoke-rope`; `V` reveals rope segments and
-    `R` restarts.
+    smoke tracers. Select with `--smoke-rope`; `R` restarts.
+
+All five smoke scenes use the arrow keys to ease gravity up to 45° from down;
+releasing the arrows returns it to straight down. Buoyancy and steam rise
+follow the tilt. Only locally deposited smoke loads dynamic rigid meshes and
+deformable surfaces; Blender-passive bodies remain fixed.
+Their shared shallow air field has 128×128 horizontal cells and 32 vertical
+cells; Blender emitter properties can adjust these counts, viscosity, LES
+coefficient, pressure work budget, and convergence tolerance.
+
+All smoke contexts share solver-field inspection. Each key selects one mode;
+pressing the active key again returns to tracer rendering. `Z` draws the grid
+bounds, three orthogonal slices, and orange solid cut cells. `X` draws
+cell-centered velocity as signed XYZ RGB plus sparse vectors. `C` draws a
+blue-to-red signed pressure map. `V` shows deposited density with cold loading
+in blue and hot loading in red. `B` draws signed XYZ RGB vorticity, and `N`
+draws blue-negative/red-positive divergence. Field maps use three center
+slices except density/heat, which draws occupied cells throughout the volume.
+The legend reports the per-frame normalization maximum. These visualizers read
+`SmokeDeviceView`; no rendering state enters the physics solver.
 
 The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
 instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
@@ -172,8 +191,8 @@ arrows tilt it up to 45 degrees. `P` changes particle capacity and resets;
 and foam renderer are unchanged. `V` exposes both water particles and internal
 soft springs; `B` shows the soft surface and `C` shows water reactions.
 
-All gallery entries create `World` with opt-in rolling physics capture. `Z`
-shows available contact and deformable-surface normals, `X` rigid inputs and
+All gallery entries create `World` with opt-in rolling physics capture.
+Outside the smoke contexts, `Z` shows available contact and deformable-surface normals, `X` rigid inputs and
 rigid/deformable contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
 `V` switches to available particle/deformable structure, `B` shows active cloth bonds

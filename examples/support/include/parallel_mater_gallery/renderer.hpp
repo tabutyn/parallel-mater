@@ -36,6 +36,16 @@ enum class FluidRenderMode : std::uint8_t {
     wireframe,
 };
 
+enum class SmokeDebugMode : std::uint8_t {
+    none,
+    grid,
+    velocity,
+    pressure,
+    density_temperature,
+    vorticity,
+    divergence,
+};
+
 class OptixRenderer {
   public:
     OptixRenderer() noexcept;
@@ -61,7 +71,8 @@ class OptixRenderer {
                               std::string &error,
                               RendererTimings *timings = nullptr,
                               FluidRenderMode fluid_mode =
-                                  FluidRenderMode::surface);
+                                  FluidRenderMode::surface,
+                              bool show_smoke_particles = true);
 
     // Advance render-only foam during unrendered headless steps.
     [[nodiscard]] bool advance_visuals(const World &world,

@@ -17,10 +17,15 @@ struct GalleryDebugState {
     bool velocities{};
     bool structure{};
     bool rigid_contacts{};
+    SmokeDebugMode smoke_mode{SmokeDebugMode::none};
 
     void reset(bool initial_particle_view = false) noexcept {
         *this = {};
         particle_view = initial_particle_view;
+    }
+
+    void toggle_smoke(SmokeDebugMode mode) noexcept {
+        smoke_mode = smoke_mode == mode ? SmokeDebugMode::none : mode;
     }
 
     void toggle_primary(GalleryContext context) noexcept {
