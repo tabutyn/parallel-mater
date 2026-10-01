@@ -651,6 +651,192 @@ void test_opt_in_physics_debug_capture() {
           "debug rigid view must expose last frame input force");
 }
 
+parallel_mater::RigidBodyState exercise_constraint(
+    parallel_mater::RigidConstraintOptions constraint,
+    parallel_mater::RigidBodyState dynamic_state,
+    parallel_mater::RigidConstraintState *constraint_state = nullptr) {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .rigid_constraint_capacity = 1U,
+                                .triangle_mesh_capacity = 1U}, world),
+                 "create rigid constraint world");
+    const TriangleMeshId mesh = add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId anchor{};
+    RigidBodyId body{};
+    check_status(world.add_rigid_body(
+        {.motion = MotionType::static_body, .mesh = mesh}, anchor),
+        "add constraint anchor");
+    check_status(world.add_rigid_body(
+        {.mesh = mesh, .initial_state = dynamic_state,
+         .linear_damping = 0.0F, .angular_damping = 0.0F}, body),
+        "add constrained body");
+    constraint.body_a = anchor;
+    constraint.body_b = body;
+    RigidConstraintId id{};
+    check_status(world.add_rigid_constraint(constraint, id),
+                 "add rigid constraint");
+    check(world.remove_rigid_body(body).code == StatusCode::invalid_argument,
+          "constraint must retain both rigid bodies");
+    check_status(world.step({.timestep = 1.0F / 60.0F,
+                             .substeps = 8U, .gravity = {}}),
+                 "step rigid constraint");
+    RigidBodyState output{};
+    check_status(world.read_rigid_body_state(body, output),
+                 "read constrained body");
+    if (constraint_state != nullptr)
+        check_status(world.read_rigid_constraint_state(id, *constraint_state),
+                     "read rigid constraint");
+    check_status(world.remove_rigid_constraint(id), "remove rigid constraint");
+    RigidConstraintState stale{};
+    check(world.read_rigid_constraint_state(id, stale).code ==
+              StatusCode::invalid_handle,
+          "removed rigid constraint handle must become stale");
+    check_status(world.remove_rigid_body(body),
+                 "remove unreferenced constrained body");
+    return output;
+}
+
+void test_rigid_constraint_types() {
+    using namespace parallel_mater;
+    const RigidBodyState translating{
+        .linear_velocity = {2.0F, 2.0F, 0.0F}};
+    RigidBodyState fixed = exercise_constraint(
+        {.type = RigidConstraintType::fixed}, translating);
+    check(std::fabs(fixed.linear_velocity.x) < 0.05F &&
+              std::fabs(fixed.linear_velocity.y) < 0.05F,
+          "fixed constraint must lock translation");
+
+    RigidBodyState point = exercise_constraint(
+        {.type = RigidConstraintType::point},
+        {.linear_velocity = {2.0F, 0.0F, 0.0F},
+         .angular_velocity = {0.0F, 0.0F, 2.0F}});
+    check(std::fabs(point.linear_velocity.x) < 0.05F &&
+              point.angular_velocity.z > 1.0F,
+          "point constraint must lock its anchor and leave rotation free");
+
+    RigidBodyState hinge = exercise_constraint(
+        {.type = RigidConstraintType::hinge,
+         .angular_limits = {.axes = rigid_constraint_axis_z,
+                            .lower = {0.0F, 0.0F, -0.785398F},
+                            .upper = {0.0F, 0.0F, 0.785398F}}},
+        {.angular_velocity = {2.0F, 0.0F, 2.0F}});
+    check(std::fabs(hinge.angular_velocity.x) < 0.05F &&
+              hinge.angular_velocity.z > 1.0F,
+          "hinge constraint must retain only its limited Z rotation");
+
+    RigidBodyState slider = exercise_constraint(
+        {.type = RigidConstraintType::slider,
+         .linear_limits = {.axes = rigid_constraint_axis_x,
+                           .lower = {-1.0F, 0.0F, 0.0F},
+                           .upper = {1.0F, 0.0F, 0.0F}}}, translating);
+    check(slider.linear_velocity.x > 1.0F &&
+              std::fabs(slider.linear_velocity.y) < 0.05F,
+          "slider constraint must allow only local X translation");
+
+    RigidBodyState piston = exercise_constraint(
+        {.type = RigidConstraintType::piston,
+         .linear_limits = {.axes = rigid_constraint_axis_x,
+                           .lower = {-1.0F, 0.0F, 0.0F},
+                           .upper = {1.0F, 0.0F, 0.0F}}},
+        {.linear_velocity = {2.0F, 2.0F, 0.0F},
+         .angular_velocity = {2.0F, 2.0F, 0.0F}});
+    check(piston.linear_velocity.x > 1.0F &&
+              std::fabs(piston.linear_velocity.y) < 0.05F &&
+              piston.angular_velocity.x > 1.0F &&
+              std::fabs(piston.angular_velocity.y) < 0.05F,
+          "piston constraint must allow local X translation and rotation");
+
+    RigidBodyState generic = exercise_constraint(
+        {.type = RigidConstraintType::generic,
+         .linear_limits = {.axes = rigid_constraint_axis_y}}, translating);
+    check(generic.linear_velocity.x > 1.0F &&
+              std::fabs(generic.linear_velocity.y) < 0.05F,
+          "generic constraint must lock only authored axes");
+
+    RigidBodyState spring = exercise_constraint(
+        {.type = RigidConstraintType::generic_spring,
+         .linear_springs = {.axes = rigid_constraint_axis_x,
+                            .stiffness = {40.0F, 0.0F, 0.0F},
+                            .damping = {2.0F, 0.0F, 0.0F}}},
+        {.position = {1.0F, 0.0F, 0.0F}});
+    check(spring.linear_velocity.x < -0.05F,
+          "generic spring must pull displaced bodies toward equilibrium");
+
+    RigidBodyState motor = exercise_constraint(
+        {.type = RigidConstraintType::motor,
+         .motor = {.angular_enabled = true,
+                   .angular_target_velocity = 4.0F,
+                   .angular_maximum_impulse = 10.0F}}, {});
+    check(motor.angular_velocity.x > 1.0F,
+          "motor constraint must drive local X angular velocity");
+
+    RigidConstraintState broken{};
+    (void)exercise_constraint(
+        {.type = RigidConstraintType::fixed,
+         .breaking_impulse_threshold = 0.0001F},
+        {.linear_velocity = {5.0F, 0.0F, 0.0F}}, &broken);
+    check(broken.broken && !broken.enabled && broken.applied_impulse > 0.0F,
+          "breaking threshold must disable an overloaded constraint");
+}
+
+void test_rigid_constraint_toggle() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .rigid_constraint_capacity = 1U,
+                                .triangle_mesh_capacity = 1U}, world),
+                 "create constraint toggle world");
+    const TriangleMeshId mesh = add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId anchor{}, body{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body, .mesh = mesh}, anchor),
+                 "add toggle anchor");
+    check_status(world.add_rigid_body(
+                     {.mesh = mesh,
+                      .initial_state = {
+                          .position = {1.0F, 0.0F, 0.0F},
+                          .linear_velocity = {2.0F, 0.0F, 0.0F}},
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F}, body),
+                 "add toggle body");
+    RigidConstraintOptions options{.type = RigidConstraintType::fixed,
+                                   .body_a = anchor,
+                                   .body_b = body,
+                                   .local_anchor_b = {-1.0F, 0.0F, 0.0F},
+                                   .enabled = false};
+    RigidConstraintId constraint{};
+    check_status(world.add_rigid_constraint(options, constraint),
+                 "add disabled constraint");
+    check_status(world.step({.timestep = 1.0F / 60.0F,
+                             .substeps = 4U, .gravity = {}}),
+                 "step released constraint");
+    RigidBodyState released{};
+    check_status(world.read_rigid_body_state(body, released),
+                 "read released constraint body");
+    check(released.linear_velocity.x > 1.9F,
+          "disabled constraint must leave its body released");
+    options.enabled = true;
+    options.local_anchor_b = {-released.position.x, -released.position.y,
+                              -released.position.z};
+    check_status(world.update_rigid_constraint(constraint, options),
+                 "enable constraint");
+    for (int frame = 0; frame < 30; ++frame)
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 4U, .gravity = {}}),
+                     "step enabled constraint");
+    RigidBodyState glued{};
+    check_status(world.read_rigid_body_state(body, glued),
+                 "read glued constraint body");
+    check(std::fabs(glued.linear_velocity.x) < 0.05F,
+          "updated fixed constraint must glue the body");
+    RigidConstraintState state{};
+    check_status(world.read_rigid_constraint_state(constraint, state),
+                 "read toggled constraint");
+    check(state.enabled && !state.broken,
+          "enabled constraint state must be observable");
+}
+
 } // namespace
 
 int main() {
@@ -671,6 +857,8 @@ int main() {
     test_parallel_contact_coloring(256U);
     test_invalid_triangle_indices();
     test_opt_in_physics_debug_capture();
+    test_rigid_constraint_types();
+    test_rigid_constraint_toggle();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";
         return 1;

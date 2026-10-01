@@ -11,7 +11,7 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, ClothId, SoftBodyId, RopeId, geometry sampling, inflow/outflow,
+  World, FluidId, RigidBodyId, RigidConstraintId, ClothId, SoftBodyId, RopeId, geometry sampling, inflow/outflow,
   paint fields and rules, device views, contacts
 
 examples/gallery (not installed)
@@ -32,61 +32,65 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
-2. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
+2. **Rigid constraints** — eight Blender-authored scenes exercise Fixed,
+   Point, Hinge, Slider, Piston, Generic, Generic Spring, and Motor resources.
+   Fixed and Point attach/release with `Space`; the four-wheel Motor car uses
+   arrow-key tank controls. The other five receive an authored sphere impact.
+3. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
    into a larger static receiver.
-3. **Fluid flow** — Blender Inflow emits repelling particles over a passive
+4. **Fluid flow** — Blender Inflow emits repelling particles over a passive
    triangle surface; Outflow removes them and impact agitation shows as foam.
-4. **Fluid + rigid** — 64 independently simulated dynamic spheres from a
+5. **Fluid + rigid** — 64 independently simulated dynamic spheres from a
    Blender 4×4×4 array fall into the fluid and receive two-way impulses.
-5. **Peg Paint** — a Blender Geometry flow seeds water once into a bowl with
+6. **Peg Paint** — a Blender Geometry flow seeds water once into a bowl with
    four static pegs and one dynamic sphere; fluid contacts persistently paint
    the authored UV surfaces blue.
-6. **Cloth** — a Blender-authored subdivided sheet pins its top and bottom
+7. **Cloth** — a Blender-authored subdivided sheet pins its top and bottom
    vertex rows while a dynamic sphere can press it when arrow keys tilt
    gravity up to 45 degrees; the passive box supports both.
-7. **Cloth Tear** — a heavy sphere first falls to the floor; arrow-key gravity
+8. **Cloth Tear** — a heavy sphere first falls to the floor; arrow-key gravity
    rolls it into the sheet, where overloaded bonds break and triangle-local
    faces separate without being deleted. The API owns fracture and topology.
-8. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
+9. **Cloth Paint** — an active rigid sphere interacts with an intact pinned
    cloth sheet and persistently paints its UVs at contact through an API rule.
-9. **Water Cloth** — one closed, unpinned pressure cloth contains a one-shot
+10. **Water Cloth** — one closed, unpinned pressure cloth contains a one-shot
    Geometry-flow water volume. Fluid pressure deforms the cloth and the moving
    cloth surface contains and accelerates the particles through a public
    two-way coupling resource.
-10. **Soft Body** — Blender's native Soft Body modifier marks a closed
+11. **Soft Body** — Blender's native Soft Body modifier marks a closed
     Icosphere. The loader converts it into a volumetric spring lattice and the
     public API deforms it against the authored passive triangle arena.
-11. **Soft Body Rigid** — the same API lattice collides with two Blender-authored
+12. **Soft Body Rigid** — the same API lattice collides with two Blender-authored
     active spheres, transferring equal-and-opposite linear and angular impulses
     without a second soft-body solver.
-12. **Soft Body Cloth** — a soft sphere lands on an intact pinned bridge over a
+13. **Soft Body Cloth** — a soft sphere lands on an intact pinned bridge over a
     pit, then arrow-key gravity rolls it into a tearable curtain. Both sheets
     share the API coupling and use independently authored fracture settings.
-13. **Soft Body Fluid** — Goal-pinned soft bodies deflect under mesh-source
+14. **Soft Body Fluid** — Goal-pinned soft bodies deflect under mesh-source
     inflow, with shared fluid rendering and outflow lifecycle.
-14. **Rope** — a Bézier rest curve connects passive and active rigid bodies
+15. **Rope** — a Bézier rest curve connects passive and active rigid bodies
     through native Blender Hooks. The API owns sampling, tension and contacts;
     the gallery builds an orange tube from its node view.
-15. **Rope Fluid** — the same hooked rope, post, and ball under a one-shot
+16. **Rope Fluid** — the same hooked rope, post, and ball under a one-shot
     Blender liquid volume. The API handles fluid/rope segment contact and
     bounded two-way reaction, while existing fluid/rigid triangle contact
     handles the ball and post. The Blender ball has 20 kg mass so it can wind
     under the authored water volume without floating away.
-16. **Rope Soft Body** — a hooked rope wraps a Goal-pinned soft post and
+17. **Rope Soft Body** — a hooked rope wraps a Goal-pinned soft post and
     transfers contact and anchor forces through the shared API.
-17. **Rope Cloth** — four post-to-corner ropes suspend a subdivided cloth sheet
+18. **Rope Cloth** — four post-to-corner ropes suspend a subdivided cloth sheet
     and catch a falling rigid sphere through explicit rope/cloth API joints.
-18. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
+19. **Smoke** — a Blender Smoke Inflow plane emits dilute GPU tracers toward
     a passive sphere. The API diverts them around the surface and sheds a
     measurable alternating wake; the gallery composites translucent splats.
-19. **Smoke Water** — `SmokeWater.blend` starts water at 80°C above an open
+20. **Smoke Water** — `SmokeWater.blend` starts water at 80°C above an open
     container. The finite `Hot` mesh is a visible passive collision plate and
     a 500°C thermal source. Smoke blows across the falling liquid; contact
     with the plate warms particles to the 100°C boiling point, transfers them
     into the smoke solver, and gives the steam buoyant lift. Select with
     `--smoke-water`; `P` changes water capacity, `V` shows particles, `R`
     restarts, and headless output reports the boiled-particle count.
-20. **Smoke Soft Body** — `SmokeSoftbody.blend` contains 20 Goal-pinned soft
+21. **Smoke Soft Body** — `SmokeSoftbody.blend` contains 20 Goal-pinned soft
     posts in the smoke plume. The shared API bends them with smoke-carrier
     wind and deflects tracers at their live surfaces. Select with
     `--smoke-softbody`; `V` reveals the internal springs and `R` restarts.
@@ -99,9 +103,16 @@ the bowl retains its detailed collision surface. Arrow input moves the Cube
 and tilts gravity for the dynamic bodies. C++ does not restate that scene's
 body list or transforms.
 
-`Tab` opens an examples-only context selector ordered Rigid Body, DUMP, Fluid,
+`Tab` opens an examples-only context selector ordered Rigid Body, the eight
+Constraint scenes, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
 Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope, Rope Fluid.
+Constraint scenes are also selectable headlessly with
+`--constraint-fixed`, `--constraint-point`, `--constraint-hinge`,
+`--constraint-slider`, `--constraint-piston`, `--constraint-generic`,
+`--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
+trigger the toggle after N frames with `--constraint-action-after-frames N`
+or drive the car with `--motor-forward`.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to

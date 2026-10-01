@@ -131,6 +131,19 @@ class FlatJson {
                add(multiply(twice_cross, orientation.w), cross(q, twice_cross)));
 }
 
+[[nodiscard]] Quaternion conjugate(Quaternion value) {
+    return {-value.x, -value.y, -value.z, value.w};
+}
+
+[[nodiscard]] Quaternion multiply(Quaternion a, Quaternion b) {
+    return {
+        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    };
+}
+
 [[nodiscard]] bool read_metadata(const cgltf_node &node,
                                  RigidBodyOptions &options,
                                  bool &checkerboard,
@@ -816,6 +829,143 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                                      center});
         }
         output.rigid_bodies.push_back(std::move(body));
+    }
+    for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) continue;
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "rigid_constraint")
+            continue;
+        RigidConstraintDefinition definition{};
+        definition.name = extras.string("pm_name").value_or(
+            node.name != nullptr ? node.name : "rigid_constraint");
+        if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
+            node.parent != nullptr || node.has_matrix) {
+            error = definition.name +
+                ": rigid constraint needs schema 2 and a scene-root TRS node";
+            return false;
+        }
+        const std::string type =
+            extras.string("pm_constraint_type").value_or("");
+        if (type == "fixed") definition.options.type = RigidConstraintType::fixed;
+        else if (type == "point") definition.options.type = RigidConstraintType::point;
+        else if (type == "hinge") definition.options.type = RigidConstraintType::hinge;
+        else if (type == "slider") definition.options.type = RigidConstraintType::slider;
+        else if (type == "piston") definition.options.type = RigidConstraintType::piston;
+        else if (type == "generic") definition.options.type = RigidConstraintType::generic;
+        else if (type == "generic_spring")
+            definition.options.type = RigidConstraintType::generic_spring;
+        else if (type == "motor") definition.options.type = RigidConstraintType::motor;
+        else {
+            error = definition.name + ": unsupported rigid constraint type";
+            return false;
+        }
+        const auto find_body = [&](std::string_view key,
+                                   std::uint32_t &output_index) {
+            const std::string target = extras.string(key).value_or("");
+            std::optional<std::uint32_t> found;
+            for (std::uint32_t index = 0U;
+                 index < output.rigid_bodies.size(); ++index) {
+                const RigidBodyDefinition &body = output.rigid_bodies[index];
+                if (body.name != target && body.source_name != target) continue;
+                if (found) return false;
+                found = index;
+            }
+            if (!found) return false;
+            output_index = *found;
+            return true;
+        };
+        if (!find_body("pm_body_a", definition.body_a) ||
+            !find_body("pm_body_b", definition.body_b) ||
+            definition.body_a == definition.body_b) {
+            error = definition.name +
+                ": constraint body name is missing, ambiguous, or repeated";
+            return false;
+        }
+        const RigidBodyState constraint_frame = node_state(node);
+        const auto assign_frame = [&](std::uint32_t body_index, Vec3 &anchor,
+                                      Quaternion &orientation) {
+            const RigidBodyState &body =
+                output.rigid_bodies[body_index].options.initial_state;
+            const Quaternion inverse = conjugate(body.orientation);
+            anchor = rotate(inverse,
+                            subtract(constraint_frame.position, body.position));
+            orientation = multiply(inverse, constraint_frame.orientation);
+        };
+        assign_frame(definition.body_a, definition.options.local_anchor_a,
+                     definition.options.local_orientation_a);
+        assign_frame(definition.body_b, definition.options.local_anchor_b,
+                     definition.options.local_orientation_b);
+        definition.options.enabled = extras.boolean("pm_enabled").value_or(true);
+        definition.options.disable_collisions =
+            extras.boolean("pm_disable_collisions").value_or(true);
+        definition.options.breaking_impulse_threshold = static_cast<float>(
+            extras.number("pm_breaking_impulse_threshold").value_or(0.0));
+        const double solver_iterations =
+            extras.number("pm_solver_iterations").value_or(8.0);
+        if (!std::isfinite(solver_iterations) || solver_iterations < 1.0 ||
+            solver_iterations > 64.0 ||
+            std::floor(solver_iterations) != solver_iterations) {
+            error = definition.name + ": invalid constraint solver iterations";
+            return false;
+        }
+        definition.options.solver_iterations =
+            static_cast<std::uint32_t>(solver_iterations);
+        const char *axes[] = {"x", "y", "z"};
+        for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+            const std::string suffix = axes[axis];
+            const std::uint8_t bit = static_cast<std::uint8_t>(1U << axis);
+            const auto set_component = [axis](Vec3 &value, float component_value) {
+                if (axis == 0U) value.x = component_value;
+                else if (axis == 1U) value.y = component_value;
+                else value.z = component_value;
+            };
+            if (extras.boolean("pm_use_limit_lin_" + suffix).value_or(false))
+                definition.options.linear_limits.axes |= bit;
+            set_component(definition.options.linear_limits.lower,
+                static_cast<float>(extras.number(
+                    "pm_limit_lin_" + suffix + "_lower").value_or(0.0)));
+            set_component(definition.options.linear_limits.upper,
+                static_cast<float>(extras.number(
+                    "pm_limit_lin_" + suffix + "_upper").value_or(0.0)));
+            if (extras.boolean("pm_use_limit_ang_" + suffix).value_or(false))
+                definition.options.angular_limits.axes |= bit;
+            set_component(definition.options.angular_limits.lower,
+                static_cast<float>(extras.number(
+                    "pm_limit_ang_" + suffix + "_lower").value_or(0.0)));
+            set_component(definition.options.angular_limits.upper,
+                static_cast<float>(extras.number(
+                    "pm_limit_ang_" + suffix + "_upper").value_or(0.0)));
+            if (extras.boolean("pm_use_spring_" + suffix).value_or(false))
+                definition.options.linear_springs.axes |= bit;
+            set_component(definition.options.linear_springs.stiffness,
+                static_cast<float>(extras.number(
+                    "pm_spring_stiffness_" + suffix).value_or(0.0)));
+            set_component(definition.options.linear_springs.damping,
+                static_cast<float>(extras.number(
+                    "pm_spring_damping_" + suffix).value_or(0.0)));
+            if (extras.boolean("pm_use_spring_ang_" + suffix).value_or(false))
+                definition.options.angular_springs.axes |= bit;
+            set_component(definition.options.angular_springs.stiffness,
+                static_cast<float>(extras.number(
+                    "pm_spring_stiffness_ang_" + suffix).value_or(0.0)));
+            set_component(definition.options.angular_springs.damping,
+                static_cast<float>(extras.number(
+                    "pm_spring_damping_ang_" + suffix).value_or(0.0)));
+        }
+        definition.options.motor.linear_enabled =
+            extras.boolean("pm_use_motor_lin").value_or(false);
+        definition.options.motor.linear_target_velocity = static_cast<float>(
+            extras.number("pm_motor_lin_target_velocity").value_or(0.0));
+        definition.options.motor.linear_maximum_impulse = static_cast<float>(
+            extras.number("pm_motor_lin_max_impulse").value_or(1.0));
+        definition.options.motor.angular_enabled =
+            extras.boolean("pm_use_motor_ang").value_or(false);
+        definition.options.motor.angular_target_velocity = static_cast<float>(
+            extras.number("pm_motor_ang_target_velocity").value_or(0.0));
+        definition.options.motor.angular_maximum_impulse = static_cast<float>(
+            extras.number("pm_motor_ang_max_impulse").value_or(1.0));
+        output.rigid_constraints.push_back(std::move(definition));
     }
     for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
         const cgltf_node &node = data->nodes[node_index];
@@ -1571,7 +1721,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
     for (const ClothDefinition &cloth : scene.cloths)
         paint_fields += cloth.paintable ? 1U : 0U;
     const std::size_t maximum = std::numeric_limits<std::uint32_t>::max();
-    if (scene.rigid_bodies.size() > maximum || triangle_meshes > maximum ||
+    if (scene.rigid_bodies.size() > maximum ||
+        scene.rigid_constraints.size() > maximum || triangle_meshes > maximum ||
         scene.particle_sources.size() > maximum ||
         scene.destroy_planes.size() > maximum || paint_fields > maximum ||
         scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum ||
@@ -1589,6 +1740,8 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             ? static_cast<std::uint32_t>(scene.soft_bodies.size()) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
+        .rigid_constraint_capacity = static_cast<std::uint32_t>(
+            std::max<std::size_t>(1U, scene.rigid_constraints.size())),
         .triangle_mesh_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, triangle_meshes)),
         .particle_source_capacity = static_cast<std::uint32_t>(
@@ -1623,6 +1776,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     std::unordered_map<std::string, TriangleMeshId> mesh_cache;
     try {
         output.rigid_bodies.reserve(scene.rigid_bodies.size());
+        output.rigid_constraints.reserve(scene.rigid_constraints.size());
         output.ropes.reserve(scene.ropes.size());
         mesh_cache.reserve(scene.meshes.size() + scene.collision_meshes.size());
     } catch (...) {
@@ -1744,6 +1898,19 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return status;
         }
         output.rigid_bodies.push_back(body);
+    }
+    for (const RigidConstraintDefinition &definition : scene.rigid_constraints) {
+        if (definition.body_a >= output.rigid_bodies.size() ||
+            definition.body_b >= output.rigid_bodies.size())
+            return {StatusCode::invalid_argument, cudaSuccess,
+                    "gallery rigid constraint body index is invalid"};
+        RigidConstraintOptions options = definition.options;
+        options.body_a = output.rigid_bodies[definition.body_a];
+        options.body_b = output.rigid_bodies[definition.body_b];
+        RigidConstraintId constraint{};
+        const Status status = world.add_rigid_constraint(options, constraint);
+        if (!status) return status;
+        output.rigid_constraints.push_back(constraint);
     }
     if (scene.has_smoke) {
         int obstacle = -1;

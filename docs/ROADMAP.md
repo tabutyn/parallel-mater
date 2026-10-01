@@ -355,6 +355,19 @@ pass.
   57,720 bonds. Four graph iterations keep the 180-frame GPU test stable,
   with exact pins and at most 12% observed bond strain.
 
+## PR 28 — Rigid body constraints
+
+- Add world-owned, generation-checked Fixed, Point, Hinge, Slider, Piston,
+  Generic, Generic Spring, and Motor resources with local frames, limits,
+  springs, motors, collision suppression, breaking, and live updates.
+- Export Blender's native Rigid Body Constraint settings through schema 2 and
+  resolve their body references in the shared gallery loader.
+- Add eight reproducibly authored `.blend`/`.glb` gallery scenes. `Space`
+  toggles Fixed and Point at the bodies' current poses; arrow keys provide tank
+  control for a four-wheel motor car.
+- Validate API lifecycle and all solver types on GPU, real Blender re-export,
+  authored metadata, scene instantiation, and eight OptiX headless renders.
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.
