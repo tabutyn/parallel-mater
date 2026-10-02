@@ -28,6 +28,27 @@ void check_status(parallel_mater::Status status, const char *operation) {
     }
 }
 
+parallel_mater::Quaternion multiply(parallel_mater::Quaternion a,
+                                    parallel_mater::Quaternion b) {
+    return {
+        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    };
+}
+
+parallel_mater::Vec3 local_z(parallel_mater::Quaternion orientation) {
+    return {
+        2.0F * (orientation.x * orientation.z +
+                orientation.w * orientation.y),
+        2.0F * (orientation.y * orientation.z -
+                orientation.w * orientation.x),
+        1.0F - 2.0F * (orientation.x * orientation.x +
+                       orientation.y * orientation.y),
+    };
+}
+
 struct ExpectedScene {
     const char *path;
     parallel_mater::RigidConstraintType type;
@@ -117,6 +138,13 @@ int main() {
             ++hinge_count;
             check(constraint.options.angular_limits.axes == 0U,
                   "gear hinges must rotate continuously around local Z");
+            const Vec3 world_axis = local_z(multiply(
+                body_a.options.initial_state.orientation,
+                constraint.options.local_orientation_a));
+            check(std::fabs(world_axis.x) < 1.0e-4F &&
+                      std::fabs(world_axis.y) < 1.0e-4F &&
+                      world_axis.z > 0.9999F,
+                  "Blender local Z must become the horizontal runtime hinge axis");
             small_gear_on_shared_frame = small_gear_on_shared_frame ||
                 (body_a.source_name == "Ground" &&
                  body_b.source_name == "Gear");

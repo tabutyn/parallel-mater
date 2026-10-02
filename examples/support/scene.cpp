@@ -546,6 +546,11 @@ struct CollisionProxy {
             std::cos(radians * 0.5F)};
 }
 
+[[nodiscard]] Quaternion rotation_x(float radians) {
+    return {std::sin(radians * 0.5F), 0.0F, 0.0F,
+            std::cos(radians * 0.5F)};
+}
+
 void append_quad(std::vector<std::uint32_t> &indices, std::uint32_t first,
                  std::uint32_t second, std::uint32_t third,
                  std::uint32_t fourth) {
@@ -883,7 +888,15 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 ": constraint body name is missing, ambiguous, or repeated";
             return false;
         }
-        const RigidBodyState constraint_frame = node_state(node);
+        RigidBodyState constraint_frame = node_state(node);
+        // Blender's glTF Y-up conversion conjugates object rotations and
+        // converts mesh-local axes. Constraint axes are semantic rather than
+        // mesh data, so restore the Blender local basis before resolving the
+        // frame against either rigid body. This maps Blender local Z to the
+        // runtime world direction authored for the constraint.
+        constexpr float half_pi = 1.57079632679489661923F;
+        constraint_frame.orientation = multiply(
+            constraint_frame.orientation, rotation_x(-half_pi));
         const auto assign_frame = [&](std::uint32_t body_index, Vec3 &anchor,
                                       Quaternion &orientation) {
             const RigidBodyState &body =

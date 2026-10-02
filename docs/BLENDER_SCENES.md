@@ -257,7 +257,10 @@ Spring, and Motor types map directly to `RigidConstraintType`. The Empty's
 world transform becomes the joint frame; Blender linear and angular limit
 flags, spring stiffness/damping, motor targets/impulses, enabled state,
 collision suppression, breaking threshold, and solver-iteration override are
-preserved. Array-modified rigid bodies are rejected as ambiguous targets.
+preserved. Constraint axes retain their Blender meaning across glTF's Y-up
+conversion: Hinge uses the Empty's local Z, while Slider, Piston, and Motor use
+their documented local axes. Array-modified rigid bodies are rejected as
+ambiguous targets.
 
 The exporter writes one `pm_system = "rigid_constraint"` node with both target
 names and all built-in settings. The gallery loader resolves those names,
