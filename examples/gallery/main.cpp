@@ -54,6 +54,8 @@ using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
 using parallel_mater::gallery::is_smoke_context;
+using parallel_mater::gallery::toggles_constraint;
+using parallel_mater::gallery::uses_rigid_gravity;
 using parallel_mater::gallery::OptixRenderer;
 using parallel_mater::gallery::SmokeDebugMode;
 using parallel_mater::gallery::SceneDefinition;
@@ -1225,8 +1227,8 @@ int main(int argc, char **argv) {
                 }
             }
             if (!context_visible && keys.pressed(KeyAction::action) &&
-                gallery_entry(runtime.context).controls ==
-                    GalleryControlPolicy::constraint_toggle &&
+                toggles_constraint(
+                    gallery_entry(runtime.context).controls) &&
                 !toggle_constraint(runtime)) {
                 break;
             }
@@ -1306,7 +1308,7 @@ int main(int argc, char **argv) {
                     k_gravity * runtime.scene.gravity_scale,
                     k_cloth_gravity_tilt_degrees, k_timestep);
                 interactive_step.gravity = cloth_gravity;
-            } else if (entry.controls == GalleryControlPolicy::rigid_gravity) {
+            } else if (uses_rigid_gravity(entry.controls)) {
                 interactive_step.gravity = gravity_for(directional);
             } else if (entry.controls == GalleryControlPolicy::peg_gravity) {
                 const float right = directional.x + (!context_visible ?

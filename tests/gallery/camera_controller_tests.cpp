@@ -84,6 +84,26 @@ int main() {
     using parallel_mater::gallery::GalleryContext;
     using parallel_mater::gallery::GalleryControlPolicy;
     using parallel_mater::gallery::gallery_entry;
+    using parallel_mater::gallery::toggles_constraint;
+    using parallel_mater::gallery::uses_rigid_gravity;
+    for (const GalleryContext context : {GalleryContext::constraint_fixed,
+            GalleryContext::constraint_point, GalleryContext::constraint_hinge,
+            GalleryContext::constraint_slider,
+            GalleryContext::constraint_piston,
+            GalleryContext::constraint_generic,
+            GalleryContext::constraint_generic_spring})
+        check(uses_rigid_gravity(gallery_entry(context).controls),
+              "every non-motor constraint scene has arrow gravity controls");
+    const GalleryControlPolicy motor_controls =
+        gallery_entry(GalleryContext::constraint_motor).controls;
+    check(!uses_rigid_gravity(motor_controls) &&
+              motor_controls == GalleryControlPolicy::tank_motor,
+          "motor constraint scene keeps arrow tank controls");
+    check(toggles_constraint(
+              gallery_entry(GalleryContext::constraint_fixed).controls) &&
+              toggles_constraint(
+                  gallery_entry(GalleryContext::constraint_point).controls),
+          "fixed and point constraint scenes retain Space toggles");
     for (const GalleryContext context : {GalleryContext::smoke,
             GalleryContext::smoke_water, GalleryContext::smoke_soft_body,
             GalleryContext::smoke_cloth, GalleryContext::smoke_rope})

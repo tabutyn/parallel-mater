@@ -141,6 +141,8 @@ Constraint scenes are also selectable headlessly with
 `--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
 trigger the toggle after N frames with `--constraint-action-after-frames N`
 or drive the car with `--motor-forward`.
+Arrow keys tilt gravity in every Constraint scene except Motor. Motor keeps
+arrow-key tank drive controls; Fixed and Point keep their `Space` toggles.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
