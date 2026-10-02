@@ -40,6 +40,13 @@ struct RigidBodyDefinition {
     std::string source_name{};
 };
 
+struct RigidConstraintDefinition {
+    std::string name{};
+    RigidConstraintOptions options{};
+    std::uint32_t body_a{};
+    std::uint32_t body_b{};
+};
+
 struct ClothDefinition {
     std::string name{};
     std::uint32_t mesh_index{};
@@ -109,6 +116,7 @@ struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
+    std::vector<RigidConstraintDefinition> rigid_constraints{};
     std::vector<ClothDefinition> cloths{};
     std::vector<SoftBodyDefinition> soft_bodies{};
     std::vector<RopeDefinition> ropes{};
@@ -138,6 +146,7 @@ struct SceneInstance {
         PaintFieldId field{};
     };
     std::vector<RigidBodyId> rigid_bodies{};
+    std::vector<RigidConstraintId> rigid_constraints{};
     std::vector<ClothId> cloths{};
     std::vector<SoftBodyId> soft_bodies{};
     std::vector<RopeId> ropes{};

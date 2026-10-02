@@ -425,6 +425,45 @@ pass.
   slice selection, and legends remain gallery concerns; the API additionally
   exposes the deposited thermal field through `SmokeDeviceView`.
 
+## PR 28 — Rigid body constraints
+
+- Add world-owned, generation-checked Fixed, Point, Hinge, Slider, Piston,
+  Generic, Generic Spring, and Motor resources with local frames, limits,
+  springs, motors, collision suppression, breaking, and live updates.
+- Export Blender's native Rigid Body Constraint settings through schema 2 and
+  resolve their body references in the shared gallery loader.
+- Add eight reproducibly authored `.blend`/`.glb` gallery scenes. `Space`
+  toggles Fixed and Point at the bodies' current poses; arrow keys provide tank
+  control for a four-wheel motor car.
+- Validate API lifecycle and all solver types on GPU, real Blender re-export,
+  authored metadata, scene instantiation, and eight OptiX headless renders.
+
+## PR 29 - future
+
+Refactors sources code to have source files like this:
+geometry_constraints.cuh
+geometry_fluid.cuh
+geometry_soft_body.cuh
+geometry_cloth.cuh
+geometry_rope.cuh
+geometry_smoke.cuh
+fluid.cuh
+fluid_soft_body.cuh
+fluid_cloth.cuh
+fluid_rope.cuh
+fluid_smoke.cuh
+soft_body.cuh
+soft_body_cloth.cuh
+soft_body_rope.cuh
+soft_body_smoke.cuh
+cloth.cuh
+cloth_rope.cuh
+cloth_smoke.cuh
+rope_smoke.cuh
+world.cu
+
+Also your cpp stuff for realizing the shapes as particles and realizing the concepts in the blender file are good to keep too
+
 ## Later — Gallery game shell
 
 - Reuse the exact gallery scenes in a progression application.

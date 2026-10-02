@@ -27,11 +27,16 @@
 namespace {
 
 using parallel_mater::RigidBodyState;
+using parallel_mater::RigidConstraintOptions;
+using parallel_mater::RigidConstraintState;
+using parallel_mater::RigidConstraintType;
+using parallel_mater::Quaternion;
 using parallel_mater::SoftBodyDeviceView;
 using parallel_mater::SoftBodyId;
 using parallel_mater::SmokeDeviceView;
 using parallel_mater::Status;
 using parallel_mater::World;
+using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::steer_gravity;
@@ -65,6 +70,7 @@ constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
 constexpr float k_dump_final_angle = -k_pi * 0.25F;
 constexpr float k_dump_rotation_speed = k_pi * 0.25F;
+constexpr float k_motor_speed = 8.0F;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
@@ -80,7 +86,9 @@ struct Options {
     std::uint32_t fluid_particles{k_default_fluid_particles};
     std::uint32_t headless_cloth_tilt_degrees{};
     std::uint32_t headless_cloth_tilt_after_frames{};
+    std::uint32_t headless_constraint_action_after_frames{};
     bool headless_cloth_tilt_left{};
+    bool headless_motor_forward{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
     bool cloth_debug{};
@@ -105,6 +113,7 @@ enum class KeyAction : std::size_t {
     backspace,
     scenes,
     particle_count,
+    action,
     up,
     down,
     reset,
@@ -146,6 +155,7 @@ class KeyEdges {
         Binding{GLFW_KEY_BACKSPACE, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_TAB, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_P, GLFW_KEY_UNKNOWN},
+        Binding{GLFW_KEY_SPACE, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_UP, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_DOWN, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_R, GLFW_KEY_UNKNOWN},
@@ -185,6 +195,45 @@ struct GalleryRuntime {
 [[nodiscard]] parallel_mater::Quaternion rotation_z(float radians) {
     return {0.0F, 0.0F, std::sin(radians * 0.5F),
             std::cos(radians * 0.5F)};
+}
+
+[[nodiscard]] parallel_mater::Quaternion conjugate(
+    parallel_mater::Quaternion value) noexcept {
+    return {-value.x, -value.y, -value.z, value.w};
+}
+
+[[nodiscard]] parallel_mater::Quaternion multiply(
+    parallel_mater::Quaternion left,
+    parallel_mater::Quaternion right) noexcept {
+    return {
+        left.w * right.x + left.x * right.w + left.y * right.z -
+            left.z * right.y,
+        left.w * right.y - left.x * right.z + left.y * right.w +
+            left.z * right.x,
+        left.w * right.z + left.x * right.y - left.y * right.x +
+            left.z * right.w,
+        left.w * right.w - left.x * right.x - left.y * right.y -
+            left.z * right.z};
+}
+
+[[nodiscard]] parallel_mater::Vec3 rotate(
+    parallel_mater::Quaternion rotation,
+    parallel_mater::Vec3 point) noexcept {
+    const parallel_mater::Quaternion vector{point.x, point.y, point.z, 0.0F};
+    const parallel_mater::Quaternion result =
+        multiply(multiply(rotation, vector), conjugate(rotation));
+    return {result.x, result.y, result.z};
+}
+
+[[nodiscard]] parallel_mater::Vec3 subtract(
+    parallel_mater::Vec3 left, parallel_mater::Vec3 right) noexcept {
+    return {left.x - right.x, left.y - right.y, left.z - right.z};
+}
+
+[[nodiscard]] parallel_mater::Vec3 midpoint(
+    parallel_mater::Vec3 left, parallel_mater::Vec3 right) noexcept {
+    return {(left.x + right.x) * 0.5F, (left.y + right.y) * 0.5F,
+            (left.z + right.z) * 0.5F};
 }
 
 struct FluidEscapeTrace {
@@ -397,6 +446,13 @@ struct FluidEscapeTrace {
                              output.headless_cloth_tilt_after_frames)) return false;
         } else if (argument == "--cloth-tilt-left") {
             output.headless_cloth_tilt_left = true;
+        } else if (argument == "--constraint-action-after-frames" &&
+                   index + 1 < argc) {
+            if (!parse_count(argv[++index], 1U, 100000U,
+                             output.headless_constraint_action_after_frames))
+                return false;
+        } else if (argument == "--motor-forward") {
+            output.headless_motor_forward = true;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -424,6 +480,8 @@ struct FluidEscapeTrace {
                          "[--gravity-tilt-degrees 1..45 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
+                         "[--constraint-action-after-frames N (headless)] "
+                         "[--motor-forward (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--cloth-debug | --water-cloth-debug] "
                          "[--physics-capture output.log] "
@@ -445,6 +503,75 @@ struct FluidEscapeTrace {
               << (status.message != nullptr ? status.message : "unknown")
               << '\n';
     return false;
+}
+
+[[nodiscard]] bool toggle_constraint(GalleryRuntime &runtime) {
+    if (runtime.scene.rigid_constraints.size() != 1U ||
+        runtime.instance.rigid_constraints.size() != 1U) {
+        std::cerr << "Constraint toggle scene needs exactly one constraint\n";
+        return false;
+    }
+    auto &definition = runtime.scene.rigid_constraints.front();
+    RigidConstraintState constraint_state{};
+    if (!require(runtime.world.read_rigid_constraint_state(
+                     runtime.instance.rigid_constraints.front(),
+                     constraint_state),
+                 "read constraint state")) return false;
+
+    RigidConstraintOptions options = definition.options;
+    options.body_a = runtime.instance.rigid_bodies[definition.body_a];
+    options.body_b = runtime.instance.rigid_bodies[definition.body_b];
+    options.enabled = !constraint_state.enabled;
+    if (options.enabled) {
+        RigidBodyState state_a{}, state_b{};
+        if (!require(runtime.world.read_rigid_body_state(options.body_a, state_a),
+                     "read first constraint body") ||
+            !require(runtime.world.read_rigid_body_state(options.body_b, state_b),
+                     "read second constraint body")) return false;
+        const Vec3 anchor = options.type == RigidConstraintType::point
+            ? state_b.position : midpoint(state_a.position, state_b.position);
+        const Quaternion world_orientation = state_a.orientation;
+        options.local_anchor_a = rotate(conjugate(state_a.orientation),
+                                        subtract(anchor, state_a.position));
+        options.local_anchor_b = rotate(conjugate(state_b.orientation),
+                                        subtract(anchor, state_b.position));
+        options.local_orientation_a =
+            multiply(conjugate(state_a.orientation), world_orientation);
+        options.local_orientation_b =
+            multiply(conjugate(state_b.orientation), world_orientation);
+    }
+    if (!require(runtime.world.update_rigid_constraint(
+                     runtime.instance.rigid_constraints.front(), options),
+                 options.enabled ? "enable constraint" : "disable constraint"))
+        return false;
+    definition.options = options;
+    return true;
+}
+
+[[nodiscard]] bool drive_motors(GalleryRuntime &runtime,
+                                DirectionalInput input) {
+    const float forward = -input.z;
+    const float left_speed = -(forward + input.x) * k_motor_speed;
+    const float right_speed = -(forward - input.x) * k_motor_speed;
+    for (std::size_t index = 0U;
+         index < runtime.scene.rigid_constraints.size(); ++index) {
+        auto &definition = runtime.scene.rigid_constraints[index];
+        if (definition.options.type != RigidConstraintType::motor) continue;
+        const float target_velocity =
+            definition.name.find("Left") != std::string::npos
+                ? left_speed : right_speed;
+        if (definition.options.motor.angular_target_velocity == target_velocity)
+            continue;
+        RigidConstraintOptions options = definition.options;
+        options.body_a = runtime.instance.rigid_bodies[definition.body_a];
+        options.body_b = runtime.instance.rigid_bodies[definition.body_b];
+        options.motor.angular_target_velocity = target_velocity;
+        if (!require(runtime.world.update_rigid_constraint(
+                         runtime.instance.rigid_constraints[index], options),
+                     "drive motor constraint")) return false;
+        definition.options = options;
+    }
+    return true;
 }
 
 [[nodiscard]] parallel_mater::Vec3 initial_scene_gravity(
@@ -562,6 +689,15 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     } else {
         const std::array scene_paths{
             options.scene,
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH),
+            std::filesystem::path(
+                PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH),
             std::filesystem::path{},
             std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH),
@@ -738,6 +874,14 @@ int main(int argc, char **argv) {
         }
         float headless_dump_angle = k_dump_initial_angle;
         for (int frame = 0; frame < options.frames; ++frame) {
+            if (options.headless_constraint_action_after_frames != 0U &&
+                frame == static_cast<int>(
+                    options.headless_constraint_action_after_frames) &&
+                !toggle_constraint(runtime)) return 1;
+            if (options.headless_motor_forward &&
+                gallery_entry(runtime.context).controls ==
+                    GalleryControlPolicy::tank_motor &&
+                !drive_motors(runtime, {0.0F, -1.0F})) return 1;
             if (gallery_entry(runtime.context).controls ==
                     GalleryControlPolicy::dump_rotation &&
                 runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
@@ -1080,6 +1224,12 @@ int main(int argc, char **argv) {
                     std::cerr << "Scene reset failed: " << error << '\n';
                 }
             }
+            if (!context_visible && keys.pressed(KeyAction::action) &&
+                gallery_entry(runtime.context).controls ==
+                    GalleryControlPolicy::constraint_toggle &&
+                !toggle_constraint(runtime)) {
+                break;
+            }
             if (keys.pressed(KeyAction::timing)) {
                 timing_visible = !timing_visible;
             }
@@ -1118,6 +1268,10 @@ int main(int argc, char **argv) {
             const DirectionalInput directional =
                 context_visible ? DirectionalInput{} : directional_input(window);
             const GalleryEntry &entry = gallery_entry(runtime.context);
+            if (entry.controls == GalleryControlPolicy::tank_motor &&
+                !drive_motors(runtime, directional)) {
+                break;
+            }
             if (runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
                 if (entry.controls == GalleryControlPolicy::dump_rotation) {
                     if (!context_visible &&

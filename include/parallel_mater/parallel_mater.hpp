@@ -167,6 +167,16 @@ struct SmokeRigidCouplingId {
     }
 };
 
+struct RigidConstraintId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        RigidConstraintId left, RigidConstraintId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct TriangleMeshId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -315,6 +325,7 @@ struct WorldOptions {
     std::uint32_t smoke_rope_coupling_capacity{1U};
     std::uint32_t smoke_rigid_coupling_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
+    std::uint32_t rigid_constraint_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
     std::uint32_t particle_source_capacity{8U};
     std::uint32_t particle_destroy_plane_capacity{8U};
@@ -838,6 +849,77 @@ struct RigidBodyOptions {
     std::uint64_t user_data{};
 };
 
+enum class RigidConstraintType : std::uint8_t {
+    fixed,
+    point,
+    hinge,
+    slider,
+    piston,
+    generic,
+    generic_spring,
+    motor,
+};
+
+inline constexpr std::uint8_t rigid_constraint_axis_x = 1U << 0U;
+inline constexpr std::uint8_t rigid_constraint_axis_y = 1U << 1U;
+inline constexpr std::uint8_t rigid_constraint_axis_z = 1U << 2U;
+inline constexpr std::uint8_t rigid_constraint_all_axes =
+    rigid_constraint_axis_x | rigid_constraint_axis_y | rigid_constraint_axis_z;
+
+struct RigidConstraintLimitOptions {
+    // Bit mask of rigid_constraint_axis_* values. Disabled axes remain free.
+    std::uint8_t axes{};
+    Vec3 lower{};
+    Vec3 upper{};
+};
+
+struct RigidConstraintSpringOptions {
+    // Bit mask of rigid_constraint_axis_* values. Stiffness uses N/m for
+    // translation and N*m/rad for rotation; damping uses matching SI units.
+    std::uint8_t axes{};
+    Vec3 stiffness{};
+    Vec3 damping{};
+};
+
+struct RigidConstraintMotorOptions {
+    bool linear_enabled{};
+    bool angular_enabled{};
+    // Linear motor follows frame X. Angular motor rotates around frame X.
+    float linear_target_velocity{};
+    float linear_maximum_impulse{1.0F};
+    float angular_target_velocity{};
+    float angular_maximum_impulse{1.0F};
+};
+
+struct RigidConstraintOptions {
+    RigidConstraintType type{RigidConstraintType::fixed};
+    RigidBodyId body_a{};
+    RigidBodyId body_b{};
+    Vec3 local_anchor_a{};
+    Vec3 local_anchor_b{};
+    Quaternion local_orientation_a{};
+    Quaternion local_orientation_b{};
+    RigidConstraintLimitOptions linear_limits{};
+    RigidConstraintLimitOptions angular_limits{};
+    RigidConstraintSpringOptions linear_springs{};
+    RigidConstraintSpringOptions angular_springs{};
+    RigidConstraintMotorOptions motor{};
+    bool enabled{true};
+    bool disable_collisions{true};
+    // Zero disables breaking. Otherwise this is maximum accumulated impulse
+    // accepted during one substep before constraint disables itself.
+    float breaking_impulse_threshold{};
+    std::uint32_t solver_iterations{8U};
+};
+
+struct RigidConstraintState {
+    bool enabled{};
+    bool broken{};
+    // Accumulated during the latest active substep. A broken constraint keeps
+    // the impulse from the substep that exceeded its threshold.
+    float applied_impulse{};
+};
+
 // A field targets either one rigid-body mesh or one deforming cloth. Its UVs
 // correspond to target vertices. Pixels hold two side bits:
 // 1 for the winding/front side and 2 for the back side.
@@ -1057,6 +1139,7 @@ struct WorldStatistics {
     std::uint64_t emitted_smoke_particle_count{};
     std::uint64_t boiled_particle_count{};
     std::uint32_t rigid_body_count{};
+    std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
@@ -1251,6 +1334,16 @@ class World {
     // Explicit synchronous readback for gameplay code that needs one body.
     [[nodiscard]] Status read_rigid_body_state(
         RigidBodyId body, RigidBodyState &output,
+        cudaStream_t stream = nullptr) const noexcept;
+
+    [[nodiscard]] Status add_rigid_constraint(
+        RigidConstraintOptions options, RigidConstraintId &output) noexcept;
+    [[nodiscard]] Status update_rigid_constraint(
+        RigidConstraintId constraint, RigidConstraintOptions options) noexcept;
+    [[nodiscard]] Status remove_rigid_constraint(
+        RigidConstraintId constraint) noexcept;
+    [[nodiscard]] Status read_rigid_constraint_state(
+        RigidConstraintId constraint, RigidConstraintState &output,
         cudaStream_t stream = nullptr) const noexcept;
 
     // Copies an indexed two-sided triangle soup into World-owned CUDA memory.

@@ -1,5 +1,34 @@
 # Physics performance
 
+## Dense soft-body and rope coupling (RTX 3050 Ti Laptop GPU, 2026-10-01)
+
+Three isolated Release runs of
+`parallel-mater-rope-soft-body-tests 180 --pull` measured a median 30.39
+ms/frame before the dense-graph work and 9.53 ms/frame after it, a 68.6%
+reduction (3.19x throughput). The soft-body constraint stage fell from 24.35
+to 4.39 ms/frame, an 82.0% reduction. The fixture has 912 soft nodes, 130,033
+bonds, 1,792 skin triangles, 33 pins, and a 72-node attached rope. Kernel
+timings include its eight effective substeps and exclude rendering.
+
+The retained dense path stores an 8-byte CSR neighbor descriptor and one
+precomputed minimum rest length per node. Sixteen-thread warp subgroups
+evaluate spring terms concurrently; each subgroup leader folds shared-memory
+batches in original CSR order. The same ordered scheme accelerates spring
+damping. Shape matching coalesces raw node data into shared-memory batches,
+then preserves the original serial floating-point reduction. Short-run output
+remained identical across the final scheduling and staging changes, and the
+1,000-frame rope-release stability test passed.
+
+Rejected measurements include a parallel cyclic-reduction rope solve (+8.3%),
+distributed rope contact scans (+26.8%), eight warp threads per soft node
+(+3.3%), eight warps per block (+2.9%), and a full shared node cache (+2.9%).
+Unordered tree reductions were faster but failed the long release test, so
+they were removed. Warp-aggregated rope atomics, adaptive rope block sizing,
+and shared rope self-collision positions were neutral or slower and were also
+removed. The final source has no rope-kernel change; its useful gain in this
+fixture comes from the attached soft-body work. All 38 rope/soft-body CTest
+cases passed in 326.72 seconds.
+
 ## Staggered hybrid smoke solver (RTX 3050 Ti Laptop GPU, 2026-10-01)
 
 The current implementation replaces the prototype with a 128×32×128 MAC

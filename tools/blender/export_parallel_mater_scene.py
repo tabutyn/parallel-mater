@@ -110,6 +110,98 @@ def rigid_metadata(
         exported["pm_collision_proxy"] = collision_proxy_name
 
 
+def copy_constraint_for_export(
+    source: bpy.types.Object,
+    collection: bpy.types.Collection,
+) -> bpy.types.Object:
+    constraint = source.rigid_body_constraint
+    if constraint is None:
+        raise RuntimeError(f"{source.name}: missing Rigid Body Constraint settings")
+    if constraint.object1 is None or constraint.object2 is None:
+        raise RuntimeError(f"{source.name}: constraint needs Object 1 and Object 2")
+    for target in (constraint.object1, constraint.object2):
+        if target.rigid_body is None:
+            raise RuntimeError(
+                f"{source.name}: constraint target '{target.name}' is not a rigid body"
+            )
+        if any(modifier.type == "ARRAY" for modifier in target.modifiers):
+            raise RuntimeError(
+                f"{source.name}: Array rigid bodies are ambiguous constraint targets"
+            )
+
+    exported = bpy.data.objects.new(source.name, None)
+    collection.objects.link(exported)
+    exported.matrix_world = source.matrix_world.copy()
+    exported["pm_schema"] = SCHEMA_VERSION
+    exported["pm_system"] = "rigid_constraint"
+    exported["pm_name"] = source.name
+    exported["pm_constraint_type"] = constraint.type.lower()
+    exported["pm_body_a"] = constraint.object1.name
+    exported["pm_body_b"] = constraint.object2.name
+    exported["pm_enabled"] = bool(constraint.enabled)
+    exported["pm_disable_collisions"] = bool(constraint.disable_collisions)
+    exported["pm_breaking_impulse_threshold"] = (
+        float(constraint.breaking_threshold) if constraint.use_breaking else 0.0
+    )
+    exported["pm_solver_iterations"] = int(
+        constraint.solver_iterations
+        if constraint.use_override_solver_iterations
+        else 8
+    )
+    for axis in "xyz":
+        exported[f"pm_use_limit_lin_{axis}"] = bool(
+            getattr(constraint, f"use_limit_lin_{axis}")
+        )
+        exported[f"pm_limit_lin_{axis}_lower"] = float(
+            getattr(constraint, f"limit_lin_{axis}_lower")
+        )
+        exported[f"pm_limit_lin_{axis}_upper"] = float(
+            getattr(constraint, f"limit_lin_{axis}_upper")
+        )
+        exported[f"pm_use_limit_ang_{axis}"] = bool(
+            getattr(constraint, f"use_limit_ang_{axis}")
+        )
+        exported[f"pm_limit_ang_{axis}_lower"] = float(
+            getattr(constraint, f"limit_ang_{axis}_lower")
+        )
+        exported[f"pm_limit_ang_{axis}_upper"] = float(
+            getattr(constraint, f"limit_ang_{axis}_upper")
+        )
+        exported[f"pm_use_spring_{axis}"] = bool(
+            getattr(constraint, f"use_spring_{axis}")
+        )
+        exported[f"pm_spring_stiffness_{axis}"] = float(
+            getattr(constraint, f"spring_stiffness_{axis}")
+        )
+        exported[f"pm_spring_damping_{axis}"] = float(
+            getattr(constraint, f"spring_damping_{axis}")
+        )
+        exported[f"pm_use_spring_ang_{axis}"] = bool(
+            getattr(constraint, f"use_spring_ang_{axis}")
+        )
+        exported[f"pm_spring_stiffness_ang_{axis}"] = float(
+            getattr(constraint, f"spring_stiffness_ang_{axis}")
+        )
+        exported[f"pm_spring_damping_ang_{axis}"] = float(
+            getattr(constraint, f"spring_damping_ang_{axis}")
+        )
+    exported["pm_use_motor_lin"] = bool(constraint.use_motor_lin)
+    exported["pm_motor_lin_target_velocity"] = float(
+        constraint.motor_lin_target_velocity
+    )
+    exported["pm_motor_lin_max_impulse"] = float(
+        constraint.motor_lin_max_impulse
+    )
+    exported["pm_use_motor_ang"] = bool(constraint.use_motor_ang)
+    exported["pm_motor_ang_target_velocity"] = float(
+        constraint.motor_ang_target_velocity
+    )
+    exported["pm_motor_ang_max_impulse"] = float(
+        constraint.motor_ang_max_impulse
+    )
+    return exported
+
+
 def copy_for_export(
     source: bpy.types.Object,
     index: int,
@@ -773,9 +865,13 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
     ]
     ropes = [obj for obj in bpy.context.scene.objects if obj.type == "CURVE" and
              any(m.type in {"HOOK", "SOFT_BODY"} for m in obj.modifiers)]
-    if not (sources or flows or cloths or soft_bodies or ropes):
+    constraints = [
+        obj for obj in bpy.context.scene.objects
+        if obj.rigid_body_constraint is not None
+    ]
+    if not (sources or flows or cloths or soft_bodies or ropes or constraints):
         raise RuntimeError(
-            "the scene contains no rigid bodies, soft bodies, cloth, or liquid flows")
+            "the scene contains no supported physics objects")
 
     previous_selection = list(bpy.context.selected_objects)
     previous_active = bpy.context.view_layer.objects.active
@@ -864,6 +960,8 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         for source in ropes:
             created_objects.append(copy_rope_for_export(
                 source, collection, cloths, sources))
+        for source in constraints:
+            created_objects.append(copy_constraint_for_export(source, collection))
 
         bpy.ops.object.select_all(action="DESELECT")
         for obj in created_objects:

@@ -14,6 +14,9 @@ momentum exchange, and agitation foam are also available through the same
 One-shot Blender Geometry flows use the public volume sampler. Opt-in
 fluid-to-rigid and rigid-to-cloth contact paint fields are owned by `World`; the gallery
 supplies UVs and chooses their display color and filtering.
+Generation-checked rigid constraints provide fixed, point, hinge, slider,
+piston, generic, generic-spring, and motor joints with runtime updates,
+breaking thresholds, limits, springs, and collision suppression.
 
 The current rigid pipeline reduced the measured five-body Blender scene from
 24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
@@ -24,7 +27,8 @@ measurements, not general hardware claims.
 ## Design goals
 
 - One owning `World` coordinates simulation and cross-system coupling.
-- Fluid, cloth, soft-body, and rigid-body resources use stable, generation-checked handles.
+- Fluid, cloth, soft-body, rigid-body, and rigid-constraint resources use
+  stable, generation-checked handles.
 - One `step` call advances a complete fixed frame; applications do not invoke
   solver-internal phases.
 - CUDA allocations remain owned by the library while renderers borrow explicit
@@ -82,9 +86,12 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
+the selector for Rigid Body, eight Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
 Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
 Up/Down and Enter to switch.
+Fixed and Point use `Space` to attach/release. The Motor car uses arrow-key
+tank controls. Hinge, Slider, Piston, Generic, and Generic Spring launch an
+authored sphere impact automatically.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
