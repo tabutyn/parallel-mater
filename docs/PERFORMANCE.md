@@ -1,5 +1,194 @@
 # Physics performance
 
+## Dense soft-body and rope coupling (RTX 3050 Ti Laptop GPU, 2026-10-01)
+
+Three isolated Release runs of
+`parallel-mater-rope-soft-body-tests 180 --pull` measured a median 30.39
+ms/frame before the dense-graph work and 9.53 ms/frame after it, a 68.6%
+reduction (3.19x throughput). The soft-body constraint stage fell from 24.35
+to 4.39 ms/frame, an 82.0% reduction. The fixture has 912 soft nodes, 130,033
+bonds, 1,792 skin triangles, 33 pins, and a 72-node attached rope. Kernel
+timings include its eight effective substeps and exclude rendering.
+
+The retained dense path stores an 8-byte CSR neighbor descriptor and one
+precomputed minimum rest length per node. Sixteen-thread warp subgroups
+evaluate spring terms concurrently; each subgroup leader folds shared-memory
+batches in original CSR order. The same ordered scheme accelerates spring
+damping. Shape matching coalesces raw node data into shared-memory batches,
+then preserves the original serial floating-point reduction. Short-run output
+remained identical across the final scheduling and staging changes, and the
+1,000-frame rope-release stability test passed.
+
+Rejected measurements include a parallel cyclic-reduction rope solve (+8.3%),
+distributed rope contact scans (+26.8%), eight warp threads per soft node
+(+3.3%), eight warps per block (+2.9%), and a full shared node cache (+2.9%).
+Unordered tree reductions were faster but failed the long release test, so
+they were removed. Warp-aggregated rope atomics, adaptive rope block sizing,
+and shared rope self-collision positions were neutral or slower and were also
+removed. The final source has no rope-kernel change; its useful gain in this
+fixture comes from the attached soft-body work. All 38 rope/soft-body CTest
+cases passed in 326.72 seconds.
+
+## Staggered hybrid smoke solver (RTX 3050 Ti Laptop GPU, 2026-10-01)
+
+The current implementation replaces the prototype with a 128×32×128 MAC
+grid, RK2 monotonic MacCormack face advection, thin triangle cut faces,
+Smagorinsky LES viscosity, bounded curl restoration, and a four-level
+geometric multigrid projection. GPU regression output now includes pressure
+relative residual, normalized post-projection divergence, front/rear pressure,
+side speed, lee recirculation, and lee enstrophy against an unobstructed
+control. Three isolated 120-frame runs on the RTX 3050 Ti measured 5.73,
+5.74, and 5.61 ms/frame, meeting the 6 ms target. These are physics-only wall
+times and exclude rendering.
+
+The final 524,288-cell field had an 8.00e-4 relative pressure residual and
+1.40e-4 normalized post-projection divergence. Around the triangle sphere,
+mean front pressure was 0.365 versus -0.323 behind it, mean sampled side speed
+was 1.63 m/s, 470 lee cells recirculated, and mean lee enstrophy was 41.16
+versus 0.238 in the unobstructed control. No sphere-specific flow kernel or
+prescribed wake participates in those measurements. Fixed-point quadratic
+B-spline deposition made the grid and tracer replay bit deterministic without
+moving the solver over budget.
+
+The same GPU acceptance run verifies zero pre-arrival reaction and local
+density scaling: the dense plume moved the 1 kg rigid body 0.206 m relative to
+its containment-only control, versus 0.0452 m for the sparse plume. The
+smoke-water, 20-post soft-body, cloth, and rope coupling regressions all pass
+with grid-mode stress and tracer containment enabled.
+
+## Former cell-centered hybrid baseline (RTX 3050 Ti Laptop GPU, 2026-10-01)
+
+The former prototype used 128×32×128 cells (524,288) with uniform cell
+spacing. In the sphere scene, 120 frames with 24 Jacobi pressure passes
+averaged about 2.8 ms per physics frame; 692 cells represented the rigid triangle
+surface, 2,941 carried visible-density smoke, and projected lateral airflow
+was measurable before, beside, and behind the sphere (0.334, 0.179, and
+0.172 m/s in the sampled regions). The isolated soft-body comparison averaged
+7.8 ms per pair of coupled/reference frames, produced 3.79 m of summed
+X-position difference over its 176 nodes after 120 frames, and had 1.28%
+maximum bond stretch. The authored 20-post scene measured 33.6 m of summed
+X-position difference across 3,520 nodes at 180 frames, with 21.4% maximum
+bond stretch versus 23.9% for its uncoupled reference. These timings exclude
+rendering. The smoke sphere,
+water, soft-body, cloth, and rope GPU regressions pass with the gallery grid
+enabled. The particle-only API remains available by setting grid resolution
+to zero. This is a cell-centered projection prototype, not a verified
+high-fidelity incompressible solver.
+
+Sizing prototypes on the same GPU measured 116³ (1.56 million cells) at about
+7.8 ms/frame and 256³ (16.78 million cells) at about 91 ms/frame for the
+sphere scene. The 128×32×128 choice preserves roughly the horizontal spacing
+of the larger grid while avoiding air cells far above and below the scene.
+
+## Smoke plume and contact tuning (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+With the 4,500-slot, 900-particle/s inlet and the sphere uncoupled, mature
+smoke now averages 1.60 m/s forward and 0.165 m/s transverse at frame 300.
+The prior calibration measured 1.49 and 1.33 m/s respectively: pressure was
+scattering the unobstructed plume. Raising the rest number-density threshold
+to 12, reducing the pressure stiffness to 2 and vorticity confinement to 0.1,
+and relaxing particles toward the inlet flow at 0.5/s preserved forward
+motion while leaving pressure active at contacts.
+
+Near the sphere, mean particle speed is 1.00 m/s versus 1.35 m/s farther
+downstream; the previous wall response almost froze particles at 0.0037 m/s.
+At full emission rate, a dynamic sphere moved 0.389 m forward and -0.002 m
+vertically relative to a contact-only reference over 90 zero-gravity frames.
+With the authored floor and 1 kg active ball, the 180-frame smoke reaction
+changed ball height by -0.003 m. Contact pressure now comes from blocked
+normal speed; the former direct pressure-release impulse on the rigid body
+was removed.
+
+For the two-sided cloth, the pressure-aware finite-sheet boundary clears
+797 particles laterally downstream at frame 300 with 461 in the broad
+windward region. Isolated coupled physics averaged about 4.2 ms/frame versus
+3.8 ms/frame for the reference. The 20-post soft-body test averaged
+29.9 ms/frame in isolation with 45.3% maximum bond stretch. All ten smoke
+GPU/headless regressions pass. This remains a weakly compressible particle
+approximation with a finite-sheet boundary rule, not an incompressible
+pressure projection.
+
+## Previous local smoke calibration (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The 4,500-slot Smoke regression now uses sorted particle neighbors, local
+number-density pressure, viscosity, and measured-vorticity confinement.
+Compared with identical particle flow without obstacle contact, 2,414 lee
+particles differ by 0.094 m/s in mean transverse velocity. Maximum sampled
+pressure was 21.7 in solver units. Mean lee-region curl was 0.358 versus
+0.222 for the unobstructed control, measured from neighboring velocities.
+Of 170 particles
+within 0.1 m of the sphere surface, mean speed was 0.0037 m/s versus the
+1.6 m/s inlet speed. A 90-frame dynamic-sphere test moved 0.232 m farther
+with particle reaction than its contact-only zero-mass reference; a lower
+particle emission rate produced less push. Pre-emission and distant-body
+controls measured no smoke force.
+
+The 20-post SmokeSoftbody test averaged 27.9 ms/frame at 180 frames, with
+maximum bond stretch 28.8%; this improves on the immediately preceding
+triangle-obstacle prototype at about 30 ms/frame but remains slower than the
+older prescribed-field baseline at about 21 ms/frame. The 300-frame
+SmokeCloth test averaged 3.37 ms/frame coupled and 3.03 ms/frame for its
+reference after removing the old scripted edgeward contact speed, excluding
+rendering. The new gas model is weakly compressible,
+not a pressure-projected incompressible solve; deformable contacts still lack
+equal-and-opposite particle reactions.
+
+## Smoke triangle-obstacle update (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The smoke obstacle now uses a triangle-mesh carrier deflection and swept
+tracer/triangle contact instead of analytic sphere flow and collision. A
+non-spherical box regression confirms both contact and wake. The 20-post
+SmokeSoftbody scene remains stable, but its measured physics step increased
+from about 21 to 30 ms/frame at 180 frames; this is a known cost of the
+former mesh-guided path and needed profiling before further optimization.
+The local-particle update above supersedes that prescribed-field path.
+
+## Shared smoke force and soft-body wind (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+The closed 1 kg sphere moves 1.45 m farther along the carrier wind than an
+identical uncoupled sphere after 90 frames with no gravity. In SmokeRope,
+the suspended panel differs by 0.31 m after 300 frames while final rope
+strain remains below 0.1%; coupled physics costs about 7 ms/frame versus
+2.8 ms/frame without smoke couplings. For SmokeSoftbody's 20 posts, reducing
+the shared soft-body wind default from 2.0 to 0.5 inverse seconds and capping
+wind acceleration at 2 m/s² lowered peak bond stretch from 85% to 41% at
+180 frames. Wind still displaces the posts, and the physics step remains about
+21 ms/frame. These measurements exclude rendering.
+
+## Smoke–rope suspended panel (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+`SmokeRope.blend` exports four roughly 40-node ropes between an active panel
+and two passive posts. At 300 frames of 1/60 s with four requested substeps
+(the ropes raise the shared step count to 8), the coupled scene averaged
+4.43 ms/frame versus 2.98 ms for the same scene with smoke couplings removed.
+The panel center differed by 0.145 m, summed rope-node positions by 12.2 m,
+and summed tracer positions by 1,749 m. Peak rope strain at the final frame
+was 0.04%. A focused emitter aimed at a rope produced 88.1 m of summed
+tracer-path divergence; the authored narrow plume instead passes between the
+four corner ropes and interacts mainly with the suspended panel. These are
+physics step wall times, excluding rendering and readback.
+
+## Smoke–cloth sheet (RTX 3050 Ti Laptop GPU, 2026-09-30)
+
+`SmokeCloth.blend` exports one 289-vertex, 512-triangle sheet with 34 pinned
+vertices. With 1/60 s frames, four substeps, and zero gravity to isolate wind,
+the 180-frame GPU comparison averaged 1.57 ms/step coupled versus 1.51 ms
+without the API coupling. All pins stayed exact; maximum cloth speed was
+0.21 m/s and maximum bond strain 2.5%. The moving cloth differed from the
+uncoupled reference by 27.8 m of summed vertex displacement; tracer paths
+differed by 149 m summed across the occupied smoke slots. These are physics
+step wall times, not render FPS or conserved two-way momentum measurements.
+A separate 6 m/s tracer test confirms that swept triangle contact prevents
+one-frame tunneling through the thin sheet.
+
+In the five-second follow-up (300 frames), the original normal-only contact
+left 599 live tracers in the upstream surface region and none beyond the
+sheet. Tangential edge flow reduced that region to 479 and placed 1,002
+tracers beyond the sheet, at 1.74 ms coupled versus 1.66 ms uncoupled per
+frame. A wider pre-contact steering zone increased the upstream count to
+653, so it was discarded. Counts use fixed regions around the authored sheet
+and measure distribution, not total mass flux or render time.
+
 ## Smoke–soft-body grid (RTX 3050 Ti Laptop GPU, 2026-09-30)
 
 The 20 authored cylinders originally expanded to 56,280 nodes, 4,791,300

@@ -210,6 +210,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
             PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
             PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
+            PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
+            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
 endif()
 
@@ -409,6 +411,15 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-cloth-debug-tests PROPERTIES
                              SKIP_RETURN_CODE 77)
 
+        add_executable(parallel-mater-smoke-debug-tests
+                       tests/gallery/smoke_debug_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-debug-tests PRIVATE
+            parallel-mater-gallery-renderer CUDA::cudart)
+        add_test(NAME parallel-mater-smoke-debug-tests
+                 COMMAND parallel-mater-smoke-debug-tests)
+        set_tests_properties(parallel-mater-smoke-debug-tests PROPERTIES
+                             SKIP_RETURN_CODE 77)
+
         add_executable(parallel-mater-cloth-fracture-tests
                        tests/gallery/cloth_fracture_tests.cpp)
         target_link_libraries(parallel-mater-cloth-fracture-tests PRIVATE
@@ -454,6 +465,13 @@ if(BUILD_TESTING)
             PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb")
         add_test(NAME parallel-mater-smoke-tests COMMAND parallel-mater-smoke-tests)
         set_tests_properties(parallel-mater-smoke-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-smoke-grid-tests tests/gallery/smoke_grid_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-grid-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-smoke-grid-tests PRIVATE
+            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
+            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb")
+        add_test(NAME parallel-mater-smoke-grid-tests COMMAND parallel-mater-smoke-grid-tests)
+        set_tests_properties(parallel-mater-smoke-grid-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
         add_executable(parallel-mater-smoke-water-tests tests/gallery/smoke_water_tests.cpp)
         target_link_libraries(parallel-mater-smoke-water-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
         target_compile_definitions(parallel-mater-smoke-water-tests PRIVATE
@@ -466,6 +484,18 @@ if(BUILD_TESTING)
             PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb")
         add_test(NAME parallel-mater-smoke-soft-body-tests COMMAND parallel-mater-smoke-soft-body-tests)
         set_tests_properties(parallel-mater-smoke-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-smoke-cloth-tests tests/gallery/smoke_cloth_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-cloth-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-smoke-cloth-tests PRIVATE
+            PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb")
+        add_test(NAME parallel-mater-smoke-cloth-tests COMMAND parallel-mater-smoke-cloth-tests)
+        set_tests_properties(parallel-mater-smoke-cloth-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_executable(parallel-mater-smoke-rope-tests tests/gallery/smoke_rope_tests.cpp)
+        target_link_libraries(parallel-mater-smoke-rope-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
+        target_compile_definitions(parallel-mater-smoke-rope-tests PRIVATE
+            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
+        add_test(NAME parallel-mater-smoke-rope-tests COMMAND parallel-mater-smoke-rope-tests)
+        set_tests_properties(parallel-mater-smoke-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         add_test(NAME parallel-mater-rope-soft-body-winding-tests
                  COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
         set_tests_properties(parallel-mater-rope-soft-body-winding-tests
@@ -632,6 +662,22 @@ if(BUILD_TESTING)
             parallel-mater-smoke-soft-body-headless-test
             parallel-mater-smoke-soft-body.ppm 180 --smoke-softbody)
         set_tests_properties(parallel-mater-smoke-soft-body-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
+        add_gallery_headless_test(
+            parallel-mater-smoke-cloth-headless-test
+            parallel-mater-smoke-cloth.ppm 180 --smoke-cloth)
+        set_tests_properties(parallel-mater-smoke-cloth-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
+        add_gallery_headless_test(
+            parallel-mater-smoke-rope-headless-test
+            parallel-mater-smoke-rope.ppm 180 --smoke-rope)
+        set_tests_properties(parallel-mater-smoke-rope-headless-test PROPERTIES
+            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
+        add_gallery_headless_test(
+            parallel-mater-smoke-rope-tilt-headless-test
+            parallel-mater-smoke-rope-tilt.ppm 90 --smoke-rope
+            --gravity-tilt-degrees 45)
+        set_tests_properties(parallel-mater-smoke-rope-tilt-headless-test PROPERTIES
             PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
         add_gallery_headless_test(
             parallel-mater-dump-headless-test

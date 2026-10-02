@@ -326,6 +326,11 @@ pass.
 - The API emits bounded GPU tracer slots, diverts them around a spherical
   obstacle with a no-through-flow field, sweeps contacts to prevent tunneling,
   and sheds alternating vortices. The gallery only composites smoke visuals.
+- The later mesh-obstacle update supersedes that original analytic sphere
+  flow and collision path; the same API now accepts arbitrary rigid triangles.
+- The local particle-gas update supersedes the prescribed wake and global
+  rigid wind. Neighbor density, pressure, viscosity, and measured curl govern
+  particle motion; near-wall particles alone push rigid meshes.
 - The 300-frame GPU comparison against zero wake measures about 0.19 m/s mean
   transverse wake difference for 2,887 downstream particles. Exporter, API,
   smoke physics, headless rendering, gallery, and rope–cloth regressions pass.
@@ -355,6 +360,71 @@ pass.
   57,720 bonds. Four graph iterations keep the 180-frame GPU test stable,
   with exact pins and at most 12% observed bond strain.
 
+## PR 25 — Smoke–cloth coupling (review)
+
+- `SmokeCloth.blend` authors one 17×17 sheet with 34 Pin vertices, the smoke
+  inlet, an active vortex sphere, and a passive ground. The gallery registers
+  a reusable smoke/cloth API coupling without custom scene physics.
+- The carrier wind bends free cloth vertices; massless tracers collide on both
+  sides of its current triangles, including updated tear topology. A 180-frame
+  GPU comparison checks pin stability, spring strain, cloth displacement,
+  and smoke-path divergence against the uncoupled scene. A fast-tracer sweep
+  regression prevents one-frame tunneling through the thin sheet.
+- Follow-up: contact now redirects blocked smoke tangentially toward cloth
+  edges. A 300-frame regression checks that the plume reaches the far side
+  without collecting against the windward surface.
+- The local-particle update removed the fixed edgeward speed. A later surface
+  tuning converts measured impact pressure into speed along finite cloth
+  toward an open edge, capped by the smoke speed limit. The 300-frame
+  regression now counts 797 lateral escapes and 461 particles in the broad
+  windward region, without scattering an unobstructed plume.
+
+## PR 26 — Smoke–rope and suspended panel coupling (merged)
+
+- `SmokeRope.blend` supplies four Poly ropes, an active panel, two passive
+  posts, the vortex sphere, and a smoke inlet. The single exporter infers
+  rigid endpoints on both active and passive meshes.
+- Reusable API couplings bend free rope nodes with carrier wind, deflect
+  tracers from swept rope capsules, and opt a moving rigid panel into
+  swept triangle contact plus bounded carrier pressure.
+- GPU regression compares 300 frames against uncoupled motion, checks rope
+  strain and a focused rope-hit plume, and rejects fast tracer tunneling
+  through the thin panel.
+
+## PR 27 — Smoke gravity, rigid drag, and soft-body cleanup (review)
+
+- All five smoke gallery contexts reuse the 45° camera-relative arrow gravity
+  controller. Smoke buoyancy and steam lift follow the resulting vector.
+- Projected triangle area replaces signed-area cancellation, so the shared
+  smoke/rigid API can push closed dynamic spheres as well as open panels.
+  The designated obstacle also uses the shared tracer/triangle contact path.
+- Soft bodies, cloth, and ropes share one bounded wind-response calculation;
+  smoke/soft-body options now expose the acceleration cap. Tuning the shared
+  defaults reduced the 20-post scene's maximum bond stretch from 85% to 41%
+  while retaining visible wind response. GPU regressions cover the sphere,
+  panel, soft bodies, cloth, rope, and tilt.
+- The subsequent local-particle smoke update replaces projected-area rigid
+  drag with near-wall particle reaction and samples deformable wind locally.
+- The next hybrid update adds a shallow, API-owned 128×32×128 Eulerian air
+  velocity/pressure/density field and retains particles as smoke tracers.
+  Coupled triangle surfaces obstruct the grid; soft-body surface triangles
+  sample its airflow and distribute force to their bound nodes.
+- The current hybrid replaces that cell-centered prototype with staggered MAC
+  faces, RK2 monotonic MacCormack transport, moving triangle cut faces,
+  density/temperature B-spline deposition, LES viscosity and bounded curl
+  restoration, and a four-level residual-terminated multigrid projection.
+  Grid-mode tracers no longer run a second particle pressure solver. Rigid and
+  deformable loads come from local grid pressure and tangential surface stress;
+  swept tracer contacts remain containment-only. The shared API exposes grid
+  curl, divergence, and relative pressure residual for verification.
+- RTX 3050 Ti acceptance is complete: three 128×32×128 runs measured
+  5.61–5.74 ms/frame, relative residual 8.00e-4, and normalized divergence
+  1.40e-4. Bit-deterministic replay and all smoke coupling regressions pass.
+- Shared smoke inspection maps bind `Z/X/C/V/B/N` to grid/cut cells, velocity,
+  pressure, density/thermal loading, vorticity, and divergence. RGB mapping,
+  slice selection, and legends remain gallery concerns; the API additionally
+  exposes the deposited thermal field through `SmokeDeviceView`.
+
 ## PR 28 — Rigid body constraints
 
 - Add world-owned, generation-checked Fixed, Point, Hinge, Slider, Piston,
@@ -367,6 +437,32 @@ pass.
   control for a four-wheel motor car.
 - Validate API lifecycle and all solver types on GPU, real Blender re-export,
   authored metadata, scene instantiation, and eight OptiX headless renders.
+
+## PR 29 - future
+
+Refactors sources code to have source files like this:
+geometry_constraints.cuh
+geometry_fluid.cuh
+geometry_soft_body.cuh
+geometry_cloth.cuh
+geometry_rope.cuh
+geometry_smoke.cuh
+fluid.cuh
+fluid_soft_body.cuh
+fluid_cloth.cuh
+fluid_rope.cuh
+fluid_smoke.cuh
+soft_body.cuh
+soft_body_cloth.cuh
+soft_body_rope.cuh
+soft_body_smoke.cuh
+cloth.cuh
+cloth_rope.cuh
+cloth_smoke.cuh
+rope_smoke.cuh
+world.cu
+
+Also your cpp stuff for realizing the shapes as particles and realizing the concepts in the blender file are good to keep too
 
 ## Later — Gallery game shell
 
@@ -383,6 +479,6 @@ pass.
 
 ## Later, one solver at a time
 
-Extend smoke to general rigid meshes and two-way coupling after measuring
-the spherical-obstacle tracer baseline. No campaign or presentation concept
-is promoted into the installed library.
+Measure the local-particle smoke baseline and investigate equal-and-opposite
+momentum transfer for the remaining soft-body, cloth, and rope couplings.
+No campaign or presentation concept is promoted into the installed library.

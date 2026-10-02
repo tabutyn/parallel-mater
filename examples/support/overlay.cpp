@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -293,26 +294,27 @@ void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
                                const WorldStatistics &statistics,
                                std::uint32_t capacity) {
     const std::array rows{
+        TimingRow{"AIR GRID", physics.smoke_grid},
         TimingRow{"ADVECT + WAKE", physics.smoke_advection},
         TimingRow{"EMIT", physics.smoke_emission}};
-    timing_panel(rgba, width, height, 465, 248, "SMOKE GPU KERNELS",
-                 physics.available, rows, 24, 116,
+    timing_panel(rgba, width, height, 465, 270, "SMOKE GPU KERNELS",
+                 physics.available, rows, 24, 138,
                  physics.total_gpu_milliseconds);
     if (!physics.available) return;
     char line[128]{};
     std::snprintf(line, sizeof(line), "RENDER WALL   %7.3f MS",
                   renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, 147, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 166, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "SMOKE SPLATS  %7.3f MS",
                   renderer.foam_wall_milliseconds);
-    text(rgba, width, height, 32, 169, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 188, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "SLOTS %u / MAX %u",
                   statistics.smoke_particle_count, capacity);
-    text(rgba, width, height, 32, 191, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 210, line, {225, 235, 242, 255}, 2);
     std::snprintf(line, sizeof(line), "EMITTED %llu",
                   static_cast<unsigned long long>(
                       statistics.emitted_smoke_particle_count));
-    text(rgba, width, height, 32, 213, line, {225, 235, 242, 255}, 2);
+    text(rgba, width, height, 32, 232, line, {225, 235, 242, 255}, 2);
 }
 
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
@@ -663,6 +665,304 @@ void draw_physics_debug_overlay(
         text(rgba, width, height, 28, static_cast<int>(height) - 35,
              summary, {130, 220, 255, 255}, 1);
     }
+}
+
+bool draw_smoke_grid_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, SmokeDeviceView smoke, Camera camera,
+    SmokeDebugMode mode, std::string &error) {
+    error.clear();
+    if (mode == SmokeDebugMode::none) return true;
+    const std::uint64_t expected = std::uint64_t(smoke.grid_resolution) *
+        smoke.grid_vertical_resolution * smoke.grid_resolution;
+    if (smoke.grid_resolution == 0U ||
+        smoke.grid_vertical_resolution == 0U || expected == 0U ||
+        expected > std::numeric_limits<std::size_t>::max() ||
+        !(smoke.grid_spacing > 0.0F) ||
+        !std::isfinite(smoke.grid_spacing)) {
+        error = "smoke grid debug view is unavailable";
+        return false;
+    }
+    const auto valid = [expected](auto span) {
+        return span.size == expected && span.data != nullptr;
+    };
+    if (!valid(smoke.grid_velocity) || !valid(smoke.grid_pressure) ||
+        !valid(smoke.grid_density) || !valid(smoke.grid_temperature) ||
+        !valid(smoke.grid_solid) || !valid(smoke.grid_vorticity) ||
+        !valid(smoke.grid_divergence)) {
+        error = "smoke grid debug fields disagree with grid dimensions";
+        return false;
+    }
+    const auto copy = [&](auto span, auto &host, const char *label) {
+        using Value = typename std::decay_t<decltype(host)>::value_type;
+        host.resize(static_cast<std::size_t>(span.size));
+        const cudaError_t result = cudaMemcpy(
+            host.data(), span.data, host.size() * sizeof(Value),
+            cudaMemcpyDeviceToHost);
+        if (result == cudaSuccess) return true;
+        error = std::string("copy smoke grid ") + label + ": " +
+                cudaGetErrorString(result);
+        return false;
+    };
+
+    const std::uint32_t n = smoke.grid_resolution;
+    const std::uint32_t h = smoke.grid_vertical_resolution;
+    const auto index = [n, h](std::uint32_t x, std::uint32_t y,
+                              std::uint32_t z) {
+        return static_cast<std::size_t>(x) + std::size_t(n) *
+            (std::size_t(y) + std::size_t(h) * z);
+    };
+    const auto center = [&](std::uint32_t x, std::uint32_t y,
+                            std::uint32_t z) {
+        return add(smoke.grid_minimum,
+                   multiply(Vec3{float(x) + 0.5F, float(y) + 0.5F,
+                                 float(z) + 0.5F},
+                            smoke.grid_spacing));
+    };
+    const auto on_slice = [n, h](std::uint32_t x, std::uint32_t y,
+                                  std::uint32_t z) {
+        return x == n / 2U || y == h / 2U || z == n / 2U;
+    };
+    const auto draw_point = [&](Vec3 position, Color value, int radius = 1) {
+        const ScreenPoint point = project(position, camera, width, height);
+        if (!point.visible) return;
+        rectangle(rgba, width, height, point.x - radius, point.y - radius,
+                  point.x + radius + 1, point.y + radius + 1, value);
+    };
+    const auto draw_world_line = [&](Vec3 a, Vec3 b, Color value) {
+        const ScreenPoint first = project(a, camera, width, height);
+        const ScreenPoint second = project(b, camera, width, height);
+        if (first.visible && second.visible)
+            line(rgba, width, height, first.x, first.y, second.x, second.y,
+                 value);
+    };
+    const Vec3 low = smoke.grid_minimum;
+    const Vec3 high = add(low, multiply(
+        Vec3{float(n), float(h), float(n)}, smoke.grid_spacing));
+    const std::array<Vec3, 8> corners{{
+        {low.x, low.y, low.z}, {high.x, low.y, low.z},
+        {low.x, high.y, low.z}, {high.x, high.y, low.z},
+        {low.x, low.y, high.z}, {high.x, low.y, high.z},
+        {low.x, high.y, high.z}, {high.x, high.y, high.z}}};
+    constexpr std::array<std::array<int, 2>, 12> edges{{
+        {{0,1}},{{0,2}},{{1,3}},{{2,3}},{{4,5}},{{4,6}},
+        {{5,7}},{{6,7}},{{0,4}},{{1,5}},{{2,6}},{{3,7}}}};
+    for (const auto edge : edges)
+        draw_world_line(corners[edge[0]], corners[edge[1]],
+                        {40, 220, 255, 170});
+
+    const auto signed_color = [](float value, float scale,
+                                  std::uint8_t alpha = 205U) {
+        const float t = std::clamp(value / std::max(scale, 1.0e-12F),
+                                   -1.0F, 1.0F);
+        if (t < 0.0F) {
+            const float amount = -t;
+            return Color{
+                static_cast<std::uint8_t>(235.0F - 205.0F * amount),
+                static_cast<std::uint8_t>(235.0F - 105.0F * amount),
+                255U, alpha};
+        }
+        return Color{255U,
+            static_cast<std::uint8_t>(235.0F - 185.0F * t),
+            static_cast<std::uint8_t>(235.0F - 210.0F * t), alpha};
+    };
+    const auto vector_color = [](Vec3 value, float scale) {
+        const float magnitude = length(value);
+        if (!(magnitude > 1.0e-8F) || !std::isfinite(magnitude))
+            return Color{0U, 0U, 0U, 0U};
+        const Vec3 direction = multiply(value, 1.0F / magnitude);
+        const float intensity = std::sqrt(std::clamp(
+            magnitude / std::max(scale, 1.0e-8F), 0.0F, 1.0F));
+        const auto channel = [intensity](float component) {
+            return static_cast<std::uint8_t>(std::clamp(
+                (0.5F + 0.5F * component) * (80.0F + 175.0F * intensity),
+                0.0F, 255.0F));
+        };
+        return Color{channel(direction.x), channel(direction.y),
+                     channel(direction.z),
+                     static_cast<std::uint8_t>(55.0F + 190.0F * intensity)};
+    };
+
+    float scale = 1.0F;
+    const char *title = "GRID";
+    if (mode == SmokeDebugMode::grid) {
+        std::vector<std::uint32_t> solid;
+        if (!copy(smoke.grid_solid, solid, "solid cells")) return false;
+        const std::uint32_t sx = std::max(1U, n / 16U);
+        const std::uint32_t sy = std::max(1U, h / 8U);
+        const float mx = low.x + float(n / 2U) * smoke.grid_spacing;
+        const float my = low.y + float(h / 2U) * smoke.grid_spacing;
+        const float mz = low.z + float(n / 2U) * smoke.grid_spacing;
+        for (std::uint32_t x = 0U; x <= n; x += sx) {
+            const float px = low.x + float(x) * smoke.grid_spacing;
+            draw_world_line({px, low.y, mz}, {px, high.y, mz},
+                            {55, 190, 220, 70});
+            draw_world_line({px, my, low.z}, {px, my, high.z},
+                            {55, 190, 220, 70});
+        }
+        for (std::uint32_t y = 0U; y <= h; y += sy) {
+            const float py = low.y + float(y) * smoke.grid_spacing;
+            draw_world_line({low.x, py, mz}, {high.x, py, mz},
+                            {55, 190, 220, 70});
+            draw_world_line({mx, py, low.z}, {mx, py, high.z},
+                            {55, 190, 220, 70});
+        }
+        for (std::uint32_t z = 0U; z <= n; z += sx) {
+            const float pz = low.z + float(z) * smoke.grid_spacing;
+            draw_world_line({low.x, my, pz}, {high.x, my, pz},
+                            {55, 190, 220, 70});
+        }
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x)
+                    if (solid[index(x,y,z)] != 0U)
+                        draw_point(center(x,y,z), {255, 125, 25, 235}, 2);
+    } else if (mode == SmokeDebugMode::velocity ||
+               mode == SmokeDebugMode::vorticity) {
+        std::vector<Vec3> values;
+        if (!copy(mode == SmokeDebugMode::velocity ? smoke.grid_velocity
+                                                   : smoke.grid_vorticity,
+                  values, mode == SmokeDebugMode::velocity ? "velocity"
+                                                           : "vorticity"))
+            return false;
+        scale = 1.0e-8F;
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x)
+                    if (on_slice(x,y,z))
+                        scale = std::max(scale, length(values[index(x,y,z)]));
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x) {
+                    if (!on_slice(x,y,z)) continue;
+                    const Vec3 value = values[index(x,y,z)];
+                    const Color mapped = vector_color(value, scale);
+                    if (mapped.alpha != 0U) draw_point(center(x,y,z), mapped);
+                }
+        if (mode == SmokeDebugMode::velocity) {
+            const std::uint32_t step = std::max(2U, n / 24U);
+            const std::uint32_t z = n / 2U;
+            for (std::uint32_t y = 0U; y < h; y += step)
+                for (std::uint32_t x = 0U; x < n; x += step) {
+                    const Vec3 value = values[index(x,y,z)];
+                    const float magnitude = length(value);
+                    if (!(magnitude > 1.0e-5F)) continue;
+                    const Vec3 origin = center(x,y,z);
+                    const Vec3 endpoint = add(origin, multiply(
+                        value, 2.5F * smoke.grid_spacing /
+                            std::max(scale, 1.0e-8F)));
+                    arrow(rgba, width, height,
+                          project(origin, camera, width, height),
+                          project(endpoint, camera, width, height),
+                          {255, 255, 255, 205});
+                }
+            title = "VELOCITY SIGNED RGB XYZ";
+        } else {
+            title = "VORTICITY SIGNED RGB XYZ";
+        }
+    } else if (mode == SmokeDebugMode::density_temperature) {
+        std::vector<float> density;
+        std::vector<float> temperature;
+        if (!copy(smoke.grid_density, density, "density") ||
+            !copy(smoke.grid_temperature, temperature, "temperature"))
+            return false;
+        scale = 1.0e-8F;
+        float heat_scale = 1.0e-8F;
+        for (std::size_t cell = 0U; cell < density.size(); ++cell) {
+            scale = std::max(scale, density[cell]);
+            if (density[cell] > 1.0e-8F)
+                heat_scale = std::max(heat_scale,
+                                      temperature[cell] / density[cell]);
+        }
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x) {
+                    const std::size_t cell = index(x,y,z);
+                    if (density[cell] < scale * 0.01F) continue;
+                    const float amount = std::sqrt(std::clamp(
+                        density[cell] / scale, 0.0F, 1.0F));
+                    const float heat = std::clamp(
+                        temperature[cell] /
+                            std::max(density[cell] * heat_scale, 1.0e-8F),
+                        0.0F, 1.0F);
+                    draw_point(center(x,y,z),
+                        {static_cast<std::uint8_t>(25.0F + 230.0F * heat),
+                         static_cast<std::uint8_t>(185.0F - 85.0F * heat),
+                         static_cast<std::uint8_t>(255.0F - 225.0F * heat),
+                         static_cast<std::uint8_t>(50.0F + 205.0F * amount)}, 2);
+                }
+        title = "DENSITY BLUE  HEAT RED";
+    } else {
+        std::vector<float> values;
+        const auto source = mode == SmokeDebugMode::pressure
+            ? smoke.grid_pressure : smoke.grid_divergence;
+        if (!copy(source, values, mode == SmokeDebugMode::pressure
+                                      ? "pressure" : "divergence"))
+            return false;
+        scale = 1.0e-12F;
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x)
+                    if (on_slice(x,y,z))
+                        scale = std::max(scale,
+                            std::fabs(values[index(x,y,z)]));
+        for (std::uint32_t z = 0U; z < n; ++z)
+            for (std::uint32_t y = 0U; y < h; ++y)
+                for (std::uint32_t x = 0U; x < n; ++x) {
+                    if (!on_slice(x,y,z)) continue;
+                    draw_point(center(x,y,z),
+                               signed_color(values[index(x,y,z)], scale));
+                }
+        title = mode == SmokeDebugMode::pressure
+            ? "PRESSURE BLUE LOW  RED HIGH"
+            : "DIVERGENCE BLUE NEG  RED POS";
+    }
+
+    const int top = static_cast<int>(height) - 80;
+    rectangle(rgba, width, height, 14, top, std::min<int>(width - 14, 930),
+              static_cast<int>(height) - 10, {5, 12, 18, 220});
+    text(rgba, width, height, 24, top + 8,
+         "SMOKE  Z GRID  X VELOCITY  C PRESSURE  V DENSITY HEAT  B VORTICITY  N DIVERGENCE",
+         {235, 240, 245, 255}, 1);
+    char summary[160]{};
+    if (mode == SmokeDebugMode::grid) {
+        std::snprintf(summary, sizeof(summary),
+                      "GRID %uX%uX%u  ORANGE SOLID CUT CELLS",
+                      n, h, n);
+    } else {
+        std::snprintf(summary, sizeof(summary), "%s  MAX %.4f", title, scale);
+    }
+    text(rgba, width, height, 24, top + 27, summary,
+         {130, 220, 255, 255}, 1);
+    const int bar_y = top + 48;
+    if (mode == SmokeDebugMode::pressure ||
+        mode == SmokeDebugMode::divergence) {
+        for (int x = 0; x < 240; ++x)
+            rectangle(rgba, width, height, 24 + x, bar_y, 25 + x, bar_y + 10,
+                      signed_color(float(x) / 119.5F - 1.0F, 1.0F, 255U));
+    } else if (mode == SmokeDebugMode::density_temperature) {
+        for (int x = 0; x < 240; ++x) {
+            const float heat = float(x) / 239.0F;
+            rectangle(rgba, width, height, 24 + x, bar_y, 25 + x, bar_y + 10,
+                {static_cast<std::uint8_t>(25.0F + 230.0F * heat),
+                 static_cast<std::uint8_t>(185.0F - 85.0F * heat),
+                 static_cast<std::uint8_t>(255.0F - 225.0F * heat), 255U});
+        }
+    } else if (mode == SmokeDebugMode::velocity ||
+               mode == SmokeDebugMode::vorticity) {
+        rectangle(rgba, width, height, 24, bar_y, 94, bar_y + 10,
+                  {255, 55, 55, 255});
+        rectangle(rgba, width, height, 94, bar_y, 164, bar_y + 10,
+                  {55, 255, 55, 255});
+        rectangle(rgba, width, height, 164, bar_y, 234, bar_y + 10,
+                  {55, 55, 255, 255});
+    } else {
+        rectangle(rgba, width, height, 24, bar_y, 144, bar_y + 10,
+                  {40, 220, 255, 255});
+        rectangle(rgba, width, height, 144, bar_y, 264, bar_y + 10,
+                  {255, 125, 25, 255});
+    }
+    return true;
 }
 
 bool draw_cloth_debug_overlay(std::vector<std::uint32_t> &rgba,

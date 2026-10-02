@@ -103,6 +103,7 @@ def rigid_metadata(
         exported["pm_initial_velocity_z"] = -float(velocity[1])
     exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
+    exported["pm_smoke_collider"] = bool(source.get("pm_smoke_collider", False))
     if "pm_paint_resolution" in source:
         exported["pm_paint_resolution"] = float(source["pm_paint_resolution"])
     if collision_proxy_name is not None:
@@ -432,18 +433,29 @@ def copy_flow_for_export(
         if not smoke and "pm_temperature" in source:
             exported["pm_temperature"] = float(source["pm_temperature"])
     if smoke:
+        exported["pm_smoke_model_version"] = 3
         obstacle = source.get("pm_smoke_obstacle")
-        if not isinstance(obstacle, str) or not obstacle:
-            raise RuntimeError(f"{source.name}: pm_smoke_obstacle must name a rigid sphere")
-        exported["pm_smoke_obstacle"] = obstacle
+        if obstacle is not None:
+            if not isinstance(obstacle, str) or not obstacle:
+                raise RuntimeError(f"{source.name}: pm_smoke_obstacle must name a rigid mesh")
+            exported["pm_smoke_obstacle"] = obstacle
         for key, default in (
             ("pm_smoke_capacity", 4500),
             ("pm_smoke_rate", 900.0),
             ("pm_smoke_lifetime", 5.0),
             ("pm_smoke_radius", 0.085),
             ("pm_smoke_buoyancy", 0.12),
-            ("pm_smoke_response", 6.0),
-            ("pm_smoke_wake_strength", 4.0),
+            ("pm_smoke_wind_response", 0.5),
+            ("pm_smoke_rest_number_density", 12.0),
+            ("pm_smoke_pressure_stiffness", 2.0),
+            ("pm_smoke_viscosity", 0.02),
+            ("pm_smoke_vorticity_confinement", 0.1),
+            ("pm_smoke_grid_resolution", 128),
+            ("pm_smoke_grid_vertical_resolution", 32),
+            ("pm_smoke_grid_pressure_iterations", 24),
+            ("pm_smoke_grid_kinematic_viscosity", 1.5e-5),
+            ("pm_smoke_grid_les_coefficient", 0.12),
+            ("pm_smoke_grid_pressure_tolerance", 1.0e-3),
         ):
             exported[key] = source.get(key, default)
     return exported
@@ -594,7 +606,7 @@ def soft_body_goal_pins(source, settings, scale_matrix):
 
 
 def _rope_endpoint_targets(point, radius, cloths, rigid_bodies):
-    """Infer only unambiguous cloth-vertex and passive-mesh endpoint joints."""
+    """Infer only unambiguous cloth-vertex and rigid-mesh endpoint joints."""
     matches = []
     tolerance = max(1.0e-4, radius * 0.05)
     for cloth in cloths:
@@ -604,8 +616,6 @@ def _rope_endpoint_targets(point, radius, cloths, rigid_bodies):
                 matches.append(("cloth", cloth.name, distance))
                 break
     for body in rigid_bodies:
-        if body.rigid_body.type != "PASSIVE":
-            continue
         inverse = body.matrix_world.inverted_safe()
         local = inverse @ point
         hit, nearest, _, _ = body.closest_point_on_mesh(local)

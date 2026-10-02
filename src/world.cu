@@ -2273,6 +2273,7 @@ enum class TimingStage : std::uint8_t {
     fluid_outflow_compaction,
     fluid_smoke_exchange,
     rope_solve,
+    smoke_grid,
     smoke_advection,
     smoke_emission,
 };
@@ -2515,6 +2516,11 @@ struct DeformableNeighbor {
     std::uint32_t bond{};
 };
 
+struct SoftBodyNeighbor {
+    std::uint32_t index{};
+    float rest_length{};
+};
+
 struct ClothBodyCorrection {
     Vec3 offset{};
     Vec3 impulse{};
@@ -2583,6 +2589,7 @@ struct ClothStorage {
     Vec3 *fluid_forces{};
     Vec3 *soft_body_forces{};
     Vec3 *rope_forces{};
+    Vec3 *smoke_forces{};
     float *volume_lambda{};
     std::uint32_t *count{};
 
@@ -2613,6 +2620,7 @@ struct ClothStorage {
         release_managed(fluid_forces);
         release_managed(soft_body_forces);
         release_managed(rope_forces);
+        release_managed(smoke_forces);
         release_managed(volume_lambda);
         release_managed(count);
     }
@@ -2750,10 +2758,10 @@ struct SoftBodyStorage {
     std::uint32_t node_count{};
     std::uint32_t bond_count{};
     std::uint32_t neighbor_count{};
-    std::uint32_t neighbor_ell_count{};
     std::uint32_t surface_vertex_count{};
     std::uint32_t surface_index_count{};
     float node_radius{};
+    float stretch_compliance{};
     float velocity_damping{};
     float spring_damping{};
     float contact_friction{};
@@ -2777,7 +2785,8 @@ struct SoftBodyStorage {
     std::uint8_t *bond_active{};
     std::uint32_t *offsets{};
     DeformableNeighbor *neighbors{};
-    DeformableNeighbor *neighbors_ell{};
+    SoftBodyNeighbor *warp_neighbors{};
+    float *minimum_rest_lengths{};
     Vec3 *surface_rest_positions{};
     Vec3 *surface_positions{};
     std::uint32_t *surface_indices{};
@@ -2814,7 +2823,8 @@ struct SoftBodyStorage {
         release_managed(bond_active);
         release_managed(offsets);
         release_managed(neighbors);
-        release_managed(neighbors_ell);
+        release_managed(warp_neighbors);
+        release_managed(minimum_rest_lengths);
         release_managed(surface_rest_positions);
         release_managed(surface_positions);
         release_managed(surface_indices);
@@ -4049,30 +4059,63 @@ __global__ void soft_body_project_rest_shape(
         *dynamic_contact_flag != 0U) return;
     __shared__ Vec3 shared_center, shared_center_correction;
     __shared__ Quaternion shared_orientation;
-    if (threadIdx.x == 0U) {
-        Vec3 current_center{};
-        for (std::uint32_t node = 0U; node < count; ++node) {
-            const float inverse_mass = inverse_masses[node];
-            if (inverse_mass > 0.0F)
+    __shared__ Vec3 batch_positions[128], batch_rest_positions[128];
+    __shared__ float batch_inverse_masses[128];
+    Vec3 current_center{};
+    for (std::uint32_t base = 0U; base < count; base += blockDim.x) {
+        const std::uint32_t node = base + threadIdx.x;
+        if (node < count) {
+            batch_positions[threadIdx.x] = positions[node];
+            batch_inverse_masses[threadIdx.x] = inverse_masses[node];
+        }
+        __syncthreads();
+        if (threadIdx.x == 0U) {
+            const std::uint32_t valid = min(blockDim.x, count - base);
+            for (std::uint32_t item = 0U; item < valid; ++item) {
+                const float inverse_mass = batch_inverse_masses[item];
+                if (inverse_mass <= 0.0F) continue;
                 current_center = add(current_center,
-                    multiply(positions[node], 1.0F / inverse_mass));
+                    multiply(batch_positions[item], 1.0F / inverse_mass));
+            }
         }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0U) {
         current_center = multiply(current_center, 1.0F / movable_mass);
+        shared_center = current_center;
+    }
+    __syncthreads();
 
-        ShapeMatrix covariance{};
-        for (std::uint32_t node = 0U; node < count; ++node) {
-            const float inverse_mass = inverse_masses[node];
-            if (inverse_mass <= 0.0F) continue;
-            const float mass = 1.0F / inverse_mass;
-            const Vec3 current = subtract(positions[node], current_center);
-            const Vec3 rest = subtract(rest_positions[node], rest_center);
-            covariance.columns[0] = add(covariance.columns[0],
-                multiply(current, mass * rest.x));
-            covariance.columns[1] = add(covariance.columns[1],
-                multiply(current, mass * rest.y));
-            covariance.columns[2] = add(covariance.columns[2],
-                multiply(current, mass * rest.z));
+    ShapeMatrix covariance{};
+    for (std::uint32_t base = 0U; base < count; base += blockDim.x) {
+        const std::uint32_t node = base + threadIdx.x;
+        if (node < count) {
+            batch_positions[threadIdx.x] = positions[node];
+            batch_rest_positions[threadIdx.x] = rest_positions[node];
+            batch_inverse_masses[threadIdx.x] = inverse_masses[node];
         }
+        __syncthreads();
+        if (threadIdx.x == 0U) {
+            const std::uint32_t valid = min(blockDim.x, count - base);
+            for (std::uint32_t item = 0U; item < valid; ++item) {
+                const float inverse_mass = batch_inverse_masses[item];
+                if (inverse_mass <= 0.0F) continue;
+                const float mass = 1.0F / inverse_mass;
+                const Vec3 current = subtract(
+                    batch_positions[item], current_center);
+                const Vec3 rest = subtract(
+                    batch_rest_positions[item], rest_center);
+                covariance.columns[0] = add(covariance.columns[0],
+                    multiply(current, mass * rest.x));
+                covariance.columns[1] = add(covariance.columns[1],
+                    multiply(current, mass * rest.y));
+                covariance.columns[2] = add(covariance.columns[2],
+                    multiply(current, mass * rest.z));
+            }
+        }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0U) {
         const ShapeMatrix deformation = shape_matrix_multiply(
             covariance, inverse_rest);
         Quaternion orientation = normalized_quaternion(*stored_orientation);
@@ -4103,7 +4146,6 @@ __global__ void soft_body_project_rest_shape(
                 quaternion_multiply(delta, orientation));
         }
         *stored_orientation = orientation;
-        shared_center = current_center;
         shared_orientation = orientation;
     }
     __syncthreads();
@@ -4118,14 +4160,26 @@ __global__ void soft_body_project_rest_shape(
             maximum_projection);
     }
     __syncthreads();
-    if (threadIdx.x == 0U) {
-        Vec3 weighted_correction{};
-        for (std::uint32_t node = 0U; node < count; ++node) {
-            const float inverse_mass = inverse_masses[node];
-            if (inverse_mass > 0.0F)
-                weighted_correction = add(weighted_correction,
-                    multiply(corrections[node], 1.0F / inverse_mass));
+    Vec3 weighted_correction{};
+    for (std::uint32_t base = 0U; base < count; base += blockDim.x) {
+        const std::uint32_t node = base + threadIdx.x;
+        if (node < count) {
+            batch_positions[threadIdx.x] = corrections[node];
+            batch_inverse_masses[threadIdx.x] = inverse_masses[node];
         }
+        __syncthreads();
+        if (threadIdx.x == 0U) {
+            const std::uint32_t valid = min(blockDim.x, count - base);
+            for (std::uint32_t item = 0U; item < valid; ++item) {
+                const float inverse_mass = batch_inverse_masses[item];
+                if (inverse_mass <= 0.0F) continue;
+                weighted_correction = add(weighted_correction,
+                    multiply(batch_positions[item], 1.0F / inverse_mass));
+            }
+        }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0U) {
         shared_center_correction = multiply(
             weighted_correction, 1.0F / movable_mass);
     }
@@ -4183,45 +4237,67 @@ __global__ void deformable_project_links(
     scratch[vertex] = add(position, proposal);
 }
 
-// ELL transpose keeps each node's original neighbor order but coalesces the
-// kth neighbor load across a warp of nodes in dense, near-uniform lattices.
-__global__ void deformable_project_links_ell(
+// Dense soft-body lattices have hundreds of neighbors per node but often only
+// a few hundred nodes. Give each node a warp subgroup so independent bond reads
+// fill the GPU while lane leaders fold proposals concurrently. CSR keeps
+// each group's neighbor descriptors contiguous and in their original order.
+__global__ void deformable_project_links_warp(
     const Vec3 *positions, Vec3 *scratch, const float *inverse_masses,
-    const std::uint32_t *offsets, const DeformableNeighbor *neighbors,
-    const std::uint8_t *bond_active, std::uint32_t count, float dt,
+    const std::uint32_t *offsets, const SoftBodyNeighbor *neighbors,
+    const float *minimum_rest_lengths, std::uint32_t count,
+    float compliance, float dt,
     float maximum_projection_fraction) {
-    const std::uint32_t vertex=blockIdx.x*blockDim.x+threadIdx.x;
-    if(vertex>=count)return;
-    const float self_mass=inverse_masses[vertex];
-    const Vec3 position=positions[vertex];
-    if(self_mass==0.0F) {
-        scratch[vertex]=position;
+    constexpr std::uint32_t group_size = 16U;
+    const std::uint32_t lane = threadIdx.x & (group_size - 1U);
+    const std::uint32_t group =
+        blockIdx.x * (blockDim.x / group_size) + threadIdx.x / group_size;
+    if (group >= count) return;
+    const unsigned group_mask = 0xffffU << (threadIdx.x & 16U);
+
+    const float self_mass = inverse_masses[group];
+    const Vec3 position = positions[group];
+    if (self_mass == 0.0F) {
+        if (lane == 0U) scratch[group] = position;
         return;
     }
+
+    __shared__ Vec3 batch_corrections[128];
+    const std::uint32_t first = offsets[group];
+    const std::uint32_t last = offsets[group + 1U];
     Vec3 correction{};
-    float shortest_rest_length=FLT_MAX;
-    const std::uint32_t degree=offsets[vertex+1U]-offsets[vertex];
-    for(std::uint32_t slot=0U;slot<degree;++slot) {
-        const DeformableNeighbor neighbor=neighbors[slot*count+vertex];
-        if(bond_active!=nullptr && neighbor.bond!=k_invalid_dense &&
-            bond_active[neighbor.bond]==0U)continue;
-        shortest_rest_length=fminf(shortest_rest_length,neighbor.rest_length);
-        const Vec3 difference=subtract(position,positions[neighbor.index]);
-        const float length=vector_length(difference);
-        if(length<1.0e-7F)continue;
-        const float other_mass=inverse_masses[neighbor.index];
-        const float denominator=self_mass+other_mass+
-            neighbor.compliance/(dt*dt);
-        const float amount=-self_mass*(length-neighbor.rest_length)/
-            (denominator*length);
-        correction=add(correction,multiply(difference,amount));
+    for (std::uint32_t base = first; base < last; base += group_size) {
+        const std::uint32_t edge = base + lane;
+        Vec3 edge_correction{};
+        if (edge < last) {
+            const SoftBodyNeighbor neighbor = neighbors[edge];
+            const Vec3 difference = subtract(
+                position, positions[neighbor.index]);
+            const float length = vector_length(difference);
+            if (length >= 1.0e-7F) {
+                const float denominator = self_mass +
+                    inverse_masses[neighbor.index] + compliance / (dt * dt);
+                const float amount = -self_mass *
+                    (length - neighbor.rest_length) / (denominator * length);
+                edge_correction = multiply(difference, amount);
+            }
+        }
+        batch_corrections[threadIdx.x] = edge_correction;
+        __syncwarp(group_mask);
+        if (lane == 0U) {
+            const std::uint32_t valid = min(group_size, last - base);
+            const std::uint32_t batch = threadIdx.x;
+            for (std::uint32_t item = 0U; item < valid; ++item)
+                correction = add(correction, batch_corrections[batch + item]);
+        }
+        __syncwarp(group_mask);
     }
-    const float divisor=static_cast<float>(max(1U,degree));
-    Vec3 proposal=multiply(correction,1.0F/divisor);
-    if(maximum_projection_fraction>0.0F && shortest_rest_length<FLT_MAX)
-        proposal=clamp_length(proposal,
-            maximum_projection_fraction*shortest_rest_length);
-    scratch[vertex]=add(position,proposal);
+    if (lane != 0U) return;
+    const float divisor = static_cast<float>(max(1U, last - first));
+    Vec3 proposal = multiply(correction, 1.0F / divisor);
+    if (maximum_projection_fraction > 0.0F)
+        proposal = clamp_length(
+            proposal, maximum_projection_fraction * minimum_rest_lengths[group]);
+    scratch[group] = add(position, proposal);
 }
 
 // Give each vertex its incident corners in face order. Triangles and vertices
@@ -4725,36 +4801,55 @@ __global__ void soft_body_damp_springs(
     output[node] = clamp_length(add(velocities[node], correction), maximum_speed);
 }
 
-__global__ void soft_body_damp_springs_ell(
+__global__ void soft_body_damp_springs_warp(
     const Vec3 *positions, const Vec3 *velocities, Vec3 *output,
     const float *inverse_masses, const std::uint32_t *offsets,
-    const DeformableNeighbor *neighbors, const std::uint8_t *bond_active,
-    std::uint32_t count, float damping, float maximum_speed) {
-    const std::uint32_t node=blockIdx.x*blockDim.x+threadIdx.x;
-    if(node>=count)return;
-    if(inverse_masses[node]==0.0F) {
-        output[node]={};
+    const SoftBodyNeighbor *neighbors, std::uint32_t count,
+    float damping, float maximum_speed) {
+    constexpr std::uint32_t group_size = 16U;
+    const std::uint32_t lane = threadIdx.x & (group_size - 1U);
+    const std::uint32_t group =
+        blockIdx.x * (blockDim.x / group_size) + threadIdx.x / group_size;
+    if (group >= count) return;
+    const unsigned group_mask = 0xffffU << (threadIdx.x & 16U);
+    if (inverse_masses[group] == 0.0F) {
+        if (lane == 0U) output[group] = {};
         return;
     }
+
+    __shared__ Vec3 batch_corrections[128];
+    const std::uint32_t first = offsets[group];
+    const std::uint32_t last = offsets[group + 1U];
+    const Vec3 position = positions[group];
+    const Vec3 velocity = velocities[group];
     Vec3 correction{};
-    std::uint32_t active_count=0U;
-    const std::uint32_t degree=offsets[node+1U]-offsets[node];
-    for(std::uint32_t slot=0U;slot<degree;++slot) {
-        const DeformableNeighbor neighbor=neighbors[slot*count+node];
-        if(bond_active[neighbor.bond]==0U)continue;
-        const Vec3 axis=normalized_or(
-            subtract(positions[neighbor.index],positions[node]),{});
-        correction=add(correction,multiply(axis,
-            dot(subtract(velocities[neighbor.index],velocities[node]),axis)));
-        ++active_count;
+    for (std::uint32_t base = first; base < last; base += group_size) {
+        const std::uint32_t edge = base + lane;
+        Vec3 edge_correction{};
+        if (edge < last) {
+            const SoftBodyNeighbor neighbor = neighbors[edge];
+            const Vec3 axis = normalized_or(
+                subtract(positions[neighbor.index], position), {});
+            edge_correction = multiply(axis, dot(
+                subtract(velocities[neighbor.index], velocity), axis));
+        }
+        batch_corrections[threadIdx.x] = edge_correction;
+        __syncwarp(group_mask);
+        if (lane == 0U) {
+            const std::uint32_t valid = min(group_size, last - base);
+            const std::uint32_t batch = threadIdx.x;
+            for (std::uint32_t item = 0U; item < valid; ++item)
+                correction = add(correction, batch_corrections[batch + item]);
+        }
+        __syncwarp(group_mask);
     }
-    if(active_count!=0U)
-        correction=multiply(correction,
-            0.5F*damping/static_cast<float>(active_count));
-    output[node]=clamp_length(add(velocities[node],correction),maximum_speed);
+    if (lane != 0U) return;
+    const std::uint32_t active_count = last - first;
+    if (active_count != 0U)
+        correction = multiply(correction,
+            0.5F * damping / static_cast<float>(active_count));
+    output[group] = clamp_length(add(velocity, correction), maximum_speed);
 }
-
-
 
 __global__ void soft_body_update_surface(
     const Vec3 *positions, const Vec3 *rest_positions,
@@ -5515,6 +5610,9 @@ struct World::Impl {
     std::vector<std::unique_ptr<SmokeStorage>> smokes{};
     std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
     std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
+    std::vector<std::unique_ptr<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
+    std::vector<std::unique_ptr<SmokeRopeCouplingSlot>> smoke_rope_couplings{};
+    std::vector<std::unique_ptr<SmokeRigidCouplingSlot>> smoke_rigid_couplings{};
     std::uint64_t boiled_particle_count{};
     std::vector<std::unique_ptr<ClothStorage>> cloths{};
     std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
@@ -5919,6 +6017,12 @@ Status World::create(WorldOptions options, World &output,
             options.fluid_smoke_coupling_capacity);
         implementation->smoke_soft_body_couplings.resize(
             options.smoke_soft_body_coupling_capacity);
+        implementation->smoke_cloth_couplings.resize(
+            options.smoke_cloth_coupling_capacity);
+        implementation->smoke_rope_couplings.resize(
+            options.smoke_rope_coupling_capacity);
+        implementation->smoke_rigid_couplings.resize(
+            options.smoke_rigid_coupling_capacity);
         implementation->cloths.resize(options.cloth_capacity);
         implementation->soft_bodies.resize(options.soft_body_capacity);
         implementation->ropes.resize(options.rope_capacity);
@@ -6411,9 +6515,6 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
     if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    std::uint32_t obstacle = 0U;
-    status = impl_->validate_handle(options.obstacle, obstacle);
-    if (!status) return status;
     if (options.capacity == 0U || options.capacity > 1'000'000U ||
         !finite(options.emitter_center) || !finite(options.initial_velocity) ||
         !finite(options.wind) || !finite(options.emitter_half_extents.x) ||
@@ -6424,11 +6525,31 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
         options.particles_per_second > 1'000'000.0F ||
         !finite(options.lifetime) || options.lifetime <= 0.0F ||
         !finite(options.particle_radius) || options.particle_radius <= 0.0F ||
-        !finite(options.obstacle_radius) || options.obstacle_radius <= 0.0F ||
         !finite(options.buoyancy) || !finite(options.response) ||
-        options.response <= 0.0F || !finite(options.wake_strength) ||
-        options.wake_strength < 0.0F || !finite(options.maximum_speed) ||
-        options.maximum_speed <= 0.0F)
+        options.response < 0.0F || !finite(options.rest_number_density) ||
+        options.rest_number_density <= 0.0F ||
+        !finite(options.pressure_stiffness) ||
+        options.pressure_stiffness < 0.0F ||
+        !finite(options.viscosity) || options.viscosity < 0.0F ||
+        !finite(options.vorticity_confinement) ||
+        options.vorticity_confinement < 0.0F ||
+        !finite(options.maximum_speed) ||
+        options.maximum_speed <= 0.0F ||
+        (options.grid_resolution != 0U &&
+         (options.grid_resolution < 16U || options.grid_resolution > 256U ||
+          options.grid_vertical_resolution < 8U ||
+          options.grid_vertical_resolution > 256U ||
+          options.grid_pressure_iterations < 4U ||
+          options.grid_pressure_iterations > 128U ||
+          !finite(options.grid_kinematic_viscosity) ||
+          options.grid_kinematic_viscosity < 0.0F ||
+          !finite(options.grid_les_coefficient) ||
+          options.grid_les_coefficient < 0.0F ||
+          !finite(options.grid_pressure_tolerance) ||
+          options.grid_pressure_tolerance <= 0.0F ||
+          options.grid_pressure_tolerance > 1.0F)) ||
+        !finite(options.grid_minimum) ||
+        !finite(options.grid_edge_length) || options.grid_edge_length < 0.0F)
         return failure(StatusCode::invalid_argument, "invalid smoke options");
     std::uint32_t slot = 0U;
     while (slot < impl_->smokes.size() && impl_->smokes[slot] &&
@@ -6440,10 +6561,155 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
     catch (...) { return failure(StatusCode::out_of_memory, "smoke owner allocation failed"); }
     smoke->generation = impl_->smokes[slot] ? impl_->smokes[slot]->generation : 1U;
     smoke->options = options;
+    if (options.grid_resolution != 0U) {
+        auto &grid = smoke->grid;
+        grid.resolution = options.grid_resolution;
+        grid.height = options.grid_vertical_resolution;
+        grid.cell_count = options.grid_resolution * options.grid_resolution *
+                          options.grid_vertical_resolution;
+        if (options.grid_edge_length > 0.0F) {
+            grid.minimum = options.grid_minimum;
+            grid.spacing = options.grid_edge_length / float(grid.resolution);
+        } else {
+            const Vec3 end = add(options.emitter_center,
+                multiply(options.wind, options.lifetime));
+            const Vec3 low{fminf(options.emitter_center.x, end.x) - 1.5F,
+                options.emitter_center.y,
+                fminf(options.emitter_center.z, end.z) - 1.5F};
+            const Vec3 high{fmaxf(options.emitter_center.x, end.x) + 1.5F,
+                options.emitter_center.y,
+                fmaxf(options.emitter_center.z, end.z) + 1.5F};
+            const float edge = fmaxf(high.x-low.x, high.z-low.z);
+            const Vec3 center = multiply(add(low, high), 0.5F);
+            grid.spacing = edge / float(grid.resolution);
+            grid.minimum = subtract(center, {edge*0.5F,
+                grid.spacing * float(grid.height) * 0.5F, edge*0.5F});
+        }
+        if (!finite(grid.spacing) || grid.spacing < 1.0e-4F)
+            return failure(StatusCode::invalid_argument,
+                "invalid smoke grid cell spacing");
+        for (int axis = 0; axis < 3; ++axis)
+            grid.face_count[axis] = smoke_grid_face_count(axis,
+                int(grid.resolution), int(grid.height));
+        if (!(status = allocate_managed(grid.velocity, grid.cell_count)) ||
+            !(status = allocate_managed(grid.density, grid.cell_count)) ||
+            !(status = allocate_managed(grid.temperature, grid.cell_count)) ||
+            !(status = allocate_managed(grid.density_accumulator,
+                                        grid.cell_count)) ||
+            !(status = allocate_managed(grid.temperature_accumulator,
+                                        grid.cell_count)) ||
+            !(status = allocate_managed(grid.pressure[0], grid.cell_count)) ||
+            !(status = allocate_managed(grid.pressure[1], grid.cell_count)) ||
+            !(status = allocate_managed(grid.divergence, grid.cell_count)) ||
+            !(status = allocate_managed(grid.residual, grid.cell_count)) ||
+            !(status = allocate_managed(grid.vorticity, grid.cell_count)) ||
+            !(status = allocate_managed(grid.strain, grid.cell_count)) ||
+            !(status = allocate_managed(grid.subgrid_force, grid.cell_count)) ||
+            !(status = allocate_managed(grid.rhs_max, 1U)) ||
+            !(status = allocate_managed(grid.residual_max, 1U)) ||
+            !(status = allocate_managed(grid.pressure_converged, 1U)) ||
+            !(status = allocate_managed(grid.solid, grid.cell_count)))
+            return status;
+        for (int axis = 0; axis < 3; ++axis) {
+            if (!(status = allocate_managed(grid.face_velocity[axis][0],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_velocity[axis][1],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_reverse[axis],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_open[axis],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_wall_velocity[axis],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_normal[axis],
+                                            grid.face_count[axis])) ||
+                !(status = allocate_managed(grid.face_nearest_triangle[axis],
+                                            grid.face_count[axis])))
+                return status;
+        }
+        std::uint32_t level_n = grid.resolution;
+        std::uint32_t level_h = grid.height;
+        for (auto &level : grid.coarse) {
+            level_n = std::max(2U, level_n / 2U);
+            level_h = std::max(2U, level_h / 2U);
+            level.n = level_n;
+            level.height = level_h;
+            level.cell_count = level_n * level_h * level_n;
+            if (!(status = allocate_managed(level.pressure[0], level.cell_count)) ||
+                !(status = allocate_managed(level.pressure[1], level.cell_count)) ||
+                !(status = allocate_managed(level.rhs, level.cell_count)) ||
+                !(status = allocate_managed(level.residual, level.cell_count)))
+                return status;
+            for (int axis = 0; axis < 3; ++axis)
+                if (!(status = allocate_managed(level.open[axis],
+                    smoke_grid_face_count(axis, int(level.n),
+                                          int(level.height)))))
+                    return status;
+        }
+        const auto blocks = (grid.cell_count + 255U) / 256U;
+        smoke_grid_initialize_cells<<<blocks, 256U>>>(grid.velocity,
+            grid.density, grid.temperature, grid.pressure[0],
+            grid.divergence, grid.vorticity, grid.strain,
+            grid.subgrid_force, grid.solid, grid.cell_count, options.wind);
+        cudaMemset(grid.pressure[1], 0, grid.cell_count * sizeof(float));
+        cudaMemset(grid.residual, 0, grid.cell_count * sizeof(float));
+        cudaMemset(grid.rhs_max, 0, sizeof(float));
+        cudaMemset(grid.residual_max, 0, sizeof(float));
+        cudaMemset(grid.pressure_converged, 0, sizeof(unsigned int));
+        for (int axis = 0; axis < 3; ++axis) {
+            const float component = axis == 0 ? options.wind.x :
+                                    axis == 1 ? options.wind.y : options.wind.z;
+            smoke_grid_initialize_faces<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U>>>(
+                grid.face_velocity[axis][0], grid.face_reverse[axis],
+                grid.face_open[axis], grid.face_wall_velocity[axis],
+                grid.face_normal[axis], grid.face_nearest_triangle[axis],
+                grid.face_count[axis], component);
+            cudaMemcpy(grid.face_velocity[axis][1],
+                grid.face_velocity[axis][0],
+                grid.face_count[axis] * sizeof(float),
+                cudaMemcpyDeviceToDevice);
+        }
+        for (auto &level : grid.coarse) {
+            cudaMemset(level.pressure[0], 0,
+                level.cell_count * sizeof(float));
+            cudaMemset(level.pressure[1], 0,
+                level.cell_count * sizeof(float));
+            cudaMemset(level.rhs, 0, level.cell_count * sizeof(float));
+            cudaMemset(level.residual, 0,
+                level.cell_count * sizeof(float));
+        }
+        cudaError_t grid_error = cudaPeekAtLastError();
+        if (grid_error != cudaSuccess)
+            return cuda_failure(grid_error, "smoke grid initialization failed");
+        grid_error = cudaDeviceSynchronize();
+        if (grid_error != cudaSuccess)
+            return cuda_failure(grid_error, "smoke grid initialization failed");
+    }
     if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
+        !(status = allocate_managed(smoke->previous_positions, options.capacity)) ||
         !(status = allocate_managed(smoke->velocities, options.capacity)) ||
         !(status = allocate_managed(smoke->ages, options.capacity)) ||
-        !(status = allocate_managed(smoke->thermal_lift, options.capacity))) return status;
+        !(status = allocate_managed(smoke->thermal_lift, options.capacity)) ||
+        !(status = allocate_managed(smoke->number_densities, options.capacity)) ||
+        !(status = allocate_managed(smoke->pressures, options.capacity)) ||
+        !(status = allocate_managed(smoke->accelerations, options.capacity)) ||
+        !(status = allocate_managed(smoke->vorticities, options.capacity)) ||
+        !(status = allocate_managed(smoke->vorticity_magnitudes,
+                                    options.capacity)) ||
+        !(status = allocate_managed(smoke->keys[0], options.capacity)) ||
+        !(status = allocate_managed(smoke->keys[1], options.capacity)) ||
+        !(status = allocate_managed(smoke->indices[0], options.capacity)) ||
+        !(status = allocate_managed(smoke->indices[1], options.capacity)) ||
+        !(status = allocate_managed(smoke->rigid_impulses, options.capacity)))
+        return status;
+    cudaError_t sort_error = cub::DeviceRadixSort::SortPairs(
+        nullptr, smoke->sort_workspace_size, smoke->keys[0], smoke->keys[1],
+        smoke->indices[0], smoke->indices[1], options.capacity);
+    if (sort_error != cudaSuccess)
+        return cuda_failure(sort_error, "smoke sort workspace query failed");
+    if (!(status = allocate_managed(smoke->sort_workspace,
+                                    smoke->sort_workspace_size))) return status;
     smoke->alive = true;
     output = {slot, smoke->generation};
     impl_->smokes[slot] = std::move(smoke);
@@ -6467,6 +6733,18 @@ Status World::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->smoke_cloth_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a cloth coupling");
+    for (const auto &coupling : impl_->smoke_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a rope coupling");
+    for (const auto &coupling : impl_->smoke_rigid_couplings)
+        if (coupling && coupling->alive && coupling->options.smoke == id)
+            return failure(StatusCode::invalid_argument,
+                           "smoke is still referenced by a rigid coupling");
     std::unique_ptr<SmokeStorage> tombstone;
     try { tombstone = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
@@ -6490,8 +6768,23 @@ Status World::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
         return failure(StatusCode::busy, "smoke view requires a completed frame");
     const auto &smoke = *impl_->smokes[id.index];
     output = {{smoke.positions, smoke.count}, {smoke.velocities, smoke.count},
-        {smoke.ages, smoke.count}, smoke.count, smoke.options.lifetime,
-        smoke.options.particle_radius, impl_->revision};
+        {smoke.ages, smoke.count}, {smoke.number_densities, smoke.count},
+        {smoke.pressures, smoke.count}, {smoke.vorticities, smoke.count},
+        smoke.count,
+        smoke.options.lifetime, smoke.options.particle_radius, impl_->revision,
+        {smoke.grid.velocity, smoke.grid.cell_count},
+        {smoke.grid.pressure[0], smoke.grid.cell_count},
+        {smoke.grid.density, smoke.grid.cell_count},
+        {smoke.grid.temperature, smoke.grid.cell_count},
+        {smoke.grid.solid, smoke.grid.cell_count},
+        {smoke.grid.vorticity, smoke.grid.cell_count},
+        {smoke.grid.divergence, smoke.grid.cell_count},
+        smoke.grid.resolution, smoke.grid.height,
+        smoke.grid.minimum, smoke.grid.spacing,
+        smoke.grid.resolution != 0U
+            ? *smoke.grid.residual_max /
+                fmaxf(*smoke.grid.rhs_max, 1.0e-5F)
+            : 0.0F};
     return success();
 }
 
@@ -6583,6 +6876,8 @@ Status World::add_smoke_soft_body_coupling(
         return failure(StatusCode::invalid_handle,
                        "smoke or soft-body coupling handle is stale");
     if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
         !finite(options.contact_distance) || options.contact_distance < 0.0F)
         return failure(StatusCode::invalid_argument,
                        "invalid smoke soft-body coupling parameters");
@@ -6611,6 +6906,7 @@ Status World::add_smoke_soft_body_coupling(
     coupling->alive = true;
     output = {slot, coupling->generation};
     impl_->smoke_soft_body_couplings[slot] = std::move(coupling);
+    impl_->smokes[options.smoke.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
 }
@@ -6632,7 +6928,225 @@ Status World::remove_smoke_soft_body_coupling(
                                 "smoke soft-body coupling removal failed"); }
     tombstone->generation = id.generation + 1U;
     if (tombstone->generation == 0U) tombstone->generation = 1U;
+    const auto smoke_id = impl_->smoke_soft_body_couplings[id.index]->options.smoke;
     impl_->smoke_soft_body_couplings[id.index] = std::move(tombstone);
+    impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_cloth_coupling(
+    SmokeClothCouplingOptions options, SmokeClothCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation ||
+        options.cloth.index >= impl_->cloths.size() ||
+        !impl_->cloths[options.cloth.index] ||
+        !impl_->cloths[options.cloth.index]->alive ||
+        impl_->cloths[options.cloth.index]->generation != options.cloth.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke or cloth coupling handle is stale");
+    if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke cloth coupling parameters");
+    for (const auto &existing : impl_->smoke_cloth_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.cloth == options.cloth)
+            return failure(StatusCode::invalid_argument,
+                           "smoke cloth coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_cloth_couplings.size() &&
+           impl_->smoke_cloth_couplings[slot] &&
+           impl_->smoke_cloth_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_cloth_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke cloth coupling capacity exhausted");
+    std::unique_ptr<SmokeClothCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeClothCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke cloth coupling allocation failed"); }
+    coupling->generation = impl_->smoke_cloth_couplings[slot] ?
+        impl_->smoke_cloth_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->minimum, 1U)) ||
+        !(status = allocate_managed(coupling->maximum, 1U))) return status;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_cloth_couplings[slot] = std::move(coupling);
+    impl_->smokes[options.smoke.index]->grid.static_metadata_valid = false;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_cloth_coupling(SmokeClothCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_cloth_couplings.size() ||
+        !impl_->smoke_cloth_couplings[id.index] ||
+        !impl_->smoke_cloth_couplings[id.index]->alive ||
+        impl_->smoke_cloth_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke cloth coupling handle is stale");
+    std::unique_ptr<SmokeClothCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeClothCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke cloth coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    const auto smoke_id = impl_->smoke_cloth_couplings[id.index]->options.smoke;
+    impl_->smoke_cloth_couplings[id.index] = std::move(tombstone);
+    impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_rope_coupling(
+    SmokeRopeCouplingOptions options, SmokeRopeCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation ||
+        options.rope.index >= impl_->ropes.size() ||
+        !impl_->ropes[options.rope.index] ||
+        !impl_->ropes[options.rope.index]->alive ||
+        impl_->ropes[options.rope.index]->generation != options.rope.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke or rope coupling handle is stale");
+    if (!finite(options.wind_drag) || options.wind_drag < 0.0F ||
+        !finite(options.maximum_wind_acceleration) ||
+        options.maximum_wind_acceleration < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke rope coupling parameters");
+    for (const auto &existing : impl_->smoke_rope_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.rope == options.rope)
+            return failure(StatusCode::invalid_argument,
+                           "smoke rope coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_rope_couplings.size() &&
+           impl_->smoke_rope_couplings[slot] &&
+           impl_->smoke_rope_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_rope_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke rope coupling capacity exhausted");
+    std::unique_ptr<SmokeRopeCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeRopeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rope coupling allocation failed"); }
+    coupling->generation = impl_->smoke_rope_couplings[slot]
+        ? impl_->smoke_rope_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    if (!(status = allocate_managed(coupling->minimum, 1U)) ||
+        !(status = allocate_managed(coupling->maximum, 1U))) return status;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_rope_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_rope_couplings.size() ||
+        !impl_->smoke_rope_couplings[id.index] ||
+        !impl_->smoke_rope_couplings[id.index]->alive ||
+        impl_->smoke_rope_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke rope coupling handle is stale");
+    std::unique_ptr<SmokeRopeCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeRopeCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rope coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    impl_->smoke_rope_couplings[id.index] = std::move(tombstone);
+    ++impl_->revision;
+    return success();
+}
+
+Status World::add_smoke_rigid_coupling(
+    SmokeRigidCouplingOptions options, SmokeRigidCouplingId &output) noexcept {
+    output = {};
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.smoke.index >= impl_->smokes.size() ||
+        !impl_->smokes[options.smoke.index] ||
+        !impl_->smokes[options.smoke.index]->alive ||
+        impl_->smokes[options.smoke.index]->generation != options.smoke.generation)
+        return failure(StatusCode::invalid_handle, "smoke coupling handle is stale");
+    std::uint32_t dense = 0U;
+    if (!(status = impl_->validate_handle(options.body, dense))) return status;
+    if (!finite(options.air_density) || options.air_density < 0.0F ||
+        !finite(options.drag_coefficient) || options.drag_coefficient < 0.0F ||
+        !finite(options.contact_distance) || options.contact_distance < 0.0F)
+        return failure(StatusCode::invalid_argument,
+                       "invalid smoke rigid coupling parameters");
+    for (const auto &existing : impl_->smoke_rigid_couplings)
+        if (existing && existing->alive &&
+            existing->options.smoke == options.smoke &&
+            existing->options.body == options.body)
+            return failure(StatusCode::invalid_argument,
+                           "smoke rigid coupling already exists");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->smoke_rigid_couplings.size() &&
+           impl_->smoke_rigid_couplings[slot] &&
+           impl_->smoke_rigid_couplings[slot]->alive) ++slot;
+    if (slot == impl_->smoke_rigid_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "smoke rigid coupling capacity exhausted");
+    std::unique_ptr<SmokeRigidCouplingSlot> coupling;
+    try { coupling = std::make_unique<SmokeRigidCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rigid coupling allocation failed"); }
+    coupling->generation = impl_->smoke_rigid_couplings[slot]
+        ? impl_->smoke_rigid_couplings[slot]->generation : 1U;
+    coupling->options = options;
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->smoke_rigid_couplings[slot] = std::move(coupling);
+    impl_->smokes[options.smoke.index]->grid.static_metadata_valid = false;
+    ++impl_->revision;
+    return success();
+}
+
+Status World::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) noexcept {
+    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smoke_rigid_couplings.size() ||
+        !impl_->smoke_rigid_couplings[id.index] ||
+        !impl_->smoke_rigid_couplings[id.index]->alive ||
+        impl_->smoke_rigid_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "smoke rigid coupling handle is stale");
+    std::unique_ptr<SmokeRigidCouplingSlot> tombstone;
+    try { tombstone = std::make_unique<SmokeRigidCouplingSlot>(); }
+    catch (...) { return failure(StatusCode::out_of_memory,
+                                "smoke rigid coupling removal failed"); }
+    tombstone->generation = id.generation + 1U;
+    if (tombstone->generation == 0U) tombstone->generation = 1U;
+    const auto smoke_id = impl_->smoke_rigid_couplings[id.index]->options.smoke;
+    impl_->smoke_rigid_couplings[id.index] = std::move(tombstone);
+    impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
 }
@@ -7590,6 +8104,10 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         status = allocate_managed(cloth->fluid_forces, capacity);
         if (!status) return status;
     }
+    if (impl_->options.smoke_cloth_coupling_capacity != 0U) {
+        status = allocate_managed(cloth->smoke_forces, capacity);
+        if (!status) return status;
+    }
     status = allocate_managed(cloth->count, 1U); if (!status) return status;
     for (std::uint32_t index = 0U; index < count; ++index) {
         cloth->positions[index] = options.vertices.data[index];
@@ -7600,6 +8118,7 @@ Status World::add_cloth(ClothOptions options, ClothId &output,
         cloth->soft_body_forces[index] = {};
         if (cloth->rope_forces != nullptr) cloth->rope_forces[index] = {};
         if (cloth->fluid_forces != nullptr) cloth->fluid_forces[index] = {};
+        if (cloth->smoke_forces != nullptr) cloth->smoke_forces[index] = {};
         cloth->inverse_masses[index] = options.inverse_masses.size != 0U
             ? options.inverse_masses.data[index] : 1.0F / options.vertex_mass;
     }
@@ -7691,6 +8210,10 @@ Status World::remove_cloth(ClothId id) noexcept {
         if (coupling && coupling->alive && coupling->options.cloth == id)
             return failure(StatusCode::invalid_argument,
                            "cloth is still referenced by a soft-body coupling");
+    for (const auto &coupling : impl_->smoke_cloth_couplings)
+        if (coupling && coupling->alive && coupling->options.cloth == id)
+            return failure(StatusCode::invalid_argument,
+                           "cloth is still referenced by a smoke coupling");
     cloth.alive = false;
     cloth.release();
     ++cloth.generation;
@@ -7835,7 +8358,8 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::vector<std::vector<DeformableNeighbor>> adjacency;
     std::vector<std::uint32_t> offsets;
     std::vector<DeformableNeighbor> neighbors;
-    std::vector<DeformableNeighbor> neighbor_ell;
+    std::vector<SoftBodyNeighbor> warp_neighbors;
+    std::vector<float> minimum_rest_lengths;
     float minimum_bond_length = FLT_MAX;
     try {
         adjacency.resize(node_count);
@@ -7886,10 +8410,16 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
         if(node_count>=128U && maximum_degree>=64U &&
             maximum_degree<=UINT32_MAX/node_count &&
             ell_count<=2U*neighbors.size() && ell_count<=4'194'304U) {
-            neighbor_ell.resize(ell_count);
-            for(std::uint32_t node=0U;node<node_count;++node)
-                for(std::size_t slot=0U;slot<adjacency[node].size();++slot)
-                    neighbor_ell[slot*node_count+node]=adjacency[node][slot];
+            warp_neighbors.reserve(neighbors.size());
+            for(const DeformableNeighbor neighbor:neighbors)
+                warp_neighbors.push_back({neighbor.index,neighbor.rest_length});
+            minimum_rest_lengths.reserve(node_count);
+            for(const auto &list:adjacency) {
+                float shortest=FLT_MAX;
+                for(const DeformableNeighbor neighbor:list)
+                    shortest=std::min(shortest,neighbor.rest_length);
+                minimum_rest_lengths.push_back(shortest);
+            }
         }
     } catch (...) {
         return failure(StatusCode::out_of_memory,
@@ -7999,12 +8529,12 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     body->node_count = node_count;
     body->bond_count = static_cast<std::uint32_t>(options.bonds.size);
     body->neighbor_count = static_cast<std::uint32_t>(neighbors.size());
-    body->neighbor_ell_count=static_cast<std::uint32_t>(neighbor_ell.size());
     body->surface_vertex_count =
         static_cast<std::uint32_t>(options.surface_vertices.size);
     body->surface_index_count =
         static_cast<std::uint32_t>(options.surface_triangle_indices.size);
     body->node_radius = options.node_radius;
+    body->stretch_compliance = options.stretch_compliance;
     body->velocity_damping = options.velocity_damping;
     body->spring_damping = options.spring_damping;
     body->contact_friction = options.contact_friction;
@@ -8032,7 +8562,9 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     PM_ALLOC_SOFT(bond_active, body->bond_count);
     PM_ALLOC_SOFT(offsets, offsets.size());
     PM_ALLOC_SOFT(neighbors, neighbors.size());
-    if(!neighbor_ell.empty())PM_ALLOC_SOFT(neighbors_ell,neighbor_ell.size());
+    if(!warp_neighbors.empty())PM_ALLOC_SOFT(warp_neighbors,warp_neighbors.size());
+    if(!minimum_rest_lengths.empty())
+        PM_ALLOC_SOFT(minimum_rest_lengths,minimum_rest_lengths.size());
     PM_ALLOC_SOFT(surface_rest_positions, body->surface_vertex_count);
     PM_ALLOC_SOFT(surface_positions, body->surface_vertex_count);
     PM_ALLOC_SOFT(surface_indices, body->surface_index_count);
@@ -8080,8 +8612,11 @@ Status World::add_soft_body(SoftBodyOptions options, SoftBodyId &output,
     std::fill_n(body->bond_active, body->bond_count, std::uint8_t{1U});
     std::copy(offsets.begin(), offsets.end(), body->offsets);
     std::copy(neighbors.begin(), neighbors.end(), body->neighbors);
-    if(!neighbor_ell.empty())
-        std::copy(neighbor_ell.begin(),neighbor_ell.end(),body->neighbors_ell);
+    if(!warp_neighbors.empty())
+        std::copy(warp_neighbors.begin(),warp_neighbors.end(),body->warp_neighbors);
+    if(!minimum_rest_lengths.empty())
+        std::copy(minimum_rest_lengths.begin(),minimum_rest_lengths.end(),
+            body->minimum_rest_lengths);
     std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
                 body->surface_rest_positions);
     std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
@@ -8189,6 +8724,10 @@ Status World::remove_rope(RopeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
                            "rope is still referenced by a fluid coupling");
+    for (const auto &coupling : impl_->smoke_rope_couplings)
+        if (coupling && coupling->alive && coupling->options.rope == id)
+            return failure(StatusCode::invalid_argument,
+                           "rope is still referenced by a smoke coupling");
     for (const auto &coupling : impl_->rope_soft_body_couplings)
         if (coupling && coupling->alive && coupling->options.rope == id)
             return failure(StatusCode::invalid_argument,
@@ -9188,10 +9727,10 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a constraint");
     }
-    for (const auto &smoke : impl_->smokes)
-        if (smoke && smoke->alive && smoke->options.obstacle == body)
+    for (const auto &coupling : impl_->smoke_rigid_couplings)
+        if (coupling && coupling->alive && coupling->options.body == body)
             return failure(StatusCode::invalid_argument,
-                           "rigid body is still referenced by smoke");
+                           "rigid body is still referenced by smoke coupling");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
         if (impl_->paint_fields[index].alive &&
@@ -9262,6 +9801,9 @@ Status World::set_rigid_body_state(RigidBodyId body,
     impl_->states[1][dense] = state;
     impl_->accumulators[dense] = {};
     impl_->targets[dense] = {};
+    for (auto &smoke : impl_->smokes)
+        if (smoke && smoke->alive)
+            smoke->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
 }
@@ -9634,7 +10176,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
         }
         for (const auto &smoke : impl_->smokes)
-            if (smoke && smoke->alive) maximum_stages += 2U;
+            if (smoke && smoke->alive) maximum_stages += 3U;
         for (const auto &cloth : impl_->cloths) {
             if (cloth && cloth->alive)
                 maximum_stages += static_cast<std::size_t>(options.substeps) *
@@ -9687,6 +10229,331 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         error = cudaMemcpyAsync(coupling->previous_surface, body.surface_positions,
             body.surface_vertex_count * sizeof(Vec3), cudaMemcpyDeviceToDevice, stream);
         if (error != cudaSuccess) return cuda_failure(error, "previous fluid soft-body skin copy failed");
+    }
+    for (auto &owner : impl_->smokes) {
+        if (!owner || !owner->alive || owner->count == 0U ||
+            owner->grid.resolution != 0U) continue;
+        auto &smoke = *owner;
+        smoke_emit_cells<<<(smoke.options.capacity + block_size - 1U) /
+            block_size, block_size, 0, stream>>>(smoke.positions, smoke.ages,
+            smoke.count, smoke.options, smoke.keys[0], smoke.indices[0]);
+        error = cub::DeviceRadixSort::SortPairs(
+            smoke.sort_workspace, smoke.sort_workspace_size,
+            smoke.keys[0], smoke.keys[1], smoke.indices[0], smoke.indices[1],
+            smoke.options.capacity, 0, 64, stream);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "smoke neighbor index failed");
+        smoke.index_dirty = false;
+    }
+    // The Eulerian air step precedes deformable integration, so every
+    // coupled surface reads the same projected field for this frame.
+    for (auto &owner : impl_->smokes) {
+        if (!owner || !owner->alive || owner->grid.resolution == 0U) continue;
+        auto &smoke = *owner;
+        auto &grid = smoke.grid;
+        const auto blocks = (grid.cell_count + 255U) / 256U;
+        SmokeGridField field{grid.resolution, grid.height,
+            grid.minimum, grid.spacing, grid.velocity, grid.density,
+            grid.pressure[0]};
+        for (int axis = 0; axis < 3; ++axis)
+            field.face[axis] = grid.face_velocity[axis][0];
+        field.vorticity = grid.vorticity;
+        field.strain = grid.strain;
+        const auto largest = std::max({grid.cell_count, grid.face_count[0],
+            grid.face_count[1], grid.face_count[2]});
+        smoke_grid_clear_obstacles<<<(largest + 255U) / 256U,
+            256U, 0, stream>>>(grid.solid, grid.cell_count,
+            grid.face_open[0], grid.face_open[1], grid.face_open[2],
+            grid.face_wall_velocity[0], grid.face_wall_velocity[1],
+            grid.face_wall_velocity[2],
+            grid.face_count[0],
+            grid.face_count[1], grid.face_count[2]);
+        cudaMemsetAsync(grid.density_accumulator,0,
+            grid.cell_count*sizeof(unsigned long long),stream);
+        cudaMemsetAsync(grid.temperature_accumulator,0,
+            grid.cell_count*sizeof(unsigned long long),stream);
+        if (smoke.count != 0U)
+            smoke_grid_splat_particles<<<
+                (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                smoke.positions, smoke.ages, smoke.thermal_lift,
+                smoke.count, smoke.options, field,grid.density_accumulator,
+                grid.temperature_accumulator);
+        smoke_grid_resolve_particle_fields<<<blocks,256U,0,stream>>>(
+            grid.density_accumulator,grid.temperature_accumulator,
+            grid.density,grid.temperature,grid.cell_count);
+        bool moving_triangle_boundary = false;
+        for (const auto &coupling : impl_->smoke_rigid_couplings) {
+            if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                coupling->options.smoke.index >= impl_->smokes.size() ||
+                impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                continue;
+            std::uint32_t body{};
+            status = impl_->validate_handle(coupling->options.body, body);
+            if (!status) return status;
+            moving_triangle_boundary |=
+                impl_->parameters[body].motion != MotionType::static_body;
+        }
+        for (const auto &coupling : impl_->smoke_soft_body_couplings)
+            moving_triangle_boundary |= coupling && coupling->alive &&
+                coupling->options.enabled &&
+                coupling->options.smoke.index < impl_->smokes.size() &&
+                impl_->smokes[coupling->options.smoke.index].get() == &smoke;
+        for (const auto &coupling : impl_->smoke_cloth_couplings)
+            moving_triangle_boundary |= coupling && coupling->alive &&
+                coupling->options.enabled &&
+                coupling->options.smoke.index < impl_->smokes.size() &&
+                impl_->smokes[coupling->options.smoke.index].get() == &smoke;
+        const int raster_passes = moving_triangle_boundary ||
+            !grid.static_metadata_valid ? 2 : 1;
+        for (const auto &coupling : impl_->smoke_rigid_couplings) {
+            if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                coupling->options.smoke.index >= impl_->smokes.size() ||
+                impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                continue;
+            std::uint32_t body{};
+            status = impl_->validate_handle(coupling->options.body, body);
+            if (!status) return status;
+            const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
+            const auto triangles = mesh.index_count / 3U;
+            for (int pass = 0; pass < raster_passes; ++pass)
+                smoke_grid_raster_rigid<<<(triangles + 127U) / 128U,
+                    128U, 0, stream>>>(mesh,
+                    impl_->states[impl_->current_state], body, field, grid.solid,
+                    grid.face_open[0], grid.face_open[1], grid.face_open[2],
+                    grid.face_wall_velocity[0], grid.face_wall_velocity[1],
+                    grid.face_wall_velocity[2], grid.face_normal[0],
+                    grid.face_normal[1], grid.face_normal[2],
+                    grid.face_nearest_triangle[0],
+                    grid.face_nearest_triangle[1],
+                    grid.face_nearest_triangle[2],pass!=0);
+        }
+        for (const auto &coupling : impl_->smoke_soft_body_couplings) {
+            if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                coupling->options.smoke.index >= impl_->smokes.size() ||
+                impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                continue;
+            const auto &body = *impl_->soft_bodies[
+                coupling->options.soft_body.index];
+            const auto triangles = body.surface_index_count / 3U;
+            for (int pass = 0; pass < raster_passes; ++pass)
+                smoke_grid_raster_soft<<<(triangles + 127U) / 128U,
+                    128U, 0, stream>>>(body.surface_positions,
+                    body.surface_bindings, body.velocities,
+                    body.surface_indices, body.surface_index_count,
+                    field, grid.solid, grid.face_open[0], grid.face_open[1],
+                    grid.face_open[2], grid.face_wall_velocity[0],
+                    grid.face_wall_velocity[1], grid.face_wall_velocity[2],
+                    grid.face_normal[0], grid.face_normal[1],
+                    grid.face_normal[2], grid.face_nearest_triangle[0],
+                    grid.face_nearest_triangle[1],
+                    grid.face_nearest_triangle[2],pass!=0);
+        }
+        for (const auto &coupling : impl_->smoke_cloth_couplings) {
+            if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                coupling->options.smoke.index >= impl_->smokes.size() ||
+                impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                continue;
+            const auto &cloth = *impl_->cloths[coupling->options.cloth.index];
+            const auto triangles = cloth.index_count / 3U;
+            for (int pass = 0; pass < raster_passes; ++pass)
+                smoke_grid_raster_deformable<<<(triangles + 127U) / 128U,
+                    128U, 0, stream>>>(cloth.positions, cloth.velocities,
+                    cloth.indices, cloth.index_count, field, grid.solid,
+                    grid.face_open[0], grid.face_open[1], grid.face_open[2],
+                    grid.face_wall_velocity[0], grid.face_wall_velocity[1],
+                    grid.face_wall_velocity[2], grid.face_normal[0],
+                    grid.face_normal[1], grid.face_normal[2],
+                    grid.face_nearest_triangle[0],
+                    grid.face_nearest_triangle[1],
+                    grid.face_nearest_triangle[2],pass!=0);
+        }
+        grid.static_metadata_valid = !moving_triangle_boundary;
+
+        // Fixed inlet and far-field normal velocities are zero-aperture
+        // pressure boundaries. Downstream faces stay open with p=0 outside.
+        for (int axis = 0; axis < 3; ++axis)
+            smoke_grid_mark_domain_boundaries<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, field, grid.face_open[axis],
+                grid.face_wall_velocity[axis], smoke.options);
+
+        // Coarsen the cut-face apertures once; all pressure V-cycles reuse
+        // the same geometry for this frame.
+        int fine_n = int(grid.resolution), fine_h = int(grid.height);
+        const float *fine_open[3] = {grid.face_open[0], grid.face_open[1],
+                                     grid.face_open[2]};
+        for (auto &level : grid.coarse) {
+            for (int axis = 0; axis < 3; ++axis) {
+                const auto count = smoke_grid_face_count(axis,
+                    int(level.n), int(level.height));
+                smoke_grid_restrict_open<<<(count + 255U) / 256U,
+                    256U, 0, stream>>>(axis, fine_open[axis], fine_n, fine_h,
+                    level.open[axis], int(level.n), int(level.height));
+                fine_open[axis] = level.open[axis];
+            }
+            fine_n = int(level.n); fine_h = int(level.height);
+        }
+
+        // RK2 MacCormack self-advection on the staggered faces.
+        for (int axis = 0; axis < 3; ++axis)
+            smoke_grid_advect_face<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, field, grid.face_velocity[axis][0],
+                grid.face_velocity[axis][1], options.timestep);
+        SmokeGridField predicted = field;
+        for (int axis = 0; axis < 3; ++axis)
+            predicted.face[axis] = grid.face_velocity[axis][1];
+        for (int axis = 0; axis < 3; ++axis)
+            smoke_grid_advect_face<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, predicted, grid.face_velocity[axis][1],
+                grid.face_reverse[axis], -options.timestep);
+        for (int axis = 0; axis < 3; ++axis)
+            smoke_grid_correct_face<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, field, grid.face_velocity[axis][0],
+                grid.face_velocity[axis][1], grid.face_reverse[axis],
+                grid.face_velocity[axis][1], options.timestep);
+
+        smoke_grid_cell_diagnostics<<<blocks, 256U, 0, stream>>>(
+            predicted, nullptr, grid.vorticity, grid.strain, nullptr);
+        smoke_grid_subgrid_force<<<blocks, 256U, 0, stream>>>(predicted,
+            grid.vorticity, grid.subgrid_force,
+            smoke.options.vorticity_confinement);
+        for (int axis = 0; axis < 3; ++axis)
+            smoke_grid_apply_face_forces<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, predicted, grid.face_velocity[axis][1],
+                grid.face_velocity[axis][0], grid.face_open[axis],
+                grid.face_wall_velocity[axis], grid.strain,
+                grid.subgrid_force, grid.temperature, smoke.options,
+                options.timestep, options.gravity);
+        SmokeGridField forced = field;
+        for (int axis = 0; axis < 3; ++axis) {
+            forced.face[axis] = grid.face_velocity[axis][0];
+            smoke_grid_apply_face_boundaries<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, forced, grid.face_velocity[axis][0],
+                grid.face_open[axis], grid.face_wall_velocity[axis],
+                smoke.options);
+        }
+
+        cudaMemsetAsync(grid.rhs_max, 0, sizeof(float), stream);
+        cudaMemsetAsync(grid.pressure_converged, 0,
+            sizeof(unsigned int), stream);
+        smoke_grid_divergence<<<blocks, 256U, 0, stream>>>(forced,
+            grid.divergence, grid.rhs_max, options.timestep);
+
+        int level_n[4] = {int(grid.resolution), int(grid.coarse[0].n),
+                          int(grid.coarse[1].n), int(grid.coarse[2].n)};
+        int level_h[4] = {int(grid.height), int(grid.coarse[0].height),
+                          int(grid.coarse[1].height), int(grid.coarse[2].height)};
+        float level_spacing[4] = {grid.spacing, grid.spacing*2.0F,
+                                  grid.spacing*4.0F, grid.spacing*8.0F};
+        float *level_pressure[4][2] = {
+            {grid.pressure[0], grid.pressure[1]},
+            {grid.coarse[0].pressure[0], grid.coarse[0].pressure[1]},
+            {grid.coarse[1].pressure[0], grid.coarse[1].pressure[1]},
+            {grid.coarse[2].pressure[0], grid.coarse[2].pressure[1]}};
+        float *level_rhs[4] = {grid.divergence, grid.coarse[0].rhs,
+            grid.coarse[1].rhs, grid.coarse[2].rhs};
+        float *level_residual[4] = {grid.residual, grid.coarse[0].residual,
+            grid.coarse[1].residual, grid.coarse[2].residual};
+        float *level_open[4][3] = {
+            {grid.face_open[0],grid.face_open[1],grid.face_open[2]},
+            {grid.coarse[0].open[0],grid.coarse[0].open[1],grid.coarse[0].open[2]},
+            {grid.coarse[1].open[0],grid.coarse[1].open[1],grid.coarse[1].open[2]},
+            {grid.coarse[2].open[0],grid.coarse[2].open[1],grid.coarse[2].open[2]}};
+        const auto smooth = [&](int level, int iterations) {
+            const auto count = std::uint32_t(level_n[level] * level_h[level] *
+                                             level_n[level]);
+            for (int iteration = 0; iteration < iterations; ++iteration) {
+                smoke_grid_pressure_smooth<<<(count + 255U) / 256U,
+                    256U, 0, stream>>>(level_n[level], level_h[level],
+                    level_spacing[level], level_rhs[level],
+                    level_pressure[level][0], level_pressure[level][1],
+                    level_open[level][0], level_open[level][1],
+                    level_open[level][2], grid.pressure_converged);
+                std::swap(level_pressure[level][0], level_pressure[level][1]);
+            }
+        };
+        // One V-cycle costs about 4.6 fine-grid Jacobi sweeps after accounting
+        // for the geometrically smaller levels. Keep the authored value as a
+        // fine-grid-equivalent work ceiling and stop earlier on the GPU when
+        // the relative residual reaches the requested tolerance.
+        const auto cycles = std::max(1U,
+            (smoke.options.grid_pressure_iterations + 4U) / 5U);
+        for (std::uint32_t cycle = 0U; cycle < cycles; ++cycle) {
+            for (int level = 0; level < 3; ++level) {
+                smooth(level, 2);
+                const auto count = std::uint32_t(level_n[level] *
+                    level_h[level] * level_n[level]);
+                smoke_grid_pressure_residual<<<(count + 255U) / 256U,
+                    256U, 0, stream>>>(level_n[level], level_h[level],
+                    level_spacing[level], level_rhs[level],
+                    level_pressure[level][0], level_residual[level],
+                    level_open[level][0], level_open[level][1],
+                    level_open[level][2], nullptr, grid.pressure_converged);
+                const auto coarse_count = std::uint32_t(level_n[level+1] *
+                    level_h[level+1] * level_n[level+1]);
+                smoke_grid_restrict_residual<<<
+                    (coarse_count + 255U) / 256U, 256U, 0, stream>>>(
+                    level_residual[level], level_n[level], level_h[level],
+                    level_rhs[level+1], level_n[level+1], level_h[level+1]);
+                cudaMemsetAsync(level_pressure[level+1][0], 0,
+                    coarse_count * sizeof(float), stream);
+                cudaMemsetAsync(level_pressure[level+1][1], 0,
+                    coarse_count * sizeof(float), stream);
+            }
+            smooth(3, 12);
+            for (int level = 2; level >= 0; --level) {
+                const auto fine_count = std::uint32_t(level_n[level] *
+                    level_h[level] * level_n[level]);
+                smoke_grid_prolong_add<<<(fine_count + 255U) / 256U,
+                    256U, 0, stream>>>(level_pressure[level+1][0],
+                    level_n[level+1], level_h[level+1],
+                    level_pressure[level][0], level_n[level], level_h[level]);
+                smooth(level, 2);
+            }
+            smoke_grid_reset_residual<<<1U,1U,0,stream>>>(
+                grid.residual_max,grid.pressure_converged);
+            smoke_grid_pressure_residual<<<blocks, 256U, 0, stream>>>(
+                level_n[0], level_h[0], level_spacing[0], level_rhs[0],
+                level_pressure[0][0], level_residual[0], level_open[0][0],
+                level_open[0][1], level_open[0][2], grid.residual_max,
+                grid.pressure_converged);
+            smoke_grid_compare_residual<<<1U,1U,0,stream>>>(grid.rhs_max,
+                grid.residual_max, smoke.options.grid_pressure_tolerance,
+                grid.pressure_converged);
+        }
+        grid.pressure[0] = level_pressure[0][0];
+        grid.pressure[1] = level_pressure[0][1];
+        for (int level = 0; level < 3; ++level) {
+            grid.coarse[level].pressure[0] = level_pressure[level+1][0];
+            grid.coarse[level].pressure[1] = level_pressure[level+1][1];
+        }
+        for (int axis = 0; axis < 3; ++axis) {
+            smoke_grid_project_face<<<
+                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
+                axis, forced, grid.pressure[0], grid.face_velocity[axis][0],
+                grid.face_open[axis], grid.face_wall_velocity[axis],
+                options.timestep);
+        }
+        SmokeGridField projected = forced;
+        projected.pressure = grid.pressure[0];
+        projected.vorticity = grid.vorticity;
+        smoke_grid_cell_diagnostics<<<blocks, 256U, 0, stream>>>(projected,
+            grid.velocity, grid.vorticity, grid.strain, grid.divergence);
+        error = cudaPeekAtLastError();
+        if (error != cudaSuccess)
+            return cuda_failure(error, "smoke grid step failed");
+    }
+    if (std::any_of(impl_->smokes.begin(), impl_->smokes.end(),
+        [](const auto &smoke) {
+            return smoke && smoke->alive && smoke->grid.resolution != 0U;
+        })) {
+        status = record_timing_stage(TimingStage::smoke_grid);
+        if (!status) return status;
     }
     if (debug_enabled && impl_->rigid_body_count != 0U) {
         capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
@@ -9759,6 +10626,53 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             ClothStorage &cloth = *cloth_pointer;
             const std::uint32_t blocks =
                 (cloth.vertex_count + block_size - 1U) / block_size;
+            for (const auto &owner : impl_->smoke_cloth_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    owner->options.cloth.index != cloth_index ||
+                    owner->options.wind_drag == 0.0F) continue;
+                const auto &smoke = *impl_->smokes[owner->options.smoke.index];
+                if (smoke.count == 0U) continue;
+                if (smoke.grid.resolution != 0U) {
+                    error = cudaMemsetAsync(cloth.smoke_forces, 0,
+                        cloth.vertex_count * sizeof(Vec3), stream);
+                    if (error != cudaSuccess)
+                        return cuda_failure(error,
+                            "cloth smoke force clear failed");
+                    const auto triangles = cloth.index_count / 3U;
+                    smoke_grid_cloth_force<<<
+                        (triangles + block_size - 1U) / block_size,
+                        block_size, 0, stream>>>(cloth.positions,
+                        cloth.velocities, cloth.inverse_masses, cloth.indices,
+                        cloth.index_count,
+                        {smoke.grid.resolution, smoke.grid.height,
+                         smoke.grid.minimum, smoke.grid.spacing,
+                         smoke.grid.velocity, smoke.grid.density,
+                         smoke.grid.pressure[0],
+                         {smoke.grid.face_velocity[0][0],
+                          smoke.grid.face_velocity[1][0],
+                          smoke.grid.face_velocity[2][0]},
+                        smoke.grid.vorticity, smoke.grid.strain},
+                        owner->options.wind_drag,
+                        smoke.options.rest_number_density,
+                        smoke.options.grid_kinematic_viscosity,
+                        smoke.options.grid_les_coefficient,
+                        cloth.smoke_forces);
+                    smoke_grid_apply_cloth_force<<<blocks, block_size, 0,
+                        stream>>>(cloth.velocities, cloth.inverse_masses,
+                        cloth.smoke_forces, cloth.vertex_count,
+                        owner->options.maximum_wind_acceleration,
+                        substep_timestep);
+                } else {
+                    smoke_cloth_wind<<<blocks, block_size, 0, stream>>>(
+                        cloth.positions, cloth.velocities, cloth.inverse_masses,
+                        cloth.vertex_count, smoke.options,
+                        smoke.positions, smoke.velocities,
+                        smoke.keys[1], smoke.indices[1], {},
+                        owner->options.wind_drag,
+                        owner->options.maximum_wind_acceleration,
+                        substep_timestep);
+                }
+            }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 cloth.positions, cloth.previous, cloth.velocities,
                 cloth.inverse_masses, cloth.vertex_count, options.gravity,
@@ -9883,22 +10797,57 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             SoftBodyStorage &body = *body_pointer;
             const std::uint32_t blocks =
                 (body.node_count + block_size - 1U) / block_size;
+            bool grid_snapshot_ready = false;
             for (const auto &owner : impl_->smoke_soft_body_couplings) {
                 if (!owner || !owner->alive || !owner->options.enabled ||
                     owner->options.soft_body.index >= impl_->soft_bodies.size() ||
                     impl_->soft_bodies[owner->options.soft_body.index].get() != &body ||
                     owner->options.wind_drag == 0.0F) continue;
                 const auto &smoke = *impl_->smokes[owner->options.smoke.index];
-                std::uint32_t obstacle = 0U;
-                Status wind_status = impl_->validate_handle(
-                    smoke.options.obstacle, obstacle);
-                if (!wind_status) return wind_status;
-                smoke_soft_body_wind<<<blocks, block_size, 0, stream>>>(
-                    body.positions, body.velocities, body.inverse_masses,
-                    body.node_count, smoke.options,
-                    impl_->states[impl_->current_state], obstacle,
-                    smoke.time, owner->options.wind_drag,
-                    substep_timestep, body.maximum_speed);
+                if (smoke.count == 0U) continue;
+                if (smoke.grid.resolution != 0U) {
+                    if (!grid_snapshot_ready) {
+                        const cudaError_t copy_error = cudaMemcpyAsync(
+                            body.velocity_scratch, body.velocities,
+                            body.node_count * sizeof(Vec3),
+                            cudaMemcpyDeviceToDevice, stream);
+                        if (copy_error != cudaSuccess)
+                            return cuda_failure(copy_error,
+                                "soft-body air velocity snapshot failed");
+                        grid_snapshot_ready = true;
+                    }
+                    const auto triangles = body.surface_index_count / 3U;
+                    smoke_grid_soft_body_force<<<
+                        (triangles + block_size - 1U) / block_size,
+                        block_size, 0, stream>>>(body.surface_positions,
+                        body.surface_indices, body.surface_index_count,
+                        body.surface_bindings, body.velocity_scratch,
+                        body.velocities,
+                        body.inverse_masses,
+                        {smoke.grid.resolution, smoke.grid.height,
+                         smoke.grid.minimum,
+                         smoke.grid.spacing, smoke.grid.velocity,
+                         smoke.grid.density, smoke.grid.pressure[0],
+                         {smoke.grid.face_velocity[0][0],
+                          smoke.grid.face_velocity[1][0],
+                          smoke.grid.face_velocity[2][0]},
+                         smoke.grid.vorticity, smoke.grid.strain},
+                        owner->options.wind_drag,
+                        smoke.options.rest_number_density,
+                        smoke.options.grid_kinematic_viscosity,
+                        smoke.options.grid_les_coefficient,
+                        owner->options.maximum_wind_acceleration,
+                        substep_timestep);
+                } else {
+                    smoke_soft_body_wind<<<blocks, block_size, 0, stream>>>(
+                        body.positions, body.velocities, body.inverse_masses,
+                        body.node_count, smoke.options,
+                        smoke.positions, smoke.velocities,
+                        smoke.keys[1], smoke.indices[1], {},
+                        owner->options.wind_drag,
+                        owner->options.maximum_wind_acceleration,
+                        substep_timestep, body.maximum_speed);
+                }
             }
             deformable_predict<<<blocks, block_size, 0, stream>>>(
                 body.positions, body.previous, body.velocities,
@@ -10001,13 +10950,19 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (!body_status) return body_status;
             for (std::uint32_t iteration = 0U;
                  iteration < body.solver_iterations; ++iteration) {
-                if(body.neighbors_ell)
-                    deformable_project_links_ell<<<blocks, block_size, 0, stream>>>(
+                if(body.warp_neighbors) {
+                    constexpr std::uint32_t groups_per_block = block_size / 16U;
+                    const std::uint32_t group_blocks =
+                        (body.node_count + groups_per_block - 1U) /
+                        groups_per_block;
+                    deformable_project_links_warp<<<
+                        group_blocks, block_size, 0, stream>>>(
                         body.positions, body.scratch, body.inverse_masses,
-                        body.offsets, body.neighbors_ell, body.bond_active,
-                        body.node_count, substep_timestep,
+                        body.offsets, body.warp_neighbors,
+                        body.minimum_rest_lengths, body.node_count,
+                        body.stretch_compliance, substep_timestep,
                         body.maximum_projection_fraction);
-                else
+                } else
                     deformable_project_links<<<blocks, block_size, 0, stream>>>(
                         body.positions, body.scratch, body.inverse_masses,
                         body.offsets, body.neighbors, body.bond_active,
@@ -10043,18 +10998,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 body.inverse_masses, body.node_count,
                 1.0F / substep_timestep,
                 body.constraint_velocity_response, body.maximum_speed);
-            if(body.neighbors_ell)
-                soft_body_damp_springs_ell<<<blocks, block_size, 0, stream>>>(
+            if (body.warp_neighbors) {
+                constexpr std::uint32_t groups_per_block = block_size / 16U;
+                const std::uint32_t group_blocks =
+                    (body.node_count + groups_per_block - 1U) /
+                    groups_per_block;
+                soft_body_damp_springs_warp<<<
+                    group_blocks, block_size, 0, stream>>>(
                     body.positions, body.velocities, body.velocity_scratch,
-                    body.inverse_masses, body.offsets, body.neighbors_ell,
-                    body.bond_active, body.node_count, body.spring_damping,
+                    body.inverse_masses, body.offsets, body.warp_neighbors,
+                    body.node_count, body.spring_damping,
                     body.maximum_speed);
-            else
+            } else {
                 soft_body_damp_springs<<<blocks, block_size, 0, stream>>>(
                     body.positions, body.velocities, body.velocity_scratch,
                     body.inverse_masses, body.offsets, body.neighbors,
                     body.bond_active, body.node_count, body.spring_damping,
                     body.maximum_speed);
+            }
             std::swap(body.velocities, body.velocity_scratch);
             body_status = finish_contact_pass();
             if (!body_status) return body_status;
@@ -10361,6 +11322,29 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if(rope->data.options.last.enabled) {
                 auto status=impl_->validate_handle(rope->data.options.last.body,dense);
                 if(!status)return status;last=int(dense);
+            }
+            for (const auto &owner : impl_->smoke_rope_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled ||
+                    !(owner->options.rope == RopeId{rope_index, rope->generation}) ||
+                    owner->options.wind_drag == 0.0F) continue;
+                const auto &smoke = *impl_->smokes[owner->options.smoke.index];
+                if (smoke.count == 0U) continue;
+                smoke_rope_wind<<<
+                    (rope->data.count + block_size - 1U) / block_size,
+                    block_size, 0, stream>>>(rope->data, smoke.options,
+                    smoke.positions, smoke.velocities,
+                    smoke.keys[1], smoke.indices[1],
+                    {smoke.grid.resolution, smoke.grid.height,
+                     smoke.grid.minimum, smoke.grid.spacing,
+                     smoke.grid.velocity, smoke.grid.density,
+                     smoke.grid.pressure[0],
+                     {smoke.grid.face_velocity[0][0],
+                      smoke.grid.face_velocity[1][0],
+                      smoke.grid.face_velocity[2][0]},
+                     smoke.grid.vorticity, smoke.grid.strain},
+                    owner->options.wind_drag,
+                    owner->options.maximum_wind_acceleration,
+                    substep_timestep, first, last);
             }
             rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
                 impl_->parameters,impl_->states[impl_->current_state],previous_states,
@@ -11220,18 +12204,52 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         auto &smoke = *impl_->smokes[coupling.options.smoke.index];
         const auto live = *fluid.count;
         if (live == 0U) continue;
-        std::uint32_t obstacle = 0U;
-        status = impl_->validate_handle(smoke.options.obstacle, obstacle);
-        if (!status) return status;
+        if (smoke.grid.resolution == 0U && smoke.count != 0U &&
+            smoke.index_dirty) {
+            smoke_emit_cells<<<(smoke.options.capacity + block_size - 1U) /
+                block_size, block_size, 0, stream>>>(
+                smoke.positions, smoke.ages, smoke.count, smoke.options,
+                smoke.keys[0], smoke.indices[0]);
+            error = cub::DeviceRadixSort::SortPairs(
+                smoke.sort_workspace, smoke.sort_workspace_size,
+                smoke.keys[0], smoke.keys[1], smoke.indices[0],
+                smoke.indices[1], smoke.options.capacity, 0, 64, stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error, "smoke phase-transfer index failed");
+            smoke.index_dirty = false;
+        }
         *coupling.converted = 0U;
         const auto blocks = (fluid.options.capacity + block_size - 1U) / block_size;
+        if (smoke.count != 0U && coupling.options.wind_drag > 0.0F) {
+            if (smoke.grid.resolution != 0U)
+                fluid_smoke_grid_drag<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.count,
+                    coupling.options, smoke.options,
+                    {smoke.grid.resolution, smoke.grid.height,
+                     smoke.grid.minimum, smoke.grid.spacing,
+                     smoke.grid.velocity, smoke.grid.density,
+                     smoke.grid.pressure[0],
+                     {smoke.grid.face_velocity[0][0],
+                      smoke.grid.face_velocity[1][0],
+                      smoke.grid.face_velocity[2][0]},
+                     smoke.grid.vorticity, smoke.grid.strain},
+                    options.timestep);
+            else
+                fluid_smoke_drag<<<blocks, block_size, 0, stream>>>(
+                    fluid.positions, fluid.velocities, fluid.count,
+                    coupling.options, smoke.options, smoke.positions,
+                    smoke.velocities, smoke.keys[1], smoke.indices[1],
+                    options.timestep);
+        }
         fluid_smoke_exchange<<<blocks, block_size, 0, stream>>>(
             fluid.positions, fluid.velocities, fluid.temperatures,
             fluid.count, fluid.options.particle_radius, coupling.options,
-            smoke.options, impl_->states[impl_->current_state][obstacle].position,
-            smoke.time, smoke.count, smoke.positions, smoke.velocities,
-            smoke.ages, smoke.thermal_lift, smoke.next_slot,
-            coupling.converted, fluid.keep, options.timestep);
+            smoke.options, smoke.positions, smoke.velocities,
+            smoke.ages, smoke.thermal_lift,
+            smoke.number_densities, smoke.pressures, smoke.vorticities,
+            smoke.next_slot,
+            coupling.converted, fluid.keep, options.timestep,
+            options.gravity);
         error = cudaGetLastError();
         if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
         if (error != cudaSuccess)
@@ -11245,6 +12263,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         smoke.next_slot = (smoke.next_slot + converted) % smoke.options.capacity;
         smoke.count = std::min(smoke.options.capacity, smoke.count + converted);
         smoke.emitted += converted;
+        smoke.index_dirty = true;
         impl_->boiled_particle_count += converted;
         fluid_clear_inactive_keep<<<blocks, block_size, 0, stream>>>(
             fluid.keep, fluid.count, fluid.options.capacity);
@@ -11273,16 +12292,57 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     for (auto &owner : impl_->smokes) {
         if (!owner || !owner->alive) continue;
         auto &smoke = *owner;
-        std::uint32_t obstacle = 0U;
-        status = impl_->validate_handle(smoke.options.obstacle, obstacle);
-        if (!status) return status;
         if (smoke.count != 0U) {
-            smoke_advect<<<(smoke.count + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages,
-                smoke.thermal_lift, smoke.count,
-                smoke.options, impl_->states[impl_->current_state],
-                impl_->fluid_previous_states, any_moving_body, obstacle,
-                smoke.time, options.timestep);
+            const auto blocks = (smoke.count + 127U) / 128U;
+            if (smoke.grid.resolution != 0U) {
+                smoke_grid_trace<<<blocks, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages, smoke.thermal_lift,
+                    smoke.number_densities, smoke.pressures,
+                    smoke.vorticities, smoke.count, smoke.options,
+                    {smoke.grid.resolution, smoke.grid.height,
+                     smoke.grid.minimum, smoke.grid.spacing,
+                     smoke.grid.velocity, smoke.grid.density,
+                     smoke.grid.pressure[0],
+                     {smoke.grid.face_velocity[0][0],
+                      smoke.grid.face_velocity[1][0],
+                      smoke.grid.face_velocity[2][0]},
+                     smoke.grid.vorticity, smoke.grid.strain},
+                    options.timestep, options.gravity);
+            } else {
+                smoke_emit_cells<<<(smoke.options.capacity + 127U) / 128U,
+                    128U, 0, stream>>>(smoke.positions, smoke.ages, smoke.count,
+                    smoke.options, smoke.keys[0], smoke.indices[0]);
+                error = cub::DeviceRadixSort::SortPairs(
+                    smoke.sort_workspace, smoke.sort_workspace_size,
+                    smoke.keys[0], smoke.keys[1], smoke.indices[0],
+                    smoke.indices[1], smoke.options.capacity, 0, 64, stream);
+                if (error != cudaSuccess)
+                    return cuda_failure(error,
+                        "smoke pressure neighbor sort failed");
+                smoke.index_dirty = false;
+                smoke_density_pressure<<<blocks, 128U, 0, stream>>>(
+                    smoke.positions, smoke.ages, smoke.count, smoke.options,
+                    smoke.keys[1], smoke.indices[1], smoke.number_densities,
+                    smoke.pressures, options.timestep);
+                smoke_compute_vorticity<<<blocks, 128U, 0, stream>>>(
+                    smoke.positions, smoke.velocities, smoke.ages, smoke.count,
+                    smoke.options, smoke.keys[1], smoke.indices[1],
+                    smoke.number_densities, smoke.vorticities,
+                    smoke.vorticity_magnitudes);
+                smoke_pair_forces<<<blocks, 128U, 0, stream>>>(
+                    smoke.positions, smoke.velocities, smoke.ages, smoke.count,
+                    smoke.options, smoke.keys[1], smoke.indices[1],
+                    smoke.number_densities, smoke.pressures,
+                    smoke.vorticities, smoke.vorticity_magnitudes,
+                    smoke.accelerations);
+                smoke_advect<<<blocks, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages,
+                    smoke.thermal_lift, smoke.count,
+                    smoke.options, smoke.accelerations,
+                    options.timestep, options.gravity);
+            }
             for (const auto &coupling : impl_->smoke_soft_body_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
                     coupling->options.smoke.index >= impl_->smokes.size() ||
@@ -11293,15 +12353,139 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius + body.node_radius;
-                smoke_soft_body_bounds<<<1U, 1U, 0, stream>>>(
-                    body.surface_positions, body.surface_vertex_count,
+                    smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                        body.surface_positions, body.surface_vertex_count,
+                        coupling->minimum, coupling->maximum);
+                    smoke_soft_body_contact<<<
+                        (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                        smoke.positions, smoke.previous_positions,
+                        smoke.velocities, smoke.ages,
+                        smoke.count, smoke.options.lifetime,
+                        body.surface_positions, body.surface_bindings,
+                        body.surface_indices, body.surface_index_count,
+                        body.velocities, coupling->minimum,
+                        coupling->maximum, clearance,
+                        {smoke.grid.resolution, smoke.grid.height,
+                         smoke.grid.minimum, smoke.grid.spacing,
+                         smoke.grid.velocity, smoke.grid.density,
+                         smoke.grid.pressure[0],
+                         {smoke.grid.face_velocity[0][0],
+                          smoke.grid.face_velocity[1][0],
+                          smoke.grid.face_velocity[2][0]},
+                         smoke.grid.vorticity, smoke.grid.strain});
+            }
+            for (const auto &coupling : impl_->smoke_cloth_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                const auto &cloth = *impl_->cloths[coupling->options.cloth.index];
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius + cloth.thickness;
+                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                    cloth.positions, cloth.vertex_count,
                     coupling->minimum, coupling->maximum);
-                smoke_soft_body_contact<<<
+                smoke_cloth_contact<<<
                     (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
-                    smoke.positions, smoke.velocities, smoke.ages,
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages, smoke.pressures,
                     smoke.count, smoke.options.lifetime,
-                    body.surface_positions, body.surface_bindings,
-                    body.surface_vertex_count, body.velocities,
+                    cloth.positions, cloth.velocities,
+                    cloth.indices, cloth.index_count,
+                    coupling->minimum, coupling->maximum, clearance,
+                    smoke.options.pressure_stiffness,
+                    smoke.options.maximum_speed,
+                    {smoke.grid.resolution, smoke.grid.height,
+                     smoke.grid.minimum, smoke.grid.spacing,
+                     smoke.grid.velocity, smoke.grid.density,
+                     smoke.grid.pressure[0],
+                     {smoke.grid.face_velocity[0][0],
+                      smoke.grid.face_velocity[1][0],
+                      smoke.grid.face_velocity[2][0]},
+                     smoke.grid.vorticity, smoke.grid.strain});
+            }
+            for (const auto &coupling : impl_->smoke_rigid_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                std::uint32_t body = 0U;
+                status = impl_->validate_handle(coupling->options.body, body);
+                if (!status) return status;
+                const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius;
+                if (smoke.grid.resolution != 0U &&
+                    coupling->options.air_density > 0.0F)
+                    smoke_grid_rigid_force<<<1U, 128U, 0, stream>>>(mesh,
+                        body, impl_->parameters,
+                        impl_->states[impl_->current_state],
+                        {smoke.grid.resolution, smoke.grid.height,
+                         smoke.grid.minimum, smoke.grid.spacing,
+                         smoke.grid.velocity, smoke.grid.density,
+                         smoke.grid.pressure[0],
+                         {smoke.grid.face_velocity[0][0],
+                          smoke.grid.face_velocity[1][0],
+                          smoke.grid.face_velocity[2][0]},
+                         smoke.grid.vorticity, smoke.grid.strain},
+                        coupling->options.air_density,
+                        coupling->options.drag_coefficient,
+                        smoke.options.rest_number_density,
+                        smoke.options.grid_kinematic_viscosity,
+                        smoke.options.grid_les_coefficient,
+                        options.timestep);
+                if (coupling->options.tracer_contact)
+                    smoke_rigid_contact<<<
+                        (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                        smoke.positions, smoke.previous_positions,
+                        smoke.velocities, smoke.ages, smoke.pressures, smoke.count,
+                        smoke.options.lifetime, mesh,
+                        impl_->states[impl_->current_state],
+                        any_moving_body ? impl_->fluid_previous_states
+                                        : impl_->states[impl_->current_state],
+                        body, clearance,
+                        (smoke.grid.resolution == 0U ?
+                         coupling->options.air_density : 0.0F) *
+                            std::pow(2.0F * smoke.options.particle_radius, 3.0F),
+                        coupling->options.drag_coefficient,
+                        smoke.options.pressure_stiffness, options.timestep,
+                        smoke.options.maximum_speed,
+                        {smoke.grid.resolution, smoke.grid.height,
+                         smoke.grid.minimum,
+                         smoke.grid.spacing, smoke.grid.velocity,
+                         smoke.grid.density, smoke.grid.pressure[0],
+                         {smoke.grid.face_velocity[0][0],
+                          smoke.grid.face_velocity[1][0],
+                          smoke.grid.face_velocity[2][0]},
+                         smoke.grid.vorticity, smoke.grid.strain},
+                        smoke.rigid_impulses);
+                if (smoke.grid.resolution == 0U &&
+                    coupling->options.air_density > 0.0F &&
+                    coupling->options.tracer_contact)
+                    smoke_apply_rigid_impulses<<<1U, 128U, 0, stream>>>(
+                        smoke.rigid_impulses, smoke.count, body,
+                        impl_->parameters,
+                        impl_->states[impl_->current_state]);
+            }
+            for (const auto &coupling : impl_->smoke_rope_couplings) {
+                if (!coupling || !coupling->alive || !coupling->options.enabled ||
+                    coupling->options.smoke.index >= impl_->smokes.size() ||
+                    impl_->smokes[coupling->options.smoke.index].get() != &smoke)
+                    continue;
+                const auto &rope = impl_->ropes[coupling->options.rope.index]->data;
+                const float clearance = coupling->options.contact_distance > 0.0F
+                    ? coupling->options.contact_distance
+                    : smoke.options.particle_radius + rope.options.radius;
+                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                    rope.positions, rope.count,
+                    coupling->minimum, coupling->maximum);
+                smoke_rope_contact<<<
+                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    smoke.positions, smoke.previous_positions,
+                    smoke.velocities, smoke.ages,
+                    smoke.count, smoke.options.lifetime, rope,
                     coupling->minimum, coupling->maximum, clearance);
             }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
@@ -11314,8 +12498,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         smoke.emission_fraction = float(exact - std::floor(exact));
         if (requested != 0U) {
             smoke_emit<<<(requested + 127U) / 128U, 128U, 0, stream>>>(
-                smoke.positions, smoke.velocities, smoke.ages,
-                smoke.thermal_lift, smoke.options,
+                smoke.positions, smoke.previous_positions,
+                smoke.velocities, smoke.ages,
+                smoke.thermal_lift, smoke.number_densities,
+                smoke.pressures, smoke.vorticities, smoke.options,
                 smoke.next_slot, requested, smoke.emitted);
             smoke.next_slot = (smoke.next_slot + requested) % smoke.options.capacity;
             smoke.count = std::min(smoke.options.capacity, smoke.count + requested);
@@ -11528,6 +12714,9 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
         case TimingStage::smoke_advection:
             timing = &output.smoke_advection;
             break;
+        case TimingStage::smoke_grid:
+            timing = &output.smoke_grid;
+            break;
         case TimingStage::smoke_emission:
             timing = &output.smoke_emission;
             break;
@@ -11690,8 +12879,11 @@ Status World::collect_statistics(WorldStatistics &output,
                 sizeof(std::uint32_t) +
             static_cast<std::size_t>(body->neighbor_count) *
                 sizeof(DeformableNeighbor) +
-            static_cast<std::size_t>(body->neighbor_ell_count) *
-                sizeof(DeformableNeighbor) +
+            (body->warp_neighbors != nullptr
+                ? static_cast<std::size_t>(body->neighbor_count) *
+                    sizeof(SoftBodyNeighbor) +
+                    static_cast<std::size_t>(body->node_count) * sizeof(float)
+                : 0U) +
             static_cast<std::size_t>(body->surface_vertex_count) *
                 (2U * sizeof(Vec3) + sizeof(SoftBodySurfaceBinding)) +
             static_cast<std::size_t>(body->surface_index_count) *

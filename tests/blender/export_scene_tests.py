@@ -79,8 +79,9 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
         if options.loader:
             subprocess.run([options.loader, str(self.output),
-                            str(expected["rigid_body"] +
-                                expected["thermal_surface"]),
+                            # The loader turns each heated surface into a
+                            # passive collision body as well as a heat plane.
+                            str(expected["rigid_body"] + expected["thermal_surface"]),
                             str(expected["rigid_constraint"]),
                             str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
@@ -94,6 +95,7 @@ class ExportSceneTests(unittest.TestCase):
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
                      "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
+                     "SmokeRope", "SmokeSoftbody", "SmokeCloth",
                      "ConstraintFixed", "ConstraintPoint", "ConstraintHinge",
                      "ConstraintSlider", "ConstraintPiston", "ConstraintGeneric",
                      "ConstraintGenericSpring", "ConstraintMotor"):
@@ -104,6 +106,21 @@ class ExportSceneTests(unittest.TestCase):
                 expected = systems(read_glb(source.with_suffix(".glb")))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_smoke_rope_active_panel_attachments(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeRope.blend"))
+        document = self.check_export(Counter(rigid_body=5, rope=4,
+                                             smoke_emitter=1))
+        ropes = [node["extras"] for node in document["nodes"]
+                 if node.get("extras", {}).get("pm_system") == "rope"]
+        self.assertEqual(len(ropes), 4)
+        self.assertTrue(all(rope["pm_rope_first_body"] == "Plane.001"
+                            for rope in ropes))
+        self.assertEqual(Counter(rope["pm_rope_last_body"] for rope in ropes),
+                         Counter({"Cylinder": 2, "Cylinder.001": 2}))
+        panel = next(node["extras"] for node in document["nodes"]
+                     if node.get("extras", {}).get("pm_source_name") == "Plane.001")
+        self.assertTrue(panel["pm_smoke_collider"])
 
     def test_rigid_constraint_settings(self):
         expected_types = {
@@ -254,7 +271,20 @@ class ExportSceneTests(unittest.TestCase):
                        if node["extras"].get("pm_system") == "smoke_emitter")
         self.assertEqual(emitter["pm_smoke_obstacle"], "VortexSphere")
         self.assertAlmostEqual(emitter["pm_velocity_x"], 1.6)
-        self.assertGreater(emitter["pm_smoke_wake_strength"], 0)
+        self.assertEqual(emitter["pm_smoke_model_version"], 3)
+        self.assertEqual(emitter["pm_smoke_grid_resolution"], 128)
+        self.assertEqual(emitter["pm_smoke_grid_vertical_resolution"], 32)
+        self.assertEqual(emitter["pm_smoke_grid_pressure_iterations"], 24)
+        self.assertAlmostEqual(
+            emitter["pm_smoke_grid_kinematic_viscosity"], 1.5e-5)
+        self.assertAlmostEqual(emitter["pm_smoke_grid_les_coefficient"], 0.12)
+        self.assertAlmostEqual(
+            emitter["pm_smoke_grid_pressure_tolerance"], 1.0e-3)
+        self.assertEqual(emitter["pm_smoke_wind_response"], 0.5)
+        self.assertEqual(emitter["pm_smoke_pressure_stiffness"], 2.0)
+        self.assertEqual(emitter["pm_smoke_rest_number_density"], 12.0)
+        self.assertEqual(emitter["pm_smoke_vorticity_confinement"], 0.1)
+        self.assertNotIn("pm_smoke_wake_strength", emitter)
 
     def test_smoke_water_temperature_and_heater(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeWater.blend"))

@@ -94,6 +94,11 @@ struct SmokeSoftBodyCouplingId {
     std::uint32_t generation{};
 };
 
+struct SmokeClothCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+};
+
 struct ClothId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -153,6 +158,15 @@ struct RigidBodyId {
     }
 };
 
+struct SmokeRigidCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        SmokeRigidCouplingId left, SmokeRigidCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct RigidConstraintId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -178,6 +192,15 @@ struct RopeId {
     std::uint32_t generation{};
     [[nodiscard]] friend constexpr bool operator==(RopeId left,
                                                     RopeId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
+struct SmokeRopeCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+    [[nodiscard]] friend constexpr bool operator==(
+        SmokeRopeCouplingId left, SmokeRopeCouplingId right) noexcept {
         return left.index == right.index && left.generation == right.generation;
     }
 };
@@ -298,6 +321,9 @@ struct WorldOptions {
     std::uint32_t smoke_capacity{1U};
     std::uint32_t fluid_smoke_coupling_capacity{1U};
     std::uint32_t smoke_soft_body_coupling_capacity{1U};
+    std::uint32_t smoke_cloth_coupling_capacity{1U};
+    std::uint32_t smoke_rope_coupling_capacity{1U};
+    std::uint32_t smoke_rigid_coupling_capacity{1U};
     std::uint32_t rigid_body_capacity{64U};
     std::uint32_t rigid_constraint_capacity{64U};
     std::uint32_t triangle_mesh_capacity{16U};
@@ -342,8 +368,9 @@ struct FluidParticle {
     float temperature{20.0F}; // degrees Celsius
 };
 
-// Smoke is a dilute tracer gas, not the incompressible liquid solver. The
-// spherical obstacle creates a no-through-flow deflection and a shedding wake.
+// Smoke is a tracer gas, separate from liquid. It may use a projected air grid
+// or the older weakly compressible particle-only solver. Coupled obstacles
+// are triangle meshes, not analytic sphere colliders.
 struct SmokeOptions {
     std::uint32_t capacity{4'500U};
     Vec3 emitter_center{};
@@ -354,31 +381,102 @@ struct SmokeOptions {
     float lifetime{5.0F};
     float particle_radius{0.085F};
     float buoyancy{0.12F};
-    float response{6.0F};
-    float wake_strength{4.0F};
+    // Particle-only relaxation toward wind, inverse seconds; ignored by grid mode.
+    float response{0.5F};
+    float rest_number_density{12.0F};
+    float pressure_stiffness{2.0F};
+    float viscosity{0.02F};
+    float vorticity_confinement{0.1F};
     float maximum_speed{4.0F};
-    RigidBodyId obstacle{};
-    float obstacle_radius{0.5F};
+    // Optional Eulerian air field. Zero retains the particle-only solver.
+    // X and Z use grid_resolution; Y is vertical in ParallelMater.
+    // 128 x 32 x 128 is 524,288 cells at approximately cubic cell spacing.
+    std::uint32_t grid_resolution{};
+    std::uint32_t grid_vertical_resolution{32U};
+    std::uint32_t grid_pressure_iterations{24U};
+    // Grid-mode transport parameters. Pressure is kinematic pressure (p/rho).
+    // The LES term dissipates only unresolved, grid-scale strain; restrained
+    // vorticity confinement restores curl lost by semi-Lagrangian transport.
+    float grid_kinematic_viscosity{1.5e-5F};
+    float grid_les_coefficient{0.12F};
+    float grid_pressure_tolerance{1.0e-3F};
+    // A zero edge length chooses a shallow domain around emitter travel.
+    Vec3 grid_minimum{};
+    float grid_edge_length{};
 };
 
 struct SmokeDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
     DeviceSpan<const float> ages{};
+    DeviceSpan<const float> number_densities{};
+    DeviceSpan<const float> pressures{};
+    DeviceSpan<const Vec3> vorticities{};
     // Occupied ring slots; ages >= lifetime are expired and should not draw.
     std::uint32_t particle_count{};
     float lifetime{};
     float particle_radius{};
     std::uint64_t revision{};
+    // Optional air field, indexed x + resolution *
+    // (y + vertical_resolution*z).
+    DeviceSpan<const Vec3> grid_velocity{};
+    DeviceSpan<const float> grid_pressure{};
+    DeviceSpan<const float> grid_density{};
+    // Density-weighted thermal acceleration deposited by smoke tracers.
+    // Divide by grid_density where it is non-zero to recover the local mean.
+    DeviceSpan<const float> grid_temperature{};
+    DeviceSpan<const std::uint32_t> grid_solid{};
+    DeviceSpan<const Vec3> grid_vorticity{};
+    DeviceSpan<const float> grid_divergence{};
+    std::uint32_t grid_resolution{};
+    std::uint32_t grid_vertical_resolution{};
+    Vec3 grid_minimum{};
+    float grid_spacing{};
+    // Infinity-norm pressure residual divided by the pre-projection RHS norm.
+    float grid_pressure_relative_residual{};
 };
 
-// The smoke carrier wind bends a soft body; its current skin deflects smoke
-// tracers. Tracers are massless, so only the carrier applies body force.
+// Local smoke particle velocity bends a soft body; its skin deflects particles.
 struct SmokeSoftBodyCouplingOptions {
     SmokeId smoke{};
     SoftBodyId soft_body{};
-    float wind_drag{2.0F}; // inverse seconds
+    float wind_drag{0.5F}; // inverse seconds
+    float maximum_wind_acceleration{2.0F};
     float contact_distance{}; // zero selects smoke + soft node radii
+    bool enabled{true};
+};
+
+// Local smoke particle velocity bends movable cloth vertices. Particles
+// deflect from the cloth's current triangles, including after tearing.
+struct SmokeClothCouplingOptions {
+    SmokeId smoke{};
+    ClothId cloth{};
+    float wind_drag{2.0F}; // inverse seconds
+    float maximum_wind_acceleration{20.0F};
+    float contact_distance{}; // zero selects smoke radius + cloth thickness
+    bool enabled{true};
+};
+
+// Local smoke particle velocity bends free rope nodes; particles deflect from
+// the rope's current capsule segments without reaction impulses yet.
+struct SmokeRopeCouplingOptions {
+    SmokeId smoke{};
+    RopeId rope{};
+    float wind_drag{2.0F}; // inverse seconds
+    float maximum_wind_acceleration{20.0F};
+    float contact_distance{}; // zero selects smoke radius + rope radius
+    bool enabled{true};
+};
+
+// Local particle contact transfers equal-and-opposite impulses to
+// dynamic rigid meshes. No remote or emitter-wide rigid wind force is applied.
+struct SmokeRigidCouplingOptions {
+    SmokeId smoke{};
+    RigidBodyId body{};
+    float air_density{1.5F}; // coarse tracer mass and rigid reaction
+    float drag_coefficient{4.0F}; // near-wall velocity relaxation
+    float contact_distance{}; // zero selects smoke particle radius
+    bool tracer_contact{true};
     bool enabled{true};
 };
 
@@ -1026,6 +1124,7 @@ struct WorldStepTimings {
     KernelTiming fluid_rope_contacts{};
     KernelTiming rope_solve{};
     KernelTiming rope_soft_body_contacts{};
+    KernelTiming smoke_grid{};
     KernelTiming smoke_advection{};
     KernelTiming smoke_emission{};
 };
@@ -1120,6 +1219,21 @@ class World {
         SmokeSoftBodyCouplingId &output) noexcept;
     [[nodiscard]] Status remove_smoke_soft_body_coupling(
         SmokeSoftBodyCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_cloth_coupling(
+        SmokeClothCouplingOptions options,
+        SmokeClothCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_cloth_coupling(
+        SmokeClothCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_rope_coupling(
+        SmokeRopeCouplingOptions options,
+        SmokeRopeCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_rope_coupling(
+        SmokeRopeCouplingId coupling) noexcept;
+    [[nodiscard]] Status add_smoke_rigid_coupling(
+        SmokeRigidCouplingOptions options,
+        SmokeRigidCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_smoke_rigid_coupling(
+        SmokeRigidCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
                                    cudaStream_t stream = nullptr) noexcept;

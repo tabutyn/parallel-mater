@@ -734,6 +734,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         body.name = extras.string("pm_name").value_or(body.name);
         body.source_name = extras.string("pm_source_name").value_or(body.name);
         body.paintable = extras.boolean("pm_paintable").value_or(false);
+        body.smoke_collider = extras.boolean("pm_smoke_collider").value_or(false);
         if (const auto resolution = extras.number("pm_paint_resolution")) {
             if (!std::isfinite(*resolution) || *resolution < 32.0 ||
                 *resolution > 2048.0 || std::floor(*resolution) != *resolution) {
@@ -1420,15 +1421,41 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             }
             const std::string obstacle =
                 extras.string("pm_smoke_obstacle").value_or("");
-            if (obstacle.empty()) {
-                error = name + ": smoke emitter needs pm_smoke_obstacle";
-                return false;
-            }
             const double capacity =
                 extras.number("pm_smoke_capacity").value_or(4500.0);
             if (!std::isfinite(capacity) || capacity < 1.0 ||
                 capacity > 1'000'000.0 || std::floor(capacity) != capacity) {
                 error = name + ": smoke capacity must be an integer from 1 to 1000000";
+                return false;
+            }
+            const double grid_resolution =
+                extras.number("pm_smoke_grid_resolution").value_or(128.0);
+            const double vertical_resolution =
+                extras.number("pm_smoke_grid_vertical_resolution").value_or(32.0);
+            const double pressure_iterations =
+                extras.number("pm_smoke_grid_pressure_iterations").value_or(24.0);
+            const double kinematic_viscosity = extras.number(
+                "pm_smoke_grid_kinematic_viscosity").value_or(1.5e-5);
+            const double les_coefficient = extras.number(
+                "pm_smoke_grid_les_coefficient").value_or(0.12);
+            const double pressure_tolerance = extras.number(
+                "pm_smoke_grid_pressure_tolerance").value_or(1.0e-3);
+            if (!std::isfinite(grid_resolution) ||
+                std::floor(grid_resolution) != grid_resolution ||
+                (grid_resolution != 0.0 &&
+                 (grid_resolution < 16.0 || grid_resolution > 256.0)) ||
+                !std::isfinite(vertical_resolution) ||
+                std::floor(vertical_resolution) != vertical_resolution ||
+                vertical_resolution < 8.0 || vertical_resolution > 256.0 ||
+                !std::isfinite(pressure_iterations) ||
+                std::floor(pressure_iterations) != pressure_iterations ||
+                pressure_iterations < 4.0 || pressure_iterations > 128.0 ||
+                !std::isfinite(kinematic_viscosity) ||
+                kinematic_viscosity < 0.0 ||
+                !std::isfinite(les_coefficient) || les_coefficient < 0.0 ||
+                !std::isfinite(pressure_tolerance) ||
+                pressure_tolerance <= 0.0 || pressure_tolerance > 1.0) {
+                error = name + ": invalid smoke grid settings";
                 return false;
             }
             const Vec3 velocity{
@@ -1450,9 +1477,25 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 .buoyancy = static_cast<float>(
                     extras.number("pm_smoke_buoyancy").value_or(0.12)),
                 .response = static_cast<float>(
-                    extras.number("pm_smoke_response").value_or(6.0)),
-                .wake_strength = static_cast<float>(
-                    extras.number("pm_smoke_wake_strength").value_or(4.0)),
+                    extras.number("pm_smoke_wind_response").value_or(0.5)),
+                .rest_number_density = static_cast<float>(
+                    extras.number("pm_smoke_rest_number_density").value_or(12.0)),
+                .pressure_stiffness = static_cast<float>(
+                    extras.number("pm_smoke_pressure_stiffness").value_or(2.0)),
+                .viscosity = static_cast<float>(
+                    extras.number("pm_smoke_viscosity").value_or(0.02)),
+                .vorticity_confinement = static_cast<float>(
+                    extras.number("pm_smoke_vorticity_confinement").value_or(0.1)),
+                .grid_resolution = static_cast<std::uint32_t>(grid_resolution),
+                .grid_vertical_resolution = static_cast<std::uint32_t>(
+                    vertical_resolution),
+                .grid_pressure_iterations = static_cast<std::uint32_t>(
+                    pressure_iterations),
+                .grid_kinematic_viscosity = static_cast<float>(
+                    kinematic_viscosity),
+                .grid_les_coefficient = static_cast<float>(les_coefficient),
+                .grid_pressure_tolerance = static_cast<float>(
+                    pressure_tolerance),
             };
             output.smoke_obstacle_name = obstacle;
             output.has_smoke = true;
@@ -1738,6 +1781,20 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
             scene.thermal_surfaces.size()),
         .smoke_soft_body_coupling_capacity = scene.has_smoke
             ? static_cast<std::uint32_t>(scene.soft_bodies.size()) : 0U,
+        .smoke_cloth_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(scene.cloths.size()) : 0U,
+        .smoke_rope_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(scene.ropes.size()) : 0U,
+        .smoke_rigid_coupling_capacity = scene.has_smoke
+            ? static_cast<std::uint32_t>(std::count_if(
+                  scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
+                  [&](const RigidBodyDefinition &body) {
+                      return body.smoke_collider ||
+                          body.options.motion == MotionType::dynamic ||
+                          (!scene.smoke_obstacle_name.empty() &&
+                           (body.name == scene.smoke_obstacle_name ||
+                            body.source_name == scene.smoke_obstacle_name));
+                  })) : 0U,
         .rigid_body_capacity = static_cast<std::uint32_t>(
             std::max<std::size_t>(1U, scene.rigid_bodies.size())),
         .rigid_constraint_capacity = static_cast<std::uint32_t>(
@@ -1914,37 +1971,36 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     if (scene.has_smoke) {
         int obstacle = -1;
-        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index)
-            if (scene.rigid_bodies[index].name == scene.smoke_obstacle_name ||
-                scene.rigid_bodies[index].source_name == scene.smoke_obstacle_name) {
+        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+            if (!scene.smoke_obstacle_name.empty() &&
+                (scene.rigid_bodies[index].name == scene.smoke_obstacle_name ||
+                 scene.rigid_bodies[index].source_name == scene.smoke_obstacle_name)) {
                 if (obstacle >= 0)
                     return {StatusCode::invalid_argument, cudaSuccess,
                             "smoke obstacle name is ambiguous"};
                 obstacle = static_cast<int>(index);
             }
-        if (obstacle < 0)
-            return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle rigid sphere was not found"};
-        const auto &body = scene.rigid_bodies[obstacle];
-        if (body.mesh_indices.size() != 1U)
-            return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle must be one rigid sphere"};
-        const auto &mesh = scene.meshes[body.mesh_indices[0]];
-        float radius = 0.0F, smallest = FLT_MAX;
-        for (const auto &vertex : mesh.vertices) {
-            const float distance = math::length(vertex.position);
-            radius = std::max(radius, distance);
-            smallest = std::min(smallest, distance);
         }
-        if (radius <= 0.0F || smallest < radius * 0.90F)
+        if (!scene.smoke_obstacle_name.empty() && obstacle < 0)
             return {StatusCode::invalid_argument, cudaSuccess,
-                    "smoke obstacle mesh must be centered and spherical"};
+                    "smoke obstacle rigid mesh was not found"};
         SmokeOptions options = scene.smoke_options;
-        options.obstacle = output.rigid_bodies[obstacle];
-        options.obstacle_radius = radius;
         const Status status = world.add_smoke(options, output.smoke);
         if (!status) return status;
         output.has_smoke = true;
+        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+            if (static_cast<int>(index) != obstacle &&
+                !scene.rigid_bodies[index].smoke_collider &&
+                scene.rigid_bodies[index].options.motion != MotionType::dynamic)
+                continue;
+            SmokeRigidCouplingId coupling{};
+            const Status coupled = world.add_smoke_rigid_coupling(
+                {.smoke = output.smoke, .body = output.rigid_bodies[index],
+                 .tracer_contact = true},
+                coupling);
+            if (!coupled) return coupled;
+            output.smoke_rigid_couplings.push_back(coupling);
+        }
     }
     for (const ClothDefinition &definition : scene.cloths) {
         if (definition.mesh_index >= scene.meshes.size())
@@ -1981,6 +2037,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             .volume_compliance = definition.volume_compliance}, cloth);
         if (!status) return status;
         output.cloths.push_back(cloth);
+    }
+    if (output.has_smoke) {
+        for (const ClothId cloth : output.cloths) {
+            SmokeClothCouplingId coupling{};
+            const Status status = world.add_smoke_cloth_coupling(
+                {.smoke = output.smoke, .cloth = cloth}, coupling);
+            if (!status) return status;
+            output.smoke_cloth_couplings.push_back(coupling);
+        }
     }
     for (const SoftBodyDefinition &definition : scene.soft_bodies) {
         if (definition.mesh_index >= scene.meshes.size())
@@ -2065,6 +2130,15 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 .last_vertex=last?rope.last_cloth_vertex:UINT32_MAX},coupling);
             if(!coupled)return coupled;
             output.rope_cloth_couplings.push_back(coupling);
+        }
+    }
+    if (output.has_smoke) {
+        for (const RopeId rope : output.ropes) {
+            SmokeRopeCouplingId coupling{};
+            const Status status = world.add_smoke_rope_coupling(
+                {.smoke = output.smoke, .rope = rope}, coupling);
+            if (!status) return status;
+            output.smoke_rope_couplings.push_back(coupling);
         }
     }
     for (SoftBodyId body : output.soft_bodies) {

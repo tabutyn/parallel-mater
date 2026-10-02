@@ -35,6 +35,7 @@ struct RigidBodyDefinition {
     // indices address SceneDefinition::collision_meshes.
     std::vector<std::uint32_t> collision_mesh_indices{};
     bool paintable{};
+    bool smoke_collider{};
     std::uint32_t paint_resolution{512U};
     std::string source_name{};
 };
@@ -162,6 +163,9 @@ struct SceneInstance {
     bool has_smoke{};
     std::vector<FluidSmokeCouplingId> fluid_smoke_couplings{};
     std::vector<SmokeSoftBodyCouplingId> smoke_soft_body_couplings{};
+    std::vector<SmokeClothCouplingId> smoke_cloth_couplings{};
+    std::vector<SmokeRopeCouplingId> smoke_rope_couplings{};
+    std::vector<SmokeRigidCouplingId> smoke_rigid_couplings{};
 };
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,
