@@ -76,6 +76,11 @@ constexpr float k_motor_speed = 8.0F;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
+[[nodiscard]] constexpr std::uint32_t scene_substeps(
+    GalleryContext context) noexcept {
+    return context == GalleryContext::constraint_hinge ? 8U : 4U;
+}
+
 struct Options {
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
@@ -831,7 +836,7 @@ int main(int argc, char **argv) {
     RendererTimings &renderer_timings = session.renderer_timings;
 
     const StepOptions step_options{.timestep = k_timestep,
-                                   .substeps = 4U,
+                                   .substeps = scene_substeps(runtime.context),
                                    .gravity = initial_scene_gravity(
                                        runtime.context,
                                        runtime.scene.gravity_scale)};
@@ -1307,6 +1312,7 @@ int main(int argc, char **argv) {
                 }
             }
             StepOptions interactive_step = step_options;
+            interactive_step.substeps = scene_substeps(runtime.context);
             interactive_step.gravity = {0.0F,
                 -k_gravity * runtime.scene.gravity_scale, 0.0F};
             if (entry.controls == GalleryControlPolicy::cloth_gravity) {

@@ -68,7 +68,7 @@ int main() {
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH,
                       RigidConstraintType::point, 2U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
-                      RigidConstraintType::hinge, 2U, 32U},
+                      RigidConstraintType::hinge, 2U, 64U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH,
                       RigidConstraintType::slider, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH,
@@ -183,7 +183,9 @@ int main() {
         std::cout << "SKIP: constraint GLB structure passed; CUDA unavailable\n";
         return failures == 0 ? 77 : 1;
     }
-    for (const SceneDefinition &scene : definitions) {
+    for (std::size_t scene_index = 0U; scene_index < definitions.size();
+         ++scene_index) {
+        const SceneDefinition &scene = definitions[scene_index];
         World world;
         SceneInstance instance;
         check_status(create_scene_world(scene, world, instance),
@@ -195,7 +197,7 @@ int main() {
               "world statistics must expose instantiated constraints");
         for (int frame = 0; frame < 30; ++frame)
             check_status(world.step({.timestep = 1.0F / 60.0F,
-                                     .substeps = 4U,
+                                     .substeps = scene_index == 2U ? 8U : 4U,
                                      .gravity = {0.0F, -9.81F, 0.0F}}),
                          "step rigid constraint scene");
     }

@@ -163,7 +163,7 @@ class ExportSceneTests(unittest.TestCase):
                          for item in constraints},
                         {("Ground", "Gear"),
                          ("Ground", "Gear.001")})
-                    self.assertTrue(all(item["pm_solver_iterations"] == 32
+                    self.assertTrue(all(item["pm_solver_iterations"] == 64
                                         for item in constraints))
                     for joint_name, gear_name in (
                             ("SmallGearHinge", "Gear"),
@@ -189,6 +189,53 @@ class ExportSceneTests(unittest.TestCase):
                 if kind == "motor":
                     self.assertTrue(all(item["pm_use_motor_ang"]
                                         for item in constraints))
+
+    def test_hinge_gears_clear_through_tooth_cycle(self):
+        from mathutils import Quaternion, Vector
+        from mathutils.bvhtree import BVHTree
+
+        bpy.ops.wm.open_mainfile(
+            filepath=str(ASSETS / "ConstraintHinge.blend"))
+        small = bpy.context.scene.objects["Gear"]
+        large = bpy.context.scene.objects["Gear.001"]
+        small_base = small.rotation_euler.to_quaternion()
+        large_base = large.rotation_quaternion.copy()
+
+        def geometry(obj):
+            evaluated = obj.evaluated_get(
+                bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            vertices = [evaluated.matrix_world @ vertex.co
+                        for vertex in mesh.vertices]
+            polygons = [tuple(polygon.vertices)
+                        for polygon in mesh.polygons]
+            evaluated.to_mesh_clear()
+            return vertices, BVHTree.FromPolygons(
+                vertices, polygons, all_triangles=False)
+
+        maximum_clearance = 0.0
+        for half_degree in range(61):
+            angle = half_degree * 0.5
+            small.rotation_mode = "QUATERNION"
+            small.rotation_quaternion = small_base @ Quaternion(
+                Vector((0.0, 0.0, 1.0)), angle * 3.141592653589793 / 180.0)
+            large.rotation_quaternion = large_base @ Quaternion(
+                Vector((0.0, 0.0, 1.0)),
+                -angle * 0.5 * 3.141592653589793 / 180.0)
+            bpy.context.view_layer.update()
+            small_vertices, small_tree = geometry(small)
+            large_vertices, large_tree = geometry(large)
+            self.assertEqual(small_tree.overlap(large_tree), [])
+            clearance = min(
+                min(small_tree.find_nearest(point)[3]
+                    for point in large_vertices),
+                min(large_tree.find_nearest(point)[3]
+                    for point in small_vertices))
+            maximum_clearance = max(maximum_clearance, clearance)
+
+        combined_margin = (small.rigid_body.collision_margin +
+                           large.rigid_body.collision_margin)
+        self.assertLess(maximum_clearance, combined_margin * 1.10)
 
     def test_cloth_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))
