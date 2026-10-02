@@ -33,7 +33,6 @@ struct ExpectedScene {
     parallel_mater::RigidConstraintType type;
     std::size_t constraint_count;
     std::uint32_t solver_iterations{16U};
-    bool homogeneous{true};
 };
 
 } // namespace
@@ -48,7 +47,7 @@ int main() {
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH,
                       RigidConstraintType::point, 2U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
-                      RigidConstraintType::hinge, 3U, 32U, false},
+                      RigidConstraintType::hinge, 2U, 32U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH,
                       RigidConstraintType::slider, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH,
@@ -70,9 +69,8 @@ int main() {
         check(scene.rigid_constraints.size() == scenes[index].constraint_count,
               "scene must contain expected constraint count");
         for (const auto &constraint : scene.rigid_constraints) {
-            if (scenes[index].homogeneous)
-                check(constraint.options.type == scenes[index].type,
-                      "scene must retain Blender constraint type");
+            check(constraint.options.type == scenes[index].type,
+                  "scene must retain Blender constraint type");
             check(constraint.body_a < scene.rigid_bodies.size() &&
                       constraint.body_b < scene.rigid_bodies.size(),
                   "constraint must resolve both rigid body names");
@@ -109,38 +107,28 @@ int main() {
               std::fabs(point_b.linear_velocity.z) > 2.0F,
           "point spheres must start with opposite tangential velocities");
     const SceneDefinition &hinge_scene = definitions[2];
-    std::size_t fixed_count = 0U;
     std::size_t hinge_count = 0U;
-    bool panel_fixed_to_small_gear = false;
-    bool small_gear_on_axle = false;
-    bool large_gear_on_axle = false;
+    bool small_gear_on_shared_frame = false;
+    bool large_gear_on_shared_frame = false;
     for (const auto &constraint : hinge_scene.rigid_constraints) {
         const auto &body_a = hinge_scene.rigid_bodies[constraint.body_a];
         const auto &body_b = hinge_scene.rigid_bodies[constraint.body_b];
-        if (constraint.options.type == RigidConstraintType::fixed) {
-            ++fixed_count;
-            panel_fixed_to_small_gear =
-                body_a.source_name == "HingePanel" &&
-                body_b.source_name == "Gear" &&
-                !body_a.collision_mesh_indices.empty();
-        } else if (constraint.options.type == RigidConstraintType::hinge) {
+        if (constraint.options.type == RigidConstraintType::hinge) {
             ++hinge_count;
             check(constraint.options.angular_limits.axes == 0U,
                   "gear hinges must rotate continuously around local Z");
-            small_gear_on_axle = small_gear_on_axle ||
-                (body_a.source_name == "Cylinder" &&
+            small_gear_on_shared_frame = small_gear_on_shared_frame ||
+                (body_a.source_name == "Ground" &&
                  body_b.source_name == "Gear");
-            large_gear_on_axle = large_gear_on_axle ||
-                (body_a.source_name == "GearLargeAxle" &&
+            large_gear_on_shared_frame = large_gear_on_shared_frame ||
+                (body_a.source_name == "Ground" &&
                  body_b.source_name == "Gear.001");
         }
     }
-    check(fixed_count == 1U && hinge_count == 2U,
-          "hinge scene must contain one panel joint and two gear hinges");
-    check(panel_fixed_to_small_gear,
-          "panel collision paddle must be fixed to the small gear");
-    check(small_gear_on_axle && large_gear_on_axle,
-          "both active gears must be pinned to their passive axles");
+    check(hinge_scene.rigid_bodies.size() == 4U && hinge_count == 2U,
+          "merged hinge scene must contain four bodies and two hinges");
+    check(small_gear_on_shared_frame && large_gear_on_shared_frame,
+          "both active gears must hinge against one passive frame");
     for (std::size_t index : {3U, 4U}) {
         const auto &constraint =
             definitions[index].rigid_constraints.front().options;

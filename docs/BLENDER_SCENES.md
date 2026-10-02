@@ -267,12 +267,12 @@ the Blender source or GLB metadata.
 
 `examples/assets/tools/make_constraint_scenes.py` reproducibly authors seven of
 the committed constraint `.blend` files. `ConstraintHinge.blend` is maintained
-as an artist-authored source: an active panel is fixed to the active 12-tooth
-gear, both active gears are pinned to passive axles by Z-axis hinges, and tooth
-contact drives the 24-tooth gear in the opposite direction at a 2:1 ratio. Its
-lower-paddle collision proxy lets the sphere transfer torque without the long
-visible panel colliding with the large gear. Export every source through the
-same shared exporter; no scene-specific export path exists.
+as an artist-authored source: its panel and single visible axial cylinder are
+merged into the active 12-tooth gear. Both active gears hinge against the same
+passive Ground body, with each constraint frame's Z axis copied from its gear's
+local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
+at a 2:1 ratio. Export every source through the same shared exporter; no
+scene-specific export path exists.
 
 ## Validate the result
 

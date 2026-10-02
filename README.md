@@ -92,7 +92,7 @@ Up/Down and Enter to switch.
 Fixed uses `Space` to attach/release. Point starts with two spheres orbiting a
 shared anchor; `Space` releases or reattaches both. Arrow keys tilt gravity in
 every Constraint scene except Motor, where they keep controlling the car's tank
-drive. Hinge launches a sphere into a panel fixed to a 12-tooth hinged gear;
+drive. Hinge launches a sphere into a panel merged with a 12-tooth hinged gear;
 its contact with a 24-tooth hinged gear demonstrates opposite rotation at a
 2:1 angular-speed ratio. Slider, Piston, Generic, and Generic Spring launch an
 authored sphere impact automatically.
