@@ -89,10 +89,11 @@ Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the acti
 the selector for Rigid Body, eight Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
 Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
 Up/Down and Enter to switch.
-Fixed and Point use `Space` to attach/release. Arrow keys tilt gravity in every
-Constraint scene except Motor, where they keep controlling the car's tank drive.
-Hinge, Slider, Piston, Generic, and Generic Spring launch an authored sphere
-impact automatically.
+Fixed uses `Space` to attach/release. Point starts with two spheres orbiting a
+shared anchor; `Space` releases or reattaches both. Arrow keys tilt gravity in
+every Constraint scene except Motor, where they keep controlling the car's tank
+drive. Hinge, Slider, Piston, Generic, and Generic Spring launch an authored
+sphere impact automatically.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel

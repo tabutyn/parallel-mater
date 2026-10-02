@@ -507,46 +507,54 @@ struct FluidEscapeTrace {
     return false;
 }
 
-[[nodiscard]] bool toggle_constraint(GalleryRuntime &runtime) {
-    if (runtime.scene.rigid_constraints.size() != 1U ||
-        runtime.instance.rigid_constraints.size() != 1U) {
-        std::cerr << "Constraint toggle scene needs exactly one constraint\n";
+[[nodiscard]] bool toggle_constraints(GalleryRuntime &runtime) {
+    if (runtime.scene.rigid_constraints.empty() ||
+        runtime.scene.rigid_constraints.size() !=
+            runtime.instance.rigid_constraints.size()) {
+        std::cerr << "Constraint toggle scene needs matching constraints\n";
         return false;
     }
-    auto &definition = runtime.scene.rigid_constraints.front();
-    RigidConstraintState constraint_state{};
-    if (!require(runtime.world.read_rigid_constraint_state(
-                     runtime.instance.rigid_constraints.front(),
-                     constraint_state),
-                 "read constraint state")) return false;
 
-    RigidConstraintOptions options = definition.options;
-    options.body_a = runtime.instance.rigid_bodies[definition.body_a];
-    options.body_b = runtime.instance.rigid_bodies[definition.body_b];
-    options.enabled = !constraint_state.enabled;
-    if (options.enabled) {
-        RigidBodyState state_a{}, state_b{};
-        if (!require(runtime.world.read_rigid_body_state(options.body_a, state_a),
-                     "read first constraint body") ||
-            !require(runtime.world.read_rigid_body_state(options.body_b, state_b),
-                     "read second constraint body")) return false;
-        const Vec3 anchor = options.type == RigidConstraintType::point
-            ? state_b.position : midpoint(state_a.position, state_b.position);
-        const Quaternion world_orientation = state_a.orientation;
-        options.local_anchor_a = rotate(conjugate(state_a.orientation),
-                                        subtract(anchor, state_a.position));
-        options.local_anchor_b = rotate(conjugate(state_b.orientation),
-                                        subtract(anchor, state_b.position));
-        options.local_orientation_a =
-            multiply(conjugate(state_a.orientation), world_orientation);
-        options.local_orientation_b =
-            multiply(conjugate(state_b.orientation), world_orientation);
+    bool enable = false;
+    for (const auto id : runtime.instance.rigid_constraints) {
+        RigidConstraintState state{};
+        if (!require(runtime.world.read_rigid_constraint_state(id, state),
+                     "read constraint state")) return false;
+        enable = enable || !state.enabled;
     }
-    if (!require(runtime.world.update_rigid_constraint(
-                     runtime.instance.rigid_constraints.front(), options),
-                 options.enabled ? "enable constraint" : "disable constraint"))
-        return false;
-    definition.options = options;
+
+    for (std::size_t index = 0U;
+         index < runtime.scene.rigid_constraints.size(); ++index) {
+        auto &definition = runtime.scene.rigid_constraints[index];
+        RigidConstraintOptions options = definition.options;
+        options.body_a = runtime.instance.rigid_bodies[definition.body_a];
+        options.body_b = runtime.instance.rigid_bodies[definition.body_b];
+        options.enabled = enable;
+        if (enable && options.type != RigidConstraintType::point) {
+            RigidBodyState state_a{}, state_b{};
+            if (!require(runtime.world.read_rigid_body_state(
+                             options.body_a, state_a),
+                         "read first constraint body") ||
+                !require(runtime.world.read_rigid_body_state(
+                             options.body_b, state_b),
+                         "read second constraint body")) return false;
+            const Vec3 anchor = midpoint(state_a.position, state_b.position);
+            const Quaternion world_orientation = state_a.orientation;
+            options.local_anchor_a = rotate(conjugate(state_a.orientation),
+                                            subtract(anchor, state_a.position));
+            options.local_anchor_b = rotate(conjugate(state_b.orientation),
+                                            subtract(anchor, state_b.position));
+            options.local_orientation_a =
+                multiply(conjugate(state_a.orientation), world_orientation);
+            options.local_orientation_b =
+                multiply(conjugate(state_b.orientation), world_orientation);
+        }
+        if (!require(runtime.world.update_rigid_constraint(
+                         runtime.instance.rigid_constraints[index], options),
+                     enable ? "enable constraint" : "disable constraint"))
+            return false;
+        definition.options = options;
+    }
     return true;
 }
 
@@ -879,7 +887,7 @@ int main(int argc, char **argv) {
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
                     options.headless_constraint_action_after_frames) &&
-                !toggle_constraint(runtime)) return 1;
+                !toggle_constraints(runtime)) return 1;
             if (options.headless_motor_forward &&
                 gallery_entry(runtime.context).controls ==
                     GalleryControlPolicy::tank_motor &&
@@ -1229,7 +1237,7 @@ int main(int argc, char **argv) {
             if (!context_visible && keys.pressed(KeyAction::action) &&
                 toggles_constraint(
                     gallery_entry(runtime.context).controls) &&
-                !toggle_constraint(runtime)) {
+                !toggle_constraints(runtime)) {
                 break;
             }
             if (keys.pressed(KeyAction::timing)) {

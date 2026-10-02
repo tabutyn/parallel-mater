@@ -44,7 +44,7 @@ int main() {
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH,
                       RigidConstraintType::fixed, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH,
-                      RigidConstraintType::point, 1U},
+                      RigidConstraintType::point, 2U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
                       RigidConstraintType::hinge, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH,
@@ -79,9 +79,31 @@ int main() {
     }
 
     const auto &fixed = definitions[0].rigid_constraints.front().options;
-    const auto &point = definitions[1].rigid_constraints.front().options;
-    check(!fixed.enabled && !point.enabled,
-          "interactive fixed and point constraints must start released");
+    check(!fixed.enabled, "interactive fixed constraint must start released");
+    const auto &point_constraints = definitions[1].rigid_constraints;
+    check(point_constraints[0].options.enabled &&
+              point_constraints[1].options.enabled,
+          "point constraints must start enabled");
+    check(point_constraints[0].body_a == point_constraints[1].body_a &&
+              point_constraints[0].body_b != point_constraints[1].body_b,
+          "point spheres must share one static anchor body");
+    check(point_constraints[0].options.local_anchor_a.x ==
+                  point_constraints[1].options.local_anchor_a.x &&
+              point_constraints[0].options.local_anchor_a.y ==
+                  point_constraints[1].options.local_anchor_a.y &&
+              point_constraints[0].options.local_anchor_a.z ==
+                  point_constraints[1].options.local_anchor_a.z &&
+              point_constraints[0].options.local_anchor_b.x *
+                  point_constraints[1].options.local_anchor_b.x < 0.0F,
+          "point spheres must pivot around opposite sides of one point");
+    const auto &point_a = definitions[1].rigid_bodies[
+        point_constraints[0].body_b].options.initial_state;
+    const auto &point_b = definitions[1].rigid_bodies[
+        point_constraints[1].body_b].options.initial_state;
+    check(point_a.linear_velocity.z * point_b.linear_velocity.z < 0.0F &&
+              std::fabs(point_a.linear_velocity.z) > 2.0F &&
+              std::fabs(point_b.linear_velocity.z) > 2.0F,
+          "point spheres must start with opposite tangential velocities");
     const auto &hinge = definitions[2].rigid_constraints.front().options;
     check(hinge.angular_limits.axes == rigid_constraint_axis_z &&
               std::fabs(hinge.angular_limits.lower.z + 0.7853982F) < 1.0e-4F &&

@@ -433,8 +433,9 @@ pass.
 - Export Blender's native Rigid Body Constraint settings through schema 2 and
   resolve their body references in the shared gallery loader.
 - Add eight reproducibly authored `.blend`/`.glb` gallery scenes. `Space`
-  toggles Fixed and Point at the bodies' current poses; arrow keys provide tank
-  control for a four-wheel motor car.
+  toggles Fixed at the bodies' current poses and both Point orbit constraints
+  at their authored pivot; arrow keys provide tank control for a four-wheel
+  motor car.
 - Validate API lifecycle and all solver types on GPU, real Blender re-export,
   authored metadata, scene instantiation, and eight OptiX headless renders.
 

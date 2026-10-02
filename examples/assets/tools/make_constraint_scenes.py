@@ -117,11 +117,12 @@ def point_scene():
     add_floor()
     post = cylinder("PointPost", (0.0, 0.0, 1.25), 0.28, 2.5,
                     (0.70, 0.73, 0.78, 1.0), "PASSIVE")
-    ball = sphere("PointSphereA", (-2.6, 0.0, 0.55),
-                  color=(0.95, 0.45, 0.08, 1.0), velocity=(2.0, 0.0, 0.0))
-    sphere("PointSphereB", (2.6, 0.0, 0.55),
-           color=(0.12, 0.48, 0.95, 1.0), velocity=(-1.2, 0.0, 0.0))
-    constraint("PointJoint", "POINT", post, ball, (-0.28, 0.0, 0.65), enabled=False)
+    left = sphere("PointSphereA", (-2.2, 0.0, 0.55),
+                  color=(0.95, 0.45, 0.08, 1.0), velocity=(0.0, -2.4, 0.0))
+    right = sphere("PointSphereB", (2.2, 0.0, 0.55),
+                   color=(0.12, 0.48, 0.95, 1.0), velocity=(0.0, 2.4, 0.0))
+    constraint("PointJointA", "POINT", post, left, (0.0, 0.0, 0.55))
+    constraint("PointJointB", "POINT", post, right, (0.0, 0.0, 0.55))
 
 
 def hinge_scene():

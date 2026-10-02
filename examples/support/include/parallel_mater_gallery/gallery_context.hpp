@@ -146,7 +146,7 @@ inline constexpr std::array gallery_entries{
         GallerySceneSource::constraint_point,
         GalleryControlPolicy::constraint_toggle_gravity, GalleryCountKind::none,
         "--constraint-point", "CONSTRAINT: POINT",
-        "ARROWS GRAVITY  SPACE ATTACH / RELEASE", {48, 40, 31, 235},
+        "ARROWS GRAVITY  SPACE RELEASE / ATTACH", {48, 40, 31, 235},
         {245, 151, 52},
         {.target = {0.0F, 0.8F, 0.0F}, .distance_scale = 0.72F},
         false, false, 0U, 0U},

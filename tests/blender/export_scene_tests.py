@@ -125,7 +125,7 @@ class ExportSceneTests(unittest.TestCase):
     def test_rigid_constraint_settings(self):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
-            "ConstraintPoint": ("point", 1),
+            "ConstraintPoint": ("point", 2),
             "ConstraintHinge": ("hinge", 1),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
@@ -148,8 +148,15 @@ class ExportSceneTests(unittest.TestCase):
                                     for item in constraints))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
-                if kind in ("fixed", "point"):
+                if kind == "fixed":
                     self.assertFalse(constraints[0]["pm_enabled"])
+                if kind == "point":
+                    self.assertTrue(all(item["pm_enabled"]
+                                        for item in constraints))
+                    self.assertEqual({item["pm_body_a"] for item in constraints},
+                                     {"PointPost"})
+                    self.assertEqual({item["pm_body_b"] for item in constraints},
+                                     {"PointSphereA", "PointSphereB"})
                 if kind == "hinge":
                     self.assertAlmostEqual(
                         constraints[0]["pm_limit_ang_z_upper"],
