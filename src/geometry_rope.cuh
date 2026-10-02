@@ -463,7 +463,7 @@ __device__ void rope_contact(RopeData r,unsigned i,bool segment,float dt,int fir
     rope_accumulate_body(r,hit.body,multiply(impulse,-1),arm,parameters,states);
 }
 
-#include "rope_soft_body.cuh"
+#include "soft_body_rope.cuh"
 
 // Project axial velocity using the full mass matrix. Contact-reduced masses
 // are valid for positional support, but not for an arbitrary incoming velocity:

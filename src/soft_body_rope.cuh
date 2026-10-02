@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Included by rope.cuh after the shared contact and soft-surface helpers.
+// Included by geometry_rope.cuh after shared contact and soft-surface helpers.
 struct RopeSoftBodyCouplingStorage {
     RopeSoftBodyCouplingOptions options{};
     std::uint32_t generation{1U};
