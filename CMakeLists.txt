@@ -25,7 +25,33 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
-add_library(parallel-mater STATIC src/world.cu src/fluid_geometry.cpp src/fluid_source.cpp src/soft_body_geometry.cpp src/rope_geometry.cpp)
+add_library(
+    parallel-mater STATIC
+    src/world.cu
+    src/geometry_constraints.cuh
+    src/geometry_fluid.cuh
+    src/geometry_soft_body.cuh
+    src/geometry_cloth.cuh
+    src/geometry_rope.cuh
+    src/geometry_smoke.cuh
+    src/fluid.cuh
+    src/fluid_soft_body.cuh
+    src/fluid_cloth.cuh
+    src/fluid_rope.cuh
+    src/fluid_smoke.cuh
+    src/soft_body.cuh
+    src/soft_body_cloth.cuh
+    src/soft_body_rope.cuh
+    src/soft_body_smoke.cuh
+    src/cloth.cuh
+    src/cloth_rope.cuh
+    src/cloth_smoke.cuh
+    src/rope_smoke.cuh
+    src/smoke_grid.cuh
+    src/fluid_geometry.cpp
+    src/fluid_source.cpp
+    src/soft_body_geometry.cpp
+    src/rope_geometry.cpp)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 set_target_properties(

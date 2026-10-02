@@ -438,9 +438,12 @@ pass.
 - Validate API lifecycle and all solver types on GPU, real Blender re-export,
   authored metadata, scene instantiation, and eight OptiX headless renders.
 
-## PR 29 - future
+## PR 29 — Physics source layout refactor
 
-Refactors sources code to have source files like this:
+- Split the private CUDA implementation out of the monolithic `world.cu` and
+  name each unit for the system or pairwise coupling it implements:
+
+```text
 geometry_constraints.cuh
 geometry_fluid.cuh
 geometry_soft_body.cuh
@@ -461,8 +464,11 @@ cloth_rope.cuh
 cloth_smoke.cuh
 rope_smoke.cuh
 world.cu
+```
 
-Also your cpp stuff for realizing the shapes as particles and realizing the concepts in the blender file are good to keep too
+- Keep the C++ geometry and Blender realization helpers as dedicated source
+  files. This is a source-organization refactor; it does not change the public
+  API or simulation behavior.
 
 ## Later — Gallery game shell
 
