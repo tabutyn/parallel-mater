@@ -180,6 +180,29 @@ class ExportSceneTests(unittest.TestCase):
                          if node.get("extras", {}).get("pm_system") ==
                          "rigid_body"},
                         {"Ground", "HingeSphere", "Gear", "Gear.001"})
+                    bodies = {
+                        node["extras"]["pm_source_name"]: node["extras"]
+                        for node in document["nodes"]
+                        if node.get("extras", {}).get("pm_system") ==
+                        "rigid_body"
+                    }
+                    self.assertAlmostEqual(bodies["Gear"]["pm_friction"],
+                                           0.08, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear"]["pm_restitution"], 0.0, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear"]["pm_angular_damping"], 0.03,
+                        places=5)
+                    self.assertAlmostEqual(bodies["Gear.001"]["pm_mass"],
+                                           1.0, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_friction"], 0.08, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_restitution"], 0.0,
+                        places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_angular_damping"], 0.01,
+                        places=5)
                 if kind in ("slider", "piston"):
                     self.assertEqual(constraints[0]["pm_limit_lin_x_lower"], -1.0)
                     self.assertEqual(constraints[0]["pm_limit_lin_x_upper"], 1.0)

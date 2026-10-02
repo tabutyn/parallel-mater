@@ -157,6 +157,22 @@ int main() {
           "merged hinge scene must contain four bodies and two hinges");
     check(small_gear_on_shared_frame && large_gear_on_shared_frame,
           "both active gears must hinge against one passive frame");
+    for (const auto &body : hinge_scene.rigid_bodies) {
+        if (body.source_name == "Gear") {
+            check(std::fabs(body.options.friction - 0.08F) < 1.0e-5F &&
+                      body.options.restitution == 0.0F &&
+                      std::fabs(body.options.angular_damping - 0.03F) <
+                          1.0e-5F,
+                  "driving gear teeth must roll without binding or bounce");
+        } else if (body.source_name == "Gear.001") {
+            check(std::fabs(body.options.mass - 1.0F) < 1.0e-5F &&
+                      std::fabs(body.options.friction - 0.08F) < 1.0e-5F &&
+                      body.options.restitution == 0.0F &&
+                      std::fabs(body.options.angular_damping - 0.01F) <
+                          1.0e-5F,
+                  "large gear must remain a loose non-bouncing follower");
+        }
+    }
     for (std::size_t index : {3U, 4U}) {
         const auto &constraint =
             definitions[index].rigid_constraints.front().options;
