@@ -36,7 +36,8 @@ Headless physics builds remain free of OpenGL and OptiX.
    Point, Hinge, Slider, Piston, Generic, Generic Spring, and Motor resources.
    Fixed attaches/releases with `Space`. Point starts with two spheres orbiting
    a shared anchor; `Space` releases or reattaches both. The four-wheel Motor car
-   uses arrow-key tank controls. The other five receive an authored sphere impact.
+   uses arrow-key tank controls. Hinge drives a 12:24 tooth gear pair through a
+   sphere-struck panel; the other four receive an authored sphere impact.
 3. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
    into a larger static receiver.
 4. **Fluid flow** — Blender Inflow emits repelling particles over a passive

@@ -265,9 +265,14 @@ converts the world frame to body-local frames, and creates the public API
 resource after both bodies. Runtime interaction changes the API resource, not
 the Blender source or GLB metadata.
 
-`examples/assets/tools/make_constraint_scenes.py` reproducibly authors the
-eight committed constraint `.blend` files. Export each through the same shared
-exporter; no scene-specific export path exists.
+`examples/assets/tools/make_constraint_scenes.py` reproducibly authors seven of
+the committed constraint `.blend` files. `ConstraintHinge.blend` is maintained
+as an artist-authored source: an active panel is fixed to the active 12-tooth
+gear, both active gears are pinned to passive axles by Z-axis hinges, and tooth
+contact drives the 24-tooth gear in the opposite direction at a 2:1 ratio. Its
+lower-paddle collision proxy lets the sphere transfer torque without the long
+visible panel colliding with the large gear. Export every source through the
+same shared exporter; no scene-specific export path exists.
 
 ## Validate the result
 

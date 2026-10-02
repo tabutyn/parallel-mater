@@ -126,7 +126,7 @@ class ExportSceneTests(unittest.TestCase):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
             "ConstraintPoint": ("point", 2),
-            "ConstraintHinge": ("hinge", 1),
+            "ConstraintHinge": ("hinge", 3),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
             "ConstraintGeneric": ("generic", 1),
@@ -138,14 +138,22 @@ class ExportSceneTests(unittest.TestCase):
                 bpy.ops.wm.open_mainfile(filepath=str(ASSETS / f"{name}.blend"))
                 document = self.check_export(Counter(
                     rigid_body=6 if kind == "motor" else
+                               7 if name == "ConstraintHinge" else
                                3 if kind == "fixed" else 4,
-                    rigid_constraint=count))
+                    rigid_constraint=count,
+                    collision_mesh=1 if name == "ConstraintHinge" else 0))
                 constraints = [node["extras"] for node in document["nodes"]
                                if node["extras"].get("pm_system") ==
                                "rigid_constraint"]
                 self.assertEqual(len(constraints), count)
-                self.assertTrue(all(item["pm_constraint_type"] == kind
-                                    for item in constraints))
+                if name == "ConstraintHinge":
+                    self.assertEqual(
+                        Counter(item["pm_constraint_type"]
+                                for item in constraints),
+                        Counter({"hinge": 2, "fixed": 1}))
+                else:
+                    self.assertTrue(all(item["pm_constraint_type"] == kind
+                                        for item in constraints))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
                 if kind == "fixed":
@@ -158,9 +166,28 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertEqual({item["pm_body_b"] for item in constraints},
                                      {"PointSphereA", "PointSphereB"})
                 if kind == "hinge":
-                    self.assertAlmostEqual(
-                        constraints[0]["pm_limit_ang_z_upper"],
-                        3.141592653589793 / 4.0, places=5)
+                    hinges = [item for item in constraints
+                              if item["pm_constraint_type"] == "hinge"]
+                    fixed = next(item for item in constraints
+                                 if item["pm_constraint_type"] == "fixed")
+                    self.assertEqual(len(hinges), 2)
+                    self.assertEqual(
+                        {(item["pm_body_a"], item["pm_body_b"])
+                         for item in hinges},
+                        {("Cylinder", "Gear"),
+                         ("GearLargeAxle", "Gear.001")})
+                    self.assertEqual(
+                        (fixed["pm_body_a"], fixed["pm_body_b"]),
+                        ("HingePanel", "Gear"))
+                    self.assertTrue(all(item["pm_solver_iterations"] == 32
+                                        for item in constraints))
+                    panel = next(
+                        node["extras"] for node in document["nodes"]
+                        if node.get("extras", {}).get("pm_source_name") ==
+                        "HingePanel")
+                    self.assertEqual(
+                        panel["pm_collision_proxy"],
+                        "HingePanel__PM_COLLISION")
                 if kind in ("slider", "piston"):
                     self.assertEqual(constraints[0]["pm_limit_lin_x_lower"], -1.0)
                     self.assertEqual(constraints[0]["pm_limit_lin_x_upper"], 1.0)

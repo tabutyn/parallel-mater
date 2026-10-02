@@ -92,8 +92,10 @@ Up/Down and Enter to switch.
 Fixed uses `Space` to attach/release. Point starts with two spheres orbiting a
 shared anchor; `Space` releases or reattaches both. Arrow keys tilt gravity in
 every Constraint scene except Motor, where they keep controlling the car's tank
-drive. Hinge, Slider, Piston, Generic, and Generic Spring launch an authored
-sphere impact automatically.
+drive. Hinge launches a sphere into a panel fixed to a 12-tooth hinged gear;
+its contact with a 24-tooth hinged gear demonstrates opposite rotation at a
+2:1 angular-speed ratio. Slider, Piston, Generic, and Generic Spring launch an
+authored sphere impact automatically.
 In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
