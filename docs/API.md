@@ -709,6 +709,12 @@ impulse, and accumulated tangential friction impulse. Requesting the stream in
 frame. It exists for visualization and analysis; applications must not feed it
 back into the solver.
 
+`RigidBodyOptions::collision_margin` is a contact-search distance, not added
+shape thickness. The narrow phase retains the nearest surface that is touching
+or will close during the next substep. Its unilateral velocity constraint
+allows approach to zero distance, holds there while motion is inward or
+stationary, and releases immediately when the surfaces separate.
+
 ## Errors and validation
 
 Public calls are `noexcept` and return `Status`. Invalid values and stale

@@ -226,7 +226,8 @@ void test_floor_contact_and_async_contract() {
               "download rigid contact diagnostic");
         check(std::isfinite(contact.position.y) &&
                   std::isfinite(contact.normal.y) &&
-                  contact.penetration > 0.0F && contact.normal_impulse >= 0.0F,
+                  contact.penetration >= 0.0F &&
+                  contact.normal_impulse >= 0.0F,
               "rigid contact diagnostic must contain finite solver values");
     }
 
@@ -510,6 +511,82 @@ void test_swept_contact_when_leaf_cache_overflows() {
                  "read overflow projectile after follow-up step");
     check(result.position.y >= 0.099F,
           "overflow projectile must remain above the surface");
+}
+
+void test_exact_one_sided_speculative_contact() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U}, world),
+                 "create exact contact world");
+    const TriangleMeshId slot_mesh = upload_mesh(
+        world,
+        {{-0.01F, -1.0F, -1.0F}, {-0.01F, 1.0F, -1.0F},
+         {-0.01F, -1.0F, 1.0F}, {0.01F, -1.0F, -1.0F},
+         {0.01F, -1.0F, 1.0F}, {0.01F, 1.0F, -1.0F}},
+        {0U, 1U, 2U, 3U, 4U, 5U}, "add narrow slot");
+    const TriangleMeshId plate_mesh = upload_mesh(
+        world,
+        {{0.0F, -0.5F, -0.5F}, {0.0F, 0.5F, -0.5F},
+         {0.0F, -0.5F, 0.5F}},
+        {0U, 1U, 2U}, "add moving plate");
+    RigidBodyId slot{};
+    RigidBodyId plate{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body,
+                      .mesh = slot_mesh,
+                      .collision_margin = 0.02F},
+                     slot),
+                 "add narrow slot body");
+    check_status(world.add_rigid_body(
+                     {.mesh = plate_mesh,
+                      .initial_state = {
+                          .linear_velocity = {1.0F, 0.0F, 0.0F}},
+                      .linear_damping = 0.0F,
+                      .angular_damping = 0.0F,
+                      .collision_margin = 0.02F},
+                     plate),
+                 "add moving plate body");
+    constexpr float timestep = 0.005F;
+    const StepOptions step{.timestep = timestep,
+                           .substeps = 1U,
+                           .gravity = {},
+                           .collect_rigid_contacts = true};
+    check_status(world.step(step), "approach exact contact");
+    RigidBodyState state{};
+    check_status(world.read_rigid_body_state(plate, state),
+                 "read approaching plate");
+    check(near(state.position.x, 0.005F, 2.0e-4F) &&
+              near(state.linear_velocity.x, 1.0F, 2.0e-4F),
+          "speculative contact must approach the surface instead of the margin");
+    check(world.rigid_contacts().event_count == 1U,
+          "only the nearest closing slot surface may become a contact");
+
+    check_status(world.step(step), "reach exact contact");
+    check_status(world.read_rigid_body_state(plate, state),
+                 "read touching plate");
+    check(near(state.position.x, 0.01F, 2.0e-4F) &&
+              std::fabs(state.linear_velocity.x) < 2.0e-4F,
+          "contact must stop at zero surface distance");
+    check(world.rigid_contacts().event_count == 1U,
+          "touching surfaces must retain one contact");
+
+    check_status(world.step(step), "maintain exact contact");
+    check_status(world.read_rigid_body_state(plate, state),
+                 "read resting plate");
+    check(near(state.position.x, 0.01F, 2.0e-4F) &&
+              world.rigid_contacts().event_count == 1U,
+          "resting surfaces must remain at zero distance");
+
+    state.linear_velocity = {-1.0F, 0.0F, 0.0F};
+    check_status(world.set_rigid_body_state(plate, state),
+                 "release touching plate");
+    check_status(world.step(step), "separate exact contact");
+    check_status(world.read_rigid_body_state(plate, state),
+                 "read separating plate");
+    check(state.position.x < 0.006F && state.linear_velocity.x < -0.99F &&
+              world.rigid_contacts().event_count == 0U,
+          "a separating surface must release without a contact impulse");
 }
 
 void test_parallel_contact_coloring(std::uint32_t body_count) {
@@ -852,6 +929,7 @@ int main() {
     test_rotation_dynamic_coupling_and_determinism();
     test_high_speed_swept_triangle_contact();
     test_swept_contact_when_leaf_cache_overflows();
+    test_exact_one_sided_speculative_contact();
     test_parallel_contact_coloring(8U);
     test_parallel_contact_coloring(128U);
     test_parallel_contact_coloring(256U);

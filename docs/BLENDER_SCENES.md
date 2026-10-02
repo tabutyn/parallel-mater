@@ -275,9 +275,10 @@ merged into the active 12-tooth gear. Both active gears hinge against the same
 passive Ground body, with each constraint frame's Z axis copied from its gear's
 local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
 at a 2:1 ratio. The 3.05 m center distance, half-tooth starting phase, 0.008 m
-per-gear collision margins, 64-iteration hinges, and eight gallery substeps
-keep the sharp teeth separated throughout a full mesh cycle. Export every
-source through the same shared exporter; no scene-specific export path exists.
+per-gear collision search margins, 64-iteration hinges, and eight gallery
+substeps let the exact-contact solver retain the nearest closing tooth flank at
+zero surface distance throughout a full mesh cycle. Export every source through
+the same shared exporter; no scene-specific export path exists.
 
 ## Validate the result
 

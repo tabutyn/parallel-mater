@@ -6923,14 +6923,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                       impl_->rigid_active_pairs,
                       impl_->rigid_active_pair_count,
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
-                      impl_->rigid_manifolds);
+                      substep_timestep, impl_->rigid_manifolds);
         evaluate_overflow_rigid_pairs_kernel<<<
             contact_block_count, block_size, 0, stream>>>(
                 impl_->parameters, impl_->states[impl_->current_state],
                 impl_->states[output_state], impl_->rigid_body_count,
                 impl_->meshes, impl_->rigid_active_pairs,
                 impl_->rigid_active_pair_count,
-                impl_->rigid_leaf_pair_counts, impl_->rigid_manifolds);
+                impl_->rigid_leaf_pair_counts, substep_timestep,
+                impl_->rigid_manifolds);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -6994,7 +6995,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_contact_event_offsets,
                 impl_->rigid_contact_events,
                 collect_rigid_contacts
-                    ? impl_->rigid_contact_capacity : 0U);
+                    ? impl_->rigid_contact_capacity : 0U,
+                substep_timestep);
         } else {
             for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
                 for (std::uint32_t color = 0U;
@@ -7010,7 +7012,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         impl_->rigid_contact_events,
                         collect_rigid_contacts
                             ? impl_->rigid_contact_capacity : 0U,
-                        color, pass == 0U);
+                        color, substep_timestep, pass == 0U);
                 }
                 resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
                     impl_->parameters, impl_->states[output_state],
@@ -7021,7 +7023,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_contact_events,
                     collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
-                    pass == 0U);
+                    substep_timestep, pass == 0U);
             }
         }
         if (impl_->rigid_constraint_count != 0U) {
