@@ -338,6 +338,17 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-gallery-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
 
+        add_executable(parallel-mater-fixed-collector-tests
+                       tests/gallery/fixed_collector_tests.cpp)
+        target_link_libraries(parallel-mater-fixed-collector-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-fixed-collector-tests PRIVATE
+            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb")
+        add_test(NAME parallel-mater-fixed-collector-tests
+                 COMMAND parallel-mater-fixed-collector-tests)
+        set_tests_properties(parallel-mater-fixed-collector-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
         add_executable(parallel-mater-rigid-constraint-scene-tests
                        tests/gallery/rigid_constraint_scene_tests.cpp)
         target_link_libraries(parallel-mater-rigid-constraint-scene-tests
@@ -642,7 +653,7 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-constraint-fixed-headless-test
             parallel-mater-constraint-fixed.ppm 120 --constraint-fixed
-            --constraint-action-after-frames 60)
+            --gravity-tilt-degrees 80)
         add_gallery_headless_test(
             parallel-mater-constraint-point-headless-test
             parallel-mater-constraint-point.ppm 120 --constraint-point

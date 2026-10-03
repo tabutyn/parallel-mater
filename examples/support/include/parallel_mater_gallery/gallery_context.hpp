@@ -79,6 +79,7 @@ enum class GallerySceneSource : std::uint8_t {
 enum class GalleryControlPolicy : std::uint8_t {
     rigid_gravity,
     constraint_toggle_gravity,
+    collector_gravity,
     tank_motor,
     dump_rotation,
     none,
@@ -89,7 +90,8 @@ enum class GalleryControlPolicy : std::uint8_t {
 [[nodiscard]] constexpr bool uses_rigid_gravity(
     GalleryControlPolicy policy) noexcept {
     return policy == GalleryControlPolicy::rigid_gravity ||
-           policy == GalleryControlPolicy::constraint_toggle_gravity;
+           policy == GalleryControlPolicy::constraint_toggle_gravity ||
+           policy == GalleryControlPolicy::collector_gravity;
 }
 
 [[nodiscard]] constexpr bool toggles_constraint(
@@ -136,9 +138,9 @@ inline constexpr std::array gallery_entries{
         {}, false, false, 0U, 0U},
     GalleryEntry{GalleryContext::constraint_fixed,
         GallerySceneSource::constraint_fixed,
-        GalleryControlPolicy::constraint_toggle_gravity, GalleryCountKind::none,
+        GalleryControlPolicy::collector_gravity, GalleryCountKind::none,
         "--constraint-fixed", "CONSTRAINT: FIXED",
-        "ARROWS GRAVITY  SPACE GLUE / RELEASE", {51, 34, 38, 235},
+        "ARROWS ROLL  TOUCH BIG TO STICK  R RESET", {51, 34, 38, 235},
         {244, 98, 70},
         {.target = {0.0F, 0.5F, 0.0F}, .distance_scale = 0.72F},
         false, false, 0U, 0U},

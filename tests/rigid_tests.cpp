@@ -3,6 +3,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -209,6 +210,54 @@ void test_generation_and_kinematics() {
     check(near(state.position.x, 1.0F) && near(state.position.y, 2.0F) &&
               near(state.position.z, 3.0F),
           "kinematic triangle body must reach its frame target");
+}
+
+void test_batched_central_acceleration_and_interpolation_snapshot() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 1U}, world),
+                 "create acceleration batch world");
+    const TriangleMeshId mesh = add_box(world, {0.1F, 0.1F, 0.1F});
+    RigidBodyId bodies[2]{};
+    for (std::uint32_t index = 0U; index < 2U; ++index)
+        check_status(world.add_rigid_body(
+                         {.mesh = mesh,
+                          .initial_state = {
+                              .position = {static_cast<float>(index),
+                                           0.0F, 0.0F}},
+                          .mass = 2.0F + 2.0F * index,
+                          .linear_damping = 0.0F,
+                          .angular_damping = 0.0F},
+                         bodies[index]),
+                     "add acceleration batch body");
+    check_status(world.apply_central_acceleration(
+                     {bodies, 2U}, {3.0F, 0.0F, 0.0F}),
+                 "apply acceleration batch");
+    check_status(world.step({.timestep = 0.5F, .substeps = 1U,
+                             .gravity = {}}),
+                 "step acceleration batch");
+    RigidBodyDeviceView view{};
+    check_status(world.rigid_body_view(view),
+                 "borrow interpolation snapshot");
+    check(view.previous_states.size == 2U,
+          "rigid view must expose prior physics-tick states");
+    for (std::uint32_t index = 0U; index < 2U; ++index) {
+        RigidBodyState state{};
+        check_status(world.read_rigid_body_state(bodies[index], state),
+                     "read accelerated body");
+        check(near(state.linear_velocity.x, 1.5F) &&
+                  near(state.position.x,
+                       static_cast<float>(index) + 0.75F),
+              "central acceleration must be mass independent");
+        RigidBodyState previous{};
+        check(cudaMemcpy(&previous, view.previous_states.data + index,
+                         sizeof(previous), cudaMemcpyDeviceToHost) ==
+                  cudaSuccess,
+              "read prior interpolation state");
+        check(near(previous.position.x, static_cast<float>(index)),
+              "interpolation snapshot must precede latest physics tick");
+    }
 }
 
 void test_floor_contact_and_async_contract() {
@@ -444,6 +493,234 @@ void test_rotation_dynamic_coupling_and_determinism() {
           "dynamic triangle collision must preserve linear momentum");
 }
 
+// Overlapping siblings must not fight a weld through their common parent.
+// Exercise runtime topology changes as well as the ground-contact exception.
+void test_fixed_cluster_collision_filter() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 5U,
+                                .rigid_constraint_capacity = 2U,
+                                .triangle_mesh_capacity = 2U}, world),
+                 "create welded collision-filter world");
+    const auto plane = add_plane(world);
+    const auto box = add_box(world, {0.2F, 0.2F, 0.2F});
+    RigidBodyId floor{}, dummy{}, parent{}, left{}, right{};
+    check_status(world.add_rigid_body(
+        {.motion = MotionType::static_body, .mesh = plane}, floor), "add weld floor");
+    check_status(world.add_rigid_body(
+        {.mesh = box, .initial_state = {.position = {20.0F, 2.0F, 0.0F}}}, dummy),
+        "add compaction body");
+    const RigidBodyState parent_state{.position = {0.0F, 1.0F, 0.0F}};
+    const RigidBodyState left_state{.position = {-0.1F, 0.199F, 0.0F}};
+    const RigidBodyState right_state{.position = {0.1F, 0.199F, 0.0F}};
+    check_status(world.add_rigid_body(
+        {.mesh = box, .initial_state = parent_state, .mass = 100.0F}, parent),
+        "add weld parent");
+    check_status(world.add_rigid_body(
+        {.mesh = box, .initial_state = left_state}, left), "add weld left");
+    check_status(world.add_rigid_body(
+        {.mesh = box, .initial_state = right_state}, right), "add weld right");
+    RigidConstraintOptions left_options{
+        .body_a = parent, .body_b = left,
+        .local_anchor_a = {-0.1F, -0.801F, 0.0F}};
+    RigidConstraintOptions right_options{
+        .body_a = parent, .body_b = right,
+        .local_anchor_a = {0.1F, -0.801F, 0.0F}};
+    RigidConstraintId left_joint{}, right_joint{};
+    check_status(world.add_rigid_constraint(left_options, left_joint), "weld left");
+    check_status(world.add_rigid_constraint(right_options, right_joint), "weld right");
+    const auto reset = [&](float lift = 0.0F) {
+        auto a = parent_state, b = left_state, c = right_state;
+        a.position.y += lift; b.position.y += lift; c.position.y += lift;
+        check_status(world.set_rigid_body_state(parent, a), "reset weld parent");
+        check_status(world.set_rigid_body_state(left, b), "reset weld left");
+        check_status(world.set_rigid_body_state(right, c), "reset weld right");
+    };
+    const auto step = [&] {
+        check_status(world.step({.timestep = 1.0F / 60.0F, .substeps = 1U,
+                                 .gravity = {}, .collect_rigid_contacts = true}),
+                     "step welded collision filter");
+    };
+    const auto contacts = [&](bool expect_siblings) {
+        step();
+        const auto view = world.rigid_contacts();
+        std::vector<RigidContactEvent> events(view.event_count);
+        if (!events.empty()) check(cudaMemcpy(events.data(), view.events.data,
+            events.size() * sizeof(RigidContactEvent), cudaMemcpyDeviceToHost) ==
+            cudaSuccess, "read welded contacts");
+        bool siblings = false, ground = false;
+        for (const auto &event : events) {
+            siblings |= (event.body == left && event.collider == right) ||
+                        (event.body == right && event.collider == left);
+            ground |= event.body == floor || event.collider == floor;
+        }
+        check(siblings == expect_siblings, "weld topology must control sibling contacts");
+        check(ground, "weld filtering must preserve external ground contacts");
+    };
+    // In free space, conflicting internal contacts previously accelerated an
+    // initially motionless assembly even with gravity and external forces off.
+    reset(2.0F);
+    for (int frame = 0; frame < 12; ++frame) step();
+    for (auto body : {parent, left, right}) {
+        RigidBodyState state{};
+        check_status(world.read_rigid_body_state(body, state), "read free weld");
+        const auto v = state.linear_velocity, w = state.angular_velocity;
+        check(v.x*v.x + v.y*v.y + v.z*v.z + w.x*w.x + w.y*w.y + w.z*w.z < 1.0e-6F,
+              "overlapping welded siblings must not generate kinetic energy");
+    }
+    reset(); contacts(false);
+    check_status(world.remove_rigid_body(dummy), "compact bodies with live welds");
+    reset(); contacts(false);
+    right_options.enabled = false;
+    check_status(world.update_rigid_constraint(right_joint, right_options), "disable weld");
+    reset(); contacts(true);
+    right_options.enabled = true;
+    right_options.disable_collisions = false;
+    check_status(world.update_rigid_constraint(right_joint, right_options), "allow weld collisions");
+    reset(); contacts(true);
+    right_options.disable_collisions = true;
+    right_options.type = RigidConstraintType::point;
+    check_status(world.update_rigid_constraint(right_joint, right_options), "articulate weld");
+    reset(); contacts(true);
+    right_options.type = RigidConstraintType::fixed;
+    right_options.breaking_impulse_threshold = 0.001F;
+    check_status(world.update_rigid_constraint(right_joint, right_options), "make breakable weld");
+    reset(2.0F);
+    auto pulled = right_state;
+    pulled.position.y += 2.0F;
+    pulled.linear_velocity.x = 1.0F;
+    check_status(world.set_rigid_body_state(right, pulled), "load breakable weld");
+    step();
+    RigidConstraintState broken{};
+    check_status(world.read_rigid_constraint_state(right_joint, broken), "read broken weld");
+    check(broken.broken, "test weld must break");
+    reset(); contacts(true);
+    check_status(world.remove_rigid_constraint(right_joint), "remove broken weld");
+    right_options.breaking_impulse_threshold = 0.0F;
+    check_status(world.add_rigid_constraint(right_options, right_joint), "reweld reused slot");
+    reset(); contacts(false);
+    check_status(world.remove_rigid_constraint(right_joint), "remove live weld");
+    reset(); contacts(true);
+}
+
+void test_fixed_cluster_ground_support() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 5U,
+                                .rigid_constraint_capacity = 3U,
+                                .triangle_mesh_capacity = 3U},
+                               world),
+                 "create fixed ground-support world");
+    const TriangleMeshId plane_mesh = add_plane(world);
+    const TriangleMeshId large_mesh = add_box(world, {0.5F, 0.5F, 0.5F});
+    const TriangleMeshId support_mesh = add_box(world, {0.2F, 0.2F, 0.2F});
+    RigidBodyId floor{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body,
+                      .mesh = plane_mesh,
+                      .friction = 0.8F,
+                      .collision_margin = 0.006F},
+                     floor),
+                 "add fixed-cluster floor");
+    const RigidBodyState large_initial{.position = {0.0F, 0.9F, 0.0F}};
+    RigidBodyId large{};
+    check_status(world.add_rigid_body(
+                     {.mesh = large_mesh,
+                      .initial_state = large_initial,
+                      .mass = 100.0F,
+                      .friction = 0.8F,
+                      .collision_margin = 0.006F},
+                     large),
+                 "add fixed-cluster large body");
+    constexpr std::array<Vec3, 3U> support_positions{{
+        {-0.5F, 0.2F, -0.4F},
+        {0.5F, 0.2F, -0.4F},
+        {0.0F, 0.2F, 0.5F},
+    }};
+    std::array<RigidBodyId, support_positions.size()> supports{};
+    for (std::size_t index = 0U; index < supports.size(); ++index) {
+        check_status(world.add_rigid_body(
+                         {.mesh = support_mesh,
+                          .initial_state = {.position =
+                                                support_positions[index]},
+                          .mass = 1.0F,
+                          .friction = 0.8F,
+                          .collision_margin = 0.006F},
+                         supports[index]),
+                     "add fixed-cluster support");
+        RigidConstraintId constraint{};
+        check_status(world.add_rigid_constraint(
+                         {.type = RigidConstraintType::fixed,
+                          .body_a = large,
+                          .body_b = supports[index],
+                          .local_anchor_a = {
+                              support_positions[index].x -
+                                  large_initial.position.x,
+                              support_positions[index].y -
+                                  large_initial.position.y,
+                              support_positions[index].z -
+                                  large_initial.position.z},
+                          .enabled = true,
+                          .disable_collisions = true,
+                          .solver_iterations = 32U},
+                         constraint),
+                     "fix ground support to large body");
+    }
+
+    float maximum_late_angular_speed = 0.0F;
+    float maximum_late_support_vertical_speed = 0.0F;
+    float minimum_support_clearance = 1.0F;
+    for (int frame = 0; frame < 600; ++frame) {
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 8U,
+                                 .gravity = {0.0F, -9.81F, 0.0F}}),
+                     "settle fixed ground-support cluster");
+        if (frame < 300) continue;
+        RigidBodyState large_state{};
+        check_status(world.read_rigid_body_state(large, large_state),
+                     "read fixed-cluster large body");
+        maximum_late_angular_speed = std::max(
+            maximum_late_angular_speed,
+            std::sqrt(large_state.angular_velocity.x *
+                          large_state.angular_velocity.x +
+                      large_state.angular_velocity.y *
+                          large_state.angular_velocity.y +
+                      large_state.angular_velocity.z *
+                          large_state.angular_velocity.z));
+        for (RigidBodyId support : supports) {
+            RigidBodyState support_state{};
+            check_status(world.read_rigid_body_state(support, support_state),
+                         "read fixed-cluster support");
+            const auto q = support_state.orientation;
+            // The lowest corner of the rotated box must stay above the plane.
+            const float vertical_extent = 0.2F * (
+                std::fabs(2.0F * (q.x * q.y + q.w * q.z)) +
+                std::fabs(1.0F - 2.0F * (q.x * q.x + q.z * q.z)) +
+                std::fabs(2.0F * (q.y * q.z - q.w * q.x)));
+            minimum_support_clearance = std::min(
+                minimum_support_clearance,
+                support_state.position.y - vertical_extent);
+            maximum_late_support_vertical_speed = std::max(
+                maximum_late_support_vertical_speed,
+                std::fabs(support_state.linear_velocity.y));
+        }
+    }
+    check(maximum_late_angular_speed < 0.02F &&
+              maximum_late_support_vertical_speed < 0.1F,
+          "fixed cluster must settle on multiple ground supports");
+    check(minimum_support_clearance > -0.003F,
+          "light fixed supports must carry the heavy body without sinking");
+    if (maximum_late_angular_speed >= 0.02F ||
+        maximum_late_support_vertical_speed >= 0.1F ||
+        minimum_support_clearance <= -0.003F) {
+        std::cerr << "fixed support angular_speed="
+                  << maximum_late_angular_speed
+                  << " support_vertical_speed="
+                  << maximum_late_support_vertical_speed
+                  << " minimum_clearance=" << minimum_support_clearance << '\n';
+    }
+}
+
 void test_high_speed_swept_triangle_contact() {
     using namespace parallel_mater;
     World world;
@@ -499,15 +776,17 @@ void test_high_speed_swept_triangle_contact() {
     }
 }
 
-void test_swept_contact_when_leaf_cache_overflows() {
+void test_swept_contact_when_leaf_cache_overflows(std::uint32_t body_capacity) {
     using namespace parallel_mater;
     World world;
-    check_status(World::create({.rigid_body_capacity = 2U,
+    check_status(World::create({.rigid_body_capacity = body_capacity,
                                 .triangle_mesh_capacity = 2U}, world),
                  "create overflow contact world");
     std::vector<std::uint32_t> floor_indices;
-    floor_indices.reserve(516U * 3U);
-    for (std::uint32_t index = 0U; index < 516U; ++index) {
+    // Exceed both the ordinary 512-entry cache and the 4096-entry small-world
+    // cache (each floor leaf overlaps four projectile leaves).
+    floor_indices.reserve(4100U * 3U);
+    for (std::uint32_t index = 0U; index < 4100U; ++index) {
         floor_indices.insert(floor_indices.end(), {0U, 1U, 2U});
     }
     const TriangleMeshId floor_mesh = upload_mesh(
@@ -957,11 +1236,15 @@ int main() {
     test_small_triangle_edge_clearance();
     test_mesh_lifetime_and_integration();
     test_generation_and_kinematics();
+    test_batched_central_acceleration_and_interpolation_snapshot();
     test_floor_contact_and_async_contract();
     test_open_two_sided_surface();
     test_rotation_dynamic_coupling_and_determinism();
+    test_fixed_cluster_collision_filter();
+    test_fixed_cluster_ground_support();
     test_high_speed_swept_triangle_contact();
-    test_swept_contact_when_leaf_cache_overflows();
+    test_swept_contact_when_leaf_cache_overflows(2U);
+    test_swept_contact_when_leaf_cache_overflows(17U);
     test_small_rest_offset_speculative_contact();
     test_parallel_contact_coloring(8U);
     test_parallel_contact_coloring(128U);

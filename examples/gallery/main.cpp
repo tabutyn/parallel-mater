@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/fixed_collector.hpp>
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/physics_debug.hpp>
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -39,6 +41,7 @@ using parallel_mater::World;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
+using parallel_mater::gallery::FixedContactCollector;
 using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::GalleryControlPolicy;
@@ -64,10 +67,13 @@ using parallel_mater::gallery::StaticTriangleSurface;
 using parallel_mater::gallery::SurfaceSelection;
 
 constexpr float k_timestep = 1.0F / 60.0F;
+constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
+constexpr double k_maximum_frame_delta = 0.25;
 constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
 constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
 constexpr float k_gravity_tilt_tangent = 0.577350269F;
+constexpr float k_collector_gravity_tilt_degrees = 80.0F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
 constexpr float k_dump_final_angle = -k_pi * 0.25F;
@@ -184,6 +190,7 @@ struct GalleryRuntime {
     World world{};
     SceneInstance instance{};
     OptixRenderer renderer{};
+    FixedContactCollector fixed_collector{};
     std::size_t kinematic_index{std::numeric_limits<std::size_t>::max()};
     RigidBodyState kinematic_target{};
 };
@@ -392,6 +399,17 @@ struct FluidEscapeTrace {
             input.z * k_gravity * k_gravity_tilt_tangent * inverse};
 }
 
+[[nodiscard]] parallel_mater::Vec3 collector_gravity_for(
+    DirectionalInput input, float gravity_scale) {
+    const float horizontal_squared = input.x * input.x + input.z * input.z;
+    const float magnitude = k_gravity * gravity_scale;
+    if (horizontal_squared == 0.0F) return {0.0F, -magnitude, 0.0F};
+    const float angle = k_collector_gravity_tilt_degrees * k_pi / 180.0F;
+    return {input.x * magnitude * std::sin(angle),
+            -magnitude * std::cos(angle),
+            input.z * magnitude * std::sin(angle)};
+}
+
 [[nodiscard]] bool parse_positive(std::string_view value, int &output) {
     int parsed = 0;
     const auto result =
@@ -444,9 +462,11 @@ struct FluidEscapeTrace {
                 output.initial_context = GalleryContext::fluid;
         } else if (const GalleryEntry *entry = entry_for_option(argument)) {
             output.initial_context = entry->context;
-        } else if ((argument == "--cloth-tilt-degrees" ||
-                    argument == "--gravity-tilt-degrees") && index + 1 < argc) {
+        } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,
+                             output.headless_cloth_tilt_degrees)) return false;
+        } else if (argument == "--gravity-tilt-degrees" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 1U, 80U,
                              output.headless_cloth_tilt_degrees)) return false;
         } else if (argument == "--cloth-tilt-after-frames" && index + 1 < argc) {
             if (!parse_count(argv[++index], 0U, 100000U,
@@ -484,7 +504,7 @@ struct FluidEscapeTrace {
                 first = false;
             }
             std::cout << "] [--fluid-particles N] "
-                         "[--gravity-tilt-degrees 1..45 (headless)] "
+                         "[--gravity-tilt-degrees 1..80 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
                          "[--constraint-action-after-frames N (headless)] "
@@ -745,9 +765,24 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         if (entry.has_fluid)
             next.scene.fluid_options.capacity = fluid_particles;
     }
-    const Status create_status = parallel_mater::gallery::create_scene_world(
-        next.scene, next.world, next.instance,
-        {.frame_capacity = 30U, .frame_stride = 1U});
+    parallel_mater::WorldOptions world_options{};
+    Status create_status = parallel_mater::gallery::scene_world_options(
+        next.scene, world_options,
+        {.frame_capacity = context == GalleryContext::constraint_fixed ? 300U : 30U,
+         .frame_stride = 1U});
+    if (create_status && context == GalleryContext::constraint_fixed) {
+        world_options.rigid_constraint_capacity =
+            FixedContactCollector::constraint_capacity(next.scene);
+    }
+    if (create_status)
+        create_status = World::create(world_options, next.world);
+    if (create_status)
+        create_status = parallel_mater::gallery::instantiate_scene(
+            next.scene, next.world, next.instance);
+    if (create_status && context == GalleryContext::constraint_fixed) {
+        create_status = next.fixed_collector.initialize(
+            next.scene, next.instance);
+    }
     if (!create_status) {
         error = create_status.message != nullptr ? create_status.message
                                                  : "scene creation failed";
@@ -784,6 +819,7 @@ struct GallerySession {
     parallel_mater::WorldStepTimings timings{};
     parallel_mater::WorldStatistics statistics{};
     parallel_mater::gallery::RendererTimings renderer_timings{};
+    std::uint64_t revision{};
 
     [[nodiscard]] bool rebuild(const Options &options, GalleryContext context,
                                std::uint32_t requested_dump_spheres,
@@ -803,6 +839,7 @@ struct GallerySession {
         timings = {};
         statistics = {};
         renderer_timings = {};
+        ++revision;
         return true;
     }
 };
@@ -845,6 +882,9 @@ int main(int argc, char **argv) {
     input_state.camera.set_preset(gallery_entry(runtime.context).camera);
     if (!options.headless_output.empty()) {
         StepOptions headless_step = step_options;
+        const bool fixed_collection = runtime.fixed_collector.active();
+        headless_step.collect_rigid_contacts = fixed_collection;
+        Vec3 fixed_headless_gravity = step_options.gravity;
         if (gallery_entry(runtime.context).controls ==
                 GalleryControlPolicy::cloth_gravity &&
             options.headless_cloth_tilt_degrees != 0U) {
@@ -853,6 +893,13 @@ int main(int argc, char **argv) {
             const float magnitude = k_gravity * runtime.scene.gravity_scale;
             headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
                                     -magnitude * std::sin(angle)};
+        } else if (fixed_collection &&
+                   options.headless_cloth_tilt_degrees != 0U) {
+            const float angle = static_cast<float>(
+                options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
+            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            fixed_headless_gravity = {magnitude * std::sin(angle),
+                                      -magnitude * std::cos(angle), 0.0F};
         }
         FluidEscapeTrace escape_trace{};
         StaticTriangleSurface floor_index{};
@@ -892,6 +939,8 @@ int main(int argc, char **argv) {
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
                     options.headless_constraint_action_after_frames) &&
+                toggles_constraint(
+                    gallery_entry(runtime.context).controls) &&
                 !toggle_constraints(runtime)) return 1;
             if (options.headless_motor_forward &&
                 gallery_entry(runtime.context).controls ==
@@ -925,6 +974,19 @@ int main(int argc, char **argv) {
                     k_cloth_gravity_tilt_degrees, k_timestep);
                 frame_step.gravity = headless_step.gravity;
             }
+            if (fixed_collection) {
+                frame_step.gravity =
+                    frame < static_cast<int>(
+                                options.headless_cloth_tilt_after_frames)
+                    ? step_options.gravity : fixed_headless_gravity;
+                if (!require(runtime.fixed_collector.apply_loose_gravity(
+                                 runtime.world, runtime.scene,
+                                 runtime.instance, step_options.gravity,
+                                 frame_step.gravity),
+                             "apply loose fixed-scene gravity")) {
+                    return 1;
+                }
+            }
             const Status frame_status = runtime.world.step(frame_step);
             if (!frame_status) {
                 WorldStatistics failure_statistics{};
@@ -934,6 +996,12 @@ int main(int argc, char **argv) {
                           << failure_statistics.maximum_fluid_neighbor_count
                           << '\n';
                 (void)require(frame_status, "step headless gallery");
+                return 1;
+            }
+            if (fixed_collection &&
+                !require(runtime.fixed_collector.collect(
+                             runtime.world, runtime.scene, runtime.instance),
+                         "collect fixed contacts")) {
                 return 1;
             }
             if (runtime.instance.has_fluid &&
@@ -963,6 +1031,13 @@ int main(int argc, char **argv) {
         if (options.trace_fluid_escapes &&
             (escape_trace.peak_below != 0U ||
              escape_trace.peak_below_local != 0U)) return 1;
+        if (fixed_collection) {
+            std::cout << "Fixed collector attached="
+                      << runtime.fixed_collector.attached_count()
+                      << " generated_constraints="
+                      << runtime.fixed_collector.generated_constraint_count()
+                      << '\n';
+        }
         if (runtime.instance.has_fluid) {
             parallel_mater::WorldStatistics statistics{};
             if (!require(runtime.world.collect_statistics(statistics),
@@ -1143,7 +1218,18 @@ int main(int argc, char **argv) {
     bool capture_requested = false;
     bool context_visible = false;
     GalleryContext context_selection = runtime.context;
+    using FrameClock = std::chrono::steady_clock;
+    auto previous_frame_time = FrameClock::now();
+    double physics_accumulator = 0.0;
+    std::uint64_t observed_session_revision = session.revision;
+    float rigid_interpolation_alpha = 1.0F;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        const auto frame_time = FrameClock::now();
+        const double frame_delta = std::min(
+            k_maximum_frame_delta,
+            std::chrono::duration<double>(
+                frame_time - previous_frame_time).count());
+        previous_frame_time = frame_time;
         glfwPollEvents();
         keys.update(window);
 
@@ -1279,71 +1365,128 @@ int main(int argc, char **argv) {
                 capture_requested = true;
         }
 
-        if (!input_state.count_dialog_visible) {
+        if (session.revision != observed_session_revision) {
+            observed_session_revision = session.revision;
+            physics_accumulator = 0.0;
+            rigid_interpolation_alpha = 1.0F;
+        } else if (input_state.count_dialog_visible) {
+            physics_accumulator = 0.0;
+            rigid_interpolation_alpha = 1.0F;
+        } else {
+            physics_accumulator += frame_delta;
             const DirectionalInput directional =
                 context_visible ? DirectionalInput{} : directional_input(window);
             const GalleryEntry &entry = gallery_entry(runtime.context);
-            if (entry.controls == GalleryControlPolicy::tank_motor &&
-                !drive_motors(runtime, directional)) {
-                break;
-            }
-            if (runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
-                if (entry.controls == GalleryControlPolicy::dump_rotation) {
-                    if (!context_visible &&
-                        glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-                        dump_angle = std::max(
-                            k_dump_final_angle,
-                            dump_angle - k_dump_rotation_speed * k_timestep);
-                    }
-                    runtime.kinematic_target.orientation =
-                        rotation_z(dump_angle);
-                } else {
-                    runtime.kinematic_target.position.x +=
-                        directional.x * k_kinematic_speed * k_timestep;
-                    runtime.kinematic_target.position.z +=
-                        directional.z * k_kinematic_speed * k_timestep;
-                }
-                if (!require(runtime.world.set_kinematic_target(
-                                 runtime.instance.rigid_bodies[
-                                     runtime.kinematic_index],
-                                 runtime.kinematic_target),
-                             "move kinematic body")) {
+            std::uint32_t physics_steps = 0U;
+            bool step_failed = false;
+            while (physics_accumulator >= k_timestep &&
+                   physics_steps < k_maximum_catch_up_steps) {
+                if (entry.controls == GalleryControlPolicy::tank_motor &&
+                    !drive_motors(runtime, directional)) {
+                    step_failed = true;
                     break;
                 }
+                if (runtime.kinematic_index <
+                    runtime.instance.rigid_bodies.size()) {
+                    if (entry.controls == GalleryControlPolicy::dump_rotation) {
+                        if (!context_visible &&
+                            glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+                            dump_angle = std::max(
+                                k_dump_final_angle,
+                                dump_angle -
+                                    k_dump_rotation_speed * k_timestep);
+                        }
+                        runtime.kinematic_target.orientation =
+                            rotation_z(dump_angle);
+                    } else {
+                        runtime.kinematic_target.position.x +=
+                            directional.x * k_kinematic_speed * k_timestep;
+                        runtime.kinematic_target.position.z +=
+                            directional.z * k_kinematic_speed * k_timestep;
+                    }
+                    if (!require(runtime.world.set_kinematic_target(
+                                     runtime.instance.rigid_bodies[
+                                         runtime.kinematic_index],
+                                     runtime.kinematic_target),
+                                 "move kinematic body")) {
+                        step_failed = true;
+                        break;
+                    }
+                }
+                StepOptions interactive_step = step_options;
+                interactive_step.substeps = scene_substeps(runtime.context);
+                interactive_step.gravity = {
+                    0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
+                if (entry.controls == GalleryControlPolicy::cloth_gravity) {
+                    cloth_gravity = steer_gravity(
+                        cloth_gravity, input_state.camera.camera(),
+                        directional.x, -directional.z,
+                        k_gravity * runtime.scene.gravity_scale,
+                        k_cloth_gravity_tilt_degrees, k_timestep);
+                    interactive_step.gravity = cloth_gravity;
+                } else if (entry.controls ==
+                           GalleryControlPolicy::collector_gravity) {
+                    interactive_step.collect_rigid_contacts = true;
+                    interactive_step.gravity = collector_gravity_for(
+                        directional, runtime.scene.gravity_scale);
+                    const Vec3 loose_gravity{
+                        0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
+                    if (!require(runtime.fixed_collector.apply_loose_gravity(
+                                     runtime.world, runtime.scene,
+                                     runtime.instance, loose_gravity,
+                                     interactive_step.gravity),
+                                 "apply loose fixed-scene gravity")) {
+                        step_failed = true;
+                        break;
+                    }
+                } else if (uses_rigid_gravity(entry.controls)) {
+                    interactive_step.gravity = gravity_for(directional);
+                } else if (entry.controls ==
+                           GalleryControlPolicy::peg_gravity) {
+                    const float right = directional.x + (!context_visible ?
+                        static_cast<float>(glfwGetKey(
+                            window, GLFW_KEY_D) == GLFW_PRESS) -
+                        static_cast<float>(glfwGetKey(
+                            window, GLFW_KEY_A) == GLFW_PRESS) : 0.0F);
+                    const float forward = -directional.z + (!context_visible ?
+                        static_cast<float>(glfwGetKey(
+                            window, GLFW_KEY_W) == GLFW_PRESS) -
+                        static_cast<float>(glfwGetKey(
+                            window, GLFW_KEY_S) == GLFW_PRESS) : 0.0F);
+                    peg_gravity = steer_gravity(
+                        peg_gravity, input_state.camera.camera(), right,
+                        forward, k_gravity * runtime.scene.gravity_scale,
+                        peg_paint_gravity_tilt_degrees, k_timestep);
+                    interactive_step.gravity = peg_gravity;
+                }
+                interactive_step.collect_kernel_timings = timing_visible;
+                if (!require(runtime.world.step(interactive_step),
+                             "step gallery")) {
+                    step_failed = true;
+                    break;
+                }
+                if (entry.controls ==
+                        GalleryControlPolicy::collector_gravity &&
+                    !require(runtime.fixed_collector.collect(
+                                 runtime.world, runtime.scene,
+                                 runtime.instance),
+                             "collect fixed contacts")) {
+                    step_failed = true;
+                    break;
+                }
+                physics_accumulator -= k_timestep;
+                ++physics_steps;
             }
-            StepOptions interactive_step = step_options;
-            interactive_step.substeps = scene_substeps(runtime.context);
-            interactive_step.gravity = {0.0F,
-                -k_gravity * runtime.scene.gravity_scale, 0.0F};
-            if (entry.controls == GalleryControlPolicy::cloth_gravity) {
-                cloth_gravity = steer_gravity(
-                    cloth_gravity, input_state.camera.camera(),
-                    directional.x, -directional.z,
-                    k_gravity * runtime.scene.gravity_scale,
-                    k_cloth_gravity_tilt_degrees, k_timestep);
-                interactive_step.gravity = cloth_gravity;
-            } else if (uses_rigid_gravity(entry.controls)) {
-                interactive_step.gravity = gravity_for(directional);
-            } else if (entry.controls == GalleryControlPolicy::peg_gravity) {
-                const float right = directional.x + (!context_visible ?
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-                    : 0.0F);
-                const float forward = -directional.z + (!context_visible ?
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-                    : 0.0F);
-                peg_gravity = steer_gravity(
-                    peg_gravity, input_state.camera.camera(), right, forward,
-                    k_gravity * runtime.scene.gravity_scale,
-                    peg_paint_gravity_tilt_degrees, k_timestep);
-                interactive_step.gravity = peg_gravity;
+            if (step_failed) break;
+            if (physics_steps == k_maximum_catch_up_steps &&
+                physics_accumulator >= k_timestep) {
+                physics_accumulator = std::fmod(
+                    physics_accumulator, static_cast<double>(k_timestep));
             }
-            interactive_step.collect_kernel_timings = timing_visible;
-            if (!require(runtime.world.step(interactive_step), "step gallery")) {
-                break;
-            }
-            if (capture_requested) {
+            rigid_interpolation_alpha = static_cast<float>(std::clamp(
+                physics_accumulator / static_cast<double>(k_timestep),
+                0.0, 1.0));
+            if (physics_steps != 0U && capture_requested) {
                 std::filesystem::path capture_path;
                 if (save_physics_debug_capture(runtime.world, capture_path,
                                                error)) {
@@ -1353,12 +1496,13 @@ int main(int argc, char **argv) {
                 }
                 capture_requested = false;
             }
-            if (timing_visible &&
+            if (physics_steps != 0U && timing_visible &&
                 !require(runtime.world.collect_step_timings(timings),
                          "collect timings")) {
                 break;
             }
-            if (timing_visible && is_fluid_context(runtime.context) &&
+            if (physics_steps != 0U && timing_visible &&
+                is_fluid_context(runtime.context) &&
                 !require(runtime.world.collect_statistics(statistics),
                          "collect fluid statistics")) break;
         }
@@ -1368,7 +1512,8 @@ int main(int argc, char **argv) {
                                      current_camera, pixels, error,
                                      timing_visible ? &renderer_timings : nullptr,
                                      debug.fluid_render_mode(runtime.context),
-                                     debug.smoke_mode == SmokeDebugMode::none)) {
+                                     debug.smoke_mode == SmokeDebugMode::none,
+                                     rigid_interpolation_alpha)) {
             std::cerr << "Render failed: " << error << '\n';
             break;
         }

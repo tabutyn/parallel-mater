@@ -138,8 +138,9 @@ class ExportSceneTests(unittest.TestCase):
                 bpy.ops.wm.open_mainfile(filepath=str(ASSETS / f"{name}.blend"))
                 document = self.check_export(Counter(
                     rigid_body=6 if kind == "motor" else
-                               3 if kind == "fixed" else 4,
-                    rigid_constraint=count))
+                               51 if kind == "fixed" else 4,
+                    rigid_constraint=count,
+                    collision_mesh=1 if name == "ConstraintFixed" else 0))
                 constraints = [node["extras"] for node in document["nodes"]
                                if node["extras"].get("pm_system") ==
                                "rigid_constraint"]
@@ -149,7 +150,25 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
                 if kind == "fixed":
-                    self.assertFalse(constraints[0]["pm_enabled"])
+                    self.assertTrue(constraints[0]["pm_enabled"])
+                    self.assertEqual(
+                        (constraints[0]["pm_body_a"],
+                         constraints[0]["pm_body_b"]),
+                        ("Large", "Small.048"))
+                    bodies = [node["extras"] for node in document["nodes"]
+                              if node.get("extras", {}).get("pm_system") ==
+                              "rigid_body"]
+                    names = {body["pm_source_name"] for body in bodies}
+                    self.assertIn("Ground", names)
+                    self.assertIn("Large", names)
+                    self.assertEqual(
+                        len([name for name in names if name.startswith("Small")]),
+                        49)
+                    moving = [body for body in bodies
+                              if body["pm_source_name"] == "Large" or
+                              body["pm_source_name"].startswith("Small")]
+                    self.assertTrue(all("pm_initial_velocity_x" not in body
+                                        for body in moving))
                 if kind == "point":
                     self.assertTrue(all(item["pm_enabled"]
                                         for item in constraints))
@@ -212,6 +231,69 @@ class ExportSceneTests(unittest.TestCase):
                 if kind == "motor":
                     self.assertTrue(all(item["pm_use_motor_ang"]
                                         for item in constraints))
+
+    def test_fixed_collector_scene(self):
+        bpy.ops.wm.open_mainfile(
+            filepath=str(ASSETS / "ConstraintFixed.blend"))
+        document = self.check_export(Counter(rigid_body=51,
+                                             rigid_constraint=1,
+                                             collision_mesh=1))
+        constraints = [node["extras"] for node in document["nodes"]
+                       if node["extras"].get("pm_system") ==
+                       "rigid_constraint"]
+        self.assertEqual(len(constraints), 1)
+        self.assertTrue(constraints[0]["pm_enabled"])
+        self.assertEqual((constraints[0]["pm_body_a"],
+                          constraints[0]["pm_body_b"]),
+                         ("Large", "Small.048"))
+        bodies = [node["extras"] for node in document["nodes"]
+                  if node.get("extras", {}).get("pm_system") == "rigid_body"]
+        names = {body["pm_source_name"] for body in bodies}
+        self.assertEqual(len([name for name in names
+                              if name.startswith("Small")]), 49)
+        body_by_name = {body["pm_source_name"]: body for body in bodies}
+        self.assertAlmostEqual(
+            body_by_name["Ground"]["pm_friction"], 4.0, places=5)
+        self.assertTrue(all(
+            abs(body["pm_friction"] - 16.0) < 1.0e-5
+            for body in bodies
+            if body["pm_source_name"].startswith("Small")))
+        moving = [body for body in bodies
+                  if body["pm_source_name"] == "Large" or
+                  body["pm_source_name"].startswith("Small")]
+        self.assertTrue(all("pm_initial_velocity_x" not in body
+                            for body in moving))
+
+        from mathutils.bvhtree import BVHTree
+
+        def geometry(obj):
+            evaluated = obj.evaluated_get(
+                bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            vertices = [evaluated.matrix_world @ vertex.co
+                        for vertex in mesh.vertices]
+            polygons = [tuple(polygon.vertices)
+                        for polygon in mesh.polygons]
+            evaluated.to_mesh_clear()
+            return vertices, BVHTree.FromPolygons(
+                vertices, polygons, all_triangles=False)
+
+        large = bpy.context.scene.objects["Large"]
+        proxy = bpy.context.scene.objects[large["pm_collision_proxy"]]
+        self.assertIsNone(proxy.rigid_body)
+        self.assertEqual(body_by_name["Large"]["pm_collision_proxy"],
+                         "Large__PM_COLLISION")
+        self.assertEqual(len(proxy.data.polygons), 5120)
+        large_vertices, large_tree = geometry(proxy)
+        small_vertices, small_tree = geometry(
+            bpy.context.scene.objects["Small.048"])
+        self.assertEqual(large_tree.overlap(small_tree), [])
+        surface_gap = min(
+            min(large_tree.find_nearest(point)[3]
+                for point in small_vertices),
+            min(small_tree.find_nearest(point)[3]
+                for point in large_vertices))
+        self.assertLess(surface_gap, 0.001)
 
     def test_hinge_gears_clear_through_tooth_cycle(self):
         from mathutils import Quaternion, Vector

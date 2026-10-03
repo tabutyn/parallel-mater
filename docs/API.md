@@ -101,12 +101,25 @@ targets without recreating the resource. A nonzero breaking threshold disables
 the joint when one active substep exceeds that accumulated impulse;
 `read_rigid_constraint_state` reports enabled/broken state and the latest
 active impulse. `disable_collisions` suppresses rigid contact only while the
-joint is enabled and intact. Referenced bodies cannot be removed first.
+joint is enabled and intact. Fixed joints also suppress contacts between all
+bodies connected through fixed joints with this flag, so overlapping welded
+siblings cannot fight their constraints. Other joint types suppress only their
+direct pair. External contacts, including ground support, remain enabled.
+The component is rebuilt each substep after edits, removal, or breaking.
+Referenced bodies cannot be removed first.
 
 Constraint capacity is fixed by `WorldOptions::rigid_constraint_capacity`, and
 `WorldStatistics::rigid_constraint_count` reports live resources. The solver
-runs inside every rigid substep, after contact response; applications still call
-only `World::step`.
+runs inside every rigid substep. A connected group of dynamic, unbreakable
+fixed joints with collision suppression is rebuilt as one compound rigid body:
+member meshes remain separate collision surfaces, while contacts use the
+group's combined mass and inertia and all member transforms share one rigid
+motion. Adding, removing, disabling, or breaking a joint changes the grouping
+on the next substep. Groups touching a breakable, articulated, kinematic, or
+static joint keep the general constraint solver. On that path, fixed-member
+contact impulses and joint rows iterate together through eight contact sweeps,
+each using the authored joint iteration budget. Motor impulse limits remain per
+substep across those sweeps. Applications still call only `World::step`.
 
 ## Smoke tracer gas
 
@@ -545,11 +558,14 @@ configured neighbor-force and contact iterations; cloth and
 soft-body stages advance once per rigid substep.
 
 `apply_force` and `apply_impulse` queue contributions for the next submitted
-frame and consume them exactly once. `set_kinematic_target` replaces the target
-for the next frame. `read_rigid_body_state` and `collect_statistics` are
-explicit synchronous readbacks; ordinary stepping performs no telemetry
-readback. Device views and contacts describe the most recently completed
-frame.
+frame and consume them exactly once. `apply_central_acceleration` batches one
+mass-independent acceleration across selected dynamic bodies without reading
+their states. `set_kinematic_target` replaces the target for the next frame.
+`read_rigid_body_state` and `collect_statistics` are explicit synchronous
+readbacks; ordinary stepping performs no telemetry readback. Device views and
+contacts describe the most recently completed frame.
+`RigidBodyDeviceView::previous_states` exposes the state at the start of that
+physics tick so fixed-timestep render loops can interpolate toward `states`.
 
 Kernel timing is opt-in per `StepOptions`. When requested, CUDA events measure
 rigid integration, world bounds, GPU pair filtering, deterministic pair
@@ -714,7 +730,18 @@ The solver uses at most `0.001 m` of the combined margin as a rest offset, then
 uses the remaining margin only for speculative detection. This small gap keeps
 triangle surfaces from numerically crossing without making bodies float by the
 full authored margin. Contacts outside the rest offset release immediately when
-the surfaces separate.
+the surfaces separate. When triangles do cross, recovery depth comes from the
+body vertices behind the contacted triangle plane rather than from the search
+margin. A body in an enabled fixed constraint recovers through contact velocity.
+Recovery uses the measured penetration, and contact and joint rows iterate
+together so light supports receive the heavy cluster's load before the next
+integration step. This avoids separating a member from its joint or letting a
+later joint solve undo its ground-support response.
+Free groups joined exclusively by fixed constraints also recover residual
+overlap against static or kinematic surfaces with a shared translation. Every
+member moves by the same amount, preserving joint offsets without changing
+velocities. Groups containing an immovable body or another joint type retain
+the velocity solve rather than translating away from an external anchor.
 
 ## Errors and validation
 

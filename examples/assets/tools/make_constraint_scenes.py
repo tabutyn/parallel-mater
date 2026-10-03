@@ -102,16 +102,6 @@ def constraint(name: str, kind: str, first, second, location,
     return obj
 
 
-def fixed_scene():
-    reset()
-    add_floor()
-    left = sphere("FixedSphereA", (-2.2, 0.0, 0.5), color=(0.95, 0.26, 0.12, 1.0),
-                  velocity=(2.2, 0.0, 0.0))
-    right = sphere("FixedSphereB", (2.2, 0.0, 0.5), color=(0.12, 0.48, 0.95, 1.0),
-                   velocity=(-2.2, 0.0, 0.0))
-    constraint("FixedJoint", "FIXED", left, right, (0.0, 0.0, 0.5), enabled=False)
-
-
 def point_scene():
     reset()
     add_floor()
@@ -209,7 +199,6 @@ def motor_scene():
 
 
 SCENES = {
-    "ConstraintFixed": fixed_scene,
     "ConstraintPoint": point_scene,
     "ConstraintSlider": slider_scene,
     "ConstraintPiston": piston_scene,

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/fixed_collector.hpp>
 
 #include <cuda_runtime_api.h>
 
@@ -167,8 +168,53 @@ int main() {
         }
     }
 
-    const auto &fixed = definitions[0].rigid_constraints.front().options;
-    check(!fixed.enabled, "interactive fixed constraint must start released");
+    const SceneDefinition &fixed_scene = definitions[0];
+    const auto &fixed_definition = fixed_scene.rigid_constraints.front();
+    const auto &fixed = fixed_definition.options;
+    check(fixed.enabled, "fixed collector seed constraint must start enabled");
+    check(fixed_scene.rigid_bodies.size() == 51U,
+          "fixed collector scene must contain Ground, Large, and 49 small spheres");
+    check(fixed_scene.rigid_bodies[fixed_definition.body_a].source_name ==
+                  "Large" &&
+              fixed_scene.rigid_bodies[fixed_definition.body_b].source_name ==
+                  "Small.048",
+          "fixed collector seed must join Large to Small.048");
+    std::size_t fixed_small_count = 0U;
+    std::size_t fixed_large_index = fixed_scene.rigid_bodies.size();
+    for (std::size_t index = 0U; index < fixed_scene.rigid_bodies.size();
+         ++index) {
+        const auto &body = fixed_scene.rigid_bodies[index];
+        if (body.source_name == "Large") fixed_large_index = index;
+        if (body.source_name == "Ground") {
+            check(std::fabs(body.options.friction - 4.0F) < 1.0e-5F,
+                  "fixed-scene ground must retain high rolling friction");
+        }
+        if (body.source_name.rfind("Small", 0U) != 0U) continue;
+        ++fixed_small_count;
+        check(std::fabs(body.options.friction - 16.0F) < 1.0e-5F,
+              "fixed-scene small spheres must retain extreme rolling friction");
+        const Vec3 velocity = body.options.initial_state.linear_velocity;
+        check(velocity.x == 0.0F && velocity.y == 0.0F && velocity.z == 0.0F,
+              "loose fixed-scene spheres must start at rest");
+    }
+    check(fixed_small_count == 49U,
+          "fixed collector scene must retain all 49 small spheres");
+    check(fixed_large_index < fixed_scene.rigid_bodies.size(),
+          "fixed collector scene must resolve the large sphere");
+    SceneInstance fixed_bindings{};
+    fixed_bindings.rigid_bodies.resize(fixed_scene.rigid_bodies.size());
+    for (std::size_t index = 0U; index < fixed_bindings.rigid_bodies.size();
+         ++index) {
+        fixed_bindings.rigid_bodies[index] = {
+            static_cast<std::uint32_t>(index), 1U};
+    }
+    FixedContactCollector fixed_structure{};
+    check_status(fixed_structure.initialize(fixed_scene, fixed_bindings),
+                 "initialize fixed collector structure");
+    check(fixed_structure.attached_count() == 2U,
+          "fixed collector must seed Large and its authored small sphere");
+    check(FixedContactCollector::constraint_capacity(fixed_scene) >= 49U,
+          "fixed collector must reserve capacity for contact-created joints");
     const auto &point_constraints = definitions[1].rigid_constraints;
     check(point_constraints[0].options.enabled &&
               point_constraints[1].options.enabled,
@@ -298,8 +344,25 @@ int main() {
         const SceneDefinition &scene = definitions[scene_index];
         World world;
         SceneInstance instance;
-        check_status(create_scene_world(scene, world, instance),
-                     "instantiate rigid constraint scene");
+        FixedContactCollector fixed_collector{};
+        Status setup_status{};
+        if (scene_index == 0U) {
+            WorldOptions options{};
+            setup_status = scene_world_options(scene, options);
+            if (setup_status) {
+                options.rigid_constraint_capacity =
+                    FixedContactCollector::constraint_capacity(scene);
+                setup_status = World::create(options, world);
+            }
+            if (setup_status)
+                setup_status = instantiate_scene(scene, world, instance);
+            if (setup_status)
+                setup_status = fixed_collector.initialize(scene, instance);
+        } else {
+            setup_status = create_scene_world(scene, world, instance);
+        }
+        check_status(setup_status, "instantiate rigid constraint scene");
+        if (!setup_status) continue;
         WorldStatistics statistics{};
         check_status(world.collect_statistics(statistics),
                      "collect rigid constraint statistics");
@@ -313,14 +376,52 @@ int main() {
         float minimum_impact_rotation = 0.0F;
         float maximum_impact_rotation = 0.0F;
         float maximum_backward_recovery = 0.0F;
-        const int frame_count = scene_index == 2U ? 1200 : 30;
+        float maximum_fixed_angular_speed = 0.0F;
+        float maximum_fixed_roll_ratio = 0.0F;
+        float maximum_fixed_height =
+            fixed_large_index < fixed_scene.rigid_bodies.size()
+                ? fixed_scene.rigid_bodies[fixed_large_index]
+                      .options.initial_state.position.y
+                : 0.0F;
+        const int frame_count = scene_index == 2U ? 1200 :
+                                scene_index == 0U ? 240 : 30;
         for (int frame = 0; frame < frame_count; ++frame) {
+            if (scene_index == 0U)
+                check_status(fixed_collector.apply_loose_gravity(
+                                 world, scene, instance,
+                                 {0.0F, -9.81F, 0.0F},
+                                 {9.660964F, -1.703489F, 0.0F}),
+                             "apply loose fixed-scene test gravity");
             check_status(world.step({.timestep = 1.0F / 60.0F,
                                      .substeps = scene_index == 2U ? 8U : 4U,
-                                     .gravity = {0.0F, -9.81F, 0.0F},
+                                     .gravity = scene_index == 0U
+                                         ? Vec3{9.660964F, -1.703489F, 0.0F}
+                                         : Vec3{0.0F, -9.81F, 0.0F},
                                      .collect_rigid_contacts =
+                                         scene_index == 0U ||
                                          scene_index == 2U}),
                          "step rigid constraint scene");
+            if (scene_index == 0U)
+                check_status(fixed_collector.collect(world, scene, instance),
+                             "collect fixed constraint contacts");
+            if (scene_index == 0U &&
+                fixed_large_index < instance.rigid_bodies.size()) {
+                RigidBodyState state{};
+                check_status(world.read_rigid_body_state(
+                                 instance.rigid_bodies[fixed_large_index], state),
+                             "read fixed collector state");
+                maximum_fixed_angular_speed = std::max(
+                    maximum_fixed_angular_speed,
+                    std::fabs(state.angular_velocity.z));
+                maximum_fixed_height = std::max(maximum_fixed_height,
+                                                state.position.y);
+                if (std::fabs(state.linear_velocity.x) > 0.25F) {
+                    maximum_fixed_roll_ratio = std::max(
+                        maximum_fixed_roll_ratio,
+                        std::fabs(state.angular_velocity.z) * 1.05F /
+                            std::fabs(state.linear_velocity.x));
+                }
+            }
             if (scene_index != 2U) continue;
             RigidBodyState small_state{};
             RigidBodyState large_state{};
@@ -400,6 +501,33 @@ int main() {
                 maximum_backward_recovery = std::max(
                     maximum_backward_recovery, maximum_impact_rotation - rotation);
             }
+        }
+        if (scene_index == 0U) {
+            check(fixed_collector.attached_count() > 2U,
+                  "fixed collector must attach a loose sphere after contact");
+            check_status(world.collect_statistics(statistics),
+                         "collect fixed collector statistics");
+            check(statistics.rigid_constraint_count > 1U,
+                  "fixed collector must create constraints through the API");
+            check(maximum_fixed_angular_speed > 0.1F &&
+                      maximum_fixed_roll_ratio > 0.5F,
+                  "attached small spheres must grip the floor and roll the "
+                  "collector");
+            const float initial_height =
+                fixed_large_index < fixed_scene.rigid_bodies.size()
+                ? fixed_scene.rigid_bodies[fixed_large_index]
+                      .options.initial_state.position.y
+                : 0.0F;
+            check(maximum_fixed_height > initial_height + 0.05F,
+                  "tilted collector gravity must lift the large sphere onto "
+                  "a small sphere");
+            if (maximum_fixed_angular_speed <= 0.1F ||
+                maximum_fixed_roll_ratio <= 0.5F ||
+                maximum_fixed_height <= initial_height + 0.05F)
+                std::cerr << "fixed angular speed="
+                          << maximum_fixed_angular_speed
+                          << " roll ratio=" << maximum_fixed_roll_ratio
+                          << " height=" << maximum_fixed_height << '\n';
         }
         if (scene_index == 2U) {
             check(first_sphere_impact_frame >= 0,

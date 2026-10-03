@@ -28,11 +28,50 @@ struct KinematicTarget {
     bool active{};
 };
 
+struct RigidConstraintAxisGeometry {
+    Vec3 axis{};
+    Vec3 inverse_angular_a{};
+    Vec3 inverse_angular_b{};
+    float linear_denominator{};
+    float angular_denominator{};
+};
+
+struct RigidConstraintGeometry {
+    std::uint32_t dense_a{};
+    std::uint32_t dense_b{};
+    Vec3 arm_a{};
+    Vec3 arm_b{};
+    Vec3 anchor_error{};
+    Vec3 rotation_error{};
+    Vec3 hinge_alignment_error{};
+    RigidConstraintAxisGeometry axes[3]{};
+};
+
 struct RigidConstraintResource {
     RigidConstraintOptions options{};
     RigidConstraintState state{};
     std::uint32_t generation{1U};
     bool alive{};
+    // Positions and orientations stay fixed during the velocity iterations.
+    // Rebuild once per substep, including after edits and body compaction.
+    RigidConstraintGeometry geometry{};
+};
+
+struct FixedContactProjection {
+    std::uint32_t root{};
+    bool movable{};
+    Vec3 translation{};
+};
+
+struct RigidCompound {
+    std::uint32_t root{};
+    std::uint32_t member_count{};
+    bool eligible{};
+    bool blocked{};
+    Vec3 center{};
+    float inverse_mass{};
+    // Rows of the world-space inverse inertia tensor about center.
+    Vec3 inverse_inertia[3]{};
 };
 
 struct HingeContactFrame {
@@ -41,6 +80,7 @@ struct HingeContactFrame {
     Vec3 local_anchor{};
     bool present{};
     bool fixed{};
+    bool fixed_member{};
 };
 
 struct Contact {
@@ -71,7 +111,37 @@ struct LeafPair {
     std::uint32_t collider_count{};
 };
 
+// Iterate the same strided Cartesian product without a 64-bit division and
+// remainder for every candidate. Quotients are computed once per thread.
+struct RigidLeafPairCursor {
+    std::uint32_t body_leaf{};
+    std::uint32_t collider_leaf{};
+    std::uint32_t body_stride{};
+    std::uint32_t collider_stride{};
+    std::uint32_t collider_count{};
+
+    __device__ explicit RigidLeafPairCursor(std::uint32_t count) noexcept
+        : body_leaf(threadIdx.x / count), collider_leaf(threadIdx.x % count),
+          body_stride(blockDim.x / count), collider_stride(blockDim.x % count),
+          collider_count(count) {}
+
+    __device__ void advance() noexcept {
+        body_leaf += body_stride;
+        collider_leaf += collider_stride;
+        if (collider_leaf >= collider_count) {
+            collider_leaf -= collider_count;
+            ++body_leaf;
+        }
+    }
+};
+
 constexpr std::uint32_t k_max_leaf_pairs_per_body_pair = 512U;
+// Few-body scenes need parallelism within a dense mesh pair. Bound the extra
+// scratch by world capacity; many-body worlds retain their lean pair cache.
+constexpr std::uint32_t k_small_rigid_leaf_body_capacity = 8U;
+constexpr std::uint32_t k_small_rigid_leaf_pair_capacity = 4096U;
+constexpr std::uint32_t k_shared_rigid_leaf_capacity = 1024U;
+constexpr std::uint32_t k_rigid_leaf_blocks_per_pair = 16U;
 // Keep the fast leaf-pair cache proportional to body capacity. Dense worlds
 // retain exact contacts through the serial fallback instead of reserving one
 // 512-entry cache for every possible body pair.
@@ -619,9 +689,19 @@ __device__ void collide_triangle_ranges(
                                 k_rigid_surface_tolerance;
             if (distance <= k_rigid_surface_tolerance) {
                 // Triangle intersection has no reliable closest-point depth.
-                // Recover by one search shell; swept contacts carry exact
-                // remaining travel for fast impacts.
-                penetration = margin + k_rigid_surface_tolerance;
+                // Use body vertices behind the contacted triangle's plane.
+                // The broad-phase margin is only a cap: treating all
+                // intersections as margin-deep injects unrelated correction
+                // into shallow resting contacts and destabilizes fixed
+                // clusters.
+                const float intersection_depth = fmaxf(
+                    0.0F,
+                    -fminf(dot(subtract(a0, point_b), normal),
+                           fminf(dot(subtract(a1, point_b), normal),
+                                 dot(subtract(a2, point_b), normal))));
+                penetration = fminf(
+                    margin, intersection_depth + rest_offset) +
+                    k_rigid_surface_tolerance;
             }
             const Contact contact{
                 normal, point, penetration, body_hinge, collider_hinge};
@@ -979,9 +1059,25 @@ __device__ Vec3 contact_point_velocity(
     return cross(angular, subtract(point, hinge.anchor));
 }
 
+__device__ Vec3 compound_inverse_inertia_world(
+    const RigidCompound &compound, Vec3 value) noexcept {
+    return {dot(compound.inverse_inertia[0], value),
+            dot(compound.inverse_inertia[1], value),
+            dot(compound.inverse_inertia[2], value)};
+}
+
 __device__ float contact_direction_inverse_mass(
     const BodyParameters &parameters, const RigidBodyState &state,
-    const HingeContactFrame &hinge, Vec3 point, Vec3 direction) noexcept {
+    const HingeContactFrame &hinge, Vec3 point, Vec3 direction,
+    const RigidCompound *compounds, std::uint32_t index) noexcept {
+    if (compounds != nullptr && compounds[index].eligible) {
+        const RigidCompound &compound = compounds[compounds[index].root];
+        const Vec3 arm = subtract(point, compound.center);
+        const Vec3 angular = cross(arm, direction);
+        return compound.inverse_mass +
+            dot(cross(compound_inverse_inertia_world(compound, angular), arm),
+                direction);
+    }
     if (hinge.fixed) {
         const float jacobian = dot(
             cross(hinge.axis, subtract(point, hinge.anchor)), direction);
@@ -996,15 +1092,39 @@ __device__ float contact_direction_inverse_mass(
 }
 
 __device__ void apply_contact_velocity_impulse(
-    const BodyParameters &parameters, RigidBodyState &state,
-    const HingeContactFrame &hinge, Vec3 point, Vec3 impulse) noexcept {
-    if (parameters.inverse_mass <= 0.0F) return;
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, std::uint32_t index,
+    const HingeContactFrame &hinge, Vec3 point, Vec3 impulse,
+    const RigidCompound *compounds) noexcept {
+    const BodyParameters &body = parameters[index];
+    RigidBodyState &state = states[index];
+    if (compounds != nullptr && compounds[index].eligible) {
+        const std::uint32_t root = compounds[index].root;
+        const RigidCompound &compound = compounds[root];
+        const Vec3 linear_delta = multiply(impulse, compound.inverse_mass);
+        const Vec3 angular_delta = compound_inverse_inertia_world(
+            compound, cross(subtract(point, compound.center), impulse));
+        for (std::uint32_t member = 0U; member < count; ++member) {
+            if (!compounds[member].eligible ||
+                compounds[member].root != root) continue;
+            states[member].linear_velocity = add(
+                states[member].linear_velocity,
+                add(linear_delta,
+                    cross(angular_delta,
+                          subtract(states[member].position,
+                                   compound.center))));
+            states[member].angular_velocity = add(
+                states[member].angular_velocity, angular_delta);
+        }
+        return;
+    }
+    if (body.inverse_mass <= 0.0F) return;
     if (hinge.fixed) {
         const float angular_impulse = dot(
             hinge.axis, cross(subtract(point, hinge.anchor), impulse));
         const Vec3 angular_delta = multiply(
             hinge.axis, angular_impulse *
-                fixed_hinge_inverse_moment(parameters, state, hinge));
+                fixed_hinge_inverse_moment(body, state, hinge));
         state.angular_velocity = add(state.angular_velocity, angular_delta);
         state.linear_velocity = add(
             state.linear_velocity,
@@ -1012,17 +1132,22 @@ __device__ void apply_contact_velocity_impulse(
         return;
     }
     state.linear_velocity = add(
-        state.linear_velocity, multiply(impulse, parameters.inverse_mass));
+        state.linear_velocity, multiply(impulse, body.inverse_mass));
     state.angular_velocity = add(
         state.angular_velocity,
-        inverse_inertia_world(parameters, state,
+        inverse_inertia_world(body, state,
                               cross(subtract(point, state.position), impulse)));
 }
 
 __device__ AppliedContactImpulse apply_contact_impulse(
-    const BodyParameters &body, RigidBodyState &state,
-    const BodyParameters &collider, RigidBodyState &collider_state,
-    const Contact &contact, float timestep) noexcept {
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, std::uint32_t body_index,
+    std::uint32_t collider_index, const Contact &contact, float timestep,
+    const RigidCompound *compounds) noexcept {
+    const BodyParameters &body = parameters[body_index];
+    const BodyParameters &collider = parameters[collider_index];
+    RigidBodyState &state = states[body_index];
+    RigidBodyState &collider_state = states[collider_index];
     AppliedContactImpulse applied{};
     const Vec3 body_velocity = contact_point_velocity(
         state, contact.body_hinge, contact.point);
@@ -1034,10 +1159,25 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     float target_speed = separation > k_rigid_surface_tolerance
         ? -separation / fmaxf(timestep, k_epsilon)
         : 0.0F;
+    const bool fixed_cluster_contact =
+        contact.body_hinge.fixed_member ||
+        contact.collider_hinge.fixed_member;
+    if (fixed_cluster_contact && contact.penetration > 0.0F) {
+        // Moving one member out of penetration breaks its fixed joint and the
+        // joint solver pulls it back on the next pass. Recover through contact
+        // velocity instead, then let the fixed constraints distribute that
+        // impulse through the cluster.
+        constexpr float recovery_fraction = 0.2F;
+        target_speed = fmaxf(
+            target_speed,
+            recovery_fraction *
+                contact.penetration /
+                fmaxf(timestep, k_epsilon));
+    }
     const float restitution = fminf(body.restitution, collider.restitution);
     if (separation <= k_rigid_surface_tolerance &&
         normal_speed < 0.0F) {
-        target_speed = -restitution * normal_speed;
+        target_speed = fmaxf(target_speed, -restitution * normal_speed);
     }
     if (normal_speed >= target_speed) {
         return applied;
@@ -1045,10 +1185,11 @@ __device__ AppliedContactImpulse apply_contact_impulse(
 
     const float denominator =
         contact_direction_inverse_mass(
-            body, state, contact.body_hinge, contact.point, contact.normal) +
+            body, state, contact.body_hinge, contact.point, contact.normal,
+            compounds, body_index) +
         contact_direction_inverse_mass(
             collider, collider_state, contact.collider_hinge,
-            contact.point, contact.normal);
+            contact.point, contact.normal, compounds, collider_index);
     if (denominator <= k_epsilon) {
         return applied;
     }
@@ -1057,10 +1198,11 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     applied.normal = normal_impulse;
     const Vec3 normal_vector = multiply(contact.normal, normal_impulse);
     apply_contact_velocity_impulse(
-        body, state, contact.body_hinge, contact.point, normal_vector);
+        parameters, states, count, body_index, contact.body_hinge,
+        contact.point, normal_vector, compounds);
     apply_contact_velocity_impulse(
-        collider, collider_state, contact.collider_hinge, contact.point,
-        multiply(normal_vector, -1.0F));
+        parameters, states, count, collider_index, contact.collider_hinge,
+        contact.point, multiply(normal_vector, -1.0F), compounds);
 
     if (separation > k_rigid_surface_tolerance) {
         return applied;
@@ -1079,10 +1221,11 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     tangent = multiply(tangent, 1.0F / tangent_length);
     const float tangent_denominator =
         contact_direction_inverse_mass(
-            body, state, contact.body_hinge, contact.point, tangent) +
+            body, state, contact.body_hinge, contact.point, tangent,
+            compounds, body_index) +
         contact_direction_inverse_mass(
             collider, collider_state, contact.collider_hinge,
-            contact.point, tangent);
+            contact.point, tangent, compounds, collider_index);
     if (tangent_denominator <= k_epsilon) {
         return applied;
     }
@@ -1094,10 +1237,11 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     const Vec3 tangent_vector = multiply(tangent, tangent_impulse);
     applied.friction = tangent_vector;
     apply_contact_velocity_impulse(
-        body, state, contact.body_hinge, contact.point, tangent_vector);
+        parameters, states, count, body_index, contact.body_hinge,
+        contact.point, tangent_vector, compounds);
     apply_contact_velocity_impulse(
-        collider, collider_state, contact.collider_hinge, contact.point,
-        multiply(tangent_vector, -1.0F));
+        parameters, states, count, collider_index, contact.collider_hinge,
+        contact.point, multiply(tangent_vector, -1.0F), compounds);
     return applied;
 }
 
@@ -1164,19 +1308,27 @@ __device__ void apply_contact_position_correction(
 }
 
 __device__ void resolve_contacts(
-    const BodyParameters &body, RigidBodyState &state,
-    const BodyParameters &collider, RigidBodyState &collider_state,
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t body_count, std::uint32_t body_index,
+    std::uint32_t collider_index,
     const Contact *contacts, std::uint32_t contact_count,
     float timestep, bool correct_position, RigidContactEvent *debug_events,
-    std::uint32_t debug_event_count) noexcept {
+    std::uint32_t debug_event_count,
+    const RigidCompound *compounds) noexcept {
     if (contact_count == 0U) {
         return;
     }
+    const BodyParameters &body = parameters[body_index];
+    const BodyParameters &collider = parameters[collider_index];
+    RigidBodyState &state = states[body_index];
+    RigidBodyState &collider_state = states[collider_index];
     const float inverse_mass_sum = body.inverse_mass + collider.inverse_mass;
     if (correct_position && inverse_mass_sum > k_epsilon) {
         std::uint32_t correction_count = 0U;
         for (std::uint32_t index = 0U; index < contact_count; ++index) {
-            if (contacts[index].penetration > 0.0F) {
+            if (contacts[index].penetration > 0.0F &&
+                !contacts[index].body_hinge.fixed_member &&
+                !contacts[index].collider_hinge.fixed_member) {
                 ++correction_count;
             }
         }
@@ -1184,7 +1336,9 @@ __device__ void resolve_contacts(
             ? 1.0F / static_cast<float>(correction_count)
             : 0.0F;
         for (std::uint32_t index = 0; index < contact_count; ++index) {
-            if (contacts[index].penetration <= 0.0F) {
+            if (contacts[index].penetration <= 0.0F ||
+                contacts[index].body_hinge.fixed_member ||
+                contacts[index].collider_hinge.fixed_member) {
                 continue;
             }
             apply_contact_position_correction(
@@ -1199,7 +1353,8 @@ __device__ void resolve_contacts(
     }
     for (std::uint32_t index = 0; index < contact_count; ++index) {
         const AppliedContactImpulse applied = apply_contact_impulse(
-            body, state, collider, collider_state, contacts[index], timestep);
+            parameters, states, body_count, body_index, collider_index,
+            contacts[index], timestep, compounds);
         if (debug_events != nullptr && index < debug_event_count) {
             debug_events[index].normal_impulse += applied.normal;
             debug_events[index].friction_impulse =
@@ -1324,22 +1479,281 @@ __device__ std::uint32_t find_rigid_body_dense(
     return k_invalid_dense;
 }
 
+__device__ std::uint32_t rigid_compound_root(
+    const RigidCompound *compounds, std::uint32_t body) noexcept {
+    while (compounds[body].root != body) body = compounds[body].root;
+    return body;
+}
+
+struct SymmetricMatrix3 {
+    float xx{}, xy{}, xz{}, yy{}, yz{}, zz{};
+};
+
+__device__ void add_inertia_axis(
+    SymmetricMatrix3 &matrix, Vec3 axis, float moment) noexcept {
+    matrix.xx += moment * axis.x * axis.x;
+    matrix.xy += moment * axis.x * axis.y;
+    matrix.xz += moment * axis.x * axis.z;
+    matrix.yy += moment * axis.y * axis.y;
+    matrix.yz += moment * axis.y * axis.z;
+    matrix.zz += moment * axis.z * axis.z;
+}
+
+__device__ Vec3 multiply_symmetric(
+    const SymmetricMatrix3 &matrix, Vec3 value) noexcept {
+    return {matrix.xx * value.x + matrix.xy * value.y + matrix.xz * value.z,
+            matrix.xy * value.x + matrix.yy * value.y + matrix.yz * value.z,
+            matrix.xz * value.x + matrix.yz * value.y + matrix.zz * value.z};
+}
+
+__device__ bool invert_symmetric(
+    const SymmetricMatrix3 &matrix, Vec3 (&inverse)[3]) noexcept {
+    const float c00 = matrix.yy * matrix.zz - matrix.yz * matrix.yz;
+    const float c01 = matrix.xz * matrix.yz - matrix.xy * matrix.zz;
+    const float c02 = matrix.xy * matrix.yz - matrix.xz * matrix.yy;
+    const float c11 = matrix.xx * matrix.zz - matrix.xz * matrix.xz;
+    const float c12 = matrix.xy * matrix.xz - matrix.xx * matrix.yz;
+    const float c22 = matrix.xx * matrix.yy - matrix.xy * matrix.xy;
+    const float determinant =
+        matrix.xx * c00 + matrix.xy * c01 + matrix.xz * c02;
+    if (!isfinite(determinant) || fabsf(determinant) <= k_epsilon) return false;
+    const float scale = 1.0F / determinant;
+    inverse[0] = {c00 * scale, c01 * scale, c02 * scale};
+    inverse[1] = {c01 * scale, c11 * scale, c12 * scale};
+    inverse[2] = {c02 * scale, c12 * scale, c22 * scale};
+    return true;
+}
+
+__device__ bool compound_fixed_edge(
+    const RigidConstraintResource &constraint,
+    const BodyParameters *parameters, std::uint32_t a,
+    std::uint32_t b) noexcept {
+    return constraint.options.type == RigidConstraintType::fixed &&
+        constraint.options.disable_collisions &&
+        constraint.options.breaking_impulse_threshold <= 0.0F &&
+        parameters[a].motion == MotionType::dynamic &&
+        parameters[b].motion == MotionType::dynamic;
+}
+
+// Rebuild after integration so newly attached/released bodies take effect on
+// the next substep. Logical bodies remain collision surfaces; eligible welded
+// components share one aggregate mass, inertia, and rigid twist.
+__global__ void build_rigid_compounds_kernel(
+    const RigidConstraintResource *constraints, std::uint32_t capacity,
+    const RigidBodyId *ids, const BodyParameters *parameters,
+    RigidBodyState *states, std::uint32_t count,
+    RigidCompound *compounds) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    for (std::uint32_t body = 0U; body < count; ++body)
+        compounds[body] = {.root = body};
+
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken) continue;
+        const auto a = find_rigid_body_dense(
+            constraint.options.body_a, ids, count);
+        const auto b = find_rigid_body_dense(
+            constraint.options.body_b, ids, count);
+        if (a == k_invalid_dense || b == k_invalid_dense ||
+            !compound_fixed_edge(constraint, parameters, a, b)) continue;
+        const auto root_a = rigid_compound_root(compounds, a);
+        const auto root_b = rigid_compound_root(compounds, b);
+        if (root_a != root_b)
+            compounds[root_a > root_b ? root_a : root_b].root =
+                root_a < root_b ? root_a : root_b;
+    }
+    for (std::uint32_t body = 0U; body < count; ++body)
+        compounds[body].root = rigid_compound_root(compounds, body);
+
+    // Any incident joint needing general solver semantics keeps its whole
+    // fixed component on the general path.
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken) continue;
+        const auto a = find_rigid_body_dense(
+            constraint.options.body_a, ids, count);
+        const auto b = find_rigid_body_dense(
+            constraint.options.body_b, ids, count);
+        if (a == k_invalid_dense || b == k_invalid_dense ||
+            compound_fixed_edge(constraint, parameters, a, b)) continue;
+        compounds[compounds[a].root].blocked = true;
+        compounds[compounds[b].root].blocked = true;
+    }
+    for (std::uint32_t body = 0U; body < count; ++body)
+        ++compounds[compounds[body].root].member_count;
+
+    for (std::uint32_t root = 0U; root < count; ++root) {
+        RigidCompound &compound = compounds[root];
+        if (compound.root != root || compound.member_count < 2U ||
+            compound.blocked) continue;
+        // Advance one member pose, then rebuild every child transform from
+        // fixed-joint frames. This removes integration drift while retaining
+        // each member as an independent collision surface and public handle.
+        compounds[root].eligible = true;
+        for (std::uint32_t pass = 1U; pass < compound.member_count; ++pass) {
+            bool changed = false;
+            for (std::uint32_t index = 0U; index < capacity; ++index) {
+                const auto &constraint = constraints[index];
+                if (!constraint.alive || !constraint.options.enabled ||
+                    constraint.state.broken) continue;
+                const auto a = find_rigid_body_dense(
+                    constraint.options.body_a, ids, count);
+                const auto b = find_rigid_body_dense(
+                    constraint.options.body_b, ids, count);
+                if (a == k_invalid_dense || b == k_invalid_dense ||
+                    compounds[a].root != root ||
+                    compounds[b].root != root ||
+                    !compound_fixed_edge(constraint, parameters, a, b) ||
+                    compounds[a].eligible == compounds[b].eligible) continue;
+                const RigidConstraintOptions &options = constraint.options;
+                if (compounds[a].eligible) {
+                    states[b].orientation = normalized_quaternion(
+                        quaternion_multiply(
+                            quaternion_multiply(states[a].orientation,
+                                                options.local_orientation_a),
+                            conjugate(options.local_orientation_b)));
+                    states[b].position = subtract(
+                        add(states[a].position,
+                            rotate(states[a].orientation,
+                                   options.local_anchor_a)),
+                        rotate(states[b].orientation,
+                               options.local_anchor_b));
+                    compounds[b].eligible = true;
+                } else {
+                    states[a].orientation = normalized_quaternion(
+                        quaternion_multiply(
+                            quaternion_multiply(states[b].orientation,
+                                                options.local_orientation_b),
+                            conjugate(options.local_orientation_a)));
+                    states[a].position = subtract(
+                        add(states[b].position,
+                            rotate(states[b].orientation,
+                                   options.local_anchor_b)),
+                        rotate(states[a].orientation,
+                               options.local_anchor_a));
+                    compounds[a].eligible = true;
+                }
+                changed = true;
+            }
+            if (!changed) break;
+        }
+        bool connected = true;
+        for (std::uint32_t member = 0U; member < count; ++member)
+            if (compounds[member].root == root &&
+                !compounds[member].eligible) connected = false;
+        if (!connected) {
+            for (std::uint32_t member = 0U; member < count; ++member)
+                if (compounds[member].root == root)
+                    compounds[member].eligible = false;
+            continue;
+        }
+        float mass_sum = 0.0F;
+        Vec3 weighted_center{};
+        Vec3 linear_momentum{};
+        for (std::uint32_t member = 0U; member < count; ++member) {
+            if (compounds[member].root != root) continue;
+            const float inverse_mass = parameters[member].inverse_mass;
+            if (inverse_mass <= k_epsilon) {
+                compound.blocked = true;
+                break;
+            }
+            const float mass = 1.0F / inverse_mass;
+            mass_sum += mass;
+            weighted_center = add(
+                weighted_center, multiply(states[member].position, mass));
+            linear_momentum = add(
+                linear_momentum,
+                multiply(states[member].linear_velocity, mass));
+        }
+        if (compound.blocked || mass_sum <= k_epsilon) {
+            for (std::uint32_t member = 0U; member < count; ++member)
+                if (compounds[member].root == root)
+                    compounds[member].eligible = false;
+            continue;
+        }
+        compound.center = multiply(weighted_center, 1.0F / mass_sum);
+
+        SymmetricMatrix3 inertia{};
+        Vec3 angular_momentum{};
+        for (std::uint32_t member = 0U; member < count; ++member) {
+            if (compounds[member].root != root) continue;
+            const BodyParameters &body = parameters[member];
+            const RigidBodyState &state = states[member];
+            const float mass = 1.0F / body.inverse_mass;
+            const Vec3 local_moment{
+                1.0F / fmaxf(body.inverse_inertia_local.x, k_epsilon),
+                1.0F / fmaxf(body.inverse_inertia_local.y, k_epsilon),
+                1.0F / fmaxf(body.inverse_inertia_local.z, k_epsilon)};
+            SymmetricMatrix3 member_inertia{};
+            add_inertia_axis(member_inertia,
+                             rotate(state.orientation, {1.0F, 0.0F, 0.0F}),
+                             local_moment.x);
+            add_inertia_axis(member_inertia,
+                             rotate(state.orientation, {0.0F, 1.0F, 0.0F}),
+                             local_moment.y);
+            add_inertia_axis(member_inertia,
+                             rotate(state.orientation, {0.0F, 0.0F, 1.0F}),
+                             local_moment.z);
+            inertia.xx += member_inertia.xx;
+            inertia.xy += member_inertia.xy;
+            inertia.xz += member_inertia.xz;
+            inertia.yy += member_inertia.yy;
+            inertia.yz += member_inertia.yz;
+            inertia.zz += member_inertia.zz;
+            const Vec3 arm = subtract(state.position, compound.center);
+            const float radius_squared = dot(arm, arm);
+            inertia.xx += mass * (radius_squared - arm.x * arm.x);
+            inertia.xy -= mass * arm.x * arm.y;
+            inertia.xz -= mass * arm.x * arm.z;
+            inertia.yy += mass * (radius_squared - arm.y * arm.y);
+            inertia.yz -= mass * arm.y * arm.z;
+            inertia.zz += mass * (radius_squared - arm.z * arm.z);
+            angular_momentum = add(
+                angular_momentum,
+                add(multiply_symmetric(member_inertia,
+                                       state.angular_velocity),
+                    cross(arm,
+                          multiply(state.linear_velocity, mass))));
+        }
+        if (!invert_symmetric(inertia, compound.inverse_inertia)) {
+            for (std::uint32_t member = 0U; member < count; ++member)
+                if (compounds[member].root == root)
+                    compounds[member].eligible = false;
+            continue;
+        }
+        compound.inverse_mass = 1.0F / mass_sum;
+        compound.eligible = true;
+        const Vec3 linear_velocity =
+            multiply(linear_momentum, compound.inverse_mass);
+        const Vec3 angular_velocity =
+            compound_inverse_inertia_world(compound, angular_momentum);
+        for (std::uint32_t member = 0U; member < count; ++member) {
+            if (compounds[member].root != root) continue;
+            compounds[member].eligible = true;
+            states[member].angular_velocity = angular_velocity;
+            states[member].linear_velocity = add(
+                linear_velocity,
+                cross(angular_velocity,
+                      subtract(states[member].position, compound.center)));
+        }
+    }
+}
+
 __device__ float solve_linear_constraint_axis(
     const BodyParameters &a, RigidBodyState &state_a,
     const BodyParameters &b, RigidBodyState &state_b,
-    Vec3 arm_a, Vec3 arm_b, Vec3 axis, float error, float timestep,
+    Vec3 arm_a, Vec3 arm_b, const RigidConstraintAxisGeometry &geometry,
+    float error, float timestep,
     float stiffness, float damping, bool spring) noexcept {
+    const Vec3 axis = geometry.axis;
     const Vec3 velocity_a = add(
         state_a.linear_velocity, cross(state_a.angular_velocity, arm_a));
     const Vec3 velocity_b = add(
         state_b.linear_velocity, cross(state_b.angular_velocity, arm_b));
     const float relative_velocity = dot(subtract(velocity_b, velocity_a), axis);
-    const Vec3 angular_a = cross(
-        inverse_inertia_world(a, state_a, cross(arm_a, axis)), arm_a);
-    const Vec3 angular_b = cross(
-        inverse_inertia_world(b, state_b, cross(arm_b, axis)), arm_b);
-    const float denominator = a.inverse_mass + b.inverse_mass +
-        dot(add(angular_a, angular_b), axis);
+    const float denominator = geometry.linear_denominator;
     if (denominator <= k_epsilon) return 0.0F;
     const float impulse = spring
         ? -(relative_velocity + stiffness * error * timestep) /
@@ -1366,13 +1780,15 @@ __device__ float solve_linear_constraint_axis(
 __device__ float solve_angular_constraint_axis(
     const BodyParameters &a, RigidBodyState &state_a,
     const BodyParameters &b, RigidBodyState &state_b,
-    Vec3 axis, float error, float timestep, float stiffness, float damping,
+    const RigidConstraintAxisGeometry &geometry,
+    float error, float timestep, float stiffness, float damping,
     bool spring) noexcept {
+    const Vec3 axis = geometry.axis;
     const float relative_velocity = dot(
         subtract(state_b.angular_velocity, state_a.angular_velocity), axis);
-    const Vec3 inverse_a = inverse_inertia_world(a, state_a, axis);
-    const Vec3 inverse_b = inverse_inertia_world(b, state_b, axis);
-    const float denominator = dot(add(inverse_a, inverse_b), axis);
+    const Vec3 inverse_a = geometry.inverse_angular_a;
+    const Vec3 inverse_b = geometry.inverse_angular_b;
+    const float denominator = geometry.angular_denominator;
     if (denominator <= k_epsilon) return 0.0F;
     const float impulse = spring
         ? -(relative_velocity + stiffness * error * timestep) /
@@ -1389,27 +1805,24 @@ __device__ float solve_angular_constraint_axis(
 
 __device__ float solve_motor_axis(
     const BodyParameters &a, RigidBodyState &state_a,
-    const BodyParameters &b, RigidBodyState &state_b, Vec3 axis,
+    const BodyParameters &b, RigidBodyState &state_b,
+    const RigidConstraintAxisGeometry &geometry,
     Vec3 arm_a, Vec3 arm_b, float target_velocity, float maximum_impulse,
     bool angular) noexcept {
+    const Vec3 axis = geometry.axis;
     float denominator = 0.0F;
     float relative_velocity = 0.0F;
     if (angular) {
         relative_velocity = dot(
             subtract(state_b.angular_velocity, state_a.angular_velocity), axis);
-        denominator = dot(add(inverse_inertia_world(a, state_a, axis),
-                              inverse_inertia_world(b, state_b, axis)), axis);
+        denominator = geometry.angular_denominator;
     } else {
         const Vec3 velocity_a = add(
             state_a.linear_velocity, cross(state_a.angular_velocity, arm_a));
         const Vec3 velocity_b = add(
             state_b.linear_velocity, cross(state_b.angular_velocity, arm_b));
         relative_velocity = dot(subtract(velocity_b, velocity_a), axis);
-        denominator = a.inverse_mass + b.inverse_mass +
-            dot(add(cross(inverse_inertia_world(a, state_a, cross(arm_a, axis)),
-                          arm_a),
-                    cross(inverse_inertia_world(b, state_b, cross(arm_b, axis)),
-                          arm_b)), axis);
+        denominator = geometry.linear_denominator;
     }
     if (denominator <= k_epsilon || maximum_impulse <= 0.0F) return 0.0F;
     const float impulse = clamp_scalar(
@@ -1419,11 +1832,11 @@ __device__ float solve_motor_axis(
         if (a.inverse_mass > 0.0F)
             state_a.angular_velocity = subtract(
                 state_a.angular_velocity,
-                multiply(inverse_inertia_world(a, state_a, axis), impulse));
+                multiply(geometry.inverse_angular_a, impulse));
         if (b.inverse_mass > 0.0F)
             state_b.angular_velocity = add(
                 state_b.angular_velocity,
-                multiply(inverse_inertia_world(b, state_b, axis), impulse));
+                multiply(geometry.inverse_angular_b, impulse));
     } else {
         const Vec3 vector = multiply(axis, impulse);
         if (a.inverse_mass > 0.0F) {
@@ -1468,11 +1881,25 @@ __device__ float limit_error(float value, float lower, float upper) noexcept {
     return value < lower ? value - lower : value > upper ? value - upper : 0.0F;
 }
 
+__device__ void resolve_active_rigid_contact_pair(
+    const BodyParameters *parameters, RigidBodyState *states,
+    std::uint32_t count, const ContactManifold *manifolds,
+    const std::uint32_t *active_pairs,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity, std::uint32_t active_index,
+    float timestep, bool correct_position,
+    const RigidCompound *compounds);
+
 __global__ void solve_rigid_constraints_kernel(
     RigidConstraintResource *constraints, std::uint32_t capacity,
     const RigidBodyId *ids, const BodyParameters *parameters,
-    RigidBodyState *states, std::uint32_t body_count, float timestep) {
+    RigidBodyState *states, std::uint32_t body_count, float timestep,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count,
+    const std::uint32_t *event_offsets, RigidContactEvent *events,
+    std::uint32_t event_capacity, const RigidCompound *compounds) {
     if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    bool fixed_contacts = false;
     std::uint32_t iterations = 0U;
     for (std::uint32_t index = 0U; index < capacity; ++index) {
         RigidConstraintResource &constraint = constraints[index];
@@ -1481,42 +1908,114 @@ __global__ void solve_rigid_constraints_kernel(
         if (!constraint.state.broken)
             constraint.state.applied_impulse = 0.0F;
         constraint.state.enabled = constraint.options.enabled && !constraint.state.broken;
-        if (constraint.state.enabled)
+        if (constraint.state.enabled) {
+            const RigidConstraintOptions &options = constraint.options;
+            RigidConstraintGeometry &geometry = constraint.geometry;
+            geometry.dense_a = find_rigid_body_dense(options.body_a, ids, body_count);
+            geometry.dense_b = find_rigid_body_dense(options.body_b, ids, body_count);
+            if (geometry.dense_a == k_invalid_dense ||
+                geometry.dense_b == k_invalid_dense) continue;
+            const bool absorbed =
+                compounds != nullptr &&
+                options.type == RigidConstraintType::fixed &&
+                options.disable_collisions &&
+                options.breaking_impulse_threshold <= 0.0F &&
+                compounds[geometry.dense_a].eligible &&
+                compounds[geometry.dense_b].eligible &&
+                compounds[geometry.dense_a].root ==
+                    compounds[geometry.dense_b].root;
+            if (absorbed) {
+                geometry.dense_a = k_invalid_dense;
+                geometry.dense_b = k_invalid_dense;
+                continue;
+            }
             iterations = constraint.options.solver_iterations > iterations
                 ? constraint.options.solver_iterations : iterations;
+            fixed_contacts |= options.type == RigidConstraintType::fixed;
+            const BodyParameters &a = parameters[geometry.dense_a];
+            const BodyParameters &b = parameters[geometry.dense_b];
+            const RigidBodyState &state_a = states[geometry.dense_a];
+            const RigidBodyState &state_b = states[geometry.dense_b];
+            geometry.arm_a = rotate(state_a.orientation, options.local_anchor_a);
+            geometry.arm_b = rotate(state_b.orientation, options.local_anchor_b);
+            geometry.anchor_error = subtract(
+                add(state_b.position, geometry.arm_b),
+                add(state_a.position, geometry.arm_a));
+            const Quaternion frame_a = normalized_quaternion(
+                quaternion_multiply(state_a.orientation, options.local_orientation_a));
+            const Quaternion frame_b = normalized_quaternion(
+                quaternion_multiply(state_b.orientation, options.local_orientation_b));
+            geometry.rotation_error = relative_rotation_vector(frame_a, frame_b);
+            geometry.hinge_alignment_error = cross(
+                rotate(frame_a, {0.0F, 0.0F, 1.0F}),
+                rotate(frame_b, {0.0F, 0.0F, 1.0F}));
+            for (std::uint32_t axis_index = 0U; axis_index < 3U; ++axis_index) {
+                RigidConstraintAxisGeometry &row = geometry.axes[axis_index];
+                row.axis = rotate(frame_a, basis_axis(axis_index));
+                row.inverse_angular_a = inverse_inertia_world(a, state_a, row.axis);
+                row.inverse_angular_b = inverse_inertia_world(b, state_b, row.axis);
+                row.angular_denominator = dot(
+                    add(row.inverse_angular_a, row.inverse_angular_b), row.axis);
+                const Vec3 angular_a = cross(
+                    inverse_inertia_world(a, state_a, cross(geometry.arm_a, row.axis)),
+                    geometry.arm_a);
+                const Vec3 angular_b = cross(
+                    inverse_inertia_world(b, state_b, cross(geometry.arm_b, row.axis)),
+                    geometry.arm_b);
+                row.linear_denominator = a.inverse_mass + b.inverse_mass +
+                    dot(add(angular_a, angular_b), row.axis);
+            }
+        }
     }
-    for (std::uint32_t iteration = 0U; iteration < iterations; ++iteration) {
+    // General fixed joints still converge with contacts. Compound-fixed
+    // contacts already use aggregate mass/inertia in contact solver.
+    const std::uint32_t contact_sweeps = fixed_contacts ? 8U : 1U;
+    for (std::uint32_t iteration = 0U;
+         iteration < iterations * contact_sweeps; ++iteration) {
+        // Contact and weld impulses must converge together. Solving all floor
+        // contacts before the joints lets a heavy parent pull its light ground
+        // supports downward again, discarding their support impulse each step.
+        for (std::uint32_t active = 0U; active < *active_pair_count; ++active) {
+            const ContactManifold &manifold = manifolds[active];
+            if (manifold.count == 0U ||
+                (!manifold.contacts[0].body_hinge.fixed_member &&
+                 !manifold.contacts[0].collider_hinge.fixed_member)) continue;
+            const std::uint32_t pair = active_pairs[active];
+            const std::uint32_t body = pair / body_count;
+            const std::uint32_t collider = pair % body_count;
+            if (compounds != nullptr &&
+                (compounds[body].eligible ||
+                 compounds[collider].eligible)) continue;
+            resolve_active_rigid_contact_pair(
+                parameters, states, body_count, manifolds, active_pairs,
+                event_offsets, events, event_capacity, active, timestep, false,
+                compounds);
+        }
         for (std::uint32_t index = 0U; index < capacity; ++index) {
             RigidConstraintResource &constraint = constraints[index];
             RigidConstraintOptions &options = constraint.options;
             if (!constraint.alive || !constraint.state.enabled ||
-                iteration >= options.solver_iterations) continue;
-            const std::uint32_t dense_a = find_rigid_body_dense(
-                options.body_a, ids, body_count);
-            const std::uint32_t dense_b = find_rigid_body_dense(
-                options.body_b, ids, body_count);
+                iteration >= options.solver_iterations * contact_sweeps) continue;
+            const RigidConstraintGeometry &geometry = constraint.geometry;
+            const std::uint32_t dense_a = geometry.dense_a;
+            const std::uint32_t dense_b = geometry.dense_b;
             if (dense_a == k_invalid_dense || dense_b == k_invalid_dense) continue;
             const BodyParameters &a = parameters[dense_a];
             const BodyParameters &b = parameters[dense_b];
-            RigidBodyState &state_a = states[dense_a];
-            RigidBodyState &state_b = states[dense_b];
-            const Vec3 arm_a = rotate(state_a.orientation, options.local_anchor_a);
-            const Vec3 arm_b = rotate(state_b.orientation, options.local_anchor_b);
-            const Vec3 anchor_error = subtract(
-                add(state_b.position, arm_b), add(state_a.position, arm_a));
-            const Quaternion frame_a = normalized_quaternion(
-                quaternion_multiply(state_a.orientation,
-                                    options.local_orientation_a));
-            const Quaternion frame_b = normalized_quaternion(
-                quaternion_multiply(state_b.orientation,
-                                    options.local_orientation_b));
-            const Vec3 rotation_error = relative_rotation_vector(frame_a, frame_b);
-            const Vec3 hinge_alignment_error = cross(
-                rotate(frame_a, {0.0F, 0.0F, 1.0F}),
-                rotate(frame_b, {0.0F, 0.0F, 1.0F}));
+            // Work on disjoint local states so each axis does not force
+            // alias-sensitive global reloads. Publish before the next
+            // constraint to retain Gauss-Seidel ordering.
+            RigidBodyState state_a = states[dense_a];
+            RigidBodyState state_b = states[dense_b];
+            const Vec3 arm_a = geometry.arm_a;
+            const Vec3 arm_b = geometry.arm_b;
+            const Vec3 anchor_error = geometry.anchor_error;
+            const Vec3 rotation_error = geometry.rotation_error;
+            const Vec3 hinge_alignment_error = geometry.hinge_alignment_error;
             float applied = 0.0F;
             for (std::uint32_t axis_index = 0U; axis_index < 3U; ++axis_index) {
-                const Vec3 world_axis = rotate(frame_a, basis_axis(axis_index));
+                const auto &row = geometry.axes[axis_index];
+                const Vec3 world_axis = row.axis;
                 const bool generic = options.type == RigidConstraintType::generic ||
                     options.type == RigidConstraintType::generic_spring;
                 const bool motor = options.type == RigidConstraintType::motor;
@@ -1540,7 +2039,7 @@ __global__ void solve_rigid_constraints_kernel(
                 if (linear_lock || linear_spring ||
                     (linear_limit && linear_error != 0.0F)) {
                     applied += solve_linear_constraint_axis(
-                        a, state_a, b, state_b, arm_a, arm_b, world_axis,
+                        a, state_a, b, state_b, arm_a, arm_b, row,
                         linear_error, timestep,
                         component(options.linear_springs.stiffness, axis_index),
                         component(options.linear_springs.damping, axis_index),
@@ -1570,7 +2069,7 @@ __global__ void solve_rigid_constraints_kernel(
                 if (angular_lock || angular_spring ||
                     (angular_limit && angular_error != 0.0F)) {
                     applied += solve_angular_constraint_axis(
-                        a, state_a, b, state_b, world_axis, angular_error,
+                        a, state_a, b, state_b, row, angular_error,
                         timestep,
                         component(options.angular_springs.stiffness, axis_index),
                         component(options.angular_springs.damping, axis_index),
@@ -1585,31 +2084,31 @@ __global__ void solve_rigid_constraints_kernel(
                 if (error != 0.0F)
                     applied += solve_angular_constraint_axis(
                         a, state_a, b, state_b,
-                        rotate(frame_a, {0.0F, 0.0F, 1.0F}), error,
+                        geometry.axes[2], error,
                         timestep, 0.0F, 0.0F, false);
             }
             if (options.type == RigidConstraintType::slider &&
                 axis_enabled(options.linear_limits.axes, 0U)) {
                 const float value = dot(
-                    anchor_error, rotate(frame_a, {1.0F, 0.0F, 0.0F}));
+                    anchor_error, geometry.axes[0].axis);
                 const float error = limit_error(
                     value, options.linear_limits.lower.x,
                     options.linear_limits.upper.x);
                 if (error != 0.0F)
                     applied += solve_linear_constraint_axis(
                         a, state_a, b, state_b, arm_a, arm_b,
-                        rotate(frame_a, {1.0F, 0.0F, 0.0F}), error,
+                        geometry.axes[0], error,
                         timestep, 0.0F, 0.0F, false);
             }
             if (options.type == RigidConstraintType::piston) {
-                const Vec3 piston_axis = rotate(frame_a, {1.0F, 0.0F, 0.0F});
+                const Vec3 piston_axis = geometry.axes[0].axis;
                 if (axis_enabled(options.linear_limits.axes, 0U)) {
                     const float error = limit_error(
                         dot(anchor_error, piston_axis), options.linear_limits.lower.x,
                         options.linear_limits.upper.x);
                     if (error != 0.0F)
                         applied += solve_linear_constraint_axis(
-                            a, state_a, b, state_b, arm_a, arm_b, piston_axis,
+                            a, state_a, b, state_b, arm_a, arm_b, geometry.axes[0],
                             error, timestep, 0.0F, 0.0F, false);
                 }
                 if (axis_enabled(options.angular_limits.axes, 0U)) {
@@ -1618,27 +2117,29 @@ __global__ void solve_rigid_constraints_kernel(
                         options.angular_limits.upper.x);
                     if (error != 0.0F)
                         applied += solve_angular_constraint_axis(
-                            a, state_a, b, state_b, piston_axis, error,
+                            a, state_a, b, state_b, geometry.axes[0], error,
                             timestep, 0.0F, 0.0F, false);
                 }
             }
             if (options.type == RigidConstraintType::motor) {
-                const Vec3 motor_axis = rotate(frame_a, {1.0F, 0.0F, 0.0F});
                 const float inverse_iterations =
-                    1.0F / static_cast<float>(options.solver_iterations);
+                    1.0F / static_cast<float>(
+                        options.solver_iterations * contact_sweeps);
                 if (options.motor.linear_enabled)
                     applied += solve_motor_axis(
-                        a, state_a, b, state_b, motor_axis, arm_a, arm_b,
+                        a, state_a, b, state_b, geometry.axes[0], arm_a, arm_b,
                         options.motor.linear_target_velocity,
                         options.motor.linear_maximum_impulse * inverse_iterations,
                         false);
                 if (options.motor.angular_enabled)
                     applied += solve_motor_axis(
-                        a, state_a, b, state_b, motor_axis, arm_a, arm_b,
+                        a, state_a, b, state_b, geometry.axes[0], arm_a, arm_b,
                         options.motor.angular_target_velocity,
                         options.motor.angular_maximum_impulse * inverse_iterations,
                         true);
             }
+            states[dense_a] = state_a;
+            states[dense_b] = state_b;
             constraint.state.applied_impulse += applied;
             if (options.breaking_impulse_threshold > 0.0F &&
                 constraint.state.applied_impulse >
@@ -1691,6 +2192,113 @@ __global__ void solve_rigid_constraints_kernel(
     }
 }
 
+__device__ std::uint32_t fixed_projection_root(
+    const FixedContactProjection *groups, std::uint32_t body) noexcept {
+    while (groups[body].root != body) body = groups[body].root;
+    return body;
+}
+
+// Rebuild before each broad phase so edits, broken joints, and dense-body
+// compaction cannot leave stale collision exclusions. Only collision-disabled
+// fixed edges are transitive; articulated joints still suppress direct pairs.
+__global__ void build_fixed_collision_groups_kernel(
+    const RigidConstraintResource *constraints, std::uint32_t capacity,
+    const RigidBodyId *ids, std::uint32_t count,
+    FixedContactProjection *groups) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    for (std::uint32_t body = 0U; body < count; ++body)
+        groups[body].root = body;
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken || !constraint.options.disable_collisions ||
+            constraint.options.type != RigidConstraintType::fixed) continue;
+        auto a = find_rigid_body_dense(constraint.options.body_a, ids, count);
+        auto b = find_rigid_body_dense(constraint.options.body_b, ids, count);
+        if (a == k_invalid_dense || b == k_invalid_dense) continue;
+        a = fixed_projection_root(groups, a);
+        b = fixed_projection_root(groups, b);
+        if (a != b) groups[a > b ? a : b].root = a < b ? a : b;
+    }
+    for (std::uint32_t body = 0U; body < count; ++body)
+        groups[body].root = fixed_projection_root(groups, body);
+}
+
+// Split positional recovery for free welded groups against immovable surfaces.
+// Translate the whole component together: correcting only its light contact
+// body breaks the weld, while velocity-only recovery leaves visible overlap
+// during fast impacts. This correction does not add kinetic energy.
+__global__ void project_fixed_ground_contacts_kernel(
+    const RigidConstraintResource *constraints, std::uint32_t capacity,
+    const RigidBodyId *ids, const BodyParameters *parameters,
+    RigidBodyState *states, std::uint32_t count,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count, FixedContactProjection *groups) {
+    if (blockIdx.x != 0U || threadIdx.x != 0U) return;
+    for (std::uint32_t body = 0U; body < count; ++body)
+        groups[body] = {body, true, {}};
+    bool welded = false;
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &constraint = constraints[index];
+        if (!constraint.alive || !constraint.state.enabled ||
+            constraint.options.type != RigidConstraintType::fixed) continue;
+        std::uint32_t a = find_rigid_body_dense(constraint.options.body_a, ids, count);
+        std::uint32_t b = find_rigid_body_dense(constraint.options.body_b, ids, count);
+        if (a == k_invalid_dense || b == k_invalid_dense) continue;
+        a = fixed_projection_root(groups, a);
+        b = fixed_projection_root(groups, b);
+        if (a != b) groups[a > b ? a : b].root = a < b ? a : b;
+        welded = true;
+    }
+    if (!welded) return;
+    for (std::uint32_t body = 0U; body < count; ++body) {
+        groups[body].root = fixed_projection_root(groups, body);
+        if (parameters[body].motion != MotionType::dynamic)
+            groups[groups[body].root].movable = false;
+    }
+    // A group tied to a hinge or other non-fixed joint cannot translate freely.
+    // Leave those contacts to the coupled velocity solve.
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &constraint = constraints[index];
+        if (!constraint.alive || !constraint.state.enabled ||
+            constraint.options.type == RigidConstraintType::fixed) continue;
+        const auto a = find_rigid_body_dense(constraint.options.body_a, ids, count);
+        const auto b = find_rigid_body_dense(constraint.options.body_b, ids, count);
+        if (a != k_invalid_dense) groups[groups[a].root].movable = false;
+        if (b != k_invalid_dense) groups[groups[b].root].movable = false;
+    }
+    for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+        for (std::uint32_t active = 0U; active < *active_pair_count; ++active) {
+            const auto pair = active_pairs[active];
+            const auto a = pair / count;
+            const auto b = pair % count;
+            const auto &manifold = manifolds[active];
+            if (manifold.count == 0U) continue;
+            const bool first = parameters[a].motion == MotionType::dynamic &&
+                parameters[b].motion != MotionType::dynamic &&
+                manifold.contacts[0].body_hinge.fixed_member;
+            const bool second = parameters[b].motion == MotionType::dynamic &&
+                parameters[a].motion != MotionType::dynamic &&
+                manifold.contacts[0].collider_hinge.fixed_member;
+            if (!first && !second) continue;
+            auto &group = groups[groups[first ? a : b].root];
+            if (!group.movable) continue;
+            for (std::uint32_t point = 0U; point < manifold.count; ++point) {
+                const auto &contact = manifold.contacts[point];
+                const Vec3 normal = multiply(contact.normal, first ? 1.0F : -1.0F);
+                const float depth = contact.penetration - dot(normal, group.translation);
+                if (depth > 0.0F)
+                    group.translation = add(group.translation,
+                        multiply(normal, depth + k_rigid_surface_tolerance));
+            }
+        }
+    }
+    for (std::uint32_t body = 0U; body < count; ++body) {
+        states[body].position = add(states[body].position,
+                                    groups[groups[body].root].translation);
+    }
+}
+
 __device__ bool constrained_collision_disabled(
     RigidBodyId first, RigidBodyId second,
     const RigidConstraintResource *constraints,
@@ -1729,14 +2337,18 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
     for (std::uint32_t index = 0U; index < constraint_capacity; ++index) {
         const RigidConstraintResource &constraint = constraints[index];
         if (!constraint.alive || !constraint.options.enabled ||
-            constraint.state.broken ||
-            constraint.options.type != RigidConstraintType::hinge)
+            constraint.state.broken)
             continue;
         const bool is_a = same_rigid_body_id(
             constraint.options.body_a, body);
         const bool is_b = same_rigid_body_id(
             constraint.options.body_b, body);
         if (!is_a && !is_b) continue;
+        if (constraint.options.type == RigidConstraintType::fixed)
+            result.fixed_member = true;
+        if (constraint.options.type != RigidConstraintType::hinge ||
+            result.present)
+            continue;
         result.local_anchor = is_a
             ? constraint.options.local_anchor_a
             : constraint.options.local_anchor_b;
@@ -1773,10 +2385,8 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
                        {0.0F, 0.0F, 1.0F}),
                 result.axis);
         }
-        reference = result.anchor;
-        return result;
     }
-    reference = state.position;
+    reference = result.present ? result.anchor : state.position;
     return result;
 }
 
@@ -1810,6 +2420,7 @@ __global__ void broad_phase_rigid_pairs_kernel(
     const TriangleMeshResource *meshes, const RigidBodyId *ids,
     const RigidConstraintResource *constraints,
     std::uint32_t constraint_capacity,
+    const FixedContactProjection *fixed_groups,
     std::uint32_t count, std::uint8_t *active_flags) {
     const std::uint32_t pair = blockIdx.x * blockDim.x + threadIdx.x;
     if (pair >= count * count) {
@@ -1823,6 +2434,9 @@ __global__ void broad_phase_rigid_pairs_kernel(
         collider_index < index) {
         active = false;
     }
+    if (active && fixed_groups != nullptr &&
+        fixed_groups[index].root == fixed_groups[collider_index].root)
+        active = false;
     if (active && constrained_collision_disabled(
             ids[index], ids[collider_index], constraints,
             constraint_capacity)) active = false;
@@ -1855,7 +2469,9 @@ __global__ void generate_rigid_leaf_pairs_kernel(
     std::uint32_t mesh_capacity, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, LeafPair *leaf_pairs,
     std::uint32_t *leaf_pair_counts,
-    std::uint32_t leaf_pair_cache_slot_capacity) {
+    std::uint32_t leaf_pair_cache_slot_capacity,
+    std::uint32_t leaf_pairs_per_slot,
+    std::uint32_t shared_leaf_capacity) {
     for (std::uint32_t active_index = blockIdx.x;
          active_index < *active_pair_count; active_index += gridDim.x) {
         const std::uint32_t pair = active_pairs[active_index];
@@ -1897,7 +2513,7 @@ __global__ void generate_rigid_leaf_pairs_kernel(
         const bool swept = requires_swept_pair_contact(
             previous_states[index], states[index], body_mesh,
             previous_states[collider_index], states[collider_index],
-            collider_mesh, k_rigid_surface_tolerance);
+            collider_mesh, margin);
         BoundsTransform previous_body_transform{};
         BoundsTransform previous_collider_transform{};
         if (swept) {
@@ -1905,32 +2521,59 @@ __global__ void generate_rigid_leaf_pairs_kernel(
             previous_collider_transform =
                 bounds_transform(previous_states[collider_index]);
         }
+        // Dense meshes otherwise transform each leaf once for every leaf of
+        // the other mesh, twice. Cache identical bounds cooperatively while
+        // retaining the original candidate order and conservative sweep.
+        extern __shared__ WorldAabb cached_bounds[];
+        const std::uint32_t total_leaves =
+            body_mesh.bvh_leaf_count + collider_mesh.bvh_leaf_count;
+        const bool cache_bounds = total_leaves <= shared_leaf_capacity;
+        if (cache_bounds) {
+            for (std::uint32_t leaf = threadIdx.x; leaf < total_leaves;
+                 leaf += blockDim.x) {
+                const bool body = leaf < body_mesh.bvh_leaf_count;
+                const TriangleMeshResource &mesh = body ? body_mesh : collider_mesh;
+                const std::uint32_t local_leaf = body
+                    ? leaf : leaf - body_mesh.bvh_leaf_count;
+                const BvhNode &node = mesh.bvh_nodes[mesh.bvh_leaves[local_leaf]];
+                transformed_motion_bounds(
+                    node.minimum, node.maximum,
+                    body ? previous_body_transform : previous_collider_transform,
+                    body ? body_transform : collider_transform,
+                    swept, body ? margin : 0.0F,
+                    cached_bounds[leaf].minimum, cached_bounds[leaf].maximum);
+            }
+        }
+        __syncthreads();
         Vec3 body_minimum{};
         Vec3 body_maximum{};
         Vec3 collider_minimum{};
         Vec3 collider_maximum{};
-        const std::uint64_t leaf_pair_count =
-            static_cast<std::uint64_t>(body_mesh.bvh_leaf_count) *
-            collider_mesh.bvh_leaf_count;
         std::uint32_t local_count = 0U;
-        for (std::uint64_t leaf_pair = threadIdx.x;
-             leaf_pair < leaf_pair_count; leaf_pair += blockDim.x) {
-            const std::uint32_t body_leaf = static_cast<std::uint32_t>(
-                leaf_pair / collider_mesh.bvh_leaf_count);
-            const std::uint32_t collider_leaf = static_cast<std::uint32_t>(
-                leaf_pair % collider_mesh.bvh_leaf_count);
+        for (RigidLeafPairCursor cursor(collider_mesh.bvh_leaf_count);
+             cursor.body_leaf < body_mesh.bvh_leaf_count; cursor.advance()) {
+            const std::uint32_t body_leaf = cursor.body_leaf;
+            const std::uint32_t collider_leaf = cursor.collider_leaf;
             const BvhNode &body_node =
                 body_mesh.bvh_nodes[body_mesh.bvh_leaves[body_leaf]];
             const BvhNode &collider_node = collider_mesh.bvh_nodes[
                 collider_mesh.bvh_leaves[collider_leaf]];
-            transformed_motion_bounds(
-                body_node.minimum, body_node.maximum, previous_body_transform,
-                body_transform, swept, margin, body_minimum,
-                body_maximum);
-            transformed_motion_bounds(
-                collider_node.minimum, collider_node.maximum,
-                previous_collider_transform, collider_transform,
-                swept, 0.0F, collider_minimum, collider_maximum);
+            if (cache_bounds) {
+                body_minimum = cached_bounds[body_leaf].minimum;
+                body_maximum = cached_bounds[body_leaf].maximum;
+                collider_minimum = cached_bounds[
+                    body_mesh.bvh_leaf_count + collider_leaf].minimum;
+                collider_maximum = cached_bounds[
+                    body_mesh.bvh_leaf_count + collider_leaf].maximum;
+            } else {
+                transformed_motion_bounds(
+                    body_node.minimum, body_node.maximum, previous_body_transform,
+                    body_transform, swept, margin, body_minimum, body_maximum);
+                transformed_motion_bounds(
+                    collider_node.minimum, collider_node.maximum,
+                    previous_collider_transform, collider_transform,
+                    swept, 0.0F, collider_minimum, collider_maximum);
+            }
             if (bounds_overlap(body_minimum, body_maximum, collider_minimum,
                                collider_maximum)) {
                 ++local_count;
@@ -1949,37 +2592,42 @@ __global__ void generate_rigid_leaf_pairs_kernel(
                 prefix += count_for_thread;
             }
             candidate_count = prefix;
-            leaf_pair_counts[pair] =
-                prefix > k_max_leaf_pairs_per_body_pair ? k_leaf_pair_overflow
-                                                        : prefix;
+            leaf_pair_counts[pair] = prefix > leaf_pairs_per_slot
+                ? k_leaf_pair_overflow : prefix;
         }
         __syncthreads();
-        if (candidate_count > k_max_leaf_pairs_per_body_pair) {
+        if (candidate_count > leaf_pairs_per_slot) {
             continue;
         }
 
         LeafPair *pair_candidates =
             leaf_pairs + static_cast<std::size_t>(active_index) *
-                             k_max_leaf_pairs_per_body_pair;
+                             leaf_pairs_per_slot;
         std::uint32_t output_index = offsets[threadIdx.x];
-        for (std::uint64_t leaf_pair = threadIdx.x;
-             leaf_pair < leaf_pair_count; leaf_pair += blockDim.x) {
-            const std::uint32_t body_leaf = static_cast<std::uint32_t>(
-                leaf_pair / collider_mesh.bvh_leaf_count);
-            const std::uint32_t collider_leaf = static_cast<std::uint32_t>(
-                leaf_pair % collider_mesh.bvh_leaf_count);
+        for (RigidLeafPairCursor cursor(collider_mesh.bvh_leaf_count);
+             cursor.body_leaf < body_mesh.bvh_leaf_count; cursor.advance()) {
+            const std::uint32_t body_leaf = cursor.body_leaf;
+            const std::uint32_t collider_leaf = cursor.collider_leaf;
             const BvhNode &body_node =
                 body_mesh.bvh_nodes[body_mesh.bvh_leaves[body_leaf]];
             const BvhNode &collider_node = collider_mesh.bvh_nodes[
                 collider_mesh.bvh_leaves[collider_leaf]];
-            transformed_motion_bounds(
-                body_node.minimum, body_node.maximum, previous_body_transform,
-                body_transform, swept, margin, body_minimum,
-                body_maximum);
-            transformed_motion_bounds(
-                collider_node.minimum, collider_node.maximum,
-                previous_collider_transform, collider_transform,
-                swept, 0.0F, collider_minimum, collider_maximum);
+            if (cache_bounds) {
+                body_minimum = cached_bounds[body_leaf].minimum;
+                body_maximum = cached_bounds[body_leaf].maximum;
+                collider_minimum = cached_bounds[
+                    body_mesh.bvh_leaf_count + collider_leaf].minimum;
+                collider_maximum = cached_bounds[
+                    body_mesh.bvh_leaf_count + collider_leaf].maximum;
+            } else {
+                transformed_motion_bounds(
+                    body_node.minimum, body_node.maximum, previous_body_transform,
+                    body_transform, swept, margin, body_minimum, body_maximum);
+                transformed_motion_bounds(
+                    collider_node.minimum, collider_node.maximum,
+                    previous_collider_transform, collider_transform,
+                    swept, 0.0F, collider_minimum, collider_maximum);
+            }
             if (!bounds_overlap(body_minimum, body_maximum, collider_minimum,
                                 collider_maximum)) {
                 continue;
@@ -2000,16 +2648,19 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
     std::uint32_t constraint_capacity, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count,
     const LeafPair *leaf_pairs, const std::uint32_t *leaf_pair_counts,
+    std::uint32_t leaf_pairs_per_slot,
+    ContactManifold *leaf_manifolds, std::uint32_t blocks_per_pair,
     float timestep, ContactManifold *manifolds) {
-    for (std::uint32_t active_index = blockIdx.x;
-         active_index < *active_pair_count; active_index += gridDim.x) {
+    for (std::uint32_t active_index = blockIdx.x / blocks_per_pair;
+         active_index < *active_pair_count;
+         active_index += gridDim.x / blocks_per_pair) {
         const std::uint32_t pair = active_pairs[active_index];
         const std::uint32_t index = pair / count;
         const std::uint32_t collider_index = pair % count;
         ContactManifold &output = manifolds[active_index];
         const std::uint32_t candidate_count = leaf_pair_counts[pair];
         if (candidate_count == 0U) {
-            if (threadIdx.x == 0U) {
+            if (threadIdx.x == 0U && blockIdx.x % blocks_per_pair == 0U) {
                 output = {};
             }
             __syncthreads();
@@ -2020,7 +2671,7 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
         const TriangleMeshResource &collider_mesh =
             meshes[parameters[collider_index].mesh.index];
         if (candidate_count == k_leaf_pair_overflow) {
-            if (threadIdx.x == 0U) {
+            if (threadIdx.x == 0U && blockIdx.x % blocks_per_pair == 0U) {
                 output = {};
             }
             __syncthreads();
@@ -2035,7 +2686,7 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
         __syncthreads();
         const LeafPair *pair_candidates =
             leaf_pairs + static_cast<std::size_t>(active_index) *
-                             k_max_leaf_pairs_per_body_pair;
+                             leaf_pairs_per_slot;
         const float separation = fmaxf(
             (parameters[index].collision_margin +
              parameters[collider_index].collision_margin) *
@@ -2062,8 +2713,8 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
             parameters, ids, count, collider_index, states,
             states[collider_index], constraints, constraint_capacity,
             collider_reference);
-        for (std::uint32_t wave = 0U; wave < candidate_count;
-             wave += blockDim.x) {
+        for (std::uint32_t wave = (blockIdx.x % blocks_per_pair) * blockDim.x;
+             wave < candidate_count; wave += blockDim.x * blocks_per_pair) {
             ContactManifold local{};
             const std::uint32_t candidate_index = wave + threadIdx.x;
             if (candidate_index < candidate_count) {
@@ -2089,6 +2740,12 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
                         collider_hinge, local);
                 }
             }
+            if (leaf_manifolds != nullptr) {
+                if (candidate_index < candidate_count)
+                    leaf_manifolds[static_cast<std::size_t>(active_index) *
+                                       leaf_pairs_per_slot + candidate_index] = local;
+                continue;
+            }
             partials[threadIdx.x] = local;
             __syncthreads();
             if (threadIdx.x == 0U) {
@@ -2106,11 +2763,36 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
             }
             __syncthreads();
         }
-        if (threadIdx.x == 0U) {
+        if (leaf_manifolds == nullptr && threadIdx.x == 0U) {
             output = reduced;
         }
         __syncthreads();
     }
+}
+
+// A fixed candidate-order reduction matches the single-block evaluator;
+// parallelizing triangle work must not reorder the contact manifold.
+__global__ void reduce_rigid_leaf_manifolds_kernel(
+    const BodyParameters *parameters, std::uint32_t count,
+    const std::uint32_t *active_pairs, const std::uint32_t *active_pair_count,
+    const std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
+    const ContactManifold *leaf_manifolds, ContactManifold *manifolds) {
+    const std::uint32_t active_index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (active_index >= *active_pair_count) return;
+    const std::uint32_t pair = active_pairs[active_index];
+    const std::uint32_t candidate_count = leaf_pair_counts[pair];
+    if (candidate_count == k_leaf_pair_overflow) return;
+    const float separation = fmaxf(
+        (parameters[pair / count].collision_margin +
+         parameters[pair % count].collision_margin) * 2.0F, 1.0e-4F);
+    ContactManifold reduced{};
+    for (std::uint32_t candidate = 0U; candidate < candidate_count; ++candidate) {
+        const ContactManifold &local = leaf_manifolds[
+            static_cast<std::size_t>(active_index) * leaf_pairs_per_slot + candidate];
+        for (std::uint32_t contact = 0U; contact < local.count; ++contact)
+            add_manifold_contact(reduced, local.contacts[contact], separation);
+    }
+    manifolds[active_index] = reduced;
 }
 
 // Serial BVH traversal needs a large stack. Isolate it from normal pair work.
@@ -2238,7 +2920,7 @@ __global__ void find_parallel_color_owners_kernel(
     const BodyParameters *parameters, std::uint32_t count,
     const ContactManifold *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const std::uint8_t *pair_colors,
-    std::uint32_t *owners) {
+    std::uint32_t *owners, const RigidCompound *compounds) {
     for (std::uint32_t active_index =
              blockIdx.x * blockDim.x + threadIdx.x;
          active_index < *active_pair_count;
@@ -2250,10 +2932,16 @@ __global__ void find_parallel_color_owners_kernel(
         const std::uint32_t pair = active_pairs[active_index];
         const std::uint32_t index = pair / count;
         const std::uint32_t collider_index = pair % count;
+        const std::uint32_t owner_index =
+            compounds != nullptr && compounds[index].eligible
+                ? compounds[index].root : index;
+        const std::uint32_t collider_owner =
+            compounds != nullptr && compounds[collider_index].eligible
+                ? compounds[collider_index].root : collider_index;
         const std::uint32_t priority = contact_color_priority(pair);
-        atomicMin(&owners[index], priority);
+        atomicMin(&owners[owner_index], priority);
         if (parameters[collider_index].motion == MotionType::dynamic) {
-            atomicMin(&owners[collider_index], priority);
+            atomicMin(&owners[collider_owner], priority);
         }
     }
 }
@@ -2263,7 +2951,8 @@ __global__ void assign_parallel_contact_colors_kernel(
     const ContactManifold *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const std::uint32_t *owners,
     std::uint8_t *pair_colors, std::uint32_t *color_state,
-    std::uint32_t color, std::uint32_t color_round_count) {
+    std::uint32_t color, std::uint32_t color_round_count,
+    const RigidCompound *compounds) {
     for (std::uint32_t active_index =
              blockIdx.x * blockDim.x + threadIdx.x;
          active_index < *active_pair_count;
@@ -2275,11 +2964,17 @@ __global__ void assign_parallel_contact_colors_kernel(
         const std::uint32_t pair = active_pairs[active_index];
         const std::uint32_t index = pair / count;
         const std::uint32_t collider_index = pair % count;
+        const std::uint32_t owner_index =
+            compounds != nullptr && compounds[index].eligible
+                ? compounds[index].root : index;
+        const std::uint32_t collider_owner =
+            compounds != nullptr && compounds[collider_index].eligible
+                ? compounds[collider_index].root : collider_index;
         const bool dynamic_collider =
             parameters[collider_index].motion == MotionType::dynamic;
         const std::uint32_t priority = contact_color_priority(pair);
-        if (owners[index] == priority &&
-            (!dynamic_collider || owners[collider_index] == priority)) {
+        if (owners[owner_index] == priority &&
+            (!dynamic_collider || owners[collider_owner] == priority)) {
             pair_colors[active_index] = static_cast<std::uint8_t>(color);
             atomicMax(&color_state[0], color + 1U);
         } else if (color + 1U == color_round_count) {
@@ -2293,7 +2988,7 @@ __global__ void color_small_rigid_contacts_kernel(
     const ContactManifold *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, std::uint8_t *pair_colors,
     std::uint32_t *owners, std::uint32_t *color_state,
-    std::uint32_t color_round_count) {
+    std::uint32_t color_round_count, const RigidCompound *compounds) {
     if (blockIdx.x != 0U) return;
     const std::uint32_t active_count = *active_pair_count;
     for (std::uint32_t color = 0U; color < color_round_count; ++color) {
@@ -2308,10 +3003,16 @@ __global__ void color_small_rigid_contacts_kernel(
             const std::uint32_t pair = active_pairs[active_index];
             const std::uint32_t first = pair / count;
             const std::uint32_t second = pair % count;
+            const std::uint32_t first_owner =
+                compounds != nullptr && compounds[first].eligible
+                    ? compounds[first].root : first;
+            const std::uint32_t second_owner =
+                compounds != nullptr && compounds[second].eligible
+                    ? compounds[second].root : second;
             const std::uint32_t priority = contact_color_priority(pair);
-            atomicMin(&owners[first], priority);
+            atomicMin(&owners[first_owner], priority);
             if (parameters[second].motion == MotionType::dynamic)
-                atomicMin(&owners[second], priority);
+                atomicMin(&owners[second_owner], priority);
         }
         __syncthreads();
         for (std::uint32_t active_index = threadIdx.x;
@@ -2321,11 +3022,17 @@ __global__ void color_small_rigid_contacts_kernel(
             const std::uint32_t pair = active_pairs[active_index];
             const std::uint32_t first = pair / count;
             const std::uint32_t second = pair % count;
+            const std::uint32_t first_owner =
+                compounds != nullptr && compounds[first].eligible
+                    ? compounds[first].root : first;
+            const std::uint32_t second_owner =
+                compounds != nullptr && compounds[second].eligible
+                    ? compounds[second].root : second;
             const bool dynamic_second =
                 parameters[second].motion == MotionType::dynamic;
             const std::uint32_t priority = contact_color_priority(pair);
-            if (owners[first] == priority &&
-                (!dynamic_second || owners[second] == priority)) {
+            if (owners[first_owner] == priority &&
+                (!dynamic_second || owners[second_owner] == priority)) {
                 pair_colors[active_index] = static_cast<std::uint8_t>(color);
                 atomicMax(&color_state[0], color + 1U);
             } else if (color + 1U == color_round_count) {
@@ -2342,7 +3049,8 @@ __device__ void resolve_active_rigid_contact_pair(
     const std::uint32_t *active_pairs,
     const std::uint32_t *event_offsets, RigidContactEvent *events,
     std::uint32_t event_capacity, std::uint32_t active_index,
-    float timestep, bool correct_position) {
+    float timestep, bool correct_position,
+    const RigidCompound *compounds) {
     const std::uint32_t pair = active_pairs[active_index];
     const std::uint32_t index = pair / count;
     const std::uint32_t collider_index = pair % count;
@@ -2358,11 +3066,10 @@ __device__ void resolve_active_rigid_contact_pair(
                 ? manifold.count : remaining;
         }
     }
-    resolve_contacts(parameters[index], states[index],
-                     parameters[collider_index], states[collider_index],
+    resolve_contacts(parameters, states, count, index, collider_index,
                      manifold.contacts, manifold.count, timestep,
                      correct_position,
-                     pair_events, retained);
+                     pair_events, retained, compounds);
 }
 
 __global__ void resolve_colored_rigid_contacts_kernel(
@@ -2373,7 +3080,8 @@ __global__ void resolve_colored_rigid_contacts_kernel(
     const std::uint8_t *pair_colors, const std::uint32_t *color_state,
     const std::uint32_t *event_offsets, RigidContactEvent *events,
     std::uint32_t event_capacity,
-    std::uint32_t color, float timestep, bool correct_position) {
+    std::uint32_t color, float timestep, bool correct_position,
+    const RigidCompound *compounds) {
     if (color >= color_state[0]) {
         return;
     }
@@ -2386,7 +3094,7 @@ __global__ void resolve_colored_rigid_contacts_kernel(
         }
         resolve_active_rigid_contact_pair(parameters, states, count,
             manifolds, active_pairs, event_offsets, events, event_capacity,
-            active_index, timestep, correct_position);
+            active_index, timestep, correct_position, compounds);
     }
 }
 
@@ -2398,7 +3106,8 @@ __global__ void resolve_uncolored_rigid_contacts_kernel(
     const std::uint8_t *pair_colors, const std::uint32_t *color_state,
     const std::uint32_t *event_offsets, RigidContactEvent *events,
     std::uint32_t event_capacity,
-    float timestep, bool correct_position) {
+    float timestep, bool correct_position,
+    const RigidCompound *compounds) {
     if (blockIdx.x != 0U || threadIdx.x != 0U || color_state[1] == 0U) {
         return;
     }
@@ -2410,7 +3119,7 @@ __global__ void resolve_uncolored_rigid_contacts_kernel(
         }
         resolve_active_rigid_contact_pair(parameters, states, count,
             manifolds, active_pairs, event_offsets, events, event_capacity,
-            active_index, timestep, correct_position);
+            active_index, timestep, correct_position, compounds);
     }
 }
 
@@ -2423,7 +3132,8 @@ __global__ void resolve_small_rigid_contacts_kernel(
     const std::uint32_t *active_pair_count,
     const std::uint8_t *pair_colors, const std::uint32_t *color_state,
     const std::uint32_t *event_offsets, RigidContactEvent *events,
-    std::uint32_t event_capacity, float timestep) {
+    std::uint32_t event_capacity, float timestep,
+    const RigidCompound *compounds) {
     if (blockIdx.x != 0U) return;
     const std::uint32_t active_count = *active_pair_count;
     const std::uint32_t used_colors = color_state[0];
@@ -2434,7 +3144,8 @@ __global__ void resolve_small_rigid_contacts_kernel(
                 if (pair_colors[active_index] != color) continue;
                 resolve_active_rigid_contact_pair(parameters, states, count,
                     manifolds, active_pairs, event_offsets, events,
-                    event_capacity, active_index, timestep, pass == 0U);
+                    event_capacity, active_index, timestep, pass == 0U,
+                    compounds);
             }
             __syncthreads();
         }
@@ -2445,7 +3156,8 @@ __global__ void resolve_small_rigid_contacts_kernel(
                     manifolds[active_index].count == 0U) continue;
                 resolve_active_rigid_contact_pair(parameters, states, count,
                     manifolds, active_pairs, event_offsets, events,
-                    event_capacity, active_index, timestep, pass == 0U);
+                    event_capacity, active_index, timestep, pass == 0U,
+                    compounds);
             }
         }
         __syncthreads();
