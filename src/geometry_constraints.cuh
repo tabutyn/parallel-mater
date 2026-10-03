@@ -35,14 +35,21 @@ struct RigidConstraintResource {
     bool alive{};
 };
 
+struct HingeContactFrame {
+    Vec3 anchor{};
+    Vec3 axis{};
+    Vec3 local_anchor{};
+    bool present{};
+    bool fixed{};
+};
+
 struct Contact {
     Vec3 normal{};
     Vec3 point{};
-    // Positive while surfaces are still apart. Collision margins only bound
-    // the speculative search; they are not a target surface separation.
-    float separation{};
+    // Positive inside solver rest offset; negative while speculative.
     float penetration{};
-    bool hit{};
+    HingeContactFrame body_hinge{};
+    HingeContactFrame collider_hinge{};
 };
 
 struct ContactManifold {
@@ -51,6 +58,11 @@ struct ContactManifold {
 };
 
 constexpr float k_rigid_surface_tolerance = 1.0e-5F;
+constexpr float k_rigid_rest_offset = 1.0e-3F;
+
+__host__ __device__ float rigid_rest_offset(float margin) noexcept {
+    return fminf(margin, k_rigid_rest_offset);
+}
 
 struct LeafPair {
     std::uint32_t body_first{};
@@ -277,7 +289,10 @@ __host__ __device__ Vec3 closest_on_triangle(Vec3 point, Vec3 a, Vec3 b,
 
 __host__ __device__ bool point_in_triangle(Vec3 point, Vec3 a, Vec3 b,
                                            Vec3 c, Vec3 normal) noexcept {
-    constexpr float tolerance = -1.0e-5F;
+    // These edge tests and |normal|^2 both have units length^4. A fixed
+    // tolerance admits points far outside small triangles (gear teeth),
+    // producing false intersections and recovery torques through real gaps.
+    const float tolerance = -1.0e-5F * length_squared(normal);
     return dot(cross(subtract(b, a), subtract(point, a)), normal) >= tolerance &&
            dot(cross(subtract(c, b), subtract(point, b)), normal) >= tolerance &&
            dot(cross(subtract(a, c), subtract(point, c)), normal) >= tolerance;
@@ -473,25 +488,12 @@ __host__ __device__ void closest_triangle_pair(
 __device__ void add_manifold_contact(ContactManifold &manifold,
                                      Contact candidate,
                                      float point_spacing) noexcept {
-    if (manifold.count > 0U) {
-        float nearest = manifold.contacts[0].separation;
-        for (std::uint32_t index = 1U; index < manifold.count; ++index) {
-            nearest = fminf(nearest, manifold.contacts[index].separation);
-        }
-        if (candidate.separation + k_rigid_surface_tolerance < nearest) {
-            manifold = {};
-        } else if (candidate.separation > nearest +
-                                            k_rigid_surface_tolerance) {
-            return;
-        }
-    }
     const float minimum_spacing_squared = point_spacing * point_spacing;
     for (std::uint32_t index = 0; index < manifold.count; ++index) {
         if (length_squared(subtract(candidate.point,
                                     manifold.contacts[index].point)) <
             minimum_spacing_squared) {
-            if (candidate.separation < manifold.contacts[index].separation ||
-                candidate.penetration >
+            if (candidate.penetration >
                     manifold.contacts[index].penetration) {
                 manifold.contacts[index] = candidate;
             }
@@ -528,27 +530,36 @@ __device__ float contact_normal_speed(
     return dot(subtract(body_velocity, collider_velocity), normal);
 }
 
-__device__ bool contact_reaches_surface(
+__device__ bool contact_reaches_rest_offset(
     const RigidBodyState &body_state,
     const RigidBodyState &collider_state, Vec3 point, Vec3 normal,
-    float distance, float timestep) noexcept {
+    float distance, float rest_offset, float timestep) noexcept {
     constexpr float velocity_tolerance = 1.0e-5F;
+    if (distance <= rest_offset + k_rigid_surface_tolerance) {
+        return true;
+    }
     const float normal_speed = contact_normal_speed(
         body_state, collider_state, point, normal);
     if (normal_speed > velocity_tolerance) {
         return false;
     }
-    return distance <= k_rigid_surface_tolerance ||
-           -normal_speed * timestep + k_rigid_surface_tolerance >= distance;
+    return -normal_speed * timestep + rest_offset +
+               k_rigid_surface_tolerance >=
+           distance;
 }
 
 __device__ void collide_triangle_ranges(
-    const RigidBodyState &body_state, const TriangleMeshResource &body_mesh,
+    const RigidBodyState &body_state, Vec3 body_reference,
+    const HingeContactFrame &body_hinge,
+    const TriangleMeshResource &body_mesh,
     std::uint32_t body_first, std::uint32_t body_count,
     const RigidBodyState &collider_state,
     const TriangleMeshResource &collider_mesh, std::uint32_t collider_first,
-    std::uint32_t collider_count, float margin, float timestep,
+    std::uint32_t collider_count, const HingeContactFrame &collider_hinge,
+    float margin,
+    float timestep,
     ContactManifold &manifold) noexcept {
+    const float rest_offset = rigid_rest_offset(margin);
     for (std::uint32_t body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
         const std::uint32_t body_index = body_triangle * 3U;
@@ -585,22 +596,35 @@ __device__ void collide_triangle_ranges(
             const Vec3 collider_normal = normalized_or(
                 cross(subtract(b1, b0), subtract(b2, b0)),
                 {0.0F, 1.0F, 0.0F});
-            const Vec3 center_delta = subtract(body_state.position, point_b);
-            const Vec3 fallback =
-                dot(collider_normal, center_delta) >= 0.0F
-                    ? collider_normal
-                    : multiply(collider_normal, -1.0F);
+            const Vec3 surface_delta = subtract(body_reference, point_b);
+            const Vec3 fallback = dot(collider_normal, surface_delta) >= 0.0F
+                ? collider_normal
+                : multiply(collider_normal, -1.0F);
             const float distance = sqrtf(fmaxf(squared, 0.0F));
             const Vec3 point = multiply(add(point_a, point_b), 0.5F);
-            const Vec3 normal = normalized_or(delta, fallback);
-            if (!contact_reaches_surface(
+            // Once two triangle surfaces are within the contact tolerance,
+            // their closest-point delta is numerical noise rather than a
+            // reliable direction.  Keep the normal on the body's known side
+            // of the contacted triangle so resting bodies cannot slowly
+            // migrate through a zero-thickness surface.
+            const Vec3 normal = distance <= k_rigid_surface_tolerance
+                ? fallback
+                : normalized_or(delta, fallback);
+            if (!contact_reaches_rest_offset(
                     body_state, collider_state, point, normal, distance,
-                    timestep)) {
+                    rest_offset, timestep)) {
                 continue;
             }
+            float penetration = rest_offset - distance +
+                                k_rigid_surface_tolerance;
+            if (distance <= k_rigid_surface_tolerance) {
+                // Triangle intersection has no reliable closest-point depth.
+                // Recover by one search shell; swept contacts carry exact
+                // remaining travel for fast impacts.
+                penetration = margin + k_rigid_surface_tolerance;
+            }
             const Contact contact{
-                normal, point, distance, 0.0F,
-                true};
+                normal, point, penetration, body_hinge, collider_hinge};
             add_manifold_contact(manifold, contact, fmaxf(margin * 2.0F, 1.0e-4F));
         }
     }
@@ -608,7 +632,8 @@ __device__ void collide_triangle_ranges(
 
 __device__ void collide_triangle_ranges_swept(
     const RigidBodyState &previous_body_state,
-    const RigidBodyState &body_state,
+    const RigidBodyState &body_state, Vec3 previous_body_reference,
+    Vec3 body_reference, const HingeContactFrame &body_hinge,
     const TriangleMeshResource &body_mesh, std::uint32_t body_first,
     std::uint32_t body_count,
     const RigidBodyState &previous_collider_state,
@@ -616,10 +641,12 @@ __device__ void collide_triangle_ranges_swept(
     const TriangleMeshResource &collider_mesh,
     std::uint32_t collider_first, std::uint32_t collider_count, float margin,
     float timestep, bool body_moves, bool collider_moves,
+    const HingeContactFrame &collider_hinge,
     ContactManifold &manifold) noexcept {
     if (!body_moves && !collider_moves) {
         return;
     }
+    const float rest_offset = rigid_rest_offset(margin);
     for (std::uint32_t body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
         const std::uint32_t body_index = body_triangle * 3U;
@@ -727,7 +754,10 @@ __device__ void collide_triangle_ranges_swept(
                 const Vec3 delta = subtract(point_a, point_b);
                 const float distance =
                     sqrtf(fmaxf(0.0F, length_squared(delta)));
-                if (distance <= k_rigid_surface_tolerance) {
+                if (distance <= rest_offset + k_rigid_surface_tolerance) {
+                    if (iteration == 0U) {
+                        break;
+                    }
                     const Vec3 collider_normal = normalized_or(
                         cross(subtract(b[1], b[0]), subtract(b[2], b[0])),
                         {0.0F, 1.0F, 0.0F});
@@ -736,17 +766,27 @@ __device__ void collide_triangle_ranges_swept(
                         multiply(subtract(body_state.position,
                                           previous_body_state.position),
                                  time));
-                    const Vec3 collider_center = add(
-                        previous_collider_state.position,
-                        multiply(subtract(collider_state.position,
-                                          previous_collider_state.position),
-                                 time));
-                    const Vec3 fallback =
+                    Vec3 fallback =
                         dot(collider_normal,
-                            subtract(body_center, collider_center)) >= 0.0F
+                            subtract(body_center, point_b)) >= 0.0F
                             ? collider_normal
                             : multiply(collider_normal, -1.0F);
-                    const Vec3 normal = normalized_or(delta, fallback);
+                    if (body_hinge.present) {
+                        const Vec3 reference = add(
+                            previous_body_reference,
+                            multiply(subtract(body_reference,
+                                              previous_body_reference),
+                                     time));
+                        fallback =
+                            dot(collider_normal,
+                                subtract(reference, point_b)) >= 0.0F
+                                ? collider_normal
+                                : multiply(collider_normal, -1.0F);
+                    }
+                    const Vec3 normal =
+                        distance <= k_rigid_surface_tolerance
+                            ? fallback
+                            : normalized_or(delta, fallback);
                     const Vec3 point = multiply(add(point_a, point_b), 0.5F);
                     const float normal_speed = contact_normal_speed(
                         body_state, collider_state, point, normal);
@@ -758,12 +798,14 @@ __device__ void collide_triangle_ranges_swept(
                         -normal_speed * timestep * (1.0F - time) - distance);
                     add_manifold_contact(
                         manifold,
-                        {normal, point, 0.0F, remaining, true},
+                        {normal, point, remaining + rest_offset +
+                             k_rigid_surface_tolerance,
+                         body_hinge, collider_hinge},
                         fmaxf(margin * 2.0F, 1.0e-4F));
                     break;
                 }
                 float advancement =
-                    (distance - k_rigid_surface_tolerance) /
+                    (distance - rest_offset) /
                     (speed_bound + k_epsilon) * 0.9F;
                 advancement = fmaxf(advancement, 1.0e-5F);
                 time += advancement;
@@ -777,17 +819,19 @@ __device__ void collide_triangle_ranges_swept(
 
 __device__ ContactManifold collide_meshes(
     const BodyParameters &body, const RigidBodyState &previous_body_state,
-    const RigidBodyState &body_state,
+    const RigidBodyState &body_state, Vec3 previous_body_reference,
+    Vec3 body_reference, const HingeContactFrame &body_hinge,
     const TriangleMeshResource &body_mesh, const BodyParameters &collider,
     const RigidBodyState &previous_collider_state,
     const RigidBodyState &collider_state,
-    const TriangleMeshResource &collider_mesh, float timestep) noexcept {
+    const TriangleMeshResource &collider_mesh,
+    const HingeContactFrame &collider_hinge,
+    float timestep) noexcept {
     ContactManifold manifold{};
     const float margin = body.collision_margin + collider.collision_margin;
     const bool swept = requires_swept_pair_contact(
         previous_body_state, body_state, body_mesh,
-        previous_collider_state, collider_state, collider_mesh,
-        k_rigid_surface_tolerance);
+        previous_collider_state, collider_state, collider_mesh, margin);
     const BoundsTransform previous_body_transform =
         swept ? bounds_transform(previous_body_state) : BoundsTransform{};
     const BoundsTransform previous_collider_transform =
@@ -836,17 +880,19 @@ __device__ ContactManifold collide_meshes(
         const bool collider_leaf = collider_node.triangle_count != 0U;
         if (body_leaf && collider_leaf) {
             collide_triangle_ranges(
-                body_state, body_mesh, body_node.first_triangle,
+                body_state, body_reference, body_hinge, body_mesh,
+                body_node.first_triangle,
                 body_node.triangle_count, collider_state, collider_mesh,
                 collider_node.first_triangle, collider_node.triangle_count,
-                margin, timestep, manifold);
+                collider_hinge, margin, timestep, manifold);
             if (swept) {
                 collide_triangle_ranges_swept(
-                    previous_body_state, body_state, body_mesh,
+                    previous_body_state, body_state, previous_body_reference,
+                    body_reference, body_hinge, body_mesh,
                     body_node.first_triangle, body_node.triangle_count,
                     previous_collider_state, collider_state, collider_mesh,
                     collider_node.first_triangle, collider_node.triangle_count,
-                    margin, timestep, true, true, manifold);
+                    margin, timestep, true, true, collider_hinge, manifold);
             }
             continue;
         }
@@ -872,16 +918,19 @@ __device__ ContactManifold collide_meshes(
     if (overflow) {
         manifold = {};
         collide_triangle_ranges(
-            body_state, body_mesh, 0U, body_mesh.index_count / 3U,
+            body_state, body_reference, body_hinge, body_mesh, 0U,
+            body_mesh.index_count / 3U,
             collider_state, collider_mesh, 0U,
-            collider_mesh.index_count / 3U, margin, timestep, manifold);
+            collider_mesh.index_count / 3U, collider_hinge, margin, timestep,
+            manifold);
         if (swept) {
             collide_triangle_ranges_swept(
-                previous_body_state, body_state, body_mesh, 0U,
+                previous_body_state, body_state, previous_body_reference,
+                body_reference, body_hinge, body_mesh, 0U,
                 body_mesh.index_count / 3U, previous_collider_state,
                 collider_state, collider_mesh, 0U,
                 collider_mesh.index_count / 3U, margin, timestep, true, true,
-                manifold);
+                collider_hinge, manifold);
         }
     }
     return manifold;
@@ -897,25 +946,96 @@ __host__ __device__ Vec3 inverse_inertia_world(
     return rotate(state.orientation, transformed);
 }
 
+__device__ float fixed_hinge_inverse_moment(
+    const BodyParameters &parameters, const RigidBodyState &state,
+    const HingeContactFrame &hinge) noexcept {
+    if (!hinge.fixed || parameters.inverse_mass <= k_epsilon) return 0.0F;
+    const Vec3 local_axis = inverse_rotate(state.orientation, hinge.axis);
+    const float center_moment =
+        local_axis.x * local_axis.x /
+            fmaxf(parameters.inverse_inertia_local.x, k_epsilon) +
+        local_axis.y * local_axis.y /
+            fmaxf(parameters.inverse_inertia_local.y, k_epsilon) +
+        local_axis.z * local_axis.z /
+            fmaxf(parameters.inverse_inertia_local.z, k_epsilon);
+    const Vec3 center_arm = subtract(state.position, hinge.anchor);
+    const Vec3 perpendicular = subtract(
+        center_arm, multiply(hinge.axis, dot(center_arm, hinge.axis)));
+    const float pivot_moment = center_moment +
+        length_squared(perpendicular) / parameters.inverse_mass;
+    return pivot_moment > k_epsilon ? 1.0F / pivot_moment : 0.0F;
+}
+
+__device__ Vec3 contact_point_velocity(
+    const RigidBodyState &state, const HingeContactFrame &hinge,
+    Vec3 point) noexcept {
+    if (!hinge.fixed) {
+        return add(state.linear_velocity,
+                   cross(state.angular_velocity,
+                         subtract(point, state.position)));
+    }
+    const Vec3 angular = multiply(
+        hinge.axis, dot(state.angular_velocity, hinge.axis));
+    return cross(angular, subtract(point, hinge.anchor));
+}
+
+__device__ float contact_direction_inverse_mass(
+    const BodyParameters &parameters, const RigidBodyState &state,
+    const HingeContactFrame &hinge, Vec3 point, Vec3 direction) noexcept {
+    if (hinge.fixed) {
+        const float jacobian = dot(
+            cross(hinge.axis, subtract(point, hinge.anchor)), direction);
+        return jacobian * jacobian *
+            fixed_hinge_inverse_moment(parameters, state, hinge);
+    }
+    const Vec3 arm = subtract(point, state.position);
+    const Vec3 angular = cross(arm, direction);
+    return parameters.inverse_mass +
+        dot(cross(inverse_inertia_world(parameters, state, angular), arm),
+            direction);
+}
+
+__device__ void apply_contact_velocity_impulse(
+    const BodyParameters &parameters, RigidBodyState &state,
+    const HingeContactFrame &hinge, Vec3 point, Vec3 impulse) noexcept {
+    if (parameters.inverse_mass <= 0.0F) return;
+    if (hinge.fixed) {
+        const float angular_impulse = dot(
+            hinge.axis, cross(subtract(point, hinge.anchor), impulse));
+        const Vec3 angular_delta = multiply(
+            hinge.axis, angular_impulse *
+                fixed_hinge_inverse_moment(parameters, state, hinge));
+        state.angular_velocity = add(state.angular_velocity, angular_delta);
+        state.linear_velocity = add(
+            state.linear_velocity,
+            cross(angular_delta, subtract(state.position, hinge.anchor)));
+        return;
+    }
+    state.linear_velocity = add(
+        state.linear_velocity, multiply(impulse, parameters.inverse_mass));
+    state.angular_velocity = add(
+        state.angular_velocity,
+        inverse_inertia_world(parameters, state,
+                              cross(subtract(point, state.position), impulse)));
+}
+
 __device__ AppliedContactImpulse apply_contact_impulse(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact &contact, float timestep) noexcept {
     AppliedContactImpulse applied{};
-    const Vec3 body_arm = subtract(contact.point, state.position);
-    const Vec3 collider_arm = subtract(contact.point, collider_state.position);
-    const Vec3 body_velocity =
-        add(state.linear_velocity, cross(state.angular_velocity, body_arm));
-    const Vec3 collider_velocity = add(
-        collider_state.linear_velocity,
-        cross(collider_state.angular_velocity, collider_arm));
+    const Vec3 body_velocity = contact_point_velocity(
+        state, contact.body_hinge, contact.point);
+    const Vec3 collider_velocity = contact_point_velocity(
+        collider_state, contact.collider_hinge, contact.point);
     Vec3 relative_velocity = subtract(body_velocity, collider_velocity);
     const float normal_speed = dot(relative_velocity, contact.normal);
-    float target_speed = contact.separation > k_rigid_surface_tolerance
-        ? -contact.separation / fmaxf(timestep, k_epsilon)
+    const float separation = fmaxf(0.0F, -contact.penetration);
+    float target_speed = separation > k_rigid_surface_tolerance
+        ? -separation / fmaxf(timestep, k_epsilon)
         : 0.0F;
     const float restitution = fminf(body.restitution, collider.restitution);
-    if (contact.separation <= k_rigid_surface_tolerance &&
+    if (separation <= k_rigid_surface_tolerance &&
         normal_speed < 0.0F) {
         target_speed = -restitution * normal_speed;
     }
@@ -923,16 +1043,12 @@ __device__ AppliedContactImpulse apply_contact_impulse(
         return applied;
     }
 
-    const Vec3 body_cross = cross(body_arm, contact.normal);
-    const Vec3 angular_term =
-        cross(inverse_inertia_world(body, state, body_cross), body_arm);
-    const Vec3 collider_cross = cross(collider_arm, contact.normal);
-    const Vec3 collider_angular_term = cross(
-        inverse_inertia_world(collider, collider_state, collider_cross),
-        collider_arm);
     const float denominator =
-        body.inverse_mass + collider.inverse_mass +
-        dot(add(angular_term, collider_angular_term), contact.normal);
+        contact_direction_inverse_mass(
+            body, state, contact.body_hinge, contact.point, contact.normal) +
+        contact_direction_inverse_mass(
+            collider, collider_state, contact.collider_hinge,
+            contact.point, contact.normal);
     if (denominator <= k_epsilon) {
         return applied;
     }
@@ -940,28 +1056,19 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     const float normal_impulse = (target_speed - normal_speed) / denominator;
     applied.normal = normal_impulse;
     const Vec3 normal_vector = multiply(contact.normal, normal_impulse);
-    state.linear_velocity =
-        add(state.linear_velocity, multiply(normal_vector, body.inverse_mass));
-    state.angular_velocity =
-        add(state.angular_velocity,
-            inverse_inertia_world(body, state, cross(body_arm, normal_vector)));
-    if (collider.inverse_mass > 0.0F) {
-        collider_state.linear_velocity = subtract(
-            collider_state.linear_velocity,
-            multiply(normal_vector, collider.inverse_mass));
-        collider_state.angular_velocity = subtract(
-            collider_state.angular_velocity,
-            inverse_inertia_world(collider, collider_state,
-                                  cross(collider_arm, normal_vector)));
-    }
+    apply_contact_velocity_impulse(
+        body, state, contact.body_hinge, contact.point, normal_vector);
+    apply_contact_velocity_impulse(
+        collider, collider_state, contact.collider_hinge, contact.point,
+        multiply(normal_vector, -1.0F));
 
-    if (contact.separation > k_rigid_surface_tolerance) {
+    if (separation > k_rigid_surface_tolerance) {
         return applied;
     }
     relative_velocity = subtract(
-        add(state.linear_velocity, cross(state.angular_velocity, body_arm)),
-        add(collider_state.linear_velocity,
-            cross(collider_state.angular_velocity, collider_arm)));
+        contact_point_velocity(state, contact.body_hinge, contact.point),
+        contact_point_velocity(collider_state, contact.collider_hinge,
+                               contact.point));
     Vec3 tangent = subtract(relative_velocity,
                             multiply(contact.normal,
                                      dot(relative_velocity, contact.normal)));
@@ -970,14 +1077,12 @@ __device__ AppliedContactImpulse apply_contact_impulse(
         return applied;
     }
     tangent = multiply(tangent, 1.0F / tangent_length);
-    const Vec3 tangent_cross = cross(body_arm, tangent);
-    const Vec3 collider_tangent_cross = cross(collider_arm, tangent);
-    const float tangent_denominator = body.inverse_mass + collider.inverse_mass +
-        dot(add(cross(inverse_inertia_world(body, state, tangent_cross), body_arm),
-                cross(inverse_inertia_world(collider, collider_state,
-                                            collider_tangent_cross),
-                      collider_arm)),
-            tangent);
+    const float tangent_denominator =
+        contact_direction_inverse_mass(
+            body, state, contact.body_hinge, contact.point, tangent) +
+        contact_direction_inverse_mass(
+            collider, collider_state, contact.collider_hinge,
+            contact.point, tangent);
     if (tangent_denominator <= k_epsilon) {
         return applied;
     }
@@ -988,20 +1093,11 @@ __device__ AppliedContactImpulse apply_contact_impulse(
         clamp_scalar(tangent_impulse, -friction_limit, friction_limit);
     const Vec3 tangent_vector = multiply(tangent, tangent_impulse);
     applied.friction = tangent_vector;
-    state.linear_velocity =
-        add(state.linear_velocity, multiply(tangent_vector, body.inverse_mass));
-    state.angular_velocity =
-        add(state.angular_velocity,
-            inverse_inertia_world(body, state, cross(body_arm, tangent_vector)));
-    if (collider.inverse_mass > 0.0F) {
-        collider_state.linear_velocity = subtract(
-            collider_state.linear_velocity,
-            multiply(tangent_vector, collider.inverse_mass));
-        collider_state.angular_velocity = subtract(
-            collider_state.angular_velocity,
-            inverse_inertia_world(collider, collider_state,
-                                  cross(collider_arm, tangent_vector)));
-    }
+    apply_contact_velocity_impulse(
+        body, state, contact.body_hinge, contact.point, tangent_vector);
+    apply_contact_velocity_impulse(
+        collider, collider_state, contact.collider_hinge, contact.point,
+        multiply(tangent_vector, -1.0F));
     return applied;
 }
 
@@ -1022,41 +1118,49 @@ __device__ void apply_contact_position_correction(
     const BodyParameters &body, RigidBodyState &state,
     const BodyParameters &collider, RigidBodyState &collider_state,
     const Contact &contact, float penetration) noexcept {
-    const Vec3 body_arm = subtract(contact.point, state.position);
-    const Vec3 collider_arm = subtract(contact.point,
-                                       collider_state.position);
-    const Vec3 body_cross = cross(body_arm, contact.normal);
-    const Vec3 collider_cross = cross(collider_arm, contact.normal);
-    const float denominator = body.inverse_mass + collider.inverse_mass +
-        dot(add(cross(inverse_inertia_world(body, state, body_cross),
-                      body_arm),
-                cross(inverse_inertia_world(
-                          collider, collider_state, collider_cross),
-                      collider_arm)),
+    const auto position_inverse_mass = [&](
+        const BodyParameters &parameters, const RigidBodyState &body_state,
+        const HingeContactFrame &hinge) {
+        if (!hinge.fixed) return parameters.inverse_mass;
+        const float jacobian = dot(
+            cross(hinge.axis, subtract(contact.point, hinge.anchor)),
             contact.normal);
+        return jacobian * jacobian *
+            fixed_hinge_inverse_moment(parameters, body_state, hinge);
+    };
+    const float denominator =
+        position_inverse_mass(body, state, contact.body_hinge) +
+        position_inverse_mass(collider, collider_state,
+                              contact.collider_hinge);
     if (denominator <= k_epsilon || penetration <= 0.0F) {
         return;
     }
     const Vec3 correction = multiply(contact.normal,
                                      penetration / denominator);
-    if (body.inverse_mass > 0.0F) {
-        state.position = add(
-            state.position, multiply(correction, body.inverse_mass));
+    const auto apply = [&](const BodyParameters &parameters,
+                           RigidBodyState &body_state,
+                           const HingeContactFrame &hinge,
+                           Vec3 body_correction) {
+        if (parameters.inverse_mass <= 0.0F) return;
+        if (!hinge.fixed) {
+            body_state.position = add(
+                body_state.position,
+                multiply(body_correction, parameters.inverse_mass));
+            return;
+        }
+        const float angular_correction = dot(
+            hinge.axis,
+            cross(subtract(contact.point, hinge.anchor), body_correction)) *
+            fixed_hinge_inverse_moment(parameters, body_state, hinge);
         apply_orientation_correction(
-            state, inverse_inertia_world(
-                       body, state, cross(body_arm, correction)));
-    }
-    if (collider.inverse_mass > 0.0F) {
-        collider_state.position = subtract(
-            collider_state.position,
-            multiply(correction, collider.inverse_mass));
-        apply_orientation_correction(
-            collider_state,
-            multiply(inverse_inertia_world(
-                         collider, collider_state,
-                         cross(collider_arm, correction)),
-                     -1.0F));
-    }
+            body_state, multiply(hinge.axis, angular_correction));
+        body_state.position = subtract(
+            hinge.anchor,
+            rotate(body_state.orientation, hinge.local_anchor));
+    };
+    apply(body, state, contact.body_hinge, correction);
+    apply(collider, collider_state, contact.collider_hinge,
+          multiply(correction, -1.0F));
 }
 
 __device__ void resolve_contacts(
@@ -1072,10 +1176,7 @@ __device__ void resolve_contacts(
     if (correct_position && inverse_mass_sum > k_epsilon) {
         std::uint32_t correction_count = 0U;
         for (std::uint32_t index = 0U; index < contact_count; ++index) {
-            if (contacts[index].penetration > 0.0F &&
-                contact_normal_speed(state, collider_state,
-                                     contacts[index].point,
-                                     contacts[index].normal) <= 1.0e-5F) {
+            if (contacts[index].penetration > 0.0F) {
                 ++correction_count;
             }
         }
@@ -1083,15 +1184,17 @@ __device__ void resolve_contacts(
             ? 1.0F / static_cast<float>(correction_count)
             : 0.0F;
         for (std::uint32_t index = 0; index < contact_count; ++index) {
-            if (contacts[index].penetration <= 0.0F ||
-                contact_normal_speed(state, collider_state,
-                                     contacts[index].point,
-                                     contacts[index].normal) > 1.0e-5F) {
+            if (contacts[index].penetration <= 0.0F) {
                 continue;
             }
             apply_contact_position_correction(
                 body, state, collider, collider_state, contacts[index],
-                contacts[index].penetration * contact_weight);
+                (fminf(contacts[index].penetration,
+                       contacts[index].body_hinge.fixed ||
+                               contacts[index].collider_hinge.fixed
+                           ? k_rigid_rest_offset
+                           : contacts[index].penetration) +
+                 k_rigid_surface_tolerance) * contact_weight);
         }
     }
     for (std::uint32_t index = 0; index < contact_count; ++index) {
@@ -1408,6 +1511,9 @@ __global__ void solve_rigid_constraints_kernel(
                 quaternion_multiply(state_b.orientation,
                                     options.local_orientation_b));
             const Vec3 rotation_error = relative_rotation_vector(frame_a, frame_b);
+            const Vec3 hinge_alignment_error = cross(
+                rotate(frame_a, {0.0F, 0.0F, 1.0F}),
+                rotate(frame_b, {0.0F, 0.0F, 1.0F}));
             float applied = 0.0F;
             for (std::uint32_t axis_index = 0U; axis_index < 3U; ++axis_index) {
                 const Vec3 world_axis = rotate(frame_a, basis_axis(axis_index));
@@ -1452,7 +1558,11 @@ __global__ void solve_rigid_constraints_kernel(
                     axis_enabled(options.angular_springs.axes, axis_index);
                 const bool angular_limit = generic &&
                     axis_enabled(options.angular_limits.axes, axis_index);
-                float angular_error = component(rotation_error, axis_index);
+                float angular_error =
+                    options.type == RigidConstraintType::hinge &&
+                            axis_index != 2U
+                        ? dot(hinge_alignment_error, world_axis)
+                        : component(rotation_error, axis_index);
                 if (angular_limit && !angular_lock && !angular_spring)
                     angular_error = limit_error(
                         angular_error, component(options.angular_limits.lower, axis_index),
@@ -1538,6 +1648,47 @@ __global__ void solve_rigid_constraints_kernel(
             }
         }
     }
+    // Velocity constraints keep hinge motion tangent to the anchor, but a
+    // finite quaternion step follows the chord of that arc. Project the
+    // positional anchor error once per substep so off-centre hinges cannot
+    // accumulate drift during full rotations or after contact impulses.
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const RigidConstraintResource &constraint = constraints[index];
+        if (!constraint.alive || !constraint.state.enabled ||
+            constraint.options.type != RigidConstraintType::hinge) {
+            continue;
+        }
+        const std::uint32_t dense_a = find_rigid_body_dense(
+            constraint.options.body_a, ids, body_count);
+        const std::uint32_t dense_b = find_rigid_body_dense(
+            constraint.options.body_b, ids, body_count);
+        if (dense_a == k_invalid_dense || dense_b == k_invalid_dense) {
+            continue;
+        }
+        const BodyParameters &a = parameters[dense_a];
+        const BodyParameters &b = parameters[dense_b];
+        const float inverse_mass_sum = a.inverse_mass + b.inverse_mass;
+        if (inverse_mass_sum <= k_epsilon) {
+            continue;
+        }
+        RigidBodyState &state_a = states[dense_a];
+        RigidBodyState &state_b = states[dense_b];
+        const Vec3 anchor_a = add(
+            state_a.position,
+            rotate(state_a.orientation,
+                   constraint.options.local_anchor_a));
+        const Vec3 anchor_b = add(
+            state_b.position,
+            rotate(state_b.orientation,
+                   constraint.options.local_anchor_b));
+        const Vec3 error = subtract(anchor_b, anchor_a);
+        state_a.position = add(
+            state_a.position,
+            multiply(error, a.inverse_mass / inverse_mass_sum));
+        state_b.position = subtract(
+            state_b.position,
+            multiply(error, b.inverse_mass / inverse_mass_sum));
+    }
 }
 
 __device__ bool constrained_collision_disabled(
@@ -1558,6 +1709,75 @@ __device__ bool constrained_collision_disabled(
         if (forward || reverse) return true;
     }
     return false;
+}
+
+__device__ HingeContactFrame rigid_hinge_contact_frame(
+    const BodyParameters *parameters, const RigidBodyId *ids,
+    std::uint32_t body_count, std::uint32_t dense,
+    const RigidBodyState *states, const RigidBodyState &state,
+    const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity, Vec3 &reference) noexcept {
+    // A compound mesh can have its body origin far from its rotating part.
+    // Its hinge anchor is the stable inside/outside reference for coincident
+    // triangle contacts, where the closest-point delta has no direction.
+    HingeContactFrame result{};
+    if (parameters[dense].inverse_mass <= 0.0F) {
+        reference = state.position;
+        return result;
+    }
+    const RigidBodyId body = ids[dense];
+    for (std::uint32_t index = 0U; index < constraint_capacity; ++index) {
+        const RigidConstraintResource &constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken ||
+            constraint.options.type != RigidConstraintType::hinge)
+            continue;
+        const bool is_a = same_rigid_body_id(
+            constraint.options.body_a, body);
+        const bool is_b = same_rigid_body_id(
+            constraint.options.body_b, body);
+        if (!is_a && !is_b) continue;
+        result.local_anchor = is_a
+            ? constraint.options.local_anchor_a
+            : constraint.options.local_anchor_b;
+        const Quaternion local_orientation = is_a
+            ? constraint.options.local_orientation_a
+            : constraint.options.local_orientation_b;
+        result.anchor = add(
+            state.position, rotate(state.orientation, result.local_anchor));
+        result.axis = normalized_or(
+            rotate(quaternion_multiply(state.orientation, local_orientation),
+                   {0.0F, 0.0F, 1.0F}),
+            {0.0F, 0.0F, 1.0F});
+        result.present = true;
+        const RigidBodyId other = is_a
+            ? constraint.options.body_b : constraint.options.body_a;
+        const std::uint32_t other_dense = find_rigid_body_dense(
+            other, ids, body_count);
+        result.fixed = other_dense != k_invalid_dense &&
+            parameters[other_dense].motion == MotionType::static_body;
+        if (result.fixed) {
+            const Vec3 other_local_anchor = is_a
+                ? constraint.options.local_anchor_b
+                : constraint.options.local_anchor_a;
+            const Quaternion other_local_orientation = is_a
+                ? constraint.options.local_orientation_b
+                : constraint.options.local_orientation_a;
+            const RigidBodyState &other_state = states[other_dense];
+            result.anchor = add(
+                other_state.position,
+                rotate(other_state.orientation, other_local_anchor));
+            result.axis = normalized_or(
+                rotate(quaternion_multiply(other_state.orientation,
+                                           other_local_orientation),
+                       {0.0F, 0.0F, 1.0F}),
+                result.axis);
+        }
+        reference = result.anchor;
+        return result;
+    }
+    reference = state.position;
+    return result;
 }
 
 __global__ void compute_rigid_world_bounds_kernel(
@@ -1775,7 +1995,9 @@ __global__ void generate_rigid_leaf_pairs_kernel(
 __global__ void evaluate_rigid_leaf_pairs_kernel(
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     RigidBodyState *states, std::uint32_t count,
-    const TriangleMeshResource *meshes, const std::uint32_t *active_pairs,
+    const TriangleMeshResource *meshes, const RigidBodyId *ids,
+    const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count,
     const LeafPair *leaf_pairs, const std::uint32_t *leaf_pair_counts,
     float timestep, ContactManifold *manifolds) {
@@ -1825,7 +2047,21 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
         const bool swept = requires_swept_pair_contact(
             previous_states[index], states[index], body_mesh,
             previous_states[collider_index], states[collider_index],
-            collider_mesh, k_rigid_surface_tolerance);
+            collider_mesh, collision_margin);
+        Vec3 previous_body_reference{};
+        Vec3 body_reference{};
+        rigid_hinge_contact_frame(
+            parameters, ids, count, index, previous_states,
+            previous_states[index], constraints, constraint_capacity,
+            previous_body_reference);
+        const HingeContactFrame body_hinge = rigid_hinge_contact_frame(
+            parameters, ids, count, index, states, states[index], constraints,
+            constraint_capacity, body_reference);
+        Vec3 collider_reference{};
+        const HingeContactFrame collider_hinge = rigid_hinge_contact_frame(
+            parameters, ids, count, collider_index, states,
+            states[collider_index], constraints, constraint_capacity,
+            collider_reference);
         for (std::uint32_t wave = 0U; wave < candidate_count;
              wave += blockDim.x) {
             ContactManifold local{};
@@ -1833,19 +2069,24 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
             if (candidate_index < candidate_count) {
                 const LeafPair candidate = pair_candidates[candidate_index];
                 collide_triangle_ranges(
-                    states[index], body_mesh, candidate.body_first,
+                    states[index], body_reference, body_hinge,
+                    body_mesh,
+                    candidate.body_first,
                     candidate.body_count, states[collider_index],
                     collider_mesh, candidate.collider_first,
-                    candidate.collider_count, collision_margin, timestep,
-                    local);
+                    candidate.collider_count, collider_hinge,
+                    collision_margin, timestep, local);
                 if (swept) {
                     collide_triangle_ranges_swept(
-                        previous_states[index], states[index], body_mesh,
+                        previous_states[index], states[index],
+                        previous_body_reference, body_reference,
+                        body_hinge, body_mesh,
                         candidate.body_first, candidate.body_count,
                         previous_states[collider_index],
                         states[collider_index], collider_mesh,
                         candidate.collider_first, candidate.collider_count,
-                        collision_margin, timestep, true, true, local);
+                        collision_margin, timestep, true, true,
+                        collider_hinge, local);
                 }
             }
             partials[threadIdx.x] = local;
@@ -1876,7 +2117,9 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
 __global__ void evaluate_overflow_rigid_pairs_kernel(
     const BodyParameters *parameters, const RigidBodyState *previous_states,
     const RigidBodyState *states, std::uint32_t count,
-    const TriangleMeshResource *meshes, const std::uint32_t *active_pairs,
+    const TriangleMeshResource *meshes, const RigidBodyId *ids,
+    const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count,
     const std::uint32_t *leaf_pair_counts, float timestep,
     ContactManifold *manifolds) {
@@ -1889,11 +2132,27 @@ __global__ void evaluate_overflow_rigid_pairs_kernel(
         }
         const std::uint32_t index = pair / count;
         const std::uint32_t collider_index = pair % count;
+        Vec3 previous_body_reference{};
+        Vec3 body_reference{};
+        rigid_hinge_contact_frame(
+            parameters, ids, count, index, previous_states,
+            previous_states[index], constraints, constraint_capacity,
+            previous_body_reference);
+        const HingeContactFrame body_hinge = rigid_hinge_contact_frame(
+            parameters, ids, count, index, states, states[index], constraints,
+            constraint_capacity, body_reference);
+        Vec3 collider_reference{};
+        const HingeContactFrame collider_hinge = rigid_hinge_contact_frame(
+            parameters, ids, count, collider_index, states,
+            states[collider_index], constraints, constraint_capacity,
+            collider_reference);
         manifolds[active_index] = collide_meshes(
             parameters[index], previous_states[index], states[index],
+            previous_body_reference, body_reference, body_hinge,
             meshes[parameters[index].mesh.index], parameters[collider_index],
             previous_states[collider_index], states[collider_index],
-            meshes[parameters[collider_index].mesh.index], timestep);
+            meshes[parameters[collider_index].mesh.index], collider_hinge,
+            timestep);
     }
 }
 
@@ -1931,7 +2190,8 @@ __global__ void prepare_parallel_contact_events_kernel(
                 const Contact &contact = manifold.contacts[contact_index];
                 events[cursor + contact_index] = {
                     ids[body_index], ids[collider_index], contact.point,
-                    contact.normal, contact.penetration, 0.0F, {}};
+                    contact.normal, fmaxf(0.0F, contact.penetration),
+                    0.0F, {}};
             }
         }
         cursor += manifold.count;

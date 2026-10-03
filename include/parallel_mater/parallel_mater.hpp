@@ -845,8 +845,8 @@ struct RigidBodyOptions {
     float angular_damping{0.05F};
     float maximum_linear_speed{100.0F};
     float maximum_angular_speed{100.0F};
-    // Broad/narrow-phase search distance. Rigid surfaces still solve at zero
-    // separation; this margin does not add physical thickness.
+    // Broad/narrow-phase search distance. Solver uses at most 0.001 m of it
+    // as a rest offset; larger values only enlarge contact search.
     float collision_margin{0.005F};
     std::uint64_t user_data{};
 };
@@ -1000,8 +1000,8 @@ struct RigidContactEvent {
     RigidBodyId collider{};
     Vec3 position{};
     Vec3 normal{}; // Points from collider toward body.
-    // Positional correction applied for a swept overlap. Exact and
-    // speculative surface contacts report zero.
+    // Positional correction needed to restore solver's small rest offset.
+    // Speculative contacts outside that offset report zero.
     float penetration{};
     float normal_impulse{};
     Vec3 friction_impulse{}; // Tangential impulse applied to body.

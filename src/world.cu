@@ -6919,7 +6919,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             stream>>>(impl_->parameters,
                       impl_->states[impl_->current_state],
                       impl_->states[output_state],
-                      impl_->rigid_body_count, impl_->meshes,
+                      impl_->rigid_body_count, impl_->meshes, impl_->ids,
+                      impl_->rigid_constraints,
+                      impl_->rigid_constraint_count == 0U
+                          ? 0U
+                          : impl_->options.rigid_constraint_capacity,
                       impl_->rigid_active_pairs,
                       impl_->rigid_active_pair_count,
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
@@ -6928,7 +6932,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             contact_block_count, block_size, 0, stream>>>(
                 impl_->parameters, impl_->states[impl_->current_state],
                 impl_->states[output_state], impl_->rigid_body_count,
-                impl_->meshes, impl_->rigid_active_pairs,
+                impl_->meshes, impl_->ids, impl_->rigid_constraints,
+                impl_->rigid_constraint_count == 0U
+                    ? 0U
+                    : impl_->options.rigid_constraint_capacity,
+                impl_->rigid_active_pairs,
                 impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts, substep_timestep,
                 impl_->rigid_manifolds);

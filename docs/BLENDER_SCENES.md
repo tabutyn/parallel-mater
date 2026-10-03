@@ -276,8 +276,8 @@ passive Ground body, with each constraint frame's Z axis copied from its gear's
 local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
 at a 2:1 ratio. The 3.05 m center distance, half-tooth starting phase, 0.008 m
 per-gear collision search margins, 64-iteration hinges, and eight gallery
-substeps let the exact-contact solver retain the nearest closing tooth flank at
-zero surface distance throughout a full mesh cycle. Both gears use `0.08`
+substeps let the solver retain closing tooth flanks at its small rest offset
+throughout a full mesh cycle. Both gears use `0.08`
 tooth friction and zero restitution so they roll without binding or rebounding;
 the 24-tooth follower uses mass `1.0` and angular damping `0.01` so it follows
 through freely instead of pushing the driver back. Export every source through

@@ -88,6 +88,47 @@ TriangleMeshId add_box(parallel_mater::World &world, Vec3 half) {
     return upload_mesh(world, vertices, indices, "add box mesh");
 }
 
+void test_small_triangle_edge_clearance() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 2U,
+                                .triangle_mesh_capacity = 2U}, world),
+                 "create small triangle clearance world");
+    const TriangleMeshId surface = upload_mesh(
+        world, {{0.0F, 0.0F, 0.0F}, {0.04F, 0.0F, 0.0F},
+                {0.0F, 0.04F, 0.0F}},
+        {0U, 1U, 2U}, "add small triangle surface");
+    const TriangleMeshId crossing = upload_mesh(
+        world, {{0.0F, 0.0F, -0.01F}, {0.0F, 0.0F, 0.01F},
+                {0.01F, 0.0F, 0.01F}},
+        {0U, 1U, 2U}, "add crossing triangle");
+    RigidBodyId fixed{}, moving{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body, .mesh = surface,
+                      .collision_margin = 0.001F}, fixed),
+                 "add small fixed triangle");
+    check_status(world.add_rigid_body(
+                     {.mesh = crossing,
+                      .initial_state = {.position = {0.024F, 0.024F, 0.0F}},
+                      .collision_margin = 0.001F}, moving),
+                 "add triangle beyond diagonal edge");
+    // The edge crosses the triangle's plane, but lies 5.7 mm outside its
+    // diagonal. Overlapping AABBs must not turn that into a surface hit.
+    check_status(world.step({.timestep = 1.0F / 480.0F, .gravity = {},
+                             .collect_rigid_contacts = true}),
+                 "step small triangle clearance");
+    check(world.rigid_contacts().event_count == 0U,
+          "small triangle edge clearance must not report a false intersection");
+    check_status(world.set_rigid_body_state(
+                     moving, {.position = {0.01F, 0.01F, 0.0F}}),
+                 "move crossing edge inside small triangle");
+    check_status(world.step({.timestep = 1.0F / 480.0F, .gravity = {},
+                             .collect_rigid_contacts = true}),
+                 "step real small triangle intersection");
+    check(world.rigid_contacts().event_count > 0U,
+          "small triangle must still detect a real intersection");
+}
+
 void test_mesh_lifetime_and_integration() {
     using namespace parallel_mater;
     World world;
@@ -513,78 +554,69 @@ void test_swept_contact_when_leaf_cache_overflows() {
           "overflow projectile must remain above the surface");
 }
 
-void test_exact_one_sided_speculative_contact() {
+void test_small_rest_offset_speculative_contact() {
     using namespace parallel_mater;
     World world;
     check_status(World::create({.rigid_body_capacity = 2U,
                                 .triangle_mesh_capacity = 2U}, world),
-                 "create exact contact world");
-    const TriangleMeshId slot_mesh = upload_mesh(
-        world,
-        {{-0.01F, -1.0F, -1.0F}, {-0.01F, 1.0F, -1.0F},
-         {-0.01F, -1.0F, 1.0F}, {0.01F, -1.0F, -1.0F},
-         {0.01F, -1.0F, 1.0F}, {0.01F, 1.0F, -1.0F}},
-        {0U, 1U, 2U, 3U, 4U, 5U}, "add narrow slot");
-    const TriangleMeshId plate_mesh = upload_mesh(
-        world,
-        {{0.0F, -0.5F, -0.5F}, {0.0F, 0.5F, -0.5F},
-         {0.0F, -0.5F, 0.5F}},
-        {0U, 1U, 2U}, "add moving plate");
-    RigidBodyId slot{};
-    RigidBodyId plate{};
+                 "create rest-offset contact world");
+    const TriangleMeshId floor_mesh = add_plane(world);
+    const TriangleMeshId box_mesh = add_box(world, {0.5F, 0.5F, 0.5F});
+    RigidBodyId floor{};
+    RigidBodyId box{};
     check_status(world.add_rigid_body(
                      {.motion = MotionType::static_body,
-                      .mesh = slot_mesh,
+                      .mesh = floor_mesh,
                       .collision_margin = 0.02F},
-                     slot),
-                 "add narrow slot body");
+                     floor),
+                 "add rest-offset floor");
     check_status(world.add_rigid_body(
-                     {.mesh = plate_mesh,
+                     {.mesh = box_mesh,
                       .initial_state = {
-                          .linear_velocity = {1.0F, 0.0F, 0.0F}},
+                          .position = {0.0F, 0.511F, 0.0F},
+                          .linear_velocity = {0.0F, -1.0F, 0.0F}},
                       .linear_damping = 0.0F,
                       .angular_damping = 0.0F,
                       .collision_margin = 0.02F},
-                     plate),
-                 "add moving plate body");
+                     box),
+                 "add rest-offset box");
     constexpr float timestep = 0.005F;
     const StepOptions step{.timestep = timestep,
                            .substeps = 1U,
                            .gravity = {},
                            .collect_rigid_contacts = true};
-    check_status(world.step(step), "approach exact contact");
+    check_status(world.step(step), "approach rest-offset contact");
     RigidBodyState state{};
-    check_status(world.read_rigid_body_state(plate, state),
-                 "read approaching plate");
-    check(near(state.position.x, 0.005F, 2.0e-4F) &&
-              near(state.linear_velocity.x, 1.0F, 2.0e-4F),
-          "speculative contact must approach the surface instead of the margin");
-    check(world.rigid_contacts().event_count == 1U,
-          "only the nearest closing slot surface may become a contact");
+    check_status(world.read_rigid_body_state(box, state),
+                 "read approaching box");
+    check(near(state.position.y, 0.506F, 2.0e-4F) &&
+              state.linear_velocity.y < -0.95F,
+          "speculative contact must approach the small rest offset");
+    check(world.rigid_contacts().event_count > 0U,
+          "closing surface must become a speculative contact");
 
-    check_status(world.step(step), "reach exact contact");
-    check_status(world.read_rigid_body_state(plate, state),
-                 "read touching plate");
-    check(near(state.position.x, 0.01F, 2.0e-4F) &&
-              std::fabs(state.linear_velocity.x) < 2.0e-4F,
-          "contact must stop at zero surface distance");
-    check(world.rigid_contacts().event_count == 1U,
+    check_status(world.step(step), "reach rest-offset contact");
+    check_status(world.read_rigid_body_state(box, state),
+                 "read touching box");
+    check(near(state.position.y, 0.501F, 5.0e-4F) &&
+              state.linear_velocity.y >= -2.0e-4F,
+          "contact must stop at the small rest offset");
+    check(world.rigid_contacts().event_count > 0U,
           "touching surfaces must retain one contact");
 
-    check_status(world.step(step), "maintain exact contact");
-    check_status(world.read_rigid_body_state(plate, state),
-                 "read resting plate");
-    check(near(state.position.x, 0.01F, 2.0e-4F) &&
-              world.rigid_contacts().event_count == 1U,
-          "resting surfaces must remain at zero distance");
+    check_status(world.step(step), "maintain rest-offset contact");
+    check_status(world.read_rigid_body_state(box, state),
+                 "read resting box");
+    check(near(state.position.y, 0.501F, 5.0e-4F),
+          "resolved surfaces must remain near the small rest offset");
 
-    state.linear_velocity = {-1.0F, 0.0F, 0.0F};
-    check_status(world.set_rigid_body_state(plate, state),
-                 "release touching plate");
-    check_status(world.step(step), "separate exact contact");
-    check_status(world.read_rigid_body_state(plate, state),
-                 "read separating plate");
-    check(state.position.x < 0.006F && state.linear_velocity.x < -0.99F &&
+    state.linear_velocity = {0.0F, 1.0F, 0.0F};
+    check_status(world.set_rigid_body_state(box, state),
+                 "release touching box");
+    check_status(world.step(step), "separate rest-offset contact");
+    check_status(world.read_rigid_body_state(box, state),
+                 "read separating box");
+    check(state.position.y > 0.505F && state.linear_velocity.y > 0.99F &&
               world.rigid_contacts().event_count == 0U,
           "a separating surface must release without a contact impulse");
 }
@@ -922,6 +954,7 @@ int main() {
         std::cout << "SKIP: CUDA device unavailable\n";
         return 77;
     }
+    test_small_triangle_edge_clearance();
     test_mesh_lifetime_and_integration();
     test_generation_and_kinematics();
     test_floor_contact_and_async_contract();
@@ -929,7 +962,7 @@ int main() {
     test_rotation_dynamic_coupling_and_determinism();
     test_high_speed_swept_triangle_contact();
     test_swept_contact_when_leaf_cache_overflows();
-    test_exact_one_sided_speculative_contact();
+    test_small_rest_offset_speculative_contact();
     test_parallel_contact_coloring(8U);
     test_parallel_contact_coloring(128U);
     test_parallel_contact_coloring(256U);
