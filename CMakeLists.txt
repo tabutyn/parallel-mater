@@ -111,6 +111,13 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             parallel-mater-rigid-scene-benchmark
             PRIVATE -Wall -Wextra -Wpedantic)
 
+        add_executable(parallel-mater-rigid-capture-benchmark
+                       benchmarks/rigid_capture.cpp)
+        target_link_libraries(parallel-mater-rigid-capture-benchmark
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_options(parallel-mater-rigid-capture-benchmark
+                               PRIVATE -Wall -Wextra -Wpedantic)
+
         add_executable(parallel-mater-dump-benchmark
                        benchmarks/dump_scene.cpp)
         target_link_libraries(
@@ -543,7 +550,7 @@ if(BUILD_TESTING)
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         if(TARGET parallel-mater-dump-benchmark)
             add_test(NAME parallel-mater-dump-small-contact-tests
-                     COMMAND parallel-mater-dump-benchmark 100 240)
+                     COMMAND parallel-mater-dump-benchmark 100 1200)
             set_tests_properties(parallel-mater-dump-small-contact-tests
                                  PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
             add_test(NAME parallel-mater-dump-fused-limit-tests
@@ -553,7 +560,7 @@ if(BUILD_TESTING)
         endif()
         if(TARGET parallel-mater-fluid-rigid-benchmark)
             add_test(NAME parallel-mater-fluid-rigid-small-contact-tests
-                     COMMAND parallel-mater-fluid-rigid-benchmark 100)
+                     COMMAND parallel-mater-fluid-rigid-benchmark 1000)
             set_tests_properties(parallel-mater-fluid-rigid-small-contact-tests
                                  PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
         endif()

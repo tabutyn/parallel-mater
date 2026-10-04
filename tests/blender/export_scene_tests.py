@@ -205,6 +205,10 @@ class ExportSceneTests(unittest.TestCase):
                         if node.get("extras", {}).get("pm_system") ==
                         "rigid_body"
                     }
+                    self.assertAlmostEqual(
+                        bodies["Ground"]["pm_friction"], 4.0, places=5)
+                    self.assertAlmostEqual(
+                        bodies["HingeSphere"]["pm_friction"], 4.0, places=5)
                     self.assertAlmostEqual(bodies["Gear"]["pm_friction"],
                                            0.08, places=5)
                     self.assertAlmostEqual(

@@ -298,7 +298,11 @@ int main() {
               hinge_sphere_index < hinge_scene.rigid_bodies.size(),
           "hinge test must resolve the gears and loose sphere");
     for (const auto &body : hinge_scene.rigid_bodies) {
-        if (body.source_name == "Gear") {
+        if (body.source_name == "Ground" ||
+            body.source_name == "HingeSphere") {
+            check(std::fabs(body.options.friction - 4.0F) < 1.0e-5F,
+                  "hinge sphere and ground must retain high rolling friction");
+        } else if (body.source_name == "Gear") {
             check(std::fabs(body.options.friction - 0.08F) < 1.0e-5F &&
                       body.options.restitution == 0.0F &&
                       std::fabs(body.options.angular_damping - 0.03F) <

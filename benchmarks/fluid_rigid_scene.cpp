@@ -104,15 +104,17 @@ int main(int argc, char **argv) {
         std::cerr << "FluidRigid state readback failed\n";
         return 1;
     }
-    std::uint32_t invalid = 0U, below_mesh = 0U;
+    std::uint32_t invalid = 0U, below_mesh = 0U, below_rigid_floor = 0U;
     float maximum_body_speed = 0.0F;
-    for (const RigidBodyState &state : states) {
+    for (std::size_t body_index = 0U; body_index < states.size(); ++body_index) {
+        const RigidBodyState &state = states[body_index];
         const Vec3 p = state.position, v = state.linear_velocity;
         invalid += !std::isfinite(p.x) || !std::isfinite(p.y) ||
                    !std::isfinite(p.z) || !std::isfinite(v.x) ||
                    !std::isfinite(v.y) || !std::isfinite(v.z);
         maximum_body_speed = std::max(maximum_body_speed,
             std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z));
+        if (body_index != 0U && p.y < -2.6F) ++below_rigid_floor;
     }
     for (std::size_t index = 0U; index < positions.size(); ++index) {
         const Vec3 p = positions[index];
@@ -127,6 +129,8 @@ int main(int argc, char **argv) {
         }
     }
     std::cout << "final invalid=" << invalid << " below_mesh=" << below_mesh
+              << " below_rigid_floor=" << below_rigid_floor
               << " max_body_speed=" << maximum_body_speed << '\n';
-    return invalid == 0U && below_mesh == 0U ? 0 : 1;
+    return invalid == 0U && below_mesh == 0U && below_rigid_floor == 0U
+        ? 0 : 1;
 }

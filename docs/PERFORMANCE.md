@@ -1009,3 +1009,95 @@ frames had zero contact-event overflow and averaged 16.60 ms/frame of GPU
 physics. The higher late cost
 reflects the fluid approaching its 30,000-particle cap; the small rigid solve
 remained about 1.77 ms/frame.
+
+## Hinge gear capture latency, 2026-10-03
+
+The four-body ConstraintHinge capture covering frames 743–772 reproduced the
+reported roughly 50 ms physics frames. Dense gear leaf pairs exceeded the
+512-entry contact cache and used the serial BVH fallback. The other costs
+were repeated leaf-bound transforms, 64-bit division in the Cartesian leaf
+scan, and geometry recalculation in all 64 hinge solver iterations.
+
+On the RTX 3050 Ti Laptop GPU, Release build, a sequential before/after run
+repeated those 30 snapshots three times after GPU warmup. Each sample restores
+the captured post-step body states and advances one frame with eight substeps,
+recorded gravity, and zero new input forces. Rendering is excluded; this is
+a snapshot workload, not a reconstruction of the user's input history.
+
+| GPU stage/statistic | Before | After |
+|---|---:|---:|
+| Total, median | 15.20 ms | 5.73 ms |
+| Total, p95 | 44.00 ms | 6.90 ms |
+| Total, maximum | 46.95 ms | 7.41 ms |
+| Leaf candidates, median | 4.07 ms | 1.47 ms |
+| Triangle contacts, median | 6.66 ms | 1.44 ms |
+| Contact/constraint solve, median | 3.90 ms | 2.63 ms |
+
+Worlds with rigid-body capacity at most eight now reserve 4,096 leaf candidates
+per pair and parallelize each pair across 16 blocks. Per-candidate manifolds
+are reduced in their original order. Shared bounds avoid repeated transforms;
+a strided cursor eliminates per-candidate 64-bit division without changing
+candidate order. Constraint axes, anchors, and effective masses are prepared
+once per substep, with local velocity states published in constraint order.
+The eight substeps, 64 hinge iterations, exact triangles, swept collision
+checks, rest offset, and contact correction rules are unchanged.
+
+The four-body scene uses approximately 6.4 MiB more cache/scratch; the extra
+allocation is bounded at approximately 30 MiB for eight-body capacity. Larger
+worlds retain the smaller cache and one-block-per-pair evaluation. Both paths
+retain swept BVH fallback if their cache overflows. Expanding the cache changes
+which reduction path handles previously overflowing pairs; the subsequent
+parallel and solver optimizations preserved the expanded-cache replay's body
+states bit-for-bit (`8fcc8220dd54e5f5` for the 90-sample workload).
+
+The standard PassiveActive benchmark measured 1.40 ms median GPU time, versus
+2.43 ms after the preceding rigid-contact repair. Rigid tests, both cache-size
+overflow fixtures, 1,200 natural hinge frames plus driven full rotation,
+1,200-frame DUMP containment, and 1,000-frame FluidRigid containment passed.
+
+New captures made with `m` can be profiled with:
+
+```sh
+./build-gallery/parallel-mater-rigid-capture-benchmark \
+  examples/assets/ConstraintHinge.glb capture.log 8 5
+```
+
+The last arguments select substeps and measured repetitions. One additional
+unmeasured capture pass warms the GPU. The benchmark accepts matching rigid-only
+version 1 captures and reports stage percentiles, worst snapshot, and a body-state
+hash. Different repetition counts produce different hashes.
+
+## Fixed collector ground-contact capture, 2026-10-03
+
+A 30-frame Fixed capture at frames 4,380–4,409 exposed a three-frame support
+cycle. `Small.022`, fixed into the large collector and resting on Ground,
+alternated between 2–5 contact points. Intersecting triangle pairs reported the
+entire `0.01201 m` combined search margin as penetration. Independent position
+correction moved that small sphere away from its fixed joint; the joint then
+pulled it back at up to `2.25 m/s`, while asymmetric ground friction kept the
+cluster rotating near `0.118 rad/s`.
+
+The first repair estimated intersection depth from body vertices behind the
+contacted triangle plane and changed fixed members to velocity recovery. A
+100:1-mass regression fixed one large body to three ground supports and checked
+settling speeds. That removed the visible oscillation but did not verify floor
+clearance.
+
+The later capture at frames 373–402 exposed the missing load transfer: body 43
+had its center at `y=-0.0516 m`, while loose marbles rested near `y=0.0904 m`.
+Ground impulses were resolved before joint impulses, so the heavy parent could
+pull its light supports downward again. The speed-only regression also passed
+with support corners `0.3993 m` below its plane.
+
+Fixed contacts and joint rows now iterate together through eight contact
+sweeps, and penetration recovery uses measured depth instead of a 1 mm cap.
+Free welded groups receive residual position correction as a shared translation
+against immovable surfaces; member offsets and velocities are preserved. Groups
+anchored by other joint types are excluded from that translation.
+
+The strengthened 100:1 regression checks actual rotated-box clearance as well
+as settling speeds. A separate 620-frame gallery regression rolls, releases
+input, turns, and settles while checking every collision-mesh vertex against an
+extended test floor. Eight bodies were collected, with minimum clearance
+`0.000394 m` above the floor and no escapes. The rigid-body, API contract,
+collector-clearance, and Fixed headless tests pass on the RTX 3050 Ti.
