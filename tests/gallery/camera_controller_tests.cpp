@@ -13,6 +13,7 @@ using parallel_mater::gallery::Camera;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
 using parallel_mater::gallery::CameraPreset;
+using parallel_mater::gallery::screen_space_gravity;
 using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 
@@ -129,6 +130,17 @@ int main() {
     check(forward_tilt.z < -14.9F &&
               std::fabs(forward_tilt.x) < 1.0e-4F,
           "Peg Up Arrow steers into the camera view");
+    const Camera rotated_camera{{5.0F, 3.0F, 0.0F},
+                                {0.0F, 0.0F, 0.0F}};
+    const Vec3 screen_right = screen_space_gravity(
+        rotated_camera, 1.0F, 0.0F, 9.81F, 30.0F);
+    check(std::fabs(screen_right.x) < 1.0e-4F &&
+              screen_right.z < -4.9F,
+          "Right Arrow gravity follows screen right after camera orbit");
+    const Vec3 screen_up = screen_space_gravity(
+        rotated_camera, 0.0F, 1.0F, 9.81F, 30.0F);
+    check(screen_up.x < -4.9F && std::fabs(screen_up.z) < 1.0e-4F,
+          "Up Arrow gravity follows screen up after camera orbit");
     for (int step = 0; step < 120; ++step)
         tilted = steer_gravity(tilted, steering_camera, 0.0F, 0.0F,
                                19.62F, peg_paint_gravity_tilt_degrees,

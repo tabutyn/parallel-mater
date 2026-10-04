@@ -41,6 +41,7 @@ using parallel_mater::World;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
+using parallel_mater::gallery::screen_space_gravity;
 using parallel_mater::gallery::FixedContactCollector;
 using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
@@ -72,7 +73,7 @@ constexpr double k_maximum_frame_delta = 0.25;
 constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
 constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
-constexpr float k_gravity_tilt_tangent = 0.577350269F;
+constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
 constexpr float k_collector_gravity_tilt_degrees = 80.0F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
@@ -387,27 +388,18 @@ struct FluidEscapeTrace {
     return input;
 }
 
-[[nodiscard]] parallel_mater::Vec3 gravity_for(DirectionalInput input) {
-    const float horizontal_squared = input.x * input.x + input.z * input.z;
-    if (horizontal_squared == 0.0F) {
-        return {0.0F, -k_gravity, 0.0F};
-    }
-    const float inverse = 1.0F /
-        std::sqrt(1.0F + k_gravity_tilt_tangent * k_gravity_tilt_tangent);
-    return {input.x * k_gravity * k_gravity_tilt_tangent * inverse,
-            -k_gravity * inverse,
-            input.z * k_gravity * k_gravity_tilt_tangent * inverse};
+[[nodiscard]] parallel_mater::Vec3 gravity_for(
+    DirectionalInput input, parallel_mater::gallery::Camera camera) {
+    return screen_space_gravity(camera, input.x, -input.z, k_gravity,
+                                k_rigid_gravity_tilt_degrees);
 }
 
 [[nodiscard]] parallel_mater::Vec3 collector_gravity_for(
-    DirectionalInput input, float gravity_scale) {
-    const float horizontal_squared = input.x * input.x + input.z * input.z;
-    const float magnitude = k_gravity * gravity_scale;
-    if (horizontal_squared == 0.0F) return {0.0F, -magnitude, 0.0F};
-    const float angle = k_collector_gravity_tilt_degrees * k_pi / 180.0F;
-    return {input.x * magnitude * std::sin(angle),
-            -magnitude * std::cos(angle),
-            input.z * magnitude * std::sin(angle)};
+    DirectionalInput input, float gravity_scale,
+    parallel_mater::gallery::Camera camera) {
+    return screen_space_gravity(camera, input.x, -input.z,
+                                k_gravity * gravity_scale,
+                                k_collector_gravity_tilt_degrees);
 }
 
 [[nodiscard]] bool parse_positive(std::string_view value, int &output) {
@@ -1428,7 +1420,8 @@ int main(int argc, char **argv) {
                            GalleryControlPolicy::collector_gravity) {
                     interactive_step.collect_rigid_contacts = true;
                     interactive_step.gravity = collector_gravity_for(
-                        directional, runtime.scene.gravity_scale);
+                        directional, runtime.scene.gravity_scale,
+                        input_state.camera.camera());
                     const Vec3 loose_gravity{
                         0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
                     if (!require(runtime.fixed_collector.apply_loose_gravity(
@@ -1440,7 +1433,8 @@ int main(int argc, char **argv) {
                         break;
                     }
                 } else if (uses_rigid_gravity(entry.controls)) {
-                    interactive_step.gravity = gravity_for(directional);
+                    interactive_step.gravity = gravity_for(
+                        directional, input_state.camera.camera());
                 } else if (entry.controls ==
                            GalleryControlPolicy::peg_gravity) {
                     const float right = directional.x + (!context_visible ?
