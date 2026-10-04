@@ -268,20 +268,39 @@ converts the world frame to body-local frames, and creates the public API
 resource after both bodies. Runtime interaction changes the API resource, not
 the Blender source or GLB metadata.
 
-`examples/assets/tools/make_constraint_scenes.py` reproducibly authors seven of
-the committed constraint `.blend` files. `ConstraintHinge.blend` is maintained
-as an artist-authored source: its panel and single visible axial cylinder are
-merged into the active 12-tooth gear. Both active gears hinge against the same
-passive Ground body, with each constraint frame's Z axis copied from its gear's
-local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
-at a 2:1 ratio. The 3.05 m center distance, half-tooth starting phase, 0.008 m
-per-gear collision search margins, 64-iteration hinges, and eight gallery
-substeps let the solver retain closing tooth flanks at its small rest offset
-throughout a full mesh cycle. Both gears use `0.08`
-tooth friction and zero restitution so they roll without binding or rebounding;
-the 24-tooth follower uses mass `1.0` and angular damping `0.01` so it follows
-through freely instead of pushing the driver back. Export every source through
-the same shared exporter; no scene-specific export path exists.
+The committed constraint `.blend` files are maintained as artist-authored
+sources. The Fixed scene authors one enabled joint that seeds a runtime
+cluster; the gallery adds fixed constraints when collision results report a
+loose sphere touching the large collector directly. Attached small spheres do
+not collect other spheres.
+`LargeCollision` is an explicit 5,120-triangle spherical collision proxy for
+the collector, centered on its origin with radius matching the evaluated
+render mesh's outer radius. Its maximum face sag is below 2 mm; the original
+subdivided render surface produced visibly uneven rolling support. The proxy
+is stored in the Blender source and exported through `pm_collision_proxy`.
+The initially welded `Small.048` is seated 0.5 mm from that collision surface.
+Collision-disabled fixed joints suppress contacts throughout the welded group
+while preserving ground contacts. Fixed-scene captures retain 300 frames
+(five seconds at 60 Hz), including the lead-up to a visible jolt or launch.
+Arrow input gives every attached member the same 80-degree gravity vector;
+loose spheres retain downward gravity until collected. Ground uses friction
+`4.0`; all 49 small spheres use friction `16.0`. Their effective
+small-sphere/ground coefficient is `8.0`, making attached spheres grip the
+floor and rotate the collector instead of letting the cluster slide.
+The Hinge scene's panel and single visible axial cylinder are merged into the
+first active gear. All three active gears hinge against the same passive Ground
+body, with each constraint frame's Z axis copied from its gear's local Z axis.
+Tooth contact propagates through both interfaces, so adjacent gears rotate in
+opposite directions and the first and third rotate in the same direction. The
+authored center distances, starting phases, collision search margins,
+64-iteration hinges, and eight gallery substeps retain closing tooth flanks at
+the solver's small rest offset throughout a full mesh cycle. All three gears
+use `0.08` tooth friction and zero restitution so they roll without binding or
+rebounding; both followers use mass `1.0` and angular damping `0.01` so they
+follow through freely instead of pushing the driver back. `HingeSphere` and `Ground`
+use friction `4.0`, making the incoming sphere roll instead of sliding across
+the floor. Export every source through the same shared exporter; no
+scene-specific export path exists.
 
 ## Validate the result
 

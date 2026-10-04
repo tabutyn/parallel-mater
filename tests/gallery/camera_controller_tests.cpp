@@ -99,11 +99,11 @@ int main() {
     check(!uses_rigid_gravity(motor_controls) &&
               motor_controls == GalleryControlPolicy::tank_motor,
           "motor constraint scene keeps arrow tank controls");
-    check(toggles_constraint(
+    check(!toggles_constraint(
               gallery_entry(GalleryContext::constraint_fixed).controls) &&
               toggles_constraint(
                   gallery_entry(GalleryContext::constraint_point).controls),
-          "fixed and point constraint scenes retain Space toggles");
+          "only the point scene uses the explicit Space constraint toggle");
     for (const GalleryContext context : {GalleryContext::smoke,
             GalleryContext::smoke_water, GalleryContext::smoke_soft_body,
             GalleryContext::smoke_cloth, GalleryContext::smoke_rope})

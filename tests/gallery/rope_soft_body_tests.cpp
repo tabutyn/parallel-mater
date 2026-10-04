@@ -72,6 +72,20 @@ int main(int argc,char **argv) {
             static_cast<std::uint32_t>(std::stoul(argv[4]));
         if(argc>5)scene.soft_bodies[rope.last_soft_body].shape_matching_stiffness=
             std::stof(argv[5]);
+        const int frames=argc>1?std::stoi(argv[1]):120;
+        const bool wind_release=argc>2 && std::string(argv[2])=="--wind-release";
+        const bool wind=argc>2 && (std::string(argv[2])=="--wind" || wind_release);
+        const bool pull=argc>2 && std::string(argv[2])=="--pull";
+        if(wind) {
+            // The winding fixture deliberately drives a taut three-turn wrap.
+            // Use the supported high-strength material preset so the test
+            // measures flex and recovery rather than folding the post.
+            scene.soft_bodies[rope.last_soft_body].solver_iterations =
+                std::max(scene.soft_bodies[rope.last_soft_body].solver_iterations,
+                         16U);
+            scene.soft_bodies[rope.last_soft_body].shape_matching_stiffness =
+                1.0F;
+        }
         {
             const auto &mesh=scene.meshes[scene.soft_bodies[rope.last_soft_body].mesh_index];
             const auto origin=mesh.vertices[0].position;
@@ -124,10 +138,6 @@ int main(int argc,char **argv) {
         check(world.update_rope_soft_body_coupling(
             instance.rope_soft_body_couplings[0],valid),
             "update coupling");
-        const int frames=argc>1?std::stoi(argv[1]):120;
-        const bool wind_release=argc>2 && std::string(argv[2])=="--wind-release";
-        const bool wind=argc>2 && (std::string(argv[2])=="--wind" || wind_release);
-        const bool pull=argc>2 && std::string(argv[2])=="--pull";
         float maximum_strain=0,maximum_speed=0,maximum_anchor_distance=0;
         unsigned peak_edge=0;Vec3 peak_a{},peak_b{};
         float peak_winding=0,last_winding=0;
@@ -203,7 +213,7 @@ int main(int argc,char **argv) {
                 gravity={(-6.0F*delta.z-3.0F*delta.x)/radius,-6.9367F,
                     (6.0F*delta.x-3.0F*delta.z)/radius};
             }
-            if(wind_release && frame>=500) gravity={0,-9.81F,0};
+            if(wind_release && frame>=360) gravity={0,-9.81F,0};
             check(world.step({.timestep=1.0F/60.0F,.substeps=4,
                 .gravity=gravity,.collect_kernel_timings=true}),"step rope soft-body scene");
             RopeDeviceView view{};

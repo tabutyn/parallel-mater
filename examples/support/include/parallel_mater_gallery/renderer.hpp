@@ -72,7 +72,8 @@ class OptixRenderer {
                               RendererTimings *timings = nullptr,
                               FluidRenderMode fluid_mode =
                                   FluidRenderMode::surface,
-                              bool show_smoke_particles = true);
+                              bool show_smoke_particles = true,
+                              float rigid_interpolation_alpha = 1.0F);
 
     // Advance render-only foam during unrendered headless steps.
     [[nodiscard]] bool advance_visuals(const World &world,

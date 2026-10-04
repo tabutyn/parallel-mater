@@ -907,6 +907,9 @@ struct RigidConstraintOptions {
     RigidConstraintSpringOptions angular_springs{};
     RigidConstraintMotorOptions motor{};
     bool enabled{true};
+    // Fixed joints suppress contacts throughout the component connected by
+    // enabled, unbroken fixed joints with this flag. Other joints suppress
+    // only their own body pair. Contacts outside the component are preserved.
     bool disable_collisions{true};
     // Zero disables breaking. Otherwise this is maximum accumulated impulse
     // accepted during one substep before constraint disables itself.
@@ -972,6 +975,9 @@ struct FluidDeviceView {
 struct RigidBodyDeviceView {
     DeviceSpan<const RigidBodyId> ids{};
     DeviceSpan<const RigidBodyState> states{};
+    // State at the start of the latest World::step call. Renderers may blend
+    // previous_states toward states using a fixed-timestep accumulator.
+    DeviceSpan<const RigidBodyState> previous_states{};
     // Inputs captured at the beginning of the last completed frame. Empty
     // unless WorldOptions::physics_debug is enabled.
     DeviceSpan<const Vec3> applied_forces{};
@@ -1332,6 +1338,10 @@ class World {
                                               RigidBodyState target) noexcept;
     [[nodiscard]] Status apply_force(RigidBodyId body, Vec3 force,
                                      Vec3 world_point) noexcept;
+    // Applies one acceleration at each body's center of mass without state
+    // readback. Validation is transactional: no body changes on failure.
+    [[nodiscard]] Status apply_central_acceleration(
+        HostSpan<RigidBodyId> bodies, Vec3 acceleration) noexcept;
     [[nodiscard]] Status apply_impulse(RigidBodyId body, Vec3 impulse,
                                        Vec3 world_point) noexcept;
     [[nodiscard]] Status rigid_body_view(RigidBodyDeviceView &output) const noexcept;

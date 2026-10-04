@@ -277,6 +277,54 @@ void smooth_render_normals(const TriangleMesh &mesh,
     }
 }
 
+RigidBodyState interpolate_state(const RigidBodyState &previous,
+                                 const RigidBodyState &current,
+                                 float alpha) noexcept {
+    const float before = 1.0F - alpha;
+    Quaternion target = current.orientation;
+    const float orientation_dot =
+        previous.orientation.x * target.x +
+        previous.orientation.y * target.y +
+        previous.orientation.z * target.z +
+        previous.orientation.w * target.w;
+    if (orientation_dot < 0.0F)
+        target = {-target.x, -target.y, -target.z, -target.w};
+    Quaternion orientation{
+        before * previous.orientation.x + alpha * target.x,
+        before * previous.orientation.y + alpha * target.y,
+        before * previous.orientation.z + alpha * target.z,
+        before * previous.orientation.w + alpha * target.w};
+    const float size = std::sqrt(
+        orientation.x * orientation.x + orientation.y * orientation.y +
+        orientation.z * orientation.z + orientation.w * orientation.w);
+    if (size > 0.0F) {
+        orientation.x /= size;
+        orientation.y /= size;
+        orientation.z /= size;
+        orientation.w /= size;
+    }
+    return {
+        .position = {
+            before * previous.position.x + alpha * current.position.x,
+            before * previous.position.y + alpha * current.position.y,
+            before * previous.position.z + alpha * current.position.z},
+        .orientation = orientation,
+        .linear_velocity = {
+            before * previous.linear_velocity.x +
+                alpha * current.linear_velocity.x,
+            before * previous.linear_velocity.y +
+                alpha * current.linear_velocity.y,
+            before * previous.linear_velocity.z +
+                alpha * current.linear_velocity.z},
+        .angular_velocity = {
+            before * previous.angular_velocity.x +
+                alpha * current.angular_velocity.x,
+            before * previous.angular_velocity.y +
+                alpha * current.angular_velocity.y,
+            before * previous.angular_velocity.z +
+                alpha * current.angular_velocity.z}};
+}
+
 void write_transform(const RigidBodyState &state, float output[12]) {
     const Quaternion q = state.orientation;
     const float xx = q.x * q.x;
@@ -674,7 +722,8 @@ struct OptixRenderer::Impl {
     }
 
     [[nodiscard]] std::vector<RigidBodyState>
-    read_states(const World &world, const SceneInstance &scene_instance) const {
+    read_states(const World &world, const SceneInstance &scene_instance,
+                float interpolation_alpha) const {
         RigidBodyDeviceView view{};
         const Status status = world.rigid_body_view(view);
         if (!status) {
@@ -683,6 +732,7 @@ struct OptixRenderer::Impl {
         }
         std::vector<RigidBodyId> ids(view.ids.size);
         std::vector<RigidBodyState> dense_states(view.states.size);
+        std::vector<RigidBodyState> previous_states;
         check_cuda(cudaMemcpy(ids.data(), view.ids.data,
                               ids.size() * sizeof(RigidBodyId),
                               cudaMemcpyDeviceToHost),
@@ -691,6 +741,16 @@ struct OptixRenderer::Impl {
                               dense_states.size() * sizeof(RigidBodyState),
                               cudaMemcpyDeviceToHost),
                    "copy rigid states for rendering");
+        interpolation_alpha = std::clamp(interpolation_alpha, 0.0F, 1.0F);
+        if (interpolation_alpha < 1.0F &&
+            view.previous_states.size == view.states.size) {
+            previous_states.resize(view.previous_states.size);
+            check_cuda(cudaMemcpy(
+                           previous_states.data(), view.previous_states.data,
+                           previous_states.size() * sizeof(RigidBodyState),
+                           cudaMemcpyDeviceToHost),
+                       "copy previous rigid states for rendering");
+        }
         std::vector<RigidBodyState> result(scene_instance.rigid_bodies.size());
         for (std::size_t body_index = 0;
              body_index < scene_instance.rigid_bodies.size(); ++body_index) {
@@ -699,8 +759,13 @@ struct OptixRenderer::Impl {
             if (found == ids.end()) {
                 fail("rendered rigid-body handle is no longer alive");
             }
-            result[body_index] = dense_states[static_cast<std::size_t>(
-                std::distance(ids.begin(), found))];
+            const std::size_t dense = static_cast<std::size_t>(
+                std::distance(ids.begin(), found));
+            result[body_index] = previous_states.empty()
+                ? dense_states[dense]
+                : interpolate_state(previous_states[dense],
+                                    dense_states[dense],
+                                    interpolation_alpha);
         }
         return result;
     }
@@ -893,6 +958,7 @@ struct OptixRenderer::Impl {
 
     void render(Camera camera, optix_shared::FluidSurfaceView fluid,
                 bool show_transparent_skin,
+                bool read_depth, bool read_rigid_depth,
                 std::vector<std::uint32_t> &rgba) {
         const Vec3 forward = normalize(subtract(camera.target, camera.eye));
         const Vec3 right = normalize(cross(forward, camera.up));
@@ -927,14 +993,19 @@ struct OptixRenderer::Impl {
         check_cuda(cudaMemcpy(rgba.data(), image.pointer(), image.size(),
                               cudaMemcpyDeviceToHost),
                    "copy OptiX image");
-        host_depth.resize(static_cast<std::size_t>(width) * height);
-        check_cuda(cudaMemcpy(host_depth.data(), depth.pointer(), depth.size(),
-                              cudaMemcpyDeviceToHost),
-                   "copy OptiX depth");
-        host_rigid_depth.resize(static_cast<std::size_t>(width) * height);
-        check_cuda(cudaMemcpy(host_rigid_depth.data(), rigid_depth.pointer(),
-                              rigid_depth.size(), cudaMemcpyDeviceToHost),
-                   "copy rigid occlusion depth");
+        if (read_depth) {
+            host_depth.resize(static_cast<std::size_t>(width) * height);
+            check_cuda(cudaMemcpy(host_depth.data(), depth.pointer(),
+                                  depth.size(), cudaMemcpyDeviceToHost),
+                       "copy OptiX depth");
+        }
+        if (read_rigid_depth) {
+            host_rigid_depth.resize(static_cast<std::size_t>(width) * height);
+            check_cuda(cudaMemcpy(host_rigid_depth.data(),
+                                  rigid_depth.pointer(), rigid_depth.size(),
+                                  cudaMemcpyDeviceToHost),
+                       "copy rigid occlusion depth");
+        }
     }
 };
 
@@ -1130,7 +1201,8 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
                            Camera camera, std::vector<std::uint32_t> &rgba,
                            std::string &error, RendererTimings *timings,
                            FluidRenderMode fluid_mode,
-                           bool show_smoke_particles) {
+                           bool show_smoke_particles,
+                           float rigid_interpolation_alpha) {
     error.clear();
     if (!impl_) {
         error = "renderer is not initialized";
@@ -1142,7 +1214,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         RendererTimings sample{};
         sample.particle_view = fluid_mode != FluidRenderMode::surface;
         const std::vector<RigidBodyState> states =
-            impl_->read_states(world, instance);
+            impl_->read_states(world, instance, rigid_interpolation_alpha);
         impl_->update_deformable_geometry(impl_->scene, world, instance);
         impl_->update_instances(states);
         std::vector<Vec3> positions;
@@ -1170,8 +1242,13 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
             }
         }
         const auto raytrace_begin = clock::now();
+        const bool read_fluid_depth =
+            instance.has_fluid && !positions.empty();
+        const bool read_rigid_depth = read_fluid_depth ||
+            (instance.has_smoke && show_smoke_particles);
         impl_->render(camera, surface,
-                      fluid_mode == FluidRenderMode::surface, rgba);
+                      fluid_mode == FluidRenderMode::surface,
+                      read_fluid_depth, read_rigid_depth, rgba);
         const auto foam_begin = clock::now();
         if (instance.has_fluid && !positions.empty()) {
             if (fluid_mode != FluidRenderMode::surface) {

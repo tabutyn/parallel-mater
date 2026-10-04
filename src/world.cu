@@ -1035,8 +1035,11 @@ struct World::Impl {
     BodyAccumulator *accumulators{};
     KinematicTarget *targets{};
     RigidConstraintResource *rigid_constraints{};
+    FixedContactProjection *fixed_contact_projection{};
+    RigidCompound *rigid_compounds{};
     RigidBodyId *ids{};
     RigidBodyState *states[2]{};
+    RigidBodyState *render_previous_states{};
     Vec3 *debug_applied_forces{};
     Vec3 *debug_applied_torques{};
     RigidBodyState *fluid_previous_states{};
@@ -1059,8 +1062,10 @@ struct World::Impl {
     std::uint8_t *rigid_broad_phase_workspace{};
     std::size_t rigid_broad_phase_workspace_size{};
     LeafPair *rigid_leaf_pairs{};
+    ContactManifold *rigid_leaf_manifolds{};
     std::uint32_t *rigid_leaf_pair_counts{};
     std::uint32_t rigid_leaf_pair_slot_capacity{};
+    std::uint32_t rigid_leaf_pairs_per_slot{};
     std::size_t rigid_leaf_pair_capacity{};
     RigidContactEvent *rigid_contact_events{};
     std::uint32_t *rigid_contact_count{};
@@ -1199,9 +1204,12 @@ struct World::Impl {
         release_managed(fluid_neighbor_overflow);
         release_managed(fluid_maximum_neighbor_count);
         release_managed(rigid_contact_count);
+        release_managed(rigid_compounds);
+        release_managed(fixed_contact_projection);
         release_managed(rigid_contact_events);
         release_managed(rigid_leaf_pair_counts);
         release_managed(rigid_leaf_pairs);
+        release_managed(rigid_leaf_manifolds);
         release_managed(rigid_broad_phase_workspace);
         release_managed(rigid_active_pair_count);
         release_managed(rigid_active_pairs);
@@ -1223,6 +1231,7 @@ struct World::Impl {
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);
         release_managed(fluid_previous_states);
+        release_managed(render_previous_states);
         release_managed(states[0]);
         release_managed(ids);
         release_managed(rigid_constraints);
@@ -1485,8 +1494,11 @@ Status World::create(WorldOptions options, World &output,
             k_leaf_pair_cache_slots_per_body);
     const std::size_t leaf_pair_slot_capacity =
         std::min(manifold_count, requested_leaf_pair_slots);
+    const std::uint32_t leaf_pairs_per_slot =
+        options.rigid_body_capacity <= k_small_rigid_leaf_body_capacity
+            ? k_small_rigid_leaf_pair_capacity : k_max_leaf_pairs_per_body_pair;
     if (leaf_pair_slot_capacity > std::numeric_limits<std::size_t>::max() /
-                                      k_max_leaf_pairs_per_body_pair ||
+                                      leaf_pairs_per_slot ||
         leaf_pair_slot_capacity >
             std::numeric_limits<std::uint32_t>::max()) {
         return failure(StatusCode::invalid_argument,
@@ -1495,7 +1507,8 @@ Status World::create(WorldOptions options, World &output,
     implementation->rigid_leaf_pair_slot_capacity =
         static_cast<std::uint32_t>(leaf_pair_slot_capacity);
     implementation->rigid_leaf_pair_capacity =
-        leaf_pair_slot_capacity * k_max_leaf_pairs_per_body_pair;
+        leaf_pair_slot_capacity * leaf_pairs_per_slot;
+    implementation->rigid_leaf_pairs_per_slot = leaf_pairs_per_slot;
     implementation->rigid_contact_capacity = options.contact_capacity;
 
     status = allocate_managed(implementation->parameters,
@@ -1533,6 +1546,9 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->render_previous_states,
+                              options.rigid_body_capacity);
+    if (!status) return status;
     if (options.physics_debug.frame_capacity != 0U) {
         status = allocate_managed(implementation->debug_applied_forces,
                                   options.rigid_body_capacity);
@@ -1574,6 +1590,14 @@ Status World::create(WorldOptions options, World &output,
     status = allocate_managed(implementation->fluid_body_bounds,
                               options.rigid_body_capacity);
     if (!status) return status;
+    if (options.rigid_constraint_capacity > 0U) {
+        status = allocate_managed(implementation->fixed_contact_projection,
+                                  options.rigid_body_capacity);
+        if (!status) return status;
+        status = allocate_managed(implementation->rigid_compounds,
+                                  options.rigid_body_capacity);
+        if (!status) return status;
+    }
     const std::size_t fluid_body_words =
         (static_cast<std::size_t>(options.rigid_body_capacity) + 63U) / 64U;
     status = allocate_managed(implementation->fluid_body_masks,
@@ -1634,6 +1658,11 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    if (options.rigid_body_capacity <= k_small_rigid_leaf_body_capacity) {
+        status = allocate_managed(implementation->rigid_leaf_manifolds,
+                                  implementation->rigid_leaf_pair_capacity);
+        if (!status) return status;
+    }
     status = allocate_managed(implementation->rigid_leaf_pair_counts,
                               pair_capacity);
     if (!status) {
@@ -1667,6 +1696,8 @@ Status World::create(WorldOptions options, World &output,
                 RigidBodyState{});
     std::fill_n(implementation->states[1], options.rigid_body_capacity,
                 RigidBodyState{});
+    std::fill_n(implementation->render_previous_states,
+                options.rigid_body_capacity, RigidBodyState{});
     if (implementation->debug_applied_forces != nullptr) {
         std::fill_n(implementation->debug_applied_forces,
                     options.rigid_body_capacity, Vec3{});
@@ -5099,6 +5130,7 @@ Status World::add_rigid_body(RigidBodyOptions options,
     impl_->ids[dense] = id;
     impl_->states[0][dense] = normalized_state;
     impl_->states[1][dense] = normalized_state;
+    impl_->render_previous_states[dense] = normalized_state;
     ++impl_->rigid_body_count;
     ++impl_->revision;
     output = id;
@@ -5157,6 +5189,8 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
         impl_->ids[dense] = impl_->ids[last];
         impl_->states[0][dense] = impl_->states[0][last];
         impl_->states[1][dense] = impl_->states[1][last];
+        impl_->render_previous_states[dense] =
+            impl_->render_previous_states[last];
         impl_->slots[impl_->ids[dense].index].dense_index = dense;
     }
     --impl_->rigid_body_count;
@@ -5200,6 +5234,7 @@ Status World::set_rigid_body_state(RigidBodyId body,
     state.orientation = normalized_quaternion(state.orientation);
     impl_->states[0][dense] = state;
     impl_->states[1][dense] = state;
+    impl_->render_previous_states[dense] = state;
     impl_->accumulators[dense] = {};
     impl_->targets[dense] = {};
     for (auto &smoke : impl_->smokes)
@@ -5274,6 +5309,42 @@ Status World::apply_force(RigidBodyId body, Vec3 force,
     return success();
 }
 
+Status World::apply_central_acceleration(
+    HostSpan<RigidBodyId> bodies, Vec3 acceleration) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "world is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (!finite(acceleration) ||
+        (bodies.size != 0U && bodies.data == nullptr) ||
+        bodies.size > impl_->rigid_body_count)
+        return failure(StatusCode::invalid_argument,
+                       "central acceleration batch is invalid");
+    for (std::uint64_t index = 0U; index < bodies.size; ++index) {
+        std::uint32_t dense = 0U;
+        status = impl_->validate_handle(bodies.data[index], dense);
+        if (!status) return status;
+        if (impl_->parameters[dense].motion != MotionType::dynamic)
+            return failure(StatusCode::invalid_argument,
+                           "central acceleration requires dynamic bodies");
+        for (std::uint64_t prior = 0U; prior < index; ++prior)
+            if (bodies.data[prior] == bodies.data[index])
+                return failure(StatusCode::invalid_argument,
+                               "central acceleration body is duplicated");
+    }
+    for (std::uint64_t index = 0U; index < bodies.size; ++index) {
+        std::uint32_t dense = 0U;
+        status = impl_->validate_handle(bodies.data[index], dense);
+        if (!status) return status;
+        const float mass = 1.0F / impl_->parameters[dense].inverse_mass;
+        impl_->accumulators[dense].force = add(
+            impl_->accumulators[dense].force,
+            multiply(acceleration, mass));
+    }
+    return success();
+}
+
 Status World::apply_impulse(RigidBodyId body, Vec3 impulse,
                             Vec3 world_point) noexcept {
     if (!impl_) {
@@ -5317,6 +5388,8 @@ Status World::rigid_body_view(RigidBodyDeviceView &output) const noexcept {
     output.ids = {impl_->ids, impl_->rigid_body_count};
     output.states = {impl_->states[impl_->current_state],
                      impl_->rigid_body_count};
+    output.previous_states = {
+        impl_->render_previous_states, impl_->rigid_body_count};
     if (impl_->debug_applied_forces != nullptr) {
         output.applied_forces = {
             impl_->debug_applied_forces, impl_->rigid_body_count};
@@ -5559,6 +5632,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         cudaEventCreateWithFlags(&frame->event, cudaEventDisableTiming);
     if (error != cudaSuccess) {
         return cuda_failure(error, "failed to create frame completion event");
+    }
+    if (impl_->rigid_body_count != 0U) {
+        error = cudaMemcpyAsync(
+            impl_->render_previous_states,
+            impl_->states[impl_->current_state],
+            impl_->rigid_body_count * sizeof(RigidBodyState),
+            cudaMemcpyDeviceToDevice, stream);
+        if (error != cudaSuccess)
+            return cuda_failure(error,
+                                "rigid interpolation snapshot failed");
     }
 
     impl_->timing_available = false;
@@ -6821,6 +6904,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, options.gravity, substep_timestep,
             options.substeps - substep, substep == 0U);
+        if (impl_->rigid_constraint_count != 0U) {
+            build_rigid_compounds_kernel<<<1U, 1U, 0, stream>>>(
+                impl_->rigid_constraints,
+                impl_->options.rigid_constraint_capacity, impl_->ids,
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count, impl_->rigid_compounds);
+        }
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -6853,12 +6943,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
+        if (impl_->rigid_constraint_count != 0U) {
+            build_fixed_collision_groups_kernel<<<1U, 1U, 0, stream>>>(
+                impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
+                impl_->ids, impl_->rigid_body_count,
+                impl_->fixed_contact_projection);
+        }
         broad_phase_rigid_pairs_kernel<<<pair_block_count, block_size, 0,
                                          stream>>>(
             impl_->parameters, impl_->rigid_world_bounds,
             impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->meshes, impl_->ids, impl_->rigid_constraints,
             impl_->options.rigid_constraint_capacity,
+            impl_->rigid_constraint_count != 0U
+                ? impl_->fixed_contact_projection : nullptr,
             impl_->rigid_body_count, impl_->rigid_active_pair_flags);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
@@ -6866,7 +6964,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return cuda_failure(error,
                                 "rigid broad-phase kernel launch failed");
         }
-        status = record_timing_stage(TimingStage::rigid_pair_filter);
+        status = record_timing_stage(TimingStage::rigid_pair_filter,
+                                    impl_->rigid_constraint_count != 0U ? 2U : 1U);
         if (!status) {
             cudaStreamSynchronize(stream);
             return status;
@@ -6889,7 +6988,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        generate_rigid_leaf_pairs_kernel<<<contact_block_count, block_size, 0,
+        const std::uint32_t shared_leaf_capacity =
+            impl_->rigid_leaf_manifolds != nullptr ? k_shared_rigid_leaf_capacity : 0U;
+        generate_rigid_leaf_pairs_kernel<<<contact_block_count, block_size,
+                                           shared_leaf_capacity * sizeof(WorldAabb),
                                            stream>>>(
             impl_->parameters, impl_->states[impl_->current_state],
             impl_->states[output_state],
@@ -6898,7 +7000,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->rigid_leaf_pairs,
             impl_->rigid_leaf_pair_counts,
-            impl_->rigid_leaf_pair_slot_capacity);
+            impl_->rigid_leaf_pair_slot_capacity,
+            impl_->rigid_leaf_pairs_per_slot, shared_leaf_capacity);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -6910,11 +7013,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        // One warp per pair leaves more pairs resident than a two-warp block;
-        // contact reduction still consumes candidates in the same order.
+        // Many-body worlds parallelize across pairs. Few-body worlds spread
+        // each dense pair across blocks and reduce in the same candidate order.
         constexpr std::uint32_t contact_evaluation_threads = 32U;
+        const std::uint32_t blocks_per_pair =
+            impl_->rigid_leaf_manifolds != nullptr ? k_rigid_leaf_blocks_per_pair : 1U;
         evaluate_rigid_leaf_pairs_kernel<<<
-            contact_block_count, contact_evaluation_threads,
+            contact_block_count * blocks_per_pair, contact_evaluation_threads,
             contact_evaluation_threads * sizeof(ContactManifold),
             stream>>>(impl_->parameters,
                       impl_->states[impl_->current_state],
@@ -6927,7 +7032,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                       impl_->rigid_active_pairs,
                       impl_->rigid_active_pair_count,
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
+                      impl_->rigid_leaf_pairs_per_slot,
+                      impl_->rigid_leaf_manifolds, blocks_per_pair,
                       substep_timestep, impl_->rigid_manifolds);
+        if (impl_->rigid_leaf_manifolds != nullptr) {
+            reduce_rigid_leaf_manifolds_kernel<<<contact_block_count, 32U, 0, stream>>>(
+                impl_->parameters, impl_->rigid_body_count,
+                impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+                impl_->rigid_leaf_pair_counts, impl_->rigid_leaf_pairs_per_slot,
+                impl_->rigid_leaf_manifolds, impl_->rigid_manifolds);
+        }
         evaluate_overflow_rigid_pairs_kernel<<<
             contact_block_count, block_size, 0, stream>>>(
                 impl_->parameters, impl_->states[impl_->current_state],
@@ -6968,7 +7082,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_manifolds, impl_->rigid_active_pairs,
                 impl_->rigid_active_pair_count, impl_->rigid_pair_colors,
                 impl_->rigid_color_owners, impl_->rigid_color_state,
-                color_round_count);
+                color_round_count,
+                impl_->rigid_constraint_count != 0U
+                    ? impl_->rigid_compounds : nullptr);
         } else {
             for (std::uint32_t color = 0U;
                  color < color_round_count; ++color) {
@@ -6982,7 +7098,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         impl_->rigid_manifolds, impl_->rigid_active_pairs,
                         impl_->rigid_active_pair_count,
                         impl_->rigid_pair_colors,
-                        impl_->rigid_color_owners);
+                        impl_->rigid_color_owners,
+                        impl_->rigid_constraint_count != 0U
+                            ? impl_->rigid_compounds : nullptr);
                 assign_parallel_contact_colors_kernel<<<
                     contact_block_count, block_size, 0, stream>>>(
                         impl_->parameters, impl_->rigid_body_count,
@@ -6990,7 +7108,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         impl_->rigid_active_pair_count,
                         impl_->rigid_color_owners,
                         impl_->rigid_pair_colors,
-                        impl_->rigid_color_state, color, color_round_count);
+                        impl_->rigid_color_state, color, color_round_count,
+                        impl_->rigid_constraint_count != 0U
+                            ? impl_->rigid_compounds : nullptr);
             }
         }
         if (small_rigid_contacts) {
@@ -7004,7 +7124,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_contact_events,
                 collect_rigid_contacts
                     ? impl_->rigid_contact_capacity : 0U,
-                substep_timestep);
+                substep_timestep,
+                impl_->rigid_constraint_count != 0U
+                    ? impl_->rigid_compounds : nullptr);
         } else {
             for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
                 for (std::uint32_t color = 0U;
@@ -7020,7 +7142,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         impl_->rigid_contact_events,
                         collect_rigid_contacts
                             ? impl_->rigid_contact_capacity : 0U,
-                        color, substep_timestep, pass == 0U);
+                        color, substep_timestep, pass == 0U,
+                        impl_->rigid_constraint_count != 0U
+                            ? impl_->rigid_compounds : nullptr);
                 }
                 resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
                     impl_->parameters, impl_->states[output_state],
@@ -7031,7 +7155,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_contact_events,
                     collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
-                    substep_timestep, pass == 0U);
+                    substep_timestep, pass == 0U,
+                    impl_->rigid_constraint_count != 0U
+                        ? impl_->rigid_compounds : nullptr);
             }
         }
         if (impl_->rigid_constraint_count != 0U) {
@@ -7039,7 +7165,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_constraints,
                 impl_->options.rigid_constraint_capacity, impl_->ids,
                 impl_->parameters, impl_->states[output_state],
-                impl_->rigid_body_count, substep_timestep);
+                impl_->rigid_body_count, substep_timestep,
+                impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count, impl_->rigid_contact_event_offsets,
+                impl_->rigid_contact_events,
+                collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
+                impl_->rigid_compounds);
+            project_fixed_ground_contacts_kernel<<<1U, 1U, 0, stream>>>(
+                impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
+                impl_->ids, impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count, impl_->rigid_manifolds,
+                impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+                impl_->fixed_contact_projection);
         }
         clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
@@ -8378,7 +8515,11 @@ Status World::collect_statistics(WorldStatistics &output,
     output.allocated_bytes +=
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
-                    3U * sizeof(RigidBodyState) +
+                    4U * sizeof(RigidBodyState) +
+                    (impl_->fixed_contact_projection != nullptr
+                         ? sizeof(FixedContactProjection) +
+                               sizeof(RigidCompound)
+                         : 0U) +
                     (impl_->debug_applied_forces != nullptr
                          ? 2U * sizeof(Vec3) : 0U)) +
         capacity * (capacity - 1U) / 2U * sizeof(ContactManifold) +
@@ -8391,6 +8532,8 @@ Status World::collect_statistics(WorldStatistics &output,
             (sizeof(std::uint8_t) + sizeof(std::uint32_t)) +
         sizeof(std::uint32_t) + impl_->rigid_broad_phase_workspace_size +
         impl_->rigid_leaf_pair_capacity * sizeof(LeafPair) +
+        (impl_->rigid_leaf_manifolds != nullptr
+             ? impl_->rigid_leaf_pair_capacity * sizeof(ContactManifold) : 0U) +
         capacity * capacity * sizeof(std::uint32_t) +
         impl_->rigid_contact_capacity * sizeof(RigidContactEvent) +
         impl_->options.contact_capacity * sizeof(ContactEvent) +
