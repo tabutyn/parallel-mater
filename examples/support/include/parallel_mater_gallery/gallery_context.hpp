@@ -156,7 +156,7 @@ inline constexpr std::array gallery_entries{
         GallerySceneSource::constraint_hinge,
         GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
         "--constraint-hinge", "CONSTRAINT: HINGE",
-        "ARROWS GRAVITY  SPHERE DRIVE  2:1 GEARS", {31, 45, 56, 235},
+        "ARROWS GRAVITY  SPHERE DRIVE  THREE GEARS", {31, 45, 56, 235},
         {48, 165, 224},
         {.target = {0.0F, 2.4F, 0.0F}, .distance_scale = 0.72F},
         false, false, 0U, 0U},

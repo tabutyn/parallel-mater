@@ -1012,7 +1012,8 @@ remained about 1.77 ms/frame.
 
 ## Hinge gear capture latency, 2026-10-03
 
-The four-body ConstraintHinge capture covering frames 743–772 reproduced the
+The historical four-body ConstraintHinge capture covering frames 743–772, made
+before the authored scene expanded to three gears, reproduced the
 reported roughly 50 ms physics frames. Dense gear leaf pairs exceeded the
 512-entry contact cache and used the serial BVH fallback. The other costs
 were repeated leaf-bound transforms, 64-bit division in the Cartesian leaf

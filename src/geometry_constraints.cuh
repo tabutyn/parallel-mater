@@ -689,19 +689,25 @@ __device__ void collide_triangle_ranges(
                                 k_rigid_surface_tolerance;
             if (distance <= k_rigid_surface_tolerance) {
                 // Triangle intersection has no reliable closest-point depth.
-                // Use body vertices behind the contacted triangle's plane.
-                // The broad-phase margin is only a cap: treating all
-                // intersections as margin-deep injects unrelated correction
-                // into shallow resting contacts and destabilizes fixed
-                // clusters.
-                const float intersection_depth = fmaxf(
-                    0.0F,
-                    -fminf(dot(subtract(a0, point_b), normal),
-                           fminf(dot(subtract(a1, point_b), normal),
-                                 dot(subtract(a2, point_b), normal))));
-                penetration = fminf(
-                    margin, intersection_depth + rest_offset) +
-                    k_rigid_surface_tolerance;
+                if (body_hinge.fixed_member ||
+                    collider_hinge.fixed_member) {
+                    // Use body vertices behind the contacted triangle's
+                    // plane for welded members. The broad-phase margin is
+                    // only a cap: treating shallow fixed-cluster contacts as
+                    // margin-deep fights their joint recovery.
+                    const float intersection_depth = fmaxf(
+                        0.0F,
+                        -fminf(dot(subtract(a0, point_b), normal),
+                               fminf(dot(subtract(a1, point_b), normal),
+                                     dot(subtract(a2, point_b), normal))));
+                    penetration = fminf(
+                        margin, intersection_depth + rest_offset) +
+                        k_rigid_surface_tolerance;
+                } else {
+                    // Preserve the established conservative recovery for
+                    // general rigid, cloth, soft-body, and rope contacts.
+                    penetration = margin + k_rigid_surface_tolerance;
+                }
             }
             const Contact contact{
                 normal, point, penetration, body_hinge, collider_hinge};

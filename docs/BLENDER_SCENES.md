@@ -287,17 +287,17 @@ loose spheres retain downward gravity until collected. Ground uses friction
 `4.0`; all 49 small spheres use friction `16.0`. Their effective
 small-sphere/ground coefficient is `8.0`, making attached spheres grip the
 floor and rotate the collector instead of letting the cluster slide.
-The Hinge scene's panel and single visible axial cylinder are
-merged into the active 12-tooth gear. Both active gears hinge against the same
-passive Ground body, with each constraint frame's Z axis copied from its gear's
-local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
-at a 2:1 ratio. The 3.05 m center distance, half-tooth starting phase, 0.008 m
-per-gear collision search margins, 64-iteration hinges, and eight gallery
-substeps let the solver retain closing tooth flanks at its small rest offset
-throughout a full mesh cycle. Both gears use `0.08`
-tooth friction and zero restitution so they roll without binding or rebounding;
-the 24-tooth follower uses mass `1.0` and angular damping `0.01` so it follows
-through freely instead of pushing the driver back. `HingeSphere` and `Ground`
+The Hinge scene's panel and single visible axial cylinder are merged into the
+first active gear. All three active gears hinge against the same passive Ground
+body, with each constraint frame's Z axis copied from its gear's local Z axis.
+Tooth contact propagates through both interfaces, so adjacent gears rotate in
+opposite directions and the first and third rotate in the same direction. The
+authored center distances, starting phases, collision search margins,
+64-iteration hinges, and eight gallery substeps retain closing tooth flanks at
+the solver's small rest offset throughout a full mesh cycle. All three gears
+use `0.08` tooth friction and zero restitution so they roll without binding or
+rebounding; both followers use mass `1.0` and angular damping `0.01` so they
+follow through freely instead of pushing the driver back. `HingeSphere` and `Ground`
 use friction `4.0`, making the incoming sphere roll instead of sliding across
 the floor. Export every source through the same shared exporter; no
 scene-specific export path exists.

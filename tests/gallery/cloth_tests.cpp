@@ -241,10 +241,33 @@ int main() {
     if (!require(no_cloth_world.set_rigid_body_state(
             no_cloth_instance.rigid_bodies[active], escape_before),
             "set free release body")) return 1;
-    // The settled sphere presses against the sheet's lower fold in -Y;
-    // push it away from that local contact with gravity disabled.
-    const Vec3 outward_impulse{0.0F,
-        1.5F * scene.rigid_bodies[active].options.mass, 0.0F};
+    // Push away from the actual settled fold rather than assuming its normal
+    // remains world +Y as cloth discretization and contact order evolve.
+    std::vector<Vec3> settled_cloth;
+    if (!read_cloth(escape_world, escape_instance.cloths.front(),
+                    settled_cloth)) return 1;
+    Vec3 nearest = settled_cloth.front();
+    float nearest_distance = distance(escape_before.position, nearest);
+    for (const Vec3 vertex : settled_cloth) {
+        const float candidate = distance(escape_before.position, vertex);
+        if (candidate < nearest_distance) {
+            nearest = vertex;
+            nearest_distance = candidate;
+        }
+    }
+    Vec3 release_direction{
+        escape_before.position.x - nearest.x,
+        escape_before.position.y - nearest.y,
+        escape_before.position.z - nearest.z};
+    const float release_length = std::max(
+        distance(release_direction, {}), 1.0e-6F);
+    release_direction = {release_direction.x / release_length,
+                         release_direction.y / release_length,
+                         release_direction.z / release_length};
+    const Vec3 outward_impulse{
+        1.5F * scene.rigid_bodies[active].options.mass * release_direction.x,
+        1.5F * scene.rigid_bodies[active].options.mass * release_direction.y,
+        1.5F * scene.rigid_bodies[active].options.mass * release_direction.z};
     if (!require(escape_world.apply_impulse(
             escape_instance.rigid_bodies[active], outward_impulse,
             escape_before.position), "impulse cloth release body") ||
@@ -283,23 +306,25 @@ int main() {
     for (const Vec3 vertex : released_cloth)
         release_separation = std::min(release_separation,
             distance(vertex, escape_after.position));
-    std::cout << "Outward impulse 30-frame cloth_dy=" <<
-        escape_after_30.position.y - escape_before.position.y
-              << " free_dy=" <<
-        free_after_30.position.y - escape_before.position.y
-              << " 120-frame cloth_dy=" <<
-        escape_after.position.y - escape_before.position.y
-              << " free_dy=" <<
-        free_after.position.y - escape_before.position.y
+    const auto release_displacement = [&](RigidBodyState state) {
+        return (state.position.x - escape_before.position.x) *
+                   release_direction.x +
+               (state.position.y - escape_before.position.y) *
+                   release_direction.y +
+               (state.position.z - escape_before.position.z) *
+                   release_direction.z;
+    };
+    std::cout << "Outward impulse 30-frame cloth_distance=" <<
+        release_displacement(escape_after_30)
+              << " free_distance=" << release_displacement(free_after_30)
+              << " 120-frame cloth_distance=" <<
+        release_displacement(escape_after)
+              << " free_distance=" << release_displacement(free_after)
               << " nearest_cloth_distance=" << release_separation << '\n';
-    const float free_30_displacement = free_after_30.position.y -
-        escape_before.position.y;
-    const float cloth_30_displacement = escape_after_30.position.y -
-        escape_before.position.y;
-    const float free_120_displacement = free_after.position.y -
-        escape_before.position.y;
-    const float cloth_120_displacement = escape_after.position.y -
-        escape_before.position.y;
+    const float free_30_displacement = release_displacement(free_after_30);
+    const float cloth_30_displacement = release_displacement(escape_after_30);
+    const float free_120_displacement = release_displacement(free_after);
+    const float cloth_120_displacement = release_displacement(escape_after);
     if (free_30_displacement < 0.5F ||
         cloth_30_displacement < 0.9F * free_30_displacement ||
         cloth_120_displacement < 0.75F * free_120_displacement ||

@@ -133,9 +133,9 @@ int main() {
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH,
                       RigidConstraintType::fixed, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH,
-                      RigidConstraintType::point, 2U},
+                      RigidConstraintType::point, 4U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
-                      RigidConstraintType::hinge, 2U, 64U},
+                      RigidConstraintType::hinge, 3U, 64U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH,
                       RigidConstraintType::slider, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH,
@@ -216,40 +216,62 @@ int main() {
     check(FixedContactCollector::constraint_capacity(fixed_scene) >= 49U,
           "fixed collector must reserve capacity for contact-created joints");
     const auto &point_constraints = definitions[1].rigid_constraints;
-    check(point_constraints[0].options.enabled &&
-              point_constraints[1].options.enabled,
+    check(std::all_of(point_constraints.begin(), point_constraints.end(),
+                      [](const auto &constraint) {
+                          return constraint.options.enabled;
+                      }),
           "point constraints must start enabled");
-    check(point_constraints[0].body_a == point_constraints[1].body_a &&
-              point_constraints[0].body_b != point_constraints[1].body_b,
-          "point spheres must share one static anchor body");
-    check(point_constraints[0].options.local_anchor_a.x ==
-                  point_constraints[1].options.local_anchor_a.x &&
-              point_constraints[0].options.local_anchor_a.y ==
-                  point_constraints[1].options.local_anchor_a.y &&
-              point_constraints[0].options.local_anchor_a.z ==
-                  point_constraints[1].options.local_anchor_a.z &&
-              point_constraints[0].options.local_anchor_b.x *
-                  point_constraints[1].options.local_anchor_b.x < 0.0F,
-          "point spheres must pivot around opposite sides of one point");
-    const auto &point_a = definitions[1].rigid_bodies[
+    std::array<bool, 4U> point_sphere_seen{};
+    const std::array<const char *, 4U> point_sphere_names{
+        "PointSphereA", "PointSphereB", "PointSphereB.001",
+        "PointSphereB.002"};
+    const std::size_t point_post = point_constraints.front().body_a;
+    for (const auto &constraint : point_constraints) {
+        check(constraint.body_a == point_post,
+              "all point spheres must share one static anchor body");
+        const auto &body = definitions[1].rigid_bodies[constraint.body_b];
+        for (std::size_t index = 0U; index < point_sphere_names.size(); ++index)
+            if (body.source_name == point_sphere_names[index])
+                point_sphere_seen[index] = true;
+        const Vec3 radial = body.options.initial_state.position;
+        const Vec3 velocity = body.options.initial_state.linear_velocity;
+        const float radial_dot_velocity =
+            radial.x * velocity.x + radial.z * velocity.z;
+        check(std::fabs(radial_dot_velocity) < 1.0e-4F &&
+                  std::sqrt(velocity.x * velocity.x +
+                            velocity.z * velocity.z) > 2.0F,
+              "point spheres must start with tangential velocity");
+    }
+    check(std::all_of(point_sphere_seen.begin(), point_sphere_seen.end(),
+                      [](bool seen) { return seen; }),
+          "point scene must retain all four orbiting spheres");
+    const auto &point_x_negative = definitions[1].rigid_bodies[
         point_constraints[0].body_b].options.initial_state;
-    const auto &point_b = definitions[1].rigid_bodies[
+    const auto &point_x_positive = definitions[1].rigid_bodies[
         point_constraints[1].body_b].options.initial_state;
-    check(point_a.linear_velocity.z * point_b.linear_velocity.z < 0.0F &&
-              std::fabs(point_a.linear_velocity.z) > 2.0F &&
-              std::fabs(point_b.linear_velocity.z) > 2.0F,
-          "point spheres must start with opposite tangential velocities");
+    check(point_x_negative.linear_velocity.z *
+                  point_x_positive.linear_velocity.z < 0.0F,
+          "X-axis point pair must use opposite tangential Z velocities");
+    const auto point_velocity_for = [&](const char *name) {
+        for (const auto &body : definitions[1].rigid_bodies)
+            if (body.source_name == name)
+                return body.options.initial_state.linear_velocity;
+        return Vec3{};
+    };
+    check(point_velocity_for("PointSphereB.001").x *
+                  point_velocity_for("PointSphereB.002").x < 0.0F,
+          "Z-axis point pair must use opposite tangential X velocities");
     const SceneDefinition &hinge_scene = definitions[2];
-    std::size_t small_gear_index = hinge_scene.rigid_bodies.size();
-    std::size_t large_gear_index = hinge_scene.rigid_bodies.size();
+    constexpr std::array<const char *, 3U> gear_names{
+        "Gear", "Gear.001", "Gear.002"};
+    std::array<std::size_t, 3U> gear_indices{
+        hinge_scene.rigid_bodies.size(), hinge_scene.rigid_bodies.size(),
+        hinge_scene.rigid_bodies.size()};
     std::size_t hinge_sphere_index = hinge_scene.rigid_bodies.size();
-    Vec3 small_gear_local_anchor{};
-    Vec3 large_gear_local_anchor{};
-    Quaternion small_gear_local_orientation{};
-    Quaternion large_gear_local_orientation{};
+    std::array<Vec3, 3U> gear_local_anchors{};
+    std::array<Quaternion, 3U> gear_local_orientations{};
     std::size_t hinge_count = 0U;
-    bool small_gear_on_shared_frame = false;
-    bool large_gear_on_shared_frame = false;
+    std::array<bool, 3U> gear_on_shared_frame{};
     for (std::size_t index = 0U; index < hinge_scene.rigid_bodies.size();
          ++index) {
         if (hinge_scene.rigid_bodies[index].source_name == "HingeSphere")
@@ -269,34 +291,28 @@ int main() {
                       std::fabs(world_axis.y) < 1.0e-4F &&
                       world_axis.z > 0.9999F,
                   "Blender local Z must become the horizontal runtime hinge axis");
-            small_gear_on_shared_frame = small_gear_on_shared_frame ||
-                (body_a.source_name == "Ground" &&
-                 body_b.source_name == "Gear");
-            large_gear_on_shared_frame = large_gear_on_shared_frame ||
-                (body_a.source_name == "Ground" &&
-                 body_b.source_name == "Gear.001");
-            if (body_b.source_name == "Gear") {
-                small_gear_index = constraint.body_b;
-                small_gear_local_anchor = constraint.options.local_anchor_b;
-                small_gear_local_orientation =
-                    constraint.options.local_orientation_b;
-            }
-            if (body_b.source_name == "Gear.001") {
-                large_gear_index = constraint.body_b;
-                large_gear_local_anchor = constraint.options.local_anchor_b;
-                large_gear_local_orientation =
+            for (std::size_t gear = 0U; gear < gear_names.size(); ++gear) {
+                if (body_b.source_name != gear_names[gear]) continue;
+                gear_on_shared_frame[gear] = body_a.source_name == "Ground";
+                gear_indices[gear] = constraint.body_b;
+                gear_local_anchors[gear] = constraint.options.local_anchor_b;
+                gear_local_orientations[gear] =
                     constraint.options.local_orientation_b;
             }
         }
     }
-    check(hinge_scene.rigid_bodies.size() == 4U && hinge_count == 2U,
-          "merged hinge scene must contain four bodies and two hinges");
-    check(small_gear_on_shared_frame && large_gear_on_shared_frame,
-          "both active gears must hinge against one passive frame");
-    check(small_gear_index < hinge_scene.rigid_bodies.size() &&
-              large_gear_index < hinge_scene.rigid_bodies.size() &&
+    check(hinge_scene.rigid_bodies.size() == 5U && hinge_count == 3U,
+          "expanded hinge scene must contain five bodies and three hinges");
+    check(std::all_of(gear_on_shared_frame.begin(),
+                      gear_on_shared_frame.end(),
+                      [](bool attached) { return attached; }),
+          "all active gears must hinge against one passive frame");
+    check(std::all_of(gear_indices.begin(), gear_indices.end(),
+                      [&](std::size_t index) {
+                          return index < hinge_scene.rigid_bodies.size();
+                      }) &&
               hinge_sphere_index < hinge_scene.rigid_bodies.size(),
-          "hinge test must resolve the gears and loose sphere");
+          "hinge test must resolve all three gears and loose sphere");
     for (const auto &body : hinge_scene.rigid_bodies) {
         if (body.source_name == "Ground" ||
             body.source_name == "HingeSphere") {
@@ -308,13 +324,14 @@ int main() {
                       std::fabs(body.options.angular_damping - 0.03F) <
                           1.0e-5F,
                   "driving gear teeth must roll without binding or bounce");
-        } else if (body.source_name == "Gear.001") {
+        } else if (body.source_name == "Gear.001" ||
+                   body.source_name == "Gear.002") {
             check(std::fabs(body.options.mass - 1.0F) < 1.0e-5F &&
                       std::fabs(body.options.friction - 0.08F) < 1.0e-5F &&
                       body.options.restitution == 0.0F &&
                       std::fabs(body.options.angular_damping - 0.01F) <
                           1.0e-5F,
-                  "large gear must remain a loose non-bouncing follower");
+                  "follower gears must remain loose and non-bouncing");
         }
     }
     for (std::size_t index : {3U, 4U}) {
@@ -372,10 +389,56 @@ int main() {
                      "collect rigid constraint statistics");
         check(statistics.rigid_constraint_count == scene.rigid_constraints.size(),
               "world statistics must expose instantiated constraints");
-        bool saw_gear_contact = false;
-        bool saw_opposite_gear_rotation = false;
-        float minimum_outward_dot = 1.0e30F;
-        float maximum_gear_penetration = 0.0F;
+        if (scene_index == 1U) {
+            for (std::size_t constraint_index = 0U;
+                 constraint_index < scene.rigid_constraints.size();
+                 ++constraint_index) {
+                RigidConstraintOptions options =
+                    scene.rigid_constraints[constraint_index].options;
+                options.body_a = instance.rigid_bodies[
+                    scene.rigid_constraints[constraint_index].body_a];
+                options.body_b = instance.rigid_bodies[
+                    scene.rigid_constraints[constraint_index].body_b];
+                options.enabled = false;
+                check_status(world.update_rigid_constraint(
+                                 instance.rigid_constraints[constraint_index],
+                                 options),
+                             "disable point constraint through gallery action");
+            }
+            for (const RigidConstraintId id : instance.rigid_constraints) {
+                RigidConstraintState state{};
+                check_status(world.read_rigid_constraint_state(id, state),
+                             "read disabled point constraint");
+                check(!state.enabled,
+                      "point action must disable all four constraints");
+            }
+            for (std::size_t constraint_index = 0U;
+                 constraint_index < scene.rigid_constraints.size();
+                 ++constraint_index) {
+                RigidConstraintOptions options =
+                    scene.rigid_constraints[constraint_index].options;
+                options.body_a = instance.rigid_bodies[
+                    scene.rigid_constraints[constraint_index].body_a];
+                options.body_b = instance.rigid_bodies[
+                    scene.rigid_constraints[constraint_index].body_b];
+                options.enabled = true;
+                check_status(world.update_rigid_constraint(
+                                 instance.rigid_constraints[constraint_index],
+                                 options),
+                             "enable point constraint through gallery action");
+            }
+            for (const RigidConstraintId id : instance.rigid_constraints) {
+                RigidConstraintState state{};
+                check_status(world.read_rigid_constraint_state(id, state),
+                             "read enabled point constraint");
+                check(state.enabled,
+                      "point action must enable all four constraints");
+            }
+        }
+        std::array<bool, 2U> saw_gear_contact{};
+        std::array<bool, 2U> saw_opposite_gear_rotation{};
+        std::array<float, 2U> minimum_outward_dot{1.0e30F, 1.0e30F};
+        std::array<float, 2U> maximum_gear_penetration{};
         int first_sphere_impact_frame = -1;
         float minimum_impact_rotation = 0.0F;
         float maximum_impact_rotation = 0.0F;
@@ -387,6 +450,24 @@ int main() {
                 ? fixed_scene.rigid_bodies[fixed_large_index]
                       .options.initial_state.position.y
                 : 0.0F;
+        std::array<Vec3, 4U> hinge_inertias{};
+        std::array<std::size_t, 4U> hinge_dynamic_indices{
+            gear_indices[0], gear_indices[1], gear_indices[2],
+            hinge_sphere_index};
+        float initial_hinge_energy = 0.0F;
+        float maximum_hinge_energy = 0.0F;
+        if (scene_index == 2U) {
+            for (std::size_t index = 0U;
+                 index < hinge_dynamic_indices.size(); ++index) {
+                const auto &body = hinge_scene.rigid_bodies[
+                    hinge_dynamic_indices[index]];
+                hinge_inertias[index] = body_inertia(hinge_scene, body);
+                initial_hinge_energy += mechanical_energy(
+                    body.options, hinge_inertias[index],
+                    body.options.initial_state);
+            }
+            maximum_hinge_energy = initial_hinge_energy;
+        }
         const int frame_count = scene_index == 2U ? 1200 :
                                 scene_index == 0U ? 240 : 30;
         for (int frame = 0; frame < frame_count; ++frame) {
@@ -427,26 +508,28 @@ int main() {
                 }
             }
             if (scene_index != 2U) continue;
-            RigidBodyState small_state{};
-            RigidBodyState large_state{};
-            check_status(world.read_rigid_body_state(
-                             instance.rigid_bodies[small_gear_index],
-                             small_state),
-                         "read small hinge gear state");
-            check_status(world.read_rigid_body_state(
-                             instance.rigid_bodies[large_gear_index],
-                             large_state),
-                         "read large hinge gear state");
-            saw_opposite_gear_rotation = saw_opposite_gear_rotation ||
-                small_state.angular_velocity.z *
-                        large_state.angular_velocity.z <
-                    -1.0e-4F;
-            const Vec3 rotated_anchor = rotate_vector(
-                small_state.orientation, small_gear_local_anchor);
-            const Vec3 world_anchor{
-                small_state.position.x + rotated_anchor.x,
-                small_state.position.y + rotated_anchor.y,
-                small_state.position.z + rotated_anchor.z};
+            std::array<RigidBodyState, 4U> hinge_states{};
+            float hinge_energy = 0.0F;
+            for (std::size_t index = 0U;
+                 index < hinge_dynamic_indices.size(); ++index) {
+                check_status(world.read_rigid_body_state(
+                                 instance.rigid_bodies[
+                                     hinge_dynamic_indices[index]],
+                                 hinge_states[index]),
+                             "read natural hinge body state");
+                const auto &body = hinge_scene.rigid_bodies[
+                    hinge_dynamic_indices[index]];
+                hinge_energy += mechanical_energy(
+                    body.options, hinge_inertias[index], hinge_states[index]);
+            }
+            maximum_hinge_energy = std::max(maximum_hinge_energy,
+                                             hinge_energy);
+            for (std::size_t pair = 0U; pair < 2U; ++pair)
+                saw_opposite_gear_rotation[pair] =
+                    saw_opposite_gear_rotation[pair] ||
+                    hinge_states[pair].angular_velocity.z *
+                            hinge_states[pair + 1U].angular_velocity.z <
+                        -1.0e-4F;
             const RigidContactDeviceView view = world.rigid_contacts();
             std::vector<RigidContactEvent> contacts(view.event_count);
             if (!contacts.empty())
@@ -459,41 +542,53 @@ int main() {
                     (same_id(contact.body,
                              instance.rigid_bodies[hinge_sphere_index]) &&
                      same_id(contact.collider,
-                             instance.rigid_bodies[small_gear_index])) ||
+                             instance.rigid_bodies[gear_indices[0]])) ||
                     (same_id(contact.collider,
                              instance.rigid_bodies[hinge_sphere_index]) &&
                      same_id(contact.body,
-                             instance.rigid_bodies[small_gear_index]));
+                             instance.rigid_bodies[gear_indices[0]]));
                 if (sphere_hits_lever && first_sphere_impact_frame < 0)
                     first_sphere_impact_frame = frame;
-                const bool small_is_body =
-                    same_id(contact.body,
-                            instance.rigid_bodies[small_gear_index]) &&
-                    same_id(contact.collider,
-                            instance.rigid_bodies[large_gear_index]);
-                const bool small_is_collider =
-                    same_id(contact.collider,
-                            instance.rigid_bodies[small_gear_index]) &&
-                    same_id(contact.body,
-                            instance.rigid_bodies[large_gear_index]);
-                if (!small_is_body && !small_is_collider) continue;
-                saw_gear_contact = true;
-                const float direction = small_is_body ? 1.0F : -1.0F;
-                const float outward_dot = direction *
-                    ((world_anchor.x - contact.position.x) * contact.normal.x +
-                     (world_anchor.y - contact.position.y) * contact.normal.y +
-                     (world_anchor.z - contact.position.z) * contact.normal.z);
-                minimum_outward_dot =
-                    std::min(minimum_outward_dot, outward_dot);
-                maximum_gear_penetration =
-                    std::max(maximum_gear_penetration, contact.penetration);
+                for (std::size_t pair = 0U; pair < 2U; ++pair) {
+                    const bool first_is_body =
+                        same_id(contact.body,
+                                instance.rigid_bodies[gear_indices[pair]]) &&
+                        same_id(contact.collider,
+                                instance.rigid_bodies[gear_indices[pair + 1U]]);
+                    const bool first_is_collider =
+                        same_id(contact.collider,
+                                instance.rigid_bodies[gear_indices[pair]]) &&
+                        same_id(contact.body,
+                                instance.rigid_bodies[gear_indices[pair + 1U]]);
+                    if (!first_is_body && !first_is_collider) continue;
+                    saw_gear_contact[pair] = true;
+                    const Vec3 rotated_anchor = rotate_vector(
+                        hinge_states[pair].orientation,
+                        gear_local_anchors[pair]);
+                    const Vec3 world_anchor{
+                        hinge_states[pair].position.x + rotated_anchor.x,
+                        hinge_states[pair].position.y + rotated_anchor.y,
+                        hinge_states[pair].position.z + rotated_anchor.z};
+                    const float direction = first_is_body ? 1.0F : -1.0F;
+                    const float outward_dot = direction *
+                        ((world_anchor.x - contact.position.x) *
+                             contact.normal.x +
+                         (world_anchor.y - contact.position.y) *
+                             contact.normal.y +
+                         (world_anchor.z - contact.position.z) *
+                             contact.normal.z);
+                    minimum_outward_dot[pair] = std::min(
+                        minimum_outward_dot[pair], outward_dot);
+                    maximum_gear_penetration[pair] = std::max(
+                        maximum_gear_penetration[pair], contact.penetration);
+                }
             }
             if (first_sphere_impact_frame >= 0 &&
                 frame < first_sphere_impact_frame + 12) {
                 const Quaternion initial = hinge_scene.rigid_bodies[
-                    small_gear_index].options.initial_state.orientation;
+                    gear_indices[0]].options.initial_state.orientation;
                 const Quaternion delta = multiply(
-                    small_state.orientation,
+                    hinge_states[0].orientation,
                     {-initial.x, -initial.y, -initial.z, initial.w});
                 // The ball approaches in +X below the hinge: r x impulse
                 // must swing the lever in +Z, including position recovery.
@@ -547,91 +642,38 @@ int main() {
                           << " max=" << maximum_impact_rotation
                           << " backward recovery=" << maximum_backward_recovery
                           << '\n';
-            check(saw_gear_contact,
-                  "hinge gears must engage during the scene replay");
-            check(minimum_outward_dot > -1.0e-4F,
-                  "hinge gear contact normals must point out of the small gear");
-            const float maximum_gear_recovery =
-                hinge_scene.rigid_bodies[small_gear_index]
-                    .options.collision_margin +
-                hinge_scene.rigid_bodies[large_gear_index]
-                    .options.collision_margin +
-                1.0e-4F;
-            check(maximum_gear_penetration <= maximum_gear_recovery,
-                  "gear contact recovery must stay inside its search shell");
-            if (maximum_gear_penetration > maximum_gear_recovery)
-                std::cerr << "gear penetration=" << maximum_gear_penetration
-                          << '\n';
-            check(saw_opposite_gear_rotation,
-                  "meshed hinge gears must rotate in opposite directions");
-
-            // Regression for a user capture where a large gear-tooth impact
-            // increased total mechanical energy by 22 J in two frames.  Zero
-            // restitution, damping, and gravity work must not create energy.
-            RigidBodyState captured_small{
-                .position = {1.61932397F, 5.29441452F, 0.321598262F},
-                .orientation = {0.489382893F, 0.510373354F,
-                                0.51044178F, 0.4893592F},
-                .linear_velocity = {0.096713528F, -2.27621722F,
-                                    0.00183799304F},
-                .angular_velocity = {-0.013401052F, 0.00615845667F,
-                                     -1.40645504F}};
-            RigidBodyState captured_large{
-                .position = {-0.00471570203F, 2.17593265F, 1.51186085F},
-                .orientation = {0.666613698F, -0.236210853F,
-                                -0.236284733F, 0.666333199F},
-                .linear_velocity = {1.33645872e-11F, 0.00528716994F, 0.0F},
-                .angular_velocity = {-0.0588675253F, 0.00490533235F,
-                                     0.554055095F}};
-            check_status(world.set_rigid_body_state(
-                             instance.rigid_bodies[small_gear_index],
-                             captured_small),
-                         "restore excited small hinge gear capture");
-            check_status(world.set_rigid_body_state(
-                             instance.rigid_bodies[large_gear_index],
-                             captured_large),
-                         "restore excited large hinge gear capture");
-            const Vec3 small_inertia = body_inertia(
-                hinge_scene, hinge_scene.rigid_bodies[small_gear_index]);
-            const Vec3 large_inertia = body_inertia(
-                hinge_scene, hinge_scene.rigid_bodies[large_gear_index]);
-            const auto gear_energy = [&]() {
-                return mechanical_energy(
-                           hinge_scene.rigid_bodies[small_gear_index].options,
-                           small_inertia, captured_small) +
-                       mechanical_energy(
-                           hinge_scene.rigid_bodies[large_gear_index].options,
-                           large_inertia, captured_large);
-            };
-            const float initial_energy = gear_energy();
-            float maximum_energy = initial_energy;
-            for (int frame = 0; frame < 4; ++frame) {
-                check_status(world.step({.timestep = 1.0F / 60.0F,
-                                         .substeps = 8U,
-                                         .gravity = {0.0F, -9.81F, 0.0F}}),
-                             "step excited hinge energy regression");
-                check_status(world.read_rigid_body_state(
-                                 instance.rigid_bodies[small_gear_index],
-                                 captured_small),
-                             "read excited small hinge gear");
-                check_status(world.read_rigid_body_state(
-                                 instance.rigid_bodies[large_gear_index],
-                                 captured_large),
-                             "read excited large hinge gear");
-                maximum_energy = std::max(maximum_energy, gear_energy());
+            for (std::size_t pair = 0U; pair < 2U; ++pair) {
+                check(saw_gear_contact[pair],
+                      "both hinge gear interfaces must engage in natural replay");
+                check(minimum_outward_dot[pair] > -1.0e-4F,
+                      "hinge gear contact normals must point out of the driving gear");
+                const float maximum_gear_recovery =
+                    hinge_scene.rigid_bodies[gear_indices[pair]]
+                        .options.collision_margin +
+                    hinge_scene.rigid_bodies[gear_indices[pair + 1U]]
+                        .options.collision_margin +
+                    1.0e-4F;
+                check(maximum_gear_penetration[pair] <= maximum_gear_recovery,
+                      "gear contact recovery must stay inside its search shell");
+                if (maximum_gear_penetration[pair] > maximum_gear_recovery)
+                    std::cerr << "gear pair " << pair << " penetration="
+                              << maximum_gear_penetration[pair] << '\n';
+                check(saw_opposite_gear_rotation[pair],
+                      "impact must propagate with alternating gear rotation");
             }
-            if (maximum_energy > initial_energy + 0.5F)
-                std::cerr << "excited hinge energy=" << initial_energy
-                          << " peak=" << maximum_energy << '\n';
-            check(maximum_energy <= initial_energy + 0.5F,
-                  "hinge gear contacts must not amplify captured oscillation");
+            if (maximum_hinge_energy > initial_hinge_energy + 0.5F)
+                std::cerr << "natural hinge energy=" << initial_hinge_energy
+                          << " peak=" << maximum_hinge_energy << '\n';
+            check(maximum_hinge_energy <= initial_hinge_energy + 0.5F,
+                  "hinge contacts must not inject mechanical energy");
 
-            RigidBodyState driven_small =
-                scene.rigid_bodies[small_gear_index].options.initial_state;
-            RigidBodyState driven_large =
-                scene.rigid_bodies[large_gear_index].options.initial_state;
-            driven_small.angular_velocity = {0.0F, 0.0F, -12.0F};
-            driven_large.angular_velocity = {0.0F, 0.0F, 6.0F};
+            std::array<RigidBodyState, 3U> driven{
+                scene.rigid_bodies[gear_indices[0]].options.initial_state,
+                scene.rigid_bodies[gear_indices[1]].options.initial_state,
+                scene.rigid_bodies[gear_indices[2]].options.initial_state};
+            driven[0].angular_velocity = {0.0F, 0.0F, -12.0F};
+            driven[1].angular_velocity = {0.0F, 0.0F, 6.0F};
+            driven[2].angular_velocity = {0.0F, 0.0F, -6.0F};
             const auto hinge_linear_velocity = [](RigidBodyState state,
                                                   Vec3 local_anchor) {
                 const Vec3 anchor_to_center = rotate_vector(
@@ -645,10 +687,9 @@ int main() {
                     state.angular_velocity.x * anchor_to_center.y -
                         state.angular_velocity.y * anchor_to_center.x};
             };
-            driven_small.linear_velocity = hinge_linear_velocity(
-                driven_small, small_gear_local_anchor);
-            driven_large.linear_velocity = hinge_linear_velocity(
-                driven_large, large_gear_local_anchor);
+            for (std::size_t gear = 0U; gear < driven.size(); ++gear)
+                driven[gear].linear_velocity = hinge_linear_velocity(
+                    driven[gear], gear_local_anchors[gear]);
             RigidBodyState isolated_sphere =
                 scene.rigid_bodies[hinge_sphere_index].options.initial_state;
             isolated_sphere.position.x += 100.0F;
@@ -658,64 +699,62 @@ int main() {
                              instance.rigid_bodies[hinge_sphere_index],
                              isolated_sphere),
                          "isolate driven hinge gears from the loose sphere");
-            check_status(world.set_rigid_body_state(
-                             instance.rigid_bodies[small_gear_index],
-                             driven_small),
-                         "drive small hinge gear through full rotations");
-            check_status(world.set_rigid_body_state(
-                             instance.rigid_bodies[large_gear_index],
-                             driven_large),
-                         "drive large hinge gear through full rotations");
-            const Vec3 initial_small_anchor_offset = rotate_vector(
-                driven_small.orientation, small_gear_local_anchor);
-            const Vec3 initial_small_anchor{
-                driven_small.position.x + initial_small_anchor_offset.x,
-                driven_small.position.y + initial_small_anchor_offset.y,
-                driven_small.position.z + initial_small_anchor_offset.z};
-            const Vec3 initial_large_anchor_offset = rotate_vector(
-                driven_large.orientation, large_gear_local_anchor);
-            const Vec3 initial_large_anchor{
-                driven_large.position.x + initial_large_anchor_offset.x,
-                driven_large.position.y + initial_large_anchor_offset.y,
-                driven_large.position.z + initial_large_anchor_offset.z};
-            const Vec3 initial_small_axis = local_z(multiply(
-                driven_small.orientation, small_gear_local_orientation));
-            const Vec3 initial_large_axis = local_z(multiply(
-                driven_large.orientation, large_gear_local_orientation));
-            Quaternion previous_orientation = driven_small.orientation;
+            for (std::size_t gear = 0U; gear < driven.size(); ++gear)
+                check_status(world.set_rigid_body_state(
+                                 instance.rigid_bodies[gear_indices[gear]],
+                                 driven[gear]),
+                             "drive hinge gear through full rotations");
+            std::array<Vec3, 3U> initial_anchors{};
+            std::array<Vec3, 3U> initial_axes{};
+            for (std::size_t gear = 0U; gear < driven.size(); ++gear) {
+                const Vec3 anchor_offset = rotate_vector(
+                    driven[gear].orientation, gear_local_anchors[gear]);
+                initial_anchors[gear] = {
+                    driven[gear].position.x + anchor_offset.x,
+                    driven[gear].position.y + anchor_offset.y,
+                    driven[gear].position.z + anchor_offset.z};
+                initial_axes[gear] = local_z(multiply(
+                    driven[gear].orientation,
+                    gear_local_orientations[gear]));
+            }
+            Quaternion previous_orientation = driven[0].orientation;
             float accumulated_rotation = 0.0F;
             float maximum_anchor_drift = 0.0F;
             int maximum_anchor_drift_frame = 0;
             float minimum_axis_dot = 1.0F;
+            std::array<bool, 2U> driven_opposite_rotation{};
             for (int frame = 0; frame < 360; ++frame) {
                 check_status(world.apply_force(
-                                 instance.rigid_bodies[small_gear_index],
+                                 instance.rigid_bodies[gear_indices[0]],
                                  {0.0F, -10.0F, 0.0F},
-                                 {driven_small.position.x + 1.0F,
-                                  driven_small.position.y,
-                                  driven_small.position.z}),
+                                 {driven[0].position.x + 1.0F,
+                                  driven[0].position.y,
+                                  driven[0].position.z}),
                              "drive first half of hinge torque couple");
                 check_status(world.apply_force(
-                                 instance.rigid_bodies[small_gear_index],
+                                 instance.rigid_bodies[gear_indices[0]],
                                  {0.0F, 10.0F, 0.0F},
-                                 {driven_small.position.x - 1.0F,
-                                  driven_small.position.y,
-                                  driven_small.position.z}),
+                                 {driven[0].position.x - 1.0F,
+                                  driven[0].position.y,
+                                  driven[0].position.z}),
                              "drive second half of hinge torque couple");
                 check_status(world.step({.timestep = 1.0F / 60.0F,
                                          .substeps = 8U,
                                          .gravity = {}}),
                              "step full-rotation hinge regression");
-                check_status(world.read_rigid_body_state(
-                                 instance.rigid_bodies[small_gear_index],
-                                 driven_small),
-                             "read driven small hinge gear");
-                check_status(world.read_rigid_body_state(
-                                 instance.rigid_bodies[large_gear_index],
-                                 driven_large),
-                             "read driven large hinge gear");
+                for (std::size_t gear = 0U; gear < driven.size(); ++gear)
+                    check_status(world.read_rigid_body_state(
+                                     instance.rigid_bodies[gear_indices[gear]],
+                                     driven[gear]),
+                                 "read driven hinge gear");
+                for (std::size_t pair = 0U; pair < 2U; ++pair)
+                    driven_opposite_rotation[pair] =
+                        driven_opposite_rotation[pair] ||
+                        driven[pair].angular_velocity.z *
+                                driven[pair + 1U].angular_velocity.z <
+                            -1.0e-4F;
                 Quaternion delta = multiply(
-                    driven_small.orientation,
+                    driven[0].orientation,
                     {-previous_orientation.x, -previous_orientation.y,
                      -previous_orientation.z, previous_orientation.w});
                 if (delta.w < 0.0F)
@@ -724,44 +763,35 @@ int main() {
                     std::sqrt(delta.x * delta.x + delta.y * delta.y +
                               delta.z * delta.z),
                     std::max(delta.w, 0.0F));
-                previous_orientation = driven_small.orientation;
-                const Vec3 small_anchor_offset = rotate_vector(
-                    driven_small.orientation, small_gear_local_anchor);
-                const Vec3 large_anchor_offset = rotate_vector(
-                    driven_large.orientation, large_gear_local_anchor);
-                const Vec3 small_anchor{
-                    driven_small.position.x + small_anchor_offset.x,
-                    driven_small.position.y + small_anchor_offset.y,
-                    driven_small.position.z + small_anchor_offset.z};
-                const Vec3 large_anchor{
-                    driven_large.position.x + large_anchor_offset.x,
-                    driven_large.position.y + large_anchor_offset.y,
-                    driven_large.position.z + large_anchor_offset.z};
+                previous_orientation = driven[0].orientation;
                 const auto drift = [](Vec3 current, Vec3 initial) {
                     const float x = current.x - initial.x;
                     const float y = current.y - initial.y;
                     const float z = current.z - initial.z;
                     return std::sqrt(x * x + y * y + z * z);
                 };
-                const float anchor_drift = std::max(
-                    drift(small_anchor, initial_small_anchor),
-                    drift(large_anchor, initial_large_anchor));
-                if (anchor_drift > maximum_anchor_drift) {
-                    maximum_anchor_drift = anchor_drift;
-                    maximum_anchor_drift_frame = frame;
+                for (std::size_t gear = 0U; gear < driven.size(); ++gear) {
+                    const Vec3 anchor_offset = rotate_vector(
+                        driven[gear].orientation, gear_local_anchors[gear]);
+                    const Vec3 anchor{
+                        driven[gear].position.x + anchor_offset.x,
+                        driven[gear].position.y + anchor_offset.y,
+                        driven[gear].position.z + anchor_offset.z};
+                    const float anchor_drift = drift(
+                        anchor, initial_anchors[gear]);
+                    if (anchor_drift > maximum_anchor_drift) {
+                        maximum_anchor_drift = anchor_drift;
+                        maximum_anchor_drift_frame = frame;
+                    }
+                    const Vec3 axis = local_z(multiply(
+                        driven[gear].orientation,
+                        gear_local_orientations[gear]));
+                    minimum_axis_dot = std::min(
+                        minimum_axis_dot,
+                        axis.x * initial_axes[gear].x +
+                            axis.y * initial_axes[gear].y +
+                            axis.z * initial_axes[gear].z);
                 }
-                const Vec3 small_axis = local_z(multiply(
-                    driven_small.orientation, small_gear_local_orientation));
-                const Vec3 large_axis = local_z(multiply(
-                    driven_large.orientation, large_gear_local_orientation));
-                minimum_axis_dot = std::min(
-                    minimum_axis_dot,
-                    std::min(small_axis.x * initial_small_axis.x +
-                                 small_axis.y * initial_small_axis.y +
-                                 small_axis.z * initial_small_axis.z,
-                             large_axis.x * initial_large_axis.x +
-                                 large_axis.y * initial_large_axis.y +
-                                 large_axis.z * initial_large_axis.z));
             }
             check(accumulated_rotation > 2.0F * 3.14159265358979323846F,
                   "small hinge gear must complete a full rotation");
@@ -773,11 +803,15 @@ int main() {
                           << " drift_frame=" << maximum_anchor_drift_frame
                           << " axis_dot=" << minimum_axis_dot
                           << " angular_velocity="
-                          << driven_small.angular_velocity.z << '\n';
+                          << driven[0].angular_velocity.z << '\n';
             check(maximum_anchor_drift < 0.002F,
-                  "hinge anchors must remain fixed through full rotations");
+                  "all three hinge anchors must remain within 2 mm");
             check(minimum_axis_dot > 0.9999F,
-                  "hinge axes must remain aligned through full rotations");
+                  "all three hinge axes must remain aligned");
+            check(std::all_of(driven_opposite_rotation.begin(),
+                              driven_opposite_rotation.end(),
+                              [](bool opposite) { return opposite; }),
+                  "driven motion must alternate across both gear interfaces");
         }
     }
     return failures == 0 ? 0 : 1;
