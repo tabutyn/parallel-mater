@@ -25,6 +25,24 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
+# The conformance case registry intentionally has no CUDA or engine dependency.
+# Metal and future backends can compile it as ordinary C++ and byte-check the
+# same canonical inputs without installing the CUDA World API.
+add_library(parallel-mater-conformance-registry STATIC
+            conformance/v1/src/case_registry.cpp)
+target_compile_features(parallel-mater-conformance-registry PUBLIC cxx_std_20)
+target_include_directories(parallel-mater-conformance-registry
+    PUBLIC conformance/v1/include)
+target_compile_options(parallel-mater-conformance-registry
+    PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(parallel-mater-conformance-cases
+               conformance/v1/src/case_files.cpp)
+target_link_libraries(parallel-mater-conformance-cases
+                      PRIVATE parallel-mater-conformance-registry)
+target_compile_options(parallel-mater-conformance-cases
+                       PRIVATE -Wall -Wextra -Wpedantic)
+
 add_library(
     parallel-mater STATIC
     src/world.cu
@@ -100,6 +118,27 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery-scene PUBLIC ParallelMater::parallel_mater)
     target_compile_options(
         parallel-mater-gallery-scene PRIVATE -Wall -Wextra -Wpedantic)
+
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
+        set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
+    endif()
+    add_executable(parallel-mater-conformance
+                   conformance/v1/src/cuda_runner.cpp)
+    target_link_libraries(parallel-mater-conformance PRIVATE
+        parallel-mater-conformance-registry
+        parallel-mater-gallery-scene
+        CUDA::cudart)
+    target_compile_definitions(parallel-mater-conformance PRIVATE
+        PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+        PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+    target_compile_options(parallel-mater-conformance
+                           PRIVATE -Wall -Wextra -Wpedantic)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-rigid-scene-benchmark
@@ -249,6 +288,15 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 endif()
 
 if(BUILD_TESTING)
+    add_test(NAME parallel-mater-conformance-case-registry
+        COMMAND parallel-mater-conformance-cases --check
+                ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME parallel-mater-conformance-comparator-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
+                -p test_*.py)
+
     add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
     target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
@@ -296,6 +344,18 @@ if(BUILD_TESTING)
              COMMAND parallel-mater-paint-geometry-tests)
 
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+        add_test(NAME parallel-mater-conformance-inputs
+                 COMMAND parallel-mater-conformance --check-inputs)
+        add_test(NAME parallel-mater-conformance-cuda-goldens
+            COMMAND ${Python3_EXECUTABLE}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/reproduce.py
+                    --runner $<TARGET_FILE:parallel-mater-conformance>
+                    --comparator ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/compare.py
+                    --cases ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases
+                    --golden ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/golden/cuda)
+        set_tests_properties(parallel-mater-conformance-cuda-goldens
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900 RUN_SERIAL TRUE)
+
         find_program(PARALLEL_MATER_BLENDER_EXECUTABLE NAMES blender)
         if(PARALLEL_MATER_BLENDER_EXECUTABLE)
             add_executable(parallel-mater-blender-scene-check
