@@ -709,6 +709,13 @@ impulse, and accumulated tangential friction impulse. Requesting the stream in
 frame. It exists for visualization and analysis; applications must not feed it
 back into the solver.
 
+`RigidBodyOptions::collision_margin` is primarily a contact-search distance.
+The solver uses at most `0.001 m` of the combined margin as a rest offset, then
+uses the remaining margin only for speculative detection. This small gap keeps
+triangle surfaces from numerically crossing without making bodies float by the
+full authored margin. Contacts outside the rest offset release immediately when
+the surfaces separate.
+
 ## Errors and validation
 
 Public calls are `noexcept` and return `Status`. Invalid values and stale

@@ -117,28 +117,12 @@ def point_scene():
     add_floor()
     post = cylinder("PointPost", (0.0, 0.0, 1.25), 0.28, 2.5,
                     (0.70, 0.73, 0.78, 1.0), "PASSIVE")
-    ball = sphere("PointSphereA", (-2.6, 0.0, 0.55),
-                  color=(0.95, 0.45, 0.08, 1.0), velocity=(2.0, 0.0, 0.0))
-    sphere("PointSphereB", (2.6, 0.0, 0.55),
-           color=(0.12, 0.48, 0.95, 1.0), velocity=(-1.2, 0.0, 0.0))
-    constraint("PointJoint", "POINT", post, ball, (-0.28, 0.0, 0.65), enabled=False)
-
-
-def hinge_scene():
-    reset()
-    add_floor()
-    frame = box("HingePost", (0.0, -1.25, 1.1), (0.18, 0.18, 1.1),
-                (0.65, 0.68, 0.72, 1.0), "PASSIVE")
-    door = box("HingePanel", (0.0, 0.0, 1.1), (0.12, 1.25, 1.1),
-               (0.16, 0.58, 0.86, 1.0), mass=4.0)
-    joint = constraint("HingeJoint", "HINGE", frame, door,
-                       (0.0, -1.25, 1.1))
-    joint.rigid_body_constraint.use_limit_ang_z = True
-    joint.rigid_body_constraint.limit_ang_z_lower = -math.radians(45.0)
-    joint.rigid_body_constraint.limit_ang_z_upper = math.radians(45.0)
-    sphere("HingeSphere", (-3.2, 0.0, 0.55), radius=0.5,
-           color=(0.95, 0.30, 0.10, 1.0), mass=3.0,
-           velocity=(4.5, 0.0, 0.0))
+    left = sphere("PointSphereA", (-2.2, 0.0, 0.55),
+                  color=(0.95, 0.45, 0.08, 1.0), velocity=(0.0, -2.4, 0.0))
+    right = sphere("PointSphereB", (2.2, 0.0, 0.55),
+                   color=(0.12, 0.48, 0.95, 1.0), velocity=(0.0, 2.4, 0.0))
+    constraint("PointJointA", "POINT", post, left, (0.0, 0.0, 0.55))
+    constraint("PointJointB", "POINT", post, right, (0.0, 0.0, 0.55))
 
 
 def slider_scene():
@@ -227,7 +211,6 @@ def motor_scene():
 SCENES = {
     "ConstraintFixed": fixed_scene,
     "ConstraintPoint": point_scene,
-    "ConstraintHinge": hinge_scene,
     "ConstraintSlider": slider_scene,
     "ConstraintPiston": piston_scene,
     "ConstraintGeneric": lambda: generic_scene(False),

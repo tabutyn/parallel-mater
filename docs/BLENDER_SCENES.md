@@ -257,7 +257,10 @@ Spring, and Motor types map directly to `RigidConstraintType`. The Empty's
 world transform becomes the joint frame; Blender linear and angular limit
 flags, spring stiffness/damping, motor targets/impulses, enabled state,
 collision suppression, breaking threshold, and solver-iteration override are
-preserved. Array-modified rigid bodies are rejected as ambiguous targets.
+preserved. Constraint axes retain their Blender meaning across glTF's Y-up
+conversion: Hinge uses the Empty's local Z, while Slider, Piston, and Motor use
+their documented local axes. Array-modified rigid bodies are rejected as
+ambiguous targets.
 
 The exporter writes one `pm_system = "rigid_constraint"` node with both target
 names and all built-in settings. The gallery loader resolves those names,
@@ -265,9 +268,20 @@ converts the world frame to body-local frames, and creates the public API
 resource after both bodies. Runtime interaction changes the API resource, not
 the Blender source or GLB metadata.
 
-`examples/assets/tools/make_constraint_scenes.py` reproducibly authors the
-eight committed constraint `.blend` files. Export each through the same shared
-exporter; no scene-specific export path exists.
+`examples/assets/tools/make_constraint_scenes.py` reproducibly authors seven of
+the committed constraint `.blend` files. `ConstraintHinge.blend` is maintained
+as an artist-authored source: its panel and single visible axial cylinder are
+merged into the active 12-tooth gear. Both active gears hinge against the same
+passive Ground body, with each constraint frame's Z axis copied from its gear's
+local Z axis. Tooth contact drives the 24-tooth gear in the opposite direction
+at a 2:1 ratio. The 3.05 m center distance, half-tooth starting phase, 0.008 m
+per-gear collision search margins, 64-iteration hinges, and eight gallery
+substeps let the solver retain closing tooth flanks at its small rest offset
+throughout a full mesh cycle. Both gears use `0.08`
+tooth friction and zero restitution so they roll without binding or rebounding;
+the 24-tooth follower uses mass `1.0` and angular damping `0.01` so it follows
+through freely instead of pushing the driver back. Export every source through
+the same shared exporter; no scene-specific export path exists.
 
 ## Validate the result
 

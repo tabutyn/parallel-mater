@@ -125,8 +125,8 @@ class ExportSceneTests(unittest.TestCase):
     def test_rigid_constraint_settings(self):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
-            "ConstraintPoint": ("point", 1),
-            "ConstraintHinge": ("hinge", 1),
+            "ConstraintPoint": ("point", 2),
+            "ConstraintHinge": ("hinge", 2),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
             "ConstraintGeneric": ("generic", 1),
@@ -148,12 +148,61 @@ class ExportSceneTests(unittest.TestCase):
                                     for item in constraints))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
-                if kind in ("fixed", "point"):
+                if kind == "fixed":
                     self.assertFalse(constraints[0]["pm_enabled"])
+                if kind == "point":
+                    self.assertTrue(all(item["pm_enabled"]
+                                        for item in constraints))
+                    self.assertEqual({item["pm_body_a"] for item in constraints},
+                                     {"PointPost"})
+                    self.assertEqual({item["pm_body_b"] for item in constraints},
+                                     {"PointSphereA", "PointSphereB"})
                 if kind == "hinge":
+                    self.assertEqual(
+                        {(item["pm_body_a"], item["pm_body_b"])
+                         for item in constraints},
+                        {("Ground", "Gear"),
+                         ("Ground", "Gear.001")})
+                    self.assertTrue(all(item["pm_solver_iterations"] == 64
+                                        for item in constraints))
+                    for joint_name, gear_name in (
+                            ("SmallGearHinge", "Gear"),
+                            ("LargeGearHinge", "Gear.001")):
+                        joint = bpy.context.scene.objects[joint_name]
+                        gear = bpy.context.scene.objects[gear_name]
+                        joint_z = joint.matrix_world.to_3x3().normalized().col[2]
+                        gear_z = gear.matrix_world.to_3x3().normalized().col[2]
+                        self.assertAlmostEqual(joint_z.dot(gear_z), 1.0,
+                                               places=6)
+                    self.assertEqual(
+                        {node["extras"]["pm_source_name"]
+                         for node in document["nodes"]
+                         if node.get("extras", {}).get("pm_system") ==
+                         "rigid_body"},
+                        {"Ground", "HingeSphere", "Gear", "Gear.001"})
+                    bodies = {
+                        node["extras"]["pm_source_name"]: node["extras"]
+                        for node in document["nodes"]
+                        if node.get("extras", {}).get("pm_system") ==
+                        "rigid_body"
+                    }
+                    self.assertAlmostEqual(bodies["Gear"]["pm_friction"],
+                                           0.08, places=5)
                     self.assertAlmostEqual(
-                        constraints[0]["pm_limit_ang_z_upper"],
-                        3.141592653589793 / 4.0, places=5)
+                        bodies["Gear"]["pm_restitution"], 0.0, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear"]["pm_angular_damping"], 0.03,
+                        places=5)
+                    self.assertAlmostEqual(bodies["Gear.001"]["pm_mass"],
+                                           1.0, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_friction"], 0.08, places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_restitution"], 0.0,
+                        places=5)
+                    self.assertAlmostEqual(
+                        bodies["Gear.001"]["pm_angular_damping"], 0.01,
+                        places=5)
                 if kind in ("slider", "piston"):
                     self.assertEqual(constraints[0]["pm_limit_lin_x_lower"], -1.0)
                     self.assertEqual(constraints[0]["pm_limit_lin_x_upper"], 1.0)
@@ -163,6 +212,53 @@ class ExportSceneTests(unittest.TestCase):
                 if kind == "motor":
                     self.assertTrue(all(item["pm_use_motor_ang"]
                                         for item in constraints))
+
+    def test_hinge_gears_clear_through_tooth_cycle(self):
+        from mathutils import Quaternion, Vector
+        from mathutils.bvhtree import BVHTree
+
+        bpy.ops.wm.open_mainfile(
+            filepath=str(ASSETS / "ConstraintHinge.blend"))
+        small = bpy.context.scene.objects["Gear"]
+        large = bpy.context.scene.objects["Gear.001"]
+        small_base = small.rotation_euler.to_quaternion()
+        large_base = large.rotation_quaternion.copy()
+
+        def geometry(obj):
+            evaluated = obj.evaluated_get(
+                bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            vertices = [evaluated.matrix_world @ vertex.co
+                        for vertex in mesh.vertices]
+            polygons = [tuple(polygon.vertices)
+                        for polygon in mesh.polygons]
+            evaluated.to_mesh_clear()
+            return vertices, BVHTree.FromPolygons(
+                vertices, polygons, all_triangles=False)
+
+        maximum_clearance = 0.0
+        for half_degree in range(61):
+            angle = half_degree * 0.5
+            small.rotation_mode = "QUATERNION"
+            small.rotation_quaternion = small_base @ Quaternion(
+                Vector((0.0, 0.0, 1.0)), angle * 3.141592653589793 / 180.0)
+            large.rotation_quaternion = large_base @ Quaternion(
+                Vector((0.0, 0.0, 1.0)),
+                -angle * 0.5 * 3.141592653589793 / 180.0)
+            bpy.context.view_layer.update()
+            small_vertices, small_tree = geometry(small)
+            large_vertices, large_tree = geometry(large)
+            self.assertEqual(small_tree.overlap(large_tree), [])
+            clearance = min(
+                min(small_tree.find_nearest(point)[3]
+                    for point in large_vertices),
+                min(large_tree.find_nearest(point)[3]
+                    for point in small_vertices))
+            maximum_clearance = max(maximum_clearance, clearance)
+
+        combined_margin = (small.rigid_body.collision_margin +
+                           large.rigid_body.collision_margin)
+        self.assertLess(maximum_clearance, combined_margin * 1.10)
 
     def test_cloth_without_rigid_bodies(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))

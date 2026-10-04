@@ -34,8 +34,10 @@ Headless physics builds remain free of OpenGL and OptiX.
    meshes collide inside a concave bowl.
 2. **Rigid constraints** — eight Blender-authored scenes exercise Fixed,
    Point, Hinge, Slider, Piston, Generic, Generic Spring, and Motor resources.
-   Fixed and Point attach/release with `Space`; the four-wheel Motor car uses
-   arrow-key tank controls. The other five receive an authored sphere impact.
+   Fixed attaches/releases with `Space`. Point starts with two spheres orbiting
+   a shared anchor; `Space` releases or reattaches both. The four-wheel Motor car
+   uses arrow-key tank controls. Hinge drives a 12:24 tooth gear pair through a
+   sphere-struck panel; the other four receive an authored sphere impact.
 3. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
    into a larger static receiver.
 4. **Fluid flow** — Blender Inflow emits repelling particles over a passive
@@ -141,6 +143,9 @@ Constraint scenes are also selectable headlessly with
 `--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
 trigger the toggle after N frames with `--constraint-action-after-frames N`
 or drive the car with `--motor-forward`.
+Arrow keys tilt gravity in every Constraint scene except Motor. Motor keeps
+arrow-key tank drive controls; Fixed and Point keep their `Space` toggles. Point
+starts enabled with two spheres orbiting its shared authored anchor.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
