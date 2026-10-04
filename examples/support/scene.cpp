@@ -120,6 +120,11 @@ class FlatJson {
     return finite(value.x) && finite(value.y) && finite(value.z);
 }
 
+[[nodiscard]] bool finite(Quaternion value) {
+    return finite(value.x) && finite(value.y) && finite(value.z) &&
+           finite(value.w);
+}
+
 [[nodiscard]] Vec3 normalize(Vec3 value) {
     return math::normalize_or(value, {0.0F, 1.0F, 0.0F});
 }
@@ -707,6 +712,49 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             error = node_name + ": duplicate collision proxy name";
             return false;
         }
+    }
+
+    std::unordered_set<std::string> hit_box_names;
+    for (cgltf_size node_index = 0; node_index < data->nodes_count;
+         ++node_index) {
+        const cgltf_node &node = data->nodes[node_index];
+        if (node.extras.data == nullptr) continue;
+        const FlatJson extras(node.extras.data);
+        if (extras.string("pm_system").value_or("") != "hit_box") continue;
+        HitBoxDefinition definition{};
+        definition.name = extras.string("pm_name").value_or(
+            node.name != nullptr ? node.name
+                                 : "hit_box_" + std::to_string(node_index));
+        if (extras.number("pm_schema").value_or(0.0) != 2.0 ||
+            node.parent != nullptr || node.has_matrix) {
+            error = definition.name +
+                ": hit box needs schema 2 and a scene-root TRS node";
+            return false;
+        }
+        const RigidBodyState state = node_state(node);
+        definition.box.center = state.position;
+        definition.box.orientation = state.orientation;
+        definition.box.half_extents = {
+            static_cast<float>(
+                extras.number("pm_half_extent_x").value_or(0.0)),
+            static_cast<float>(
+                extras.number("pm_half_extent_y").value_or(0.0)),
+            static_cast<float>(
+                extras.number("pm_half_extent_z").value_or(0.0))};
+        if (!finite(definition.box.center) ||
+            !finite(definition.box.orientation) ||
+            !finite(definition.box.half_extents) ||
+            definition.box.half_extents.x <= 0.0F ||
+            definition.box.half_extents.y <= 0.0F ||
+            definition.box.half_extents.z <= 0.0F) {
+            error = definition.name + ": hit box transform is invalid";
+            return false;
+        }
+        if (!hit_box_names.insert(definition.name).second) {
+            error = definition.name + ": duplicate hit box name";
+            return false;
+        }
+        output.hit_boxes.push_back(std::move(definition));
     }
 
     std::unordered_set<std::string> used_collision_proxies;
@@ -1651,7 +1699,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
     if (output.rigid_bodies.empty() && output.cloths.empty() &&
         output.soft_bodies.empty() && output.ropes.empty() &&
         output.particle_sources.empty() && output.destroy_planes.empty() &&
-        output.initial_particles.empty() && !output.has_smoke) {
+        output.initial_particles.empty() && output.hit_boxes.empty() &&
+        !output.has_smoke) {
         error = "GLB contains no ParallelMater physics objects";
         return false;
     }

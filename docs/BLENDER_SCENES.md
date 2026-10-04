@@ -33,6 +33,11 @@ sphere, box, capsule, or plane collider types.
    splits each copy into its own rigid node with a shared triangle mesh. It
    rejects arrays with overlapping or non-identical copies rather than
    silently simulating them as one compound body.
+8. To author a non-colliding trigger volume, use a scene-root mesh with no
+   rigid body and set its Boolean custom property `pm_hit_box = true`. The
+   evaluated local bounds, object transform, and name become one oriented
+   `HitBox`; the source mesh is not rendered or added as collision geometry.
+   `pm_load_box = true` is accepted as a compatibility alias.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -182,10 +187,11 @@ Ambiguous instanced Hook targets and unsupported curve modifiers are rejected.
 ## One Blender–ParallelMater export interface
 
 `tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid
-bodies, rigid-body constraints, collision proxies, Arrays, soft bodies, cloth/pins/fracture, liquid
-Inflow/Outflow/Geometry, and paint metadata. New physics systems extend this
-script and the versioned scene contract, not a per-example exporter. It has no
-gallery scene names or scene-specific physics settings.
+bodies, rigid-body constraints, collision proxies, Arrays, hit boxes, soft
+bodies, cloth/pins/fracture, liquid Inflow/Outflow/Geometry, and paint metadata.
+New physics systems extend this script and the versioned scene contract, not a
+per-example exporter. It has no gallery scene names or scene-specific physics
+settings.
 
 In Blender 4.5+, install that one `.py` file as an add-on, or open it in the
 Scripting workspace and run it once. Use **File → Export → ParallelMater Scene
@@ -238,6 +244,11 @@ The generated metadata is:
 | `pm_smoke_collider` | Optional Boolean; gallery additionally registers smoke/rigid coupling for a static or kinematic mesh (dynamic bodies are coupled automatically) |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
+
+Hit boxes export as empty `pm_system = "hit_box"` nodes with `pm_name` and
+`pm_half_extent_x/y/z`. Their scene-root translation and rotation define the
+world-space trigger frame. They consume no `World` capacity until an
+application polls their `HitBox` value.
 
 When a proxy is selected, the exporter adds a non-rendered
 `pm_system = "collision_mesh"` glTF node and references it from the rigid-body
@@ -336,6 +347,12 @@ bowl remains its own collision mesh; the three detailed dynamic objects carry
 authored decimated proxies. Regression checks cover scale baking,
 triangulation, proxy selection, kinematic targets, tilted gravity, toppling,
 and containment.
+
+The gallery's Rigid Body entry instead loads `RigidBody.blend`. Its two ACTIVE
+brick sources each use stacked Array modifiers; export produces 48 independent
+bodies per source while reusing one mesh per layer. `LoadBox` authors the
+non-rendered goal volume through the legacy `pm_load_box` marker, exercising
+the same canonical `hit_box` GLB schema and public query API.
 
 ## Collision behavior
 

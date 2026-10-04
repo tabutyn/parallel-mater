@@ -126,13 +126,12 @@ slices except density/heat, which draws occupied cells throughout the volume.
 The legend reports the per-frame normalization maximum. These visualizers read
 `SmokeDeviceView`; no rendering state enters the physics solver.
 
-The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
-instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
-Suzanne through `World`, and ray traces their authored render triangles. The
-three detailed dynamic meshes use separate Blender-authored collision proxies;
-the bowl retains its detailed collision surface. Arrow input moves the Cube
-and tilts gravity for the dynamic bodies. C++ does not restate that scene's
-body list or transforms.
+The Rigid Body entry loads `examples/assets/RigidBody.glb`, instantiates its
+passive ground, dynamic sphere, and 96 independently simulated Array bricks
+through `World`, and ray traces their shared authored meshes. Arrow input tilts
+gravity relative to the current camera. Its non-rendered `LoadBox` is imported
+as an oriented hit-box query volume; C++ does not restate the body list,
+transforms, or trigger bounds.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, the eight
 Constraint scenes, DUMP, Fluid,

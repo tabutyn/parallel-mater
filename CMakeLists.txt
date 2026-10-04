@@ -255,7 +255,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_definitions(
         parallel-mater-gallery
         PRIVATE
-            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
+            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
             PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
             PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
@@ -319,6 +319,12 @@ if(BUILD_TESTING)
         parallel-mater-rigid-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-rigid-tests COMMAND parallel-mater-rigid-tests)
     set_tests_properties(parallel-mater-rigid-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    add_executable(parallel-mater-hit-box-tests tests/hit_box_tests.cpp)
+    target_link_libraries(
+        parallel-mater-hit-box-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-hit-box-tests COMMAND parallel-mater-hit-box-tests)
+    set_tests_properties(parallel-mater-hit-box-tests PROPERTIES SKIP_RETURN_CODE 77)
 
     add_executable(parallel-mater-fluid-tests tests/fluid_tests.cpp)
     target_link_libraries(
@@ -387,6 +393,7 @@ if(BUILD_TESTING)
         target_compile_definitions(
             parallel-mater-gallery-scene-tests
             PRIVATE
+                PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
                 PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb")
         target_compile_definitions(
             parallel-mater-gallery-scene-tests

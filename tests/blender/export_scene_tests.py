@@ -74,7 +74,7 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(systems(document), expected)
         for node in document["nodes"]:
             self.assertEqual(node["extras"]["pm_schema"], exporter.SCHEMA_VERSION)
-        for mesh in document["meshes"]:
+        for mesh in document.get("meshes", []):
             for primitive in mesh["primitives"]:
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
         if options.loader:
@@ -86,12 +86,33 @@ class ExportSceneTests(unittest.TestCase):
                             str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
-                            str(expected["soft_body"]), str(expected["rope"])],
+                            str(expected["soft_body"]), str(expected["rope"]),
+                            str(expected["hit_box"])],
                            check=True, timeout=60)
         return document
 
+    def test_canonical_hit_box_preserves_oriented_nonuniform_bounds(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.mesh.primitive_cube_add(
+            location=(1.0, 2.0, 3.0), rotation=(0.2, -0.3, 0.4))
+        hit_box = bpy.context.object
+        hit_box.name = "GoalVolume"
+        hit_box.scale = (1.0, 2.0, 3.0)
+        hit_box["pm_hit_box"] = True
+        bpy.context.view_layer.update()
+
+        document = self.check_export(Counter(hit_box=1))
+        node = next(node for node in document["nodes"]
+                    if node.get("extras", {}).get("pm_system") == "hit_box")
+        extras = node["extras"]
+        self.assertEqual(extras["pm_name"], "GoalVolume")
+        self.assertAlmostEqual(extras["pm_half_extent_x"], 1.0, places=5)
+        self.assertAlmostEqual(extras["pm_half_extent_y"], 3.0, places=5)
+        self.assertAlmostEqual(extras["pm_half_extent_z"], 2.0, places=5)
+        self.assertIn("rotation", node)
+
     def test_all_authored_scenes_share_exporter(self):
-        for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
+        for name in ("PassiveActive", "RigidBody", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
                      "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
@@ -106,6 +127,22 @@ class ExportSceneTests(unittest.TestCase):
                 expected = systems(read_glb(source.with_suffix(".glb")))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_rigid_body_array_wall_and_hit_box(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RigidBody.blend"))
+        document = self.check_export(Counter(rigid_body=98, hit_box=1))
+        bodies = [node["extras"] for node in document["nodes"]
+                  if node.get("extras", {}).get("pm_system") == "rigid_body"]
+        self.assertEqual(Counter(body["pm_source_name"] for body in bodies),
+                         Counter({"Ground": 1, "Icosphere": 1,
+                                  "Layer1": 48, "Layer2": 48}))
+        self.assertEqual(len({body["pm_name"] for body in bodies}), 98)
+        hit_box = next(node["extras"] for node in document["nodes"]
+                       if node.get("extras", {}).get("pm_system") == "hit_box")
+        self.assertEqual(hit_box["pm_name"], "LoadBox")
+        for axis in "xyz":
+            self.assertAlmostEqual(hit_box[f"pm_half_extent_{axis}"],
+                                   4.398349285125732, places=5)
 
     def test_smoke_rope_active_panel_attachments(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeRope.blend"))

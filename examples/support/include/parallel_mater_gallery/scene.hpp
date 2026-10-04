@@ -108,6 +108,11 @@ struct RopeDefinition {
     std::uint32_t mesh_index{};
 };
 
+struct HitBoxDefinition {
+    std::string name{};
+    HitBox box{};
+};
+
 // Presentation-only tube construction, shared by initial load and live drawing.
 void update_rope_render_mesh(const std::vector<Vec3> &nodes, float radius,
                              TriangleMesh &mesh);
@@ -120,6 +125,7 @@ struct SceneDefinition {
     std::vector<ClothDefinition> cloths{};
     std::vector<SoftBodyDefinition> soft_bodies{};
     std::vector<RopeDefinition> ropes{};
+    std::vector<HitBoxDefinition> hit_boxes{};
     FluidOptions fluid_options{};
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.

@@ -26,6 +26,8 @@ static_assert(std::is_trivially_copyable_v<ParticleDestroyPlaneId>);
 static_assert(std::is_trivially_copyable_v<FluidParticle>);
 static_assert(std::is_trivially_copyable_v<ParticlePlane>);
 static_assert(std::is_trivially_copyable_v<RigidBodyState>);
+static_assert(std::is_trivially_copyable_v<HitBox>);
+static_assert(std::is_trivially_copyable_v<HitBoxParticle>);
 static_assert(std::is_trivially_copyable_v<ContactEvent>);
 static_assert(std::is_trivially_copyable_v<RigidContactEvent>);
 static_assert(std::is_trivially_copyable_v<PhysicsDebugOptions>);

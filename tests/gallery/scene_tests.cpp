@@ -172,6 +172,39 @@ int main() {
           pegs_scene.fluid_options.normal_damping > 0.0F,
           "authored Geometry flow carries scale-aware generic fluid settings");
 
+    SceneDefinition rigid_body_scene;
+    std::string rigid_body_error;
+    check(load_glb_scene(PARALLEL_MATER_RIGID_BODY_SCENE_PATH,
+                         rigid_body_scene, rigid_body_error),
+          rigid_body_error.empty() ? "load RigidBody GLB scene"
+                                   : rigid_body_error.c_str());
+    std::size_t layer_one = 0U, layer_two = 0U;
+    std::set<std::array<int, 3>> brick_centers;
+    for (const RigidBodyDefinition &body : rigid_body_scene.rigid_bodies) {
+        if (body.source_name != "Layer1" && body.source_name != "Layer2")
+            continue;
+        layer_one += body.source_name == "Layer1";
+        layer_two += body.source_name == "Layer2";
+        const Vec3 position = body.options.initial_state.position;
+        brick_centers.insert({
+            static_cast<int>(std::lround(position.x * 1'000.0F)),
+            static_cast<int>(std::lround(position.y * 1'000.0F)),
+            static_cast<int>(std::lround(position.z * 1'000.0F))});
+    }
+    check(rigid_body_scene.rigid_bodies.size() == 98U &&
+              layer_one == 48U && layer_two == 48U &&
+              brick_centers.size() == 96U &&
+              rigid_body_scene.meshes.size() == 4U,
+          "RigidBody arrays export 96 independent shared-mesh bricks");
+    check(rigid_body_scene.hit_boxes.size() == 1U &&
+              rigid_body_scene.hit_boxes[0].name == "LoadBox" &&
+              std::fabs(rigid_body_scene.hit_boxes[0].box.center.z + 16.0F) <
+                  1.0e-4F &&
+              std::fabs(
+                  rigid_body_scene.hit_boxes[0].box.half_extents.x -
+                  4.3983493F) < 1.0e-4F,
+          "RigidBody loads its authored LoadBox trigger volume");
+
     SceneDefinition scene;
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH, scene, error),

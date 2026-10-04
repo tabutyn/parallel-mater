@@ -85,6 +85,34 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Hit-box queries
+
+`World::query_hit_box` synchronously polls the latest completed state using a
+non-colliding oriented `HitBox`. A rigid body is returned when its collision
+triangles touch or enter the box; this is an exact triangle/box test rather
+than a center or broad-phase-bounds check. A fluid particle is returned when
+its center is inside the box, including its boundary.
+
+```cpp
+HitBoxResult hits;
+status = world.query_hit_box(
+    {.center = {0.0F, 1.0F, -8.0F},
+     .half_extents = {2.0F, 1.0F, 2.0F}},
+    hits);
+if (!status) return report(status);
+
+const bool reached_goal =
+    std::find(hits.rigid_bodies.begin(), hits.rigid_bodies.end(), object) !=
+    hits.rigid_bodies.end();
+```
+
+`HitBoxResult::rigid_bodies` contains generation-checked handles.
+`HitBoxResult::particles` pairs each `FluidId` with its stable particle ID, so
+clients can preserve coloring or gameplay state even when the solver reorders
+particle storage. Both arrays have deterministic ordering. The query covers
+all live rigid bodies and fluids; callers filter for the target handle or
+fluid. Invalid boxes leave the previous output unchanged.
+
 ## Rigid constraints
 
 `World::add_rigid_constraint` connects two existing rigid bodies through
