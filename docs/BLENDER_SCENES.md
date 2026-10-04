@@ -268,12 +268,11 @@ converts the world frame to body-local frames, and creates the public API
 resource after both bodies. Runtime interaction changes the API resource, not
 the Blender source or GLB metadata.
 
-`examples/assets/tools/make_constraint_scenes.py` reproducibly authors six of
-the committed constraint `.blend` files. `ConstraintFixed.blend` and
-`ConstraintHinge.blend` are maintained as artist-authored sources. The Fixed
-scene authors one enabled joint that seeds a runtime cluster; the gallery adds
-fixed constraints when collision results report a loose sphere touching the
-large collector directly. Attached small spheres do not collect other spheres.
+The committed constraint `.blend` files are maintained as artist-authored
+sources. The Fixed scene authors one enabled joint that seeds a runtime
+cluster; the gallery adds fixed constraints when collision results report a
+loose sphere touching the large collector directly. Attached small spheres do
+not collect other spheres.
 `LargeCollision` is an explicit 5,120-triangle spherical collision proxy for
 the collector, centered on its origin with radius matching the evaluated
 render mesh's outer radius. Its maximum face sag is below 2 mm; the original
