@@ -165,9 +165,10 @@ Json aggregate_json(const Aggregate &value) {
 
 Json samples_json(const std::vector<Vec3> &positions,
                   const std::vector<Vec3> &velocities,
+                  bool complete,
                   const std::vector<std::uint32_t> *stable_ids = nullptr) {
     Json result = Json::array();
-    const std::size_t limit = positions.size() <= complete_state_limit
+    const std::size_t limit = complete
         ? positions.size() : std::min(positions.size(), large_sample_limit);
     std::vector<std::size_t> order(positions.size());
     for (std::size_t index = 0U; index < order.size(); ++index) order[index] = index;
@@ -512,29 +513,29 @@ Json constraint_resource(Runtime &runtime, std::size_t index) {
 Json particle_resource(const std::string &id, std::string_view type,
                        const std::vector<Vec3> &positions,
                        const std::vector<Vec3> &velocities,
+                       bool complete,
                        const std::vector<std::uint32_t> *stable_ids = nullptr,
                        double element_mass = 1.0) {
     Json result = Json::object();
     const Aggregate summary = aggregate(positions, velocities, element_mass);
     result["aggregate"] = aggregate_json(summary);
-    result["complete"] = positions.size() <= complete_state_limit;
+    result["complete"] = complete;
     result["count"] = static_cast<std::uint64_t>(positions.size());
     result["id"] = id;
     result["minimum_clearance"] = static_cast<double>(summary.minimum.y);
-    result["samples"] = samples_json(positions, velocities, stable_ids);
+    result["samples"] = samples_json(positions, velocities, complete, stable_ids);
     if (stable_ids != nullptr) {
         std::vector<std::uint32_t> ordered = *stable_ids;
         std::sort(ordered.begin(), ordered.end());
         result["stable_ids"] = unsigned_array_json(
-            ordered, positions.size() <= complete_state_limit
-                         ? ordered.size() : large_sample_limit);
+            ordered, complete ? ordered.size() : large_sample_limit);
     }
     result["tolerance_class"] = "deformable";
     result["type"] = std::string(type);
     return result;
 }
 
-Json fluid_resource(Runtime &runtime) {
+Json fluid_resource(Runtime &runtime, bool complete) {
     FluidDeviceView view{};
     require(runtime.world.fluid_view(runtime.instance.fluid, view),
             "read conformance fluid view");
@@ -546,7 +547,7 @@ Json fluid_resource(Runtime &runtime) {
         ? options.rest_particle_volume
         : std::pow(static_cast<double>(options.particle_radius) * 2.0, 3.0);
     Json result = particle_resource("fluid/0", "fluid", positions, velocities,
-                                    &ids, options.rest_density * volume);
+                                    complete, &ids, options.rest_density * volume);
     auto foam = download(view.foam);
     double foam_sum = 0.0;
     double foam_maximum = 0.0;
@@ -561,7 +562,7 @@ Json fluid_resource(Runtime &runtime) {
     return result;
 }
 
-Json smoke_resource(Runtime &runtime) {
+Json smoke_resource(Runtime &runtime, bool complete) {
     SmokeDeviceView view{};
     require(runtime.world.smoke_view(runtime.instance.smoke, view),
             "read conformance smoke view");
@@ -569,7 +570,8 @@ Json smoke_resource(Runtime &runtime) {
     auto velocities = download(view.velocities);
     if (positions.size() > view.particle_count) positions.resize(view.particle_count);
     if (velocities.size() > view.particle_count) velocities.resize(view.particle_count);
-    Json result = particle_resource("smoke/0", "smoke", positions, velocities);
+    Json result = particle_resource("smoke/0", "smoke", positions, velocities,
+                                    complete);
     Json grid = Json::object();
     grid["cell_count"] = static_cast<std::uint64_t>(view.grid_divergence.size);
     grid["pressure_relative_residual"] =
@@ -592,7 +594,7 @@ Json smoke_resource(Runtime &runtime) {
     return result;
 }
 
-Json cloth_resource(Runtime &runtime, std::size_t index) {
+Json cloth_resource(Runtime &runtime, std::size_t index, bool complete) {
     ClothDeviceView view{};
     require(runtime.world.cloth_view(runtime.instance.cloths[index], view),
             "read conformance cloth view");
@@ -600,7 +602,7 @@ Json cloth_resource(Runtime &runtime, std::size_t index) {
     auto velocities = download(view.velocities);
     Json result = particle_resource(indexed_name("cloth",
         runtime.scene.cloths[index].name, index), "cloth", positions, velocities,
-        nullptr, runtime.scene.cloths[index].vertex_mass);
+        complete, nullptr, runtime.scene.cloths[index].vertex_mass);
     const auto indices = download(view.triangle_indices);
     const auto sources = download(view.vertex_source_indices);
     const auto active = download(view.active_bonds);
@@ -626,7 +628,7 @@ Json cloth_resource(Runtime &runtime, std::size_t index) {
     topology["bond_count"] = static_cast<std::uint64_t>(active.size());
     topology["triangle_count"] = static_cast<std::uint64_t>(indices.size() / 3U);
     topology["vertex_count"] = static_cast<std::uint64_t>(view.vertex_count);
-    if (positions.size() <= complete_state_limit) {
+    if (complete) {
         Json bond_json = Json::array();
         for (const ClothBond bond : bonds) {
             Json item = Json::object();
@@ -645,7 +647,7 @@ Json cloth_resource(Runtime &runtime, std::size_t index) {
     return result;
 }
 
-Json soft_body_resource(Runtime &runtime, std::size_t index) {
+Json soft_body_resource(Runtime &runtime, std::size_t index, bool complete) {
     SoftBodyDeviceView view{};
     require(runtime.world.soft_body_view(runtime.instance.soft_bodies[index], view),
             "read conformance soft-body view");
@@ -653,7 +655,8 @@ Json soft_body_resource(Runtime &runtime, std::size_t index) {
     auto velocities = download(view.velocities);
     Json result = particle_resource(indexed_name("soft_body",
         runtime.scene.soft_bodies[index].name, index), "soft_body",
-        positions, velocities, nullptr, runtime.scene.soft_bodies[index].node_mass);
+        positions, velocities, complete, nullptr,
+        runtime.scene.soft_bodies[index].node_mass);
     const auto bonds = download(view.bonds);
     const auto surface_indices = download(view.surface_triangle_indices);
     Json topology = Json::object();
@@ -675,7 +678,7 @@ Json soft_body_resource(Runtime &runtime, std::size_t index) {
             std::abs(std::sqrt(dx*dx+dy*dy+dz*dz) / bond.rest_length - 1.0));
     }
     result["maximum_strain"] = maximum_strain;
-    if (positions.size() <= complete_state_limit) {
+    if (complete) {
         Json bond_json = Json::array();
         for (const SoftBodyBond bond : bonds) {
             Json item = Json::object();
@@ -691,7 +694,7 @@ Json soft_body_resource(Runtime &runtime, std::size_t index) {
     return result;
 }
 
-Json rope_resource(Runtime &runtime, std::size_t index) {
+Json rope_resource(Runtime &runtime, std::size_t index, bool complete) {
     RopeDeviceView view{};
     require(runtime.world.rope_view(runtime.instance.ropes[index], view),
             "read conformance rope view");
@@ -701,7 +704,7 @@ Json rope_resource(Runtime &runtime, std::size_t index) {
         runtime.scene.ropes[index].options.mass / positions.size();
     Json result = particle_resource(indexed_name("rope",
         runtime.scene.ropes[index].name, index), "rope", positions, velocities,
-        nullptr, node_mass);
+        complete, nullptr, node_mass);
     const auto rest = download(view.rest_lengths);
     double maximum_strain = 0.0;
     for (std::size_t edge = 0U; edge < rest.size() && edge + 1U < positions.size();
@@ -720,7 +723,7 @@ Json rope_resource(Runtime &runtime, std::size_t index) {
     Json topology = Json::object();
     topology["edge_count"] = static_cast<std::uint64_t>(rest.size());
     topology["node_count"] = static_cast<std::uint64_t>(positions.size());
-    if (positions.size() <= complete_state_limit) {
+    if (complete) {
         Json rest_json = Json::array();
         for (const float value : rest)
             rest_json.push_back(static_cast<double>(value));
@@ -842,27 +845,37 @@ Vec3 combined_momentum(Runtime &runtime) {
 
 Json checkpoint(Runtime &runtime, const CaseDefinition &definition,
                 std::uint32_t frame) {
+    WorldStatistics statistics{};
+    require(runtime.world.collect_statistics(statistics),
+            "collect conformance statistics");
+    const std::uint64_t element_count =
+        static_cast<std::uint64_t>(statistics.rigid_body_count) +
+        statistics.particle_count + statistics.smoke_particle_count +
+        statistics.cloth_vertex_count + statistics.soft_body_node_count +
+        statistics.rope_node_count;
+    const bool complete = element_count <= complete_state_limit;
     Json resources = Json::array();
     for (std::size_t index = 0U; index < runtime.bodies.size(); ++index)
         resources.push_back(rigid_resource(runtime, index,
             definition.tolerance_profile));
     for (std::size_t index = 0U; index < runtime.constraints.size(); ++index)
         resources.push_back(constraint_resource(runtime, index));
-    if (runtime.instance.has_fluid) resources.push_back(fluid_resource(runtime));
-    if (runtime.instance.has_smoke) resources.push_back(smoke_resource(runtime));
+    if (runtime.instance.has_fluid)
+        resources.push_back(fluid_resource(runtime, complete));
+    if (runtime.instance.has_smoke)
+        resources.push_back(smoke_resource(runtime, complete));
     for (std::size_t index = 0U; index < runtime.instance.cloths.size(); ++index)
-        resources.push_back(cloth_resource(runtime, index));
+        resources.push_back(cloth_resource(runtime, index, complete));
     for (std::size_t index = 0U; index < runtime.instance.soft_bodies.size(); ++index)
-        resources.push_back(soft_body_resource(runtime, index));
+        resources.push_back(soft_body_resource(runtime, index, complete));
     for (std::size_t index = 0U; index < runtime.instance.ropes.size(); ++index)
-        resources.push_back(rope_resource(runtime, index));
-    WorldStatistics statistics{};
-    require(runtime.world.collect_statistics(statistics),
-            "collect conformance statistics");
+        resources.push_back(rope_resource(runtime, index, complete));
     Json invariants = Json::object();
     invariants["cloth_count"] = static_cast<std::uint64_t>(statistics.cloth_count);
     invariants["constraint_count"] =
         static_cast<std::uint64_t>(statistics.rigid_constraint_count);
+    invariants["complete_state"] = complete;
+    invariants["element_count"] = element_count;
     invariants["combined_momentum"] = vector_json(combined_momentum(runtime));
     invariants["constraints_rebuilt"] = runtime.constraints_rebuilt;
     invariants["finite"] = true;
