@@ -144,7 +144,8 @@ Constraint scenes are also selectable headlessly with
 `--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
 trigger the toggle after N frames with `--constraint-action-after-frames N`
 or drive the car with `--motor-forward`.
-Arrow keys tilt gravity in every Constraint scene except Motor. Motor keeps
+Arrow keys tilt gravity relative to the current camera in every Constraint
+scene except Motor. Motor keeps
 arrow-key tank drive controls; Point keeps its `Space` toggle and starts
 enabled with four spheres orbiting its shared authored anchor. Fixed uses
 contact-driven collection instead.
