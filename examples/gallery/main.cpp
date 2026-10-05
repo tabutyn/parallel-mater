@@ -4,6 +4,7 @@
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/physics_debug.hpp>
+#include <parallel_mater_gallery/physics_frame_budget.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
@@ -28,10 +29,12 @@
 
 namespace {
 
+using parallel_mater::RigidBodyId;
 using parallel_mater::RigidBodyState;
 using parallel_mater::RigidConstraintOptions;
 using parallel_mater::RigidConstraintState;
 using parallel_mater::RigidConstraintType;
+using parallel_mater::MotionType;
 using parallel_mater::Quaternion;
 using parallel_mater::SoftBodyDeviceView;
 using parallel_mater::SoftBodyId;
@@ -192,6 +195,7 @@ struct GalleryRuntime {
     SceneInstance instance{};
     OptixRenderer renderer{};
     FixedContactCollector fixed_collector{};
+    std::vector<RigidBodyId> gravity_tilt_bodies{};
     std::size_t kinematic_index{std::numeric_limits<std::size_t>::max()};
     RigidBodyState kinematic_target{};
 };
@@ -389,9 +393,27 @@ struct FluidEscapeTrace {
 }
 
 [[nodiscard]] parallel_mater::Vec3 gravity_for(
-    DirectionalInput input, parallel_mater::gallery::Camera camera) {
-    return screen_space_gravity(camera, input.x, -input.z, k_gravity,
+    DirectionalInput input, float gravity_scale,
+    parallel_mater::gallery::Camera camera) {
+    return screen_space_gravity(camera, input.x, -input.z,
+                                k_gravity * gravity_scale,
                                 k_rigid_gravity_tilt_degrees);
+}
+
+[[nodiscard]] Status apply_gravity_tilt_overrides(
+    GalleryRuntime &runtime, Vec3 world_gravity) noexcept {
+    if (runtime.gravity_tilt_bodies.empty()) return {};
+    const Vec3 vertical_gravity{
+        0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
+    const Vec3 compensation{
+        vertical_gravity.x - world_gravity.x,
+        vertical_gravity.y - world_gravity.y,
+        vertical_gravity.z - world_gravity.z};
+    if (compensation.x == 0.0F && compensation.y == 0.0F &&
+        compensation.z == 0.0F) return {};
+    return runtime.world.apply_central_acceleration(
+        {runtime.gravity_tilt_bodies.data(),
+         runtime.gravity_tilt_bodies.size()}, compensation);
 }
 
 [[nodiscard]] parallel_mater::Vec3 collector_gravity_for(
@@ -771,6 +793,18 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     if (create_status)
         create_status = parallel_mater::gallery::instantiate_scene(
             next.scene, next.world, next.instance);
+    if (create_status) {
+        next.gravity_tilt_bodies.reserve(next.scene.rigid_bodies.size());
+        for (std::size_t index = 0U;
+             index < next.scene.rigid_bodies.size(); ++index) {
+            const auto &body = next.scene.rigid_bodies[index];
+            if (body.options.motion == MotionType::dynamic &&
+                !body.follows_gravity_tilt) {
+                next.gravity_tilt_bodies.push_back(
+                    next.instance.rigid_bodies[index]);
+            }
+        }
+    }
     if (create_status && context == GalleryContext::constraint_fixed) {
         create_status = next.fixed_collector.initialize(
             next.scene, next.instance);
@@ -779,6 +813,17 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         error = create_status.message != nullptr ? create_status.message
                                                  : "scene creation failed";
         return false;
+    }
+    if (context == GalleryContext::rigid_body) {
+        const auto dynamic_count = std::count_if(
+            next.scene.rigid_bodies.begin(), next.scene.rigid_bodies.end(),
+            [](const auto &body) {
+                return body.options.motion == MotionType::dynamic;
+            });
+        std::cout << "Rigid gravity tilt: "
+                  << dynamic_count - next.gravity_tilt_bodies.size()
+                  << " follow, " << next.gravity_tilt_bodies.size()
+                  << " keep vertical\n";
     }
     if (!OptixRenderer::create(next.scene, next.world, next.instance,
                                PARALLEL_MATER_OPTIX_PTX_PATH,
@@ -885,6 +930,15 @@ int main(int argc, char **argv) {
             const float magnitude = k_gravity * runtime.scene.gravity_scale;
             headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
                                     -magnitude * std::sin(angle)};
+        } else if (uses_rigid_gravity(
+                       gallery_entry(runtime.context).controls) &&
+                   !fixed_collection &&
+                   options.headless_cloth_tilt_degrees != 0U) {
+            const float angle = static_cast<float>(
+                options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
+            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            headless_step.gravity = {magnitude * std::sin(angle),
+                                     -magnitude * std::cos(angle), 0.0F};
         } else if (fixed_collection &&
                    options.headless_cloth_tilt_degrees != 0U) {
             const float angle = static_cast<float>(
@@ -978,6 +1032,11 @@ int main(int argc, char **argv) {
                              "apply loose fixed-scene gravity")) {
                     return 1;
                 }
+            }
+            if (!require(apply_gravity_tilt_overrides(
+                             runtime, frame_step.gravity),
+                         "preserve authored rigid gravity")) {
+                return 1;
             }
             const Status frame_status = runtime.world.step(frame_step);
             if (!frame_status) {
@@ -1370,9 +1429,11 @@ int main(int argc, char **argv) {
                 context_visible ? DirectionalInput{} : directional_input(window);
             const GalleryEntry &entry = gallery_entry(runtime.context);
             std::uint32_t physics_steps = 0U;
+            parallel_mater::gallery::PhysicsFrameBudget physics_budget(k_maximum_catch_up_steps);
             bool step_failed = false;
             while (physics_accumulator >= k_timestep &&
-                   physics_steps < k_maximum_catch_up_steps) {
+                   physics_budget.can_step()) {
+                const auto physics_started = FrameClock::now();
                 if (entry.controls == GalleryControlPolicy::tank_motor &&
                     !drive_motors(runtime, directional)) {
                     step_failed = true;
@@ -1434,7 +1495,8 @@ int main(int argc, char **argv) {
                     }
                 } else if (uses_rigid_gravity(entry.controls)) {
                     interactive_step.gravity = gravity_for(
-                        directional, input_state.camera.camera());
+                        directional, runtime.scene.gravity_scale,
+                        input_state.camera.camera());
                 } else if (entry.controls ==
                            GalleryControlPolicy::peg_gravity) {
                     const float right = directional.x + (!context_visible ?
@@ -1453,6 +1515,12 @@ int main(int argc, char **argv) {
                         peg_paint_gravity_tilt_degrees, k_timestep);
                     interactive_step.gravity = peg_gravity;
                 }
+                if (!require(apply_gravity_tilt_overrides(
+                                 runtime, interactive_step.gravity),
+                             "preserve authored rigid gravity")) {
+                    step_failed = true;
+                    break;
+                }
                 interactive_step.collect_kernel_timings = timing_visible;
                 if (!require(runtime.world.step(interactive_step),
                              "step gallery")) {
@@ -1470,9 +1538,11 @@ int main(int argc, char **argv) {
                 }
                 physics_accumulator -= k_timestep;
                 ++physics_steps;
+                physics_budget.record_step(std::chrono::duration<double>(
+                    FrameClock::now() - physics_started).count());
             }
             if (step_failed) break;
-            if (physics_steps == k_maximum_catch_up_steps &&
+            if (!physics_budget.can_step() &&
                 physics_accumulator >= k_timestep) {
                 physics_accumulator = std::fmod(
                     physics_accumulator, static_cast<double>(k_timestep));

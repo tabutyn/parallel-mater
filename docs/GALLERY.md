@@ -127,11 +127,14 @@ The legend reports the per-frame normalization maximum. These visualizers read
 `SmokeDeviceView`; no rendering state enters the physics solver.
 
 The Rigid Body entry loads `examples/assets/RigidBody.glb`, instantiates its
-passive ground, dynamic sphere, and 96 independently simulated Array bricks
+passive ground, dynamic sphere, and 384 independently simulated Array bricks
 through `World`, and ray traces their shared authored meshes. Arrow input tilts
-gravity relative to the current camera. Its non-rendered `LoadBox` is imported
-as an oriented hit-box query volume; C++ does not restate the body list,
-transforms, or trigger bounds.
+gravity relative to the current camera for the sphere. Both authored brick
+Arrays set `pm_gravity_tilt = false`, so they retain vertical gravity instead
+of toppling from the control field; they remain independent dynamic bodies and
+still respond to the sphere's contact impulses. Its non-rendered `LoadBox` is
+imported as an oriented hit-box query volume; C++ does not restate the body
+list, transforms, or trigger bounds.
 
 `Tab` opens an examples-only context selector ordered Rigid Body, the eight
 Constraint scenes, DUMP, Fluid,
@@ -208,6 +211,13 @@ arrows tilt it up to 45 degrees. `P` changes particle capacity and resets;
 `R` resets, `F` includes fluid/soft contact timing, and the shared water surface
 and foam renderer are unchanged. `V` exposes both water particles and internal
 soft springs; `B` shows the soft surface and `C` shows water reactions.
+
+Interactive playback uses elapsed-time accumulation, fixed 1/60-second physics
+steps, and interpolated rigid rendering. Catch-up permits at most four steps
+and estimates whether another step fits an 8 ms physics-work budget. A single
+slow step is allowed to finish; excess backlog is dropped instead of doing
+several equally slow steps before drawing. This protects input/render cadence
+under overload but cannot make an over-budget simulation run in real time.
 
 All gallery entries create `World` with opt-in rolling physics capture.
 Outside the smoke contexts, `Z` shows available contact and deformable-surface normals, `X` rigid inputs and

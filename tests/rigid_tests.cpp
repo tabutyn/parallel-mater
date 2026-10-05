@@ -329,11 +329,14 @@ void test_floor_contact_and_async_contract() {
               timings.rigid_pair_filter.launch_count == 4U &&
               timings.rigid_pair_compaction.launch_count == 4U &&
               timings.rigid_leaf_pair_generation.launch_count == 4U &&
-              timings.rigid_contact_evaluation.launch_count == 8U &&
-              timings.rigid_contact_generation.launch_count == 24U &&
+              // Capacity eight uses face preparation, leaf evaluation,
+              // candidate-order reduction, and solver initialization.
+              timings.rigid_contact_evaluation.launch_count == 16U &&
+              timings.rigid_contact_generation.launch_count == 32U &&
               // The small-world path fuses coloring and all solve passes;
-              // prepare, initialize, color, solve, and clamp launch once.
-              timings.rigid_contact_solve.launch_count == 4U * 5U &&
+              // Cache load/save, prepare, initialize, color, solve, and clamp
+              // each launch once per substep.
+              timings.rigid_contact_solve.launch_count == 4U * 7U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");

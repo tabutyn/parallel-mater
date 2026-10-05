@@ -245,6 +245,16 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_options(
         parallel-mater-gallery-renderer PRIVATE -Wall -Wextra -Wpedantic)
 
+    if(PARALLEL_MATER_BUILD_BENCHMARKS)
+        add_executable(parallel-mater-rigid-frame-benchmark benchmarks/rigid_frame.cpp)
+        target_link_libraries(parallel-mater-rigid-frame-benchmark
+                              PRIVATE parallel-mater-gallery-renderer)
+        target_compile_definitions(parallel-mater-rigid-frame-benchmark PRIVATE
+            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+        target_compile_options(parallel-mater-rigid-frame-benchmark
+                               PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     target_link_libraries(
         parallel-mater-gallery
@@ -411,6 +421,24 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-rigid-wall-tests
+                       tests/gallery/rigid_wall_tests.cpp)
+        target_link_libraries(parallel-mater-rigid-wall-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-rigid-wall-tests PRIVATE
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+        add_test(NAME parallel-mater-rigid-wall-tests
+                 COMMAND parallel-mater-rigid-wall-tests)
+        set_tests_properties(parallel-mater-rigid-wall-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
+        add_executable(parallel-mater-physics-frame-budget-tests
+                       tests/gallery/physics_frame_budget_tests.cpp)
+        target_include_directories(parallel-mater-physics-frame-budget-tests
+                                   PRIVATE examples/support/include)
+        add_test(NAME parallel-mater-physics-frame-budget-tests
+                 COMMAND parallel-mater-physics-frame-budget-tests)
 
         add_executable(parallel-mater-fixed-collector-tests
                        tests/gallery/fixed_collector_tests.cpp)
