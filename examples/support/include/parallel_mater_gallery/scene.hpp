@@ -36,6 +36,10 @@ struct RigidBodyDefinition {
     std::vector<std::uint32_t> collision_mesh_indices{};
     bool paintable{};
     bool smoke_collider{};
+    // Gallery steering may tilt world gravity while selected scenery retains
+    // authored vertical gravity. This does not make the body static: contacts
+    // and impulses still move it normally.
+    bool follows_gravity_tilt{true};
     std::uint32_t paint_resolution{512U};
     std::string source_name{};
 };
@@ -108,6 +112,11 @@ struct RopeDefinition {
     std::uint32_t mesh_index{};
 };
 
+struct HitBoxDefinition {
+    std::string name{};
+    HitBox box{};
+};
+
 // Presentation-only tube construction, shared by initial load and live drawing.
 void update_rope_render_mesh(const std::vector<Vec3> &nodes, float radius,
                              TriangleMesh &mesh);
@@ -120,6 +129,7 @@ struct SceneDefinition {
     std::vector<ClothDefinition> cloths{};
     std::vector<SoftBodyDefinition> soft_bodies{};
     std::vector<RopeDefinition> ropes{};
+    std::vector<HitBoxDefinition> hit_boxes{};
     FluidOptions fluid_options{};
     float gravity_scale{1.0F};
     // Authored Flow/Geometry volumes are sampled once during scene loading.

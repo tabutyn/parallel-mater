@@ -1,5 +1,145 @@
 # Physics performance
 
+## Expanded authored wall status (2026-10-05)
+
+The current `RigidBody.blend` and GLB contain 384 independent 1 kg bricks
+(192 from each Array source) plus the sphere and ground. Both Array sources
+export `pm_gravity_tilt = false`. Export and scene-loader regressions pass
+with the expanded counts, and the full Release build succeeds.
+
+The unchanged physical acceptance limits do **not** pass for this expanded
+wall: its ten-second vertical-gravity regression measures 0.126318 m maximum
+drop, 0.286006 m displacement, and 0.524741 rad rotation. At 386 bodies the
+scene uses the larger-world contact solver, outside the optimized 32–256-body
+stack path described below. Larger-stack support remains unresolved; the
+regression is retained and must pass before this change is ready to merge.
+
+The following audit, timing numbers, and prior passing wall replays concern
+the earlier 96-brick asset. They are not acceptance results for the current
+384-brick wall. CUDA golden reproduction also retains the six differences
+listed below; no goldens or numerical tolerances have been changed.
+
+## Rigid brick wall audit (RTX 3050 Ti Laptop GPU, 2026-10-04)
+
+The 96 independent bricks in `RigidBody.glb` exposed the cost of the new
+zero-gap, warm-started convex contact solver. The pre-optimization baseline
+spent 91.8% of GPU kernel time in the small-world contact solver (Nsight
+Systems), with a 44.25 ms physics median and 40.64 ms contact-solve median.
+This baseline already includes the wall-support correctness repair; it is
+not a comparison against the earlier collapsing-wall solver.
+
+Retained changes:
+
+- Pack body-disjoint contact colors into adjacent lanes. Ordinary convex
+  stacks with 32–256 bodies use deterministic first-fit colors to reduce
+  dependent batches; small, constrained, and coupled worlds retain their
+  previous coloring and contact response.
+- Prepare contact arms, inertia responses, effective masses, and material
+  terms once per substep. Keep each pair's states local while processing its
+  rows. Friction uses the same sliding-direction response expressed in its
+  two-dimensional tangent plane. Contact Jacobians stay fixed during the
+  substep's velocity solve; positional residuals still update every pass.
+  This prepared-response path has the same ordinary-stack restriction;
+  applying it globally caused out-of-tolerance numerical changes in analytic
+  and coupled cases and was rejected.
+- Run 64 passes when an ordinary-stack face patch has no matching cached
+  contact, then return to the normal 32-pass steady-state budget. This gives a
+  newly formed deep stack enough time to converge without doubling every
+  settled frame. The authored wall stays below 1.2 mm displacement and 0.01
+  radians of rotation for ten seconds; impact still moves a brick.
+- Generate eligible convex face patches before triangle evaluation, skipping
+  duplicate triangle work for handled pairs. Swept, curved, concave, and
+  overflow contacts retain their general path.
+- Publish prepared patches' accumulated support/friction impulses once after
+  solving, including warm-start impulses. Other cases retain their diagnostic
+  summation order. Gather capture samples on the GPU and copy them in a
+  batch, avoiding CPU migration of live rigid-state pages every frame.
+- Bound interactive catch-up by estimated work as well as step count: at most
+  four steps, with an 8 ms budget for extra physics work. A first due step
+  always runs; overload drops excess backlog, so this is a responsiveness
+  guard, not a claim that over-budget physics remains real-time.
+- Apply the Rigid Body scene's camera-relative tilt to its controllable sphere,
+  while one batched central-acceleration command keeps all 96 authored Array
+  bricks under vertical gravity. This changes only the gallery control field;
+  bricks remain dynamic and the contact solver still handles sphere impacts.
+
+The stable-wall profiled physics median is 9.28 ms, with 7.69 ms in contact
+solving and 1.20 ms in narrow-phase evaluation. Both before and after
+measurements had another interactive gallery process on the same GPU. These are useful
+audit observations, not isolated throughput or p99 acceptance measurements.
+These runs do not meet the 8 ms physics p99 / 16.7 ms complete-frame p99
+targets; isolated acceptance remains pending.
+No sleeping, welded bricks, lowered substeps, reduced contact passes, altered
+authored geometry, or relaxed regression tolerances produce these gains.
+
+Reproduce physics-only stage timings with
+`parallel-mater-rigid-scene-benchmark examples/assets/RigidBody.glb`.
+It settles 360 frames, warms 10, then measures 120 frames at 1/60 s with four
+substeps and kernel profiling enabled. For gallery-like frame measurements:
+
+```sh
+./build-gallery/parallel-mater-rigid-frame-benchmark examples/assets/RigidBody.glb --csv /tmp/wall-rest.csv
+./build-gallery/parallel-mater-rigid-frame-benchmark examples/assets/RigidBody.glb --impact --csv /tmp/wall-impact.csv
+./build-gallery/parallel-mater-rigid-frame-benchmark examples/assets/RigidBody.glb --tilt --csv /tmp/wall-tilt.csv
+```
+
+This second benchmark disables kernel profiling, enables the gallery's
+30-frame capture ring, and renders/readbacks at 960×720. It reports separate
+physics, render, and total median/p95/p99/worst times over 240 frames after
+120 settling and 10 warmup frames. Window upload/presentation and debug
+overlays are excluded. The impact workload must record an actual sphere–brick
+impulse; every measured rigid state must remain finite. Close other GPU
+applications before using either benchmark for acceptance.
+
+Observed full-frame results with that other gallery still running (milliseconds;
+diagnostic only, not an isolated acceptance pass):
+
+| Workload | Physics median | Render median | Total median | Total p95 | Total p99 | Worst |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rest | 10.91 | 0.98 | 11.94 | 12.29 | 24.92 | 25.97 |
+| Sphere impact | 12.22 | 0.93 | 13.16 | 14.58 | 26.16 | 27.83 |
+| 20° screen-space tilt | 11.72 | 0.93 | 12.69 | 19.16 | 24.50 | 28.81 |
+
+The sphere-impact check confirmed a nonzero sphere–brick contact impulse.
+All three runs retained finite rigid states. Raw local CSVs are
+`/tmp/pm-wall-stable-{rest,impact,tilt}.csv`; repeat the commands above to
+regenerate them. The 12 ms medians must not be presented as sustained 60 FPS:
+the observed tails exceed the frame budget, and presentation is excluded.
+
+After adding the authored vertical-gravity override for the 96 bricks, an
+isolated rerun of the corrected 20-degree ball-only tilt workload measured
+11.06 ms physics median / 12.19 ms p99 and 12.33 ms complete-frame median /
+13.49 ms p99, with a 13.55 ms worst frame. Its raw CSV is
+`/tmp/pm-wall-untilted-bricks.csv`. The complete-frame target passed in this
+run; the 8 ms physics p99 target did not.
+
+`parallel-mater-rigid-wall-tests` checks first-frame coplanar support, ten
+seconds of all-brick authored wall stability, a 30-degree control tilt that
+moves the sphere without rotating or translating the wall, floor clearance,
+energy, independent impact response, cache invalidation, and support-impulse
+diagnostics. `parallel-mater-physics-frame-budget-tests`
+checks catch-up behavior without CUDA. Golden results and conformance
+tolerances are never refreshed by these benchmarks.
+
+Full Release build and CTest: 101/102 passed. The sole failure is CUDA golden
+reproduction, with the same six case IDs already differing after the earlier
+contact-correctness repair: `compound-weld-lifecycle`, `constraint-breaking`,
+`constraint-generic-spring`, `constraint-generic`, `fluid-rigid`, and
+`rigid-direct`. These numerical/contact differences require explicit review;
+golden JSON and tolerances remain unchanged.
+After restricting the fast path, all 30 cases match the pre-performance,
+wall-correctness candidate using the existing comparator and tolerances.
+That comparison does not approve or replace the committed goldens: their
+six pre-existing failures still need review. The latest local comparison
+report is `/tmp/pm-wall-stable-vs-correctness.json`.
+All ten affected rigid, wall, hit-box, collector, joint, color-limit,
+fluid–rigid, capture, and frame-budget tests passed again on the final scoped
+build (`/tmp/pm-wall-performance-final-regressions.log`).
+Compute Sanitizer `memcheck` and `racecheck` also pass a one-snapshot wall
+replay (four substeps, warmup plus measured replay): zero memory errors and
+zero shared-memory hazards. This is a targeted kernel check, not exhaustive
+coverage of every scene or global-memory race.
+
 ## Dense soft-body and rope coupling (RTX 3050 Ti Laptop GPU, 2026-10-01)
 
 Three isolated Release runs of

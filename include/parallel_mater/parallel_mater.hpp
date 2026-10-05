@@ -816,6 +816,32 @@ struct RigidBodyState {
     Vec3 angular_velocity{};
 };
 
+// A non-colliding oriented trigger volume. Rigid bodies match when their
+// collision triangles touch or enter the closed box. Fluid particles match
+// when their centers are inside it, including the boundary.
+struct HitBox {
+    Vec3 center{};
+    Quaternion orientation{};
+    Vec3 half_extents{0.5F, 0.5F, 0.5F};
+};
+
+struct HitBoxParticle {
+    FluidId fluid{};
+    std::uint32_t stable_particle_id{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        HitBoxParticle left, HitBoxParticle right) noexcept {
+        return left.fluid == right.fluid &&
+               left.stable_particle_id == right.stable_particle_id;
+    }
+};
+
+struct HitBoxResult {
+    // Sorted by stable handles/IDs so repeated polls are deterministic.
+    std::vector<RigidBodyId> rigid_bodies{};
+    std::vector<HitBoxParticle> particles{};
+};
+
 // A closed, indexed, body-local triangle mesh sampled once into an HCP
 // particle lattice. Host buffers are borrowed only for the duration of the
 // call. A volume may have multiple disconnected closed components.
@@ -1348,6 +1374,11 @@ class World {
     // Explicit synchronous readback for gameplay code that needs one body.
     [[nodiscard]] Status read_rigid_body_state(
         RigidBodyId body, RigidBodyState &output,
+        cudaStream_t stream = nullptr) const noexcept;
+    // Synchronously polls the latest completed state. Results include every
+    // live rigid body and fluid; callers can filter for a specific goal body.
+    [[nodiscard]] Status query_hit_box(
+        HitBox box, HitBoxResult &output,
         cudaStream_t stream = nullptr) const noexcept;
 
     [[nodiscard]] Status add_rigid_constraint(

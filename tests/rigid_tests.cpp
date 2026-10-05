@@ -3,6 +3,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -329,11 +330,14 @@ void test_floor_contact_and_async_contract() {
               timings.rigid_pair_filter.launch_count == 4U &&
               timings.rigid_pair_compaction.launch_count == 4U &&
               timings.rigid_leaf_pair_generation.launch_count == 4U &&
-              timings.rigid_contact_evaluation.launch_count == 8U &&
-              timings.rigid_contact_generation.launch_count == 24U &&
+              // Capacity eight uses face preparation, leaf evaluation,
+              // candidate-order reduction, and solver initialization.
+              timings.rigid_contact_evaluation.launch_count == 16U &&
+              timings.rigid_contact_generation.launch_count == 32U &&
               // The small-world path fuses coloring and all solve passes;
-              // prepare, initialize, color, solve, and clamp launch once.
-              timings.rigid_contact_solve.launch_count == 4U * 5U &&
+              // Cache load/save, prepare, initialize, color, solve, and clamp
+              // each launch once per substep.
+              timings.rigid_contact_solve.launch_count == 4U * 7U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
@@ -1168,6 +1172,62 @@ void test_rigid_constraint_types() {
           "breaking threshold must disable an overloaded constraint");
 }
 
+void test_piston_free_twist_alignment() {
+    using namespace parallel_mater;
+    constexpr float pi = 3.14159265358979323846F;
+    // Both sides of the quaternion branch cut, both signs, and a freely
+    // spinning body. A tiny swing error must decay independently of X twist.
+    for (const float degrees : {0.0F, 90.0F, 179.0F, 180.0F, 181.0F, 270.0F}) {
+        for (const float sign : {-1.0F, 1.0F}) {
+            World world;
+            check_status(World::create({.rigid_body_capacity = 2U,
+                .rigid_constraint_capacity = 1U,
+                .triangle_mesh_capacity = 1U}, world), "create piston twist world");
+            const auto mesh = add_box(world, {0.3F, 0.2F, 0.1F});
+            RigidBodyId anchor{}, body{};
+            check_status(world.add_rigid_body(
+                {.motion = MotionType::static_body, .mesh = mesh}, anchor),
+                "add piston twist anchor");
+            const float half = degrees * pi / 360.0F;
+            const float c = std::cos(0.00005F), s = std::sin(0.00005F);
+            const Quaternion q{sign * c * std::sin(half),
+                sign * s * std::cos(half), -sign * s * std::sin(half),
+                sign * c * std::cos(half)};
+            check_status(world.add_rigid_body({.mesh = mesh,
+                .initial_state = {.orientation = q,
+                                  .angular_velocity = {2.0F, 0.0F, 0.0F}},
+                .linear_damping = 0.0F, .angular_damping = 0.0F}, body),
+                "add freely spinning piston");
+            RigidConstraintId joint{};
+            check_status(world.add_rigid_constraint({.type = RigidConstraintType::piston,
+                .body_a = anchor, .body_b = body,
+                .breaking_impulse_threshold = sign < 0.0F ? 1000000.0F : 0.0F,
+                .solver_iterations = 8U}, joint),
+                "add piston twist joint");
+            float maximum_swing = 0.0F, maximum_speed = 0.0F;
+            RigidBodyState state{};
+            for (int frame = 0; frame < 240; ++frame) {
+                check_status(world.step({.timestep = 1.0F / 60.0F,
+                    .substeps = 4U, .gravity = {}}), "step piston full revolution");
+                check_status(world.read_rigid_body_state(body, state),
+                    "read freely spinning piston");
+                maximum_swing = std::max(maximum_swing,
+                    2.0F * std::asin(std::min(1.0F,
+                        std::hypot(state.orientation.y, state.orientation.z))));
+                maximum_speed = std::max(maximum_speed,
+                    std::sqrt(state.angular_velocity.x * state.angular_velocity.x +
+                              state.angular_velocity.y * state.angular_velocity.y +
+                              state.angular_velocity.z * state.angular_velocity.z));
+                check(std::isfinite(state.orientation.w), "piston state must remain finite");
+            }
+            check(maximum_swing < 0.00011F,
+                "piston swing must decay at any free-twist angle or quaternion sign");
+            check(maximum_speed < 2.001F && std::fabs(state.angular_velocity.x - 2.0F) < 0.001F,
+                "piston alignment must not add energy or damp permitted spin");
+        }
+    }
+}
+
 void test_rigid_constraint_toggle() {
     using namespace parallel_mater;
     World world;
@@ -1225,6 +1285,141 @@ void test_rigid_constraint_toggle() {
           "enabled constraint state must be observable");
 }
 
+void test_static_axial_guide_lifecycle() {
+    using namespace parallel_mater;
+    for (const auto type : {RigidConstraintType::piston, RigidConstraintType::slider}) {
+        for (const bool reverse : {false, true}) {
+            World world;
+            check_status(World::create({.rigid_body_capacity = 2U,
+                .rigid_constraint_capacity = 1U, .triangle_mesh_capacity = 1U}, world),
+                "create axial guide lifecycle world");
+            const auto mesh = add_box(world, {0.1F,0.1F,0.1F});
+            RigidBodyId anchor{}, body{};
+            check_status(world.add_rigid_body(
+                {.motion = MotionType::static_body, .mesh = mesh}, anchor), "add guide anchor");
+            check_status(world.add_rigid_body({.mesh = mesh,
+                .initial_state = {.position = {0.0F,0.5F,0.0F}},
+                .linear_damping = 0.0F, .angular_damping = 0.0F}, body), "add offset guide body");
+            RigidConstraintOptions options{.type = type,
+                .body_a = reverse ? body : anchor, .body_b = reverse ? anchor : body,
+                .local_anchor_a = reverse ? Vec3{0,-0.5F,0} : Vec3{},
+                .local_anchor_b = reverse ? Vec3{} : Vec3{0,-0.5F,0}};
+            RigidConstraintId joint{};
+            check_status(world.add_rigid_constraint(options, joint), "add offset guide");
+            // An off-axis COM must still feel gravitational torque around the
+            // free piston axis; a slider must react it without rotation.
+            check_status(world.step({.timestep = 1.0F/60, .substeps = 4U,
+                .gravity = {0,0,9.81F}}), "step guide torque");
+            RigidBodyState state{};
+            check_status(world.read_rigid_body_state(body, state), "read offset guide");
+            if (type == RigidConstraintType::piston)
+                check(state.angular_velocity.x > 0.2F,
+                      "guide projection must retain off-axis gravitational torque");
+            else
+                check(std::fabs(state.angular_velocity.x) < 1.e-5F &&
+                      std::fabs(state.position.z) < 1.e-5F,
+                      "slider must react forbidden gravitational torque");
+            options.enabled = false;
+            check_status(world.update_rigid_constraint(joint, options), "disable guide");
+            const float old_speed = state.linear_velocity.z;
+            check_status(world.step({.timestep = 1.0F/60, .substeps = 4U,
+                .gravity = {0,0,9.81F}}), "step disabled guide");
+            check_status(world.read_rigid_body_state(body, state), "read released guide");
+            check(state.linear_velocity.z > old_speed + 0.15F,
+                  "disabled guide must release every body DOF immediately");
+            options.enabled = true;
+            options.breaking_impulse_threshold = 0.0001F;
+            check_status(world.update_rigid_constraint(joint, options), "make guide breakable");
+            check_status(world.step({.timestep = 1.0F/60, .substeps = 4U,
+                .gravity = {0,0,9.81F}}), "break loaded guide");
+            RigidConstraintState broken{};
+            check_status(world.read_rigid_constraint_state(joint, broken), "read broken guide");
+            check(broken.broken && broken.applied_impulse > 0.0F,
+                  "breakable guide must retain general reaction-impulse semantics");
+        }
+    }
+}
+
+void test_guided_edge_clearance() {
+    using namespace parallel_mater;
+    for (const auto type : {RigidConstraintType::piston, RigidConstraintType::slider}) {
+        for (const bool hit : {false, true}) {
+            World world;
+            check_status(World::create({.rigid_body_capacity = 3U,
+                .rigid_constraint_capacity = 1U, .triangle_mesh_capacity = 2U}, world),
+                "create guided edge world");
+            const auto box = add_box(world, {0.1F,0.1F,0.1F});
+            const auto plane = add_plane(world);
+            RigidBodyId anchor{}, floor{}, body{};
+            check_status(world.add_rigid_body({.motion = MotionType::static_body,
+                .mesh = box, .initial_state = {.position = {0,10,0}}}, anchor),
+                "add remote guide anchor");
+            check_status(world.add_rigid_body({.motion = MotionType::static_body,
+                .mesh = plane}, floor), "add finite guide obstacle");
+            const float height = hit ? 0.05F : 0.1005F;
+            check_status(world.add_rigid_body({.mesh = box,
+                .initial_state = {.position = {-6.3F,height,0}, .linear_velocity = {1,0,0}},
+                .linear_damping = 0, .angular_damping = 0}, body), "add edge traveller");
+            RigidConstraintId joint{};
+            check_status(world.add_rigid_constraint({.type = type, .body_a = anchor,
+                .body_b = body, .local_anchor_a = {0,height-10,0}}, joint), "add edge guide");
+            RigidBodyState state{};
+            for (int frame = 0; frame < 60; ++frame) {
+                check_status(world.step({.timestep = 1.0F/60, .substeps = 4U, .gravity = {}}),
+                    "step guided edge approach");
+                check_status(world.read_rigid_body_state(body, state), "read edge traveller");
+                if (!hit)
+                    check(std::fabs(state.linear_velocity.x-1.0F) < 1.e-4F &&
+                          std::fabs(state.angular_velocity.x) < 1.e-4F,
+                          "a 0.5 mm edge near-miss must not create speculative braking or spin");
+            }
+            const bool stopped_or_cleared = hit ? state.position.x < -6.098F : state.position.x > -5.301F;
+            if (!stopped_or_cleared)
+                std::cerr << "guided edge: hit=" << hit << " x=" << state.position.x
+                          << " speed=" << state.linear_velocity.x << '\n';
+            check(stopped_or_cleared,
+                  "guided continuous contacts must block true hits but allow clear paths");
+        }
+    }
+}
+
+void test_piston_thin_rotational_stop() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 3U,
+        .rigid_constraint_capacity = 1U, .triangle_mesh_capacity = 2U}, world),
+        "create thin rotational stop world");
+    const auto bar = add_box(world, {0.02F,0.5F,0.01F});
+    const auto stop = add_box(world, {6.0F,0.1F,0.005F});
+    RigidBodyId anchor{}, wall{}, rotor{};
+    check_status(world.add_rigid_body({.motion = MotionType::static_body,
+        .mesh = bar, .initial_state = {.position = {10,0,0}}}, anchor),
+        "add rotational stop anchor");
+    check_status(world.add_rigid_body({.motion = MotionType::static_body,
+        .mesh = stop, .initial_state = {.position = {0,0.5F,0.03F}},
+        .friction = 0, .restitution = 0}, wall), "add thin stop");
+    check_status(world.add_rigid_body({.mesh = bar,
+        .initial_state = {.linear_velocity = {1,0,0}, .angular_velocity = {5,0,0}},
+        .friction = 0, .restitution = 0, .linear_damping = 0, .angular_damping = 0}, rotor),
+        "add fast rotating piston bar");
+    RigidConstraintId joint{};
+    check_status(world.add_rigid_constraint({.type = RigidConstraintType::piston,
+        .body_a = anchor, .body_b = rotor}, joint), "add rotational stop guide");
+    for (int frame = 0; frame < 30; ++frame) {
+        check_status(world.step({.timestep = 1.0F/60, .substeps = 1U, .gravity = {},
+            .collect_rigid_contacts = true}),
+            "step thin rotational stop");
+        RigidBodyState state{};
+        check_status(world.read_rigid_body_state(rotor, state), "read stopped rotor");
+        const float angle = 2.0F * std::atan2(state.orientation.x, state.orientation.w);
+        check(angle >= -0.001F && angle < 0.031F,
+              "swept entry contact must stop rotation before crossing a thin face");
+        check(std::fabs(state.angular_velocity.x) < 0.01F &&
+              std::fabs(state.linear_velocity.x-1.0F) < 0.001F,
+              "frictionless rotational stop must preserve permitted axial travel");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -1252,7 +1447,11 @@ int main() {
     test_invalid_triangle_indices();
     test_opt_in_physics_debug_capture();
     test_rigid_constraint_types();
+    test_piston_free_twist_alignment();
     test_rigid_constraint_toggle();
+    test_static_axial_guide_lifecycle();
+    test_guided_edge_clearance();
+    test_piston_thin_rotational_stop();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";
         return 1;

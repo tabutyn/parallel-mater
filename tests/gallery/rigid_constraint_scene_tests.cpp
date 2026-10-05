@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
+#include <parallel_mater_gallery/camera_controller.hpp>
+#include "rigid_mesh_checks.hpp"
 
 #include <cuda_runtime_api.h>
 
@@ -125,9 +127,12 @@ struct ExpectedScene {
 
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
+    const bool hinge_four_substeps = argc == 2 &&
+        std::string(argv[1]) == "--hinge-four-substeps";
+    if (argc != 1 && !hinge_four_substeps) return 2;
 
     constexpr std::array scenes{
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH,
@@ -135,11 +140,11 @@ int main() {
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH,
                       RigidConstraintType::point, 4U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
-                      RigidConstraintType::hinge, 3U, 64U},
+                      RigidConstraintType::hinge, 4U, 64U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH,
                       RigidConstraintType::slider, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH,
-                      RigidConstraintType::piston, 1U},
+                      RigidConstraintType::piston, 1U, 8U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH,
                       RigidConstraintType::generic, 1U},
         ExpectedScene{PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH,
@@ -157,13 +162,15 @@ int main() {
         check(scene.rigid_constraints.size() == scenes[index].constraint_count,
               "scene must contain expected constraint count");
         for (const auto &constraint : scene.rigid_constraints) {
-            check(constraint.options.type == scenes[index].type,
+            const bool hinge_slider = index == 2U &&
+                constraint.options.type == RigidConstraintType::slider;
+            check(constraint.options.type == scenes[index].type || hinge_slider,
                   "scene must retain Blender constraint type");
             check(constraint.body_a < scene.rigid_bodies.size() &&
                       constraint.body_b < scene.rigid_bodies.size(),
                   "constraint must resolve both rigid body names");
             check(constraint.options.solver_iterations ==
-                      scenes[index].solver_iterations,
+                      (hinge_slider ? 8U : scenes[index].solver_iterations),
                   "constraint must retain authored solver iterations");
         }
     }
@@ -267,19 +274,41 @@ int main() {
     std::array<std::size_t, 3U> gear_indices{
         hinge_scene.rigid_bodies.size(), hinge_scene.rigid_bodies.size(),
         hinge_scene.rigid_bodies.size()};
-    std::size_t hinge_sphere_index = hinge_scene.rigid_bodies.size();
+    std::size_t hinge_rod_index = hinge_scene.rigid_bodies.size();
+    std::size_t hinge_slider_index = hinge_scene.rigid_constraints.size();
     std::array<Vec3, 3U> gear_local_anchors{};
     std::array<Quaternion, 3U> gear_local_orientations{};
     std::size_t hinge_count = 0U;
     std::array<bool, 3U> gear_on_shared_frame{};
     for (std::size_t index = 0U; index < hinge_scene.rigid_bodies.size();
          ++index) {
-        if (hinge_scene.rigid_bodies[index].source_name == "HingeSphere")
-            hinge_sphere_index = index;
+        check(hinge_scene.rigid_bodies[index].source_name != "HingeSphere",
+              "hinge scene must not retain the removed loose ball");
+        if (hinge_scene.rigid_bodies[index].source_name == "Ground.002")
+            hinge_rod_index = index;
     }
-    for (const auto &constraint : hinge_scene.rigid_constraints) {
+    for (std::size_t index = 0U; index < hinge_scene.rigid_constraints.size();
+         ++index) {
+        const auto &constraint = hinge_scene.rigid_constraints[index];
         const auto &body_a = hinge_scene.rigid_bodies[constraint.body_a];
         const auto &body_b = hinge_scene.rigid_bodies[constraint.body_b];
+        if (constraint.options.type == RigidConstraintType::slider) {
+            hinge_slider_index = index;
+            check(body_a.source_name == "Ground.001" &&
+                      body_a.options.motion == MotionType::static_body &&
+                      constraint.body_b == hinge_rod_index &&
+                      body_b.options.motion == MotionType::dynamic,
+                  "rod slider must resolve the authored passive frame and rod");
+            check(constraint.options.enabled &&
+                      constraint.options.linear_limits.axes == 0U,
+                  "rod slider must retain enabled state and unlimited authored travel");
+            const Vec3 axis = rotate_vector(multiply(
+                body_a.options.initial_state.orientation,
+                constraint.options.local_orientation_a), {1.0F, 0.0F, 0.0F});
+            check(std::fabs(axis.x) < 1.0e-4F && axis.y > 0.9999F &&
+                      std::fabs(axis.z) < 1.0e-4F,
+                  "rod slider must preserve authored vertical local-X axis");
+        }
         if (constraint.options.type == RigidConstraintType::hinge) {
             ++hinge_count;
             check(constraint.options.angular_limits.axes == 0U,
@@ -293,7 +322,8 @@ int main() {
                   "Blender local Z must become the horizontal runtime hinge axis");
             for (std::size_t gear = 0U; gear < gear_names.size(); ++gear) {
                 if (body_b.source_name != gear_names[gear]) continue;
-                gear_on_shared_frame[gear] = body_a.source_name == "Ground";
+                gear_on_shared_frame[gear] = body_a.source_name == "Ground.001" &&
+                    body_a.options.motion == MotionType::static_body;
                 gear_indices[gear] = constraint.body_b;
                 gear_local_anchors[gear] = constraint.options.local_anchor_b;
                 gear_local_orientations[gear] =
@@ -301,8 +331,9 @@ int main() {
             }
         }
     }
-    check(hinge_scene.rigid_bodies.size() == 5U && hinge_count == 3U,
-          "expanded hinge scene must contain five bodies and three hinges");
+    check(hinge_scene.rigid_bodies.size() == 5U && hinge_count == 3U &&
+              hinge_slider_index < hinge_scene.rigid_constraints.size(),
+          "hinge scene must contain five bodies, three hinges, and one slider");
     check(std::all_of(gear_on_shared_frame.begin(),
                       gear_on_shared_frame.end(),
                       [](bool attached) { return attached; }),
@@ -311,13 +342,12 @@ int main() {
                       [&](std::size_t index) {
                           return index < hinge_scene.rigid_bodies.size();
                       }) &&
-              hinge_sphere_index < hinge_scene.rigid_bodies.size(),
-          "hinge test must resolve all three gears and loose sphere");
+              hinge_rod_index < hinge_scene.rigid_bodies.size(),
+          "hinge test must resolve all three gears and slider rod");
     for (const auto &body : hinge_scene.rigid_bodies) {
-        if (body.source_name == "Ground" ||
-            body.source_name == "HingeSphere") {
+        if (body.source_name == "Ground.001") {
             check(std::fabs(body.options.friction - 4.0F) < 1.0e-5F,
-                  "hinge sphere and ground must retain high rolling friction");
+                  "hinge ground must retain authored friction");
         } else if (body.source_name == "Gear") {
             check(std::fabs(body.options.friction - 0.08F) < 1.0e-5F &&
                       body.options.restitution == 0.0F &&
@@ -334,14 +364,25 @@ int main() {
                   "follower gears must remain loose and non-bouncing");
         }
     }
-    for (std::size_t index : {3U, 4U}) {
+    for (std::size_t index : {3U}) {
         const auto &constraint =
             definitions[index].rigid_constraints.front().options;
         check(constraint.linear_limits.axes == rigid_constraint_axis_x &&
                   constraint.linear_limits.lower.x == -1.0F &&
                   constraint.linear_limits.upper.x == 1.0F,
-              "slider and piston must retain their -1m to +1m travel");
+              "slider must retain its -1m to +1m travel");
     }
+    const auto &piston_scene = definitions[4];
+    const auto &piston = piston_scene.rigid_constraints.front();
+    check(piston_scene.rigid_bodies.size() == 3U &&
+              piston_scene.rigid_bodies[piston.body_a].source_name == "Cylinder" &&
+              piston_scene.rigid_bodies[piston.body_b].source_name == "Circle",
+          "piston must join the shaft to the moving toothed sleeve");
+    check(piston.options.linear_limits.axes == 0U &&
+              piston.options.angular_limits.axes == 0U &&
+              !piston.options.motor.linear_enabled &&
+              !piston.options.motor.angular_enabled,
+          "piston travel and rotation must be stopped by teeth, not limits or motors");
     const auto &generic = definitions[5].rigid_constraints.front().options;
     check(generic.linear_limits.axes == rigid_constraint_all_axes &&
               generic.angular_limits.axes == rigid_constraint_all_axes,
@@ -355,13 +396,33 @@ int main() {
                   constraint.options.motor.angular_maximum_impulse == 8.0F,
               "each car wheel must retain its angular motor");
 
+    if (failures != 0) return 1;
+    const rigid_mesh_checks::MeshSamples slider_mesh(hinge_scene, hinge_rod_index);
+    const rigid_mesh_checks::MeshSamples slider_gear_mesh(hinge_scene, gear_indices[2]);
+    // Frame 287 from the user's failing capture: contact events existed while
+    // the rack was visibly inside the gear. Keep this CPU-check control so a
+    // broken penetration oracle cannot silently bless a solver regression.
+    RigidBodyState captured_gear{};
+    captured_gear.position = {3.0654428F, 1.39732695F, 2.2055459F};
+    captured_gear.orientation = {0.704486728F, -0.0608134195F,
+                                 -0.0608134083F, 0.704486907F};
+    RigidBodyState captured_rod{};
+    captured_rod.position = {5.19924831F, 6.1550169F, 2.20538568F};
+    captured_rod.orientation = {0.0F, 0.0F, 0.707106769F, 0.707106769F};
+    check(std::max(slider_mesh.penetration(captured_rod, slider_gear_mesh, captured_gear),
+                   slider_gear_mesh.penetration(captured_gear, slider_mesh, captured_rod)) > 0.05F,
+          "independent mesh check must detect the captured slider/gear overlap");
     int device_count = 0;
     if (cudaGetDeviceCount(&device_count) != cudaSuccess || device_count == 0) {
         std::cout << "SKIP: constraint GLB structure passed; CUDA unavailable\n";
         return failures == 0 ? 77 : 1;
     }
+    const Vec3 collector_gravity = screen_space_gravity(
+        Camera{{0.0F, 3.0F, 5.0F}, {0.0F, 0.0F, 0.0F}},
+        1.0F, 0.0F, 9.81F, collector_gravity_tilt_degrees);
     for (std::size_t scene_index = 0U; scene_index < definitions.size();
          ++scene_index) {
+        if (hinge_four_substeps && scene_index != 2U) continue;
         const SceneDefinition &scene = definitions[scene_index];
         World world;
         SceneInstance instance;
@@ -436,13 +497,13 @@ int main() {
             }
         }
         std::array<bool, 2U> saw_gear_contact{};
-        std::array<bool, 2U> saw_opposite_gear_rotation{};
         std::array<float, 2U> minimum_outward_dot{1.0e30F, 1.0e30F};
         std::array<float, 2U> maximum_gear_penetration{};
-        int first_sphere_impact_frame = -1;
-        float minimum_impact_rotation = 0.0F;
-        float maximum_impact_rotation = 0.0F;
-        float maximum_backward_recovery = 0.0F;
+        float maximum_slider_drift = 0.0F;
+        float maximum_slider_travel = 0.0F;
+        float maximum_slider_mesh_penetration = 0.0F;
+        float slider_contact_impulse = 0.0F;
+        float minimum_slider_orientation_dot = 1.0F;
         float maximum_fixed_angular_speed = 0.0F;
         float maximum_fixed_roll_ratio = 0.0F;
         float maximum_fixed_height =
@@ -453,7 +514,7 @@ int main() {
         std::array<Vec3, 4U> hinge_inertias{};
         std::array<std::size_t, 4U> hinge_dynamic_indices{
             gear_indices[0], gear_indices[1], gear_indices[2],
-            hinge_sphere_index};
+            hinge_rod_index};
         float initial_hinge_energy = 0.0F;
         float maximum_hinge_energy = 0.0F;
         if (scene_index == 2U) {
@@ -475,12 +536,12 @@ int main() {
                 check_status(fixed_collector.apply_loose_gravity(
                                  world, scene, instance,
                                  {0.0F, -9.81F, 0.0F},
-                                 {9.660964F, -1.703489F, 0.0F}),
+                                 collector_gravity),
                              "apply loose fixed-scene test gravity");
             check_status(world.step({.timestep = 1.0F / 60.0F,
-                                     .substeps = scene_index == 2U ? 8U : 4U,
+                                     .substeps = scene_index == 2U && !hinge_four_substeps ? 8U : 4U,
                                      .gravity = scene_index == 0U
-                                         ? Vec3{9.660964F, -1.703489F, 0.0F}
+                                         ? collector_gravity
                                          : Vec3{0.0F, -9.81F, 0.0F},
                                      .collect_rigid_contacts =
                                          scene_index == 0U ||
@@ -517,6 +578,15 @@ int main() {
                                      hinge_dynamic_indices[index]],
                                  hinge_states[index]),
                              "read natural hinge body state");
+                const auto &state = hinge_states[index];
+                check(std::isfinite(state.position.x) && std::isfinite(state.position.y) &&
+                          std::isfinite(state.position.z) && std::isfinite(state.orientation.x) &&
+                          std::isfinite(state.orientation.y) && std::isfinite(state.orientation.z) &&
+                          std::isfinite(state.orientation.w) && std::isfinite(state.linear_velocity.x) &&
+                          std::isfinite(state.linear_velocity.y) && std::isfinite(state.linear_velocity.z) &&
+                          std::isfinite(state.angular_velocity.x) && std::isfinite(state.angular_velocity.y) &&
+                          std::isfinite(state.angular_velocity.z),
+                      "hinge/slider states must remain finite");
                 const auto &body = hinge_scene.rigid_bodies[
                     hinge_dynamic_indices[index]];
                 hinge_energy += mechanical_energy(
@@ -524,12 +594,23 @@ int main() {
             }
             maximum_hinge_energy = std::max(maximum_hinge_energy,
                                              hinge_energy);
-            for (std::size_t pair = 0U; pair < 2U; ++pair)
-                saw_opposite_gear_rotation[pair] =
-                    saw_opposite_gear_rotation[pair] ||
-                    hinge_states[pair].angular_velocity.z *
-                            hinge_states[pair + 1U].angular_velocity.z <
-                        -1.0e-4F;
+            const auto &rod_initial = scene.rigid_bodies[hinge_rod_index]
+                                          .options.initial_state;
+            const auto &rod = hinge_states[3];
+            maximum_slider_mesh_penetration = std::max({maximum_slider_mesh_penetration,
+                slider_mesh.penetration(rod, slider_gear_mesh, hinge_states[2]),
+                slider_gear_mesh.penetration(hinge_states[2], slider_mesh, rod)});
+            maximum_slider_drift = std::max(maximum_slider_drift,
+                std::hypot(rod.position.x - rod_initial.position.x,
+                           rod.position.z - rod_initial.position.z));
+            maximum_slider_travel = std::max(maximum_slider_travel,
+                std::fabs(rod.position.y - rod_initial.position.y));
+            minimum_slider_orientation_dot = std::min(
+                minimum_slider_orientation_dot,
+                std::fabs(rod.orientation.x * rod_initial.orientation.x +
+                          rod.orientation.y * rod_initial.orientation.y +
+                          rod.orientation.z * rod_initial.orientation.z +
+                          rod.orientation.w * rod_initial.orientation.w));
             const RigidContactDeviceView view = world.rigid_contacts();
             std::vector<RigidContactEvent> contacts(view.event_count);
             if (!contacts.empty())
@@ -538,17 +619,11 @@ int main() {
                                  cudaMemcpyDeviceToHost) == cudaSuccess,
                       "download hinge gear contacts");
             for (const RigidContactEvent &contact : contacts) {
-                const bool sphere_hits_lever =
-                    (same_id(contact.body,
-                             instance.rigid_bodies[hinge_sphere_index]) &&
-                     same_id(contact.collider,
-                             instance.rigid_bodies[gear_indices[0]])) ||
-                    (same_id(contact.collider,
-                             instance.rigid_bodies[hinge_sphere_index]) &&
-                     same_id(contact.body,
-                             instance.rigid_bodies[gear_indices[0]]));
-                if (sphere_hits_lever && first_sphere_impact_frame < 0)
-                    first_sphere_impact_frame = frame;
+                if ((same_id(contact.body, instance.rigid_bodies[hinge_rod_index]) &&
+                     same_id(contact.collider, instance.rigid_bodies[gear_indices[2]])) ||
+                    (same_id(contact.collider, instance.rigid_bodies[hinge_rod_index]) &&
+                     same_id(contact.body, instance.rigid_bodies[gear_indices[2]])))
+                    slider_contact_impulse += contact.normal_impulse;
                 for (std::size_t pair = 0U; pair < 2U; ++pair) {
                     const bool first_is_body =
                         same_id(contact.body,
@@ -583,23 +658,6 @@ int main() {
                         maximum_gear_penetration[pair], contact.penetration);
                 }
             }
-            if (first_sphere_impact_frame >= 0 &&
-                frame < first_sphere_impact_frame + 12) {
-                const Quaternion initial = hinge_scene.rigid_bodies[
-                    gear_indices[0]].options.initial_state.orientation;
-                const Quaternion delta = multiply(
-                    hinge_states[0].orientation,
-                    {-initial.x, -initial.y, -initial.z, initial.w});
-                // The ball approaches in +X below the hinge: r x impulse
-                // must swing the lever in +Z, including position recovery.
-                const float rotation = 2.0F * std::atan2(delta.z, delta.w);
-                minimum_impact_rotation = std::min(minimum_impact_rotation,
-                                                   rotation);
-                maximum_impact_rotation = std::max(maximum_impact_rotation,
-                                                   rotation);
-                maximum_backward_recovery = std::max(
-                    maximum_backward_recovery, maximum_impact_rotation - rotation);
-            }
         }
         if (scene_index == 0U) {
             check(fixed_collector.attached_count() > 2U,
@@ -629,19 +687,19 @@ int main() {
                           << " height=" << maximum_fixed_height << '\n';
         }
         if (scene_index == 2U) {
-            check(first_sphere_impact_frame >= 0,
-                  "hinge sphere must strike the lever during natural replay");
-            check(minimum_impact_rotation >= -0.002F &&
-                      maximum_backward_recovery <= 0.002F &&
-                      maximum_impact_rotation > 0.01F,
-                  "ball impact must swing the lever forward without backward recovery");
-            if (minimum_impact_rotation < -0.002F ||
-                maximum_backward_recovery > 0.002F ||
-                maximum_impact_rotation <= 0.01F)
-                std::cerr << "impact rotation min=" << minimum_impact_rotation
-                          << " max=" << maximum_impact_rotation
-                          << " backward recovery=" << maximum_backward_recovery
-                          << '\n';
+            check(maximum_slider_drift < 0.002F,
+                  "slider rod must not drift sideways by more than 2 mm");
+            check(maximum_slider_travel > 0.01F,
+                  "unlimited slider rod must move under gravity");
+            std::cout << "slider mesh penetration=" << maximum_slider_mesh_penetration
+                      << " travel=" << maximum_slider_travel
+                      << " contact impulse=" << slider_contact_impulse << '\n';
+            check(maximum_slider_mesh_penetration < 0.002F,
+                  "slider and moving gear surfaces must not interpenetrate beyond 2 mm");
+            check(slider_contact_impulse > 0.1F,
+                  "slider/gear contacts must transfer impulses, not only report events");
+            check(minimum_slider_orientation_dot > 0.9999F,
+                  "slider rod must retain its authored orientation");
             for (std::size_t pair = 0U; pair < 2U; ++pair) {
                 check(saw_gear_contact[pair],
                       "both hinge gear interfaces must engage in natural replay");
@@ -658,22 +716,23 @@ int main() {
                 if (maximum_gear_penetration[pair] > maximum_gear_recovery)
                     std::cerr << "gear pair " << pair << " penetration="
                               << maximum_gear_penetration[pair] << '\n';
-                check(saw_opposite_gear_rotation[pair],
-                      "impact must propagate with alternating gear rotation");
             }
             if (maximum_hinge_energy > initial_hinge_energy + 0.5F)
                 std::cerr << "natural hinge energy=" << initial_hinge_energy
                           << " peak=" << maximum_hinge_energy << '\n';
             check(maximum_hinge_energy <= initial_hinge_energy + 0.5F,
                   "hinge contacts must not inject mechanical energy");
+            if (hinge_four_substeps) continue;
 
             std::array<RigidBodyState, 3U> driven{
                 scene.rigid_bodies[gear_indices[0]].options.initial_state,
                 scene.rigid_bodies[gear_indices[1]].options.initial_state,
                 scene.rigid_bodies[gear_indices[2]].options.initial_state};
             driven[0].angular_velocity = {0.0F, 0.0F, -12.0F};
-            driven[1].angular_velocity = {0.0F, 0.0F, 6.0F};
-            driven[2].angular_velocity = {0.0F, 0.0F, -6.0F};
+            // There is no falling ball in the scene anymore. Drive only the
+            // first gear; contact must spin both initially resting followers.
+            driven[1].angular_velocity = {};
+            driven[2].angular_velocity = {};
             const auto hinge_linear_velocity = [](RigidBodyState state,
                                                   Vec3 local_anchor) {
                 const Vec3 anchor_to_center = rotate_vector(
@@ -690,15 +749,20 @@ int main() {
             for (std::size_t gear = 0U; gear < driven.size(); ++gear)
                 driven[gear].linear_velocity = hinge_linear_velocity(
                     driven[gear], gear_local_anchors[gear]);
-            RigidBodyState isolated_sphere =
-                scene.rigid_bodies[hinge_sphere_index].options.initial_state;
-            isolated_sphere.position.x += 100.0F;
-            isolated_sphere.linear_velocity = {};
-            isolated_sphere.angular_velocity = {};
+            check_status(world.remove_rigid_constraint(
+                             instance.rigid_constraints[hinge_slider_index]),
+                         "release rod before isolated gear rotation regression");
+            RigidBodyState isolated_rod =
+                scene.rigid_bodies[hinge_rod_index].options.initial_state;
+            isolated_rod.position.x += 100.0F;
+            isolated_rod.linear_velocity = {};
+            isolated_rod.angular_velocity = {};
             check_status(world.set_rigid_body_state(
-                             instance.rigid_bodies[hinge_sphere_index],
-                             isolated_sphere),
-                         "isolate driven hinge gears from the loose sphere");
+                             instance.rigid_bodies[hinge_rod_index],
+                             isolated_rod),
+                         "isolate driven hinge gears from the slider rod");
+            // Ground.001 now anchors every joint; moving it would move the
+            // hinges too. Joint collision filtering already isolates this frame.
             for (std::size_t gear = 0U; gear < driven.size(); ++gear)
                 check_status(world.set_rigid_body_state(
                                  instance.rigid_bodies[gear_indices[gear]],

@@ -74,7 +74,7 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(systems(document), expected)
         for node in document["nodes"]:
             self.assertEqual(node["extras"]["pm_schema"], exporter.SCHEMA_VERSION)
-        for mesh in document["meshes"]:
+        for mesh in document.get("meshes", []):
             for primitive in mesh["primitives"]:
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
         if options.loader:
@@ -86,12 +86,33 @@ class ExportSceneTests(unittest.TestCase):
                             str(expected["cloth"]),
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
-                            str(expected["soft_body"]), str(expected["rope"])],
+                            str(expected["soft_body"]), str(expected["rope"]),
+                            str(expected["hit_box"])],
                            check=True, timeout=60)
         return document
 
+    def test_canonical_hit_box_preserves_oriented_nonuniform_bounds(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.mesh.primitive_cube_add(
+            location=(1.0, 2.0, 3.0), rotation=(0.2, -0.3, 0.4))
+        hit_box = bpy.context.object
+        hit_box.name = "GoalVolume"
+        hit_box.scale = (1.0, 2.0, 3.0)
+        hit_box["pm_hit_box"] = True
+        bpy.context.view_layer.update()
+
+        document = self.check_export(Counter(hit_box=1))
+        node = next(node for node in document["nodes"]
+                    if node.get("extras", {}).get("pm_system") == "hit_box")
+        extras = node["extras"]
+        self.assertEqual(extras["pm_name"], "GoalVolume")
+        self.assertAlmostEqual(extras["pm_half_extent_x"], 1.0, places=5)
+        self.assertAlmostEqual(extras["pm_half_extent_y"], 3.0, places=5)
+        self.assertAlmostEqual(extras["pm_half_extent_z"], 2.0, places=5)
+        self.assertIn("rotation", node)
+
     def test_all_authored_scenes_share_exporter(self):
-        for name in ("PassiveActive", "Fluid", "FluidRigid", "Pegs", "Cloth",
+        for name in ("PassiveActive", "RigidBody", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
                      "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
@@ -106,6 +127,40 @@ class ExportSceneTests(unittest.TestCase):
                 expected = systems(read_glb(source.with_suffix(".glb")))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_rigid_body_array_wall_and_hit_box(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RigidBody.blend"))
+        document = self.check_export(Counter(rigid_body=386, hit_box=1))
+        bodies = [node["extras"] for node in document["nodes"]
+                  if node.get("extras", {}).get("pm_system") == "rigid_body"]
+        self.assertEqual(Counter(body["pm_source_name"] for body in bodies),
+                         Counter({"Ground": 1, "Icosphere": 1,
+                                  "Layer1": 192, "Layer2": 192}))
+        self.assertEqual(len({body["pm_name"] for body in bodies}), 386)
+        self.assertTrue(all(not body["pm_gravity_tilt"] for body in bodies
+                            if body["pm_source_name"] in {"Layer1", "Layer2"}))
+        self.assertTrue(all(body["pm_gravity_tilt"] for body in bodies
+                            if body["pm_source_name"] in {"Ground", "Icosphere"}))
+        # The gallery loads the committed GLB, not this temporary fresh export.
+        # Catch stale assets produced by an older Blender script, which can
+        # silently omit the false tilt flags and restore global wall steering.
+        committed = {
+            node["extras"]["pm_name"]: node["extras"]
+            for node in read_glb(ASSETS / "RigidBody.glb")["nodes"]
+            if node.get("extras", {}).get("pm_system") == "rigid_body"
+        }
+        self.assertEqual(set(committed), {body["pm_name"] for body in bodies})
+        for body in bodies:
+            for key in ("pm_gravity_tilt", "pm_mass"):
+                self.assertEqual(committed[body["pm_name"]].get(key), body[key],
+                                 f"RigidBody.glb is stale: {body['pm_name']} {key}; "
+                                 "re-export with the current repository exporter")
+        hit_box = next(node["extras"] for node in document["nodes"]
+                       if node.get("extras", {}).get("pm_system") == "hit_box")
+        self.assertEqual(hit_box["pm_name"], "LoadBox")
+        for axis in "xyz":
+            self.assertAlmostEqual(hit_box[f"pm_half_extent_{axis}"],
+                                   4.398349285125732, places=5)
 
     def test_smoke_rope_active_panel_attachments(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SmokeRope.blend"))
@@ -126,7 +181,7 @@ class ExportSceneTests(unittest.TestCase):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
             "ConstraintPoint": ("point", 4),
-            "ConstraintHinge": ("hinge", 3),
+            "ConstraintHinge": ("hinge", 4),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
             "ConstraintGeneric": ("generic", 1),
@@ -139,6 +194,7 @@ class ExportSceneTests(unittest.TestCase):
                 document = self.check_export(Counter(
                     rigid_body=6 if kind in ("motor", "point") else
                                5 if kind == "hinge" else
+                               3 if kind == "piston" else
                                51 if kind == "fixed" else 4,
                     rigid_constraint=count,
                     collision_mesh=1 if name == "ConstraintFixed" else 0))
@@ -146,8 +202,10 @@ class ExportSceneTests(unittest.TestCase):
                                if node["extras"].get("pm_system") ==
                                "rigid_constraint"]
                 self.assertEqual(len(constraints), count)
-                self.assertTrue(all(item["pm_constraint_type"] == kind
-                                    for item in constraints))
+                self.assertEqual(
+                    Counter(item["pm_constraint_type"] for item in constraints),
+                    Counter(hinge=3, slider=1) if kind == "hinge" else
+                    Counter({kind: count}))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
                 if kind == "fixed":
@@ -195,17 +253,28 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertEqual(
                         {(item["pm_body_a"], item["pm_body_b"])
                          for item in constraints},
-                        {("Ground", "Gear"),
-                         ("Ground", "Gear.001"),
-                         ("Ground", "Gear.002")})
+                        {("Ground.001", "Gear"),
+                         ("Ground.001", "Gear.001"),
+                         ("Ground.001", "Gear.002"),
+                         ("Ground.001", "Ground.002")})
                     self.assertTrue(all(item["pm_solver_iterations"] == 64
-                                        for item in constraints))
-                    for joint_name, gear_name in (
-                            ("Contraint1", "Gear"),
-                            ("Constraint2", "Gear.001"),
-                            ("Empty", "Gear.002")):
-                        joint = bpy.context.scene.objects[joint_name]
-                        gear = bpy.context.scene.objects[gear_name]
+                                        for item in constraints
+                                        if item["pm_constraint_type"] == "hinge"))
+                    slider = next(item for item in constraints
+                                  if item["pm_constraint_type"] == "slider")
+                    self.assertTrue(slider["pm_enabled"])
+                    self.assertEqual(slider["pm_solver_iterations"], 8)
+                    self.assertFalse(slider["pm_use_limit_lin_x"])
+                    self.assertEqual(slider["pm_limit_lin_x_lower"], -4.0)
+                    self.assertEqual(slider["pm_limit_lin_x_upper"], 2.0)
+                    rod = bpy.context.scene.objects["Ground.002"]
+                    self.assertIsNotNone(rod.rigid_body)
+                    self.assertEqual(rod.rigid_body_constraint.object2, rod)
+                    for joint in bpy.context.scene.objects:
+                        constraint = joint.rigid_body_constraint
+                        if constraint is None or constraint.type != "HINGE":
+                            continue
+                        gear = constraint.object2
                         joint_z = joint.matrix_world.to_3x3().normalized().col[2]
                         gear_z = gear.matrix_world.to_3x3().normalized().col[2]
                         self.assertAlmostEqual(joint_z.dot(gear_z), 1.0,
@@ -215,7 +284,7 @@ class ExportSceneTests(unittest.TestCase):
                          for node in document["nodes"]
                          if node.get("extras", {}).get("pm_system") ==
                          "rigid_body"},
-                        {"Ground", "HingeSphere", "Gear", "Gear.001",
+                        {"Ground.001", "Ground.002", "Gear", "Gear.001",
                          "Gear.002"})
                     bodies = {
                         node["extras"]["pm_source_name"]: node["extras"]
@@ -224,9 +293,7 @@ class ExportSceneTests(unittest.TestCase):
                         "rigid_body"
                     }
                     self.assertAlmostEqual(
-                        bodies["Ground"]["pm_friction"], 4.0, places=5)
-                    self.assertAlmostEqual(
-                        bodies["HingeSphere"]["pm_friction"], 4.0, places=5)
+                        bodies["Ground.001"]["pm_friction"], 4.0, places=5)
                     self.assertAlmostEqual(bodies["Gear"]["pm_friction"],
                                            0.08, places=5)
                     self.assertAlmostEqual(
@@ -326,6 +393,21 @@ class ExportSceneTests(unittest.TestCase):
             min(small_tree.find_nearest(point)[3]
                 for point in large_vertices))
         self.assertLess(surface_gap, 0.001)
+
+    def test_mesh_constraint_requires_both_targets_without_changing_source(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "ConstraintHinge.blend"))
+        constraint = bpy.context.scene.objects["Ground.002"].rigid_body_constraint
+        for field in ("object1", "object2"):
+            with self.subTest(field=field):
+                target = getattr(constraint, field)
+                setattr(constraint, field, None)
+                before = snapshot()
+                with self.assertRaisesRegex(
+                        RuntimeError, "Ground.002: constraint needs Object 1 and Object 2"):
+                    exporter.export_scene(self.output)
+                self.assertEqual(snapshot(), before)
+                self.assertFalse(self.output.exists())
+                setattr(constraint, field, target)
 
     def test_hinge_gears_remain_engaged_through_tooth_cycle(self):
         from mathutils import Quaternion, Vector

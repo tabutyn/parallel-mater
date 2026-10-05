@@ -85,6 +85,34 @@ if (!status) return report(status);
 - A world is bound to the CUDA device current during `World::create`.
 - A world is movable, not copyable, and externally synchronized.
 
+## Hit-box queries
+
+`World::query_hit_box` synchronously polls the latest completed state using a
+non-colliding oriented `HitBox`. A rigid body is returned when its collision
+triangles touch or enter the box; this is an exact triangle/box test rather
+than a center or broad-phase-bounds check. A fluid particle is returned when
+its center is inside the box, including its boundary.
+
+```cpp
+HitBoxResult hits;
+status = world.query_hit_box(
+    {.center = {0.0F, 1.0F, -8.0F},
+     .half_extents = {2.0F, 1.0F, 2.0F}},
+    hits);
+if (!status) return report(status);
+
+const bool reached_goal =
+    std::find(hits.rigid_bodies.begin(), hits.rigid_bodies.end(), object) !=
+    hits.rigid_bodies.end();
+```
+
+`HitBoxResult::rigid_bodies` contains generation-checked handles.
+`HitBoxResult::particles` pairs each `FluidId` with its stable particle ID, so
+clients can preserve coloring or gameplay state even when the solver reorders
+particle storage. Both arrays have deterministic ordering. The query covers
+all live rigid bodies and fluids; callers filter for the target handle or
+fluid. Invalid boxes leave the previous output unchanged.
+
 ## Rigid constraints
 
 `World::add_rigid_constraint` connects two existing rigid bodies through
@@ -120,6 +148,18 @@ static joint keep the general constraint solver. On that path, fixed-member
 contact impulses and joint rows iterate together through eight contact sweeps,
 each using the authored joint iteration budget. Motor impulse limits remain per
 substep across those sweeps. Applications still call only `World::step`.
+
+A body attached only to one unbreakable, static-anchored piston or slider uses
+the guide's permitted motion during integration and contact response. Piston
+twist stays independent of locked swing, including across a half-turn. Guided
+static contacts use swept entry normals and impact-time integration; contact
+recovery cannot push the body off its shaft or rotate it through a neighboring
+stop. Closed convex pieces inside compound triangle meshes retain outward
+normals even when mirrored. Open surfaces retain two-sided collision behavior.
+Against moving bodies, including hinged gears, guides retain two-body contact
+manifolds and position recovery; the static-obstacle entry-only path does not apply.
+Breakable, moving-anchor, and multiply constrained guides retain the general
+joint solver. No additional application-side constraint or contact API is needed.
 
 ## Smoke tracer gas
 
@@ -729,10 +769,18 @@ back into the solver.
 The solver uses at most `0.001 m` of the combined margin as a rest offset, then
 uses the remaining margin only for speculative detection. This small gap keeps
 triangle surfaces from numerically crossing without making bodies float by the
-full authored margin. Contacts outside the rest offset release immediately when
-the surfaces separate. When triangles do cross, recovery depth comes from the
-body vertices behind the contacted triangle plane rather than from the search
-margin. A body in an enabled fixed constraint recovers through contact velocity.
+full authored margin. Small closed convex meshes additionally use clipped face
+patches: their normals remain defined at zero separation, so coplanar authored
+faces require no artificial gap. These convex contact impulses accumulate
+across solver passes and warm-start from matching contact points in the previous
+substep. Body edits, stale handles, and timestep changes invalidate that history.
+Curved/concave meshes retain their triangle contact path. Hinge and fixed-member
+contact impulses retain their established response rules.
+Friction remains active within the numerical skin only while normal support
+exists, and cached friction is removed when contact opens.
+For eligible convex bodies and fixed members, intersection recovery depth comes
+from the body vertices behind the contacted triangle plane rather than from the
+search margin. A body in an enabled fixed constraint recovers through contact velocity.
 Recovery uses the measured penetration, and contact and joint rows iterate
 together so light supports receive the heavy cluster's load before the next
 integration step. This avoids separating a member from its joint or letting a

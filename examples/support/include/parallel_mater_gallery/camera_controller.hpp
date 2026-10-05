@@ -17,14 +17,14 @@ struct CameraPreset {
     std::optional<float> pitch{};
 };
 
-// Camera-relative gravity steering shared by scenes with a tiltable course.
-// Input is right/forward on the horizontal camera plane, each in [-1, 1].
+// Camera-relative gravity shared by scenes with a tiltable course. Screen
+// right/up input maps to camera-right/forward ground directions in [-1, 1].
 inline constexpr float peg_paint_gravity_tilt_degrees = 50.0F;
+inline constexpr float collector_gravity_tilt_degrees = 30.0F;
 
-[[nodiscard]] inline Vec3 steer_gravity(Vec3 current, Camera camera,
-                                         float right_input, float forward_input,
-                                         float magnitude, float tilt_degrees,
-                                         float timestep) noexcept {
+[[nodiscard]] inline Vec3 screen_space_gravity(
+    Camera camera, float right_input, float up_input, float magnitude,
+    float tilt_degrees) noexcept {
     constexpr float radians = 0.017453292519943295F;
     Vec3 forward{camera.target.x - camera.eye.x, 0.0F,
                  camera.target.z - camera.eye.z};
@@ -36,16 +36,25 @@ inline constexpr float peg_paint_gravity_tilt_degrees = 50.0F;
         forward = {0.0F, 0.0F, -1.0F};
     }
     const Vec3 right{-forward.z, 0.0F, forward.x};
-    Vec3 steering{right.x * right_input + forward.x * forward_input, 0.0F,
-                  right.z * right_input + forward.z * forward_input};
+    Vec3 steering{right.x * right_input + forward.x * up_input, 0.0F,
+                  right.z * right_input + forward.z * up_input};
     const float length = std::hypot(steering.x, steering.z);
     const float tilt = std::clamp(tilt_degrees, 0.0F, 89.0F) * radians;
-    Vec3 desired{0.0F, -magnitude, 0.0F};
+    Vec3 gravity{0.0F, -magnitude, 0.0F};
     if (length > 1.0e-6F) {
         const float horizontal = magnitude * std::sin(tilt) / length;
-        desired = {steering.x * horizontal, -magnitude * std::cos(tilt),
+        gravity = {steering.x * horizontal, -magnitude * std::cos(tilt),
                    steering.z * horizontal};
     }
+    return gravity;
+}
+
+[[nodiscard]] inline Vec3 steer_gravity(Vec3 current, Camera camera,
+                                         float right_input, float up_input,
+                                         float magnitude, float tilt_degrees,
+                                         float timestep) noexcept {
+    const Vec3 desired = screen_space_gravity(
+        camera, right_input, up_input, magnitude, tilt_degrees);
     const float blend = 1.0F - std::exp(-timestep / 0.16F);
     Vec3 result{current.x + (desired.x - current.x) * blend,
                 current.y + (desired.y - current.y) * blend,

@@ -32,13 +32,26 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
-2. **Rigid constraints** — eight Blender-authored scenes exercise Fixed,
-   Point, Hinge, Slider, Piston, Generic, Generic Spring, and Motor resources.
+2. **Rigid constraints** — seven Blender-authored scenes exercise all eight
+   joint types: Fixed, Point, Hinge + Slider, Piston, Generic, Generic Spring,
+   and Motor.
    Fixed collects loose spheres on contact. Point starts with four spheres
    orbiting a shared anchor in two perpendicular pairs; `Space` releases or
-   reattaches all four. The four-wheel Motor car uses arrow-key tank controls. Hinge drives
-   a three-gear train through a sphere-struck panel; the other four receive an
-   authored sphere impact.
+   reattaches all four. The four-wheel Motor car uses arrow-key tank controls.
+   Hinge + Slider contains a three-gear train with an integrated panel and a
+   slider rod, without a loose ball. Piston uses alternating gravity to slide
+   a toothed sleeve along its shaft and index its rotation; eight complete
+   right–left cycles should produce one revolution. Generic and Generic Spring
+   receive an authored sphere impact.
+
+   `parallel-mater-piston-scene-tests` drives sixteen alternating strokes at
+   60 Hz with four physics substeps, using both abrupt side-camera input and
+   smoothed gallery controls. Each stroke must travel and settle; each cycle
+   must index 45 degrees without energy injection or shaft drift. The authored
+   starting pose adds about 0.66 degrees during its first seating, so eight
+   cycles from that pose finish at approximately 360.66 degrees. The smoothed
+   test starts at a seated endpoint and checks a 360-degree turn within
+   0.002 radians. Neutral-gravity release is checked independently.
 3. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
    into a larger static receiver.
 4. **Fluid flow** — Blender Inflow emits repelling particles over a passive
@@ -126,25 +139,31 @@ slices except density/heat, which draws occupied cells throughout the volume.
 The legend reports the per-frame normalization maximum. These visualizers read
 `SmokeDeviceView`; no rendering state enters the physics solver.
 
-The visible `parallel-mater-gallery` loads `examples/assets/PassiveActive.glb`,
-instantiates its passive ground, kinematic Cube, and dynamic Icosphere and
-Suzanne through `World`, and ray traces their authored render triangles. The
-three detailed dynamic meshes use separate Blender-authored collision proxies;
-the bowl retains its detailed collision surface. Arrow input moves the Cube
-and tilts gravity for the dynamic bodies. C++ does not restate that scene's
-body list or transforms.
+The Rigid Body entry loads `examples/assets/RigidBody.glb`, instantiates its
+passive ground, dynamic sphere, and 384 independently simulated Array bricks
+through `World`, and ray traces their shared authored meshes. Arrow input tilts
+gravity relative to the current camera for the sphere. Both authored brick
+Arrays set `pm_gravity_tilt = false`, so they retain vertical gravity instead
+of toppling from the control field; they remain independent dynamic bodies and
+still respond to the sphere's contact impulses. Its non-rendered `LoadBox` is
+imported as an oriented hit-box query volume; C++ does not restate the body
+list, transforms, or trigger bounds.
 
-`Tab` opens an examples-only context selector ordered Rigid Body, the eight
+`Tab` opens an examples-only context selector ordered Rigid Body, the seven
 Constraint scenes, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
 Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope, Rope Fluid.
 Constraint scenes are also selectable headlessly with
 `--constraint-fixed`, `--constraint-point`, `--constraint-hinge`,
-`--constraint-slider`, `--constraint-piston`, `--constraint-generic`,
+`--constraint-piston`, `--constraint-generic`,
 `--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
 trigger the toggle after N frames with `--constraint-action-after-frames N`
 or drive the car with `--motor-forward`.
-Arrow keys tilt gravity in every Constraint scene except Motor. Motor keeps
+`--constraint-hinge` selects **Hinge + Slider**. The standalone Slider entry and
+its CLI option have been removed; `ConstraintSlider.blend` and `.glb` remain
+test/conformance fixtures, not gallery entries.
+Arrow keys tilt gravity relative to the current camera in every Constraint
+scene except Motor. Motor keeps
 arrow-key tank drive controls; Point keeps its `Space` toggle and starts
 enabled with four spheres orbiting its shared authored anchor. Fixed uses
 contact-driven collection instead.
@@ -208,6 +227,13 @@ arrows tilt it up to 45 degrees. `P` changes particle capacity and resets;
 `R` resets, `F` includes fluid/soft contact timing, and the shared water surface
 and foam renderer are unchanged. `V` exposes both water particles and internal
 soft springs; `B` shows the soft surface and `C` shows water reactions.
+
+Interactive playback uses elapsed-time accumulation, fixed 1/60-second physics
+steps, and interpolated rigid rendering. Catch-up permits at most four steps
+and estimates whether another step fits an 8 ms physics-work budget. A single
+slow step is allowed to finish; excess backlog is dropped instead of doing
+several equally slow steps before drawing. This protects input/render cadence
+under overload but cannot make an over-budget simulation run in real time.
 
 All gallery entries create `World` with opt-in rolling physics capture.
 Outside the smoke contexts, `Z` shows available contact and deformable-surface normals, `X` rigid inputs and

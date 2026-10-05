@@ -91,13 +91,16 @@ Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
 Up/Down and Enter to switch.
 Fixed collects loose spheres on contact. Point starts with four spheres
 orbiting a shared anchor in two perpendicular pairs; `Space` releases or
-reattaches all four. Arrow keys tilt gravity in
-every Constraint scene except Motor, where they keep controlling the car's tank
-drive. Hinge launches a sphere into a panel merged with the first of three
+reattaches all four. Arrow keys tilt gravity relative to the current camera in
+every Constraint scene except Motor, where they keep controlling the car's
+tank drive. Hinge launches a sphere into a panel merged with the first of three
 hinged gears; contact propagates through both interfaces with alternating
 rotation. Slider, Piston, Generic, and Generic Spring launch an
 authored sphere impact automatically.
-In Rigid Body, arrow keys move the authored kinematic Cube and tilt gravity. In
+Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 96
+independent bricks sharing two meshes, and arrows tilt gravity relative to the
+current camera to drive the sphere through the wall. The authored `LoadBox`
+is available as a non-colliding hit-box query volume. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
 GPU timings. Fluid uses the supplied

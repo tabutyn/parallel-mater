@@ -104,6 +104,7 @@ def rigid_metadata(
     exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     exported["pm_smoke_collider"] = bool(source.get("pm_smoke_collider", False))
+    exported["pm_gravity_tilt"] = bool(source.get("pm_gravity_tilt", True))
     if "pm_paint_resolution" in source:
         exported["pm_paint_resolution"] = float(source["pm_paint_resolution"])
     if collision_proxy_name is not None:
@@ -376,6 +377,48 @@ def copy_collision_for_export(
     exported["pm_schema"] = SCHEMA_VERSION
     exported["pm_system"] = "collision_mesh"
     exported["pm_name"] = exported_name
+    return exported
+
+
+def copy_hit_box_for_export(
+    source: bpy.types.Object,
+    collection: bpy.types.Collection,
+    depsgraph: bpy.types.Depsgraph,
+    created_meshes: list[bpy.types.Mesh],
+) -> bpy.types.Object:
+    """Export one evaluated mesh bound as a non-rendered oriented box."""
+    if source.parent is not None or source.rigid_body is not None:
+        raise RuntimeError(
+            f"{source.name}: hit box must be a scene-root mesh without a rigid body"
+        )
+    evaluated = source.evaluated_get(depsgraph)
+    mesh = bpy.data.meshes.new_from_object(
+        evaluated, preserve_all_data_layers=False, depsgraph=depsgraph
+    )
+    created_meshes.append(mesh)
+    if not mesh.vertices:
+        raise RuntimeError(f"{source.name}: hit box mesh is empty")
+    minimum = Vector(tuple(min(vertex.co[axis] for vertex in mesh.vertices)
+                           for axis in range(3)))
+    maximum = Vector(tuple(max(vertex.co[axis] for vertex in mesh.vertices)
+                           for axis in range(3)))
+    half = (maximum - minimum) * 0.5
+    if min(half) <= 0.0:
+        raise RuntimeError(f"{source.name}: hit box needs positive 3D extents")
+    center = (minimum + maximum) * 0.5
+    _, rotation, scale = source.matrix_world.decompose()
+    exported = bpy.data.objects.new(source.name, None)
+    collection.objects.link(exported)
+    exported.matrix_world = Matrix.LocRotScale(
+        source.matrix_world @ center, rotation, None
+    )
+    exported["pm_schema"] = SCHEMA_VERSION
+    exported["pm_system"] = "hit_box"
+    exported["pm_name"] = source.name
+    # glTF converts Blender local (X, Y, Z) to engine local (X, Z, -Y).
+    exported["pm_half_extent_x"] = float(abs(scale.x) * half.x)
+    exported["pm_half_extent_y"] = float(abs(scale.z) * half.z)
+    exported["pm_half_extent_z"] = float(abs(scale.y) * half.y)
     return exported
 
 
@@ -869,7 +912,13 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         obj for obj in bpy.context.scene.objects
         if obj.rigid_body_constraint is not None
     ]
-    if not (sources or flows or cloths or soft_bodies or ropes or constraints):
+    hit_boxes = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == "MESH" and
+        bool(obj.get("pm_hit_box", obj.get("pm_load_box", False)))
+    ]
+    if not (sources or flows or cloths or soft_bodies or ropes or constraints or
+            hit_boxes):
         raise RuntimeError(
             "the scene contains no supported physics objects")
 
@@ -946,6 +995,9 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
             created_objects.append(
                 copy_flow_for_export(source, collection, created_meshes)
             )
+        for source in hit_boxes:
+            created_objects.append(copy_hit_box_for_export(
+                source, collection, depsgraph, created_meshes))
         for source in thermal_surfaces:
             created_objects.append(copy_thermal_surface_for_export(
                 source, collection, created_meshes))

@@ -33,6 +33,17 @@ sphere, box, capsule, or plane collider types.
    splits each copy into its own rigid node with a shared triangle mesh. It
    rejects arrays with overlapping or non-identical copies rather than
    silently simulating them as one compound body.
+8. To author a non-colliding trigger volume, use a scene-root mesh with no
+   rigid body and set its Boolean custom property `pm_hit_box = true`. The
+   evaluated local bounds, object transform, and name become one oriented
+   `HitBox`; the source mesh is not rendered or added as collision geometry.
+   `pm_load_box = true` is accepted as a compatibility alias.
+9. Gallery scenes with screen-space gravity steering can keep selected dynamic
+   scenery under ordinary vertical gravity by setting its Boolean custom
+   property `pm_gravity_tilt = false`. The body remains fully dynamic and can
+   still be displaced by contacts and impulses; the full acceleration stays
+   vertical while other bodies follow steering. Array instances inherit the
+   source property. Use a Boolean property with the checkbox **unchecked**.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -182,10 +193,11 @@ Ambiguous instanced Hook targets and unsupported curve modifiers are rejected.
 ## One Blender–ParallelMater export interface
 
 `tools/blender/export_parallel_mater_scene.py` is the single exporter for rigid
-bodies, rigid-body constraints, collision proxies, Arrays, soft bodies, cloth/pins/fracture, liquid
-Inflow/Outflow/Geometry, and paint metadata. New physics systems extend this
-script and the versioned scene contract, not a per-example exporter. It has no
-gallery scene names or scene-specific physics settings.
+bodies, rigid-body constraints, collision proxies, Arrays, hit boxes, soft
+bodies, cloth/pins/fracture, liquid Inflow/Outflow/Geometry, and paint metadata.
+New physics systems extend this script and the versioned scene contract, not a
+per-example exporter. It has no gallery scene names or scene-specific physics
+settings.
 
 In Blender 4.5+, install that one `.py` file as an add-on, or open it in the
 Scripting workspace and run it once. Use **File → Export → ParallelMater Scene
@@ -205,6 +217,19 @@ into their vertices, triangulates all polygons, writes schema-2 glTF extras, and
 the temporary data. The source `.blend` is not saved or changed.
 Saving a `.blend` does not update the gallery by itself; re-export its `.glb`
 after changing physics properties such as mass.
+After updating the exporter script, restart Blender and load the current
+script before using its File menu entry; an already registered operator can
+still run an older in-memory version. For the wall, the direct command is:
+
+```bash
+blender --background examples/assets/RigidBody.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/RigidBody.glb
+```
+
+Restart the gallery or press `R` to reload the GLB. Its startup message should
+read `Rigid gravity tilt: 1 follow, 384 keep vertical`. Missing GLB tilt flags
+default to `true` for older scenes, even if the `.blend` has them set to false.
 Selection and the active object are restored on success and failure. Soft-body,
 cloth-only, and fluid-only scenes are supported; a dummy rigid body is not required.
 
@@ -238,6 +263,11 @@ The generated metadata is:
 | `pm_smoke_collider` | Optional Boolean; gallery additionally registers smoke/rigid coupling for a static or kinematic mesh (dynamic bodies are coupled automatically) |
 | `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
 | `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
+
+Hit boxes export as empty `pm_system = "hit_box"` nodes with `pm_name` and
+`pm_half_extent_x/y/z`. Their scene-root translation and rotation define the
+world-space trigger frame. They consume no `World` capacity until an
+application polls their `HitBox` value.
 
 When a proxy is selected, the exporter adds a non-rendered
 `pm_system = "collision_mesh"` glTF node and references it from the rigid-body
@@ -282,13 +312,13 @@ The initially welded `Small.048` is seated 0.5 mm from that collision surface.
 Collision-disabled fixed joints suppress contacts throughout the welded group
 while preserving ground contacts. Fixed-scene captures retain 300 frames
 (five seconds at 60 Hz), including the lead-up to a visible jolt or launch.
-Arrow input gives every attached member the same 80-degree gravity vector;
-loose spheres retain downward gravity until collected. Ground uses friction
+Arrow input gives every attached member the same 30-degree, screen-space gravity
+vector; loose spheres retain downward gravity until collected. Ground uses friction
 `4.0`; all 49 small spheres use friction `16.0`. Their effective
 small-sphere/ground coefficient is `8.0`, making attached spheres grip the
 floor and rotate the collector instead of letting the cluster slide.
-The Hinge scene's panel and single visible axial cylinder are merged into the
-first active gear. All three active gears hinge against the same passive Ground
+The Hinge + Slider scene's panel and single visible axial cylinder are merged
+into the first active gear. All three active gears hinge against the same passive `Ground.001`
 body, with each constraint frame's Z axis copied from its gear's local Z axis.
 Tooth contact propagates through both interfaces, so adjacent gears rotate in
 opposite directions and the first and third rotate in the same direction. The
@@ -297,9 +327,21 @@ authored center distances, starting phases, collision search margins,
 the solver's small rest offset throughout a full mesh cycle. All three gears
 use `0.08` tooth friction and zero restitution so they roll without binding or
 rebounding; both followers use mass `1.0` and angular damping `0.01` so they
-follow through freely instead of pushing the driver back. `HingeSphere` and `Ground`
-use friction `4.0`, making the incoming sphere roll instead of sliding across
-the floor. Export every source through the same shared exporter; no
+follow through freely instead of pushing the driver back. The scene has no
+loose ball. `Ground.002` is an active rod carrying a Slider constraint against
+the passive `Ground.001` frame, with its authored vertical local-X axis and
+unlimited travel. Gear teeth, not a joint limit, must support and drive the rod.
+Constraint Object 1 and Object 2 must both be assigned in Blender,
+including when the constraint lives on a rigid mesh rather than an Empty.
+The scene contains five rigid bodies; the old separate `Ground` floor is removed.
+The isolated full-rotation regression moves only the rod away, keeps the shared
+anchor frame stationary, drives the first gear, and checks contact-driven follower rotation.
+The unmodified scene replay checks slider travel, orientation, and lateral
+drift along with gear contacts and mechanical energy. An independent CPU mesh
+check samples both rod and gear surfaces every frame with four and eight
+substeps, limiting their overlap to 2 mm; reported contact counts or contact
+depths alone cannot prove this.
+Export every source through the same shared exporter; no
 scene-specific export path exists.
 
 ## Validate the result
@@ -336,6 +378,19 @@ bowl remains its own collision mesh; the three detailed dynamic objects carry
 authored decimated proxies. Regression checks cover scale baking,
 triangulation, proxy selection, kinematic targets, tilted gravity, toppling,
 and containment.
+
+The gallery's Rigid Body entry instead loads `RigidBody.blend`. Its two ACTIVE
+brick sources each use stacked Array modifiers; export produces 192 independent
+bodies per source while reusing one mesh per layer. `LoadBox` authors the
+non-rendered goal volume through the legacy `pm_load_box` marker, exercising
+the same canonical `hit_box` GLB schema and public query API.
+
+The wall's coplanar faces must produce support contacts on the first step;
+collision margins must not eject touching bricks or let layers sink together.
+The wall regression checks all 384 bricks through ten seconds of authored
+support, including a 0.01-radian rotation limit, impact response, and
+contact-history invalidation after edits. No mortar, fixed joints, or
+static-body substitution is implied by an Array modifier.
 
 ## Collision behavior
 

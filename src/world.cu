@@ -132,6 +132,105 @@ __host__ __device__ Vec3 clamp_length(Vec3 value, float maximum) noexcept {
 
 #include "geometry_constraints.cuh"
 
+__device__ bool hit_box_separates_triangle(
+    Vec3 axis, Vec3 first, Vec3 second, Vec3 third,
+    Vec3 half_extents) noexcept {
+    if (length_squared(axis) <= k_epsilon * k_epsilon) return false;
+    const float first_projection = dot(axis, first);
+    const float second_projection = dot(axis, second);
+    const float third_projection = dot(axis, third);
+    const float minimum = fminf(first_projection,
+                                fminf(second_projection, third_projection));
+    const float maximum = fmaxf(first_projection,
+                                fmaxf(second_projection, third_projection));
+    const float radius = fabsf(axis.x) * half_extents.x +
+                         fabsf(axis.y) * half_extents.y +
+                         fabsf(axis.z) * half_extents.z;
+    return minimum > radius || maximum < -radius;
+}
+
+__device__ bool hit_box_overlaps_triangle(
+    Vec3 first, Vec3 second, Vec3 third, Vec3 half_extents) noexcept {
+    const Vec3 minimum = component_min(first, component_min(second, third));
+    const Vec3 maximum = component_max(first, component_max(second, third));
+    if (minimum.x > half_extents.x || maximum.x < -half_extents.x ||
+        minimum.y > half_extents.y || maximum.y < -half_extents.y ||
+        minimum.z > half_extents.z || maximum.z < -half_extents.z)
+        return false;
+    const Vec3 edges[3]{subtract(second, first), subtract(third, second),
+                        subtract(first, third)};
+    if (hit_box_separates_triangle(cross(edges[0], edges[1]), first,
+                                   second, third, half_extents))
+        return false;
+    for (const Vec3 edge : edges)
+        for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+            if (hit_box_separates_triangle(
+                    cross(edge, basis_axis(axis)), first, second, third,
+                    half_extents))
+                return false;
+    return true;
+}
+
+__device__ Vec3 hit_box_local_point(HitBox box, Vec3 point) noexcept {
+    return inverse_rotate(box.orientation, subtract(point, box.center));
+}
+
+__device__ bool hit_box_contains_point(HitBox box, Vec3 point) noexcept {
+    const Vec3 local = hit_box_local_point(box, point);
+    return fabsf(local.x) <= box.half_extents.x &&
+           fabsf(local.y) <= box.half_extents.y &&
+           fabsf(local.z) <= box.half_extents.z;
+}
+
+__global__ void query_rigid_hit_box_kernel(
+    HitBox box, const BodyParameters *parameters,
+    const RigidBodyState *states, const TriangleMeshResource *meshes,
+    std::uint32_t body_count, std::uint8_t *matches) {
+    const std::uint32_t body = blockIdx.x * blockDim.x + threadIdx.x;
+    if (body >= body_count) return;
+    const TriangleMeshResource &mesh = meshes[parameters[body].mesh.index];
+    const RigidBodyState state = states[body];
+    bool overlap = false;
+    for (std::uint32_t index = 0U; index < mesh.index_count; index += 3U) {
+        const Vec3 first = hit_box_local_point(
+            box, transform_point(state, mesh.vertices[mesh.indices[index]]));
+        const Vec3 second = hit_box_local_point(
+            box, transform_point(state, mesh.vertices[mesh.indices[index + 1U]]));
+        const Vec3 third = hit_box_local_point(
+            box, transform_point(state, mesh.vertices[mesh.indices[index + 2U]]));
+        if (hit_box_overlaps_triangle(first, second, third,
+                                      box.half_extents)) {
+            overlap = true;
+            break;
+        }
+    }
+    // A closed convex body can fully contain a small hit box without either
+    // surface crossing. Convex-plane data is already built for such meshes.
+    if (!overlap && mesh.solid_planes != nullptr) {
+        const Vec3 center = inverse_rotate(
+            state.orientation, subtract(box.center, state.position));
+        overlap = true;
+        for (std::uint32_t triangle = 0U;
+             triangle < mesh.index_count / 3U; ++triangle) {
+            const CollisionPlane plane = mesh.solid_planes[triangle];
+            if (dot(plane.normal, center) > plane.offset + k_epsilon) {
+                overlap = false;
+                break;
+            }
+        }
+    }
+    matches[body] = overlap ? 1U : 0U;
+}
+
+__global__ void query_particle_hit_box_kernel(
+    HitBox box, const Vec3 *positions, std::uint32_t particle_count,
+    std::uint8_t *matches) {
+    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
+    if (particle >= particle_count) return;
+    matches[particle] =
+        hit_box_contains_point(box, positions[particle]) ? 1U : 0U;
+}
+
 struct CompletionState {
     cudaEvent_t event{};
     const std::uint32_t *fluid_neighbor_overflow{};
@@ -877,6 +976,7 @@ struct FluidStorage {
     FluidMovingContact *moving_contacts{};
     FluidContactSample *contact_samples{};
     std::uint8_t *contact_flags{};
+    std::uint8_t *hit_box_flags{};
     FluidContactSample *next_contact_samples{};
     std::uint8_t *next_contact_flags{};
     std::uint32_t *contact_count{};
@@ -914,6 +1014,7 @@ struct FluidStorage {
         release_managed(moving_contacts);
         release_managed(contact_samples);
         release_managed(contact_flags);
+        release_managed(hit_box_flags);
         release_managed(next_contact_samples);
         release_managed(next_contact_flags);
         release_managed(contact_count);
@@ -1042,13 +1143,20 @@ struct World::Impl {
     RigidBodyState *render_previous_states{};
     Vec3 *debug_applied_forces{};
     Vec3 *debug_applied_torques{};
+    PhysicsDebugRigidSample *debug_rigid_samples{};
     RigidBodyState *fluid_previous_states{};
     ContactManifold *rigid_manifolds{};
+    CachedContactPair *rigid_contact_cache{};
+    ContactResponsePatch *rigid_contact_responses{};
+    std::uint32_t *rigid_contact_cache_slots{};
+    std::uint64_t rigid_contact_epoch{};
+    std::uint64_t rigid_contact_revision{};
     std::uint32_t *rigid_color_owners{};
     std::uint8_t *rigid_pair_colors{};
     std::uint32_t *rigid_color_state{};
     std::uint32_t *rigid_contact_event_offsets{};
     WorldAabb *rigid_world_bounds{};
+    std::uint8_t *hit_box_rigid_flags{};
     WorldAabb *fluid_body_bounds{};
     unsigned long long *fluid_body_masks{};
     unsigned long long *fluid_global_body_masks{};
@@ -1089,16 +1197,32 @@ struct World::Impl {
             return success();
         try {
             PhysicsDebugFrame &output = debug_frames[debug_next_frame];
+            const auto download = [](void *destination, const void *source,
+                                     std::size_t bytes) -> Status {
+                if (bytes == 0U) return success();
+                const auto error = cudaMemcpy(destination, source, bytes, cudaMemcpyDeviceToHost);
+                return error == cudaSuccess ? success()
+                    : cuda_failure(error, "physics debug readback failed");
+            };
             output.frame_index = frame_index;
             output.timestep = step_options.timestep;
             output.gravity = step_options.gravity;
-            output.maximum_fluid_neighbor_count =
-                *fluid_maximum_neighbor_count;
+            output.maximum_fluid_neighbor_count = 0U;
+            if (fluid_count != 0U) {
+                const auto status = download(&output.maximum_fluid_neighbor_count,
+                    fluid_maximum_neighbor_count, sizeof(output.maximum_fluid_neighbor_count));
+                if (!status) return status;
+            }
             output.rigid_bodies.resize(rigid_body_count);
-            for (std::uint32_t index = 0U; index < rigid_body_count; ++index) {
-                output.rigid_bodies[index] = {
-                    ids[index], states[current_state][index],
-                    debug_applied_forces[index], debug_applied_torques[index]};
+            if (rigid_body_count != 0U) {
+                // Explicit readback leaves live simulation pages on the GPU;
+                // direct CPU dereferences migrate them back and forth each frame.
+                gather_rigid_debug_samples_kernel<<<(rigid_body_count + 127U) / 128U, 128U>>>(
+                    ids, states[current_state], debug_applied_forces,
+                    debug_applied_torques, rigid_body_count, debug_rigid_samples);
+                const auto status = download(output.rigid_bodies.data(), debug_rigid_samples,
+                    rigid_body_count * sizeof(PhysicsDebugRigidSample));
+                if (!status) return status;
             }
             output.fluid_particles.clear();
             for (std::uint32_t slot = 0U; slot < fluids.size(); ++slot) {
@@ -1153,16 +1277,21 @@ struct World::Impl {
                         body.rigid_contact_forces[index], body.cloth_forces[index],
                         body.fluid_forces[index]});
             }
-            const std::uint32_t retained_rigid_contacts = std::min(
-                *rigid_contact_count, rigid_contact_capacity);
-            output.rigid_contacts.assign(
-                rigid_contact_events,
-                rigid_contact_events + retained_rigid_contacts);
-            const std::uint32_t retained_fluid_contacts = std::min(
-                *fluid_contact_count, options.contact_capacity);
-            output.fluid_contacts.assign(
-                fluid_contact_events,
-                fluid_contact_events + retained_fluid_contacts);
+            std::uint32_t rigid_count{}, fluid_events{};
+            auto status = download(&rigid_count, rigid_contact_count, sizeof(rigid_count));
+            if (!status) return status;
+            if (fluid_count != 0U) {
+                status = download(&fluid_events, fluid_contact_count, sizeof(fluid_events));
+                if (!status) return status;
+            }
+            output.rigid_contacts.resize(std::min(rigid_count, rigid_contact_capacity));
+            status = download(output.rigid_contacts.data(), rigid_contact_events,
+                              output.rigid_contacts.size() * sizeof(RigidContactEvent));
+            if (!status) return status;
+            output.fluid_contacts.resize(std::min(fluid_events, options.contact_capacity));
+            status = download(output.fluid_contacts.data(), fluid_contact_events,
+                              output.fluid_contacts.size() * sizeof(output.fluid_contacts[0]));
+            if (!status) return status;
             debug_next_frame =
                 (debug_next_frame + 1U) % debug_frames.size();
             debug_frame_count = std::min(
@@ -1184,6 +1313,7 @@ struct World::Impl {
                 release_managed(meshes[index].bvh_nodes);
                 release_managed(meshes[index].bvh_leaves);
                 release_managed(meshes[index].solid_planes);
+                release_managed(meshes[index].shell_normals);
                 release_managed(meshes[index].indices);
                 release_managed(meshes[index].vertices);
             }
@@ -1215,6 +1345,7 @@ struct World::Impl {
         release_managed(rigid_active_pairs);
         release_managed(rigid_active_pair_flags);
         release_managed(rigid_world_bounds);
+        release_managed(hit_box_rigid_flags);
         release_managed(fluid_body_bounds);
         release_managed(fluid_body_masks);
         release_managed(fluid_global_body_masks);
@@ -1227,9 +1358,13 @@ struct World::Impl {
         release_managed(rigid_pair_colors);
         release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
+        release_managed(rigid_contact_cache);
+        release_managed(rigid_contact_responses);
+        release_managed(rigid_contact_cache_slots);
         release_managed(states[1]);
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);
+        release_managed(debug_rigid_samples);
         release_managed(fluid_previous_states);
         release_managed(render_previous_states);
         release_managed(states[0]);
@@ -1556,6 +1691,9 @@ Status World::create(WorldOptions options, World &output,
         status = allocate_managed(implementation->debug_applied_torques,
                                   options.rigid_body_capacity);
         if (!status) return status;
+        status = allocate_managed(implementation->debug_rigid_samples,
+                                  options.rigid_body_capacity);
+        if (!status) return status;
     }
     status = allocate_managed(implementation->fluid_previous_states,
                               options.rigid_body_capacity);
@@ -1564,6 +1702,14 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_contact_cache, leaf_pair_slot_capacity);
+    if (!status) return status;
+    status = allocate_managed(implementation->rigid_contact_responses, leaf_pair_slot_capacity);
+    if (!status) return status;
+    status = allocate_managed(implementation->rigid_contact_cache_slots, pair_capacity);
+    if (!status) return status;
+    std::fill_n(implementation->rigid_contact_cache, leaf_pair_slot_capacity, CachedContactPair{});
+    std::fill_n(implementation->rigid_contact_cache_slots, pair_capacity, k_invalid_dense);
     status = allocate_managed(implementation->rigid_color_owners,
                               options.rigid_body_capacity);
     if (!status) {
@@ -1587,6 +1733,9 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->hit_box_rigid_flags,
+                              options.rigid_body_capacity);
+    if (!status) return status;
     status = allocate_managed(implementation->fluid_body_bounds,
                               options.rigid_body_capacity);
     if (!status) return status;
@@ -1708,6 +1857,8 @@ Status World::create(WorldOptions options, World &output,
                 ContactManifold{});
     std::fill_n(implementation->rigid_world_bounds,
                 options.rigid_body_capacity, WorldAabb{});
+    std::fill_n(implementation->hit_box_rigid_flags,
+                options.rigid_body_capacity, 0U);
     std::fill_n(implementation->rigid_active_pair_flags, pair_capacity, 0U);
     std::fill_n(implementation->rigid_active_pairs, pair_capacity, 0U);
     *implementation->rigid_active_pair_count = 0U;
@@ -1790,6 +1941,7 @@ Status World::add_fluid(FluidOptions options,
         !(status = allocate_managed(fluid->moving_contacts, capacity)) ||
         !(status = allocate_managed(fluid->contact_samples, capacity)) ||
         !(status = allocate_managed(fluid->contact_flags, capacity)) ||
+        !(status = allocate_managed(fluid->hit_box_flags, capacity)) ||
         !(status = allocate_managed(fluid->next_contact_samples, capacity)) ||
         !(status = allocate_managed(fluid->next_contact_flags, capacity)) ||
         !(status = allocate_managed(fluid->contact_count, 1U)) ||
@@ -2763,6 +2915,62 @@ static std::vector<CollisionPlane> closed_convex_planes(
     return planes;
 }
 
+// A concave compound can contain individually closed convex shells. Keep
+// their outward normals for one-sided contact validation, without replacing
+// any triangles or treating the entire compound as its convex hull.
+static std::vector<Vec3> convex_shell_normals(
+    const Vec3 *vertices, std::uint32_t vertex_count,
+    const std::vector<std::uint32_t> &indices) {
+    std::map<std::array<float, 3>, std::uint32_t> welded;
+    std::vector<std::uint32_t> remap(vertex_count), parent(vertex_count);
+    for (std::uint32_t i = 0; i < vertex_count; ++i) {
+        const auto p = vertices[i];
+        remap[i] = welded.emplace(
+            std::array<float, 3>{p.x, p.y, p.z}, i).first->second;
+        parent[i] = i;
+    }
+    const auto root = [&](std::uint32_t i) {
+        while (parent[i] != i) {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        return i;
+    };
+    for (std::size_t i = 0; i < indices.size(); i += 3)
+        for (std::size_t corner = 1; corner < 3; ++corner) {
+            const auto a = root(remap[indices[i]]);
+            const auto b = root(remap[indices[i + corner]]);
+            parent[b] = a;
+        }
+    std::map<std::uint32_t, std::vector<std::uint32_t>> shells;
+    for (std::uint32_t t = 0; t < indices.size() / 3U; ++t)
+        shells[root(remap[indices[t * 3U]])].push_back(t);
+    std::vector<Vec3> normals(indices.size() / 3U);
+    bool found = false;
+    for (const auto &[id, triangles] : shells) {
+        (void)id;
+        std::map<std::uint32_t, std::uint32_t> local;
+        std::vector<Vec3> points;
+        std::vector<std::uint32_t> faces;
+        for (auto t : triangles) {
+            for (std::uint32_t corner = 0; corner < 3U; ++corner) {
+                const auto vertex = remap[indices[t * 3U + corner]];
+                const auto [entry, inserted] = local.emplace(
+                    vertex, static_cast<std::uint32_t>(points.size()));
+                if (inserted) points.push_back(vertices[vertex]);
+                faces.push_back(entry->second);
+            }
+        }
+        const auto planes = closed_convex_planes(
+            points.data(), static_cast<std::uint32_t>(points.size()), faces);
+        if (planes.empty()) continue;
+        found = true;
+        for (std::size_t i = 0; i < triangles.size(); ++i)
+            normals[triangles[i]] = planes[i].normal;
+    }
+    return found ? normals : std::vector<Vec3>{};
+}
+
 Status World::add_triangle_mesh(
     DeviceSpan<const Vec3> vertices,
     DeviceSpan<const std::uint32_t> triangle_indices, TriangleMeshId &output,
@@ -2945,8 +3153,11 @@ Status World::add_triangle_mesh(
 
     std::vector<std::uint32_t> bvh_leaves;
     std::vector<CollisionPlane> solid_planes;
+    std::vector<Vec3> shell_normals;
     try {
         solid_planes = closed_convex_planes(owned_vertices,
+            static_cast<std::uint32_t>(vertices.size), reordered_indices);
+        shell_normals = convex_shell_normals(owned_vertices,
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         for (std::uint32_t index = 0U; index < bvh_nodes.size(); ++index) {
             if (bvh_nodes[index].triangle_count != 0U) {
@@ -2991,6 +3202,19 @@ Status World::add_triangle_mesh(
     if (!solid_planes.empty())
         std::copy(solid_planes.begin(), solid_planes.end(), owned_solid_planes);
 
+    Vec3 *owned_shell_normals = nullptr;
+    status = allocate_managed(owned_shell_normals, shell_normals.size());
+    if (!status) {
+        release_managed(owned_solid_planes);
+        release_managed(owned_bvh_leaves);
+        release_managed(owned_bvh_nodes);
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return status;
+    }
+    if (!shell_normals.empty())
+        std::copy(shell_normals.begin(), shell_normals.end(), owned_shell_normals);
+
     TriangleMeshResource &mesh = impl_->meshes[slot];
     mesh.vertices = owned_vertices;
     mesh.indices = owned_indices;
@@ -3026,6 +3250,7 @@ Status World::add_triangle_mesh(
     mesh.bvh_leaves = owned_bvh_leaves;
     mesh.bvh_leaf_count = static_cast<std::uint32_t>(bvh_leaves.size());
     mesh.solid_planes = owned_solid_planes;
+    mesh.shell_normals = owned_shell_normals;
     mesh.alive = true;
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
@@ -3061,6 +3286,7 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
     release_managed(mesh.bvh_leaves);
     release_managed(mesh.bvh_nodes);
     release_managed(mesh.solid_planes);
+    release_managed(mesh.shell_normals);
     release_managed(mesh.indices);
     release_managed(mesh.vertices);
     mesh.vertex_count = 0U;
@@ -5435,6 +5661,101 @@ Status World::read_rigid_body_state(RigidBodyId body, RigidBodyState &output,
     return success();
 }
 
+Status World::query_hit_box(HitBox box, HitBoxResult &output,
+                            cudaStream_t stream) const noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "world is not initialized");
+    Status status = impl_->require_current_device();
+    if (!status) return status;
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        status = wait_for_completion(impl_->frame);
+        if (!status) return status;
+    }
+    const float orientation_length_squared =
+        box.orientation.x * box.orientation.x +
+        box.orientation.y * box.orientation.y +
+        box.orientation.z * box.orientation.z +
+        box.orientation.w * box.orientation.w;
+    if (!finite(box.center) || !finite(box.orientation) ||
+        !finite(box.half_extents) || box.half_extents.x <= 0.0F ||
+        box.half_extents.y <= 0.0F || box.half_extents.z <= 0.0F ||
+        orientation_length_squared <= k_epsilon * k_epsilon) {
+        return failure(StatusCode::invalid_argument,
+                       "hit box transform and half extents are invalid");
+    }
+    box.orientation = normalized_quaternion(box.orientation);
+
+    constexpr std::uint32_t block_size = 128U;
+    if (impl_->rigid_body_count != 0U) {
+        query_rigid_hit_box_kernel<<<
+            (impl_->rigid_body_count + block_size - 1U) / block_size,
+            block_size, 0, stream>>>(
+            box, impl_->parameters, impl_->states[impl_->current_state],
+            impl_->meshes, impl_->rigid_body_count,
+            impl_->hit_box_rigid_flags);
+        const cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+            return cuda_failure(error, "rigid hit-box query launch failed");
+    }
+    for (const auto &owner : impl_->fluids) {
+        if (!owner || !owner->alive || *owner->count == 0U) continue;
+        query_particle_hit_box_kernel<<<
+            (*owner->count + block_size - 1U) / block_size,
+            block_size, 0, stream>>>(
+            box, owner->positions, *owner->count, owner->hit_box_flags);
+        const cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+            return cuda_failure(error, "particle hit-box query launch failed");
+    }
+    cudaError_t error = cudaStreamSynchronize(stream);
+    if (error != cudaSuccess)
+        return cuda_failure(error, "hit-box query synchronization failed");
+
+    HitBoxResult temporary;
+    try {
+        temporary.rigid_bodies.reserve(impl_->rigid_body_count);
+        std::size_t particle_count = 0U;
+        for (const auto &owner : impl_->fluids)
+            if (owner && owner->alive) particle_count += *owner->count;
+        temporary.particles.reserve(particle_count);
+        for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
+            if (impl_->hit_box_rigid_flags[body] != 0U)
+                temporary.rigid_bodies.push_back(impl_->ids[body]);
+        for (std::uint32_t slot = 0U; slot < impl_->fluids.size(); ++slot) {
+            const auto &owner = impl_->fluids[slot];
+            if (!owner || !owner->alive) continue;
+            const FluidId fluid{slot, owner->generation};
+            for (std::uint32_t particle = 0U; particle < *owner->count;
+                 ++particle)
+                if (owner->hit_box_flags[particle] != 0U)
+                    temporary.particles.push_back(
+                        {fluid, owner->ids[particle]});
+        }
+        std::sort(temporary.rigid_bodies.begin(),
+                  temporary.rigid_bodies.end(),
+                  [](RigidBodyId left, RigidBodyId right) {
+                      return left.index < right.index ||
+                          (left.index == right.index &&
+                           left.generation < right.generation);
+                  });
+        std::sort(temporary.particles.begin(), temporary.particles.end(),
+                  [](HitBoxParticle left, HitBoxParticle right) {
+                      if (left.fluid.index != right.fluid.index)
+                          return left.fluid.index < right.fluid.index;
+                      if (left.fluid.generation != right.fluid.generation)
+                          return left.fluid.generation < right.fluid.generation;
+                      return left.stable_particle_id <
+                             right.stable_particle_id;
+                  });
+    } catch (...) {
+        return failure(StatusCode::out_of_memory,
+                       "hit-box query result allocation failed");
+    }
+    output = std::move(temporary);
+    return success();
+}
+
 Status World::add_rigid_constraint(
     RigidConstraintOptions options, RigidConstraintId &output) noexcept {
     if (!impl_)
@@ -6085,8 +6406,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             ? impl_->rigid_body_count * (impl_->rigid_body_count - 1U) / 2U
             : k_contact_color_count;
     const bool small_rigid_contacts = impl_->rigid_body_count <= 256U;
-    impl_->rigid_solve_kernels_per_substep = small_rigid_contacts ? 5U :
-        3U + 3U * color_round_count + 8U * (color_round_count + 1U);
+    // Fixed contact Jacobians and a different dependent color order are
+    // validated for ordinary stacks, not small analytic/articulated cases or
+    // coupled systems. Those keep their established contact response.
+    const bool ordinary_rigid_stack = small_rigid_contacts &&
+        impl_->rigid_body_count >= 32U && impl_->rigid_constraint_count == 0U &&
+        impl_->fluid_count == 0U && !has_cloth && !has_soft_body && !has_smoke &&
+        std::none_of(impl_->ropes.begin(), impl_->ropes.end(),
+            [](const auto &rope) { return rope && rope->alive; });
+    impl_->rigid_solve_kernels_per_substep = (small_rigid_contacts ? 7U :
+        5U + 3U * color_round_count + 9U * (color_round_count + 1U)) +
+        (impl_->rigid_constraint_count != 0U ? 2U : 0U);
     const auto coupled_cloth = [&](std::uint32_t index) {
         return std::any_of(impl_->soft_cloth_couplings.begin(),
             impl_->soft_cloth_couplings.end(), [&](const auto &coupling) {
@@ -6903,7 +7233,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->parameters, impl_->accumulators, impl_->targets,
             impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, options.gravity, substep_timestep,
-            options.substeps - substep, substep == 0U);
+            options.substeps - substep, substep == 0U,
+            impl_->ids, impl_->rigid_constraints,
+            impl_->rigid_constraint_count != 0U
+                ? impl_->options.rigid_constraint_capacity : 0U);
         if (impl_->rigid_constraint_count != 0U) {
             build_rigid_compounds_kernel<<<1U, 1U, 0, stream>>>(
                 impl_->rigid_constraints,
@@ -7015,9 +7348,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         // Many-body worlds parallelize across pairs. Few-body worlds spread
         // each dense pair across blocks and reduce in the same candidate order.
-        constexpr std::uint32_t contact_evaluation_threads = 32U;
+        // One shared reduction manifold accompanies the per-thread scratch.
+        constexpr std::uint32_t contact_evaluation_threads =
+            33U * sizeof(ContactManifold) <= 48U * 1024U ? 32U : 16U;
         const std::uint32_t blocks_per_pair =
             impl_->rigid_leaf_manifolds != nullptr ? k_rigid_leaf_blocks_per_pair : 1U;
+        finalize_rigid_contact_manifolds_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
+            impl_->rigid_body_count, impl_->meshes, impl_->ids, impl_->rigid_constraints,
+            impl_->rigid_constraint_count != 0U ? impl_->options.rigid_constraint_capacity : 0U,
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->rigid_leaf_pair_counts, substep_timestep, impl_->rigid_manifolds, true);
         evaluate_rigid_leaf_pairs_kernel<<<
             contact_block_count * blocks_per_pair, contact_evaluation_threads,
             contact_evaluation_threads * sizeof(ContactManifold),
@@ -7042,7 +7383,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_leaf_pair_counts, impl_->rigid_leaf_pairs_per_slot,
                 impl_->rigid_leaf_manifolds, impl_->rigid_manifolds);
         }
-        evaluate_overflow_rigid_pairs_kernel<<<
+        finalize_rigid_contact_manifolds_kernel<<<
             contact_block_count, block_size, 0, stream>>>(
                 impl_->parameters, impl_->states[impl_->current_state],
                 impl_->states[output_state], impl_->rigid_body_count,
@@ -7053,7 +7394,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_active_pairs,
                 impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts, substep_timestep,
-                impl_->rigid_manifolds);
+                impl_->rigid_manifolds, false);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -7065,6 +7406,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
+        if (impl_->rigid_contact_revision != impl_->revision)
+            impl_->rigid_contact_epoch += 2U;
+        impl_->rigid_contact_revision = impl_->revision;
+        ++impl_->rigid_contact_epoch;
+        load_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
+            impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
+            impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
+            impl_->parameters,
+            ordinary_rigid_stack ? impl_->rigid_contact_responses : nullptr);
         prepare_parallel_contact_events_kernel<<<1U, 1U, 0, stream>>>(
             impl_->rigid_body_count, impl_->rigid_manifolds,
             impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
@@ -7084,7 +7436,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_color_owners, impl_->rigid_color_state,
                 color_round_count,
                 impl_->rigid_constraint_count != 0U
-                    ? impl_->rigid_compounds : nullptr);
+                    ? impl_->rigid_compounds : nullptr,
+                ordinary_rigid_stack);
         } else {
             for (std::uint32_t color = 0U;
                  color < color_round_count; ++color) {
@@ -7126,9 +7479,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     ? impl_->rigid_contact_capacity : 0U,
                 substep_timestep,
                 impl_->rigid_constraint_count != 0U
-                    ? impl_->rigid_compounds : nullptr);
+                    ? impl_->rigid_compounds : nullptr,
+                impl_->rigid_contact_responses,
+                ordinary_rigid_stack ? impl_->rigid_leaf_pair_slot_capacity : 0U);
         } else {
-            for (std::uint32_t pass = 0U; pass < 8U; ++pass) {
+            for (std::uint32_t pass = 0U; pass <= 8U; ++pass) {
                 for (std::uint32_t color = 0U;
                      color < color_round_count; ++color) {
                     resolve_colored_rigid_contacts_kernel<<<
@@ -7142,9 +7497,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         impl_->rigid_contact_events,
                         collect_rigid_contacts
                             ? impl_->rigid_contact_capacity : 0U,
-                        color, substep_timestep, pass == 0U,
+                        color, substep_timestep, pass == 1U,
                         impl_->rigid_constraint_count != 0U
-                            ? impl_->rigid_compounds : nullptr);
+                            ? impl_->rigid_compounds : nullptr, pass == 0U);
                 }
                 resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
                     impl_->parameters, impl_->states[output_state],
@@ -7155,9 +7510,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_contact_events,
                     collect_rigid_contacts
                         ? impl_->rigid_contact_capacity : 0U,
-                    substep_timestep, pass == 0U,
+                    substep_timestep, pass == 1U,
                     impl_->rigid_constraint_count != 0U
-                        ? impl_->rigid_compounds : nullptr);
+                        ? impl_->rigid_compounds : nullptr, pass == 0U);
             }
         }
         if (impl_->rigid_constraint_count != 0U) {
@@ -7181,6 +7536,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
             impl_->rigid_body_count);
+        if (impl_->rigid_constraint_count != 0U) {
+            finalize_guided_bodies_kernel<<<block_count, block_size, 0, stream>>>(
+                impl_->parameters, impl_->ids, impl_->states[impl_->current_state],
+                impl_->states[output_state], impl_->rigid_body_count,
+                impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
+                substep_timestep, impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count);
+        }
+        save_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
+            impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
+            impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
+            impl_->rigid_contact_event_offsets, impl_->rigid_contact_events,
+            collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
+            ordinary_rigid_stack ? impl_->rigid_contact_responses : nullptr);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -8075,6 +8446,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
 
     ++impl_->frame_index;
     ++impl_->revision;
+    impl_->rigid_contact_revision = impl_->revision;
     if (options.collect_kernel_timings) {
         impl_->timing_available = true;
         impl_->timing_boundary_count = timing_boundary;
@@ -8345,7 +8717,7 @@ Status World::collect_step_timings(WorldStepTimings &output) const noexcept {
                 ? impl_->rigid_solve_kernels_per_substep
                 : impl_->timing_stages[index] ==
                           TimingStage::rigid_contact_evaluation
-                    ? 2U : 1U;
+                    ? 3U + (impl_->rigid_leaf_manifolds != nullptr ? 1U : 0U) : 1U;
         timing->launch_count += launches;
         if (contact_generation_stage) {
             output.rigid_contact_generation.total_milliseconds += milliseconds;
@@ -8503,7 +8875,7 @@ Status World::collect_statistics(WorldStatistics &output,
         const std::size_t capacity = fluid->options.capacity;
         output.allocated_bytes += capacity *
             (6U * sizeof(Vec3) + 5U * sizeof(std::uint32_t) +
-             5U * sizeof(float) + 2U * sizeof(std::uint8_t) +
+             5U * sizeof(float) + 3U * sizeof(std::uint8_t) +
              2U * sizeof(std::uint64_t) + sizeof(FluidBodyImpulse) +
              2U * sizeof(FluidContactSample)) +
              fluid->sort_workspace_size + fluid->select_workspace_size +
@@ -8521,8 +8893,12 @@ Status World::collect_statistics(WorldStatistics &output,
                                sizeof(RigidCompound)
                          : 0U) +
                     (impl_->debug_applied_forces != nullptr
-                         ? 2U * sizeof(Vec3) : 0U)) +
+                         ? 2U * sizeof(Vec3) + sizeof(PhysicsDebugRigidSample) : 0U) +
+                    sizeof(std::uint8_t)) +
         capacity * (capacity - 1U) / 2U * sizeof(ContactManifold) +
+        impl_->rigid_leaf_pair_slot_capacity * sizeof(CachedContactPair) +
+        impl_->rigid_leaf_pair_slot_capacity * sizeof(ContactResponsePatch) +
+        capacity * capacity * sizeof(std::uint32_t) +
         capacity * sizeof(std::uint32_t) +
         capacity * (capacity - 1U) / 2U * sizeof(std::uint8_t) +
         2U * sizeof(std::uint32_t) +
@@ -8575,7 +8951,9 @@ Status World::collect_statistics(WorldStatistics &output,
                 impl_->meshes[index].vertex_count * sizeof(Vec3) +
                 impl_->meshes[index].index_count * sizeof(std::uint32_t) +
                 impl_->meshes[index].bvh_node_count * sizeof(BvhNode) +
-                impl_->meshes[index].bvh_leaf_count * sizeof(std::uint32_t);
+                impl_->meshes[index].bvh_leaf_count * sizeof(std::uint32_t) +
+                (impl_->meshes[index].shell_normals != nullptr
+                     ? impl_->meshes[index].index_count / 3U * sizeof(Vec3) : 0U);
         }
     }
     return success();
