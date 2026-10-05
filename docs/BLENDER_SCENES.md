@@ -38,6 +38,12 @@ sphere, box, capsule, or plane collider types.
    evaluated local bounds, object transform, and name become one oriented
    `HitBox`; the source mesh is not rendered or added as collision geometry.
    `pm_load_box = true` is accepted as a compatibility alias.
+9. Gallery scenes with screen-space gravity steering can keep selected dynamic
+   scenery under ordinary vertical gravity by setting its Boolean custom
+   property `pm_gravity_tilt = false`. The body remains fully dynamic and can
+   still be displaced by contacts and impulses; the full acceleration stays
+   vertical while other bodies follow steering. Array instances inherit the
+   source property. Use a Boolean property with the checkbox **unchecked**.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -211,6 +217,19 @@ into their vertices, triangulates all polygons, writes schema-2 glTF extras, and
 the temporary data. The source `.blend` is not saved or changed.
 Saving a `.blend` does not update the gallery by itself; re-export its `.glb`
 after changing physics properties such as mass.
+After updating the exporter script, restart Blender and load the current
+script before using its File menu entry; an already registered operator can
+still run an older in-memory version. For the wall, the direct command is:
+
+```bash
+blender --background examples/assets/RigidBody.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/RigidBody.glb
+```
+
+Restart the gallery or press `R` to reload the GLB. Its startup message should
+read `Rigid gravity tilt: 1 follow, 384 keep vertical`. Missing GLB tilt flags
+default to `true` for older scenes, even if the `.blend` has them set to false.
 Selection and the active object are restored on success and failure. Soft-body,
 cloth-only, and fluid-only scenes are supported; a dummy rigid body is not required.
 
@@ -349,10 +368,17 @@ triangulation, proxy selection, kinematic targets, tilted gravity, toppling,
 and containment.
 
 The gallery's Rigid Body entry instead loads `RigidBody.blend`. Its two ACTIVE
-brick sources each use stacked Array modifiers; export produces 48 independent
+brick sources each use stacked Array modifiers; export produces 192 independent
 bodies per source while reusing one mesh per layer. `LoadBox` authors the
 non-rendered goal volume through the legacy `pm_load_box` marker, exercising
 the same canonical `hit_box` GLB schema and public query API.
+
+The wall's coplanar faces must produce support contacts on the first step;
+collision margins must not eject touching bricks or let layers sink together.
+The wall regression checks all 384 bricks through ten seconds of authored
+support, including a 0.01-radian rotation limit, impact response, and
+contact-history invalidation after edits. No mortar, fixed joints, or
+static-body substitution is implied by an Array modifier.
 
 ## Collision behavior
 

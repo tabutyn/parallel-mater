@@ -134,7 +134,7 @@ struct GalleryEntry {
 inline constexpr std::array gallery_entries{
     GalleryEntry{GalleryContext::rigid_body, GallerySceneSource::default_scene,
         GalleryControlPolicy::rigid_gravity, GalleryCountKind::none, {},
-        "RIGID BODY", "ARROWS GRAVITY  96-BRICK WALL", {48, 55, 63, 235},
+        "RIGID BODY", "ARROWS ROLL BALL  384-BRICK WALL", {48, 55, 63, 235},
         {170, 176, 184},
         {.target = {0.0F, 1.0F, 5.5F}, .distance_scale = 1.7F},
         false, false, 0U, 0U},

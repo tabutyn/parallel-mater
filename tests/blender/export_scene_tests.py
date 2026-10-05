@@ -130,13 +130,31 @@ class ExportSceneTests(unittest.TestCase):
 
     def test_rigid_body_array_wall_and_hit_box(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RigidBody.blend"))
-        document = self.check_export(Counter(rigid_body=98, hit_box=1))
+        document = self.check_export(Counter(rigid_body=386, hit_box=1))
         bodies = [node["extras"] for node in document["nodes"]
                   if node.get("extras", {}).get("pm_system") == "rigid_body"]
         self.assertEqual(Counter(body["pm_source_name"] for body in bodies),
                          Counter({"Ground": 1, "Icosphere": 1,
-                                  "Layer1": 48, "Layer2": 48}))
-        self.assertEqual(len({body["pm_name"] for body in bodies}), 98)
+                                  "Layer1": 192, "Layer2": 192}))
+        self.assertEqual(len({body["pm_name"] for body in bodies}), 386)
+        self.assertTrue(all(not body["pm_gravity_tilt"] for body in bodies
+                            if body["pm_source_name"] in {"Layer1", "Layer2"}))
+        self.assertTrue(all(body["pm_gravity_tilt"] for body in bodies
+                            if body["pm_source_name"] in {"Ground", "Icosphere"}))
+        # The gallery loads the committed GLB, not this temporary fresh export.
+        # Catch stale assets produced by an older Blender script, which can
+        # silently omit the false tilt flags and restore global wall steering.
+        committed = {
+            node["extras"]["pm_name"]: node["extras"]
+            for node in read_glb(ASSETS / "RigidBody.glb")["nodes"]
+            if node.get("extras", {}).get("pm_system") == "rigid_body"
+        }
+        self.assertEqual(set(committed), {body["pm_name"] for body in bodies})
+        for body in bodies:
+            for key in ("pm_gravity_tilt", "pm_mass"):
+                self.assertEqual(committed[body["pm_name"]].get(key), body[key],
+                                 f"RigidBody.glb is stale: {body['pm_name']} {key}; "
+                                 "re-export with the current repository exporter")
         hit_box = next(node["extras"] for node in document["nodes"]
                        if node.get("extras", {}).get("pm_system") == "hit_box")
         self.assertEqual(hit_box["pm_name"], "LoadBox")

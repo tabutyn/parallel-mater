@@ -788,6 +788,8 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         body.source_name = extras.string("pm_source_name").value_or(body.name);
         body.paintable = extras.boolean("pm_paintable").value_or(false);
         body.smoke_collider = extras.boolean("pm_smoke_collider").value_or(false);
+        body.follows_gravity_tilt =
+            extras.boolean("pm_gravity_tilt").value_or(true);
         if (const auto resolution = extras.number("pm_paint_resolution")) {
             if (!std::isfinite(*resolution) || *resolution < 32.0 ||
                 *resolution > 2048.0 || std::floor(*resolution) != *resolution) {

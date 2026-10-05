@@ -36,6 +36,10 @@ struct RigidBodyDefinition {
     std::vector<std::uint32_t> collision_mesh_indices{};
     bool paintable{};
     bool smoke_collider{};
+    // Gallery steering may tilt world gravity while selected scenery retains
+    // authored vertical gravity. This does not make the body static: contacts
+    // and impulses still move it normally.
+    bool follows_gravity_tilt{true};
     std::uint32_t paint_resolution{512U};
     std::string source_name{};
 };

@@ -757,10 +757,18 @@ back into the solver.
 The solver uses at most `0.001 m` of the combined margin as a rest offset, then
 uses the remaining margin only for speculative detection. This small gap keeps
 triangle surfaces from numerically crossing without making bodies float by the
-full authored margin. Contacts outside the rest offset release immediately when
-the surfaces separate. When triangles do cross, recovery depth comes from the
-body vertices behind the contacted triangle plane rather than from the search
-margin. A body in an enabled fixed constraint recovers through contact velocity.
+full authored margin. Small closed convex meshes additionally use clipped face
+patches: their normals remain defined at zero separation, so coplanar authored
+faces require no artificial gap. These convex contact impulses accumulate
+across solver passes and warm-start from matching contact points in the previous
+substep. Body edits, stale handles, and timestep changes invalidate that history.
+Curved/concave meshes retain their triangle contact path. Hinge and fixed-member
+contact impulses retain their established response rules.
+Friction remains active within the numerical skin only while normal support
+exists, and cached friction is removed when contact opens.
+For eligible convex bodies and fixed members, intersection recovery depth comes
+from the body vertices behind the contacted triangle plane rather than from the
+search margin. A body in an enabled fixed constraint recovers through contact velocity.
 Recovery uses the measured penetration, and contact and joint rows iterate
 together so light supports receive the heavy cluster's load before the next
 integration step. This avoids separating a member from its joint or letting a

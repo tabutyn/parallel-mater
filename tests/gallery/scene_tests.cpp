@@ -191,11 +191,11 @@ int main() {
             static_cast<int>(std::lround(position.y * 1'000.0F)),
             static_cast<int>(std::lround(position.z * 1'000.0F))});
     }
-    check(rigid_body_scene.rigid_bodies.size() == 98U &&
-              layer_one == 48U && layer_two == 48U &&
-              brick_centers.size() == 96U &&
+    check(rigid_body_scene.rigid_bodies.size() == 386U &&
+              layer_one == 192U && layer_two == 192U &&
+              brick_centers.size() == 384U &&
               rigid_body_scene.meshes.size() == 4U,
-          "RigidBody arrays export 96 independent shared-mesh bricks");
+          "RigidBody arrays export 384 independent shared-mesh bricks");
     check(rigid_body_scene.hit_boxes.size() == 1U &&
               rigid_body_scene.hit_boxes[0].name == "LoadBox" &&
               std::fabs(rigid_body_scene.hit_boxes[0].box.center.z + 16.0F) <
