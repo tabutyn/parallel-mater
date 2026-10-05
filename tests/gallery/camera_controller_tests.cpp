@@ -89,7 +89,6 @@ int main() {
     using parallel_mater::gallery::uses_rigid_gravity;
     for (const GalleryContext context : {GalleryContext::constraint_fixed,
             GalleryContext::constraint_point, GalleryContext::constraint_hinge,
-            GalleryContext::constraint_slider,
             GalleryContext::constraint_piston,
             GalleryContext::constraint_generic,
             GalleryContext::constraint_generic_spring})
@@ -97,6 +96,17 @@ int main() {
               "every non-motor constraint scene has arrow gravity controls");
     const GalleryControlPolicy motor_controls =
         gallery_entry(GalleryContext::constraint_motor).controls;
+    check(gallery_entry(GalleryContext::constraint_hinge).name ==
+              "CONSTRAINT: HINGE + SLIDER",
+          "combined hinge and slider scene must use its new display name");
+    for (const auto &entry : parallel_mater::gallery::gallery_entries)
+        check(entry.command_line_option != "--constraint-slider",
+              "standalone slider must not remain in the gallery or CLI");
+    check(parallel_mater::gallery::gallery_context_index(
+              GalleryContext::constraint_piston) ==
+              parallel_mater::gallery::gallery_context_index(
+                  GalleryContext::constraint_hinge) + 1U,
+          "Piston must directly follow Hinge + Slider in gallery navigation");
     check(!uses_rigid_gravity(motor_controls) &&
               motor_controls == GalleryControlPolicy::tank_motor,
           "motor constraint scene keeps arrow tank controls");
@@ -112,6 +122,16 @@ int main() {
               "every smoke scene shares 45-degree arrow gravity controls");
     const Camera steering_camera{{0.0F, 3.0F, 5.0F},
                                  {0.0F, 0.0F, 0.0F}};
+    for (const auto input : {Vec3{1.0F, 0.0F, 0.0F},
+                             Vec3{1.0F, 1.0F, 0.0F}}) {
+        const Vec3 gravity = screen_space_gravity(
+            steering_camera, input.x, input.y, 9.81F,
+            parallel_mater::gallery::collector_gravity_tilt_degrees);
+        check(near(std::hypot(gravity.x, gravity.z), 4.905F) &&
+                  near(gravity.y, -9.81F * std::sqrt(0.75F)) &&
+                  near(std::sqrt(dot(gravity, gravity)), 9.81F),
+              "Fixed arrow gravity stays at 30 degrees, including diagonals");
+    }
     Vec3 tilted{0.0F, -19.62F, 0.0F};
     for (int step = 0; step < 60; ++step)
         tilted = steer_gravity(tilted, steering_camera, 1.0F, 0.0F,

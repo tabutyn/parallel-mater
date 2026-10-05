@@ -20,6 +20,7 @@ struct CameraPreset {
 // Camera-relative gravity shared by scenes with a tiltable course. Screen
 // right/up input maps to camera-right/forward ground directions in [-1, 1].
 inline constexpr float peg_paint_gravity_tilt_degrees = 50.0F;
+inline constexpr float collector_gravity_tilt_degrees = 30.0F;
 
 [[nodiscard]] inline Vec3 screen_space_gravity(
     Camera camera, float right_input, float up_input, float magnitude,

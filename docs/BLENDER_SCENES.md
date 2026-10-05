@@ -312,13 +312,13 @@ The initially welded `Small.048` is seated 0.5 mm from that collision surface.
 Collision-disabled fixed joints suppress contacts throughout the welded group
 while preserving ground contacts. Fixed-scene captures retain 300 frames
 (five seconds at 60 Hz), including the lead-up to a visible jolt or launch.
-Arrow input gives every attached member the same 80-degree gravity vector;
-loose spheres retain downward gravity until collected. Ground uses friction
+Arrow input gives every attached member the same 30-degree, screen-space gravity
+vector; loose spheres retain downward gravity until collected. Ground uses friction
 `4.0`; all 49 small spheres use friction `16.0`. Their effective
 small-sphere/ground coefficient is `8.0`, making attached spheres grip the
 floor and rotate the collector instead of letting the cluster slide.
-The Hinge scene's panel and single visible axial cylinder are merged into the
-first active gear. All three active gears hinge against the same passive Ground
+The Hinge + Slider scene's panel and single visible axial cylinder are merged
+into the first active gear. All three active gears hinge against the same passive `Ground.001`
 body, with each constraint frame's Z axis copied from its gear's local Z axis.
 Tooth contact propagates through both interfaces, so adjacent gears rotate in
 opposite directions and the first and third rotate in the same direction. The
@@ -327,9 +327,21 @@ authored center distances, starting phases, collision search margins,
 the solver's small rest offset throughout a full mesh cycle. All three gears
 use `0.08` tooth friction and zero restitution so they roll without binding or
 rebounding; both followers use mass `1.0` and angular damping `0.01` so they
-follow through freely instead of pushing the driver back. `HingeSphere` and `Ground`
-use friction `4.0`, making the incoming sphere roll instead of sliding across
-the floor. Export every source through the same shared exporter; no
+follow through freely instead of pushing the driver back. The scene has no
+loose ball. `Ground.002` is an active rod carrying a Slider constraint against
+the passive `Ground.001` frame, with its authored vertical local-X axis and
+unlimited travel. Gear teeth, not a joint limit, must support and drive the rod.
+Constraint Object 1 and Object 2 must both be assigned in Blender,
+including when the constraint lives on a rigid mesh rather than an Empty.
+The scene contains five rigid bodies; the old separate `Ground` floor is removed.
+The isolated full-rotation regression moves only the rod away, keeps the shared
+anchor frame stationary, drives the first gear, and checks contact-driven follower rotation.
+The unmodified scene replay checks slider travel, orientation, and lateral
+drift along with gear contacts and mechanical energy. An independent CPU mesh
+check samples both rod and gear surfaces every frame with four and eight
+substeps, limiting their overlap to 2 mm; reported contact counts or contact
+depths alone cannot prove this.
+Export every source through the same shared exporter; no
 scene-specific export path exists.
 
 ## Validate the result

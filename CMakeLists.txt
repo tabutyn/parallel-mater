@@ -269,7 +269,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
             PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
             PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
-            PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintSlider.glb"
             PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
             PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
             PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
@@ -468,6 +467,21 @@ if(BUILD_TESTING)
         add_test(NAME parallel-mater-rigid-constraint-scene-tests
                  COMMAND parallel-mater-rigid-constraint-scene-tests)
         set_tests_properties(parallel-mater-rigid-constraint-scene-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+        add_test(NAME parallel-mater-hinge-slider-contact-tests
+                 COMMAND parallel-mater-rigid-constraint-scene-tests --hinge-four-substeps)
+        set_tests_properties(parallel-mater-hinge-slider-contact-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
+        add_executable(parallel-mater-piston-scene-tests
+                       tests/gallery/piston_scene_tests.cpp)
+        target_link_libraries(parallel-mater-piston-scene-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-piston-scene-tests PRIVATE
+            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb")
+        add_test(NAME parallel-mater-piston-scene-tests
+                 COMMAND parallel-mater-piston-scene-tests)
+        set_tests_properties(parallel-mater-piston-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 
         add_executable(parallel-mater-cloth-tests tests/gallery/cloth_tests.cpp)
@@ -755,7 +769,7 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-constraint-fixed-headless-test
             parallel-mater-constraint-fixed.ppm 120 --constraint-fixed
-            --gravity-tilt-degrees 80)
+            --gravity-tilt-degrees 30)
         add_gallery_headless_test(
             parallel-mater-constraint-point-headless-test
             parallel-mater-constraint-point.ppm 120 --constraint-point
@@ -763,9 +777,6 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-constraint-hinge-headless-test
             parallel-mater-constraint-hinge.ppm 120 --constraint-hinge)
-        add_gallery_headless_test(
-            parallel-mater-constraint-slider-headless-test
-            parallel-mater-constraint-slider.ppm 120 --constraint-slider)
         add_gallery_headless_test(
             parallel-mater-constraint-piston-headless-test
             parallel-mater-constraint-piston.ppm 120 --constraint-piston)

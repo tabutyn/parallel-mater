@@ -77,7 +77,8 @@ constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
 constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
 constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
-constexpr float k_collector_gravity_tilt_degrees = 80.0F;
+constexpr float k_collector_gravity_tilt_degrees =
+    parallel_mater::gallery::collector_gravity_tilt_degrees;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_dump_initial_angle = k_pi * 0.25F;
 constexpr float k_dump_final_angle = -k_pi * 0.25F;
@@ -741,7 +742,6 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH),
             std::filesystem::path(

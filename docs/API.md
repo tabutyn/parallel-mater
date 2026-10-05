@@ -149,6 +149,18 @@ contact impulses and joint rows iterate together through eight contact sweeps,
 each using the authored joint iteration budget. Motor impulse limits remain per
 substep across those sweeps. Applications still call only `World::step`.
 
+A body attached only to one unbreakable, static-anchored piston or slider uses
+the guide's permitted motion during integration and contact response. Piston
+twist stays independent of locked swing, including across a half-turn. Guided
+static contacts use swept entry normals and impact-time integration; contact
+recovery cannot push the body off its shaft or rotate it through a neighboring
+stop. Closed convex pieces inside compound triangle meshes retain outward
+normals even when mirrored. Open surfaces retain two-sided collision behavior.
+Against moving bodies, including hinged gears, guides retain two-body contact
+manifolds and position recovery; the static-obstacle entry-only path does not apply.
+Breakable, moving-anchor, and multiply constrained guides retain the general
+joint solver. No additional application-side constraint or contact API is needed.
+
 ## Smoke tracer gas
 
 `World::add_smoke` creates smoke tracers, separate from liquid. The optional

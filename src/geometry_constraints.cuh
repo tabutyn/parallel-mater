@@ -44,6 +44,7 @@ struct RigidConstraintGeometry {
     Vec3 anchor_error{};
     Vec3 rotation_error{};
     Vec3 hinge_alignment_error{};
+    Vec3 piston_alignment_error{};
     RigidConstraintAxisGeometry axes[3]{};
 };
 
@@ -78,9 +79,16 @@ struct HingeContactFrame {
     Vec3 anchor{};
     Vec3 axis{};
     Vec3 local_anchor{};
+    float inverse_mass{};
+    float inverse_moment{};
     bool present{};
     bool fixed{};
+    // A static piston/slider leaves axial translation free. Only pistons
+    // additionally allow rotation about that axis.
+    bool axial{};
+    bool axial_rotation{};
     bool fixed_member{};
+    bool static_body{};
 };
 
 struct Contact {
@@ -95,6 +103,7 @@ struct Contact {
     float initial_normal_speed{};
     bool warm_started{};
     bool persistent{};
+    float impact_fraction{1.0F};
 };
 
 struct ContactManifold {
@@ -103,6 +112,16 @@ struct ContactManifold {
     Vec3 initial_relative_position{};
     bool face_patch{};
 };
+
+__device__ bool guided_static_pair(const HingeContactFrame &body,
+                                  const HingeContactFrame &collider) noexcept {
+    return (body.axial && collider.static_body) ||
+           (collider.axial && body.static_body);
+}
+
+__device__ bool guided_static_contact(const Contact &contact) noexcept {
+    return guided_static_pair(contact.body_hinge, contact.collider_hinge);
+}
 
 struct CachedContact {
     Vec3 local_point{};
@@ -141,6 +160,7 @@ struct ContactResponsePatch {
 
 constexpr float k_rigid_surface_tolerance = 1.0e-5F;
 constexpr float k_rigid_rest_offset = 1.0e-3F;
+constexpr float k_rigid_guided_rest_offset = 1.0e-4F;
 
 __host__ __device__ float rigid_rest_offset(float margin) noexcept {
     return fminf(margin, k_rigid_rest_offset);
@@ -239,6 +259,9 @@ struct TriangleMeshResource {
     std::uint32_t bvh_leaf_count{};
     // Present only when the authored triangles form a closed convex solid.
     CollisionPlane *solid_planes{};
+    // Outward normals for closed convex connected shells, including mirrored
+    // pieces in a concave compound. Other triangles have a zero normal.
+    Vec3 *shell_normals{};
 };
 
 __device__ float rotational_motion_bound(
@@ -361,7 +384,7 @@ __host__ __device__ void closest_segments(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2,
 }
 
 __host__ __device__ Vec3 closest_on_triangle(Vec3 point, Vec3 a, Vec3 b,
-                                             Vec3 c) noexcept {
+                                             Vec3 c, bool stable_face = false) noexcept {
     const Vec3 ab = subtract(b, a);
     const Vec3 ac = subtract(c, a);
     const Vec3 ap = subtract(point, a);
@@ -395,9 +418,16 @@ __host__ __device__ Vec3 closest_on_triangle(Vec3 point, Vec3 a, Vec3 b,
         return add(b, multiply(subtract(c, b),
                                (d4 - d3) / ((d4 - d3) + (d5 - d6))));
     }
+    // The region tests established an interior face projection. Rebuilding
+    // it from barycentric coordinates loses tangential precision on long,
+    // thin triangles; at micron-scale gaps that error becomes a false contact
+    // normal. Orthogonal projection retains the input's tangential position.
+    if (stable_face) {
+        const Vec3 normal = cross(ab, ac);
+        return subtract(point, multiply(normal, dot(ap, normal) / length_squared(normal)));
+    }
     const float inverse = 1.0F / (va + vb + vc);
-    return add(a, add(multiply(ab, vb * inverse),
-                      multiply(ac, vc * inverse)));
+    return add(a, add(multiply(ab, vb * inverse), multiply(ac, vc * inverse)));
 }
 
 __host__ __device__ bool point_in_triangle(Vec3 point, Vec3 a, Vec3 b,
@@ -551,7 +581,7 @@ __host__ __device__ bool segment_hits_triangle(
 
 __host__ __device__ void closest_triangle_pair(
     Vec3 a0, Vec3 a1, Vec3 a2, Vec3 b0, Vec3 b1, Vec3 b2,
-    Vec3 &point_a, Vec3 &point_b) noexcept {
+    Vec3 &point_a, Vec3 &point_b, bool stable_face = false) noexcept {
     const Vec3 a[3]{a0, a1, a2};
     const Vec3 b[3]{b0, b1, b2};
     Vec3 intersection{};
@@ -575,13 +605,13 @@ __host__ __device__ void closest_triangle_pair(
     float best_squared = FLT_MAX;
     for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
         const Vec3 on_triangle =
-            closest_on_triangle(a[vertex], b0, b1, b2);
+            closest_on_triangle(a[vertex], b0, b1, b2, stable_face);
         consider_closest_pair(a[vertex], on_triangle, best_squared,
                               point_a, point_b);
     }
     for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
         const Vec3 on_triangle =
-            closest_on_triangle(b[vertex], a0, a1, a2);
+            closest_on_triangle(b[vertex], a0, a1, a2, stable_face);
         consider_closest_pair(on_triangle, b[vertex], best_squared,
                               point_a, point_b);
     }
@@ -601,8 +631,54 @@ __host__ __device__ void closest_triangle_pair(
 __device__ void add_manifold_contact(ContactManifold &manifold,
                                      Contact candidate,
                                      float point_spacing) noexcept {
+    const bool guided = guided_static_contact(candidate);
+    const auto guide_direction = [](const Contact &contact) {
+        const auto &frame = contact.body_hinge.axial
+            ? contact.body_hinge : contact.collider_hinge;
+        return Vec3{dot(contact.normal, frame.axis) * sqrtf(frame.inverse_mass),
+            frame.axial_rotation ? dot(frame.axis,
+                cross(subtract(contact.point, frame.anchor), contact.normal)) *
+                    sqrtf(frame.inverse_moment) : 0.0F,
+            0.0F};
+    };
+    const Vec3 candidate_direction = guided ? guide_direction(candidate) : Vec3{};
+    const float candidate_length = guided ? vector_length(candidate_direction) : 1.0F;
+    if (guided && candidate_length * candidate_length <= k_epsilon) return;
+    if (guided && candidate.impact_fraction > 0.0F) {
+        // Later triangle intersections can lie inside an obstacle already
+        // hit earlier in the sweep. Keep existing support and the first new
+        // impact, not incompatible normals from beyond that impact.
+        float first_impact = 1.0F;
+        for (std::uint32_t row = 0; row < manifold.count; ++row)
+            if (manifold.contacts[row].impact_fraction > 0.0F)
+                first_impact = fminf(first_impact, manifold.contacts[row].impact_fraction);
+        constexpr float simultaneous = 1.0e-4F;
+        if (candidate.impact_fraction > first_impact + simultaneous) return;
+        if (candidate.impact_fraction < first_impact - simultaneous) {
+            std::uint32_t kept = 0;
+            for (std::uint32_t row = 0; row < manifold.count; ++row)
+                if (manifold.contacts[row].impact_fraction == 0.0F)
+                    manifold.contacts[kept++] = manifold.contacts[row];
+            manifold.count = kept;
+        }
+    }
     const float minimum_spacing_squared = point_spacing * point_spacing;
     for (std::uint32_t index = 0; index < manifold.count; ++index) {
+        if (guided) {
+            // Repeated features must not fill every row with the same
+            // axial stop and discard the face that stops rotation. Reduce in
+            // the guide's actual translation/twist Jacobian, not world space.
+            const Vec3 direction = guide_direction(manifold.contacts[index]);
+            const float size = vector_length(direction);
+            if (dot(candidate_direction, direction) >
+                0.9999F * candidate_length * size) {
+                if (candidate.penetration / candidate_length >
+                    manifold.contacts[index].penetration / size)
+                    manifold.contacts[index] = candidate;
+                return;
+            }
+            continue;
+        }
         if (length_squared(subtract(candidate.point,
                                     manifold.contacts[index].point)) <
             minimum_spacing_squared) {
@@ -786,6 +862,39 @@ __device__ bool convex_face_manifold(
     return true;
 }
 
+__device__ Vec3 guided_triangle_normal(
+    Vec3 a0, Vec3 a1, Vec3 a2, Vec3 b0, Vec3 b1, Vec3 b2,
+    Vec3 point_a, Vec3 point_b, Vec3 fallback) noexcept {
+    const Vec3 delta = subtract(point_a, point_b);
+    Vec3 normal = normalized_or(delta, fallback);
+    // Subtracting world-space points a few microns apart loses precision.
+    // On a face use its geometric normal; tiny axial components on a purely
+    // radial contact otherwise become large guide-space corrections.
+    const Vec3 faces[2] = {
+        normalized_or(cross(subtract(a1, a0), subtract(a2, a0)), normal),
+        normalized_or(cross(subtract(b1, b0), subtract(b2, b0)), normal)};
+    float best_error = 4.0F * k_epsilon * k_epsilon;
+    if (length_squared(delta) > k_epsilon * k_epsilon) {
+        for (const Vec3 face : faces) {
+            const float projection = dot(delta, face);
+            const float error = length_squared(subtract(delta, multiply(face, projection)));
+            if (error < best_error) {
+                best_error = error;
+                normal = projection >= 0.0F ? face : multiply(face, -1.0F);
+            }
+        }
+    }
+    return normal;
+}
+
+__device__ bool triangle_pair_face_contact(
+    const Vec3 *a, const Vec3 *b, Vec3 separation) noexcept {
+    const Vec3 normal = normalized_or(separation, {});
+    const Vec3 face_a = normalized_or(cross(subtract(a[1], a[0]), subtract(a[2], a[0])), {});
+    const Vec3 face_b = normalized_or(cross(subtract(b[1], b[0]), subtract(b[2], b[0])), {});
+    return fabsf(dot(normal, face_a)) > 0.9999F || fabsf(dot(normal, face_b)) > 0.9999F;
+}
+
 __device__ void collide_triangle_ranges(
     const RigidBodyState &body_state, Vec3 body_reference,
     const HingeContactFrame &body_hinge,
@@ -797,6 +906,15 @@ __device__ void collide_triangle_ranges(
     float margin,
     float timestep,
     ContactManifold &manifold) noexcept {
+    const bool guided_pair = guided_static_pair(body_hinge, collider_hinge);
+    if (guided_pair) {
+        // Swept entry contacts are authoritative. A tooth can cross a thin
+        // face and end close to its opposite side in the predicted pose.
+        // Mixing that endpoint's reversed normal with the entry normal
+        // creates incompatible rows and pushes the tooth through its stop.
+        // The sweep also handles contacts present at the start of the step.
+        return;
+    }
     const float rest_offset = rigid_rest_offset(margin);
     for (std::uint32_t body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
@@ -855,10 +973,10 @@ __device__ void collide_triangle_ranges(
             // normal, even when its tiny nonzero separation is noisy.
             const bool small_convex = body_mesh.solid_planes != nullptr &&
                                       body_mesh.index_count <= 96U;
-            const Vec3 normal = distance <= k_rigid_surface_tolerance ||
-                                (small_convex && on_triangle_face)
-                ? fallback
-                : normalized_or(delta, fallback);
+            const Vec3 normal =
+                (distance <= k_rigid_surface_tolerance ||
+                 (small_convex && on_triangle_face))
+                    ? fallback : normalized_or(delta, fallback);
             if (!contact_reaches_rest_offset(
                     body_state, collider_state, point, normal, distance,
                     rest_offset, timestep)) {
@@ -911,7 +1029,12 @@ __device__ void collide_triangle_ranges_swept(
     if (!body_moves && !collider_moves) {
         return;
     }
-    const float rest_offset = rigid_rest_offset(margin);
+    // Entry-only contacts and post-solve trajectory integration form one
+    // solver path, restricted to guides hitting static obstacles. A moving
+    // gear needs the regular two-body manifold and position recovery too.
+    const bool guided = guided_static_pair(body_hinge, collider_hinge);
+    const float rest_offset = guided
+        ? fminf(margin, k_rigid_guided_rest_offset) : rigid_rest_offset(margin);
     for (std::uint32_t body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
         const std::uint32_t body_index = body_triangle * 3U;
@@ -1002,6 +1125,9 @@ __device__ void collide_triangle_ranges_swept(
             }
 
             float time = 0.0F;
+            bool starts_near_contact = false;
+            Vec3 separating_normal{};
+            bool have_separating_normal = false;
             for (std::uint32_t iteration = 0U; iteration < 32U;
                  ++iteration) {
                 Vec3 a[3]{};
@@ -1015,12 +1141,31 @@ __device__ void collide_triangle_ranges_swept(
                 Vec3 point_a{};
                 Vec3 point_b{};
                 closest_triangle_pair(a[0], a[1], a[2], b[0], b[1], b[2],
-                                      point_a, point_b);
+                                      point_a, point_b, guided);
                 const Vec3 delta = subtract(point_a, point_b);
                 const float distance =
                     sqrtf(fmaxf(0.0F, length_squared(delta)));
-                if (distance <= rest_offset + k_rigid_surface_tolerance) {
-                    if (iteration == 0U) {
+                // Stand-off stabilizes supporting faces, but rounding a
+                // sharp tooth tip by that amount can obstruct a genuinely
+                // clear sliding path. Edge/vertex sweeps test the surface.
+                float contact_offset = rest_offset;
+                if (guided &&
+                    !triangle_pair_face_contact(a, b, delta)) {
+                    const auto &guide = body_hinge.axial ? body_hinge : collider_hinge;
+                    const Vec3 direction = normalized_or(delta, {});
+                    const float axial = dot(direction, guide.axis);
+                    const float angular = dot(guide.axis,
+                        cross(subtract(point_a, guide.anchor), direction));
+                    // Preserve clearance at a pure axial/rotational stop.
+                    // Only the rounded transition between those directions
+                    // must not obstruct the other, physically free motion.
+                    if (fabsf(axial) > 1.0e-3F && fabsf(angular) > 1.0e-3F)
+                        contact_offset = 0.0F;
+                }
+                if (iteration == 0U)
+                    starts_near_contact = distance <= contact_offset + 5.0F * k_rigid_surface_tolerance;
+                if (distance <= contact_offset + k_rigid_surface_tolerance) {
+                    if (iteration == 0U && !guided) {
                         break;
                     }
                     const Vec3 collider_normal = normalized_or(
@@ -1048,30 +1193,73 @@ __device__ void collide_triangle_ranges_swept(
                                 ? collider_normal
                                 : multiply(collider_normal, -1.0F);
                     }
-                    const Vec3 normal =
-                        distance <= k_rigid_surface_tolerance
-                            ? fallback
-                            : normalized_or(delta, fallback);
+                    const Vec3 outward_a = body_mesh.shell_normals
+                        ? rotate(body_state.orientation, body_mesh.shell_normals[body_triangle]) : Vec3{};
+                    const Vec3 outward_b = collider_mesh.shell_normals
+                        ? rotate(collider_state.orientation, collider_mesh.shell_normals[collider_triangle]) : Vec3{};
+                    if (guided && length_squared(outward_b) > 0.5F) fallback = outward_b;
+                    else if (guided && length_squared(outward_a) > 0.5F) fallback = multiply(outward_a, -1.0F);
+                    const Vec3 normal = guided && have_separating_normal &&
+                                             distance <= k_rigid_surface_tolerance
+                        ? separating_normal
+                        : guided ? guided_triangle_normal(a[0], a[1], a[2], b[0], b[1], b[2], point_a, point_b,
+                            have_separating_normal ? separating_normal : fallback)
+                        : distance <= k_rigid_surface_tolerance
+                            ? fallback : normalized_or(delta, fallback);
+                    if (guided && (dot(normal, outward_a) > 1.0e-3F ||
+                                   dot(normal, outward_b) < -1.0e-3F)) break;
                     const Vec3 point = multiply(add(point_a, point_b), 0.5F);
                     const float normal_speed = contact_normal_speed(
                         body_state, collider_state, point, normal);
                     if (normal_speed > 1.0e-5F) {
                         break;
                     }
-                    const float remaining = fmaxf(
-                        0.0F,
-                        -normal_speed * timestep * (1.0F - time) - distance);
-                    add_manifold_contact(
-                        manifold,
-                        {normal, point, remaining + rest_offset +
-                             k_rigid_surface_tolerance,
-                         body_hinge, collider_hinge},
+                    const float remaining =
+                        -normal_speed * timestep * (1.0F - time) - distance;
+                    // A guide sweep can start at an existing resting contact.
+                    // Clamp after adding the rest offset: clamping the travel
+                    // first adds an entire gap on every tiny support motion.
+                    const float penetration = guided
+                        ? fmaxf(0.0F, remaining + contact_offset)
+                        : fmaxf(0.0F, remaining) + rest_offset;
+                    Contact contact{normal, point, penetration + k_rigid_surface_tolerance,
+                                    body_hinge, collider_hinge};
+                    contact.impact_fraction = starts_near_contact ? 0.0F : time;
+                    add_manifold_contact(manifold, contact,
                         fmaxf(margin * 2.0F, 1.0e-4F));
                     break;
                 }
+                separating_normal = guided_triangle_normal(
+                    a[0], a[1], a[2], b[0], b[1], b[2], point_a, point_b,
+                    normalized_or(delta, {0.0F, 1.0F, 0.0F}));
+                have_separating_normal = true;
                 float advancement =
-                    (distance - rest_offset) /
+                    (distance - contact_offset) /
                     (speed_bound + k_epsilon) * 0.9F;
+                if (guided) {
+                    // Euclidean speed is a very loose bound at a shallow
+                    // corner: fast axial travel can hide a slow angular hit
+                    // until the iteration budget expires. A separating plane
+                    // remains valid until its projected vertex gap closes.
+                    // Affine swept vertices make this a conservative bound,
+                    // including edge/face changes and unequal vertex speeds.
+                    const Vec3 plane = guided_triangle_normal(
+                        a[0], a[1], a[2], b[0], b[1], b[2], point_a, point_b,
+                        separating_normal);
+                    float minimum_a = FLT_MAX, maximum_b = -FLT_MAX;
+                    float minimum_speed_a = FLT_MAX, maximum_speed_b = -FLT_MAX;
+                    for (std::uint32_t vertex = 0; vertex < 3U; ++vertex) {
+                        minimum_a = fminf(minimum_a, dot(subtract(a[vertex], point_b), plane));
+                        maximum_b = fmaxf(maximum_b, dot(subtract(b[vertex], point_b), plane));
+                        minimum_speed_a = fminf(minimum_speed_a, dot(delta_a[vertex], plane));
+                        maximum_speed_b = fmaxf(maximum_speed_b, dot(delta_b[vertex], plane));
+                    }
+                    const float gap = minimum_a - maximum_b - contact_offset;
+                    const float closing_speed = maximum_speed_b - minimum_speed_a;
+                    if (gap > k_rigid_surface_tolerance && closing_speed <= 0.0F) break;
+                    if (gap > 0.0F && closing_speed > k_epsilon)
+                        advancement = fmaxf(advancement, 0.9F * gap / closing_speed);
+                }
                 advancement = fmaxf(advancement, 1.0e-5F);
                 time += advancement;
                 if (time > 1.0F) {
@@ -1094,7 +1282,7 @@ __device__ ContactManifold collide_meshes(
     float timestep) noexcept {
     ContactManifold manifold{};
     const float margin = body.collision_margin + collider.collision_margin;
-    const bool swept = requires_swept_pair_contact(
+    const bool swept = guided_static_pair(body_hinge, collider_hinge) || requires_swept_pair_contact(
         previous_body_state, body_state, body_mesh,
         previous_collider_state, collider_state, collider_mesh, margin);
     const BoundsTransform previous_body_transform =
@@ -1214,7 +1402,8 @@ __host__ __device__ Vec3 inverse_inertia_world(
 __device__ float fixed_hinge_inverse_moment(
     const BodyParameters &parameters, const RigidBodyState &state,
     const HingeContactFrame &hinge) noexcept {
-    if (!hinge.fixed || parameters.inverse_mass <= k_epsilon) return 0.0F;
+    if ((!hinge.fixed && !hinge.axial_rotation) ||
+        parameters.inverse_mass <= k_epsilon) return 0.0F;
     const Vec3 local_axis = inverse_rotate(state.orientation, hinge.axis);
     const float center_moment =
         local_axis.x * local_axis.x /
@@ -1234,14 +1423,18 @@ __device__ float fixed_hinge_inverse_moment(
 __device__ Vec3 contact_point_velocity(
     const RigidBodyState &state, const HingeContactFrame &hinge,
     Vec3 point) noexcept {
-    if (!hinge.fixed) {
+    if (!hinge.fixed && !hinge.axial) {
         return add(state.linear_velocity,
                    cross(state.angular_velocity,
                          subtract(point, state.position)));
     }
-    const Vec3 angular = multiply(
-        hinge.axis, dot(state.angular_velocity, hinge.axis));
-    return cross(angular, subtract(point, hinge.anchor));
+    const Vec3 angular = multiply(hinge.axis,
+        hinge.fixed || hinge.axial_rotation
+            ? dot(state.angular_velocity, hinge.axis) : 0.0F);
+    return add(hinge.axial
+                   ? multiply(hinge.axis, dot(state.linear_velocity, hinge.axis))
+                   : Vec3{},
+               cross(angular, subtract(point, hinge.anchor)));
 }
 
 __device__ Vec3 compound_inverse_inertia_world(
@@ -1263,10 +1456,11 @@ __device__ float contact_direction_inverse_mass(
             dot(cross(compound_inverse_inertia_world(compound, angular), arm),
                 direction);
     }
-    if (hinge.fixed) {
+    if (hinge.fixed || hinge.axial) {
         const float jacobian = dot(
             cross(hinge.axis, subtract(point, hinge.anchor)), direction);
-        return jacobian * jacobian *
+        const float axial = hinge.axial ? dot(hinge.axis, direction) : 0.0F;
+        return parameters.inverse_mass * axial * axial + jacobian * jacobian *
             fixed_hinge_inverse_moment(parameters, state, hinge);
     }
     const Vec3 arm = subtract(point, state.position);
@@ -1304,7 +1498,7 @@ __device__ void apply_contact_velocity_impulse(
         return;
     }
     if (body.inverse_mass <= 0.0F) return;
-    if (hinge.fixed) {
+    if (hinge.fixed || hinge.axial) {
         const float angular_impulse = dot(
             hinge.axis, cross(subtract(point, hinge.anchor), impulse));
         const Vec3 angular_delta = multiply(
@@ -1313,7 +1507,10 @@ __device__ void apply_contact_velocity_impulse(
         state.angular_velocity = add(state.angular_velocity, angular_delta);
         state.linear_velocity = add(
             state.linear_velocity,
-            cross(angular_delta, subtract(state.position, hinge.anchor)));
+            add(hinge.axial
+                    ? multiply(hinge.axis, body.inverse_mass * dot(impulse, hinge.axis))
+                    : Vec3{},
+                cross(angular_delta, subtract(state.position, hinge.anchor))));
         return;
     }
     state.linear_velocity = add(
@@ -1501,8 +1698,9 @@ __device__ AppliedContactImpulse apply_contact_impulse(
     // Keep static friction through the small numerical contact skin. When
     // contact opens, undo cached friction rather than leaving an unbalanced
     // tangential warm-start impulse after its normal support was removed.
-    const bool friction_active = separation <= rigid_rest_offset(
-        body.collision_margin + collider.collision_margin);
+    const bool friction_active = separation <= (guided_static_contact(contact)
+        ? k_rigid_surface_tolerance
+        : rigid_rest_offset(body.collision_margin + collider.collision_margin));
     relative_velocity = subtract(
         contact_point_velocity(state, contact.body_hinge, contact.point),
         contact_point_velocity(collider_state, contact.collider_hinge,
@@ -1561,11 +1759,12 @@ __device__ void apply_contact_position_correction(
     const auto position_inverse_mass = [&](
         const BodyParameters &parameters, const RigidBodyState &body_state,
         const HingeContactFrame &hinge) {
-        if (!hinge.fixed) return parameters.inverse_mass;
+        if (!hinge.fixed && !hinge.axial) return parameters.inverse_mass;
         const float jacobian = dot(
             cross(hinge.axis, subtract(contact.point, hinge.anchor)),
             contact.normal);
-        return jacobian * jacobian *
+        const float axial = hinge.axial ? dot(hinge.axis, contact.normal) : 0.0F;
+        return parameters.inverse_mass * axial * axial + jacobian * jacobian *
             fixed_hinge_inverse_moment(parameters, body_state, hinge);
     };
     const float denominator =
@@ -1582,7 +1781,7 @@ __device__ void apply_contact_position_correction(
                            const HingeContactFrame &hinge,
                            Vec3 body_correction) {
         if (parameters.inverse_mass <= 0.0F) return;
-        if (!hinge.fixed) {
+        if (!hinge.fixed && !hinge.axial) {
             body_state.position = add(
                 body_state.position,
                 multiply(body_correction, parameters.inverse_mass));
@@ -1592,10 +1791,16 @@ __device__ void apply_contact_position_correction(
             hinge.axis,
             cross(subtract(contact.point, hinge.anchor), body_correction)) *
             fixed_hinge_inverse_moment(parameters, body_state, hinge);
+        const Vec3 current_anchor = add(body_state.position,
+            rotate(body_state.orientation, hinge.local_anchor));
+        const Vec3 anchor = hinge.axial
+            ? add(current_anchor, multiply(hinge.axis,
+                  parameters.inverse_mass * dot(body_correction, hinge.axis)))
+            : hinge.anchor;
         apply_orientation_correction(
             body_state, multiply(hinge.axis, angular_correction));
         body_state.position = subtract(
-            hinge.anchor,
+            anchor,
             rotate(body_state.orientation, hinge.local_anchor));
     };
     apply(body, state, contact.body_hinge, correction);
@@ -1637,8 +1842,10 @@ __device__ __forceinline__ void resolve_contact_rows(
     }
     if (warm_start_only) return;
     const float inverse_mass_sum = body.inverse_mass + collider.inverse_mass;
-    const bool translational_projection = contacts[0].persistent;
-    if ((correct_position || translational_projection) && inverse_mass_sum > k_epsilon) {
+    const bool guided = guided_static_contact(contacts[0]);
+    const bool translational_projection = contacts[0].persistent && !guided;
+    if (!guided && (correct_position || translational_projection) &&
+        inverse_mass_sum > k_epsilon) {
         std::uint32_t correction_count = contact_count;
         if (!translational_projection) {
             correction_count = 0U;
@@ -1665,7 +1872,8 @@ __device__ __forceinline__ void resolve_contact_rows(
                 body, state, collider, collider_state, contacts[index],
                 (fminf(penetration,
                        hinged ? k_rigid_rest_offset : penetration) +
-                 (contacts[index].persistent ? 0.0F : k_rigid_surface_tolerance)) * contact_weight);
+                 (contacts[index].persistent ? 0.0F : k_rigid_surface_tolerance)) *
+                    contact_weight);
         }
     }
     for (std::uint32_t index = 0; index < contact_count; ++index) {
@@ -1877,11 +2085,92 @@ __device__ Vec3 quaternion_delta_velocity(Quaternion from, Quaternion to,
     return {delta.x * scale, delta.y * scale, delta.z * scale};
 }
 
+__device__ HingeContactFrame rigid_hinge_contact_frame(
+    const BodyParameters *, const RigidBodyId *, std::uint32_t, std::uint32_t,
+    const RigidBodyState *, const RigidBodyState &,
+    const RigidConstraintResource *, std::uint32_t, Vec3 &,
+    Quaternion * = nullptr) noexcept;
+
+__device__ void advance_guided_pose(
+    RigidBodyState &next, const RigidBodyState &previous,
+    const HingeContactFrame &frame, Quaternion axial_orientation,
+    float timestep) noexcept {
+    next.position = add(previous.position, multiply(next.linear_velocity, timestep));
+    const Quaternion angular{next.angular_velocity.x, next.angular_velocity.y,
+                             next.angular_velocity.z, 0.0F};
+    const Quaternion derivative = quaternion_multiply(angular, previous.orientation);
+    next.orientation = normalized_quaternion({
+        previous.orientation.x + 0.5F * derivative.x * timestep,
+        previous.orientation.y + 0.5F * derivative.y * timestep,
+        previous.orientation.z + 0.5F * derivative.z * timestep,
+        previous.orientation.w + 0.5F * derivative.w * timestep});
+    if (frame.axial_rotation) {
+        const Quaternion relative = quaternion_multiply(next.orientation, conjugate(axial_orientation));
+        const float twist = dot({relative.x, relative.y, relative.z}, frame.axis);
+        const Quaternion rotation = normalized_quaternion({
+            frame.axis.x * twist, frame.axis.y * twist, frame.axis.z * twist, relative.w});
+        next.orientation = normalized_quaternion(quaternion_multiply(rotation, axial_orientation));
+    } else {
+        next.orientation = axial_orientation;
+    }
+    const Vec3 anchor = add(next.position, rotate(next.orientation, frame.local_anchor));
+    next.position = subtract(add(frame.anchor,
+        multiply(frame.axis, dot(subtract(anchor, frame.anchor), frame.axis))),
+        rotate(next.orientation, frame.local_anchor));
+}
+
+__global__ void finalize_guided_bodies_kernel(
+    const BodyParameters *parameters, const RigidBodyId *ids,
+    const RigidBodyState *previous, RigidBodyState *states, std::uint32_t count,
+    const RigidConstraintResource *constraints, std::uint32_t capacity, float timestep,
+    const ContactManifold *manifolds, const std::uint32_t *active_pairs,
+    const std::uint32_t *active_pair_count) {
+    const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count || parameters[index].motion != MotionType::dynamic) return;
+    Vec3 reference{};
+    Quaternion orientation{};
+    const auto frame = rigid_hinge_contact_frame(parameters, ids, count, index,
+        previous, previous[index], constraints, capacity, reference, &orientation);
+    if (frame.axial) {
+        // The pose used for contact detection is a predictor. Advance the
+        // actual guide coordinates with the constrained velocity. Independent
+        // positional pushes can rotate a tooth into another face that was
+        // clear in the predictor, injecting potential energy during recovery.
+        float impact = 1.0F;
+        for (std::uint32_t active = 0; active < *active_pair_count; ++active) {
+            const auto pair = active_pairs[active];
+            if (pair / count != index && pair % count != index) continue;
+            const auto &manifold = manifolds[active];
+            for (std::uint32_t row = 0; row < manifold.count; ++row) {
+                const auto &contact = manifold.contacts[row];
+                if (contact.accumulated_normal_impulse > k_epsilon)
+                    impact = fminf(impact, contact.impact_fraction);
+            }
+        }
+        if (impact < 1.0F) {
+            RigidBodyState hit = previous[index];
+            hit.position = add(hit.position, multiply(
+                subtract(states[index].position, hit.position), impact));
+            const auto a = hit.orientation;
+            auto b = states[index].orientation;
+            if (a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w < 0.0F)
+                b = {-b.x, -b.y, -b.z, -b.w};
+            hit.orientation = normalized_quaternion({
+                a.x + (b.x-a.x)*impact, a.y + (b.y-a.y)*impact,
+                a.z + (b.z-a.z)*impact, a.w + (b.w-a.w)*impact});
+            advance_guided_pose(states[index], hit, frame, orientation,
+                                timestep * (1.0F-impact));
+        }
+    }
+}
+
 __global__ void integrate_rigid_bodies_kernel(
     const BodyParameters *parameters, const BodyAccumulator *accumulators,
     const KinematicTarget *targets, const RigidBodyState *input,
     RigidBodyState *output, std::uint32_t count, Vec3 gravity, float timestep,
-    std::uint32_t remaining_substeps, bool apply_impulses) {
+    std::uint32_t remaining_substeps, bool apply_impulses,
+    const RigidBodyId *ids, const RigidConstraintResource *constraints,
+    std::uint32_t constraint_capacity) {
     const std::uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= count) {
         return;
@@ -1955,6 +2244,29 @@ __global__ void integrate_rigid_bodies_kernel(
         clamp_length(next.linear_velocity, body.maximum_linear_speed);
     next.angular_velocity =
         clamp_length(next.angular_velocity, body.maximum_angular_speed);
+    Vec3 reference{};
+    Quaternion axial_orientation{};
+    const HingeContactFrame frame = rigid_hinge_contact_frame(
+        parameters, ids, count, index, input, previous, constraints,
+        constraint_capacity, reference, &axial_orientation);
+    if (frame.axial) {
+        // Project momentum before predicting contact geometry. Otherwise a
+        // supported piston first falls sideways into its teeth, and removing
+        // that forbidden motion after collision leaves spurious axial kicks.
+        const Vec3 local_omega = inverse_rotate(next.orientation, next.angular_velocity);
+        const Vec3 angular_momentum = rotate(next.orientation, {
+            local_omega.x / fmaxf(body.inverse_inertia_local.x, k_epsilon),
+            local_omega.y / fmaxf(body.inverse_inertia_local.y, k_epsilon),
+            local_omega.z / fmaxf(body.inverse_inertia_local.z, k_epsilon)});
+        const Vec3 arm = subtract(next.position, frame.anchor);
+        const float spin = dot(frame.axis, add(angular_momentum,
+            cross(arm, multiply(next.linear_velocity, 1.0F / body.inverse_mass)))) *
+            fixed_hinge_inverse_moment(body, next, frame);
+        next.angular_velocity = multiply(frame.axis, spin);
+        next.linear_velocity = add(
+            multiply(frame.axis, dot(next.linear_velocity, frame.axis)),
+            cross(next.angular_velocity, arm));
+    }
     next.position = add(next.position, multiply(next.linear_velocity, timestep));
 
     const Quaternion angular{next.angular_velocity.x, next.angular_velocity.y,
@@ -1965,6 +2277,26 @@ __global__ void integrate_rigid_bodies_kernel(
          next.orientation.y + 0.5F * derivative.y * timestep,
          next.orientation.z + 0.5F * derivative.z * timestep,
          next.orientation.w + 0.5F * derivative.w * timestep});
+    if (frame.axial) {
+        if (frame.axial_rotation) {
+            const Quaternion relative = quaternion_multiply(
+                next.orientation, conjugate(axial_orientation));
+            const float twist = dot({relative.x, relative.y, relative.z}, frame.axis);
+            const Quaternion rotation = normalized_quaternion({
+                frame.axis.x * twist, frame.axis.y * twist,
+                frame.axis.z * twist, relative.w});
+            next.orientation = normalized_quaternion(
+                quaternion_multiply(rotation, axial_orientation));
+        } else {
+            next.orientation = axial_orientation;
+        }
+        // Rotation follows an arc, not the Euler chord. Keep the body's
+        // joint anchor on the guide without changing its free axial travel.
+        const Vec3 anchor = add(next.position, rotate(next.orientation, frame.local_anchor));
+        next.position = subtract(add(frame.anchor,
+            multiply(frame.axis, dot(subtract(anchor, frame.anchor), frame.axis))),
+            rotate(next.orientation, frame.local_anchor));
+    }
     output[index] = next;
 }
 
@@ -2447,6 +2779,12 @@ __global__ void solve_rigid_constraints_kernel(
             geometry.hinge_alignment_error = cross(
                 rotate(frame_a, {0.0F, 0.0F, 1.0F}),
                 rotate(frame_b, {0.0F, 0.0F, 1.0F}));
+            // Locked swing must not include the permitted X twist. The full
+            // quaternion logarithm changes branch at a half-turn and couples
+            // that free twist into Y/Z correction, amplifying tiny tilts.
+            geometry.piston_alignment_error = cross(
+                rotate(frame_a, {1.0F, 0.0F, 0.0F}),
+                rotate(frame_b, {1.0F, 0.0F, 0.0F}));
             for (std::uint32_t axis_index = 0U; axis_index < 3U; ++axis_index) {
                 RigidConstraintAxisGeometry &row = geometry.axes[axis_index];
                 row.axis = rotate(frame_a, basis_axis(axis_index));
@@ -2559,7 +2897,10 @@ __global__ void solve_rigid_constraints_kernel(
                     options.type == RigidConstraintType::hinge &&
                             axis_index != 2U
                         ? dot(hinge_alignment_error, world_axis)
-                        : component(rotation_error, axis_index);
+                        : options.type == RigidConstraintType::piston &&
+                                  axis_index != 0U
+                            ? dot(geometry.piston_alignment_error, world_axis)
+                            : component(rotation_error, axis_index);
                 if (angular_limit && !angular_lock && !angular_spring)
                     angular_error = limit_error(
                         angular_error, component(options.angular_limits.lower, axis_index),
@@ -2822,16 +3163,19 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
     std::uint32_t body_count, std::uint32_t dense,
     const RigidBodyState *states, const RigidBodyState &state,
     const RigidConstraintResource *constraints,
-    std::uint32_t constraint_capacity, Vec3 &reference) noexcept {
+    std::uint32_t constraint_capacity, Vec3 &reference,
+    Quaternion *axial_orientation) noexcept {
     // A compound mesh can have its body origin far from its rotating part.
     // Its hinge anchor is the stable inside/outside reference for coincident
     // triangle contacts, where the closest-point delta has no direction.
     HingeContactFrame result{};
+    result.static_body = parameters[dense].motion == MotionType::static_body;
     if (parameters[dense].inverse_mass <= 0.0F) {
         reference = state.position;
         return result;
     }
     const RigidBodyId body = ids[dense];
+    std::uint32_t incident_count = 0U;
     for (std::uint32_t index = 0U; index < constraint_capacity; ++index) {
         const RigidConstraintResource &constraint = constraints[index];
         if (!constraint.alive || !constraint.options.enabled ||
@@ -2842,11 +3186,26 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
         const bool is_b = same_rigid_body_id(
             constraint.options.body_b, body);
         if (!is_a && !is_b) continue;
+        ++incident_count;
         if (constraint.options.type == RigidConstraintType::fixed)
             result.fixed_member = true;
-        if (constraint.options.type != RigidConstraintType::hinge ||
-            result.present)
+        const auto type = constraint.options.type;
+        const bool axial = type == RigidConstraintType::piston ||
+                           type == RigidConstraintType::slider;
+        const RigidBodyId other = is_a
+            ? constraint.options.body_b : constraint.options.body_a;
+        const std::uint32_t other_dense = find_rigid_body_dense(
+            other, ids, body_count);
+        const bool static_anchor = other_dense != k_invalid_dense &&
+            parameters[other_dense].motion == MotionType::static_body;
+        // Breakable and moving-anchor joints retain the general solver so
+        // their reaction impulses and both endpoint motions remain explicit.
+        if (result.present || (type != RigidConstraintType::hinge &&
+            !(axial && static_anchor &&
+              constraint.options.breaking_impulse_threshold <= 0.0F)))
             continue;
+        const Vec3 local_axis = axial ? Vec3{1.0F, 0.0F, 0.0F}
+                                     : Vec3{0.0F, 0.0F, 1.0F};
         result.local_anchor = is_a
             ? constraint.options.local_anchor_a
             : constraint.options.local_anchor_b;
@@ -2857,16 +3216,12 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
             state.position, rotate(state.orientation, result.local_anchor));
         result.axis = normalized_or(
             rotate(quaternion_multiply(state.orientation, local_orientation),
-                   {0.0F, 0.0F, 1.0F}),
-            {0.0F, 0.0F, 1.0F});
+                   local_axis), local_axis);
         result.present = true;
-        const RigidBodyId other = is_a
-            ? constraint.options.body_b : constraint.options.body_a;
-        const std::uint32_t other_dense = find_rigid_body_dense(
-            other, ids, body_count);
-        result.fixed = other_dense != k_invalid_dense &&
-            parameters[other_dense].motion == MotionType::static_body;
-        if (result.fixed) {
+        result.fixed = static_anchor && !axial;
+        result.axial = static_anchor && axial;
+        result.axial_rotation = result.axial && type == RigidConstraintType::piston;
+        if (static_anchor) {
             const Vec3 other_local_anchor = is_a
                 ? constraint.options.local_anchor_b
                 : constraint.options.local_anchor_a;
@@ -2874,17 +3229,30 @@ __device__ HingeContactFrame rigid_hinge_contact_frame(
                 ? constraint.options.local_orientation_b
                 : constraint.options.local_orientation_a;
             const RigidBodyState &other_state = states[other_dense];
+            if (axial_orientation != nullptr)
+                *axial_orientation = normalized_quaternion(quaternion_multiply(
+                    quaternion_multiply(other_state.orientation, other_local_orientation),
+                    conjugate(local_orientation)));
             result.anchor = add(
                 other_state.position,
                 rotate(other_state.orientation, other_local_anchor));
             result.axis = normalized_or(
                 rotate(quaternion_multiply(other_state.orientation,
                                            other_local_orientation),
-                       {0.0F, 0.0F, 1.0F}),
+                       local_axis),
                 result.axis);
         }
     }
-    reference = result.present ? result.anchor : state.position;
+    // Reduced coordinates are exact for one unbreakable static guide. A
+    // mechanism with additional incident joints needs the general solver.
+    if (result.axial && incident_count != 1U) {
+        result.axial = result.axial_rotation = result.present = false;
+    }
+    if (result.axial) {
+        result.inverse_mass = parameters[dense].inverse_mass;
+        result.inverse_moment = fixed_hinge_inverse_moment(parameters[dense], state, result);
+    }
+    reference = result.present && !result.axial ? result.anchor : state.position;
     return result;
 }
 
@@ -3194,10 +3562,6 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
         const float collision_margin =
             parameters[index].collision_margin +
             parameters[collider_index].collision_margin;
-        const bool swept = requires_swept_pair_contact(
-            previous_states[index], states[index], body_mesh,
-            previous_states[collider_index], states[collider_index],
-            collider_mesh, collision_margin);
         Vec3 previous_body_reference{};
         Vec3 body_reference{};
         rigid_hinge_contact_frame(
@@ -3212,6 +3576,12 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
             parameters, ids, count, collider_index, states,
             states[collider_index], constraints, constraint_capacity,
             collider_reference);
+        // Guided mechanisms can have sharp features much smaller than the
+        // broad-phase search margin. Sweep even their short resting motions.
+        const bool swept = guided_static_pair(body_hinge, collider_hinge) ||
+            requires_swept_pair_contact(previous_states[index], states[index], body_mesh,
+                previous_states[collider_index], states[collider_index],
+                collider_mesh, collision_margin);
         for (std::uint32_t wave = (blockIdx.x % blocks_per_pair) * blockDim.x;
              wave < candidate_count; wave += blockDim.x * blocks_per_pair) {
             ContactManifold local{};
@@ -3299,9 +3669,9 @@ __device__ void initialize_contact_solve(ContactManifold &manifold,
     manifold.initial_relative_position = subtract(body.position, collider.position);
     for (std::uint32_t point = 0U; point < manifold.count; ++point) {
         auto &contact = manifold.contacts[point];
-        contact.persistent = persistent && !contact.body_hinge.present &&
+        contact.persistent = guided_static_contact(contact) || (persistent && !contact.body_hinge.present &&
             !contact.collider_hinge.present && !contact.body_hinge.fixed_member &&
-            !contact.collider_hinge.fixed_member;
+            !contact.collider_hinge.fixed_member);
         contact.initial_normal_speed = contact_normal_speed(
             body, collider, contact.point, contact.normal);
     }
@@ -3359,6 +3729,7 @@ __global__ void finalize_rigid_contact_manifolds_kernel(
             states[collider_index], constraints, constraint_capacity,
             collider_reference);
         if (prepare_faces) {
+            if (guided_static_pair(body_hinge, collider_hinge)) continue;
             if (convex_face_manifold(states[index], body_mesh, body_hinge,
                 states[collider_index], collider_mesh, collider_hinge, margin,
                 manifolds[active_index])) leaf_pair_counts[pair] = k_leaf_pair_face_patch;

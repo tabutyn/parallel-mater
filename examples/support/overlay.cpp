@@ -146,6 +146,7 @@ void line(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     case '.': return {0, 0, 0, 0, 0, 12, 12};
     case ':': return {0, 12, 12, 0, 12, 12, 0};
     case '-': return {0, 0, 0, 31, 0, 0, 0};
+    case '+': return {0, 4, 4, 31, 4, 4, 0};
     case '/': return {1, 2, 2, 4, 8, 8, 16};
     default: return {};
     }

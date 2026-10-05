@@ -181,7 +181,7 @@ class ExportSceneTests(unittest.TestCase):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
             "ConstraintPoint": ("point", 4),
-            "ConstraintHinge": ("hinge", 3),
+            "ConstraintHinge": ("hinge", 4),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
             "ConstraintGeneric": ("generic", 1),
@@ -194,6 +194,7 @@ class ExportSceneTests(unittest.TestCase):
                 document = self.check_export(Counter(
                     rigid_body=6 if kind in ("motor", "point") else
                                5 if kind == "hinge" else
+                               3 if kind == "piston" else
                                51 if kind == "fixed" else 4,
                     rigid_constraint=count,
                     collision_mesh=1 if name == "ConstraintFixed" else 0))
@@ -201,8 +202,10 @@ class ExportSceneTests(unittest.TestCase):
                                if node["extras"].get("pm_system") ==
                                "rigid_constraint"]
                 self.assertEqual(len(constraints), count)
-                self.assertTrue(all(item["pm_constraint_type"] == kind
-                                    for item in constraints))
+                self.assertEqual(
+                    Counter(item["pm_constraint_type"] for item in constraints),
+                    Counter(hinge=3, slider=1) if kind == "hinge" else
+                    Counter({kind: count}))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
                 if kind == "fixed":
@@ -250,17 +253,28 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertEqual(
                         {(item["pm_body_a"], item["pm_body_b"])
                          for item in constraints},
-                        {("Ground", "Gear"),
-                         ("Ground", "Gear.001"),
-                         ("Ground", "Gear.002")})
+                        {("Ground.001", "Gear"),
+                         ("Ground.001", "Gear.001"),
+                         ("Ground.001", "Gear.002"),
+                         ("Ground.001", "Ground.002")})
                     self.assertTrue(all(item["pm_solver_iterations"] == 64
-                                        for item in constraints))
-                    for joint_name, gear_name in (
-                            ("Contraint1", "Gear"),
-                            ("Constraint2", "Gear.001"),
-                            ("Empty", "Gear.002")):
-                        joint = bpy.context.scene.objects[joint_name]
-                        gear = bpy.context.scene.objects[gear_name]
+                                        for item in constraints
+                                        if item["pm_constraint_type"] == "hinge"))
+                    slider = next(item for item in constraints
+                                  if item["pm_constraint_type"] == "slider")
+                    self.assertTrue(slider["pm_enabled"])
+                    self.assertEqual(slider["pm_solver_iterations"], 8)
+                    self.assertFalse(slider["pm_use_limit_lin_x"])
+                    self.assertEqual(slider["pm_limit_lin_x_lower"], -4.0)
+                    self.assertEqual(slider["pm_limit_lin_x_upper"], 2.0)
+                    rod = bpy.context.scene.objects["Ground.002"]
+                    self.assertIsNotNone(rod.rigid_body)
+                    self.assertEqual(rod.rigid_body_constraint.object2, rod)
+                    for joint in bpy.context.scene.objects:
+                        constraint = joint.rigid_body_constraint
+                        if constraint is None or constraint.type != "HINGE":
+                            continue
+                        gear = constraint.object2
                         joint_z = joint.matrix_world.to_3x3().normalized().col[2]
                         gear_z = gear.matrix_world.to_3x3().normalized().col[2]
                         self.assertAlmostEqual(joint_z.dot(gear_z), 1.0,
@@ -270,7 +284,7 @@ class ExportSceneTests(unittest.TestCase):
                          for node in document["nodes"]
                          if node.get("extras", {}).get("pm_system") ==
                          "rigid_body"},
-                        {"Ground", "HingeSphere", "Gear", "Gear.001",
+                        {"Ground.001", "Ground.002", "Gear", "Gear.001",
                          "Gear.002"})
                     bodies = {
                         node["extras"]["pm_source_name"]: node["extras"]
@@ -279,9 +293,7 @@ class ExportSceneTests(unittest.TestCase):
                         "rigid_body"
                     }
                     self.assertAlmostEqual(
-                        bodies["Ground"]["pm_friction"], 4.0, places=5)
-                    self.assertAlmostEqual(
-                        bodies["HingeSphere"]["pm_friction"], 4.0, places=5)
+                        bodies["Ground.001"]["pm_friction"], 4.0, places=5)
                     self.assertAlmostEqual(bodies["Gear"]["pm_friction"],
                                            0.08, places=5)
                     self.assertAlmostEqual(
@@ -381,6 +393,21 @@ class ExportSceneTests(unittest.TestCase):
             min(small_tree.find_nearest(point)[3]
                 for point in large_vertices))
         self.assertLess(surface_gap, 0.001)
+
+    def test_mesh_constraint_requires_both_targets_without_changing_source(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "ConstraintHinge.blend"))
+        constraint = bpy.context.scene.objects["Ground.002"].rigid_body_constraint
+        for field in ("object1", "object2"):
+            with self.subTest(field=field):
+                target = getattr(constraint, field)
+                setattr(constraint, field, None)
+                before = snapshot()
+                with self.assertRaisesRegex(
+                        RuntimeError, "Ground.002: constraint needs Object 1 and Object 2"):
+                    exporter.export_scene(self.output)
+                self.assertEqual(snapshot(), before)
+                self.assertFalse(self.output.exists())
+                setattr(constraint, field, target)
 
     def test_hinge_gears_remain_engaged_through_tooth_cycle(self):
         from mathutils import Quaternion, Vector

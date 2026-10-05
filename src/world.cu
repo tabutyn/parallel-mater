@@ -1313,6 +1313,7 @@ struct World::Impl {
                 release_managed(meshes[index].bvh_nodes);
                 release_managed(meshes[index].bvh_leaves);
                 release_managed(meshes[index].solid_planes);
+                release_managed(meshes[index].shell_normals);
                 release_managed(meshes[index].indices);
                 release_managed(meshes[index].vertices);
             }
@@ -2914,6 +2915,62 @@ static std::vector<CollisionPlane> closed_convex_planes(
     return planes;
 }
 
+// A concave compound can contain individually closed convex shells. Keep
+// their outward normals for one-sided contact validation, without replacing
+// any triangles or treating the entire compound as its convex hull.
+static std::vector<Vec3> convex_shell_normals(
+    const Vec3 *vertices, std::uint32_t vertex_count,
+    const std::vector<std::uint32_t> &indices) {
+    std::map<std::array<float, 3>, std::uint32_t> welded;
+    std::vector<std::uint32_t> remap(vertex_count), parent(vertex_count);
+    for (std::uint32_t i = 0; i < vertex_count; ++i) {
+        const auto p = vertices[i];
+        remap[i] = welded.emplace(
+            std::array<float, 3>{p.x, p.y, p.z}, i).first->second;
+        parent[i] = i;
+    }
+    const auto root = [&](std::uint32_t i) {
+        while (parent[i] != i) {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        return i;
+    };
+    for (std::size_t i = 0; i < indices.size(); i += 3)
+        for (std::size_t corner = 1; corner < 3; ++corner) {
+            const auto a = root(remap[indices[i]]);
+            const auto b = root(remap[indices[i + corner]]);
+            parent[b] = a;
+        }
+    std::map<std::uint32_t, std::vector<std::uint32_t>> shells;
+    for (std::uint32_t t = 0; t < indices.size() / 3U; ++t)
+        shells[root(remap[indices[t * 3U]])].push_back(t);
+    std::vector<Vec3> normals(indices.size() / 3U);
+    bool found = false;
+    for (const auto &[id, triangles] : shells) {
+        (void)id;
+        std::map<std::uint32_t, std::uint32_t> local;
+        std::vector<Vec3> points;
+        std::vector<std::uint32_t> faces;
+        for (auto t : triangles) {
+            for (std::uint32_t corner = 0; corner < 3U; ++corner) {
+                const auto vertex = remap[indices[t * 3U + corner]];
+                const auto [entry, inserted] = local.emplace(
+                    vertex, static_cast<std::uint32_t>(points.size()));
+                if (inserted) points.push_back(vertices[vertex]);
+                faces.push_back(entry->second);
+            }
+        }
+        const auto planes = closed_convex_planes(
+            points.data(), static_cast<std::uint32_t>(points.size()), faces);
+        if (planes.empty()) continue;
+        found = true;
+        for (std::size_t i = 0; i < triangles.size(); ++i)
+            normals[triangles[i]] = planes[i].normal;
+    }
+    return found ? normals : std::vector<Vec3>{};
+}
+
 Status World::add_triangle_mesh(
     DeviceSpan<const Vec3> vertices,
     DeviceSpan<const std::uint32_t> triangle_indices, TriangleMeshId &output,
@@ -3096,8 +3153,11 @@ Status World::add_triangle_mesh(
 
     std::vector<std::uint32_t> bvh_leaves;
     std::vector<CollisionPlane> solid_planes;
+    std::vector<Vec3> shell_normals;
     try {
         solid_planes = closed_convex_planes(owned_vertices,
+            static_cast<std::uint32_t>(vertices.size), reordered_indices);
+        shell_normals = convex_shell_normals(owned_vertices,
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         for (std::uint32_t index = 0U; index < bvh_nodes.size(); ++index) {
             if (bvh_nodes[index].triangle_count != 0U) {
@@ -3142,6 +3202,19 @@ Status World::add_triangle_mesh(
     if (!solid_planes.empty())
         std::copy(solid_planes.begin(), solid_planes.end(), owned_solid_planes);
 
+    Vec3 *owned_shell_normals = nullptr;
+    status = allocate_managed(owned_shell_normals, shell_normals.size());
+    if (!status) {
+        release_managed(owned_solid_planes);
+        release_managed(owned_bvh_leaves);
+        release_managed(owned_bvh_nodes);
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return status;
+    }
+    if (!shell_normals.empty())
+        std::copy(shell_normals.begin(), shell_normals.end(), owned_shell_normals);
+
     TriangleMeshResource &mesh = impl_->meshes[slot];
     mesh.vertices = owned_vertices;
     mesh.indices = owned_indices;
@@ -3177,6 +3250,7 @@ Status World::add_triangle_mesh(
     mesh.bvh_leaves = owned_bvh_leaves;
     mesh.bvh_leaf_count = static_cast<std::uint32_t>(bvh_leaves.size());
     mesh.solid_planes = owned_solid_planes;
+    mesh.shell_normals = owned_shell_normals;
     mesh.alive = true;
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
@@ -3212,6 +3286,7 @@ Status World::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
     release_managed(mesh.bvh_leaves);
     release_managed(mesh.bvh_nodes);
     release_managed(mesh.solid_planes);
+    release_managed(mesh.shell_normals);
     release_managed(mesh.indices);
     release_managed(mesh.vertices);
     mesh.vertex_count = 0U;
@@ -7158,7 +7233,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->parameters, impl_->accumulators, impl_->targets,
             impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, options.gravity, substep_timestep,
-            options.substeps - substep, substep == 0U);
+            options.substeps - substep, substep == 0U,
+            impl_->ids, impl_->rigid_constraints,
+            impl_->rigid_constraint_count != 0U
+                ? impl_->options.rigid_constraint_capacity : 0U);
         if (impl_->rigid_constraint_count != 0U) {
             build_rigid_compounds_kernel<<<1U, 1U, 0, stream>>>(
                 impl_->rigid_constraints,
@@ -7270,7 +7348,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         // Many-body worlds parallelize across pairs. Few-body worlds spread
         // each dense pair across blocks and reduce in the same candidate order.
-        constexpr std::uint32_t contact_evaluation_threads = 32U;
+        // One shared reduction manifold accompanies the per-thread scratch.
+        constexpr std::uint32_t contact_evaluation_threads =
+            33U * sizeof(ContactManifold) <= 48U * 1024U ? 32U : 16U;
         const std::uint32_t blocks_per_pair =
             impl_->rigid_leaf_manifolds != nullptr ? k_rigid_leaf_blocks_per_pair : 1U;
         finalize_rigid_contact_manifolds_kernel<<<contact_block_count, block_size, 0, stream>>>(
@@ -7456,6 +7536,14 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
             impl_->parameters, impl_->states[output_state],
             impl_->rigid_body_count);
+        if (impl_->rigid_constraint_count != 0U) {
+            finalize_guided_bodies_kernel<<<block_count, block_size, 0, stream>>>(
+                impl_->parameters, impl_->ids, impl_->states[impl_->current_state],
+                impl_->states[output_state], impl_->rigid_body_count,
+                impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
+                substep_timestep, impl_->rigid_manifolds, impl_->rigid_active_pairs,
+                impl_->rigid_active_pair_count);
+        }
         save_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
@@ -8863,7 +8951,9 @@ Status World::collect_statistics(WorldStatistics &output,
                 impl_->meshes[index].vertex_count * sizeof(Vec3) +
                 impl_->meshes[index].index_count * sizeof(std::uint32_t) +
                 impl_->meshes[index].bvh_node_count * sizeof(BvhNode) +
-                impl_->meshes[index].bvh_leaf_count * sizeof(std::uint32_t);
+                impl_->meshes[index].bvh_leaf_count * sizeof(std::uint32_t) +
+                (impl_->meshes[index].shell_normals != nullptr
+                     ? impl_->meshes[index].index_count / 3U * sizeof(Vec3) : 0U);
         }
     }
     return success();
