@@ -197,7 +197,7 @@ const std::vector<CaseDefinition> &case_registry() {
              {40U, "set_constraints_enabled", "scene", {1.0, 0.0, 0.0, 0.0}, 1U}}));
         result.push_back(integrated(
             "constraint-hinge", "Three-gear authored hinge train",
-            "ConstraintHinge", "e8b72afa19e61e4e23a8bb0719d269125db6cf5da08a51977b7fe8ba262b54bc",
+            "ConstraintHinge", "9ec3cb5f5a82c83ae9e3532823ef2ec3865f3a0cc3541169ed46a698270393c6",
             {"hinge_joint", "contact", "alternating_rotation", "energy"}, 90U));
         result.push_back(integrated(
             "constraint-slider", "Authored slider constraint",
@@ -205,7 +205,7 @@ const std::vector<CaseDefinition> &case_registry() {
             {"slider_joint", "limits", "contact"}));
         result.push_back(integrated(
             "constraint-piston", "Authored piston constraint",
-            "ConstraintPiston", "afaf7c4c19a0341063b3e9bd8ddafc0ea056354e3b9a013aca5e2b3779365a22",
+            "ConstraintPiston", "d5228ddac1ed86ca947342653ce2fba9bc15cba4d1d602dd6b00ec607e1ec201",
             {"piston_joint", "limits", "contact"}));
         result.push_back(integrated(
             "constraint-generic", "Authored generic constraint",

@@ -2,7 +2,11 @@
 #include <parallel_mater_gallery/scene.hpp>
 #include "vector_math.hpp"
 #include <cmath>
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+namespace parallel_mater::metal::gallery {
+#else
 namespace parallel_mater::gallery {
+#endif
 void update_rope_render_mesh(const std::vector<Vec3> &nodes,float radius,TriangleMesh &mesh) {
     if(nodes.size()<2)return;
     constexpr unsigned sides=8;
@@ -31,4 +35,8 @@ void update_rope_render_mesh(const std::vector<Vec3> &nodes,float radius,Triangl
         mesh.indices.insert(mesh.indices.end(),{0,j+1,j,last,last+j,last+j+1});
     }
 }
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+} // namespace parallel_mater::metal::gallery
+#else
 } // namespace parallel_mater::gallery
+#endif

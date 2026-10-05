@@ -1,22 +1,118 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Public CUDA physics API. Implementation milestones are tracked in
+// Public Metal physics API. Implementation milestones are tracked in
 // docs/ROADMAP.md; a declaration may precede its solver implementation.
-
-#include <cuda_runtime_api.h>
 
 #include <parallel_mater/types.hpp>
 
-#include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <vector>
 
-namespace parallel_mater {
+namespace parallel_mater::metal {
 
-template <typename T> struct DeviceSpan {
-    T *data{};
+using ::parallel_mater::HostSpan;
+using ::parallel_mater::Quaternion;
+using ::parallel_mater::Vec2;
+using ::parallel_mater::Vec3;
+using ::parallel_mater::ClothId;
+using ::parallel_mater::ClothBond;
+using ::parallel_mater::ClothOptions;
+using ::parallel_mater::FluidClothCouplingId;
+using ::parallel_mater::FluidClothCouplingOptions;
+using ::parallel_mater::FluidId;
+using ::parallel_mater::FluidRopeCouplingId;
+using ::parallel_mater::FluidRopeCouplingOptions;
+using ::parallel_mater::FluidSmokeCouplingId;
+using ::parallel_mater::FluidSoftBodyCouplingId;
+using ::parallel_mater::FluidSoftBodyCouplingOptions;
+using ::parallel_mater::PaintFieldId;
+using ::parallel_mater::PaintRuleId;
+using ::parallel_mater::ParticleDestroyPlaneId;
+using ::parallel_mater::ParticleSourceId;
+using ::parallel_mater::PhysicsDebugOptions;
+using ::parallel_mater::RigidBodyId;
+using ::parallel_mater::RigidConstraintId;
+using ::parallel_mater::RopeClothCouplingId;
+using ::parallel_mater::RopeClothCouplingOptions;
+using ::parallel_mater::RopeId;
+using ::parallel_mater::RopeAttachment;
+using ::parallel_mater::RopeOptions;
+using ::parallel_mater::RopeSoftBodyCouplingId;
+using ::parallel_mater::RopeSoftBodyCouplingOptions;
+using ::parallel_mater::SmokeClothCouplingId;
+using ::parallel_mater::SmokeClothCouplingOptions;
+using ::parallel_mater::SmokeId;
+using ::parallel_mater::SmokeOptions;
+using ::parallel_mater::SmokeRigidCouplingId;
+using ::parallel_mater::SmokeRigidCouplingOptions;
+using ::parallel_mater::SmokeRopeCouplingId;
+using ::parallel_mater::SmokeRopeCouplingOptions;
+using ::parallel_mater::SmokeSoftBodyCouplingId;
+using ::parallel_mater::SmokeSoftBodyCouplingOptions;
+using ::parallel_mater::SoftBodyClothCouplingId;
+using ::parallel_mater::SoftBodyClothCouplingOptions;
+using ::parallel_mater::SoftBodyId;
+using ::parallel_mater::SoftBodyBond;
+using ::parallel_mater::SoftBodyGeometry;
+using ::parallel_mater::SoftBodyGeometrySource;
+using ::parallel_mater::SoftBodyOptions;
+using ::parallel_mater::SoftBodySurfaceBinding;
+using ::parallel_mater::SoftBodySurfaceSource;
+using ::parallel_mater::TriangleMeshId;
+using ::parallel_mater::FluidParticle;
+using ::parallel_mater::FluidGeometrySource;
+using ::parallel_mater::FluidOptions;
+using ::parallel_mater::FluidSmokeCouplingOptions;
+using ::parallel_mater::MotionType;
+using ::parallel_mater::PaintRuleOptions;
+using ::parallel_mater::ParticleDestroyPlaneOptions;
+using ::parallel_mater::ParticlePlane;
+using ::parallel_mater::ParticleSourceMesh;
+using ::parallel_mater::ParticleSourceOptions;
+using ::parallel_mater::CrossingDirection;
+using ::parallel_mater::ContactEvent;
+using ::parallel_mater::HitBox;
+using ::parallel_mater::HitBoxParticle;
+using ::parallel_mater::HitBoxResult;
+using ::parallel_mater::KernelTiming;
+using ::parallel_mater::PhysicsDebugCapture;
+using ::parallel_mater::PhysicsDebugClothSample;
+using ::parallel_mater::PhysicsDebugFluidSample;
+using ::parallel_mater::PhysicsDebugFrame;
+using ::parallel_mater::PhysicsDebugFrameView;
+using ::parallel_mater::PhysicsDebugRigidSample;
+using ::parallel_mater::PhysicsDebugRopeSample;
+using ::parallel_mater::PhysicsDebugSoftBodySample;
+using ::parallel_mater::RigidBodyOptions;
+using ::parallel_mater::RigidBodyState;
+using ::parallel_mater::RigidConstraintLimitOptions;
+using ::parallel_mater::RigidConstraintMotorOptions;
+using ::parallel_mater::RigidConstraintOptions;
+using ::parallel_mater::RigidConstraintSpringOptions;
+using ::parallel_mater::RigidConstraintState;
+using ::parallel_mater::RigidConstraintType;
+using ::parallel_mater::RigidContactEvent;
+using ::parallel_mater::rigid_constraint_all_axes;
+using ::parallel_mater::rigid_constraint_axis_x;
+using ::parallel_mater::rigid_constraint_axis_y;
+using ::parallel_mater::rigid_constraint_axis_z;
+using ::parallel_mater::StepOptions;
+using ::parallel_mater::WorldOptions;
+using ::parallel_mater::WorldStatistics;
+using ::parallel_mater::WorldStepTimings;
+
+// Opaque Objective-C object pointers. World retains every non-null object passed
+// to create(). A null device selects MTLCreateSystemDefaultDevice(); a null
+// command queue creates a Metal 4 queue on the selected device.
+struct NativeContext {
+    void *device{};        // id<MTLDevice>
+    void *command_queue{}; // id<MTL4CommandQueue>
+};
+
+template <typename T> struct BufferSpan {
+    void *buffer{}; // Borrowed id<MTLBuffer>; inputs are retained only while used.
+    std::uint64_t byte_offset{};
     std::uint64_t size{};
 
     [[nodiscard]] constexpr bool empty() const noexcept { return size == 0U; }
@@ -30,13 +126,13 @@ enum class StatusCode : std::uint8_t {
     capacity_exceeded,
     busy,
     out_of_memory,
-    cuda_failure,
+    metal_failure,
     internal_error,
 };
 
 struct Status {
     StatusCode code{StatusCode::success};
-    cudaError_t cuda_error{cudaSuccess};
+    std::int64_t metal_error{};
     const char *message{};
 
     [[nodiscard]] constexpr bool ok() const noexcept {
@@ -46,13 +142,13 @@ struct Status {
 };
 
 struct RopeDeviceView {
-    DeviceSpan<const Vec3> positions{};
-    DeviceSpan<const Vec3> velocities{};
-    DeviceSpan<const Vec3> constraint_forces{};
-    DeviceSpan<const Vec3> contact_forces{};
-    DeviceSpan<const Vec3> fluid_contact_forces{};
-    DeviceSpan<const Vec3> soft_body_contact_forces{};
-    DeviceSpan<const float> rest_lengths{};
+    BufferSpan<const Vec3> positions{};
+    BufferSpan<const Vec3> velocities{};
+    BufferSpan<const Vec3> constraint_forces{};
+    BufferSpan<const Vec3> contact_forces{};
+    BufferSpan<const Vec3> fluid_contact_forces{};
+    BufferSpan<const Vec3> soft_body_contact_forces{};
+    BufferSpan<const float> rest_lengths{};
     float radius{};
 };
 
@@ -61,12 +157,12 @@ struct RopeDeviceView {
     std::vector<Vec3> &output) noexcept;
 
 struct SmokeDeviceView {
-    DeviceSpan<const Vec3> positions{};
-    DeviceSpan<const Vec3> velocities{};
-    DeviceSpan<const float> ages{};
-    DeviceSpan<const float> number_densities{};
-    DeviceSpan<const float> pressures{};
-    DeviceSpan<const Vec3> vorticities{};
+    BufferSpan<const Vec3> positions{};
+    BufferSpan<const Vec3> velocities{};
+    BufferSpan<const float> ages{};
+    BufferSpan<const float> number_densities{};
+    BufferSpan<const float> pressures{};
+    BufferSpan<const Vec3> vorticities{};
     // Occupied ring slots; ages >= lifetime are expired and should not draw.
     std::uint32_t particle_count{};
     float lifetime{};
@@ -74,15 +170,15 @@ struct SmokeDeviceView {
     std::uint64_t revision{};
     // Optional air field, indexed x + resolution *
     // (y + vertical_resolution*z).
-    DeviceSpan<const Vec3> grid_velocity{};
-    DeviceSpan<const float> grid_pressure{};
-    DeviceSpan<const float> grid_density{};
+    BufferSpan<const Vec3> grid_velocity{};
+    BufferSpan<const float> grid_pressure{};
+    BufferSpan<const float> grid_density{};
     // Density-weighted thermal acceleration deposited by smoke tracers.
     // Divide by grid_density where it is non-zero to recover the local mean.
-    DeviceSpan<const float> grid_temperature{};
-    DeviceSpan<const std::uint32_t> grid_solid{};
-    DeviceSpan<const Vec3> grid_vorticity{};
-    DeviceSpan<const float> grid_divergence{};
+    BufferSpan<const float> grid_temperature{};
+    BufferSpan<const std::uint32_t> grid_solid{};
+    BufferSpan<const Vec3> grid_vorticity{};
+    BufferSpan<const float> grid_divergence{};
     std::uint32_t grid_resolution{};
     std::uint32_t grid_vertical_resolution{};
     Vec3 grid_minimum{};
@@ -94,28 +190,28 @@ struct SmokeDeviceView {
 struct ClothDeviceView {
     // Physical nodes and current connectivity. Tearing can append nodes and
     // reindex faces at the next frame boundary; reacquire this view each frame.
-    DeviceSpan<const Vec3> positions{};
-    DeviceSpan<const Vec3> velocities{};
-    DeviceSpan<const std::uint32_t> triangle_indices{};
+    BufferSpan<const Vec3> positions{};
+    BufferSpan<const Vec3> velocities{};
+    BufferSpan<const std::uint32_t> triangle_indices{};
     std::uint32_t vertex_count{};
     // Tearable cloth: authored vertex for each physical node, and split masses.
     // New nodes inherit velocity and share their source's original mass.
-    DeviceSpan<const std::uint32_t> vertex_source_indices{};
-    DeviceSpan<const float> inverse_masses{};
+    BufferSpan<const std::uint32_t> vertex_source_indices{};
+    BufferSpan<const float> inverse_masses{};
     // For tearable cloth, every triangle owns three surface corners. The
     // triangle count stays fixed as bonds fail; source indices preserve UVs.
-    DeviceSpan<const Vec3> surface_positions{};
-    DeviceSpan<const std::uint32_t> surface_triangle_indices{};
-    DeviceSpan<const std::uint32_t> surface_source_indices{};
-    DeviceSpan<const ClothBond> bonds{};
-    DeviceSpan<const std::uint8_t> active_bonds{};
+    BufferSpan<const Vec3> surface_positions{};
+    BufferSpan<const std::uint32_t> surface_triangle_indices{};
+    BufferSpan<const std::uint32_t> surface_source_indices{};
+    BufferSpan<const ClothBond> bonds{};
+    BufferSpan<const std::uint8_t> active_bonds{};
     // Last-substep forces applied at each physical node. These diagnostics
     // remain available without enabling contact event collection, allowing
     // renderers and tools to inspect cloth coupling through the public API.
-    DeviceSpan<const Vec3> rigid_contact_forces{};
-    DeviceSpan<const Vec3> fluid_contact_forces{};
-    DeviceSpan<const Vec3> soft_body_contact_forces{};
-    DeviceSpan<const Vec3> rope_contact_forces{};
+    BufferSpan<const Vec3> rigid_contact_forces{};
+    BufferSpan<const Vec3> fluid_contact_forces{};
+    BufferSpan<const Vec3> soft_body_contact_forces{};
+    BufferSpan<const Vec3> rope_contact_forces{};
 };
 
 // Host-side preparation; no CUDA device is needed. Refine long surface edges
@@ -126,15 +222,15 @@ struct ClothDeviceView {
     SoftBodyGeometrySource source, SoftBodyGeometry &output) noexcept;
 
 struct SoftBodyDeviceView {
-    DeviceSpan<const Vec3> positions{};
-    DeviceSpan<const Vec3> velocities{};
-    DeviceSpan<const SoftBodyBond> bonds{};
-    DeviceSpan<const Vec3> surface_positions{};
-    DeviceSpan<const std::uint32_t> surface_triangle_indices{};
-    DeviceSpan<const Vec3> rigid_contact_forces{};
-    DeviceSpan<const Vec3> cloth_contact_forces{};
-    DeviceSpan<const Vec3> fluid_contact_forces{};
-    DeviceSpan<const Vec3> rope_contact_forces{};
+    BufferSpan<const Vec3> positions{};
+    BufferSpan<const Vec3> velocities{};
+    BufferSpan<const SoftBodyBond> bonds{};
+    BufferSpan<const Vec3> surface_positions{};
+    BufferSpan<const std::uint32_t> surface_triangle_indices{};
+    BufferSpan<const Vec3> rigid_contact_forces{};
+    BufferSpan<const Vec3> cloth_contact_forces{};
+    BufferSpan<const Vec3> fluid_contact_forces{};
+    BufferSpan<const Vec3> rope_contact_forces{};
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
@@ -156,27 +252,36 @@ struct PaintFieldOptions {
     RigidBodyId body{};
     TriangleMeshId mesh{};
     ClothId cloth{}; // Set instead of body/mesh for a deforming cloth target.
-    DeviceSpan<const Vec2> vertex_uvs{};
+    BufferSpan<const Vec2> vertex_uvs{};
+    std::uint32_t width{512U};
+    std::uint32_t height{512U};
+};
+
+struct PaintFieldHostOptions {
+    RigidBodyId body{};
+    TriangleMeshId mesh{};
+    ClothId cloth{};
+    HostSpan<const Vec2> vertex_uvs{};
     std::uint32_t width{512U};
     std::uint32_t height{512U};
 };
 
 struct PaintFieldDeviceView {
-    DeviceSpan<const std::uint32_t> pixels{};
+    BufferSpan<const std::uint32_t> pixels{};
     std::uint32_t width{};
     std::uint32_t height{};
     std::uint64_t revision{};
 };
 
 struct FluidDeviceView {
-    DeviceSpan<const Vec3> positions{};
-    DeviceSpan<const Vec3> velocities{};
+    BufferSpan<const Vec3> positions{};
+    BufferSpan<const Vec3> velocities{};
     // Solver acceleration excluding the StepOptions gravity term.
-    DeviceSpan<const Vec3> accelerations{};
-    DeviceSpan<const std::uint32_t> stable_particle_ids{};
+    BufferSpan<const Vec3> accelerations{};
+    BufferSpan<const std::uint32_t> stable_particle_ids{};
     // Short-lived impact/exposed-surface agitation for renderers; [0, 1].
-    DeviceSpan<const float> foam{};
-    DeviceSpan<const float> temperatures{}; // degrees Celsius
+    BufferSpan<const float> foam{};
+    BufferSpan<const float> temperatures{}; // degrees Celsius
     std::uint32_t particle_count{};
     float particle_radius{};
     float support_radius{};
@@ -184,27 +289,27 @@ struct FluidDeviceView {
 };
 
 struct RigidBodyDeviceView {
-    DeviceSpan<const RigidBodyId> ids{};
-    DeviceSpan<const RigidBodyState> states{};
+    BufferSpan<const RigidBodyId> ids{};
+    BufferSpan<const RigidBodyState> states{};
     // State at the start of the latest World::step call. Renderers may blend
     // previous_states toward states using a fixed-timestep accumulator.
-    DeviceSpan<const RigidBodyState> previous_states{};
+    BufferSpan<const RigidBodyState> previous_states{};
     // Inputs captured at the beginning of the last completed frame. Empty
     // unless WorldOptions::physics_debug is enabled.
-    DeviceSpan<const Vec3> applied_forces{};
-    DeviceSpan<const Vec3> applied_torques{};
+    BufferSpan<const Vec3> applied_forces{};
+    BufferSpan<const Vec3> applied_torques{};
     std::uint64_t revision{};
 };
 
 struct ContactDeviceView {
-    DeviceSpan<const ContactEvent> events{};
+    BufferSpan<const ContactEvent> events{};
     std::uint32_t event_count{};
     bool overflowed{};
     std::uint64_t frame_index{};
 };
 
 struct RigidContactDeviceView {
-    DeviceSpan<const RigidContactEvent> events{};
+    BufferSpan<const RigidContactEvent> events{};
     std::uint32_t event_count{};
     std::uint64_t frame_index{};
 };
@@ -237,20 +342,22 @@ class World {
     World(const World &) = delete;
     World &operator=(const World &) = delete;
 
-    [[nodiscard]] static Status create(WorldOptions options, World &output,
-                                       cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] static Status create(WorldOptions options, World &output) noexcept;
+    [[nodiscard]] static Status create(WorldOptions options,
+                                       NativeContext context,
+                                       World &output) noexcept;
 
     [[nodiscard]] Status add_fluid(FluidOptions options,
-                                   DeviceSpan<const FluidParticle> initial_particles,
-                                   FluidId &output,
-                                   cudaStream_t stream = nullptr) noexcept;
+                                   BufferSpan<const FluidParticle> initial_particles,
+                                   FluidId &output) noexcept;
+    [[nodiscard]] Status add_fluid(FluidOptions options,
+                                   HostSpan<const FluidParticle> initial_particles,
+                                   FluidId &output) noexcept;
     // Samples one authored closed volume and creates a fluid. Continuous
     // inflow is configured separately with add_particle_source.
     [[nodiscard]] Status add_fluid_geometry(
-        FluidOptions options, FluidGeometrySource source, FluidId &output,
-        cudaStream_t stream = nullptr) noexcept;
-    [[nodiscard]] Status remove_fluid(FluidId fluid,
-                                      cudaStream_t stream = nullptr) noexcept;
+        FluidOptions options, FluidGeometrySource source, FluidId &output) noexcept;
+    [[nodiscard]] Status remove_fluid(FluidId fluid) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
     [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
     [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
@@ -280,15 +387,13 @@ class World {
     [[nodiscard]] Status remove_smoke_rigid_coupling(
         SmokeRigidCouplingId coupling) noexcept;
 
-    [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
-                                   cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output) noexcept;
     [[nodiscard]] Status remove_cloth(ClothId cloth) noexcept;
     [[nodiscard]] Status cloth_view(ClothId cloth,
                                     ClothDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_soft_body(SoftBodyOptions options,
-                                       SoftBodyId &output,
-                                       cudaStream_t stream = nullptr) noexcept;
+                                       SoftBodyId &output) noexcept;
     [[nodiscard]] Status remove_soft_body(SoftBodyId soft_body) noexcept;
     [[nodiscard]] Status soft_body_view(
         SoftBodyId soft_body, SoftBodyDeviceView &output) const noexcept;
@@ -382,13 +487,11 @@ class World {
     [[nodiscard]] Status rigid_body_view(RigidBodyDeviceView &output) const noexcept;
     // Explicit synchronous readback for gameplay code that needs one body.
     [[nodiscard]] Status read_rigid_body_state(
-        RigidBodyId body, RigidBodyState &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        RigidBodyId body, RigidBodyState &output) const noexcept;
     // Synchronously polls the latest completed state. Results include every
     // live rigid body and fluid; callers can filter for a specific goal body.
     [[nodiscard]] Status query_hit_box(
-        HitBox box, HitBoxResult &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        HitBox box, HitBoxResult &output) const noexcept;
 
     [[nodiscard]] Status add_rigid_constraint(
         RigidConstraintOptions options, RigidConstraintId &output) noexcept;
@@ -397,23 +500,27 @@ class World {
     [[nodiscard]] Status remove_rigid_constraint(
         RigidConstraintId constraint) noexcept;
     [[nodiscard]] Status read_rigid_constraint_state(
-        RigidConstraintId constraint, RigidConstraintState &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        RigidConstraintId constraint, RigidConstraintState &output) const noexcept;
 
-    // Copies an indexed two-sided triangle soup into World-owned CUDA memory.
+    // Copies an indexed two-sided triangle soup into World-owned Metal memory.
     // Triangles need not form a closed, manifold, or consistently wound mesh.
     [[nodiscard]] Status add_triangle_mesh(
-        DeviceSpan<const Vec3> vertices,
-        DeviceSpan<const std::uint32_t> triangle_indices,
-        TriangleMeshId &output, cudaStream_t stream = nullptr) noexcept;
+        BufferSpan<const Vec3> vertices,
+        BufferSpan<const std::uint32_t> triangle_indices,
+        TriangleMeshId &output) noexcept;
+    [[nodiscard]] Status add_triangle_mesh(
+        HostSpan<const Vec3> vertices,
+        HostSpan<const std::uint32_t> triangle_indices,
+        TriangleMeshId &output) noexcept;
     [[nodiscard]] Status remove_triangle_mesh(TriangleMeshId mesh) noexcept;
 
     [[nodiscard]] Status add_paint_field(
-        PaintFieldOptions options, PaintFieldId &output,
-        cudaStream_t stream = nullptr) noexcept;
+        PaintFieldOptions options, PaintFieldId &output) noexcept;
+    [[nodiscard]] Status add_paint_field(
+        PaintFieldHostOptions options, PaintFieldId &output) noexcept;
     [[nodiscard]] Status remove_paint_field(PaintFieldId field) noexcept;
     [[nodiscard]] Status clear_paint_field(
-        PaintFieldId field, cudaStream_t stream = nullptr) noexcept;
+        PaintFieldId field) noexcept;
     [[nodiscard]] Status paint_field_view(
         PaintFieldId field, PaintFieldDeviceView &output) const noexcept;
     [[nodiscard]] Status add_paint_rule(
@@ -421,10 +528,8 @@ class World {
     [[nodiscard]] Status remove_paint_rule(PaintRuleId rule) noexcept;
 
     // Only one frame may be in flight per World in the initial release.
-    [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,
-                                    cudaStream_t stream = nullptr) noexcept;
-    [[nodiscard]] Status step(StepOptions options,
-                              cudaStream_t stream = nullptr) noexcept;
+    [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion) noexcept;
+    [[nodiscard]] Status step(StepOptions options) noexcept;
 
     [[nodiscard]] ContactDeviceView contacts() const noexcept;
     [[nodiscard]] RigidContactDeviceView rigid_contacts() const noexcept;
@@ -436,13 +541,31 @@ class World {
         PhysicsDebugCapture &output) const noexcept;
     [[nodiscard]] Status collect_step_timings(
         WorldStepTimings &output) const noexcept;
-    [[nodiscard]] Status collect_statistics(WorldStatistics &output,
-                                            cudaStream_t stream = nullptr) const noexcept;
-    [[nodiscard]] int device_ordinal() const noexcept;
+    [[nodiscard]] Status collect_statistics(WorldStatistics &output) const noexcept;
+    [[nodiscard]] NativeContext native_context() const noexcept;
 
   private:
+    [[nodiscard]] void *systems_implementation() noexcept;
+    [[nodiscard]] const void *systems_implementation() const noexcept;
+    [[nodiscard]] bool systems_mutation_allowed() const noexcept;
+    [[nodiscard]] Status systems_finish_mutation(Status status) noexcept;
+    [[nodiscard]] Status systems_reserve_debug_samples(
+        std::uint64_t fluid_particles, std::uint64_t cloth_vertices,
+        std::uint64_t soft_body_nodes,
+        std::uint64_t rope_nodes) noexcept;
+    [[nodiscard]] std::uint64_t systems_revision() const noexcept;
+    [[nodiscard]] bool systems_rigid_body_valid(RigidBodyId id) const noexcept;
+    [[nodiscard]] Status systems_validate_rope_rest(
+        HostSpan<const Vec3> nodes, RopeAttachment first,
+        RopeAttachment last, std::uint32_t &first_contact_skip,
+        std::uint32_t &last_contact_skip) const noexcept;
+    [[nodiscard]] std::uint32_t systems_triangle_mesh_vertex_count(
+        TriangleMeshId id) const noexcept;
+    [[nodiscard]] Status copy_metal_buffer_to_host(
+        void *buffer, std::uint64_t byte_offset, std::uint64_t byte_count,
+        void *destination) noexcept;
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace parallel_mater
+} // namespace parallel_mater::metal

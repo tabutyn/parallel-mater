@@ -3,3 +3,5 @@
 /out/
 *.nsys-rep
 *.ncu-rep
+__pycache__/
+*.py[cod]

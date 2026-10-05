@@ -97,6 +97,52 @@ class ComparatorTests(unittest.TestCase):
         actual = result({"contacts": [second, first], "name": "contacts"})
         self.assertTrue(self.compare(expected, actual).passed)
 
+    def test_fluid_contacts_align_by_stable_identity(self):
+        expected = result({
+            "fluid_contacts": [
+                {"stable_particle_id": 1, "rigid_body": "floor",
+                 "normal": [1.0, 0.0, 0.0]},
+                {"stable_particle_id": 2, "rigid_body": "floor",
+                 "normal": [0.0, 1.0, 0.0]},
+            ],
+            "name": "contacts",
+        })
+        actual = result({
+            "fluid_contacts": [
+                {"stable_particle_id": 2, "rigid_body": "floor",
+                 "normal": [0.001, 1.0, 0.0]},
+                {"stable_particle_id": 1, "rigid_body": "floor",
+                 "normal": [0.999, 0.0, 0.0]},
+            ],
+            "name": "contacts",
+        })
+        self.assertTrue(self.compare(expected, actual).passed)
+
+    def test_rigid_contacts_align_by_identity_and_nearest_geometry(self):
+        expected = result({
+            "rigid_contacts": [
+                {"body": "a", "collider": "b",
+                 "normal": [-0.98, 0.198, 1.0e-9],
+                 "position": [0.0, 0.0, 0.0]},
+                {"body": "a", "collider": "b",
+                 "normal": [-0.98, 0.198, 0.0],
+                 "position": [0.1, 0.0, 0.0]},
+            ],
+            "name": "contacts",
+        })
+        actual = result({
+            "rigid_contacts": [
+                {"body": "a", "collider": "b",
+                 "normal": [-0.980001, 0.198001, 0.0],
+                 "position": [0.100001, 0.0, 0.0]},
+                {"body": "a", "collider": "b",
+                 "normal": [-0.980001, 0.198001, 0.0],
+                 "position": [0.000001, 0.0, 0.0]},
+            ],
+            "name": "contacts",
+        })
+        self.assertTrue(self.compare(expected, actual).passed)
+
     def test_topology_and_tolerance_provenance_are_exact(self):
         expected = result({"name": "cloth", "topology": {"indices": [0, 1, 2]}})
         topology = result({"name": "cloth", "topology": {"indices": [0, 2, 1]}})
@@ -136,6 +182,108 @@ class ComparatorTests(unittest.TestCase):
                           "momentum": [18.0, 0.0, 0.0]},
             "name": "fluid", "samples": [{"id": 1, "position": [50.0, 0.0, 0.0]}]})
         self.assertTrue(self.compare(expected, actual, case).passed)
+
+    def test_chaotic_scalar_envelopes_use_scalar_tolerance(self):
+        case = case_document()
+        case["world"]["chaotic_envelope"] = True
+        expected = result({
+            "maximum_divergence": 0.5,
+            "maximum_strain": 0.65,
+            "minimum_clearance": 0.4,
+            "pressure_relative_residual": 0.01,
+            "rms_divergence": 0.2,
+        })
+        actual = result({
+            "maximum_divergence": 0.58,
+            "maximum_strain": 0.64,
+            "minimum_clearance": 0.35,
+            "pressure_relative_residual": 0.055,
+            "rms_divergence": 0.24,
+        })
+        self.assertTrue(self.compare(expected, actual, case).passed)
+
+        actual["checkpoints"][0]["resources"][0]["maximum_strain"] = 0.9
+        comparison = self.compare(expected, actual, case)
+        self.assertFalse(comparison.passed)
+        self.assertTrue(any(item.path.endswith("maximum_strain")
+                            for item in comparison.differences))
+
+    def test_chaotic_quality_envelopes_are_directional(self):
+        case = case_document()
+        case["world"]["chaotic_envelope"] = True
+        expected = result({
+            "maximum_divergence": 0.5,
+            "maximum_strain": 0.65,
+            "minimum_clearance": 0.4,
+            "pressure_relative_residual": 0.1,
+            "rms_divergence": 0.2,
+        })
+        better = result({
+            "maximum_divergence": 0.0,
+            "maximum_strain": 0.0,
+            "minimum_clearance": 1.0,
+            "pressure_relative_residual": 0.0,
+            "rms_divergence": 0.0,
+        })
+        self.assertTrue(self.compare(expected, better, case).passed)
+
+        worse = result({
+            "maximum_divergence": 0.7,
+            "maximum_strain": 0.9,
+            "minimum_clearance": 0.2,
+            "pressure_relative_residual": 0.3,
+            "rms_divergence": 0.4,
+        })
+        comparison = self.compare(expected, worse, case)
+        self.assertFalse(comparison.passed)
+        failed = {item.path.rsplit(".", 1)[-1]
+                  for item in comparison.differences}
+        self.assertEqual(failed, {
+            "maximum_divergence", "maximum_strain", "minimum_clearance",
+            "pressure_relative_residual", "rms_divergence",
+        })
+
+    def test_chaotic_rigid_trajectories_and_contact_events_do_not_gate(self):
+        case = case_document()
+        case["world"]["chaotic_envelope"] = True
+        expected = result({
+            "id": "rigid/body/1",
+            "type": "rigid_body",
+            "position": [0.0, 0.0, 0.0],
+            "orientation": [0.0, 0.0, 0.0, 1.0],
+            "linear_velocity": [0.0, 0.0, 0.0],
+            "angular_velocity": [0.0, 0.0, 0.0],
+        })
+        expected["checkpoints"][0]["contacts"] = {
+            "fluid_contact_count": 61,
+            "rigid_contact_count": 61,
+            "fluid_contacts": [{"stable_particle_id": 7,
+                                  "normal_impulse": 1.0}],
+            "rigid_contacts": [{"body": "a", "collider": "b"}],
+        }
+        actual = json.loads(json.dumps(expected))
+        body = actual["checkpoints"][0]["resources"][0]
+        body["position"] = [50.0, -20.0, 3.0]
+        body["orientation"] = [0.5, 0.5, 0.5, 0.5]
+        body["linear_velocity"] = [100.0, 0.0, 0.0]
+        body["angular_velocity"] = [0.0, 100.0, 0.0]
+        actual["checkpoints"][0]["contacts"] = {
+            "fluid_contact_count": 66,
+            "rigid_contact_count": 66,
+            "fluid_contacts": [],
+            "rigid_contacts": [{"body": "different", "collider": "pair"},
+                               {"body": "another", "collider": "pair"}],
+        }
+        self.assertTrue(self.compare(expected, actual, case).passed)
+
+        actual["checkpoints"][0]["contacts"]["rigid_contact_count"] = 80
+        comparison = self.compare(expected, actual, case)
+        self.assertFalse(comparison.passed)
+        self.assertTrue(any(item.path.endswith("rigid_contact_count")
+                            for item in comparison.differences))
+
+        case["world"]["chaotic_envelope"] = False
+        self.assertFalse(self.compare(expected, actual, case).passed)
 
 
 if __name__ == "__main__":
