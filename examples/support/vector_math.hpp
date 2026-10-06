@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+#include <parallel_mater/metal.hpp>
+#else
 #include <parallel_mater/parallel_mater.hpp>
+#endif
 
 #include <cmath>
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+namespace parallel_mater::metal::gallery::math {
+#else
 namespace parallel_mater::gallery::math {
+#endif
 
 [[nodiscard]] inline Vec3 add(Vec3 first, Vec3 second) noexcept {
     return {first.x + second.x, first.y + second.y, first.z + second.z};
@@ -47,4 +55,8 @@ namespace parallel_mater::gallery::math {
     return size > epsilon ? multiply(value, 1.0F / size) : fallback;
 }
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+} // namespace parallel_mater::metal::gallery::math
+#else
 } // namespace parallel_mater::gallery::math
+#endif

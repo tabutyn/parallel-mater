@@ -33,6 +33,20 @@ EXACT_KEYS = {
     "type",
     "vertex_source_indices",
 }
+CHAOTIC_SCALAR_ENVELOPE_KEYS = {
+    "maximum_divergence",
+    "maximum_strain",
+    "minimum_clearance",
+    "pressure_relative_residual",
+    "rms_divergence",
+}
+CHAOTIC_UPPER_BOUND_KEYS = {
+    "maximum_divergence",
+    "maximum_strain",
+    "pressure_relative_residual",
+    "rms_divergence",
+}
+CHAOTIC_LOWER_BOUND_KEYS = {"minimum_clearance"}
 
 
 @dataclass
@@ -90,6 +104,17 @@ def canonicalize_contacts(value: Any) -> Any:
                   for key, member in value.items()}
         for key in ("contacts", "rigid_contacts", "fluid_contacts"):
             if isinstance(result.get(key), list):
+                if key == "fluid_contacts" and all(
+                        isinstance(member, dict) and
+                        "stable_particle_id" in member and
+                        "rigid_body" in member
+                        for member in result[key]):
+                    result[key] = sorted(
+                        result[key],
+                        key=lambda member: (
+                            int(member["stable_particle_id"]),
+                            str(member["rigid_body"])))
+                    continue
                 result[key] = sorted(
                     result[key],
                     key=lambda member: json.dumps(
@@ -99,6 +124,123 @@ def canonicalize_contacts(value: Any) -> Any:
     if isinstance(value, list):
         return [canonicalize_contacts(member) for member in value]
     return value
+
+
+def contact_cost(expected: Any, actual: Any) -> float:
+    """Return a deterministic geometric cost for one contact pairing."""
+    if isinstance(expected, bool) or isinstance(actual, bool):
+        return 0.0 if expected == actual else 1.0e12
+    if isinstance(expected, (int, float)) and isinstance(actual, (int, float)):
+        difference = float(expected) - float(actual)
+        return difference * difference
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        if expected.keys() != actual.keys():
+            return 1.0e12
+        return sum(contact_cost(expected[key], actual[key])
+                   for key in expected)
+    if isinstance(expected, list) and isinstance(actual, list):
+        if len(expected) != len(actual):
+            return 1.0e12
+        return sum(contact_cost(left, right)
+                   for left, right in zip(expected, actual))
+    return 0.0 if expected == actual else 1.0e12
+
+
+def minimum_cost_assignment(costs: list[list[float]]) -> list[int]:
+    """Solve a square assignment using the O(n^3) Hungarian algorithm."""
+    count = len(costs)
+    if count == 0:
+        return []
+    potentials_left = [0.0] * (count + 1)
+    potentials_right = [0.0] * (count + 1)
+    matched_row = [0] * (count + 1)
+    previous_column = [0] * (count + 1)
+    for row in range(1, count + 1):
+        matched_row[0] = row
+        minimum = [math.inf] * (count + 1)
+        used = [False] * (count + 1)
+        column = 0
+        while True:
+            used[column] = True
+            active_row = matched_row[column]
+            delta = math.inf
+            next_column = 0
+            for candidate in range(1, count + 1):
+                if used[candidate]:
+                    continue
+                reduced = (costs[active_row - 1][candidate - 1] -
+                           potentials_left[active_row] -
+                           potentials_right[candidate])
+                if reduced < minimum[candidate]:
+                    minimum[candidate] = reduced
+                    previous_column[candidate] = column
+                if minimum[candidate] < delta:
+                    delta = minimum[candidate]
+                    next_column = candidate
+            for candidate in range(count + 1):
+                if used[candidate]:
+                    potentials_left[matched_row[candidate]] += delta
+                    potentials_right[candidate] -= delta
+                else:
+                    minimum[candidate] -= delta
+            column = next_column
+            if matched_row[column] == 0:
+                break
+        while True:
+            previous = previous_column[column]
+            matched_row[column] = matched_row[previous]
+            column = previous
+            if column == 0:
+                break
+    assignment = [0] * count
+    for column in range(1, count + 1):
+        assignment[matched_row[column] - 1] = column - 1
+    return assignment
+
+
+def align_rigid_contacts(expected: Any, actual: Any) -> None:
+    """Pair unordered manifold samples without sorting on noisy floats."""
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        expected_contacts = expected.get("rigid_contacts")
+        actual_contacts = actual.get("rigid_contacts")
+        if (isinstance(expected_contacts, list) and
+                isinstance(actual_contacts, list) and
+                len(expected_contacts) == len(actual_contacts) and
+                all(isinstance(contact, dict) for contact in
+                    expected_contacts + actual_contacts)):
+            expected_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+            actual_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+            for contact in expected_contacts:
+                identity = (str(contact.get("body")),
+                            str(contact.get("collider")))
+                expected_groups.setdefault(identity, []).append(contact)
+            for contact in actual_contacts:
+                identity = (str(contact.get("body")),
+                            str(contact.get("collider")))
+                actual_groups.setdefault(identity, []).append(contact)
+            if (expected_groups.keys() == actual_groups.keys() and
+                    all(len(expected_groups[identity]) ==
+                        len(actual_groups[identity])
+                        for identity in expected_groups)):
+                aligned_expected: list[dict[str, Any]] = []
+                aligned_actual: list[dict[str, Any]] = []
+                for identity in sorted(expected_groups):
+                    expected_group = expected_groups[identity]
+                    actual_group = actual_groups[identity]
+                    costs = [[contact_cost(left, right)
+                              for right in actual_group]
+                             for left in expected_group]
+                    assignment = minimum_cost_assignment(costs)
+                    aligned_expected.extend(expected_group)
+                    aligned_actual.extend(actual_group[index]
+                                          for index in assignment)
+                expected["rigid_contacts"] = aligned_expected
+                actual["rigid_contacts"] = aligned_actual
+        for key in expected.keys() & actual.keys():
+            align_rigid_contacts(expected[key], actual[key])
+    elif isinstance(expected, list) and isinstance(actual, list):
+        for left, right in zip(expected, actual):
+            align_rigid_contacts(left, right)
 
 
 def quaternion_error(expected: list[Any], actual: list[Any]) -> float:
@@ -120,6 +262,10 @@ def tolerance_for(case: dict[str, Any], tolerance_class: str,
     leaf = path.rsplit(".", 1)[-1].split("[", 1)[0]
     if leaf == "orientation":
         selected = values["quaternion_angular"]
+    elif (case.get("world", {}).get("chaotic_envelope") and
+          ("contact_count" in leaf or
+           leaf in CHAOTIC_SCALAR_ENVELOPE_KEYS)):
+        selected = values["chaotic_scalar"]
     elif case.get("world", {}).get("chaotic_envelope") and "momentum" in path:
         selected = values["chaotic_momentum"]
     elif case.get("world", {}).get("chaotic_envelope") and ".aggregate." in path:
@@ -140,8 +286,10 @@ def tolerance_for(case: dict[str, Any], tolerance_class: str,
     return float(selected["abs"]), float(selected["rel"])
 
 
-def is_exact_path(path: str, expected: Any) -> bool:
+def is_exact_path(path: str, expected: Any, chaotic: bool = False) -> bool:
     leaf = path.rsplit(".", 1)[-1].split("[", 1)[0]
+    if chaotic and "contact_count" in leaf:
+        return False
     return (
         leaf in EXACT_KEYS or leaf.endswith("_count") or
         isinstance(expected, (bool, str, int)) or expected is None
@@ -160,8 +308,15 @@ def compare_value(expected: Any, actual: Any, case: dict[str, Any],
         return
     if isinstance(expected, dict):
         ignored = set(IGNORED_KEYS)
-        if case.get("world", {}).get("chaotic_envelope"):
+        chaotic = bool(case.get("world", {}).get("chaotic_envelope"))
+        if chaotic:
             ignored.add("samples")
+            ignored.update(("fluid_contacts", "rigid_contacts"))
+            if isinstance(expected.get("contacts"), list):
+                ignored.add("contacts")
+            if expected.get("type") == "rigid_body":
+                ignored.update(("position", "orientation",
+                                "linear_velocity", "angular_velocity"))
         expected_keys = set(expected) - ignored
         actual_keys = set(actual) - ignored
         for key in sorted(expected_keys - actual_keys):
@@ -176,7 +331,8 @@ def compare_value(expected: Any, actual: Any, case: dict[str, Any],
             compare_value(
                 expected[key], actual[key], case, comparison,
                 f"{path}.{key}", child_class,
-                exact or key == "topology" or is_exact_path(key, expected[key]))
+                exact or key == "topology" or
+                is_exact_path(key, expected[key], chaotic))
         return
     if isinstance(expected, list):
         if path.endswith(".orientation"):
@@ -202,6 +358,22 @@ def compare_value(expected: Any, actual: Any, case: dict[str, Any],
             case, tolerance_class or case["tolerances"]["profile"], path)
         scale = max(abs(expected), abs(actual))
         limit = absolute + relative * scale
+        leaf = path.rsplit(".", 1)[-1].split("[", 1)[0]
+        if case.get("world", {}).get("chaotic_envelope"):
+            if leaf in CHAOTIC_UPPER_BOUND_KEYS:
+                excess = actual - expected
+                if excess > limit:
+                    comparison.fail(
+                        path, f"upper-envelope excess {excess} > {limit}",
+                        expected, actual)
+                return
+            if leaf in CHAOTIC_LOWER_BOUND_KEYS:
+                deficit = expected - actual
+                if deficit > limit:
+                    comparison.fail(
+                        path, f"lower-envelope deficit {deficit} > {limit}",
+                        expected, actual)
+                return
         error = abs(expected - actual)
         if error > limit:
             comparison.fail(path, f"absolute error {error} > {limit}",
@@ -219,6 +391,7 @@ def compare_documents(case: dict[str, Any], expected: dict[str, Any],
     ensure_finite(actual, "$actual", comparison)
     expected = canonicalize_contacts(copy.deepcopy(expected))
     actual = canonicalize_contacts(copy.deepcopy(actual))
+    align_rigid_contacts(expected, actual)
     compare_value(expected, actual, case, comparison)
     return comparison
 

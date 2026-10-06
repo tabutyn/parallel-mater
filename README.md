@@ -1,7 +1,8 @@
 # ParallelMater
 
-ParallelMater is an MIT-licensed CUDA C++ physics library. The first complete
-milestone couples particle fluid with triangle rigid bodies; later solvers
+ParallelMater is an MIT-licensed GPU physics library. CUDA is the complete
+reference backend; an Apple Metal 4 backend is under active development. The
+first complete milestone couples particle fluid with triangle rigid bodies; later solvers
 will be added only after the small public API is proven by gallery examples.
 
 The current implementation provides the `World` lifecycle and GPU rigid-body
@@ -60,6 +61,57 @@ ctest --test-dir build --output-on-failure
 The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
+
+### Metal 4 foundation
+
+On Apple Silicon with macOS 26 and Xcode 26, CMake defaults to the Metal target
+and does not require a CUDA toolkit:
+
+```bash
+cmake -S . -B build-metal \
+  -DPARALLEL_MATER_BUILD_CUDA=OFF \
+  -DPARALLEL_MATER_BUILD_METAL=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-metal
+ctest --test-dir build-metal --output-on-failure
+```
+
+The installed target is `ParallelMater::metal`, with its public API in
+`<parallel_mater/metal.hpp>`. The current correctness milestone implements the
+Metal 4 queue/frame lifecycle, embedded MSL 4 shaders, rigid bodies and all
+eight constraint types, fluid, cloth, soft bodies, ropes, particle/grid smoke,
+fluid sources/outflow, rigid contact for every particle family, and the exposed
+pairwise coupling handles. The native Metal gallery loads the shared 29-entry
+registry and renders rigid bodies, live cloth/soft-body surfaces, rebuilt rope
+tubes, fluid particles, and smoke through embedded MSL shaders. CUDA/Metal
+numerical parity, production parallel kernels, and ray-traced visual parity
+remain gated; see [Metal port status](docs/METAL.md), the [gallery parity
+audit](docs/METAL_GALLERY_PARITY.md), and the [CUDA reference package needed
+for engine parity](docs/CUDA_REFERENCE_REQUIREMENTS.md).
+
+Run the gallery on Apple Silicon with:
+
+```bash
+cmake -S . -B build-metal-gallery \
+  -DPARALLEL_MATER_BUILD_CUDA=OFF \
+  -DPARALLEL_MATER_BUILD_METAL=ON \
+  -DPARALLEL_MATER_BUILD_METAL_GALLERY=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-metal-gallery
+./build-metal-gallery/parallel-mater-metal-gallery
+./build-metal-gallery/parallel-mater-metal-gallery \
+  --cloth-tear
+./build-metal-gallery/parallel-mater-metal-gallery \
+  --all-scenes --frames 1 --headless --validate \
+  --output build-metal-gallery/captures
+```
+
+Use `--list-scenes` to list every scene selector. In the interactive gallery,
+Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
+the highlighted scene, the mouse orbits/pans/zooms, arrows run the scene's
+control policy, Space performs its scene action, `R` reloads, and Escape closes
+the scene page or exits. Headless rendering writes PPM captures and uses the
+same embedded Metal pipelines as the windowed path.
 
 ## Blender and OptiX gallery
 

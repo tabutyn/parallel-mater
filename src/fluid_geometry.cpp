@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: MIT
+#if defined(PARALLEL_MATER_METAL_GEOMETRY)
+#include <parallel_mater/metal.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
+#define PM_GEOMETRY_SUCCESS 0
+#else
 #include <parallel_mater/parallel_mater.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater
+#define PM_GEOMETRY_SUCCESS cudaSuccess
+#endif
 
 #include <algorithm>
 #include <array>
@@ -9,7 +17,7 @@
 #include <new>
 #include <vector>
 
-namespace parallel_mater {
+namespace PM_GEOMETRY_NAMESPACE {
 namespace {
 
 Vec3 add(Vec3 a, Vec3 b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
@@ -43,13 +51,13 @@ Status sample_fluid_geometry(FluidGeometrySource source,
         !std::isfinite(source.transform.orientation.y) ||
         !std::isfinite(source.transform.orientation.z) ||
         !std::isfinite(source.transform.orientation.w)) {
-        return {StatusCode::invalid_argument, cudaSuccess,
+        return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                 "fluid geometry source is invalid"};
     }
     const Quaternion q = source.transform.orientation;
     const float q2 = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
     if (q2 < 1.0e-12F || std::fabs(q2 - 1.0F) > 1.0e-3F)
-        return {StatusCode::invalid_argument, cudaSuccess,
+        return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                 "fluid geometry orientation must be normalized"};
     try {
         std::vector<Vec3> points;
@@ -61,7 +69,7 @@ Status sample_fluid_geometry(FluidGeometrySource source,
         for (std::uint64_t i = 0; i < source.vertices.size; ++i) {
             const Vec3 local = source.vertices.data[i];
             if (!finite(local))
-                return {StatusCode::invalid_argument, cudaSuccess,
+                return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                         "fluid geometry contains a non-finite vertex"};
             const Vec3 p = add(source.transform.position, rotate(q, local));
             points.push_back(p);
@@ -77,7 +85,7 @@ Status sample_fluid_geometry(FluidGeometrySource source,
             const auto b = source.triangle_indices.data[i+1U];
             const auto c = source.triangle_indices.data[i+2U];
             if (a >= points.size() || b >= points.size() || c >= points.size())
-                return {StatusCode::invalid_argument, cudaSuccess,
+                return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                         "fluid geometry index is outside the vertex buffer"};
             triangles.push_back({points[a], points[b], points[c]});
         }
@@ -87,7 +95,7 @@ Status sample_fluid_geometry(FluidGeometrySource source,
         if (!finite(extent) || std::min({extent.x, extent.y, extent.z}) <
                 source.spacing || extent.x / source.spacing > 254.0F ||
             extent.y / layer_height > 254.0F || extent.z / row_height > 254.0F)
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                     "fluid geometry must be a bounded three-dimensional volume"};
         const std::array<std::uint32_t, 3> dimensions{
             static_cast<std::uint32_t>(std::ceil(extent.x/source.spacing))+1U,
@@ -95,7 +103,7 @@ Status sample_fluid_geometry(FluidGeometrySource source,
             static_cast<std::uint32_t>(std::ceil(extent.z/row_height))+1U};
         if (static_cast<std::uint64_t>(dimensions[0])*dimensions[1]*
                 dimensions[2] > 1'000'000U)
-            return {StatusCode::capacity_exceeded, cudaSuccess,
+            return {StatusCode::capacity_exceeded, PM_GEOMETRY_SUCCESS,
                     "fluid geometry sampling grid is too large"};
         const Vec3 direction = multiply(Vec3{1.0F, 0.371F, 0.173F},
             1.0F / std::sqrt(1.0F + 0.371F*0.371F + 0.173F*0.173F));
@@ -140,14 +148,16 @@ Status sample_fluid_geometry(FluidGeometrySource source,
                         output.push_back({point, source.initial_velocity});
                 }
         if (output.size() == original_count)
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS,
                     "fluid geometry contains no particle centers"};
         return {};
     } catch (...) {
         output.resize(original_count);
-        return {StatusCode::out_of_memory, cudaSuccess,
+        return {StatusCode::out_of_memory, PM_GEOMETRY_SUCCESS,
                 "fluid geometry sampling allocation failed"};
     }
 }
 
 } // namespace parallel_mater
+#undef PM_GEOMETRY_SUCCESS
+#undef PM_GEOMETRY_NAMESPACE

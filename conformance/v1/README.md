@@ -62,15 +62,21 @@ backend-specific hashes are diagnostic and never gate correctness.
 - Direct integration uses `1e-5`; constraint/contact positions use `2e-3 m`
   and velocities `2e-2 m/s`; deformable samples use `5e-3 m` and `5e-2 m/s`.
   Quaternion angular error uses `2e-3 rad`, with opposite signs equivalent.
-- Contact lists are canonicalized. NaN, infinity, missing entities, changed
-  topology, and a changed case hash fail.
+- Contact lists are canonicalized. Rigid manifold samples are grouped by body
+  pair and matched by minimum geometric cost so harmless floating-point noise
+  cannot reorder otherwise equivalent contacts. NaN, infinity, missing
+  entities, changed topology, and a changed case hash fail.
 - Systems of at most 256 elements emit complete state. Larger systems emit
   stable-ID samples plus counts, bounds, center of mass, momentum, energy,
   maximum speed, divergence, strain, clearance/contact, and topology data.
-- Cases marked `chaotic_envelope` retain samples for inspection but gate
-  aggregate bounds/centres at `0.1 m + 5%`, momentum at `25 + 25%`, energy at
-  `25 + 25%`, and scalar envelopes at `0.05 + 10%`; individual trajectories
-  do not gate.
+- Cases marked `chaotic_envelope` retain particle samples, rigid trajectories,
+  and raw contact records for inspection, but those individual trajectories do
+  not gate. Aggregate bounds/centres gate at `0.1 m + 5%`, momentum at
+  `25 + 25%`, and energy at `25 + 25%`. Contact counts use a symmetric
+  `0.05 + 10%` tolerance. Divergence, pressure residual, and strain are
+  upper-bound envelopes; minimum clearance is a lower-bound envelope, with the
+  same tolerance. Improving those safety metrics never fails conformance.
+  Identities, lifecycle counts, and topology remain exact.
 
 CTest byte-checks registry serialization and GLB hashes, exercises comparator
 edge cases, and reproduces CUDA results in a temporary directory without
