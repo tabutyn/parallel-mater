@@ -197,6 +197,7 @@ struct RigidConstraintGeometry {
     Vec3 anchor_error{};
     Vec3 rotation_error{};
     Vec3 hinge_alignment_error{};
+    Vec3 piston_alignment_error{};
     RigidConstraintAxisGeometry axes[3]{};
 };
 
@@ -250,7 +251,7 @@ static_assert(sizeof(RigidBodyId) == 8U);
 static_assert(sizeof(RigidContactEvent) == 60U);
 static_assert(sizeof(RigidConstraintResource) == 236U);
 static_assert(sizeof(RigidConstraintAxisGeometry) == 44U);
-static_assert(sizeof(RigidConstraintGeometry) == 196U);
+static_assert(sizeof(RigidConstraintGeometry) == 208U);
 
 bool completion_ready(const std::shared_ptr<CompletionState> &state) noexcept {
     if (!state) {

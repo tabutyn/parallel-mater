@@ -191,6 +191,7 @@ struct PMRigidConstraintGeometry {
     PMPackedVec3 anchor_error;
     PMPackedVec3 rotation_error;
     PMPackedVec3 hinge_alignment_error;
+    PMPackedVec3 piston_alignment_error;
     PMRigidConstraintAxisGeometry axes[3];
 };
 
@@ -222,7 +223,7 @@ static_assert(sizeof(PMContactEvent) == 48);
 static_assert(sizeof(PMStepConstants) == 36);
 static_assert(sizeof(PMRigidConstraintResource) == 236);
 static_assert(sizeof(PMRigidConstraintAxisGeometry) == 44);
-static_assert(sizeof(PMRigidConstraintGeometry) == 196);
+static_assert(sizeof(PMRigidConstraintGeometry) == 208);
 static_assert(sizeof(PMRigidCompound) == 88);
 
 static float3 pm_load(PMPackedVec3 value) {
@@ -309,12 +310,107 @@ static float3 pm_quaternion_delta_velocity(
            (angle / (vector_size * timestep));
 }
 
+struct PMGuidedFrame {
+    float3 anchor;
+    float3 axis;
+    float3 local_anchor;
+    bool active;
+    bool axial_rotation;
+};
+
+static float3 pm_guide_normalized_or(float3 value, float3 fallback) {
+    const float squared = dot(value, value);
+    return squared > 1.0e-12f ? value * rsqrt(squared) : fallback;
+}
+
+static PMGuidedFrame pm_rigid_guided_frame(
+    device const PMRigidParameters *parameters, uint body_count, uint body,
+    device const PMRigidBodyState *states,
+    device const PMRigidConstraintResource *constraints,
+    uint constraint_capacity, thread PMQuaternion &axial_orientation) {
+    PMGuidedFrame result{};
+    axial_orientation = {0.0f, 0.0f, 0.0f, 1.0f};
+    if (body >= body_count || parameters[body].inverse_mass <= 0.0f)
+        return result;
+    uint incident_count = 0u;
+    for (uint index = 0u; index < constraint_capacity; ++index) {
+        device const PMRigidConstraintResource &constraint =
+            constraints[index];
+        if (constraint.alive == 0u || constraint.enabled == 0u ||
+            constraint.broken != 0u)
+            continue;
+        const bool is_a = constraint.body_a == body;
+        const bool is_b = constraint.body_b == body;
+        if (!is_a && !is_b) continue;
+        ++incident_count;
+        const bool axial = constraint.type == 3u || constraint.type == 4u;
+        const uint other = is_a ? constraint.body_b : constraint.body_a;
+        const bool static_anchor = other < body_count &&
+                                   parameters[other].motion == 0u;
+        if (result.active || !axial || !static_anchor ||
+            constraint.breaking_impulse_threshold > 0.0f)
+            continue;
+        result.local_anchor = pm_load(
+            is_a ? constraint.local_anchor_a : constraint.local_anchor_b);
+        const PMQuaternion local_orientation = is_a
+            ? constraint.local_orientation_a
+            : constraint.local_orientation_b;
+        const float3 other_local_anchor = pm_load(
+            is_a ? constraint.local_anchor_b : constraint.local_anchor_a);
+        const PMQuaternion other_local_orientation = is_a
+            ? constraint.local_orientation_b
+            : constraint.local_orientation_a;
+        device const PMRigidBodyState &other_state = states[other];
+        axial_orientation = pm_quaternion_normalize(
+            pm_quaternion_multiply(
+                pm_quaternion_multiply(
+                    other_state.orientation, other_local_orientation),
+                pm_quaternion_conjugate(local_orientation)));
+        result.anchor = pm_load(other_state.position) +
+            pm_rotate(other_state.orientation, other_local_anchor);
+        result.axis = pm_guide_normalized_or(
+            pm_rotate(pm_quaternion_multiply(
+                          other_state.orientation,
+                          other_local_orientation),
+                      float3(1.0f, 0.0f, 0.0f)),
+            float3(1.0f, 0.0f, 0.0f));
+        result.active = true;
+        result.axial_rotation = constraint.type == 4u;
+    }
+    if (incident_count != 1u) result.active = false;
+    return result;
+}
+
+static float pm_guided_inverse_moment(
+    device const PMRigidParameters &body,
+    device const PMRigidBodyState &state,
+    thread const PMGuidedFrame &frame) {
+    if (!frame.axial_rotation || body.inverse_mass <= 1.0e-6f) return 0.0f;
+    const float3 local_axis = pm_rotate(
+        pm_quaternion_conjugate(state.orientation), frame.axis);
+    const float3 inverse_inertia = pm_load(body.inverse_inertia);
+    const float center_moment =
+        local_axis.x * local_axis.x /
+            max(inverse_inertia.x, 1.0e-6f) +
+        local_axis.y * local_axis.y /
+            max(inverse_inertia.y, 1.0e-6f) +
+        local_axis.z * local_axis.z /
+            max(inverse_inertia.z, 1.0e-6f);
+    const float3 center_arm = pm_load(state.position) - frame.anchor;
+    const float3 perpendicular = center_arm -
+        frame.axis * dot(center_arm, frame.axis);
+    const float pivot_moment = center_moment +
+        dot(perpendicular, perpendicular) / body.inverse_mass;
+    return pivot_moment > 1.0e-6f ? 1.0f / pivot_moment : 0.0f;
+}
+
 kernel void pm_rigid_integrate(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
     device PMPackedVec3 *forces [[buffer(2)]],
     device PMPackedVec3 *torques [[buffer(3)]],
     constant PMStepConstants &step [[buffer(4)]],
+    device const PMRigidConstraintResource *constraints [[buffer(9)]],
     device PMRigidBodyState *previous_states [[buffer(14)]],
     device const uint &substep_index [[buffer(20)]],
     uint body_index [[thread_position_in_grid]]) {
@@ -380,8 +476,6 @@ kernel void pm_rigid_integrate(
         linear_velocity =
             pm_limit(linear_velocity, body.maximum_linear_speed);
         state.linear_velocity = pm_store(linear_velocity);
-        state.position =
-            pm_store(pm_load(state.position) + linear_velocity * dt);
 
         float3 angular_velocity = pm_load(state.angular_velocity);
         angular_velocity += pm_inverse_inertia_mul(
@@ -393,6 +487,38 @@ kernel void pm_rigid_integrate(
             pm_limit(angular_velocity, body.maximum_angular_speed);
         state.angular_velocity = pm_store(angular_velocity);
 
+        PMQuaternion axial_orientation{};
+        const PMGuidedFrame guide = pm_rigid_guided_frame(
+            parameters, step.body_count, body_index, states, constraints,
+            step.constraint_capacity, axial_orientation);
+        if (guide.active) {
+            const float3 local_omega = pm_rotate(
+                pm_quaternion_conjugate(state.orientation),
+                angular_velocity);
+            const float3 inverse_inertia = pm_load(body.inverse_inertia);
+            const float3 angular_momentum = pm_rotate(
+                state.orientation,
+                float3(
+                    local_omega.x / max(inverse_inertia.x, 1.0e-6f),
+                    local_omega.y / max(inverse_inertia.y, 1.0e-6f),
+                    local_omega.z / max(inverse_inertia.z, 1.0e-6f)));
+            const float3 arm = pm_load(state.position) - guide.anchor;
+            const float spin = dot(
+                guide.axis,
+                angular_momentum +
+                    cross(arm, linear_velocity / body.inverse_mass)) *
+                pm_guided_inverse_moment(body, state, guide);
+            angular_velocity = guide.axis * spin;
+            linear_velocity =
+                guide.axis * dot(linear_velocity, guide.axis) +
+                cross(angular_velocity, arm);
+            state.angular_velocity = pm_store(angular_velocity);
+            state.linear_velocity = pm_store(linear_velocity);
+        }
+
+        state.position =
+            pm_store(pm_load(state.position) + linear_velocity * dt);
+
         const PMQuaternion angular{
             angular_velocity.x, angular_velocity.y, angular_velocity.z,
             0.0f};
@@ -403,6 +529,31 @@ kernel void pm_rigid_integrate(
             state.orientation.y + 0.5f * derivative.y * dt,
             state.orientation.z + 0.5f * derivative.z * dt,
             state.orientation.w + 0.5f * derivative.w * dt});
+        if (guide.active) {
+            if (guide.axial_rotation) {
+                const PMQuaternion relative = pm_quaternion_multiply(
+                    state.orientation,
+                    pm_quaternion_conjugate(axial_orientation));
+                const float twist = dot(
+                    float3(relative.x, relative.y, relative.z),
+                    guide.axis);
+                const PMQuaternion rotation = pm_quaternion_normalize({
+                    guide.axis.x * twist,
+                    guide.axis.y * twist,
+                    guide.axis.z * twist,
+                    relative.w});
+                state.orientation = pm_quaternion_normalize(
+                    pm_quaternion_multiply(rotation, axial_orientation));
+            } else {
+                state.orientation = axial_orientation;
+            }
+            const float3 anchor = pm_load(state.position) +
+                pm_rotate(state.orientation, guide.local_anchor);
+            state.position = pm_store(
+                guide.anchor +
+                    guide.axis * dot(anchor - guide.anchor, guide.axis) -
+                    pm_rotate(state.orientation, guide.local_anchor));
+        }
     }
 }
 
@@ -1049,6 +1200,9 @@ kernel void pm_rigid_constraints_serial(
         geometry.hinge_alignment_error = pm_store(cross(
             pm_rotate(frame_a, float3(0.0f, 0.0f, 1.0f)),
             pm_rotate(frame_b, float3(0.0f, 0.0f, 1.0f))));
+        geometry.piston_alignment_error = pm_store(cross(
+            pm_rotate(frame_a, float3(1.0f, 0.0f, 0.0f)),
+            pm_rotate(frame_b, float3(1.0f, 0.0f, 0.0f))));
         for (uint axis_index = 0u; axis_index < 3u; ++axis_index) {
             device PMRigidConstraintAxisGeometry &row =
                 geometry.axes[axis_index];
@@ -1119,6 +1273,8 @@ kernel void pm_rigid_constraints_serial(
             const float3 rotation_error = pm_load(geometry.rotation_error);
             const float3 hinge_alignment_error =
                 pm_load(geometry.hinge_alignment_error);
+            const float3 piston_alignment_error =
+                pm_load(geometry.piston_alignment_error);
             float applied = 0.0f;
             for (uint axis_index = 0u; axis_index < 3u; ++axis_index) {
                 device const PMRigidConstraintAxisGeometry &row =
@@ -1171,7 +1327,9 @@ kernel void pm_rigid_constraints_serial(
                 float angular_error =
                     constraint.type == 2u && axis_index != 2u
                         ? dot(hinge_alignment_error, world_axis)
-                        : rotation_error[axis_index];
+                        : constraint.type == 4u && axis_index != 0u
+                            ? dot(piston_alignment_error, world_axis)
+                            : rotation_error[axis_index];
                 if (angular_limit && !angular_lock && !angular_spring)
                     angular_error = pm_limit_error(
                         angular_error,
@@ -1921,10 +2079,13 @@ static void pm_load_triangle(
 }
 
 static void pm_collide_triangle_ranges(
+    device const PMRigidBodyState &previous_body_state,
     device const PMRigidBodyState &body_state,
     float3 body_reference,
     device const PMTriangleMeshInfo &body_mesh, uint body_first,
-    uint body_count, device const PMRigidBodyState &collider_state,
+    uint body_count,
+    device const PMRigidBodyState &previous_collider_state,
+    device const PMRigidBodyState &collider_state,
     device const PMTriangleMeshInfo &collider_mesh, uint collider_first,
     uint collider_count, device const PMPackedVec3 *vertices,
     device const uint *indices, float margin, float timestep,
@@ -1964,18 +2125,85 @@ static void pm_collide_triangle_ranges(
                 ? collider_normal
                 : -collider_normal;
             const float distance = sqrt(max(squared, 0.0f));
-            const float3 normal = distance <= pm_rigid_surface_tolerance
-                ? fallback
-                : pm_normalized_or(delta, fallback);
             const float3 point = (point_a + point_b) * 0.5f;
+            const float3 plane_projection = point_a - collider_normal *
+                dot(point_a - b0, collider_normal);
+            const float3 on_plane_face = pm_closest_point_triangle(
+                plane_projection, b0, b1, b2);
+            const bool on_triangle_face = dot(
+                plane_projection - on_plane_face,
+                plane_projection - on_plane_face) <=
+                pm_rigid_surface_tolerance * pm_rigid_surface_tolerance;
+            const bool small_convex = body_mesh.solid_plane_count != 0u &&
+                                      body_mesh.index_count <= 96u;
+            float3 normal =
+                (distance <= pm_rigid_surface_tolerance ||
+                 (small_convex && on_triangle_face))
+                    ? fallback
+                    : pm_normalized_or(delta, fallback);
+            bool convex_surface_face = false;
+            float face_separation = 0.0f;
+            const bool convex_a = body_mesh.solid_plane_count != 0u;
+            const bool convex_b = collider_mesh.solid_plane_count != 0u;
+            if (convex_a != convex_b &&
+                distance <= pm_rigid_surface_tolerance) {
+                const float3 face0 = convex_a ? b0 : a0;
+                const float3 face1 = convex_a ? b1 : a1;
+                const float3 face2 = convex_a ? b2 : a2;
+                device const PMRigidBodyState &surface_state =
+                    convex_a ? collider_state : body_state;
+                device const PMRigidBodyState &previous_surface =
+                    convex_a ? previous_collider_state : previous_body_state;
+                device const PMRigidBodyState &previous_convex =
+                    convex_a ? previous_body_state : previous_collider_state;
+                float3 outward = pm_normalized_or(
+                    cross(face1 - face0, face2 - face0), float3(0.0f));
+                const float3 local_normal = pm_rotate(
+                    pm_quaternion_conjugate(surface_state.orientation),
+                    outward);
+                const float3 old_normal = pm_rotate(
+                    previous_surface.orientation, local_normal);
+                const float3 local_point = pm_rotate(
+                    pm_quaternion_conjugate(surface_state.orientation),
+                    face0 - pm_load(surface_state.position));
+                const float3 old_point =
+                    pm_load(previous_surface.position) +
+                    pm_rotate(previous_surface.orientation, local_point);
+                if (dot(old_normal,
+                        pm_load(previous_convex.position) - old_point) < 0.0f)
+                    outward = -outward;
+                const float3 incident_point = convex_a ? point_a : point_b;
+                const float3 projection = incident_point - outward *
+                    dot(incident_point - face0, outward);
+                const float3 on_face = pm_closest_point_triangle(
+                    projection, face0, face1, face2);
+                convex_surface_face = dot(outward, outward) > 0.5f &&
+                    dot(projection - on_face, projection - on_face) <=
+                        pm_rigid_surface_tolerance *
+                            pm_rigid_surface_tolerance;
+                if (convex_surface_face) {
+                    normal = convex_a ? outward : -outward;
+                    const float3 convex0 = convex_a ? a0 : b0;
+                    const float3 convex1 = convex_a ? a1 : b1;
+                    const float3 convex2 = convex_a ? a2 : b2;
+                    face_separation = min(
+                        dot(convex0 - face0, outward),
+                        min(dot(convex1 - face0, outward),
+                            dot(convex2 - face0, outward)));
+                }
+            }
             if (!pm_contact_reaches_rest_offset(
                     body_state, collider_state, point, normal, distance,
                     rest_offset, timestep))
                 continue;
             float penetration =
                 rest_offset - distance + pm_rigid_surface_tolerance;
-            if (distance <= pm_rigid_surface_tolerance) {
-                if (fixed_cluster_contact) {
+            if (convex_surface_face) {
+                penetration = min(
+                    margin, rest_offset - face_separation) +
+                    pm_rigid_surface_tolerance;
+            } else if (distance <= pm_rigid_surface_tolerance) {
+                if (fixed_cluster_contact || small_convex) {
                     const float intersection_depth = max(
                         0.0f,
                         -min(dot(a0 - point_b, normal),
@@ -2268,10 +2496,11 @@ static PMContactManifold pm_collide_meshes(
                 PMContactManifold local{};
                 if (!swept_only)
                     pm_collide_triangle_ranges(
-                        body_state, body_reference,
+                        previous_body_state, body_state, body_reference,
                         body_mesh,
                         body_node.first_triangle,
-                        body_node.triangle_count, collider_state,
+                        body_node.triangle_count, previous_collider_state,
+                        collider_state,
                         collider_mesh, collider_node.first_triangle,
                         collider_node.triangle_count, vertices, indices,
                         margin, timestep, deep_sweep,
@@ -2334,10 +2563,11 @@ static PMContactManifold pm_collide_meshes(
         if (body_leaf && collider_leaf) {
             if (!swept_only)
                 pm_collide_triangle_ranges(
-                    body_state, body_reference,
+                    previous_body_state, body_state, body_reference,
                     body_mesh,
                     body_node.first_triangle,
-                    body_node.triangle_count, collider_state, collider_mesh,
+                    body_node.triangle_count, previous_collider_state,
+                    collider_state, collider_mesh,
                     collider_node.first_triangle,
                     collider_node.triangle_count, vertices, indices, margin,
                     timestep, deep_sweep, fixed_cluster_contact, manifold);
@@ -2379,10 +2609,10 @@ static PMContactManifold pm_collide_meshes(
         manifold = {};
         if (!swept_only)
             pm_collide_triangle_ranges(
-                body_state, body_reference,
+                previous_body_state, body_state, body_reference,
                 body_mesh, 0u,
                 body_mesh.index_count / 3u,
-                collider_state, collider_mesh, 0u,
+                previous_collider_state, collider_state, collider_mesh, 0u,
                 collider_mesh.index_count / 3u, vertices, indices, margin,
                 timestep, deep_sweep, fixed_cluster_contact, manifold);
         if (swept) {
@@ -2927,15 +3157,22 @@ kernel void pm_rigid_contact_generate(
             previous_states[body], states[body], body_mesh,
             previous_states[collider], states[collider], collider_mesh,
             margin);
+    const bool crossed_convex_surface =
+        body_reference_crossed_contact &&
+        !body_hinge.present && !collider_hinge.present &&
+        ((body_mesh.solid_plane_count != 0u) !=
+         (collider_mesh.solid_plane_count != 0u)) &&
+        pair_requires_predictive_replacement;
     const bool needs_tunnel_recovery =
         (output.count == 0u && deep_pair_motion) ||
-        (!has_approaching_contact && body_reference_crossed_contact);
+        (!has_approaching_contact && body_reference_crossed_contact) ||
+        crossed_convex_surface;
     if ((needs_tunnel_recovery || inconsistent_coplanar_sweep) &&
         allow_robust_fallback) {
         const bool swept_only =
             !fixed_cluster_contact && output.count != 0u &&
-            !has_approaching_contact &&
-            pair_requires_predictive_replacement;
+            pair_requires_predictive_replacement &&
+            (!has_approaching_contact || crossed_convex_surface);
         PMContactManifold fallback = pm_collide_meshes(
             previous_states[body], states[body], previous_body_reference,
             body_reference, body_mesh,

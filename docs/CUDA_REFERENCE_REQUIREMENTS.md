@@ -16,6 +16,97 @@ five coupled cases fail exact same-device repeatability, although every repeat
 passes the existing cross-backend tolerance comparator. Do not treat that
 known CUDA variability as a Metal-only failure.
 
+## Current Metal comparison status
+
+The 2026-10-06 package has been verified and compared on Apple Silicon against
+`run-01`. On unmodified merged source, Metal passes 13 of the 30 v1 cases. The
+current Metal conformance branch ports the CUDA convex/concave entry-side
+contact rule, the missing piston alignment row, and reduced-coordinate
+slider/piston integration. With those changes, these 16 cases pass:
+
+- `cloth-core`, `cloth-water`, and `fluid-lifecycle`;
+- `constraint-piston` and `constraint-slider`;
+- `rope-cloth` and `rope-fluid`;
+- `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
+  `smoke-water`;
+- `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
+  `soft-body-rigid`.
+
+The 14 remaining cases and their current comparator difference counts are:
+
+| Area | Cases |
+| --- | --- |
+| Rigid lifecycle/contact | `compound-weld-lifecycle` (4), `passive-active` (49), `rigid-direct` (13) |
+| Constraints | `constraint-breaking` (22), `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (18), `constraint-hinge` (27), `constraint-motor` (5), `constraint-point` (22) |
+| Fluid coupling | `fluid-rigid` (1) |
+| Cloth/rope | `cloth-tear` (62), `rope-core` (212), `rope-soft-body` (8) |
+
+These counts describe comparison records, not necessarily independent bugs.
+For example, one earlier contact-manifold difference can alter every later
+state and event record. Before accepting a change, rerun all 30 cases so a
+local improvement does not hide a cross-system regression.
+
+## CUDA engine traces still needed
+
+The public checkpoints identify which scenarios differ, but they do not expose
+the first engine phase that differs. The next CUDA handoff should be generated
+from the exact source commit under review and include the following focused
+traces. A small machine-readable JSON or binary dump is preferable to console
+logging; retain the dumping code or patch so Metal can emit the identical
+schema.
+
+### Rigid contacts and lifecycle
+
+For `compound-weld-lifecycle`, `passive-active`, `rigid-direct`, and the first
+failing frame of each constraint case, capture:
+
+- previous and predicted body transforms and velocities;
+- broad-phase body pairs and BVH leaf/triangle pairs in stable order;
+- convex solid planes, selected reference and incident faces, clipped polygon
+  vertices, separation/depth, normal, and the final reduced manifold;
+- contact keys/colors and each solver iteration's normal/friction impulses;
+- compound root/member remapping before and after lifecycle compaction.
+
+This is the first priority because CUDA has a small-convex face-manifold path
+and guided-contact behavior that do not yet have complete Metal equivalents.
+The trace must say whether the face path, triangle path, or swept path selected
+the final contact; final contact events alone cannot distinguish them.
+
+### Constraint solve
+
+For each failing constraint case, dump the prepared world anchors and frames,
+all linear/angular rows, effective mass, bias/error, limits, motor target,
+accumulated impulse, break decision, and body velocities after every solver
+iteration. For Hinge, Slider, and Piston also include guided-frame detection,
+the preserved axial coordinate, projected momentum, axial inverse moment, and
+the final guide correction. Stable body and constraint IDs are required.
+
+### Particle and deformable systems
+
+- `fluid-rigid`: at checkpoint 2, record particle sort keys/ranges, candidate
+  rigid contacts, accepted contacts, per-contact impulses, reduced per-body
+  reactions, and the lifecycle count before/after compaction.
+- `cloth-tear`: record the constraint strain values, eligible tear keys,
+  deterministic selection order, emitted events, vertex duplication, rebuilt
+  indices, and generations at the first topology change.
+- `rope-core` and `rope-soft-body`: record endpoint constraints, segment
+  projection rows, collision candidates, per-iteration corrections, and the
+  contribution/reduction inputs that update the rope and soft body.
+
+### Trace contract
+
+Every record must name the case, frame, substep, phase, solver iteration,
+stable object IDs, source buffer indices, units, and exact bit pattern of each
+floating value. Include count/capacity, element stride, structure size,
+alignment, and field offsets for every dumped buffer. Sort only by the same
+stable key used by the engine; do not sort dumps afterward to conceal ordering
+differences.
+
+No wider tolerance or additional final-state screenshot is needed at this
+stage. The useful deliverable is one CUDA trace immediately before and after
+the first divergent phase, plus the same-schema Metal trace. Once those agree,
+the existing public checkpoint comparator remains the acceptance gate.
+
 ## Required baseline
 
 Build and capture the exact commit under review after it is available on the
