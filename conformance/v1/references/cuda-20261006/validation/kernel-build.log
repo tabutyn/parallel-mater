@@ -1,0 +1,97 @@
+[  0%] Built target parallel-mater-optix-ptx
+[  2%] Built target parallel-mater-conformance-registry
+[  2%] Building CUDA object CMakeFiles/parallel-mater.dir/src/world.cu.o
+[  4%] Built target parallel-mater-types-contract-tests
+[  6%] Built target parallel-mater-physics-frame-budget-tests
+[  8%] Built target parallel-mater-parity-compare
+[  9%] Built target parallel-mater-conformance-cases
+[ 10%] Linking CXX static library libparallel-mater.a
+[ 14%] Built target parallel-mater
+[ 17%] Linking CXX executable parallel-mater-fluid-soft-body-tests
+[ 17%] Linking CXX executable parallel-mater-soft-body-geometry-tests
+[ 20%] Built target parallel-mater-gallery-scene
+[ 21%] Linking CXX executable parallel-mater-fluid-rope-tests
+[ 22%] Built target parallel-mater-soft-body-geometry-tests
+[ 23%] Linking CXX executable parallel-mater-api-contract-tests
+[ 24%] Built target parallel-mater-fluid-soft-body-tests
+[ 24%] Built target parallel-mater-fluid-rope-tests
+[ 25%] Linking CXX executable parallel-mater-cuda-parity-capture
+[ 26%] Linking CXX executable parallel-mater-rigid-tests
+[ 27%] Built target parallel-mater-api-contract-tests
+[ 28%] Linking CXX executable parallel-mater-hit-box-tests
+[ 29%] Built target parallel-mater-cuda-parity-capture
+[ 30%] Built target parallel-mater-rigid-tests
+[ 31%] Linking CXX executable parallel-mater-fluid-tests
+[ 32%] Linking CXX executable parallel-mater-fluid-source-tests
+[ 33%] Built target parallel-mater-hit-box-tests
+[ 33%] Linking CXX executable parallel-mater-rope-api-tests
+[ 33%] Built target parallel-mater-fluid-tests
+[ 34%] Built target parallel-mater-fluid-source-tests
+[ 35%] Linking CXX executable parallel-mater-paint-geometry-tests
+[ 36%] Linking CXX executable parallel-mater-blender-scene-check
+[ 37%] Built target parallel-mater-rope-api-tests
+[ 38%] Linking CXX executable parallel-mater-camera-controller-tests
+[ 39%] Built target parallel-mater-paint-geometry-tests
+[ 40%] Built target parallel-mater-camera-controller-tests
+[ 40%] Built target parallel-mater-blender-scene-check
+[ 41%] Linking CXX executable parallel-mater-gallery-scene-tests
+[ 42%] Linking CXX executable parallel-mater-rigid-wall-tests
+[ 43%] Linking CXX executable parallel-mater-fixed-collector-tests
+[ 43%] Built target parallel-mater-gallery-scene-tests
+[ 45%] Built target parallel-mater-rigid-wall-tests
+[ 45%] Built target parallel-mater-fixed-collector-tests
+[ 46%] Linking CXX executable parallel-mater-rigid-constraint-scene-tests
+[ 47%] Linking CXX executable parallel-mater-piston-scene-tests
+[ 47%] Linking CXX executable parallel-mater-generic-contact-tests
+[ 48%] Built target parallel-mater-rigid-constraint-scene-tests
+[ 49%] Built target parallel-mater-generic-contact-tests
+[ 50%] Built target parallel-mater-piston-scene-tests
+[ 51%] Linking CXX executable parallel-mater-cloth-tests
+[ 52%] Linking CXX executable parallel-mater-cloth-variants-tests
+[ 53%] Linking CXX executable parallel-mater-cloth-water-tests
+[ 53%] Built target parallel-mater-cloth-tests
+[ 54%] Built target parallel-mater-cloth-variants-tests
+[ 55%] Built target parallel-mater-cloth-water-tests
+[ 56%] Linking CXX executable parallel-mater-soft-body-tests
+[ 57%] Linking CXX executable parallel-mater-soft-body-rigid-tests
+[ 58%] Linking CXX executable parallel-mater-soft-body-cloth-tests
+[ 59%] Built target parallel-mater-soft-body-tests
+[ 60%] Built target parallel-mater-soft-body-rigid-tests
+[ 61%] Built target parallel-mater-soft-body-cloth-tests
+[ 62%] Linking CXX executable parallel-mater-cloth-fracture-tests
+[ 62%] Linking CXX executable parallel-mater-soft-body-fluid-tests
+[ 63%] Linking CXX executable parallel-mater-rope-tests
+[ 64%] Built target parallel-mater-cloth-fracture-tests
+[ 65%] Built target parallel-mater-soft-body-fluid-tests
+[ 66%] Built target parallel-mater-rope-tests
+[ 67%] Linking CXX executable parallel-mater-rope-soft-body-tests
+[ 68%] Linking CXX executable parallel-mater-rope-cloth-tests
+[ 69%] Linking CXX executable parallel-mater-smoke-tests
+[ 70%] Built target parallel-mater-rope-soft-body-tests
+[ 72%] Built target parallel-mater-rope-cloth-tests
+[ 72%] Built target parallel-mater-smoke-tests
+[ 73%] Linking CXX executable parallel-mater-smoke-grid-tests
+[ 74%] Linking CXX executable parallel-mater-smoke-soft-body-tests
+[ 74%] Linking CXX executable parallel-mater-smoke-water-tests
+[ 75%] Built target parallel-mater-smoke-grid-tests
+[ 76%] Built target parallel-mater-smoke-soft-body-tests
+[ 76%] Linking CXX executable parallel-mater-smoke-cloth-tests
+[ 77%] Built target parallel-mater-smoke-water-tests
+[ 78%] Linking CXX executable parallel-mater-smoke-rope-tests
+[ 79%] Linking CXX executable parallel-mater-foam-visuals-tests
+[ 81%] Built target parallel-mater-foam-visuals-tests
+[ 82%] Built target parallel-mater-smoke-cloth-tests
+[ 83%] Linking CXX executable parallel-mater-conformance
+[ 84%] Built target parallel-mater-smoke-rope-tests
+[ 89%] Built target parallel-mater-gallery-renderer
+[ 91%] Linking CXX executable parallel-mater-gallery
+[ 91%] Linking CXX executable parallel-mater-cloth-debug-tests
+[ 92%] Built target parallel-mater-conformance
+[ 93%] Built target parallel-mater-cloth-debug-tests
+[ 94%] Linking CXX executable parallel-mater-smoke-debug-tests
+[ 95%] Linking CXX executable parallel-mater-material-visibility-tests
+[ 96%] Built target parallel-mater-gallery
+[ 97%] Linking CXX executable parallel-mater-fluid-surface-tests
+[ 98%] Built target parallel-mater-smoke-debug-tests
+[ 99%] Built target parallel-mater-material-visibility-tests
+[100%] Built target parallel-mater-fluid-surface-tests

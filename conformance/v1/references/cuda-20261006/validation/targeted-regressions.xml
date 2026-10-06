@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="6"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="ThomasLaptop"
+	time="60"
+	timestamp="2026-10-06T09:56:39"
+	>
+	<testcase name="parallel-mater-rigid-tests" classname="parallel-mater-rigid-tests" time="7.85591" status="run">
+		<system-out>All triangle rigid-body tests passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-hinge-slider-contact-tests" classname="parallel-mater-hinge-slider-contact-tests" time="15.6592" status="run">
+		<system-out>slider mesh penetration=0 travel=0.354887 contact impulse=49.445
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-piston-scene-tests" classname="parallel-mater-piston-scene-tests" time="16.6465" status="run">
+		<system-out>Neutral release: peak speed 5.35773e-06 m/s, drift 8.58605e-05 m
+Side camera, abrupt input, authored start
+Stroke 1 right: z=-0.442144 m, turn=34.6232 deg, speed=1.83946e-06 m/s
+Stroke 2 left: z=0.196094 m, turn=45.6599 deg, speed=1.17848e-06 m/s
+Stroke 3 right: z=-0.442203 m, turn=79.6229 deg, speed=3.23808e-06 m/s
+Stroke 4 left: z=0.196062 m, turn=90.6613 deg, speed=1.13715e-06 m/s
+Stroke 5 right: z=-0.442213 m, turn=124.624 deg, speed=4.01073e-06 m/s
+Stroke 6 left: z=0.196057 m, turn=135.661 deg, speed=3.37172e-06 m/s
+Stroke 7 right: z=-0.442161 m, turn=169.623 deg, speed=2.91058e-06 m/s
+Stroke 8 left: z=0.196052 m, turn=180.66 deg, speed=2.18857e-06 m/s
+Stroke 9 right: z=-0.442128 m, turn=214.623 deg, speed=4.50357e-06 m/s
+Stroke 10 left: z=0.196058 m, turn=225.661 deg, speed=2.96787e-06 m/s
+Stroke 11 right: z=-0.44219 m, turn=259.623 deg, speed=1.38161e-06 m/s
+Stroke 12 left: z=0.196051 m, turn=270.66 deg, speed=1.63044e-06 m/s
+Stroke 13 right: z=-0.442129 m, turn=304.623 deg, speed=2.20957e-06 m/s
+Strok...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-generic-contact-tests" classname="parallel-mater-generic-contact-tests" time="9.69489" status="run">
+		<system-out>Generic substeps=4 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=4 sphere_first=1 penetration=0 energy_gain=0
+Generic substeps=8 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=8 sphere_first=1 penetration=0 energy_gain=0
+Generic substeps=16 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=16 sphere_first=1 penetration=0 energy_gain=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-settle-tests" classname="parallel-mater-rope-settle-tests" time="4.38794" status="run">
+		<system-out>frame=60 strain=0.00150049 anchor=1.666e-08 clearance=0.0147351 gpu_ms=4.2587 ball=-0.709002,0.158289,-0.0362888 velocity=0.50381,-0.0984117,-0.163149 turns=0.0233983
+frame=120 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.97875 ball=-0.664645,0.156712,-0.0314783 velocity=-0.241793,-0.0526821,0.150826 turns=0.0304663
+frame=180 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.59332 ball=-0.925793,0.156654,0.21603 velocity=-0.283133,0.056004,0.10781 turns=0.0735129
+frame=240 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.19145 ball=-0.976219,0.154426,0.208329 velocity=0.0461256,0.00958875,0.0325928 turns=0.0365415
+frame=300 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.96239 ball=-0.98531,0.152566,0.204372 velocity=-0.0179042,-0.00780466,0.0119081 turns=0.0408019
+frame=360 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.81787 ball=-0.989636,0.152092,0.206035 velocity=-0.004766,-0.00310107,0.00249603 turns=0.0446901
+fra...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-winding-tests" classname="parallel-mater-rope-winding-tests" time="6.27736" status="run">
+		<system-out>frame=60 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=4.17315 ball=-0.714305,0.157971,-0.0379 velocity=0.500675,-0.104076,-0.170044 turns=0.0235022
+frame=120 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=5.12234 ball=-0.700677,0.157268,-0.0571895 velocity=-0.00695015,0.00225106,0.0733516 turns=0.021043
+frame=180 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147075 gpu_ms=5.2548 ball=0.905388,0.154953,-0.690737 velocity=2.65536,-0.0223493,1.74182 turns=0.400256
+frame=240 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147065 gpu_ms=5.45881 ball=-1.16549,0.183516,0.131391 velocity=-0.663105,0.447723,-6.85813 turns=0.965911
+frame=300 strain=0.00160259 anchor=1.20137e-07 clearance=0.0145529 gpu_ms=7.44008 ball=-0.260769,0.551425,0.0379572 velocity=1.20419,-0.807651,-8.73019 turns=2.90321
+frame=360 strain=0.00160259 anchor=1.20137e-07 clearance=0.0111423 gpu_ms=8.28462 ball=-0.0909124,0.15731,-0.270599 velocity=-0.199828,0.19462,0.901257 turns=2.27795
+frame=420 strain=0.00380...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+</testsuite>

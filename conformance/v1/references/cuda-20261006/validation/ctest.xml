@@ -1,0 +1,945 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="101"
+	failures="2"
+	disabled="0"
+	skipped="0"
+	hostname="ThomasLaptop"
+	time="510"
+	timestamp="2026-10-06T10:01:45"
+	>
+	<testcase name="parallel-mater-soft-body-geometry-tests" classname="parallel-mater-soft-body-geometry-tests" time="0.00273972" status="run">
+		<system-out>nodes=335 triangles=384 supports=1951
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-soft-body-tests" classname="parallel-mater-fluid-soft-body-tests" time="1.96093" status="run">
+		<system-out>particles=1 pinned=1 reverse=0 impulse_error=0 speed=0
+particles=1 pinned=0 reverse=0 impulse_error=0 speed=2
+particles=64 pinned=0 reverse=0 impulse_error=1.41484e-11 speed=2
+particles=1 pinned=1 reverse=1 impulse_error=0 speed=0
+refined recovery triangles=1536
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-rope-tests" classname="parallel-mater-fluid-rope-tests" time="0.241529" status="run">
+		<system-out>fluid-rope contact: water vy -1 -&gt; 0, rope vy 0 -&gt; -0.03125, contacts=16
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-api-contract-tests" classname="parallel-mater-api-contract-tests" time="0.000941593" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-cuda-parity-capture-self-test" classname="parallel-mater-cuda-parity-capture-self-test" time="0.857703" status="run">
+		<system-out>cuda all-system parity capture is byte-identical across ten runs (23347 records)
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rigid-tests" classname="parallel-mater-rigid-tests" time="7.7914" status="run">
+		<system-out>All triangle rigid-body tests passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-hit-box-tests" classname="parallel-mater-hit-box-tests" time="0.165079" status="run">
+		<system-out>Hit-box API tests passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-tests" classname="parallel-mater-fluid-tests" time="0.228235" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-source-tests" classname="parallel-mater-fluid-source-tests" time="0.315707" status="run">
+		<system-out>sites=21 stationary=21 speed1=75 speed2=132
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-api-tests" classname="parallel-mater-rope-api-tests" time="0.605394" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-paint-geometry-tests" classname="parallel-mater-paint-geometry-tests" time="0.173921" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-conformance-inputs" classname="parallel-mater-conformance-inputs" time="0.0152009" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-conformance-cuda-goldens" classname="parallel-mater-conformance-cuda-goldens" time="13.4549" status="fail">
+		<failure message=""/>
+		<system-out>RUN rigid-direct
+RUN compound-weld-lifecycle
+RUN constraint-breaking
+RUN passive-active
+RUN constraint-fixed
+RUN constraint-point
+RUN constraint-hinge
+RUN constraint-slider
+RUN constraint-piston
+RUN constraint-generic
+RUN constraint-generic-spring
+RUN constraint-motor
+RUN fluid-lifecycle
+RUN fluid-rigid
+RUN cloth-core
+RUN cloth-tear
+RUN cloth-water
+RUN soft-body-core
+RUN soft-body-rigid
+RUN soft-body-fluid
+RUN soft-body-cloth
+RUN rope-core
+RUN rope-fluid
+RUN rope-soft-body
+RUN rope-cloth
+RUN smoke-grid
+RUN smoke-water
+RUN smoke-soft-body
+RUN smoke-cloth
+RUN smoke-rope
+PASS cloth-core
+PASS cloth-tear
+PASS cloth-water
+FAIL compound-weld-lifecycle
+  $.checkpoints[3].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[3].contacts.rigid_contacts: length mismatch
+  $.checkpoints[3].resources[0].position[0]: absolute error 0.003928124904632568 &gt; 0.0022244285196065905
+  $.checkpoints[3].resources[2].position[0]: absolute error 0.003928184509277344 &gt; 0.0033574345111846925
+  $.checkpoints[4].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[4].contacts.rigid_contacts: length mismatch
+  $.checkpoints[4].resources[0].position[0]: absolute error 0.003928467631340027 &gt; 0.0023246800601482392
+  $.checkpoints[4].resources[2].position[0]: absolute error 0.003928184509277344 &gt; 0.0038384034633636476
+  $.checkpoints[5].resources[0].position[0]: absolute error 0.003928452730178833 &gt; 0.002349153846502304
+  $.checkpoints[5].resources[1].position[0]: absolute error 0.003930926322937012 &gt; 0.0030840976238250732
+  $.checkpoints[5].resources[2].position[0]: absolute error 0.003933429718017578 &gt; 0.00381904149055481
+  $.checkpoints[6].resources[0].position[0]: absolute error 0.00392875075340271 &gt; 0.0029323607087135316
+  $.checkpoints[6].resources[1].position[0]: absolute error 0.003930926322937012 &gt; 0.0035950752496719364
+FAIL constraint-breaking
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].resources[0].angular_velocity[1]: absolute error 0.028186758430166492 &gt; 0.020563726723194124
+  $.checkpoints[1].resources[0].angular_velocity[2]: absolute error 0.0667643014279804 &gt; 0.021335285604000092
+  $.checkpoints[1].resources[1].angular_velocity[1]: absolute error 0.028243397743864307 &gt; 0.02056485950946808
+  $.checkpoints[1].resources[1].angular_velocity[2]: absolute error 0.06656030453123662 &gt; 0.021331205666065216
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].resources[0].angular_velocity[1]: absolute error 0.028186501475545356 &gt; 0.020563726723194124
+  $.checkpoints[2].resources[0].angular_velocity[2]: absolute error 0.06676430860930083 &gt; 0.021335285604000092
+  $.checkpoints[2].resources[1].angular_velocity[1]: absolute error 0.02824314078924317 &gt; 0.02056485950946808
+  $.checkpoints[2].resources[1].angular_velocity[2]: absolute error 0.06656031171255705 &gt; 0.021331205666065216
+  $.checkpoints[3].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[3].contacts.rigid_contacts: length mismatch
+  $.checkpoints[3].resources[0].angular_velocity[1]: absolute error 0.028186501475545356 &gt; 0.020563726723194124
+  $.checkpoints[3].resources[0].angular_velocity[2]: absolute error 0.06676430860930083 &gt; 0.021335285604000092
+  $.checkpoints[3].resources[0].orientation: quaternion angular error 0.02791820352606331 &gt; 0.002
+  $.checkpoints[3].resources[0].position[0]: absolute error 0.007807880640029907 &gt; 0.002799999237060547
+  $.checkpoints[3].resources[1].angular_velocity[1]: absolute error 0.02824314078924317 &gt; 0.02056485950946808
+  $.checkpoints[3].resources[1].angular_velocity[2]: absolute error 0.06656031171255705 &gt; 0.021331205666065216
+  $.checkpoints[3].resources[1].orientation: quaternion angular error 0.027854539230740508 &gt; 0.002
+  $.checkpoints[3].resources[1].position[0]: absolute error 0.00780797004699707 &gt; 0.0036156151294708255
+PASS constraint-fixed
+FAIL constraint-generic-spring
+  $.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[1]: absolute error 0.009990621241740882 &gt; 0.0020229839179664853
+  $.checkpoints[1].contacts.rigid_contacts[0].normal_impulse: absolute error 0.012497247429564595 &gt; 0.0020287497416138648
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.03516995906829834 &gt; 0.02783263087272644
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.07133083790540695 &gt; 0.021464461982250216
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.5715698003768921 &gt; 0.026465600728988646
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.29767271876335144 &gt; 0.023368256986141204
+  $.checkpoints[2].resources[3].angular_velocity[1]: absolute error 0.1984807699918747 &gt; 0.026243396997451783
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 0.030911825597286224 &gt; 0.021929404735565185
+  $.checkpoints[2].resources[3].linear_velocity[1]: absolute error 0.0237710727378726 &gt; 0.020267653465270995
+  $.checkpoints[2].resources[3].linear_velocity[2]: absolute error 0.19052261114120483 &gt; 0.022165219038724898
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.07819571053812198 &gt; 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.006732463836669922 &gt; 0.005680654764175415
+FAIL constraint-generic
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].resources[2].angular_velocity[1]: absolute error 0.165406733751297 &gt; 0.0304724657535553
+  $.checkpoints[1].resources[2].linear_velocity[0]: absolute error 0.05472463369369507 &gt; 0.03742731094360352
+  $.checkpoints[1].resources[2].linear_velocity[2]: absolute error 0.03010179102420807 &gt; 0.02284177303314209
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.01287295546790259 &gt; 0.002
+  $.checkpoints[1].resources[3].angular_velocity[0]: absolute error 0.04635542631149292 &gt; 0.03082274913787842
+  $.checkpoints[1].resources[3].angular_velocity[1]: absolute error 0.057005882263183594 &gt; 0.038503086566925054
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 0.11455726623535156 &gt; 0.07761825084686279
+  $.checkpoints[1].resources[3].linear_velocity[0]: absolute error 0.08184313774108887 &gt; 0.03748065114021301
+  $.checkpoints[1].resources[3].linear_velocity[2]: absolute error 0.022277865558862686 &gt; 0.021574319899082185
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 0.012186084597728849 &gt; 0.002
+  $.checkpoints[1].resources[4].applied_impulse: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.0388253127457574 &gt; 0.020757230892777444
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.0516303690916518 &gt; 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.003844320774078369 &gt; 0.003296404004096985
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.00780186802148819 &gt; 0.0020474717170000075
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.023868944263085723 &gt; 0.020512728914618493
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.035792706989410436 &gt; 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.0078040361404418945 &gt; 0.005387093544006348
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.023898453917354345 &gt; 0.002043499693274498
+  $.checkpoints[2].resources[4].applied_impulse: absolute error 0.006469532294431701 &gt; 0.0020132265435531737
+FAIL constraint-hinge
+  $.checkpoints[0].invariants.combined_momentum[0]: absolute error 13.5 &gt; 0.29000000000000004
+  $.checkpoints[0].invariants.constraint_count: exact value mismatch
+  $.checkpoints[0].resources: length mismatch
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[0]: absolute error 5.740437626838684 &gt; 0.12142399787902833
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.9066125899553299 &gt; 0.03688590526580811
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 0.15210920330446243 &gt; 0.023042141199111937
+  $.checkpoints[1].invariants.constraint_count: exact value mismatch
+  $.checkpoints[1].resources: length mismatch
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 3.8534464836120605 &gt; 0.08737716674804688
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.33661097288131714 &gt; 0.028063013553619384
+  $.checkpoints[2].invariants.constraint_count: exact value mismatch
+  $.checkpoints[2].resources: length mismatch
+PASS constraint-motor
+FAIL constraint-piston
+  $.checkpoints[0].invariants.combined_momentum[2]: absolute error 13.5 &gt; 0.29000000000000004
+  $.checkpoints[0].invariants.element_count: exact value mismatch
+  $.checkpoints[0].invariants.rigid_body_count: exact value mismatch
+  $.checkpoints[0].resources: length mismatch
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.19331651486527335 &gt; 0.023866308927536013
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 10.330834388740477 &gt; 0.2266166877746582
+  $.checkpoints[1].invariants.element_count: exact value mismatch
+  $.checkpoints[1].invariants.rigid_body_count: exact value mismatch
+  $.checkpoints[1].resources: length mismatch
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 2.4045116901396515 &gt; 0.06809023380279541
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.13870220936905753 &gt; 0.022774022817611695
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 5.712701797500336 &gt; 0.13425403594970703
+  $.checkpoints[2].invariants.element_count: exact value mismatch
+  $.checkpoints[2].invariants.rigid_body_count: exact value mismatch
+  $.checkpoints[2].resources: length mismatch
+FAIL constraint-point
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 0.02488124370574951 &gt; 0.020610918998718263
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.2280924916267395 &gt; 0.03438521862030029
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.04724100034994522 &gt; 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.008098483085632324 &gt; 0.005454978942871094
+  $.checkpoints[2].resources[3].position[1]: absolute error 0.003938496112823486 &gt; 0.0028329407572746275
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.01055920124053955 &gt; 0.0047318911552429194
+  $.checkpoints[2].resources[4].angular_velocity[0]: absolute error 0.06787717342376709 &gt; 0.05521990060806274
+  $.checkpoints[2].resources[4].linear_velocity[0]: absolute error 0.039642930030822754 &gt; 0.039154680967330935
+  $.checkpoints[2].resources[4].linear_velocity[1]: absolute error 0.12751993536949158 &gt; 0.02430666983127594
+  $.checkpoints[2].resources[4].orientation: quaternion angular error 0.044062786746436086 &gt; 0.002
+  $.checkpoints[2].resources[4].position[0]: absolute error 0.008705973625183105 &gt; 0.004728294372558594
+  $.checkpoints[2].resources[4].position[2]: absolute error 0.006610512733459473 &gt; 0.005454845190048218
+  $.checkpoints[2].resources[5].angular_velocity[0]: absolute error 0.06545567512512207 &gt; 0.05527299642562866
+  $.checkpoints[2].resources[5].linear_velocity[1]: absolute error 0.09023383259773254 &gt; 0.024397224485874176
+  $.checkpoints[2].resources[5].orientation: quaternion angular error 0.04271706556137872 &gt; 0.002
+  $.checkpoints[2].resources[5].position[0]: absolute error 0.009075641632080078 &gt; 0.004729617834091187
+  $.checkpoints[2].resources[5].position[1]: absolute error 0.003018200397491455 &gt; 0.002830627202987671
+  $.checkpoints[2].resources[5].position[2]: absolute error 0.006924271583557129 &gt; 0.005454395055770874
+  $.checkpoints[2].resources[7].applied_impulse: absolute error 0.005085396114736795 &gt; 0.0020184000190347435
+  $.checkpoints[2].resources[8].applied_impulse: absolute error 0.02315607387572527 &gt; 0.002061527352780104
+  $.checkpoints[2].resources[9].applied_impulse: absolute error 0.006495252251625061 &gt; 0.0020282889194786547
+FAIL constraint-slider
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.12261128798127174 &gt; 0.023481393456459047
+  $.checkpoints[1].resources[2].linear_velocity[1]: absolute error 0.04087042808532715 &gt; 0.020817408561706545
+  $.checkpoints[1].resources[4].applied_impulse: absolute error 0.12262502312660217 &gt; 0.0022452500462532042
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.1226112823933363 &gt; 0.022812451124191283
+  $.checkpoints[2].resources[2].linear_velocity[1]: absolute error 0.04087042808532715 &gt; 0.020817408561706545
+  $.checkpoints[2].resources[4].applied_impulse: absolute error 0.12262502312660217 &gt; 0.0022452500462532042
+PASS fluid-lifecycle
+FAIL fluid-rigid
+  $.checkpoints[2].contacts.rigid_contact_count: absolute error 46.0 &gt; 10.750000000000002
+FAIL passive-active
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[0]: absolute error 1.850493311882019 &gt; 0.04704004287719726
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 4.505968809127808 &gt; 0.0708858871459961
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 4.579842925071716 &gt; 0.07312273979187012
+  $.checkpoints[1].resources[2].angular_velocity[0]: absolute error 0.5088654011487961 &gt; 0.027026896476745606
+  $.checkpoints[1].resources[2].angular_velocity[1]: absolute error 0.7980074509978294 &gt; 0.03675676703453064
+  $.checkpoints[1].resources[2].angular_velocity[2]: absolute error 1.713977038860321 &gt; 0.06807003021240235
+  $.checkpoints[1].resources[2].linear_velocity[0]: absolute error 1.3563889637589455 &gt; 0.0453029727935791
+  $.checkpoints[1].resources[2].linear_velocity[1]: absolute error 1.3460674285888672 &gt; 0.054958004951477055
+  $.checkpoints[1].resources[2].linear_velocity[2]: absolute error 0.47205870412290096 &gt; 0.029153349399566653
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.37548705036559943 &gt; 0.002
+  $.checkpoints[1].resources[2].position[0]: absolute error 0.058390140533447266 &gt; 0.005914092302322388
+  $.checkpoints[1].resources[2].position[1]: absolute error 0.05608391761779785 &gt; 0.005201537370681762
+  $.checkpoints[1].resources[2].position[2]: absolute error 0.10082919523119926 &gt; 0.0021622803509235384
+  $.checkpoints[1].resources[3].angular_velocity[0]: absolute error 1.9376310110092163 &gt; 0.07306751728057861
+  $.checkpoints[1].resources[3].angular_velocity[1]: absolute error 2.2987618446350098 &gt; 0.04747108936309814
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 1.4069624543190002 &gt; 0.06745165824890137
+  $.checkpoints[1].resources[3].linear_velocity[0]: absolute error 0.49410438537597656 &gt; 0.04521523714065552
+  $.checkpoints[1].resources[3].linear_velocity[1]: absolute error 3.1599011421203613 &gt; 0.10212443351745606
+  $.checkpoints[1].resources[3].linear_velocity[2]: absolute error 4.107784271240234 &gt; 0.07283491611480714
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 0.45885865278938426 &gt; 0.002
+  $.checkpoints[1].resources[3].position[0]: absolute error 0.012628316879272461 &gt; 0.008764523029327393
+  $.checkpoints[1].resources[3].position[1]: absolute error 0.3361959457397461 &gt; 0.006765327453613281
+  $.checkpoints[1].resources[3].position[2]: absolute error 0.4766245037317276 &gt; 0.0025422006249427795
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 0.2581671178340912 &gt; 0.02585625469684601
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 1.8961282968521118 &gt; 0.09676897048950196
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 1.7506929636001587 &gt; 0.046681079864501956
+  $.checkpoints[2].resources[2].angular_velocity[0]: absolute error 0.46385807916522026 &gt; 0.03009540319442749
+  $.checkpoints[2].resources[2].angular_velocity[1]: absolute error 0.6422454342246056 &gt; 0.033285653591156004
+  $.checkpoints[2].resources[2].angular_velocity[2]: absolute error 1.2979826927185059 &gt; 0.04089131116867065
+  $.checkpoints[2].resources[2].linear_velocity[0]: absolute error 0.3282465264201164 &gt; 0.025114920139312744
+  $.checkpoints[2].resources[2].linear_velocity[1]: absolute error 1.4466375708580017 &gt; 0.05671052932739258
+  $.checkpoints[2].resources[2].linear_velocity[2]: absolute error 0.5794165683910251 &gt; 0.0318709933757782
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 1.1565315684167528 &gt; 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.07770872116088867 &gt; 0.006458744049072266
+  $.checkpoints[2].resources[2].position[1]: absolute error 0.027098417282104492 &gt; 0.005060559988021851
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.009905897080898285 &gt; 0.0020678084865212443
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 1.1032342314720154 &gt; 0.05581844806671142
+  $.checkpoints[2].resources[3].angular_velocity[1]: absolute error 0.9515320658683777 &gt; 0.046394221782684326
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 3.1039913296699524 &gt; 0.0655915880203247
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 1.5041962265968323 &gt; 0.035089768171310425
+  $.checkpoints[2].resources[3].linear_velocity[1]: absolute error 0.23101521283388138 &gt; 0.022971940636634828
+  $.checkpoints[2].resources[3].linear_velocity[2]: absolute error 3.0533264875411987 &gt; 0.052211158275604255
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 1.4223037064623094 &gt; 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.1585092544555664 &gt; 0.009347660541534424
+  $.checkpoints[2].resources[3].position[1]: absolute error 1.1050922870635986 &gt; 0.008446544170379638
+  $.checkpoints[2].resources[3].position[2]: absolute error 1.9979227185249329 &gt; 0.004421396017074585
+  $.checkpoints[2].resources[4].angular_velocity[0]: absolute error 0.7052617073059082 &gt; 0.07654845714569092
+  $.checkpoints[2].resources[4].angular_velocity[1]: absolute error 0.05129575729370117 &gt; 0.03492158532142639
+  $.checkpoints[2].resources[4].angular_velocity[2]: absolute error 0.9266923367977142 &gt; 0.03033714294433594
+  $.checkpoints[2].resources[4].linear_velocity[0]: absolute error 0.9177825748920441 &gt; 0.030667760372161866
+  $.checkpoints[2].resources[4].linear_velocity[1]: absolute error 0.218475341796875 &gt; 0.058410074710845944
+  $.checkpoints[2].resources[4].linear_velocity[2]: absolute error 0.7232168912887573 &gt; 0.04416104078292847
+  $.checkpoints[2].resources[4].orientation: quaternion angular error 0.06375970969923928 &gt; 0.002
+  $.checkpoints[2].resources[4].position[0]: absolute error 0.12276160717010498 &gt; 0.003337479829788208
+  $.checkpoints[2].resources[4].position[2]: absolute error 0.09546568244695663 &gt; 0.0023044843077659606
+FAIL rigid-direct
+  $.checkpoints[3].invariants.combined_momentum[0]: absolute error 1.6112628430128098 &gt; 2.7935962677001953e-05
+  $.checkpoints[3].invariants.combined_momentum[1]: absolute error 1.8988871574401855 &gt; 9.235440254211427e-05
+  $.checkpoints[3].invariants.combined_momentum[2]: absolute error 0.6440951228141785 &gt; 1.822560966014862e-05
+  $.checkpoints[3].resources[0].angular_velocity[0]: absolute error 0.08323612064123154 &gt; 1.1754090189933778e-05
+  $.checkpoints[3].resources[0].angular_velocity[1]: absolute error 0.24780189990997314 &gt; 1.4372456967830658e-05
+  $.checkpoints[3].resources[0].angular_velocity[2]: absolute error 3.2267116606235504 &gt; 4.4484677314758305e-05
+  $.checkpoints[3].resources[0].linear_velocity[0]: absolute error 0.8056314215064049 &gt; 1.8967981338500976e-05
+  $.checkpoints[3].resources[0].linear_velocity[1]: absolute error 0.9494435787200928 &gt; 5.1177201271057134e-05
+  $.checkpoints[3].resources[0].linear_velocity[2]: absolute error 0.32204756140708923 &gt; 1.4112804830074312e-05
+  $.checkpoints[3].resources[0].orientation: quaternion angular error 0.9600732710464106 &gt; 0.002
+  $.checkpoints[3].resources[0].position[0]: absolute error 0.16726243495941162 &gt; 2.770319938659668e-05
+  $.checkpoints[3].resources[0].position[1]: absolute error 0.326089084148407 &gt; 2.095091700553894e-05
+  $.checkpoints[3].resources[0].position[2]: absolute error 0.16168137453496456 &gt; 1.1364701241254807e-05
+PASS rope-cloth
+PASS rope-core
+PASS rope-fluid
+PASS rope-soft-body
+PASS smoke-cloth
+PASS smoke-grid
+PASS smoke-rope
+PASS smoke-soft-body
+FAIL smoke-water
+  $.checkpoints[2].contacts.rigid_contact_count: absolute error 12.0 &gt; 1.35
+PASS soft-body-cloth
+PASS soft-body-core
+PASS soft-body-fluid
+PASS soft-body-rigid
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-blender-export-tests" classname="parallel-mater-blender-export-tests" time="4.39418" status="run">
+		<system-out>test_all_authored_scenes_share_exporter (__main__.ExportSceneTests.test_all_authored_scenes_share_exporter) ... INFO Draco mesh compression is available, use library at /opt/blender/4.5/scripts/addons_core/io_scene_gltf2/libextern_draco.so
+10:02:11 | INFO: Starting glTF 2.0 export
+10:02:11 | INFO: Extracting primitive: Plane.001
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Cube.002
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Icosphere.002
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Icosphere.003
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Suzanne.004
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Suzanne.005
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Suzanne.006
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Extracting primitive: Suzanne.007
+10:02:11 | INFO: Primitives created: 1
+10:02:11 | INFO: Finish...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-camera-controller-tests" classname="parallel-mater-camera-controller-tests" time="0.00165148" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-gallery-scene-tests" classname="parallel-mater-gallery-scene-tests" time="4.21094" status="run">
+		<system-out>PassiveActive Blender scene tests passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rigid-wall-tests" classname="parallel-mater-rigid-wall-tests" time="6.9423" status="fail">
+		<failure message=""/>
+		<system-out>authored wall max_drop=0.114645 max_displacement=0.260997 max_angle=0.525191 peak_speed=0.243796 resting_speed=0.0431875 energy_ratio=0.999867 clearance=-0.000290506
+Brick wall lost static support under vertical gravity
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-physics-frame-budget-tests" classname="parallel-mater-physics-frame-budget-tests" time="0.00141184" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-fixed-collector-tests" classname="parallel-mater-fixed-collector-tests" time="4.94282" status="run">
+		<system-out>collector roundness radial_spread=4.76837e-07 face_sag=0.0011586 rolling_height_range=0.00107348 maximum_vertical_speed=0.03178
+fixed collector attached=9 minimum_clearance=0.000762835 body=Small.020 frame=215 escaped=0
+captured assembly bodies=31 internal_contacts=0 ground_contacts=364 energy_ratio=1 minimum_clearance=0.00101018
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rigid-constraint-scene-tests" classname="parallel-mater-rigid-constraint-scene-tests" time="29.1059" status="run">
+		<system-out>slider mesh penetration=0 travel=0.354002 contact impulse=24.7417
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-hinge-slider-contact-tests" classname="parallel-mater-hinge-slider-contact-tests" time="15.5062" status="run">
+		<system-out>slider mesh penetration=0 travel=0.354887 contact impulse=49.445
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-piston-scene-tests" classname="parallel-mater-piston-scene-tests" time="16.6661" status="run">
+		<system-out>Neutral release: peak speed 5.35773e-06 m/s, drift 8.58605e-05 m
+Side camera, abrupt input, authored start
+Stroke 1 right: z=-0.442144 m, turn=34.6232 deg, speed=1.83946e-06 m/s
+Stroke 2 left: z=0.196094 m, turn=45.6599 deg, speed=1.17848e-06 m/s
+Stroke 3 right: z=-0.442203 m, turn=79.6229 deg, speed=3.23808e-06 m/s
+Stroke 4 left: z=0.196062 m, turn=90.6613 deg, speed=1.13715e-06 m/s
+Stroke 5 right: z=-0.442213 m, turn=124.624 deg, speed=4.01073e-06 m/s
+Stroke 6 left: z=0.196057 m, turn=135.661 deg, speed=3.37172e-06 m/s
+Stroke 7 right: z=-0.442161 m, turn=169.623 deg, speed=2.91058e-06 m/s
+Stroke 8 left: z=0.196052 m, turn=180.66 deg, speed=2.18857e-06 m/s
+Stroke 9 right: z=-0.442128 m, turn=214.623 deg, speed=4.50357e-06 m/s
+Stroke 10 left: z=0.196058 m, turn=225.661 deg, speed=2.96787e-06 m/s
+Stroke 11 right: z=-0.44219 m, turn=259.623 deg, speed=1.38161e-06 m/s
+Stroke 12 left: z=0.196051 m, turn=270.66 deg, speed=1.63044e-06 m/s
+Stroke 13 right: z=-0.442129 m, turn=304.623 deg, speed=2.20957e-06 m/s
+Strok...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-generic-contact-tests" classname="parallel-mater-generic-contact-tests" time="9.68573" status="run">
+		<system-out>Generic substeps=4 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=4 sphere_first=1 penetration=0 energy_gain=0
+Generic substeps=8 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=8 sphere_first=1 penetration=0 energy_gain=0
+Generic substeps=16 sphere_first=0 penetration=0 energy_gain=0
+Generic substeps=16 sphere_first=1 penetration=0 energy_gain=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-tests" classname="parallel-mater-cloth-tests" time="9.29384" status="run">
+		<system-out>contact settled_peak_speed=0.219384 settled_rms_velocity_jump=0.0437644 nearest_vertex_switches=51 nearest_normal_rms_jump=0.271245 contact_patch_rms_displacement=0.00107339 contact_patch_peak_displacement=0.0114789
+Cloth vertices=1089 pinned=66 pinned_motion=0 free_motion=0.460423 sphere_final_x=-0.883567 sphere_initial_z=2.50716 sphere_final_z=0.0704937 sphere_final_y=0.500129
+Rigid-only sphere_final_z=-1.34721 cloth_impact_delta_z=1.4177
+Outward impulse 30-frame cloth_distance=0.709034 free_distance=0.710652 120-frame cloth_distance=2.34366 free_distance=2.75928 nearest_cloth_distance=1.0833
+Rigid impact cloth displacement=0.142391
+Lateral sphere_dx=0.369148 local_cloth_extra_dx=0.0220634 nearby_vertices=242
+Reverse sphere_dx=-0.89686 local_cloth_extra_dx=-0.0181176 nearby_vertices=321
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-variants-tests" classname="parallel-mater-cloth-variants-tests" time="4.26865" status="run">
+		<system-out>API fracture broken_bonds=4/6 retained_triangles=2
+Tear settled_broken=0 broken_bonds=1243/6132 retained_triangles=2048 first_break_frame=57 first_break_body_z=0.315469 first_pass_frame=68 first_pass_velocity_z=-5.28633 remote_max_ratio=1.13383 contact_max_ratio=12.9124 remaining_max_edge_ratio=1.16111 detached_max_edge_ratio=1.10001 initial_body_y=0.912711 settled_body_y=0.454859 final_body_y=0.452816 initial_body_z=2.50716 settled_body_z=2.33341 final_body_z=-1.34262
+No-impact broken_bonds=0
+Rigid-cloth painted_texels=811 front=811 back=0 free_motion=0.194053 pinned_motion=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-water-tests" classname="parallel-mater-cloth-water-tests" time="0.952646" status="run">
+		<system-out>water-cloth particles=5013 escaped=0 volume_ratio=[0.999999,1] step_ms=8.43598
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-tests" classname="parallel-mater-soft-body-tests" time="4.44658" status="run">
+		<system-out>Soft body nodes=673 bonds=10032 deformation=0.0490446 maximum_bond_strain=0.265572 escaped_nodes=0 minimum_clearance=0.0827777 peak_settled_speed=0.0201043 gpu_ms=4.38166
+Soft body rolling distance=2.52991 pre_wall_distance=1.1063 peak_speed=1.33276 peak_node_speed=2 peak_ratio=0.909146 mean_ratio=0.831901 minimum_wall_velocity=-0.718995 maximum_strain=0.392424 wall_escapes=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-rigid-tests" classname="parallel-mater-soft-body-rigid-tests" time="10.7307" status="run">
+		<system-out>Soft-rigid light_transfers=30 light_mean_balance_error=0.0433026 light_maximum_balance_error=0.156176 light_soft_dx=0.75276 light_rigid_vx=0.0806936 heavy_soft_dx=1.16001 heavy_rigid_vx=1.41028 heavy_peak_soft_speed=2 heavy_separation=1.96863 high_speed_dx=2.41031 high_speed_separation=1.57744 settled_rigid_speed=0.0289288 settled_soft_speed=0.0891127 settled_strain=0.260612 escaped_nodes=0 matched_peak_error=0.15404 matched_loaded_error=0.15404 matched_recovered_error=2.98283e-06 matched_recovered_speed=0.62055 spring_peak_error=0.153652 spring_recovered_error=7.22206e-05 steered_escaped_nodes=0 steered_z=-2.30366..-0.315466 gpu_ms=6.25661
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-contact-stress" classname="parallel-mater-soft-body-contact-stress" time="11.3639" status="run">
+		<system-out>stress frame=180 penetration=0 peak=0 wall=0
+stress frame=360 penetration=0 peak=0 wall=0
+stress frame=540 penetration=0 peak=0 wall=0
+stress frame=720 penetration=0 peak=0 wall=0
+stress frame=900 penetration=0 peak=0 wall=0
+stress frame=1080 penetration=0 peak=0 wall=0
+stress frame=1260 penetration=0 peak=0 wall=0
+stress frame=1440 penetration=0 peak=0 wall=0
+Contact stress escaped=0 penetrating_frames=0 maximum_rigid_penetration=0 wall_escape=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-shape-contact-stress" classname="parallel-mater-soft-body-shape-contact-stress" time="11.7393" status="run">
+		<system-out>stress frame=180 penetration=0 peak=0 wall=0
+stress frame=360 penetration=0 peak=0 wall=0
+stress frame=540 penetration=0 peak=0 wall=0
+stress frame=720 penetration=0 peak=0 wall=0
+stress frame=900 penetration=0 peak=0 wall=0
+stress frame=1080 penetration=0 peak=0 wall=0
+stress frame=1260 penetration=0 peak=0 wall=0
+stress frame=1440 penetration=0 peak=0 wall=0
+Contact stress escaped=0 penetrating_frames=0 maximum_rigid_penetration=0 wall_escape=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-cloth-tests" classname="parallel-mater-soft-body-cloth-tests" time="29.048" status="run">
+		<system-out>frame=180 center=-0.079511,0.0819354,0.0827514 broken=0,0
+settled center=-0.0880127,0.127133,0.0626111 min_y=-0.351806 sag=0.515743 gpu_ms=16.3379 coupling_gpu_ms=7.72403
+frame=360 center=-0.0725857,0.441948,-2.43062 broken=0,0
+frame=540 center=-0.251718,0.438506,-3.96273 broken=0,181
+frame=720 center=-0.27973,0.442148,-4.93246 broken=0,181
+frame=900 center=-0.282192,0.443251,-4.93364 broken=0,181
+frame=1080 center=-0.397915,0.434225,-4.60021 broken=0,181
+soft-cloth bridge_sag=0.515743 pin_error=0 maximum_speed=2 force_balance=4.00525e-07 contact_frames=448 curtain_contact_frames=162 bridge_breaks=0 curtain_breaks=181 maximum_strain=0.312628,0.147179 bridge_clearance=0.0413579 node_clearance=0.0413579 clearance_frame=41 final_z=-4.47738
+inside_triangle_frames=0 physical_surface_mismatch=0
+coupling enabled=0 center_y=-4.883 unprofiled_step_ms=4.52563
+coupling enabled=1 center_y=0.0819354 unprofiled_step_ms=8.30552
+coupling enabled=1 center_y=0.0819354 unprofiled_step_ms=8.30309
+intact curtain side=1 separation...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-debug-tests" classname="parallel-mater-cloth-debug-tests" time="0.160643" status="run">
+		<system-out>Cloth fracture wireframe, normals, bonds and force origins passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-debug-tests" classname="parallel-mater-smoke-debug-tests" time="0.166418" status="run">
+		<system-out>Smoke Z/X/C/V/B/N grid maps passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-fracture-tests" classname="parallel-mater-cloth-fracture-tests" time="0.234819" status="run">
+		<system-out>fragment_isolation max_ballistic_error=6.34714e-05 mass=4
+split_contact_force=4.67422 remote_fragment_force=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-fluid-tests" classname="parallel-mater-soft-body-fluid-tests" time="16.8592" status="run">
+		<system-out>nodes=777 bonds=14400 triangles=944 pins=19
+frame=120 particles=144 contacts=229129 inside=0 speed=2 deflection=0.362526
+frame=240 particles=137 contacts=513048 inside=0 speed=2 deflection=0.365575
+frame=360 particles=135 contacts=794953 inside=0 speed=2 deflection=0.365575
+frame=480 particles=132 contacts=1076244 inside=0 speed=2 deflection=0.365575
+frame=600 particles=130 contacts=1355805 inside=0 speed=2 deflection=0.365575
+pins=0 speed=2 force=0.227804 deflection=0.365575 inside=0 outflow=1590 gpu_ms=27.3468 coupling_ms=9.42824
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-tests" classname="parallel-mater-rope-tests" time="3.48574" status="run">
+		<system-out>frame=60 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=4.32795 ball=-0.714305,0.157971,-0.0379 velocity=0.500675,-0.104076,-0.170044 turns=0.0235022
+frame=120 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=5.20079 ball=-0.700677,0.157268,-0.0571895 velocity=-0.00695015,0.00225106,0.0733516 turns=0.021043
+frame=180 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=4.77014 ball=0.433433,0.197028,1.26083 velocity=2.74298,0.207729,-1.84473 turns=0.303822
+frame=240 strain=0.001477 anchor=1.20137e-07 clearance=0.0147066 gpu_ms=4.55399 ball=0.459346,0.159326,-1.04925 velocity=-0.629782,0.020233,-0.355601 turns=0.67834
+frame=300 strain=0.001477 anchor=1.20137e-07 clearance=0.0147066 gpu_ms=4.45711 ball=0.671092,0.159013,-1.08396 velocity=0.0317291,-0.00330089,-0.0382781 turns=0.668253
+frame=360 strain=0.001477 anchor=1.20137e-07 clearance=0.0147038 gpu_ms=4.40187 ball=-0.380997,0.158587,-1.17391 velocity=-1.89608,0.108928,0.55322 turns=0.818321
+frame=420 strain=0.001477 anch...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-soft-body-tests" classname="parallel-mater-rope-soft-body-tests" time="2.73799" status="run">
+		<system-out>post_signed_volume=0.00760945
+post_nodes=912 post_bonds=130033 post_triangles=1792 fixed_nodes=33
+rest_length=1.41484 nodes=72
+frame=30 strain=0.000497937 anchor_distance=0.00178371 contacts=29 turns=0.0163679 gpu_ms=9.80185 peak_edge=2 a=-1.1964,0.0265664,0.0878941 b=-1.17856,0.0177901,0.0894437
+post_bend=0.02394 post_height=0.654086 ball=-1.20715,0.170765,0.07352 ball_turns=0.00877141 rope_force=3.65892 anchor_tension=158.746 rigid_force=4.60078 clearance=0.0187091 segment=68 sample=8 point=-0.106444,0.561359,0.0111295
+frame=60 strain=0.00475192 anchor_distance=0.00203512 contacts=5381 turns=0.0452754 gpu_ms=14.7786 peak_edge=2 a=-1.11074,0.015,0.11418 b=-1.09106,0.015,0.117834
+post_bend=0.0294558 post_height=0.654276 ball=-0.459208,0.154241,-0.0103922 ball_turns=0.0207826 rope_force=1.63052 anchor_tension=13.9304 rigid_force=4.56025 clearance=0.00948825 segment=44 sample=6 point=-0.0728484,0.0799922,-0.0123717
+frame=90 strain=0.00490785 anchor_distance=0.00617892 contacts=11007 turns=0.269598 gpu_ms=19.343...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-cloth-tests" classname="parallel-mater-rope-cloth-tests" time="3.44224" status="run">
+		<system-out>precheck peak_force=7.55394 peak_gap=0 peak_strain=2.14577e-05 peak_frame=59 peak_rope=1 peak_edge=4 edge_length=0.019926 edge_rest=0.0199256 a=(-0.794828,0.425697,0.745147) b=(-0.784023,0.413134,0.73408) attached_height=0.347326
+bridge_vertices=289 peak_rope_force=7.55394 peak_gap=0 peak_strain=2.14577e-05 attached_height=0.347326 loose_height=0.03
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-tests" classname="parallel-mater-smoke-tests" time="1.50766" status="run">
+		<system-out>wake_particles=2376 mean_transverse_wake_delta=0.432334 maximum_pressure=9.69025 near_wall_particles=231 mean_near_wall_speed=1.03106 mean_near_wall_pressure=2.16563 mean_far_speed=1.35034 mean_far_pressure=9.0817e-15 far_particles=680 mean_lee_curl=0.261467 mean_free_curl=0.0248541 free_forward=1.60002 free_transverse=0.164523 inlet_speed=1.6
+sphere_wind_displacement=0.18858 sphere_vertical_displacement=-0.0014478 sphere_vertical_velocity=-0.010511
+full_rate_forward_push=0.42875 full_rate_vertical_push=-8.90493e-05
+buoyancy_vertical_x=-2 tilted_x=-2.06778
+smoke_particles=4500 wake_particles=2376 mean_transverse_wake_delta=0.432334 maximum_speed=2.40637
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-grid-tests" classname="parallel-mater-smoke-grid-tests" time="6.79746" status="run">
+		<system-out>grid_resolution=128x32x128 cells=524288 ms_per_frame=5.76697 solid_cells=430 dense_cells=1078 altered_air=53633 max_abs_pressure=1.19698 pressure_relative_residual=0.000800337 normalized_divergence=0.000140053 max_vorticity=18.0718
+front_lateral=0.158655 side_lateral=0.258576 lee_lateral=0.338521 front_pressure=0.364732 rear_pressure=-0.322993 side_speed=1.63314 lee_enstrophy=41.1557 recirculating_cells=470
+obstructed_lee_enstrophy=41.1557 open_lee_enstrophy=0.237801
+grid_dense_force_displacement=0.206346 grid_sparse_force_displacement=0.0452598 grid_dense_vertical_force=0.00455987
+softbody_grid_resolution=128x32x128 ms_per_pair_frame=15.1531 body_x_difference=4.52538 dense_near_body=285 max_near_density=2.90487 max_bond_stretch=0.0145622
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-water-tests" classname="parallel-mater-smoke-water-tests" time="2.38029" status="run">
+		<system-out>steam_height=0.22156 steam_rise=0.799693
+active_sphere_speed=4.21298 max_frame_delta_v=4.22222 max_angular_speed=0.744186
+boiled=1 wind_delta=0.23301
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-soft-body-tests" classname="parallel-mater-smoke-soft-body-tests" time="14.4988" status="run">
+		<system-out>soft_bodies=20 nodes=3520 bonds=57720 triangles=5760 pins=340
+smoke_emitter=-2,0.699425,0 wind=1.6,0,-0
+first_body_bounds=-0.114303,0.134483,-0.114303 to 0.114303,1.43584,0.114303
+frames=180 ms_per_frame=29.6535 displaced_nodes=2425 max_soft_speed=0.791079 max_bond_strain=0.0388327 max_stretch=0.0388327 max_compression=0.0173973 smoke_particles=2700
+reference_max_stretch=0.0863559 gallery_body_x_difference=2.60689
+gallery_smoke_contact_difference=1910.23
+body_wind_difference=6.12959 smoke_contact_difference=1167.13
+floor_ball_forward_delta=1.06319 floor_ball_height_delta=-0.00197631
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-cloth-tests" classname="parallel-mater-smoke-cloth-tests" time="5.01857" status="run">
+		<system-out>cloth_vertices=289 cloth_triangles=512 pins=34
+frames=300 coupled_ms_per_frame=8.2262 reference_ms_per_frame=7.77672 cloth_difference=36.0728 tracer_difference=3988.64 max_cloth_speed=0.396244 max_bond_strain=0.070514 upstream_surface_particles=976 upstream_forward=0.502912 upstream_lateral=0.546233 upstream_pressure=0.860304 beyond_cloth_particles=59 downstream_any=206 lateral_escape=147 smoke_particles=4500
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-rope-tests" classname="parallel-mater-smoke-rope-tests" time="7.6429" status="run">
+		<system-out>frames=300 coupled_ms_per_frame=10.6664 reference_ms_per_frame=8.50416 rope_difference=5.53891 panel_difference=0.0678649 tracer_difference=7460.86 max_rope_strain=0.000582337 smoke_particles=4500
+focused_tracer_difference=184.953
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-soft-body-winding-tests" classname="parallel-mater-rope-soft-body-winding-tests" time="18.5763" status="run">
+		<system-out>post_signed_volume=0.00760945
+post_nodes=912 post_bonds=130033 post_triangles=1792 fixed_nodes=33
+rest_length=1.41484 nodes=72
+frame=30 strain=0.000368714 anchor_distance=0.001675 contacts=154 turns=0.0222844 gpu_ms=13.3459 peak_edge=70 a=-0.0934645,0.580016,0.00156394 b=-0.0847742,0.596336,-0.00589124
+post_bend=0.0146521 post_height=0.655043 ball=-1.18604,0.16917,0.074683 ball_turns=0.00817414 rope_force=1.54419 anchor_tension=99.3885 rigid_force=4.52307 clearance=0.0183222 segment=68 sample=8 point=-0.098479,0.563622,0.00868071
+frame=60 strain=0.00456679 anchor_distance=0.00192467 contacts=1838 turns=0.0242633 gpu_ms=16.0707 peak_edge=69 a=-0.0846047,0.561543,0.00151765 b=-0.0851504,0.580849,-0.00375179
+post_bend=0.00536061 post_height=0.655146 ball=-0.758756,0.160393,-0.0615357 ball_turns=0.0303511 rope_force=1.20562 anchor_tension=45.6385 rigid_force=4.51136 clearance=0.00935005 segment=64 sample=8 point=-0.0681442,0.48838,0.0253097
+frame=90 strain=0.00456679 anchor_distance=0.00192467 contacts=3140 turns...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-soft-body-release-tests" classname="parallel-mater-rope-soft-body-release-tests" time="52.5863" status="run">
+		<system-out>post_signed_volume=0.00760945
+post_nodes=912 post_bonds=130033 post_triangles=1792 fixed_nodes=33
+rest_length=1.41484 nodes=72
+frame=30 strain=0.000368714 anchor_distance=0.001675 contacts=154 turns=0.0222844 gpu_ms=13.3475 peak_edge=70 a=-0.0934645,0.580016,0.00156394 b=-0.0847742,0.596336,-0.00589124
+post_bend=0.0146521 post_height=0.655043 ball=-1.18604,0.16917,0.074683 ball_turns=0.00817414 rope_force=1.54419 anchor_tension=99.3885 rigid_force=4.52307 clearance=0.0183222 segment=68 sample=8 point=-0.098479,0.563622,0.00868071
+frame=60 strain=0.00456679 anchor_distance=0.00192467 contacts=1838 turns=0.0242633 gpu_ms=16.0653 peak_edge=69 a=-0.0846047,0.561543,0.00151765 b=-0.0851504,0.580849,-0.00375179
+post_bend=0.00536061 post_height=0.655146 ball=-0.758756,0.160393,-0.0615357 ball_turns=0.0303511 rope_force=1.20562 anchor_tension=45.6385 rigid_force=4.51136 clearance=0.00935005 segment=64 sample=8 point=-0.0681442,0.48838,0.0253097
+frame=90 strain=0.00456679 anchor_distance=0.00192467 contacts=3140 turns...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-soft-body-pull-tests" classname="parallel-mater-rope-soft-body-pull-tests" time="2.19905" status="run">
+		<system-out>post_signed_volume=0.00760945
+post_nodes=912 post_bonds=130033 post_triangles=1792 fixed_nodes=33
+rest_length=1.41484 nodes=72
+frame=30 strain=7.27177e-06 anchor_distance=0.00275872 contacts=0 turns=0.0278226 gpu_ms=10.4195 peak_edge=2 a=-1.45645,0.378062,0.0656931 b=-1.43661,0.379537,0.064728
+post_bend=0.0464804 post_height=0.654154 ball=-1.65009,0.595587,-0.0566255 ball_turns=0.0227801 rope_force=7.83913 anchor_tension=99.2667 rigid_force=4.37522 clearance=0.0375959 segment=68 sample=8 point=-0.162092,0.579811,0.00700798
+frame=60 strain=7.27177e-06 anchor_distance=0.00275872 contacts=0 turns=0.0016481 gpu_ms=10.4455 peak_edge=2 a=-1.45645,0.378062,0.0656931 b=-1.43661,0.379537,0.064728
+post_bend=0.0390394 post_height=0.654675 ball=-1.62342,0.854475,-0.178825 ball_turns=0.0357163 rope_force=9.0095 anchor_tension=210.959 rigid_force=4.43233 clearance=0.0375959 segment=68 sample=8 point=-0.162092,0.579811,0.00700798
+frame=90 strain=7.27177e-06 anchor_distance=0.00275872 contacts=0 turns=0.00287107 gpu_ms=10.45...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-settle-tests" classname="parallel-mater-rope-settle-tests" time="4.36009" status="run">
+		<system-out>frame=60 strain=0.00150049 anchor=1.666e-08 clearance=0.0147351 gpu_ms=4.19226 ball=-0.709002,0.158289,-0.0362888 velocity=0.50381,-0.0984117,-0.163149 turns=0.0233983
+frame=120 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.94006 ball=-0.664645,0.156712,-0.0314783 velocity=-0.241793,-0.0526821,0.150826 turns=0.0304663
+frame=180 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.56348 ball=-0.925793,0.156654,0.21603 velocity=-0.283133,0.056004,0.10781 turns=0.0735129
+frame=240 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.163 ball=-0.976219,0.154426,0.208329 velocity=0.0461256,0.00958875,0.0325928 turns=0.0365415
+frame=300 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.93438 ball=-0.98531,0.152566,0.204372 velocity=-0.0179042,-0.00780466,0.0119081 turns=0.0408019
+frame=360 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.7894 ball=-0.989636,0.152092,0.206035 velocity=-0.004766,-0.00310107,0.00249603 turns=0.0446901
+frame...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-release-tests" classname="parallel-mater-rope-release-tests" time="4.99993" status="run">
+		<system-out>frame=60 strain=0.00150049 anchor=1.666e-08 clearance=0.0147351 gpu_ms=4.21082 ball=-0.709002,0.158289,-0.0362888 velocity=0.50381,-0.0984117,-0.163149 turns=0.0233983
+frame=120 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.94725 ball=-0.664645,0.156712,-0.0314783 velocity=-0.241793,-0.0526821,0.150826 turns=0.0304663
+frame=180 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.30647 ball=-0.0835994,0.237523,1.33232 velocity=2.2041,-0.332561,-0.0322939 turns=0.238472
+frame=240 strain=0.00150049 anchor=1.19442e-07 clearance=0.0147107 gpu_ms=3.95381 ball=0.514332,0.157359,1.27909 velocity=-0.592529,-0.0729142,0.673301 turns=0.316746
+frame=300 strain=0.00150049 anchor=1.19442e-07 clearance=0.0147107 gpu_ms=3.84514 ball=-0.131358,0.158394,0.808648 velocity=-0.277681,0.104875,-0.506759 turns=0.265183
+frame=360 strain=0.00150049 anchor=1.19442e-07 clearance=0.0147077 gpu_ms=3.80615 ball=-0.246445,0.156727,0.374322 velocity=-0.136493,0.0313678,-0.292324 turns=0.214149
+frame=420 str...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-wrap-tests" classname="parallel-mater-rope-wrap-tests" time="9.35899" status="run">
+		<system-out>frame=60 strain=0.000991344 anchor=2.10734e-08 clearance=0.014703 gpu_ms=11.6291 ball=0.257386,0.151613,-0.0860291 velocity=-0.0596006,0.0425308,-0.260902 turns=2.97442
+frame=120 strain=0.0010699 anchor=2.10734e-08 clearance=0.0146743 gpu_ms=12.6567 ball=0.227548,0.153088,-0.0666829 velocity=0.0176522,-0.00764891,0.0233961 turns=2.97235
+frame=180 strain=0.00178254 anchor=2.10734e-08 clearance=0.0146565 gpu_ms=16.3697 ball=0.367623,0.157085,0.147399 velocity=0.0734657,0.0272759,-0.237088 turns=2.9341
+frame=240 strain=0.00178254 anchor=2.10734e-08 clearance=0.0146565 gpu_ms=18.4575 ball=0.39254,0.156735,0.119014 velocity=-0.00471526,-0.0108073,0.110235 turns=2.93217
+frame=300 strain=0.00178254 anchor=2.10734e-08 clearance=0.0146565 gpu_ms=18.8644 ball=0.405599,0.152674,0.1464 velocity=0.00894579,-0.00503957,-0.00600234 turns=2.92585
+frame=360 strain=0.00178254 anchor=2.10734e-08 clearance=0.0146565 gpu_ms=17.9747 ball=0.416826,0.152069,0.142311 velocity=0.00821733,-0.00456132,0.0060944 turns=2.92826
+frame=420 s...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-winding-tests" classname="parallel-mater-rope-winding-tests" time="6.72301" status="run">
+		<system-out>frame=60 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=4.141 ball=-0.714305,0.157971,-0.0379 velocity=0.500675,-0.104076,-0.170044 turns=0.0235022
+frame=120 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=5.09699 ball=-0.700677,0.157268,-0.0571895 velocity=-0.00695015,0.00225106,0.0733516 turns=0.021043
+frame=180 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147075 gpu_ms=5.2098 ball=0.905388,0.154953,-0.690737 velocity=2.65536,-0.0223493,1.74182 turns=0.400256
+frame=240 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147065 gpu_ms=5.42133 ball=-1.16549,0.183516,0.131391 velocity=-0.663105,0.447723,-6.85813 turns=0.965911
+frame=300 strain=0.00160259 anchor=1.20137e-07 clearance=0.0145529 gpu_ms=7.38222 ball=-0.260769,0.551425,0.0379572 velocity=1.20419,-0.807651,-8.73019 turns=2.90321
+frame=360 strain=0.00246096 anchor=1.20137e-07 clearance=0.0111423 gpu_ms=8.48102 ball=-0.141442,0.157128,-0.238756 velocity=-0.324955,0.237105,1.06159 turns=2.21765
+frame=420 strain=0.0024609...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-fluid-tests" classname="parallel-mater-rope-fluid-tests" time="5.2515" status="run">
+		<system-out>frame=60 strain=0.000121355 anchor=1.49012e-08 clearance=0.0403078 gpu_ms=24.6273 ball=-1.56211,0.154963,0.151028 velocity=-0.0195839,0.00178386,0.00128378 turns=0.0283928
+frame=120 strain=0.000121355 anchor=1.666e-08 clearance=0.0403078 gpu_ms=26.5953 ball=-1.55405,0.153467,0.144521 velocity=2.35171e-05,0.0123413,0.00185119 turns=0.0281175
+frame=180 strain=0.000998497 anchor=5.96046e-08 clearance=0.0322877 gpu_ms=27.7963 ball=-0.551391,0.235138,1.43531 velocity=2.27092,0.316132,0.996419 turns=0.208272
+nodes=72 strain=0.000998497 anchor_error=5.96046e-08 min_post_clearance=0.0322877 winding=0.0273461 peak_winding=0.208272 last_winding=0.208272 speed=3.30513 gpu_ms=27.7963 rope_ms=1.27074 peak_rope_ms=3.38022
+max_ball_penetration=0
+fluid_rope_contacts=8009
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-fluid-winding-tests" classname="parallel-mater-rope-fluid-winding-tests" time="26.7269" status="run">
+		<system-out>frame=60 strain=0.000121355 anchor=1.49012e-08 clearance=0.0403078 gpu_ms=24.5526 ball=-1.56211,0.154963,0.151028 velocity=-0.0195839,0.00178386,0.00128378 turns=0.0283928
+frame=120 strain=0.000121355 anchor=1.666e-08 clearance=0.0403078 gpu_ms=26.5891 ball=-1.55405,0.153467,0.144521 velocity=2.35171e-05,0.0123413,0.00185119 turns=0.0281175
+frame=180 strain=0.000121355 anchor=5.96046e-08 clearance=0.0220315 gpu_ms=27.401 ball=-0.757508,0.211703,-1.15717 velocity=2.05314,0.144366,-1.83297 turns=0.139841
+frame=240 strain=0.00449276 anchor=8.56007e-08 clearance=0.0147077 gpu_ms=30.0063 ball=1.18634,0.224875,-0.246352 velocity=-0.108672,0.032684,2.71514 turns=0.458824
+frame=300 strain=0.00449276 anchor=1.20137e-07 clearance=0.0147068 gpu_ms=31.3594 ball=-0.732572,0.214169,0.993232 velocity=-2.4115,-0.0159208,-1.69859 turns=0.838229
+frame=360 strain=0.00449276 anchor=1.20137e-07 clearance=0.0147068 gpu_ms=33.5898 ball=0.0229458,0.31564,-1.0707 velocity=2.95475,0.0447443,0.0679143 turns=1.24143
+frame=420 strain=0.0...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-fluid-dry-test" classname="parallel-mater-soft-body-fluid-dry-test" time="9.11802" status="run">
+		<system-out>nodes=777 bonds=14400 triangles=944 pins=19
+dry_displacement=0.146877 drop=0.144903 final_displacement=0.0817956 final_drop=0.0802814 pin_error=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-material-visibility-tests" classname="parallel-mater-material-visibility-tests" time="0.78919" status="run">
+		<system-out>Material alpha import, rendering, and collisions passed
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-foam-visuals-tests" classname="parallel-mater-foam-visuals-tests" time="0.00267328" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-surface-tests" classname="parallel-mater-fluid-surface-tests" time="11.4426" status="run">
+		<system-out>Flat-floor water field below floor=0 wet_cells=4752
+Thin water sheet covered=950/950 grid_pitch=0.0674178
+Fluid scene water field below terrain=0 wet_cells=72901
+Fluid scene interpolated water below terrain=0
+Fluid scene midpoint water below terrain=0
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-optix-headless-test" classname="parallel-mater-optix-headless-test" time="0.825809" status="run">
+		<system-out>Rigid gravity tilt: 1 follow, 384 keep vertical
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-optix-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-fixed-headless-test" classname="parallel-mater-constraint-fixed-headless-test" time="0.84738" status="run">
+		<system-out>Fixed collector attached=8 generated_constraints=6
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-fixed.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-point-headless-test" classname="parallel-mater-constraint-point-headless-test" time="0.471085" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-point.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-hinge-headless-test" classname="parallel-mater-constraint-hinge-headless-test" time="1.81103" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-hinge.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-piston-headless-test" classname="parallel-mater-constraint-piston-headless-test" time="0.337112" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-piston.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-generic-headless-test" classname="parallel-mater-constraint-generic-headless-test" time="0.557968" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-generic.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-generic-spring-headless-test" classname="parallel-mater-constraint-generic-spring-headless-test" time="0.409633" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-generic-spring.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-constraint-motor-headless-test" classname="parallel-mater-constraint-motor-headless-test" time="0.584366" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-motor.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-headless-test" classname="parallel-mater-rope-headless-test" time="3.70559" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-settled.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-fluid-headless-test" classname="parallel-mater-rope-fluid-headless-test" time="6.24965" status="run">
+		<system-out>Fluid particles=30000 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-1.97002..1.97002 y=0.03..0.66584 z=-1.97002..1.97003
+Fluid surface outliers=0 surface_gpu_ms=0.863008 foam_patches=2048 foam_cpu_ms=3.69566
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-fluid.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-soft-body-headless-test" classname="parallel-mater-rope-soft-body-headless-test" time="2.76551" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-cloth-headless-test" classname="parallel-mater-rope-cloth-headless-test" time="2.97649" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-cloth.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-headless-test" classname="parallel-mater-smoke-headless-test" time="1.66204" status="run">
+		<system-out>Smoke particles=3600
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-soft-body-headless-test" classname="parallel-mater-smoke-soft-body-headless-test" time="6.44699" status="run">
+		<system-out>Smoke particles=2700
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-soft-body.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-cloth-headless-test" classname="parallel-mater-smoke-cloth-headless-test" time="1.86235" status="run">
+		<system-out>Smoke particles=2700
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-cloth.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-rope-headless-test" classname="parallel-mater-smoke-rope-headless-test" time="2.18336" status="run">
+		<system-out>Smoke particles=2700
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-rope.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-smoke-rope-tilt-headless-test" classname="parallel-mater-smoke-rope-tilt-headless-test" time="1.27213" status="run">
+		<system-out>Smoke particles=1350
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-rope-tilt.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-dump-headless-test" classname="parallel-mater-dump-headless-test" time="0.724476" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-dump-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-headless-test" classname="parallel-mater-fluid-headless-test" time="0.35539" status="run">
+		<system-out>Fluid particles=553 emitted=553 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-6.01514..-3.95413 y=-1.20305..-0.37214 z=-4.01504..-1.8437
+Fluid surface outliers=0 surface_gpu_ms=0.137216 foam_patches=280 foam_cpu_ms=0.58018
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-rigid-headless-test" classname="parallel-mater-fluid-rigid-headless-test" time="1.97408" status="run">
+		<system-out>Fluid particles=1917 emitted=1917 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-6.16195..-3.82597 y=-1.25835..-0.357096 z=-4.72737..-0.597151
+Fluid surface outliers=0 surface_gpu_ms=0.21296 foam_patches=1735 foam_cpu_ms=2.70327
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-rigid-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-peg-paint-headless-test" classname="parallel-mater-peg-paint-headless-test" time="2.81187" status="run">
+		<system-out>Fluid particles=5707 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-0.858476..0.853918 y=-0.969914..-0.448811 z=-0.855818..0.855462
+Painted texels=1741
+Fluid surface outliers=0 surface_gpu_ms=0.406528 foam_patches=2016 foam_cpu_ms=3.81191
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-headless-test" classname="parallel-mater-cloth-headless-test" time="1.35878" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-tear-headless-test" classname="parallel-mater-cloth-tear-headless-test" time="1.44105" status="run">
+		<system-out>Visible cloth pixels=44624
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-tear-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-tear-rolled-render-test" classname="parallel-mater-cloth-tear-rolled-render-test" time="3.49708" status="run">
+		<system-out>Visible cloth pixels=34608
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-tear-rolled-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-cloth-paint-headless-test" classname="parallel-mater-cloth-paint-headless-test" time="1.36348" status="run">
+		<system-out>Painted texels=811
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-paint-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-water-cloth-headless-test" classname="parallel-mater-water-cloth-headless-test" time="2.59315" status="run">
+		<system-out>Fluid particles=5013 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-0.988947..0.859895 y=0.0583816..0.446195 z=-0.928101..0.92454
+Fluid surface outliers=0 surface_gpu_ms=0.259072 foam_patches=2048 foam_cpu_ms=3.25445
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-water-cloth-debug-headless-test" classname="parallel-mater-water-cloth-debug-headless-test" time="2.62858" status="run">
+		<system-out>Fluid particles=5013 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-0.989215..0.860908 y=0.0583903..0.444319 z=-0.926709..0.925427
+Cloth debug surfaces=1
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-debug-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-water-cloth-left-regression-test" classname="parallel-mater-water-cloth-left-regression-test" time="2.50786" status="run">
+		<system-out>Fluid particles=5013 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-3.49418..-2.0338 y=0.0557119..1.14237 z=0.136176..1.66845
+Fluid surface outliers=0 surface_gpu_ms=0.342016 foam_patches=2048 foam_cpu_ms=2.54864
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-left-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-headless-test" classname="parallel-mater-soft-body-headless-test" time="1.11073" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-tilt-headless-test" classname="parallel-mater-soft-body-tilt-headless-test" time="1.24138" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-tilt-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-rigid-headless-test" classname="parallel-mater-soft-body-rigid-headless-test" time="1.53484" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-rigid-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-cloth-headless-test" classname="parallel-mater-soft-body-cloth-headless-test" time="3.12045" status="run">
+		<system-out>Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-cloth-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-fluid-headless-test" classname="parallel-mater-soft-body-fluid-headless-test" time="6.923" status="run">
+		<system-out>Fluid particles=133 emitted=700 outflowed=567 boiled=0 capacity_misses=0
+Fluid bounds x=-0.691528..0.870426 y=0.130776..1.21746 z=-0.92041..0.955
+Fluid surface outliers=0 surface_gpu_ms=0.111616 foam_patches=90 foam_cpu_ms=0.939241
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-fluid-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-soft-body-cloth-tear-debug-test" classname="parallel-mater-soft-body-cloth-tear-debug-test" time="9.89567" status="run">
+		<system-out>Cloth debug surfaces=2
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-cloth-tear-debug.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-physics-capture-headless-test" classname="parallel-mater-physics-capture-headless-test" time="0.638885" status="run">
+		<system-out>Rigid gravity tilt: 1 follow, 384 keep vertical
+Physics capture "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-physics-capture-test.log"
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-physics-capture-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-peg-paint-containment-test" classname="parallel-mater-peg-paint-containment-test" time="10.5773" status="run">
+		<system-out>Passive body Sphere.001 collision_meshes=0 render_meshes=1
+Passive body Cylinder.006 collision_meshes=0 render_meshes=1
+Passive body Cylinder.007 collision_meshes=0 render_meshes=1
+Passive body Cylinder.008 collision_meshes=0 render_meshes=1
+Passive body Cylinder.009 collision_meshes=0 render_meshes=1
+Passive body Cylinder.010 collision_meshes=0 render_meshes=1
+Passive mesh bounds x=-1..1 y=-1.00334..1.95778 z=-1..1
+Passive floor triangles=694
+Fluid escape summary first_frame=-1 peak_below=0 final_below=0 first_local_frame=-1 peak_below_local=0 final_below_local=0 lowest_y=-0.973441
+Fluid particles=5707 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-0.858164..0.854202 y=-0.971902..-0.449823 z=-0.855292..0.855499
+Painted texels=1741
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-containment-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-peg-paint-cap-test" classname="parallel-mater-peg-paint-cap-test" time="1.17149" status="run">
+		<system-out>Fluid particles=100 emitted=0 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-0.353319..0.363132 y=-0.964447..-0.862929 z=-0.356825..0.35737
+Painted texels=614
+Fluid surface outliers=0 surface_gpu_ms=0.1024 foam_patches=41 foam_cpu_ms=0.102665
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-cap-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-containment-test" classname="parallel-mater-fluid-containment-test" time="0.675875" status="run">
+		<system-out>Passive body Plane collision_meshes=0 render_meshes=1
+Passive mesh bounds x=-9.12476..9.12476 y=-2.70107..-0.0629131 z=-9.12476..9.13395
+Passive floor triangles=2048
+Fluid source triangles=2 spacing=0 velocity=(0,-1,-0)
+Fluid escape summary first_frame=-1 peak_below=0 final_below=0 first_local_frame=-1 peak_below_local=0 final_below_local=0 lowest_y=-1.25835
+Fluid particles=1917 emitted=1917 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-6.16195..-3.82597 y=-1.25835..-0.357096 z=-4.72737..-0.597151
+Fluid surface outliers=0 surface_gpu_ms=0.265216 foam_patches=1735 foam_cpu_ms=2.81102
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-containment-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-cap-headless-test" classname="parallel-mater-fluid-cap-headless-test" time="0.331944" status="run">
+		<system-out>Fluid particles=100 emitted=100 outflowed=0 boiled=0 capacity_misses=2630
+Fluid bounds x=-5.80976..-4.21644 y=-1.20177..-0.742931 z=-3.96313..-1.91132
+Fluid surface outliers=0 surface_gpu_ms=0.079872 foam_patches=96 foam_cpu_ms=0.228792
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-cap-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-fluid-particle-view-test" classname="parallel-mater-fluid-particle-view-test" time="0.337571" status="run">
+		<system-out>Fluid particles=553 emitted=553 outflowed=0 boiled=0 capacity_misses=0
+Fluid bounds x=-6.01514..-3.95413 y=-1.20305..-0.37214 z=-4.01504..-1.8437
+Rendered "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-particles-test.ppm"
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-conformance-case-registry" classname="parallel-mater-conformance-case-registry" time="0.0018223" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-conformance-comparator-tests" classname="parallel-mater-conformance-comparator-tests" time="0.044371" status="run">
+		<system-out>.................
+----------------------------------------------------------------------
+Ran 17 tests in 0.003s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-types-contract-tests" classname="parallel-mater-types-contract-tests" time="0.000948448" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="parallel-mater-parity-compare-self-test" classname="parallel-mater-parity-compare-self-test" time="0.00136707" status="run">
+		<system-out>parity capture comparator self-test passed
+</system-out>
+	</testcase>
+</testsuite>

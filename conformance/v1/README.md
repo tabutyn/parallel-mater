@@ -85,6 +85,10 @@ rewriting the committed goldens.
 
 ## NVIDIA reference handoff
 
+Available captures:
+[2026-10-06 CUDA diagnostic package](references/cuda-20261006/README.md).
+Its strict repeatability limitations are recorded alongside the complete data.
+
 `capture_reference.py` retains ten complete runs, raw timings, device and
 source provenance, build options, per-file hashes, and the first divergent
 record. It refuses dirty source or a runner configured for another commit.

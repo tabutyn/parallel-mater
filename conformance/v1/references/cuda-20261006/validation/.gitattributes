@@ -1,0 +1,3 @@
+# Preserve generated CTest diagnostic output verbatim.
+*.log -whitespace
+test-definitions.json -whitespace
