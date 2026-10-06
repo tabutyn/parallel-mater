@@ -348,6 +348,13 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-api-contract-tests
              COMMAND parallel-mater-api-contract-tests)
 
+    add_executable(parallel-mater-cuda-parity-capture tests/parity/cuda_capture.cpp)
+    target_link_libraries(parallel-mater-cuda-parity-capture PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-cuda-parity-capture-self-test
+             COMMAND parallel-mater-cuda-parity-capture --self-test)
+    set_tests_properties(parallel-mater-cuda-parity-capture-self-test
+                         PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
     add_executable(parallel-mater-rigid-tests tests/rigid_tests.cpp)
     target_link_libraries(
         parallel-mater-rigid-tests PRIVATE ParallelMater::parallel_mater)
@@ -508,6 +515,13 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-piston-scene-tests)
         set_tests_properties(parallel-mater-piston-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
+        add_executable(parallel-mater-generic-contact-tests tests/gallery/generic_contact_tests.cpp)
+        target_link_libraries(parallel-mater-generic-contact-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-generic-contact-tests PRIVATE
+            PARALLEL_MATER_GENERIC_TRAY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/generic_tray.glb")
+        add_test(NAME parallel-mater-generic-contact-tests COMMAND parallel-mater-generic-contact-tests)
+        set_tests_properties(parallel-mater-generic-contact-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 
         add_executable(parallel-mater-cloth-tests tests/gallery/cloth_tests.cpp)
         target_link_libraries(parallel-mater-cloth-tests

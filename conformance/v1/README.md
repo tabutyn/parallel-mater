@@ -30,6 +30,7 @@ Build with `PARALLEL_MATER_BUILD_OPTIX_GALLERY=ON`, then use:
 ```text
 parallel-mater-conformance --list
 parallel-mater-conformance --check-inputs
+parallel-mater-conformance --provenance
 parallel-mater-conformance --case <id|all> --output <directory>
 parallel-mater-conformance --update-goldens
 ```
@@ -81,3 +82,46 @@ backend-specific hashes are diagnostic and never gate correctness.
 CTest byte-checks registry serialization and GLB hashes, exercises comparator
 edge cases, and reproduces CUDA results in a temporary directory without
 rewriting the committed goldens.
+
+## NVIDIA reference handoff
+
+`capture_reference.py` retains ten complete runs, raw timings, device and
+source provenance, build options, per-file hashes, and the first divergent
+record. It refuses dirty source or a runner configured for another commit.
+Output must be a new directory outside the source worktree. It never updates
+goldens or relaxes tolerances.
+
+```bash
+python3 conformance/v1/capture_reference.py \
+  --runner /path/to/build/parallel-mater-conformance \
+  --parity-runner /path/to/build/parallel-mater-cuda-parity-capture \
+  --output /path/to/new-cuda-reference
+```
+
+Only `diagnostics.timings` is excluded from exact same-device repeatability;
+every checkpoint, discrete value, ordering, state hash and provenance field
+remains exact. All raw runs survive a failure. `--allow-dirty` is available
+for investigation only and always produces an unqualified package.
+
+After qualification, explicitly run `--update-goldens`, inspect all numerical
+diffs, and rerun the complete CTest suite. Retain its log and lossless gallery
+images alongside the package. Do not call a non-repeatable capture a golden.
+
+The CUDA and Metal all-system capture executables share
+`tests/parity/capture_scenario.hpp`. This is Metal's detailed public-view
+diagnostic format, not a replacement for the 30-case conformance contract:
+
+```bash
+build-metal/parallel-mater-metal-parity-capture /tmp/metal.capture
+build-metal/parallel-mater-parity-compare \
+  /path/to/new-cuda-reference/all-systems-01.capture /tmp/metal.capture
+build-metal/parallel-mater-metal-conformance --case all --output /tmp/metal-results
+python3 conformance/v1/compare.py --cases conformance/v1/cases \
+  --expected conformance/v1/golden/cuda --actual /tmp/metal-results \
+  --report /tmp/metal-report.json
+```
+
+See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
+for conditional first-divergent-phase instrumentation and the separate visual
+and performance handoffs. A CUDA reference alone does not establish Metal
+parity.
