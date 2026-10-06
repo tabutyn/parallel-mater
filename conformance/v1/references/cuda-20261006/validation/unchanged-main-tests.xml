@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="3"
+	failures="1"
+	disabled="0"
+	skipped="0"
+	hostname="ThomasLaptop"
+	time="19"
+	timestamp="2026-10-06T09:54:00"
+	>
+	<testcase name="parallel-mater-rigid-wall-tests" classname="parallel-mater-rigid-wall-tests" time="8.48073" status="fail">
+		<failure message=""/>
+		<system-out>authored wall max_drop=0.126318 max_displacement=0.286006 max_angle=0.524741 peak_speed=0.243796 resting_speed=0.028722 energy_ratio=0.999867 clearance=-0.000289761
+Brick wall lost static support under vertical gravity
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-settle-tests" classname="parallel-mater-rope-settle-tests" time="4.37483" status="run">
+		<system-out>frame=60 strain=0.00150049 anchor=1.666e-08 clearance=0.0147351 gpu_ms=4.22917 ball=-0.709002,0.158289,-0.0362888 velocity=0.50381,-0.0984117,-0.163149 turns=0.0233983
+frame=120 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.94565 ball=-0.664645,0.156712,-0.0314783 velocity=-0.241793,-0.0526821,0.150826 turns=0.0304663
+frame=180 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.5595 ball=-0.925793,0.156654,0.21603 velocity=-0.283133,0.056004,0.10781 turns=0.0735129
+frame=240 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=4.16646 ball=-0.976219,0.154426,0.208329 velocity=0.0461256,0.00958875,0.0325928 turns=0.0365415
+frame=300 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.93589 ball=-0.98531,0.152566,0.204372 velocity=-0.0179042,-0.00780466,0.0119081 turns=0.0408019
+frame=360 strain=0.00150049 anchor=6.82857e-08 clearance=0.0147351 gpu_ms=3.79086 ball=-0.989636,0.152092,0.206035 velocity=-0.004766,-0.00310107,0.00249603 turns=0.0446901
+fra...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="parallel-mater-rope-winding-tests" classname="parallel-mater-rope-winding-tests" time="6.6308" status="run">
+		<system-out>frame=60 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=4.09885 ball=-0.714305,0.157971,-0.0379 velocity=0.500675,-0.104076,-0.170044 turns=0.0235022
+frame=120 strain=0.001477 anchor=1.20137e-07 clearance=0.0147315 gpu_ms=5.05386 ball=-0.700677,0.157268,-0.0571895 velocity=-0.00695015,0.00225106,0.0733516 turns=0.021043
+frame=180 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147075 gpu_ms=5.15486 ball=0.905388,0.154953,-0.690737 velocity=2.65536,-0.0223493,1.74182 turns=0.400256
+frame=240 strain=0.00160259 anchor=1.20137e-07 clearance=0.0147065 gpu_ms=5.35352 ball=-1.16549,0.183516,0.131391 velocity=-0.663105,0.447723,-6.85813 turns=0.965911
+frame=300 strain=0.00160259 anchor=1.20137e-07 clearance=0.0145529 gpu_ms=7.28544 ball=-0.260769,0.551425,0.0379572 velocity=1.20419,-0.807651,-8.73019 turns=2.90321
+frame=360 strain=0.00246096 anchor=1.20137e-07 clearance=0.0111423 gpu_ms=8.3587 ball=-0.141442,0.157128,-0.238756 velocity=-0.324955,0.237105,1.06159 turns=2.21765
+frame=420 strain=0.00246...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+</testsuite>

@@ -1144,6 +1144,7 @@ void write_manifest(const std::filesystem::path &source_root) {
 struct Arguments {
     bool list{};
     bool check{};
+    bool provenance{};
     bool update{};
     std::string case_id{};
     std::filesystem::path output{};
@@ -1155,6 +1156,7 @@ Arguments parse_arguments(int argc, char **argv) {
         const std::string argument = argv[index];
         if (argument == "--list") result.list = true;
         else if (argument == "--check-inputs") result.check = true;
+        else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--update-goldens") result.update = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
@@ -1164,10 +1166,11 @@ Arguments parse_arguments(int argc, char **argv) {
     }
     const unsigned modes = static_cast<unsigned>(result.list) +
         static_cast<unsigned>(result.check) +
+        static_cast<unsigned>(result.provenance) +
         static_cast<unsigned>(result.update || !result.case_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
-                                 "--case, or --update-goldens");
+                                 "--provenance, --case, or --update-goldens");
     if (result.update && !result.output.empty())
         throw std::runtime_error("--update-goldens writes only to golden/cuda; "
                                  "do not combine it with --output");
@@ -1204,6 +1207,12 @@ int main(int argc, char **argv) {
         if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0) return 77;
 #endif
         const bool update = arguments.update;
+        if (arguments.provenance) {
+            Json provenance = device_provenance();
+            provenance["source_commit"] = PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT;
+            std::cout << provenance.serialize();
+            return 0;
+        }
         const std::string selected = update || arguments.case_id.empty()
             ? "all" : arguments.case_id;
         const std::filesystem::path output = update

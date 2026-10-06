@@ -1,0 +1,2 @@
+Generic penetration 0.0257068 m at frame 18, substeps 4, sphere first 0
+FAIL: Sphere must not cross GenericBlockB's actual collision surface

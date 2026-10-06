@@ -1,0 +1,3404 @@
+{
+  "backtraceGraph" : 
+  {
+    "commands" : 
+    [
+      "add_test",
+      "add_gallery_headless_test"
+    ],
+    "files" : 
+    [
+      "/tmp/pm-cuda-handoff-bVzAxD/source/CMakeLists.txt"
+    ],
+    "nodes" : 
+    [
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 336,
+        "parent" : 0
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 339,
+        "parent" : 2
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 343,
+        "parent" : 4
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 348,
+        "parent" : 6
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 353,
+        "parent" : 8
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 361,
+        "parent" : 10
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 367,
+        "parent" : 12
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 373,
+        "parent" : 14
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 378,
+        "parent" : 16
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 383,
+        "parent" : 18
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 390,
+        "parent" : 20
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 394,
+        "parent" : 22
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 396,
+        "parent" : 24
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 412,
+        "parent" : 26
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 426,
+        "parent" : 28
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 451,
+        "parent" : 30
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 462,
+        "parent" : 32
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 471,
+        "parent" : 34
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 480,
+        "parent" : 36
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 499,
+        "parent" : 38
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 503,
+        "parent" : 40
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 514,
+        "parent" : 42
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 523,
+        "parent" : 44
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 531,
+        "parent" : 46
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 541,
+        "parent" : 48
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 552,
+        "parent" : 50
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 563,
+        "parent" : 52
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 574,
+        "parent" : 54
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 578,
+        "parent" : 56
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 580,
+        "parent" : 58
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 592,
+        "parent" : 60
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 601,
+        "parent" : 62
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 610,
+        "parent" : 64
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 619,
+        "parent" : 66
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 630,
+        "parent" : 68
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 640,
+        "parent" : 70
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 646,
+        "parent" : 72
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 652,
+        "parent" : 74
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 658,
+        "parent" : 76
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 665,
+        "parent" : 78
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 671,
+        "parent" : 80
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 677,
+        "parent" : 82
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 683,
+        "parent" : 84
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 689,
+        "parent" : 86
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 691,
+        "parent" : 88
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 695,
+        "parent" : 90
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 715,
+        "parent" : 92
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 719,
+        "parent" : 94
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 721,
+        "parent" : 96
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 723,
+        "parent" : 98
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 725,
+        "parent" : 100
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 727,
+        "parent" : 102
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 729,
+        "parent" : 104
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 739,
+        "parent" : 106
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 753,
+        "parent" : 108
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 766,
+        "parent" : 110
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 792,
+        "parent" : 112
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 805,
+        "parent" : 114
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 115
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 808,
+        "parent" : 117
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 118
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 812,
+        "parent" : 120
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 121
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 816,
+        "parent" : 123
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 124
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 819,
+        "parent" : 126
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 127
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 822,
+        "parent" : 129
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 130
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 825,
+        "parent" : 132
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 133
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 829,
+        "parent" : 135
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 136
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 833,
+        "parent" : 138
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 139
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 836,
+        "parent" : 141
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 142
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 841,
+        "parent" : 144
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 145
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 844,
+        "parent" : 147
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 148
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 847,
+        "parent" : 150
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 151
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 850,
+        "parent" : 153
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 154
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 855,
+        "parent" : 156
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 157
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 860,
+        "parent" : 159
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 160
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 865,
+        "parent" : 162
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 163
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 871,
+        "parent" : 165
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 166
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 874,
+        "parent" : 168
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 169
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 879,
+        "parent" : 171
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 172
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 884,
+        "parent" : 174
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 175
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 887,
+        "parent" : 177
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 178
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 890,
+        "parent" : 180
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 181
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 893,
+        "parent" : 183
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 184
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 898,
+        "parent" : 186
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 187
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 903,
+        "parent" : 189
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 190
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 908,
+        "parent" : 192
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 193
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 914,
+        "parent" : 195
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 196
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 921,
+        "parent" : 198
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 199
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 924,
+        "parent" : 201
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 202
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 928,
+        "parent" : 204
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 205
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 932,
+        "parent" : 207
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 208
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 935,
+        "parent" : 210
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 211
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 938,
+        "parent" : 213
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 214
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 944,
+        "parent" : 216
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 217
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 952,
+        "parent" : 219
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 220
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 956,
+        "parent" : 222
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 223
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 960,
+        "parent" : 225
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 226
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 964,
+        "parent" : 228
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 229
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 969,
+        "parent" : 231
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 797,
+        "parent" : 232
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 1336,
+        "parent" : 234
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 1339,
+        "parent" : 236
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 1349,
+        "parent" : 238
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 1355,
+        "parent" : 240
+      }
+    ]
+  },
+  "kind" : "ctestInfo",
+  "tests" : 
+  [
+    {
+      "backtrace" : 1,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-geometry-tests"
+      ],
+      "name" : "parallel-mater-soft-body-geometry-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 3,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-soft-body-tests"
+      ],
+      "name" : "parallel-mater-fluid-soft-body-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 5,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-rope-tests"
+      ],
+      "name" : "parallel-mater-fluid-rope-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 7,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-api-contract-tests"
+      ],
+      "name" : "parallel-mater-api-contract-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 9,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cuda-parity-capture",
+        "--self-test"
+      ],
+      "name" : "parallel-mater-cuda-parity-capture-self-test",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 11,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rigid-tests"
+      ],
+      "name" : "parallel-mater-rigid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 13,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-hit-box-tests"
+      ],
+      "name" : "parallel-mater-hit-box-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 15,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-tests"
+      ],
+      "name" : "parallel-mater-fluid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 17,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-source-tests"
+      ],
+      "name" : "parallel-mater-fluid-source-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 19,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-api-tests"
+      ],
+      "name" : "parallel-mater-rope-api-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 21,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-paint-geometry-tests"
+      ],
+      "name" : "parallel-mater-paint-geometry-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 23,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-conformance",
+        "--check-inputs"
+      ],
+      "name" : "parallel-mater-conformance-inputs",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 25,
+      "command" : 
+      [
+        "/usr/bin/python3",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/reproduce.py",
+        "--runner",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-conformance",
+        "--comparator",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/compare.py",
+        "--cases",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/cases",
+        "--golden",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/golden/cuda"
+      ],
+      "name" : "parallel-mater-conformance-cuda-goldens",
+      "properties" : 
+      [
+        {
+          "name" : "RUN_SERIAL",
+          "value" : true
+        },
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 900.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 27,
+      "command" : 
+      [
+        "/usr/local/bin/blender",
+        "--background",
+        "--factory-startup",
+        "--threads",
+        "1",
+        "--python-exit-code",
+        "1",
+        "--python",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/tests/blender/export_scene_tests.py",
+        "--",
+        "--loader",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-blender-scene-check"
+      ],
+      "name" : "parallel-mater-blender-export-tests",
+      "properties" : 
+      [
+        {
+          "name" : "TIMEOUT",
+          "value" : 300.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 29,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-camera-controller-tests"
+      ],
+      "name" : "parallel-mater-camera-controller-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 31,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery-scene-tests"
+      ],
+      "name" : "parallel-mater-gallery-scene-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 33,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rigid-wall-tests"
+      ],
+      "name" : "parallel-mater-rigid-wall-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 35,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-physics-frame-budget-tests"
+      ],
+      "name" : "parallel-mater-physics-frame-budget-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 37,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fixed-collector-tests"
+      ],
+      "name" : "parallel-mater-fixed-collector-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 39,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rigid-constraint-scene-tests"
+      ],
+      "name" : "parallel-mater-rigid-constraint-scene-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 41,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rigid-constraint-scene-tests",
+        "--hinge-four-substeps"
+      ],
+      "name" : "parallel-mater-hinge-slider-contact-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 43,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-piston-scene-tests"
+      ],
+      "name" : "parallel-mater-piston-scene-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 45,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-generic-contact-tests"
+      ],
+      "name" : "parallel-mater-generic-contact-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 47,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-tests"
+      ],
+      "name" : "parallel-mater-cloth-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 49,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-variants-tests"
+      ],
+      "name" : "parallel-mater-cloth-variants-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 51,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-water-tests"
+      ],
+      "name" : "parallel-mater-cloth-water-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 53,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-tests"
+      ],
+      "name" : "parallel-mater-soft-body-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 55,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-rigid-tests"
+      ],
+      "name" : "parallel-mater-soft-body-rigid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 57,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-rigid-tests",
+        "--contact-stress"
+      ],
+      "name" : "parallel-mater-soft-body-contact-stress",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 59,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-rigid-tests",
+        "--shape-contact-stress"
+      ],
+      "name" : "parallel-mater-soft-body-shape-contact-stress",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 61,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-cloth-tests"
+      ],
+      "name" : "parallel-mater-soft-body-cloth-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 63,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-debug-tests"
+      ],
+      "name" : "parallel-mater-cloth-debug-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 65,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-debug-tests"
+      ],
+      "name" : "parallel-mater-smoke-debug-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 67,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-fracture-tests"
+      ],
+      "name" : "parallel-mater-cloth-fracture-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 69,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-fluid-tests"
+      ],
+      "name" : "parallel-mater-soft-body-fluid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 71,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests"
+      ],
+      "name" : "parallel-mater-rope-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 73,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body-tests"
+      ],
+      "name" : "parallel-mater-rope-soft-body-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 75,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-cloth-tests"
+      ],
+      "name" : "parallel-mater-rope-cloth-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 77,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-tests"
+      ],
+      "name" : "parallel-mater-smoke-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 79,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-grid-tests"
+      ],
+      "name" : "parallel-mater-smoke-grid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 240.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 81,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-water-tests"
+      ],
+      "name" : "parallel-mater-smoke-water-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 83,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-soft-body-tests"
+      ],
+      "name" : "parallel-mater-smoke-soft-body-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 85,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-cloth-tests"
+      ],
+      "name" : "parallel-mater-smoke-cloth-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 87,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-rope-tests"
+      ],
+      "name" : "parallel-mater-smoke-rope-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 89,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body-tests",
+        "320",
+        "--wind"
+      ],
+      "name" : "parallel-mater-rope-soft-body-winding-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 91,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body-tests",
+        "1000",
+        "--wind-release"
+      ],
+      "name" : "parallel-mater-rope-soft-body-release-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 93,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body-tests",
+        "180",
+        "--pull"
+      ],
+      "name" : "parallel-mater-rope-soft-body-pull-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 95,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "1200",
+        "--settle"
+      ],
+      "name" : "parallel-mater-rope-settle-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 97,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "1200",
+        "--settle-after-motion"
+      ],
+      "name" : "parallel-mater-rope-release-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 99,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "600",
+        "--wrapped"
+      ],
+      "name" : "parallel-mater-rope-wrap-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 101,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "500",
+        "--winding"
+      ],
+      "name" : "parallel-mater-rope-winding-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 103,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "180",
+        "--fluid"
+      ],
+      "name" : "parallel-mater-rope-fluid-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 240.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 105,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-tests",
+        "600",
+        "--fluid-winding"
+      ],
+      "name" : "parallel-mater-rope-fluid-winding-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 240.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 107,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-fluid-tests",
+        "600",
+        "--dry"
+      ],
+      "name" : "parallel-mater-soft-body-fluid-dry-test",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 180.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 109,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-material-visibility-tests"
+      ],
+      "name" : "parallel-mater-material-visibility-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 111,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-foam-visuals-tests"
+      ],
+      "name" : "parallel-mater-foam-visuals-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 113,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-surface-tests"
+      ],
+      "name" : "parallel-mater-fluid-surface-tests",
+      "properties" : 
+      [
+        {
+          "name" : "SKIP_RETURN_CODE",
+          "value" : 77
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 116,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-optix-test.ppm",
+        "--frames",
+        "30"
+      ],
+      "name" : "parallel-mater-optix-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 119,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-fixed",
+        "--gravity-tilt-degrees",
+        "30",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-fixed.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-fixed-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 122,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-point",
+        "--constraint-action-after-frames",
+        "56",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-point.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-point-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 125,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-hinge",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-hinge.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-hinge-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 128,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-piston",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-piston.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-piston-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 131,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-generic",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-generic.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-generic-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 134,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-generic-spring",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-generic-spring.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-generic-spring-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 137,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--constraint-motor",
+        "--motor-forward",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-constraint-motor.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-constraint-motor-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 140,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--rope",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-settled.ppm",
+        "--frames",
+        "900"
+      ],
+      "name" : "parallel-mater-rope-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 143,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--rope-fluid",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-fluid.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-rope-fluid-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "foam_patches=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 146,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--rope-soft-body",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-soft-body.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-rope-soft-body-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 149,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--rope-cloth",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-rope-cloth.ppm",
+        "--frames",
+        "300"
+      ],
+      "name" : "parallel-mater-rope-cloth-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 152,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--smoke",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke.ppm",
+        "--frames",
+        "240"
+      ],
+      "name" : "parallel-mater-smoke-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 155,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--smoke-softbody",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-soft-body.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-smoke-soft-body-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Smoke particles=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 158,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--smoke-cloth",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-cloth.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-smoke-cloth-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Smoke particles=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 161,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--smoke-rope",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-rope.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-smoke-rope-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Smoke particles=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 164,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--smoke-rope",
+        "--gravity-tilt-degrees",
+        "45",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-smoke-rope-tilt.ppm",
+        "--frames",
+        "90"
+      ],
+      "name" : "parallel-mater-smoke-rope-tilt-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Smoke particles=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 167,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--dump-spheres",
+        "10",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-dump-test.ppm",
+        "--frames",
+        "150"
+      ],
+      "name" : "parallel-mater-dump-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 170,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--fluid",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-test.ppm",
+        "--frames",
+        "30"
+      ],
+      "name" : "parallel-mater-fluid-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "foam_patches=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 173,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--fluid-rigid",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-rigid-test.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-fluid-rigid-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "foam_patches=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 176,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--peg-paint",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-peg-paint-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 179,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--cloth",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-cloth-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 182,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--cloth-tear",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-tear-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-cloth-tear-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 185,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--cloth-tear",
+        "--cloth-tilt-degrees",
+        "45",
+        "--cloth-tilt-after-frames",
+        "120",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-tear-rolled-test.ppm",
+        "--frames",
+        "420"
+      ],
+      "name" : "parallel-mater-cloth-tear-rolled-render-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 188,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--cloth-paint",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-cloth-paint-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-cloth-paint-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Painted texels=[1-9][0-9]*"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 191,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--water-cloth",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-water-cloth-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 194,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--water-cloth-debug",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-debug-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-water-cloth-debug-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 197,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--water-cloth",
+        "--cloth-tilt-left",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-water-cloth-left-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-water-cloth-left-regression-test",
+      "properties" : 
+      [
+        {
+          "name" : "TIMEOUT",
+          "value" : 120.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 200,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-soft-body-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 203,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body",
+        "--cloth-tilt-degrees",
+        "45",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-tilt-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-soft-body-tilt-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 206,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body-rigid",
+        "--cloth-tilt-degrees",
+        "45",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-rigid-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-soft-body-rigid-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 209,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body-cloth",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-cloth-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-soft-body-cloth-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 212,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body-fluid",
+        "--fluid-particles",
+        "4000",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-fluid-test.ppm",
+        "--frames",
+        "240"
+      ],
+      "name" : "parallel-mater-soft-body-fluid-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 215,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--soft-body-cloth",
+        "--cloth-tilt-after-frames",
+        "240",
+        "--cloth-tilt-degrees",
+        "45",
+        "--cloth-debug",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-soft-body-cloth-tear-debug.ppm",
+        "--frames",
+        "600"
+      ],
+      "name" : "parallel-mater-soft-body-cloth-tear-debug-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Cloth debug surfaces=2"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 218,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--physics-capture",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-physics-capture-test.log",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-physics-capture-test.ppm",
+        "--frames",
+        "10"
+      ],
+      "name" : "parallel-mater-physics-capture-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Physics capture"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 221,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--peg-paint",
+        "--fluid-particle-view",
+        "--trace-fluid-escapes",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-containment-test.ppm",
+        "--frames",
+        "600"
+      ],
+      "name" : "parallel-mater-peg-paint-containment-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 224,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--peg-paint",
+        "--fluid-particles",
+        "100",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-peg-paint-cap-test.ppm",
+        "--frames",
+        "180"
+      ],
+      "name" : "parallel-mater-peg-paint-cap-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 227,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--fluid",
+        "--trace-fluid-escapes",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-containment-test.ppm",
+        "--frames",
+        "120"
+      ],
+      "name" : "parallel-mater-fluid-containment-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 230,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--fluid-particles",
+        "100",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-cap-test.ppm",
+        "--frames",
+        "30"
+      ],
+      "name" : "parallel-mater-fluid-cap-headless-test",
+      "properties" : 
+      [
+        {
+          "name" : "PASS_REGULAR_EXPRESSION",
+          "value" : 
+          [
+            "Fluid particles=100 "
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 233,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-gallery",
+        "--fluid-particle-view",
+        "--headless",
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-fluid-particles-test.ppm",
+        "--frames",
+        "30"
+      ],
+      "name" : "parallel-mater-fluid-particle-view-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 235,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-conformance-cases",
+        "--check",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/cases"
+      ],
+      "name" : "parallel-mater-conformance-case-registry",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 237,
+      "command" : 
+      [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/tmp/pm-cuda-handoff-bVzAxD/source/conformance/v1/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "name" : "parallel-mater-conformance-comparator-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 239,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-types-contract-tests"
+      ],
+      "name" : "parallel-mater-types-contract-tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    },
+    {
+      "backtrace" : 241,
+      "command" : 
+      [
+        "/tmp/pm-cuda-handoff-bVzAxD/build/parallel-mater-parity-compare",
+        "--self-test"
+      ],
+      "name" : "parallel-mater-parity-compare-self-test",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "/tmp/pm-cuda-handoff-bVzAxD/build"
+        }
+      ]
+    }
+  ],
+  "version" : 
+  {
+    "major" : 1,
+    "minor" : 0
+  }
+}

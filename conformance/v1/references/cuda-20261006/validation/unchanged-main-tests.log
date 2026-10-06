@@ -1,0 +1,25 @@
+[OUTPUT] 
+Internal ctest changing into directory: /tmp/pm-cuda-handoff-bVzAxD/baseline-build
+
+[HANDLER_OUTPUT] 
+Test project /tmp/pm-cuda-handoff-bVzAxD/baseline-build
+
+    Start 16: parallel-mater-rigid-wall-tests
+1/3 Test #16: parallel-mater-rigid-wall-tests .....***Failed    8.48 sec
+authored wall max_drop=0.126318 max_displacement=0.286006 max_angle=0.524741 peak_speed=0.243796 resting_speed=0.028722 energy_ratio=0.999867 clearance=-0.000289761
+Brick wall lost static support under vertical gravity
+
+    Start 46: parallel-mater-rope-settle-tests
+2/3 Test #46: parallel-mater-rope-settle-tests ....   Passed    4.37 sec
+    Start 49: parallel-mater-rope-winding-tests
+3/3 Test #49: parallel-mater-rope-winding-tests ...   Passed    6.63 sec
+
+67% tests passed, 1 tests failed out of 3
+
+Total Test time (real) =  19.49 sec
+
+The following tests FAILED:
+	 16 - parallel-mater-rigid-wall-tests (Failed)
+[ERROR_MESSAGE] 
+Errors while running CTest
+

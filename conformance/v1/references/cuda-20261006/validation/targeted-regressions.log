@@ -1,0 +1,22 @@
+[OUTPUT] 
+Internal ctest changing into directory: /tmp/pm-cuda-handoff-bVzAxD/build
+
+[HANDLER_OUTPUT] 
+Test project /tmp/pm-cuda-handoff-bVzAxD/build
+
+    Start  6: parallel-mater-rigid-tests
+1/6 Test  #6: parallel-mater-rigid-tests ..................   Passed    7.86 sec
+    Start 21: parallel-mater-hinge-slider-contact-tests
+2/6 Test #21: parallel-mater-hinge-slider-contact-tests ...   Passed   15.66 sec
+    Start 22: parallel-mater-piston-scene-tests
+3/6 Test #22: parallel-mater-piston-scene-tests ...........   Passed   16.65 sec
+    Start 23: parallel-mater-generic-contact-tests
+4/6 Test #23: parallel-mater-generic-contact-tests ........   Passed    9.69 sec
+    Start 48: parallel-mater-rope-settle-tests
+5/6 Test #48: parallel-mater-rope-settle-tests ............   Passed    4.39 sec
+    Start 51: parallel-mater-rope-winding-tests
+6/6 Test #51: parallel-mater-rope-winding-tests ...........   Passed    6.28 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =  60.52 sec

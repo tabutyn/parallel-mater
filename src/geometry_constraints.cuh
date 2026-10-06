@@ -896,10 +896,12 @@ __device__ bool triangle_pair_face_contact(
 }
 
 __device__ void collide_triangle_ranges(
+    const RigidBodyState &previous_body_state,
     const RigidBodyState &body_state, Vec3 body_reference,
     const HingeContactFrame &body_hinge,
     const TriangleMeshResource &body_mesh,
     std::uint32_t body_first, std::uint32_t body_count,
+    const RigidBodyState &previous_collider_state,
     const RigidBodyState &collider_state,
     const TriangleMeshResource &collider_mesh, std::uint32_t collider_first,
     std::uint32_t collider_count, const HingeContactFrame &collider_hinge,
@@ -973,10 +975,48 @@ __device__ void collide_triangle_ranges(
             // normal, even when its tiny nonzero separation is noisy.
             const bool small_convex = body_mesh.solid_planes != nullptr &&
                                       body_mesh.index_count <= 96U;
-            const Vec3 normal =
+            Vec3 normal =
                 (distance <= k_rigid_surface_tolerance ||
                  (small_convex && on_triangle_face))
                     ? fallback : normalized_or(delta, fallback);
+            // A concave body's origin may lie in its cavity, on the wrong
+            // side of the contacting face. For a convex body against such a
+            // surface, use that surface's face and the convex body's entry
+            // side, independently of which body was allocated first. Using
+            // the convex body's own intersecting facets can push it inward.
+            bool convex_surface_face = false;
+            float face_separation = 0.0F;
+            const bool convex_a = body_mesh.solid_planes != nullptr;
+            const bool convex_b = collider_mesh.solid_planes != nullptr;
+            if (convex_a != convex_b &&
+                distance <= k_rigid_surface_tolerance) {
+                const Vec3 face0 = convex_a ? b0 : a0;
+                const Vec3 face1 = convex_a ? b1 : a1;
+                const Vec3 face2 = convex_a ? b2 : a2;
+                const auto &surface_state = convex_a ? collider_state : body_state;
+                const auto &previous_surface = convex_a ? previous_collider_state : previous_body_state;
+                const auto &previous_convex = convex_a ? previous_body_state : previous_collider_state;
+                Vec3 outward = normalized_or(cross(subtract(face1, face0), subtract(face2, face0)), {});
+                const Vec3 local_normal = inverse_rotate(surface_state.orientation, outward);
+                const Vec3 old_normal = rotate(previous_surface.orientation, local_normal);
+                const Vec3 old_point = transform_point(previous_surface,
+                    inverse_rotate(surface_state.orientation, subtract(face0, surface_state.position)));
+                if (dot(old_normal, subtract(previous_convex.position, old_point)) < 0.0F)
+                    outward = multiply(outward, -1.0F);
+                const Vec3 incident_point = convex_a ? point_a : point_b;
+                const Vec3 projection = subtract(incident_point,
+                    multiply(outward, dot(subtract(incident_point, face0), outward)));
+                convex_surface_face = length_squared(outward) > 0.5F &&
+                    length_squared(subtract(projection,
+                        closest_on_triangle(projection, face0, face1, face2))) <=
+                    k_rigid_surface_tolerance * k_rigid_surface_tolerance;
+                if (convex_surface_face) {
+                    normal = multiply(outward, convex_a ? 1.0F : -1.0F);
+                    face_separation = fminf(dot(subtract(convex_a ? a0 : b0, face0), outward),
+                        fminf(dot(subtract(convex_a ? a1 : b1, face0), outward),
+                              dot(subtract(convex_a ? a2 : b2, face0), outward)));
+                }
+            }
             if (!contact_reaches_rest_offset(
                     body_state, collider_state, point, normal, distance,
                     rest_offset, timestep)) {
@@ -984,7 +1024,12 @@ __device__ void collide_triangle_ranges(
             }
             float penetration = rest_offset - distance +
                                 k_rigid_surface_tolerance;
-            if (distance <= k_rigid_surface_tolerance) {
+            if (convex_surface_face) {
+                // Measure actual signed depth, not one complete search
+                // margin on every substep of a resting intersection.
+                penetration = fminf(margin, rest_offset - face_separation) +
+                              k_rigid_surface_tolerance;
+            } else if (distance <= k_rigid_surface_tolerance) {
                 // Triangle intersection has no reliable closest-point depth.
                 if (body_hinge.fixed_member ||
                     collider_hinge.fixed_member ||
@@ -1333,9 +1378,9 @@ __device__ ContactManifold collide_meshes(
         const bool collider_leaf = collider_node.triangle_count != 0U;
         if (body_leaf && collider_leaf) {
             collide_triangle_ranges(
-                body_state, body_reference, body_hinge, body_mesh,
+                previous_body_state, body_state, body_reference, body_hinge, body_mesh,
                 body_node.first_triangle,
-                body_node.triangle_count, collider_state, collider_mesh,
+                body_node.triangle_count, previous_collider_state, collider_state, collider_mesh,
                 collider_node.first_triangle, collider_node.triangle_count,
                 collider_hinge, margin, timestep, manifold);
             if (swept) {
@@ -1371,9 +1416,9 @@ __device__ ContactManifold collide_meshes(
     if (overflow) {
         manifold = {};
         collide_triangle_ranges(
-            body_state, body_reference, body_hinge, body_mesh, 0U,
+            previous_body_state, body_state, body_reference, body_hinge, body_mesh, 0U,
             body_mesh.index_count / 3U,
-            collider_state, collider_mesh, 0U,
+            previous_collider_state, collider_state, collider_mesh, 0U,
             collider_mesh.index_count / 3U, collider_hinge, margin, timestep,
             manifold);
         if (swept) {
@@ -3589,10 +3634,10 @@ __global__ void evaluate_rigid_leaf_pairs_kernel(
             if (candidate_index < candidate_count) {
                 const LeafPair candidate = pair_candidates[candidate_index];
                 collide_triangle_ranges(
-                    states[index], body_reference, body_hinge,
+                    previous_states[index], states[index], body_reference, body_hinge,
                     body_mesh,
                     candidate.body_first,
-                    candidate.body_count, states[collider_index],
+                    candidate.body_count, previous_states[collider_index], states[collider_index],
                     collider_mesh, candidate.collider_first,
                     candidate.collider_count, collider_hinge,
                     collision_margin, timestep, local);
