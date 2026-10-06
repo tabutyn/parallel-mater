@@ -3534,6 +3534,47 @@ static void pm_initialize_contact_solve(
     }
 }
 
+static bool pm_motor_constraint_member(
+    uint body, device const PMRigidConstraintResource *constraints,
+    uint constraint_capacity) {
+    for (uint index = 0u; index < constraint_capacity; ++index) {
+        device const PMRigidConstraintResource &constraint =
+            constraints[index];
+        if (constraint.alive != 0u && constraint.enabled != 0u &&
+            constraint.broken == 0u && constraint.type == 7u &&
+            (constraint.body_a == body || constraint.body_b == body))
+            return true;
+    }
+    return false;
+}
+
+static void pm_stabilize_motor_collider_normals(
+    device PMContactManifold &manifold,
+    device const PMRigidBodyState &collider_state,
+    device const PMTriangleMeshInfo &collider_mesh,
+    device const PMCollisionPlane *solid_planes) {
+    if (collider_mesh.solid_plane_count == 0u) return;
+    for (uint point = 0u; point < manifold.count; ++point) {
+        device PMContactRecord &contact = manifold.contacts[point];
+        const float3 normal = pm_load(contact.normal);
+        float best_alignment = 0.99999f;
+        float3 stable = normal;
+        for (uint face = 0u; face < collider_mesh.solid_plane_count;
+             ++face) {
+            const float3 plane_normal = pm_rotate(
+                collider_state.orientation,
+                pm_load(solid_planes[
+                    collider_mesh.solid_plane_offset + face].normal));
+            const float alignment = dot(normal, plane_normal);
+            if (abs(alignment) > best_alignment) {
+                best_alignment = abs(alignment);
+                stable = alignment >= 0.0f ? plane_normal : -plane_normal;
+            }
+        }
+        contact.normal = pm_store(stable);
+    }
+}
+
 kernel void pm_rigid_contact_generate(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -3740,6 +3781,10 @@ kernel void pm_rigid_contact_generate(
         }
         output = fallback;
     }
+    if (pm_motor_constraint_member(
+            body, constraints, step.constraint_capacity))
+        pm_stabilize_motor_collider_normals(
+            output, states[collider], collider_mesh, solid_planes);
     pm_initialize_contact_solve(
         output, states[body], states[collider], body_hinge,
         collider_hinge, persistent_pair);

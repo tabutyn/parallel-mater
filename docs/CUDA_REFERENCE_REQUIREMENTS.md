@@ -24,22 +24,25 @@ current Metal conformance branch ports the CUDA convex/concave entry-side
 contact rule, small closed-convex face manifolds, the missing piston alignment
 row, reduced-coordinate slider/piston integration, and CUDA-style persistent
 contact initialization, warm starting, accumulated impulses, and cache
-write-back. With those changes, these 18 cases pass:
+write-back. Motor-driven contacts also resolve nearly parallel triangle normals
+to the authored collider plane, removing backend-local tangent noise without
+changing the manifold. With those changes, these 19 cases pass:
 
 - `cloth-core` and `cloth-water`;
-- `constraint-breaking`, `constraint-piston`, and `constraint-slider`;
+- `constraint-breaking`, `constraint-motor`, `constraint-piston`, and
+  `constraint-slider`;
 - `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 12 remaining cases and their current comparator difference counts are:
+The 11 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
 | Rigid lifecycle/contact | `compound-weld-lifecycle` (2), `passive-active` (49), `rigid-direct` (13) |
-| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (13), `constraint-hinge` (2), `constraint-motor` (5), `constraint-point` (22) |
+| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (13), `constraint-hinge` (2), `constraint-point` (22) |
 | Cloth/rope | `cloth-tear` (62), `rope-core` (212), `rope-soft-body` (8) |
 
 These counts describe comparison records, not necessarily independent bugs.
@@ -76,6 +79,13 @@ solver drift. The cache work makes `constraint-breaking` exact, reduces
 from 27 records to one contact-count/list mismatch. It also exposes a single
 face-clipping checkpoint where `compound-weld-lifecycle` has 12 Metal contacts
 instead of CUDA's 8 after only micrometre-scale pose drift.
+
+`constraint-motor` is now exact. For motor-driven bodies, Metal replaces only
+a triangle contact normal already parallel to an authored convex collider plane
+with that plane's transformed normal. This preserves the contact position,
+depth, and ordering while eliminating a roughly 0.002 tangent component caused
+by backend-local triangle arithmetic. No additional motor trace is currently
+required unless a future CUDA capture changes that case.
 
 For `compound-weld-lifecycle`, `constraint-generic`, `passive-active`, and
 `rigid-direct`, capture each contact's cache key, cache hit/miss, impact

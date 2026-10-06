@@ -387,15 +387,19 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   `constraint-generic` from 33 to 13 reported fields, reduces
   `constraint-hinge` from 27 fields to one contact-count/list mismatch, and
   brings `rigid-direct` to sub-millimetre positional drift.
+  Motor-constrained body contacts stabilize a triangle normal that is already
+  parallel to an authored convex collider plane by using the transformed plane
+  normal. This removes backend-local tangent noise while retaining contact
+  position, depth, and ordering, and makes `constraint-motor` exact.
   Cross-frame cache reuse remains gated: enabling it directly reopens
   `fluid-rigid` and increases `constraint-generic` from 13 to 22 differences,
   so the next CUDA handoff requests the first cache match and warm-start delta.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
-  18 of 30 cases. The 12 outstanding cases are `cloth-tear`,
+  19 of 30 cases. The 11 outstanding cases are `cloth-tear`,
   `compound-weld-lifecycle`, `constraint-fixed`,
   `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
-  `constraint-motor`, `constraint-point`, `passive-active`, `rigid-direct`,
-  `rope-core`, and `rope-soft-body`. The package also exposes five CUDA cases that are not
+  `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
+  `rope-soft-body`. The package also exposes five CUDA cases that are not
   byte-repeatable but remain inside the tolerance comparator; those captures
   are retained rather than being misclassified as Metal-only failures.
   Fracturing cloth now rebuilds CUDA's per-face CSR constraint graph at idle
