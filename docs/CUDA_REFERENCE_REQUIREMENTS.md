@@ -26,24 +26,27 @@ row, reduced-coordinate slider/piston integration, and CUDA-style persistent
 contact initialization, warm starting, accumulated impulses, and cache
 write-back. Motor-driven contacts also resolve nearly parallel triangle normals
 to the authored collider plane, removing backend-local tangent noise without
-changing the manifold. With those changes, these 19 cases pass:
+changing the manifold. Convex face patches discard numerically near-collinear
+triangle-seam samples while retaining CUDA's full eight-contact capacity. With
+those changes, these 20 cases pass:
 
 - `cloth-core` and `cloth-water`;
 - `constraint-breaking`, `constraint-motor`, `constraint-piston`, and
   `constraint-slider`;
+- `compound-weld-lifecycle`;
 - `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 11 remaining cases and their current comparator difference counts are:
+The 10 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `compound-weld-lifecycle` (2), `passive-active` (49), `rigid-direct` (13) |
-| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (13), `constraint-hinge` (2), `constraint-point` (22) |
-| Cloth/rope | `cloth-tear` (62), `rope-core` (212), `rope-soft-body` (8) |
+| Rigid lifecycle/contact | `passive-active` (49), `rigid-direct` (13) |
+| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (11), `constraint-hinge` (2), `constraint-point` (22) |
+| Cloth/rope | `cloth-tear` (62), `rope-core` (177), `rope-soft-body` (12) |
 
 These counts describe comparison records, not necessarily independent bugs.
 For example, one earlier contact-manifold difference can alter every later
@@ -61,8 +64,8 @@ schema.
 
 ### Rigid contacts and lifecycle
 
-For `compound-weld-lifecycle`, `passive-active`, `rigid-direct`, and the first
-failing frame of each constraint case, capture:
+For `passive-active`, `rigid-direct`, and the first failing frame of each
+constraint case, capture:
 
 - previous and predicted body transforms and velocities;
 - broad-phase body pairs and BVH leaf/triangle pairs in stable order;
@@ -74,11 +77,13 @@ failing frame of each constraint case, capture:
 This is the first priority because Metal now generates CUDA-style small-convex
 face manifolds and implements persistent contact state plus substep-local cache
 reuse, but the public checkpoints still cannot distinguish geometry drift from
-solver drift. The cache work makes `constraint-breaking` exact, reduces
-`constraint-generic` from 33 to 13 records, and reduces `constraint-hinge`
-from 27 records to one contact-count/list mismatch. It also exposes a single
-face-clipping checkpoint where `compound-weld-lifecycle` has 12 Metal contacts
-instead of CUDA's 8 after only micrometre-scale pose drift.
+solver drift. The cache work makes `constraint-breaking` exact, and the
+combined contact ports reduce `constraint-generic` from 33 to 11 records and
+`constraint-hinge` from 27 records to one contact-count/list mismatch.
+`compound-weld-lifecycle` is now exact: Metal removes only near-collinear
+triangle-seam samples from a clipped convex patch, yielding CUDA's four patch
+corners without imposing a blanket four-contact cap. No additional compound
+trace is required unless a future CUDA capture changes that case.
 
 `constraint-motor` is now exact. For motor-driven bodies, Metal replaces only
 a triangle contact normal already parallel to an authored convex collider plane
@@ -87,17 +92,15 @@ depth, and ordering while eliminating a roughly 0.002 tangent component caused
 by backend-local triangle arithmetic. No additional motor trace is currently
 required unless a future CUDA capture changes that case.
 
-For `compound-weld-lifecycle`, `constraint-generic`, `passive-active`, and
-`rigid-direct`, capture each contact's cache key, cache hit/miss, impact
-fraction, initial normal speed, persistent/face-patch flags, accumulated normal
-and friction impulses, response-patch membership, and cache contents before
-load and after store. Include the state immediately before contact
+For `constraint-generic`, `passive-active`, and `rigid-direct`, capture each
+contact's cache key, cache hit/miss, impact fraction, initial normal speed,
+persistent/face-patch flags, accumulated normal and friction impulses,
+response-patch membership, and cache contents before load and after store.
+Include the state immediately before contact
 initialization, after warm start, after every velocity and position sweep, and
 after cache write-back. The trace must say whether the face path, triangle
 path, or swept path selected the final contact; final contact events alone
-cannot distinguish them. For compound face patches, retain the unclipped and
-clipped polygons so the first vertex-count difference can be located before
-solver state diverges.
+cannot distinguish them.
 
 Cross-frame cache reuse is not enabled yet. A direct lifetime experiment
 reopened `fluid-rigid` and increased `constraint-generic` from 13 to 22
@@ -118,21 +121,24 @@ response.
 For each failing constraint case, dump the prepared world anchors and frames,
 all linear/angular rows, effective mass, bias/error, limits, motor target,
 accumulated impulse, break decision, and body velocities after every solver
-iteration. For Hinge, Slider, and Piston also include guided-frame detection,
-the preserved axial coordinate, projected momentum, axial inverse moment, and
-the final guide correction. Stable body and constraint IDs are required.
+iteration. For `constraint-hinge`, also include its alignment error and final
+hinge correction. Slider and piston traces are no longer required unless a
+future CUDA capture reopens those exact cases. Stable body and constraint IDs
+are required.
 
 ### Particle and deformable systems
 
-- `fluid-rigid`: at checkpoint 2, record particle sort keys/ranges, candidate
-  rigid contacts, accepted contacts, per-contact impulses, reduced per-body
-  reactions, and the lifecycle count before/after compaction.
 - `cloth-tear`: record the constraint strain values, eligible tear keys,
   deterministic selection order, emitted events, vertex duplication, rebuilt
   indices, and generations at the first topology change.
 - `rope-core` and `rope-soft-body`: record endpoint constraints, segment
-  projection rows, collision candidates, per-iteration corrections, and the
-  contribution/reduction inputs that update the rope and soft body.
+  projection rows, BVH triangle visitation order, collision candidates,
+  selected triangle/fraction, per-iteration corrections, and the
+  contribution/reduction inputs that update the rope and soft body. Metal now
+  mirrors CUDA's right-first BVH leaf order and exact rigid orientation update;
+  the trace should begin before the first frame-36 `rope-core` orientation and
+  velocity mismatch and before the frame-24 `rope-soft-body` maximum-speed
+  mismatch.
 
 ### Trace contract
 

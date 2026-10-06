@@ -372,11 +372,10 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   differences; its post-replacement frame agrees again.
   Small closed-convex rigid pairs now use CUDA's supporting-face selection and
   clipped incident-face manifold instead of retaining redundant triangle-pair
-  contacts. This closes `fluid-rigid`; after the persistent solver port,
-  `compound-weld-lifecycle` differs only at frame 48, where micrometre-scale
-  pose drift clips each adjacent box patch to six points instead of CUDA's
-  four. A blanket four-point cap is intentionally not used because CUDA's
-  manifold contract permits up to eight contacts.
+  contacts. Near-collinear triangle-seam vertices in those patches are reduced
+  geometrically while preserving CUDA's full eight-contact capacity; no
+  blanket four-point cap is used. This closes both `fluid-rigid` and
+  `compound-weld-lifecycle`.
   Persistent rigid contacts now carry CUDA's impact fraction, initial normal
   speed, accumulated normal/friction impulse, warm-start state, initial
   relative position, and face-patch classification. Metal loads and stores a
@@ -384,7 +383,7 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   or waiting in a step, applies all warm starts before velocity sweeps, uses CUDA's
   translational projection, and raises face patches to the CUDA 32-sweep
   budget. This makes `constraint-breaking` exact, reduces
-  `constraint-generic` from 33 to 13 reported fields, reduces
+  `constraint-generic` from 33 to 11 reported fields, reduces
   `constraint-hinge` from 27 fields to one contact-count/list mismatch, and
   brings `rigid-direct` to sub-millimetre positional drift.
   Motor-constrained body contacts stabilize a triangle normal that is already
@@ -395,8 +394,8 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   `fluid-rigid` and increases `constraint-generic` from 13 to 22 differences,
   so the next CUDA handoff requests the first cache match and warm-start delta.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
-  19 of 30 cases. The 11 outstanding cases are `cloth-tear`,
-  `compound-weld-lifecycle`, `constraint-fixed`,
+  20 of 30 cases. The 10 outstanding cases are `cloth-tear`,
+  `constraint-fixed`,
   `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
   `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
   `rope-soft-body`. The package also exposes five CUDA cases that are not
@@ -424,8 +423,11 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   This closes both maximum-strain differences in that case (about 2.18% and
   1.64% on the prior Metal path). The coupling now also uses CUDA's cumulative
   frame contact count, 256-lane anchor-weight reduction order, and closed-skin
-  nearest/swept point query. Those changes reduce the remaining report from 95
-  differences to 8.
+  nearest/swept point query. Those changes reduced the report from 95
+  differences to 8 before the rigid-contact traversal port. CUDA-ordered BVH
+  traversal changes the late coupled trajectory and the current full report
+  contains 12 differences; its earlier frame-24 soft-body maximum-speed defect
+  is unchanged and remains the first requested CUDA trace point.
   Fluid/rope reactions now gather particle impulses per rope node before
   applying CUDA's single acceleration cap, exclude rigid-attached endpoints,
   and leave fluid acceleration diagnostics unchanged by the post-integration
@@ -481,8 +483,12 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   retain their two-sided behavior. Each rope node also retains CUDA's cached
   solid-plane hint across substeps, and segment/triangle intersection uses the
   same CUDA thresholds and barycentric acceptance. The current `rope-core`
-  capture does not exercise an interior-solid recovery and therefore remains
-  one of the outstanding trajectory-parity cases.
+  capture does not exercise an interior-solid recovery. Rigid contact
+  traversal now follows CUDA's right-first BVH triangle order, recomputes the
+  segment fraction from the selected point, applies reaction torque at the
+  already-computed world arm, and uses CUDA's exact quaternion increment for
+  rigid attachments. This reduces `rope-core` from 212 to 177 reported fields;
+  it remains an outstanding trajectory-parity case.
 
 ## Gated work remaining
 
