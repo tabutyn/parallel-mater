@@ -372,17 +372,30 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   differences; its post-replacement frame agrees again.
   Small closed-convex rigid pairs now use CUDA's supporting-face selection and
   clipped incident-face manifold instead of retaining redundant triangle-pair
-  contacts. This closes `compound-weld-lifecycle` and `fluid-rigid` against
-  the reviewed package without reopening a passing case. It also changes the
-  later `constraint-generic` trajectory from 18 to 33 reported fields, which
-  is why the next CUDA trace request focuses on persistent face-patch state,
-  contact-cache warm start, impact fractions, and response-patch reduction.
+  contacts. This closes `fluid-rigid`; after the persistent solver port,
+  `compound-weld-lifecycle` differs only at frame 48, where micrometre-scale
+  pose drift clips each adjacent box patch to six points instead of CUDA's
+  four. A blanket four-point cap is intentionally not used because CUDA's
+  manifold contract permits up to eight contacts.
+  Persistent rigid contacts now carry CUDA's impact fraction, initial normal
+  speed, accumulated normal/friction impulse, warm-start state, initial
+  relative position, and face-patch classification. Metal loads and stores a
+  fixed-capacity, generation-checked cache between substeps without allocating
+  or waiting in a step, applies all warm starts before velocity sweeps, uses CUDA's
+  translational projection, and raises face patches to the CUDA 32-sweep
+  budget. This makes `constraint-breaking` exact, reduces
+  `constraint-generic` from 33 to 13 reported fields, reduces
+  `constraint-hinge` from 27 fields to one contact-count/list mismatch, and
+  brings `rigid-direct` to sub-millimetre positional drift.
+  Cross-frame cache reuse remains gated: enabling it directly reopens
+  `fluid-rigid` and increases `constraint-generic` from 13 to 22 differences,
+  so the next CUDA handoff requests the first cache match and warm-start delta.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
   18 of 30 cases. The 12 outstanding cases are `cloth-tear`,
-  `constraint-breaking`, `constraint-fixed`, `constraint-generic-spring`,
-  `constraint-generic`, `constraint-hinge`, `constraint-motor`,
-  `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
-  `rope-soft-body`. The package also exposes five CUDA cases that are not
+  `compound-weld-lifecycle`, `constraint-fixed`,
+  `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
+  `constraint-motor`, `constraint-point`, `passive-active`, `rigid-direct`,
+  `rope-core`, and `rope-soft-body`. The package also exposes five CUDA cases that are not
   byte-repeatable but remain inside the tolerance comparator; those captures
   are retained rather than being misclassified as Metal-only failures.
   Fracturing cloth now rebuilds CUDA's per-face CSR constraint graph at idle

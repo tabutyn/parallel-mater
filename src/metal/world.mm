@@ -108,6 +108,12 @@ struct ContactRecord {
     Vec3 normal{};
     float penetration{};
     std::uint32_t found{};
+    float accumulated_normal_impulse{};
+    Vec3 accumulated_friction_impulse{};
+    float initial_normal_speed{};
+    float impact_fraction{};
+    std::uint32_t persistent{};
+    std::uint32_t warm_started{};
 };
 
 struct ContactManifold {
@@ -115,6 +121,26 @@ struct ContactManifold {
     std::uint32_t count{};
     std::uint32_t event_offset{};
     std::uint32_t color{};
+    Vec3 initial_relative_position{};
+    std::uint32_t face_patch{};
+    std::uint32_t body_fixed_member{};
+    std::uint32_t collider_fixed_member{};
+};
+
+struct CachedContact {
+    Vec3 local_point{};
+    Vec3 normal{};
+    float normal_impulse{};
+    Vec3 friction_impulse{};
+};
+
+struct CachedContactPair {
+    RigidBodyId body{};
+    RigidBodyId collider{};
+    std::uint64_t epoch{};
+    float timestep{};
+    std::uint32_t count{};
+    CachedContact contacts[8]{};
 };
 
 struct BvhNode {
@@ -241,8 +267,10 @@ struct TriangleMeshStorage {
 static_assert(sizeof(RigidBodyState) == 52U);
 static_assert(sizeof(RigidParameters) == 108U);
 static_assert(sizeof(TriangleMeshInfo) == 72U);
-static_assert(sizeof(ContactRecord) == 32U);
-static_assert(sizeof(ContactManifold) == 268U);
+static_assert(sizeof(ContactRecord) == 64U);
+static_assert(sizeof(ContactManifold) == 548U);
+static_assert(sizeof(CachedContact) == 40U);
+static_assert(sizeof(CachedContactPair) == 352U);
 static_assert(sizeof(BvhNode) == 40U);
 static_assert(sizeof(MeshLeafInfo) == 8U);
 static_assert(sizeof(WorldAabb) == 24U);
@@ -783,6 +811,8 @@ struct World::Impl {
     id<MTLBuffer> mesh_bvh_leaves{nil};
     id<MTLBuffer> mesh_solid_planes{nil};
     id<MTLBuffer> contact_records{nil};
+    id<MTLBuffer> rigid_contact_cache{nil};
+    id<MTLBuffer> rigid_contact_epoch_buffer{nil};
     id<MTLBuffer> rigid_color_owners{nil};
     id<MTLBuffer> rigid_world_bounds{nil};
     id<MTLBuffer> rigid_pair_flags{nil};
@@ -809,6 +839,9 @@ struct World::Impl {
     std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint64_t revision{};
+    std::uint64_t rigid_contact_epoch{1U};
+    std::uint64_t rigid_contact_revision{
+        std::numeric_limits<std::uint64_t>::max()};
     detail::MetalSystems systems{};
 
     std::mutex submission_mutex{};
@@ -1436,9 +1469,11 @@ Status World::create(WorldOptions options, NativeContext context,
                 newBufferWithLength:sizeof(CollisionPlane) options:shared];
             const std::uint64_t record_count =
                 static_cast<std::uint64_t>(body_capacity) * body_capacity;
+            const std::size_t maximum_contact_record_size = std::max(
+                sizeof(ContactManifold), sizeof(CachedContactPair));
             if (record_count >
                 std::numeric_limits<NSUInteger>::max() /
-                    sizeof(ContactManifold)) {
+                    maximum_contact_record_size) {
                 return capacity_exceeded(
                     "Metal rigid contact scratch capacity is too large");
             }
@@ -1446,6 +1481,12 @@ Status World::create(WorldOptions options, NativeContext context,
                 newBufferWithLength:static_cast<NSUInteger>(record_count) *
                                     sizeof(ContactManifold)
                            options:MTLResourceStorageModePrivate];
+            impl->rigid_contact_cache = [impl->device
+                newBufferWithLength:static_cast<NSUInteger>(record_count) *
+                                    sizeof(CachedContactPair)
+                           options:shared];
+            impl->rigid_contact_epoch_buffer = [impl->device
+                newBufferWithLength:sizeof(std::uint64_t) options:shared];
             impl->rigid_color_owners = [impl->device
                 newBufferWithLength:body_capacity * sizeof(std::uint32_t)
                            options:MTLResourceStorageModePrivate];
@@ -1507,6 +1548,8 @@ Status World::create(WorldOptions options, NativeContext context,
                 impl->mesh_bvh_leaves == nil ||
                 impl->mesh_solid_planes == nil ||
                 impl->contact_records == nil ||
+                impl->rigid_contact_cache == nil ||
+                impl->rigid_contact_epoch_buffer == nil ||
                 impl->rigid_color_owners == nil ||
                 impl->rigid_world_bounds == nil ||
                 impl->rigid_pair_flags == nil ||
@@ -1551,6 +1594,10 @@ Status World::create(WorldOptions options, NativeContext context,
                         impl->mesh_bvh_leaves.length);
             std::memset(impl->mesh_solid_planes.contents, 0,
                         impl->mesh_solid_planes.length);
+            std::memset(impl->rigid_contact_cache.contents, 0,
+                        impl->rigid_contact_cache.length);
+            std::memset(impl->rigid_contact_epoch_buffer.contents, 0,
+                        impl->rigid_contact_epoch_buffer.length);
             std::memset(impl->rigid_substep_index.contents, 0,
                         impl->rigid_substep_index.length);
             if (impl->rigid_constraints == nil) {
@@ -1571,7 +1618,7 @@ Status World::create(WorldOptions options, NativeContext context,
 
             MTL4ArgumentTableDescriptor *argument_descriptor =
                 [[MTL4ArgumentTableDescriptor alloc] init];
-            argument_descriptor.maxBufferBindCount = 27;
+            argument_descriptor.maxBufferBindCount = 29;
             argument_descriptor.initializeBindings = YES;
             argument_descriptor.label = @"ParallelMater rigid arguments";
             impl->rigid_argument_table = [impl->device
@@ -1657,11 +1704,17 @@ Status World::create(WorldOptions options, NativeContext context,
             [impl->rigid_argument_table
                 setAddress:impl->mesh_solid_planes.gpuAddress
                    atIndex:26];
+            [impl->rigid_argument_table
+                setAddress:impl->rigid_contact_cache.gpuAddress
+                   atIndex:27];
+            [impl->rigid_argument_table
+                setAddress:impl->rigid_contact_epoch_buffer.gpuAddress
+                   atIndex:28];
 
             MTLResidencySetDescriptor *residency_descriptor =
                 [[MTLResidencySetDescriptor alloc] init];
             residency_descriptor.label = @"ParallelMater fixed resources";
-            residency_descriptor.initialCapacity = 28;
+            residency_descriptor.initialCapacity = 30;
             impl->residency_set = [impl->device
                 newResidencySetWithDescriptor:residency_descriptor
                                           error:&error];
@@ -1686,8 +1739,10 @@ Status World::create(WorldOptions options, NativeContext context,
                 impl->rigid_contact_events,
                 impl->rigid_contact_count_buffer, impl->mesh_bvh_nodes,
                 impl->mesh_solid_planes, impl->mesh_leaf_infos,
-                impl->mesh_bvh_leaves, impl->rigid_compounds};
-            [impl->residency_set addAllocations:allocations count:28];
+                impl->mesh_bvh_leaves, impl->rigid_compounds,
+                impl->rigid_contact_cache,
+                impl->rigid_contact_epoch_buffer};
+            [impl->residency_set addAllocations:allocations count:30];
             [impl->residency_set commit];
 
             const Status system_status = detail::MetalSystems::create(
@@ -2792,6 +2847,14 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                 impl_->rigid_contact_count_buffer.contents) = 0U;
             *static_cast<std::uint32_t *>(
                 impl_->rigid_substep_index.contents) = 0U;
+            if (impl_->rigid_contact_revision != impl_->revision) {
+                impl_->rigid_contact_epoch += 2U;
+                impl_->rigid_contact_revision = impl_->revision;
+            }
+            *static_cast<std::uint64_t *>(
+                impl_->rigid_contact_epoch_buffer.contents) =
+                impl_->rigid_contact_epoch;
+            impl_->rigid_contact_epoch += options.substeps;
             const Status systems_status = impl_->systems.begin_frame(
                 options.collect_fluid_contacts || debug_enabled,
                 options.timestep);
@@ -3308,7 +3371,9 @@ Status World::collect_statistics(WorldStatistics &output) const noexcept {
         impl_->mesh_indices.length + impl_->mesh_infos.length +
         impl_->mesh_bvh_nodes.length + impl_->mesh_leaf_infos.length +
         impl_->mesh_bvh_leaves.length + impl_->mesh_solid_planes.length +
-        impl_->contact_records.length + impl_->rigid_color_owners.length +
+        impl_->contact_records.length + impl_->rigid_contact_cache.length +
+        impl_->rigid_contact_epoch_buffer.length +
+        impl_->rigid_color_owners.length +
         impl_->rigid_world_bounds.length + impl_->rigid_pair_flags.length +
         impl_->rigid_active_pairs.length +
         impl_->rigid_active_pair_count.length +

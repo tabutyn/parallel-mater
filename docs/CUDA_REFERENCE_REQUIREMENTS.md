@@ -22,11 +22,12 @@ The 2026-10-06 package has been verified and compared on Apple Silicon against
 `run-01`. On unmodified merged source, Metal passes 13 of the 30 v1 cases. The
 current Metal conformance branch ports the CUDA convex/concave entry-side
 contact rule, small closed-convex face manifolds, the missing piston alignment
-row, and reduced-coordinate slider/piston integration. With those changes,
-these 18 cases pass:
+row, reduced-coordinate slider/piston integration, and CUDA-style persistent
+contact initialization, warm starting, accumulated impulses, and cache
+write-back. With those changes, these 18 cases pass:
 
-- `cloth-core`, `cloth-water`, and `compound-weld-lifecycle`;
-- `constraint-piston` and `constraint-slider`;
+- `cloth-core` and `cloth-water`;
+- `constraint-breaking`, `constraint-piston`, and `constraint-slider`;
 - `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
@@ -37,8 +38,8 @@ The 12 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `passive-active` (49), `rigid-direct` (13) |
-| Constraints | `constraint-breaking` (22), `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (33), `constraint-hinge` (27), `constraint-motor` (5), `constraint-point` (22) |
+| Rigid lifecycle/contact | `compound-weld-lifecycle` (2), `passive-active` (49), `rigid-direct` (13) |
+| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (13), `constraint-hinge` (2), `constraint-motor` (5), `constraint-point` (22) |
 | Cloth/rope | `cloth-tear` (62), `rope-core` (212), `rope-soft-body` (8) |
 
 These counts describe comparison records, not necessarily independent bugs.
@@ -68,24 +69,39 @@ failing frame of each constraint case, capture:
 - compound root/member remapping before and after lifecycle compaction.
 
 This is the first priority because Metal now generates CUDA-style small-convex
-face manifolds, but does not yet have CUDA's full persistent contact state and
-cache behavior. For `constraint-breaking`, `constraint-generic`,
-`passive-active`, and `rigid-direct`, also capture each contact's cache key,
-cache hit/miss, impact fraction, initial normal speed, persistent/face-patch
-flags, accumulated normal and friction impulses, response-patch membership,
-and cache contents before load and after store. Include the state immediately
-before contact initialization, after warm start, after every velocity and
-position sweep, and after cache write-back. The trace must say whether the
-face path, triangle path, or swept path selected the final contact; final
-contact events alone cannot distinguish them.
+face manifolds and implements persistent contact state plus substep-local cache
+reuse, but the public checkpoints still cannot distinguish geometry drift from
+solver drift. The cache work makes `constraint-breaking` exact, reduces
+`constraint-generic` from 33 to 13 records, and reduces `constraint-hinge`
+from 27 records to one contact-count/list mismatch. It also exposes a single
+face-clipping checkpoint where `compound-weld-lifecycle` has 12 Metal contacts
+instead of CUDA's 8 after only micrometre-scale pose drift.
+
+For `compound-weld-lifecycle`, `constraint-generic`, `passive-active`, and
+`rigid-direct`, capture each contact's cache key, cache hit/miss, impact
+fraction, initial normal speed, persistent/face-patch flags, accumulated normal
+and friction impulses, response-patch membership, and cache contents before
+load and after store. Include the state immediately before contact
+initialization, after warm start, after every velocity and position sweep, and
+after cache write-back. The trace must say whether the face path, triangle
+path, or swept path selected the final contact; final contact events alone
+cannot distinguish them. For compound face patches, retain the unclipped and
+clipped polygons so the first vertex-count difference can be located before
+solver state diverges.
+
+Cross-frame cache reuse is not enabled yet. A direct lifetime experiment
+reopened `fluid-rigid` and increased `constraint-generic` from 13 to 22
+records, while closing no case. The trace therefore needs to identify CUDA's
+first cross-frame cache match and the resulting warm-start impulse, not merely
+the final cached values.
 
 For a guided or constrained body, include the complete contact frame used by
 CUDA: fixed, axial, axial-rotation, fixed-member, and static-body flags; body
 reference point; axis; projected point velocity; directional inverse mass;
-and the exact impulse applied to every aggregate member. Metal currently has
-separate integration guidance and a smaller contact-frame representation, so
-these records are needed to determine whether the first mismatch is geometry,
-contact initialization, or constrained impulse response.
+and the exact impulse applied to every aggregate member. Metal now mirrors
+those contact-frame fields, so these records are needed to determine whether
+the first mismatch is geometry, frame construction, or constrained impulse
+response.
 
 ### Constraint solve
 

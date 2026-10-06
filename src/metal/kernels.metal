@@ -78,6 +78,12 @@ struct PMContactRecord {
     PMPackedVec3 normal;
     float penetration;
     uint found;
+    float accumulated_normal_impulse;
+    PMPackedVec3 accumulated_friction_impulse;
+    float initial_normal_speed;
+    float impact_fraction;
+    uint persistent;
+    uint warm_started;
 };
 
 struct PMContactManifold {
@@ -85,6 +91,28 @@ struct PMContactManifold {
     uint count;
     uint event_offset;
     uint color;
+    PMPackedVec3 initial_relative_position;
+    uint face_patch;
+    uint body_fixed_member;
+    uint collider_fixed_member;
+};
+
+struct PMCachedContact {
+    PMPackedVec3 local_point;
+    PMPackedVec3 normal;
+    float normal_impulse;
+    PMPackedVec3 friction_impulse;
+};
+
+struct PMCachedContactPair {
+    uint body_index;
+    uint body_generation;
+    uint collider_index;
+    uint collider_generation;
+    ulong epoch;
+    float timestep;
+    uint count;
+    PMCachedContact contacts[8];
 };
 
 struct PMBvhNode {
@@ -213,7 +241,9 @@ static_assert(sizeof(PMRigidBodyState) == 52);
 static_assert(sizeof(PMRigidParameters) == 108);
 static_assert(sizeof(PMTriangleMeshInfo) == 72);
 static_assert(sizeof(PMCollisionPlane) == 16);
-static_assert(sizeof(PMContactManifold) == 268);
+static_assert(sizeof(PMContactManifold) == 548);
+static_assert(sizeof(PMCachedContact) == 40);
+static_assert(sizeof(PMCachedContactPair) == 352);
 static_assert(sizeof(PMBvhNode) == 40);
 static_assert(sizeof(PMMeshLeafInfo) == 8);
 static_assert(sizeof(PMWorldAabb) == 24);
@@ -557,10 +587,102 @@ kernel void pm_rigid_integrate(
     }
 }
 
+static void pm_load_rigid_contact_cache(
+    device PMContactManifold &manifold,
+    device const PMRigidBodyState &body_state,
+    device const PMHandle &body_id,
+    device const PMHandle &collider_id,
+    device const PMCachedContactPair &saved,
+    ulong epoch, float timestep) {
+    if (saved.epoch + 1ul != epoch ||
+        saved.body_index != body_id.index ||
+        saved.body_generation != body_id.generation ||
+        saved.collider_index != collider_id.index ||
+        saved.collider_generation != collider_id.generation ||
+        abs(saved.timestep - timestep) > 1.0e-7f)
+        return;
+    uint used = 0u;
+    for (uint point = 0u; point < manifold.count; ++point) {
+        device PMContactRecord &contact = manifold.contacts[point];
+        if (contact.persistent == 0u) continue;
+        const float3 local = pm_rotate(
+            pm_quaternion_conjugate(body_state.orientation),
+            pm_load(contact.point) - pm_load(body_state.position));
+        float nearest = 0.02f * 0.02f;
+        uint match = 8u;
+        for (uint previous = 0u;
+             previous < min(saved.count, 8u); ++previous) {
+            if ((used & (1u << previous)) != 0u ||
+                dot(pm_load(contact.normal),
+                    pm_load(saved.contacts[previous].normal)) < 0.99f)
+                continue;
+            const float3 delta =
+                local - pm_load(saved.contacts[previous].local_point);
+            const float distance = dot(delta, delta);
+            if (distance < nearest) {
+                nearest = distance;
+                match = previous;
+            }
+        }
+        if (match == 8u) continue;
+        used |= 1u << match;
+        device const PMCachedContact &previous = saved.contacts[match];
+        contact.accumulated_normal_impulse = previous.normal_impulse;
+        const float3 friction = pm_load(previous.friction_impulse);
+        const float3 normal = pm_load(contact.normal);
+        contact.accumulated_friction_impulse = pm_store(
+            friction - normal * dot(friction, normal));
+    }
+}
+
+static void pm_save_rigid_contact_cache(
+    device const PMContactManifold &manifold,
+    device const PMRigidBodyState &body_state,
+    device const PMHandle &body_id,
+    device const PMHandle &collider_id,
+    device PMCachedContactPair &saved,
+    ulong epoch, float timestep) {
+    saved.body_index = body_id.index;
+    saved.body_generation = body_id.generation;
+    saved.collider_index = collider_id.index;
+    saved.collider_generation = collider_id.generation;
+    saved.epoch = epoch;
+    saved.timestep = timestep;
+    saved.count = manifold.count;
+    for (uint point = 0u; point < manifold.count; ++point) {
+        device const PMContactRecord &contact = manifold.contacts[point];
+        device PMCachedContact &output = saved.contacts[point];
+        output.local_point = pm_store(pm_rotate(
+            pm_quaternion_conjugate(body_state.orientation),
+            pm_load(contact.point) - pm_load(body_state.position)));
+        output.normal = contact.normal;
+        output.normal_impulse = contact.accumulated_normal_impulse;
+        output.friction_impulse = contact.accumulated_friction_impulse;
+    }
+}
+
 kernel void pm_rigid_advance_substep(
+    device const PMRigidBodyState *states [[buffer(0)]],
+    constant PMStepConstants &step [[buffer(4)]],
+    device const PMContactManifold *manifolds [[buffer(8)]],
+    device const PMHandle *ids [[buffer(10)]],
+    device const uint *active_pairs [[buffer(18)]],
+    device const uint &active_pair_count [[buffer(19)]],
     device uint &substep_index [[buffer(20)]],
+    device PMCachedContactPair *cache [[buffer(27)]],
+    device const ulong &epoch_base [[buffer(28)]],
     uint thread_index [[thread_position_in_grid]]) {
-    if (thread_index == 0u) ++substep_index;
+    if (thread_index != 0u) return;
+    const ulong epoch = epoch_base + ulong(substep_index);
+    for (uint active = 0u; active < active_pair_count; ++active) {
+        const uint pair = active_pairs[active];
+        const uint body = pair / step.body_count;
+        const uint collider = pair % step.body_count;
+        pm_save_rigid_contact_cache(
+            manifolds[pair], states[body], ids[body], ids[collider],
+            cache[pair], epoch, step.timestep);
+    }
+    ++substep_index;
 }
 
 kernel void pm_rigid_clear_accumulators(
@@ -1044,10 +1166,24 @@ struct PMHingeContactFrame {
     float3 anchor;
     float3 axis;
     float3 local_anchor;
+    float inverse_mass;
+    float inverse_moment;
     bool present;
     bool fixed;
+    bool axial;
+    bool axial_rotation;
     bool fixed_member;
+    bool static_body;
 };
+
+static bool pm_guided_static_contact(
+    thread const PMHingeContactFrame &body,
+    thread const PMHingeContactFrame &collider);
+
+static float pm_fixed_hinge_inverse_moment(
+    device const PMRigidParameters &body,
+    device const PMRigidBodyState &state,
+    thread const PMHingeContactFrame &hinge);
 
 static PMHingeContactFrame pm_rigid_hinge_contact_frame(
     device const PMRigidParameters *parameters, uint body_count, uint body,
@@ -1055,11 +1191,13 @@ static PMHingeContactFrame pm_rigid_hinge_contact_frame(
     device const PMRigidConstraintResource *constraints,
     uint constraint_capacity, thread float3 &reference) {
     PMHingeContactFrame result{};
+    result.static_body = body < body_count && parameters[body].motion == 0u;
     if (body >= body_count || parameters[body].inverse_mass <= 0.0f) {
         reference = body < body_count
             ? pm_load(states[body].position) : float3(0.0f);
         return result;
     }
+    uint incident_count = 0u;
     for (uint index = 0u; index < constraint_capacity; ++index) {
         device const PMRigidConstraintResource &constraint =
             constraints[index];
@@ -1069,8 +1207,20 @@ static PMHingeContactFrame pm_rigid_hinge_contact_frame(
         const bool is_a = constraint.body_a == body;
         const bool is_b = constraint.body_b == body;
         if (!is_a && !is_b) continue;
+        ++incident_count;
         if (constraint.type == 0u) result.fixed_member = true;
-        if (constraint.type != 2u || result.present) continue;
+        const bool axial = constraint.type == 3u || constraint.type == 4u;
+        const uint other = is_a ? constraint.body_b : constraint.body_a;
+        const bool static_anchor = other < body_count &&
+            parameters[other].motion == 0u;
+        if (result.present ||
+            (constraint.type != 2u &&
+             !(axial && static_anchor &&
+               constraint.breaking_impulse_threshold <= 0.0f)))
+            continue;
+        const float3 local_axis = axial
+            ? float3(1.0f, 0.0f, 0.0f)
+            : float3(0.0f, 0.0f, 1.0f);
         result.local_anchor = pm_load(
             is_a ? constraint.local_anchor_a : constraint.local_anchor_b);
         const PMQuaternion local_orientation = is_a
@@ -1082,12 +1232,13 @@ static PMHingeContactFrame pm_rigid_hinge_contact_frame(
         result.axis = pm_normalized_or(
             pm_rotate(pm_quaternion_multiply(
                           state.orientation, local_orientation),
-                      float3(0.0f, 0.0f, 1.0f)),
-            float3(0.0f, 0.0f, 1.0f));
+                      local_axis),
+            local_axis);
         result.present = true;
-        const uint other = is_a ? constraint.body_b : constraint.body_a;
-        result.fixed = other < body_count && parameters[other].motion == 0u;
-        if (result.fixed) {
+        result.fixed = static_anchor && !axial;
+        result.axial = static_anchor && axial;
+        result.axial_rotation = result.axial && constraint.type == 4u;
+        if (static_anchor) {
             const float3 other_local_anchor = pm_load(
                 is_a ? constraint.local_anchor_b : constraint.local_anchor_a);
             const PMQuaternion other_local_orientation = is_a
@@ -1100,12 +1251,22 @@ static PMHingeContactFrame pm_rigid_hinge_contact_frame(
                 pm_rotate(pm_quaternion_multiply(
                               other_state.orientation,
                               other_local_orientation),
-                          float3(0.0f, 0.0f, 1.0f)),
+                          local_axis),
                 result.axis);
         }
     }
-    reference = result.present ? result.anchor
-                               : pm_load(states[body].position);
+    if (result.axial && incident_count != 1u) {
+        result.axial = false;
+        result.axial_rotation = false;
+        result.present = false;
+    }
+    if (result.axial) {
+        result.inverse_mass = parameters[body].inverse_mass;
+        result.inverse_moment = pm_fixed_hinge_inverse_moment(
+            parameters[body], states[body], result);
+    }
+    reference = result.present && !result.axial
+        ? result.anchor : pm_load(states[body].position);
     return result;
 }
 
@@ -1122,7 +1283,7 @@ static void pm_resolve_rigid_contact_pair(
     constant PMStepConstants &step,
     device PMContactManifold &manifold,
     device PMRigidContactEvent *events, uint body, uint collider,
-    bool correct_position,
+    bool correct_position, bool warm_start_only,
     device const PMRigidConstraintResource *constraints,
     device const PMRigidCompound *compounds);
 
@@ -1241,17 +1402,15 @@ kernel void pm_rigid_constraints_serial(
             if (manifold.count == 0u) continue;
             const uint body = pair / step.body_count;
             const uint collider = pair % step.body_count;
-            const bool body_fixed = pm_body_is_fixed_member(
-                body, constraints, step.constraint_capacity);
-            const bool collider_fixed = pm_body_is_fixed_member(
-                collider, constraints, step.constraint_capacity);
-            if (!body_fixed && !collider_fixed) continue;
+            if (manifold.body_fixed_member == 0u &&
+                manifold.collider_fixed_member == 0u)
+                continue;
             if (compounds[body].eligible != 0u ||
                 compounds[collider].eligible != 0u)
                 continue;
             pm_resolve_rigid_contact_pair(
                 states, parameters, step, manifold, events, body, collider,
-                false, constraints, compounds);
+                false, false, constraints, compounds);
         }
         for (uint index = 0u; index < step.constraint_capacity; ++index) {
             device PMRigidConstraintResource &constraint = constraints[index];
@@ -2038,6 +2197,18 @@ static float pm_rigid_rest_offset(float margin) {
     return min(margin, pm_rigid_maximum_rest_offset);
 }
 
+static PMContactRecord pm_make_contact_record(
+    float3 point, float3 normal, float penetration,
+    float impact_fraction) {
+    PMContactRecord contact{};
+    contact.point = pm_store(point);
+    contact.normal = pm_store(normal);
+    contact.penetration = penetration;
+    contact.found = 1u;
+    contact.impact_fraction = impact_fraction;
+    return contact;
+}
+
 static float pm_contact_normal_speed(
     device const PMRigidBodyState &body_state,
     device const PMRigidBodyState &collider_state, float3 point,
@@ -2225,8 +2396,8 @@ static bool pm_convex_face_manifold(
             const float3 point = pm_world_point(
                 *reference_state, local_point);
             if (distance <= margin) {
-                const PMContactRecord contact{
-                    pm_store(point), pm_store(normal), -distance, 1u};
+                const PMContactRecord contact = pm_make_contact_record(
+                    point, normal, -distance, 1.0f);
                 pm_add_manifold_contact(
                     manifold, contact, max(margin * 2.0f, 1.0e-4f));
             }
@@ -2236,6 +2407,7 @@ static bool pm_convex_face_manifold(
     // adjacent corners that only coincide within floating-point roundoff.
     // Falling back to intersecting triangles invents penetration there.
     if (manifold.count == 0u && alignment > -0.999999f) return false;
+    manifold.face_patch = 1u;
     output = manifold;
     return true;
 }
@@ -2392,8 +2564,8 @@ static void pm_collide_triangle_ranges(
                     penetration = margin + pm_rigid_surface_tolerance;
                 }
             }
-            PMContactRecord contact{
-                pm_store(point), pm_store(normal), penetration, 1u};
+            PMContactRecord contact = pm_make_contact_record(
+                point, normal, penetration, 1.0f);
             pm_add_manifold_contact(
                 manifold, contact, max(margin * 2.0f, 1.0e-4f));
         }
@@ -2555,10 +2727,8 @@ static void pm_collide_triangle_ranges_swept(
                     const float swept_penetration =
                         remaining + rest_offset +
                         pm_rigid_surface_tolerance;
-                    PMContactRecord contact{
-                        pm_store(point), pm_store(normal),
-                        swept_penetration,
-                        1u};
+                    PMContactRecord contact = pm_make_contact_record(
+                        point, normal, swept_penetration, time);
                     pm_add_manifold_contact(
                         manifold, contact,
                         max(margin * 2.0f, 1.0e-4f));
@@ -2813,7 +2983,9 @@ static float pm_fixed_hinge_inverse_moment(
     device const PMRigidParameters &body,
     device const PMRigidBodyState &state,
     thread const PMHingeContactFrame &hinge) {
-    if (!hinge.fixed || body.inverse_mass <= 1.0e-6f) return 0.0f;
+    if ((!hinge.fixed && !hinge.axial_rotation) ||
+        body.inverse_mass <= 1.0e-6f)
+        return 0.0f;
     const float3 local_axis = pm_rotate(
         pm_quaternion_conjugate(state.orientation), hinge.axis);
     const float3 inverse_inertia = pm_load(body.inverse_inertia);
@@ -2835,13 +3007,18 @@ static float pm_fixed_hinge_inverse_moment(
 static float3 pm_contact_point_velocity(
     device const PMRigidBodyState &state,
     thread const PMHingeContactFrame &hinge, float3 point) {
-    if (!hinge.fixed)
+    if (!hinge.fixed && !hinge.axial)
         return pm_load(state.linear_velocity) +
             cross(pm_load(state.angular_velocity),
                   point - pm_load(state.position));
     const float3 angular = hinge.axis *
-        dot(pm_load(state.angular_velocity), hinge.axis);
-    return cross(angular, point - hinge.anchor);
+        (hinge.fixed || hinge.axial_rotation
+             ? dot(pm_load(state.angular_velocity), hinge.axis)
+             : 0.0f);
+    return (hinge.axial
+                ? hinge.axis * dot(pm_load(state.linear_velocity), hinge.axis)
+                : float3(0.0f)) +
+        cross(angular, point - hinge.anchor);
 }
 
 static float pm_contact_direction_inverse_mass(
@@ -2859,10 +3036,13 @@ static float pm_contact_direction_inverse_mass(
             dot(cross(pm_compound_inverse_inertia(compound, angular), arm),
                 direction);
     }
-    if (hinge.fixed) {
+    if (hinge.fixed || hinge.axial) {
         const float jacobian = dot(
             cross(hinge.axis, point - hinge.anchor), direction);
-        return jacobian * jacobian *
+        const float axial = hinge.axial
+            ? dot(hinge.axis, direction) : 0.0f;
+        return body.inverse_mass * axial * axial +
+            jacobian * jacobian *
             pm_fixed_hinge_inverse_moment(body, state, hinge);
     }
     const float3 arm = point - pm_load(state.position);
@@ -2901,7 +3081,7 @@ static void pm_apply_contact_velocity_impulse(
     device const PMRigidParameters &body = parameters[index];
     if (body.inverse_mass <= 0.0f) return;
     device PMRigidBodyState &state = states[index];
-    if (hinge.fixed) {
+    if (hinge.fixed || hinge.axial) {
         const float angular_impulse = dot(
             hinge.axis, cross(point - hinge.anchor, impulse));
         const float3 angular_delta = hinge.axis *
@@ -2911,6 +3091,10 @@ static void pm_apply_contact_velocity_impulse(
             pm_load(state.angular_velocity) + angular_delta);
         state.linear_velocity = pm_store(
             pm_load(state.linear_velocity) +
+            (hinge.axial
+                 ? hinge.axis *
+                       (body.inverse_mass * dot(impulse, hinge.axis))
+                 : float3(0.0f)) +
             cross(angular_delta,
                   pm_load(state.position) - hinge.anchor));
         return;
@@ -3010,15 +3194,123 @@ static PMAppliedContactImpulse pm_apply_contact_impulse(
     return applied;
 }
 
+static float3 pm_clamp_vector_length(float3 value, float maximum) {
+    const float squared = dot(value, value);
+    if (squared <= maximum * maximum || squared <= 1.0e-12f)
+        return value;
+    return value * (maximum / sqrt(squared));
+}
+
+static PMAppliedContactImpulse pm_apply_persistent_contact_impulse(
+    device PMRigidBodyState *states,
+    device PMRigidParameters *parameters, uint count, uint body_index,
+    uint collider_index,
+    thread const PMContactCandidate &contact, float initial_normal_speed,
+    thread float &accumulated_normal_impulse,
+    thread float3 &accumulated_friction_impulse,
+    float timestep,
+    thread const PMHingeContactFrame &body_hinge,
+    thread const PMHingeContactFrame &collider_hinge,
+    device const PMRigidCompound *compounds) {
+    device PMRigidBodyState &body_state = states[body_index];
+    device const PMRigidParameters &body = parameters[body_index];
+    device PMRigidBodyState &collider_state = states[collider_index];
+    device const PMRigidParameters &collider = parameters[collider_index];
+    PMAppliedContactImpulse applied{};
+    float3 relative_velocity = pm_contact_point_velocity(
+        body_state, body_hinge, contact.point) -
+        pm_contact_point_velocity(
+            collider_state, collider_hinge, contact.point);
+    const float normal_speed = dot(relative_velocity, contact.normal);
+    const float separation = max(0.0f, -contact.penetration);
+    float target_speed = separation > pm_rigid_surface_tolerance
+        ? -separation / max(timestep, 1.0e-6f)
+        : 0.0f;
+    const bool fixed_cluster_contact =
+        body_hinge.fixed_member || collider_hinge.fixed_member;
+    if (fixed_cluster_contact && contact.penetration > 0.0f)
+        target_speed = max(
+            target_speed,
+            0.2f * contact.penetration / max(timestep, 1.0e-6f));
+    if (separation <= pm_rigid_surface_tolerance &&
+        initial_normal_speed < 0.0f)
+        target_speed = max(
+            target_speed,
+            -min(body.restitution, collider.restitution) *
+                initial_normal_speed);
+
+    const float denominator = pm_contact_direction_inverse_mass(
+        body, body_state, body_hinge, contact.point, contact.normal,
+        compounds, body_index) +
+        pm_contact_direction_inverse_mass(
+            collider, collider_state, collider_hinge, contact.point,
+            contact.normal, compounds, collider_index);
+    if (denominator <= 1.0e-6f) return applied;
+
+    const float accumulated_normal = max(
+        0.0f, accumulated_normal_impulse +
+                  (target_speed - normal_speed) / denominator);
+    applied.normal = accumulated_normal - accumulated_normal_impulse;
+    accumulated_normal_impulse = accumulated_normal;
+    const float3 normal_vector = contact.normal * applied.normal;
+    pm_apply_contact_velocity_impulse(
+        states, parameters, count, body_index, body_hinge, contact.point,
+        normal_vector, compounds);
+    pm_apply_contact_velocity_impulse(
+        states, parameters, count, collider_index, collider_hinge,
+        contact.point, -normal_vector, compounds);
+
+    const bool friction_active = separation <=
+        (pm_guided_static_contact(body_hinge, collider_hinge)
+             ? pm_rigid_surface_tolerance
+             : pm_rigid_rest_offset(
+                   body.collision_margin + collider.collision_margin));
+    relative_velocity = pm_contact_point_velocity(
+        body_state, body_hinge, contact.point) -
+        pm_contact_point_velocity(
+            collider_state, collider_hinge, contact.point);
+    float3 tangent = relative_velocity -
+        contact.normal * dot(relative_velocity, contact.normal);
+    const float tangent_length = length(tangent);
+    float3 friction = friction_active
+        ? accumulated_friction_impulse : float3(0.0f);
+    if (friction_active && tangent_length > 1.0e-6f) {
+        tangent /= tangent_length;
+        const float tangent_denominator =
+            pm_contact_direction_inverse_mass(
+                body, body_state, body_hinge, contact.point, tangent,
+                compounds, body_index) +
+            pm_contact_direction_inverse_mass(
+                collider, collider_state, collider_hinge, contact.point,
+                tangent, compounds, collider_index);
+        if (tangent_denominator > 1.0e-6f)
+            friction -= tangent *
+                (tangent_length / tangent_denominator);
+    }
+    friction = pm_clamp_vector_length(
+        friction,
+        sqrt(body.friction * collider.friction) * accumulated_normal);
+    applied.friction = friction - accumulated_friction_impulse;
+    accumulated_friction_impulse = friction;
+    pm_apply_contact_velocity_impulse(
+        states, parameters, count, body_index, body_hinge, contact.point,
+        applied.friction, compounds);
+    pm_apply_contact_velocity_impulse(
+        states, parameters, count, collider_index, collider_hinge,
+        contact.point, -applied.friction, compounds);
+    return applied;
+}
+
 static float pm_contact_position_inverse_mass(
     device const PMRigidParameters &body,
     device const PMRigidBodyState &state,
     thread const PMHingeContactFrame &hinge,
     float3 point, float3 normal) {
-    if (!hinge.fixed) return body.inverse_mass;
+    if (!hinge.fixed && !hinge.axial) return body.inverse_mass;
     const float jacobian = dot(
         cross(hinge.axis, point - hinge.anchor), normal);
-    return jacobian * jacobian *
+    const float axial = hinge.axial ? dot(hinge.axis, normal) : 0.0f;
+    return body.inverse_mass * axial * axial + jacobian * jacobian *
         pm_fixed_hinge_inverse_moment(body, state, hinge);
 }
 
@@ -3028,7 +3320,7 @@ static void pm_apply_contact_position_delta(
     thread const PMHingeContactFrame &hinge,
     float3 point, float3 correction) {
     if (body.inverse_mass <= 0.0f) return;
-    if (!hinge.fixed) {
+    if (!hinge.fixed && !hinge.axial) {
         state.position = pm_store(
             pm_load(state.position) + correction * body.inverse_mass);
         return;
@@ -3036,10 +3328,15 @@ static void pm_apply_contact_position_delta(
     const float angular_correction = dot(
         hinge.axis, cross(point - hinge.anchor, correction)) *
         pm_fixed_hinge_inverse_moment(body, state, hinge);
-    pm_apply_orientation_delta(
-        state, hinge.axis * angular_correction);
+    const float3 current_anchor = pm_load(state.position) +
+        pm_rotate(state.orientation, hinge.local_anchor);
+    const float3 anchor = hinge.axial
+        ? current_anchor + hinge.axis *
+              (body.inverse_mass * dot(correction, hinge.axis))
+        : hinge.anchor;
+    pm_apply_orientation_delta(state, hinge.axis * angular_correction);
     state.position = pm_store(
-        hinge.anchor - pm_rotate(state.orientation, hinge.local_anchor));
+        anchor - pm_rotate(state.orientation, hinge.local_anchor));
 }
 
 static void pm_apply_contact_position_correction(
@@ -3202,6 +3499,41 @@ kernel void pm_rigid_pair_scatter_rows(
     }
 }
 
+static bool pm_guided_static_contact(
+    thread const PMHingeContactFrame &body,
+    thread const PMHingeContactFrame &collider) {
+    return (body.axial && collider.static_body) ||
+           (collider.axial && body.static_body);
+}
+
+static void pm_initialize_contact_solve(
+    device PMContactManifold &manifold,
+    device const PMRigidBodyState &body,
+    device const PMRigidBodyState &collider,
+    thread const PMHingeContactFrame &body_hinge,
+    thread const PMHingeContactFrame &collider_hinge,
+    bool persistent_pair) {
+    manifold.initial_relative_position = pm_store(
+        pm_load(body.position) - pm_load(collider.position));
+    manifold.body_fixed_member = body_hinge.fixed_member ? 1u : 0u;
+    manifold.collider_fixed_member =
+        collider_hinge.fixed_member ? 1u : 0u;
+    const bool guided = pm_guided_static_contact(
+        body_hinge, collider_hinge);
+    for (uint point = 0u; point < manifold.count; ++point) {
+        device PMContactRecord &contact = manifold.contacts[point];
+        contact.accumulated_normal_impulse = 0.0f;
+        contact.accumulated_friction_impulse = {};
+        contact.initial_normal_speed = pm_contact_normal_speed(
+            body, collider, pm_load(contact.point), pm_load(contact.normal));
+        contact.persistent = guided ||
+            (persistent_pair && !body_hinge.present &&
+             !collider_hinge.present && !body_hinge.fixed_member &&
+             !collider_hinge.fixed_member);
+        contact.warm_started = 0u;
+    }
+}
+
 kernel void pm_rigid_contact_generate(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -3271,6 +3603,11 @@ kernel void pm_rigid_contact_generate(
         mesh_leaf_infos[parameters[collider].mesh_index];
     const float margin = parameters[body].collision_margin +
                          parameters[collider].collision_margin;
+    const bool persistent_pair =
+        body_mesh.solid_plane_count != 0u && body_mesh.index_count <= 96u &&
+        (parameters[collider].motion != 2u ||
+         (collider_mesh.solid_plane_count != 0u &&
+          collider_mesh.index_count <= 96u));
     const bool face_pair = !guided_static_pair &&
         body_mesh.solid_plane_count != 0u &&
         collider_mesh.solid_plane_count != 0u &&
@@ -3284,6 +3621,9 @@ kernel void pm_rigid_contact_generate(
             states[body], body_mesh, states[collider], collider_mesh,
             vertices, indices, solid_planes, margin, face_manifold)) {
         output = face_manifold;
+        pm_initialize_contact_solve(
+            output, states[body], states[collider], body_hinge,
+            collider_hinge, persistent_pair);
         return;
     }
     output = pm_collide_meshes(
@@ -3400,6 +3740,9 @@ kernel void pm_rigid_contact_generate(
         }
         output = fallback;
     }
+    pm_initialize_contact_solve(
+        output, states[body], states[collider], body_hinge,
+        collider_hinge, persistent_pair);
 }
 
 static uint pm_contact_color_priority(uint pair) {
@@ -3412,29 +3755,68 @@ static void pm_resolve_rigid_contact_pair(
     constant PMStepConstants &step,
     device PMContactManifold &manifold,
     device PMRigidContactEvent *events, uint body, uint collider,
-    bool correct_position,
+    bool correct_position, bool warm_start_only,
     device const PMRigidConstraintResource *constraints,
     device const PMRigidCompound *compounds) {
     if (manifold.count == 0u) return;
     float3 body_reference = 0.0f;
     float3 collider_reference = 0.0f;
-    const PMHingeContactFrame body_hinge = pm_rigid_hinge_contact_frame(
+    PMHingeContactFrame body_hinge = pm_rigid_hinge_contact_frame(
         parameters, step.body_count, body, states, constraints,
         step.constraint_capacity, body_reference);
-    const PMHingeContactFrame collider_hinge = pm_rigid_hinge_contact_frame(
+    PMHingeContactFrame collider_hinge = pm_rigid_hinge_contact_frame(
         parameters, step.body_count, collider, states, constraints,
         step.constraint_capacity, collider_reference);
+    body_hinge.fixed_member = manifold.body_fixed_member != 0u;
+    collider_hinge.fixed_member =
+        manifold.collider_fixed_member != 0u;
     const bool fixed_cluster_contact =
         body_hinge.fixed_member || collider_hinge.fixed_member;
+    for (uint contact_index = 0u;
+         contact_index < manifold.count; ++contact_index) {
+        device PMContactRecord &record = manifold.contacts[contact_index];
+        if (record.persistent == 0u || record.warm_started != 0u) continue;
+        record.warm_started = 1u;
+        const float3 impulse = pm_load(record.normal) *
+                record.accumulated_normal_impulse +
+            pm_load(record.accumulated_friction_impulse);
+        pm_apply_contact_velocity_impulse(
+            states, parameters, step.body_count, body, body_hinge,
+            pm_load(record.point), impulse, compounds);
+        pm_apply_contact_velocity_impulse(
+            states, parameters, step.body_count, collider, collider_hinge,
+            pm_load(record.point), -impulse, compounds);
+        const uint event_index = manifold.event_offset + contact_index;
+        if (step.collect_rigid_contacts != 0u &&
+            event_index < step.rigid_event_capacity) {
+            events[event_index].normal_impulse +=
+                record.accumulated_normal_impulse;
+            events[event_index].friction_impulse = pm_store(
+                pm_load(events[event_index].friction_impulse) +
+                pm_load(record.accumulated_friction_impulse));
+        }
+    }
+    if (warm_start_only) return;
+
     const float inverse_mass_sum =
         parameters[body].inverse_mass + parameters[collider].inverse_mass;
-    if (correct_position && inverse_mass_sum > 1.0e-6f &&
-        !fixed_cluster_contact) {
-        uint correction_count = 0u;
-        for (uint contact_index = 0u;
-             contact_index < manifold.count; ++contact_index)
-            correction_count +=
-                manifold.contacts[contact_index].penetration > 0.0f ? 1u : 0u;
+    const bool guided = pm_guided_static_contact(
+        body_hinge, collider_hinge);
+    const bool translational_projection =
+        manifold.contacts[0].persistent != 0u && !guided;
+    if (!guided && (correct_position || translational_projection) &&
+        inverse_mass_sum > 1.0e-6f) {
+        uint correction_count = translational_projection
+            ? manifold.count : 0u;
+        if (!translational_projection) {
+            for (uint contact_index = 0u;
+                 contact_index < manifold.count; ++contact_index) {
+                device const PMContactRecord &record =
+                    manifold.contacts[contact_index];
+                if (record.penetration > 0.0f && !fixed_cluster_contact)
+                    ++correction_count;
+            }
+        }
         const float contact_weight = correction_count == 0u
             ? 0.0f
             : 1.0f / float(correction_count);
@@ -3442,33 +3824,59 @@ static void pm_resolve_rigid_contact_pair(
              contact_index < manifold.count; ++contact_index) {
             device const PMContactRecord &record =
                 manifold.contacts[contact_index];
-            if (record.penetration <= 0.0f) continue;
+            if (fixed_cluster_contact) continue;
+            const float penetration = record.penetration -
+                (record.persistent == 0u
+                     ? 0.0f
+                     : dot(
+                           (pm_load(states[body].position) -
+                            pm_load(states[collider].position)) -
+                               pm_load(manifold.initial_relative_position),
+                           pm_load(record.normal)));
+            if (penetration <= 0.0f) continue;
             const PMContactCandidate contact{
                 pm_load(record.point), pm_load(record.normal),
                 record.penetration, true};
             const float limited_penetration = min(
-                record.penetration,
+                penetration,
                 body_hinge.fixed || collider_hinge.fixed
                     ? pm_rigid_maximum_rest_offset
-                    : record.penetration);
+                    : penetration);
             pm_apply_contact_position_correction(
                 parameters[body], states[body], body_hinge,
                 parameters[collider], states[collider], collider_hinge,
                 contact,
-                (limited_penetration + pm_rigid_surface_tolerance) *
+                (limited_penetration +
+                 (record.persistent != 0u
+                      ? 0.0f : pm_rigid_surface_tolerance)) *
                     contact_weight);
         }
     }
     for (uint contact_index = 0u;
          contact_index < manifold.count; ++contact_index) {
-        device const PMContactRecord &record =
+        device PMContactRecord &record =
             manifold.contacts[contact_index];
         const PMContactCandidate contact{
             pm_load(record.point), pm_load(record.normal),
             record.penetration, true};
-        const PMAppliedContactImpulse applied = pm_apply_contact_impulse(
-            states, parameters, step.body_count, body, collider, contact,
-            step.timestep, body_hinge, collider_hinge, compounds);
+        PMAppliedContactImpulse applied{};
+        if (record.persistent != 0u) {
+            float accumulated_normal = record.accumulated_normal_impulse;
+            float3 accumulated_friction =
+                pm_load(record.accumulated_friction_impulse);
+            applied = pm_apply_persistent_contact_impulse(
+                states, parameters, step.body_count, body, collider, contact,
+                record.initial_normal_speed, accumulated_normal,
+                accumulated_friction, step.timestep, body_hinge,
+                collider_hinge, compounds);
+            record.accumulated_normal_impulse = accumulated_normal;
+            record.accumulated_friction_impulse =
+                pm_store(accumulated_friction);
+        } else {
+            applied = pm_apply_contact_impulse(
+                states, parameters, step.body_count, body, collider, contact,
+                step.timestep, body_hinge, collider_hinge, compounds);
+        }
         const uint event_index = manifold.event_offset + contact_index;
         if (step.collect_rigid_contacts != 0u &&
             event_index < step.rigid_event_capacity) {
@@ -3497,7 +3905,10 @@ kernel void pm_rigid_contact_reduce(
     device atomic_uint *color_owners [[buffer(15)]],
     device const uint *active_pairs [[buffer(18)]],
     device const uint &active_pair_count [[buffer(19)]],
+    device const uint &substep_index [[buffer(20)]],
     device const PMRigidCompound *compounds [[buffer(25)]],
+    device const PMCachedContactPair *cache [[buffer(27)]],
+    device const ulong &epoch_base [[buffer(28)]],
     uint thread_index [[thread_index_in_threadgroup]],
     uint3 threads_per_group [[threads_per_threadgroup]]) {
     (void)forces;
@@ -3510,6 +3921,19 @@ kernel void pm_rigid_contact_reduce(
     const uint lane_count = threads_per_group.x;
     threadgroup atomic_uint used_colors;
     threadgroup atomic_uint overflow_count;
+    threadgroup uint iterations;
+
+    const ulong epoch = epoch_base + ulong(substep_index);
+    for (uint active_index = thread_index;
+         active_index < active_pair_count; active_index += lane_count) {
+        const uint pair = active_pairs[active_index];
+        const uint body = pair / step.body_count;
+        const uint collider = pair % step.body_count;
+        pm_load_rigid_contact_cache(
+            manifolds[pair], states[body], ids[body], ids[collider],
+            cache[pair], epoch, step.timestep);
+    }
+    threadgroup_barrier(mem_flags::mem_device);
 
     for (uint active_index = thread_index;
          active_index < active_pair_count; active_index += lane_count)
@@ -3551,6 +3975,12 @@ kernel void pm_rigid_contact_reduce(
             &used_colors, 0u, memory_order_relaxed);
         atomic_store_explicit(
             &overflow_count, 0u, memory_order_relaxed);
+        iterations = 8u;
+        for (uint active_index = 0u;
+             active_index < active_pair_count; ++active_index) {
+            const uint pair = active_pairs[active_index];
+            if (manifolds[pair].face_patch != 0u) iterations = 32u;
+        }
     }
     threadgroup_barrier(
         mem_flags::mem_device | mem_flags::mem_threadgroup);
@@ -3625,7 +4055,7 @@ kernel void pm_rigid_contact_reduce(
         &used_colors, memory_order_relaxed);
     const bool has_overflow = atomic_load_explicit(
         &overflow_count, memory_order_relaxed) != 0u;
-    for (uint pass = 0u; pass < 8u; ++pass) {
+    for (uint pass = 0u; pass <= iterations; ++pass) {
         for (uint color = 0u; color < used_color_count; ++color) {
             for (uint active_index = thread_index;
                  active_index < active_pair_count;
@@ -3637,7 +4067,7 @@ kernel void pm_rigid_contact_reduce(
                 const uint collider = pair % step.body_count;
                 pm_resolve_rigid_contact_pair(
                     states, parameters, step, manifold, events,
-                    body, collider, pass == 0u,
+                    body, collider, pass == 1u, pass == 0u,
                     constraints, compounds);
             }
             threadgroup_barrier(mem_flags::mem_device);
@@ -3653,7 +4083,7 @@ kernel void pm_rigid_contact_reduce(
                 const uint collider = pair % step.body_count;
                 pm_resolve_rigid_contact_pair(
                     states, parameters, step, manifold, events,
-                    body, collider, pass == 0u,
+                    body, collider, pass == 1u, pass == 0u,
                     constraints, compounds);
             }
         }
