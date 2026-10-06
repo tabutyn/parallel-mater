@@ -988,7 +988,8 @@ __device__ void collide_triangle_ranges(
             float face_separation = 0.0F;
             const bool convex_a = body_mesh.solid_planes != nullptr;
             const bool convex_b = collider_mesh.solid_planes != nullptr;
-            if (convex_a != convex_b) {
+            if (convex_a != convex_b &&
+                distance <= k_rigid_surface_tolerance) {
                 const Vec3 face0 = convex_a ? b0 : a0;
                 const Vec3 face1 = convex_a ? b1 : a1;
                 const Vec3 face2 = convex_a ? b2 : a2;
