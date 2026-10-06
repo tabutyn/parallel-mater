@@ -2064,6 +2064,182 @@ static bool pm_contact_reaches_rest_offset(
            distance;
 }
 
+// Refine broad face contacts on small closed convex meshes. The bounded face
+// count keeps clipping storage and per-pair work fixed; curved/concave meshes
+// and edge impacts retain the triangle/BVH path.
+static bool pm_convex_face_manifold(
+    device const PMRigidBodyState &body_state,
+    device const PMTriangleMeshInfo &body_mesh,
+    device const PMRigidBodyState &collider_state,
+    device const PMTriangleMeshInfo &collider_mesh,
+    device const PMPackedVec3 *vertices, device const uint *indices,
+    device const PMCollisionPlane *solid_planes, float margin,
+    thread PMContactManifold &output) {
+    constexpr uint maximum_faces = 32u;
+    if (body_mesh.solid_plane_count == 0u ||
+        collider_mesh.solid_plane_count == 0u ||
+        body_mesh.index_count > maximum_faces * 3u ||
+        collider_mesh.index_count > maximum_faces * 3u)
+        return false;
+
+    float best_separation = -INFINITY;
+    uint reference_face = 0u;
+    bool reference_is_body = false;
+    for (uint side = 0u; side < 2u; ++side) {
+        device const PMTriangleMeshInfo *reference_mesh =
+            side == 0u ? &collider_mesh : &body_mesh;
+        device const PMRigidBodyState *reference_state =
+            side == 0u ? &collider_state : &body_state;
+        device const PMTriangleMeshInfo *incident_mesh =
+            side == 0u ? &body_mesh : &collider_mesh;
+        device const PMRigidBodyState *incident_state =
+            side == 0u ? &body_state : &collider_state;
+        for (uint face = 0u; face < reference_mesh->index_count / 3u;
+             ++face) {
+            const PMCollisionPlane plane = solid_planes[
+                reference_mesh->solid_plane_offset + face];
+            const float3 normal = pm_rotate(
+                reference_state->orientation, pm_load(plane.normal));
+            const float3 incident_normal = pm_rotate(
+                pm_quaternion_conjugate(incident_state->orientation),
+                normal);
+            float support = INFINITY;
+            for (uint vertex_index = 0u;
+                 vertex_index < incident_mesh->vertex_count;
+                 ++vertex_index)
+                support = min(
+                    support,
+                    dot(incident_normal,
+                        pm_load(vertices[incident_mesh->vertex_offset +
+                                         vertex_index])));
+            const float separation = support +
+                dot(normal,
+                    pm_load(incident_state->position) -
+                        pm_load(reference_state->position)) -
+                plane.offset;
+            if (separation > best_separation) {
+                best_separation = separation;
+                reference_face = face;
+                reference_is_body = side != 0u;
+            }
+        }
+    }
+    if (best_separation > margin) {
+        output = {};
+        return true;
+    }
+
+    device const PMTriangleMeshInfo *reference_mesh =
+        reference_is_body ? &body_mesh : &collider_mesh;
+    device const PMRigidBodyState *reference_state =
+        reference_is_body ? &body_state : &collider_state;
+    device const PMTriangleMeshInfo *incident_mesh =
+        reference_is_body ? &collider_mesh : &body_mesh;
+    device const PMRigidBodyState *incident_state =
+        reference_is_body ? &collider_state : &body_state;
+    const PMCollisionPlane reference = solid_planes[
+        reference_mesh->solid_plane_offset + reference_face];
+    const float3 reference_normal = pm_load(reference.normal);
+    const float3 outward = pm_rotate(
+        reference_state->orientation, reference_normal);
+    const float3 incident_axis = pm_rotate(
+        pm_quaternion_conjugate(incident_state->orientation), outward);
+    float alignment = 1.0f;
+    uint incident_face = 0u;
+    for (uint face = 0u; face < incident_mesh->index_count / 3u; ++face) {
+        const PMCollisionPlane plane = solid_planes[
+            incident_mesh->solid_plane_offset + face];
+        const float value = dot(incident_axis, pm_load(plane.normal));
+        if (value < alignment) {
+            alignment = value;
+            incident_face = face;
+        }
+    }
+    if (alignment > -0.98f) return false;
+
+    PMContactManifold manifold{};
+    const float3 normal = reference_is_body ? -outward : outward;
+    const PMCollisionPlane incident = solid_planes[
+        incident_mesh->solid_plane_offset + incident_face];
+    const float3 incident_normal = pm_load(incident.normal);
+    for (uint triangle = 0u; triangle < incident_mesh->index_count / 3u;
+         ++triangle) {
+        const PMCollisionPlane face = solid_planes[
+            incident_mesh->solid_plane_offset + triangle];
+        if (dot(pm_load(face.normal), incident_normal) < 0.99999f ||
+            abs(face.offset - incident.offset) > pm_rigid_surface_tolerance)
+            continue;
+        float3 polygon[maximum_faces + 4u];
+        float3 clipped[maximum_faces + 4u];
+        uint count = 3u;
+        for (uint corner = 0u; corner < 3u; ++corner) {
+            const uint local_index = indices[
+                incident_mesh->index_offset + triangle * 3u + corner];
+            const float3 world = pm_world_point(
+                *incident_state,
+                pm_load(vertices[incident_mesh->vertex_offset +
+                                 local_index]));
+            polygon[corner] = pm_rotate(
+                pm_quaternion_conjugate(reference_state->orientation),
+                world - pm_load(reference_state->position));
+        }
+        // Clip the incident triangle against the reference solid's side
+        // faces. Only the supporting face is expanded for speculative
+        // contacts.
+        for (uint plane_index = 0u;
+             plane_index < reference_mesh->index_count / 3u && count != 0u;
+             ++plane_index) {
+            const PMCollisionPlane plane = solid_planes[
+                reference_mesh->solid_plane_offset + plane_index];
+            const float3 plane_normal = pm_load(plane.normal);
+            const float offset = plane.offset +
+                (dot(plane_normal, reference_normal) > 0.99999f
+                     ? margin
+                     : 0.0f);
+            uint clipped_count = 0u;
+            float3 previous = polygon[count - 1u];
+            float previous_distance = dot(plane_normal, previous) - offset;
+            for (uint vertex_index = 0u; vertex_index < count;
+                 ++vertex_index) {
+                const float3 current = polygon[vertex_index];
+                const float distance = dot(plane_normal, current) - offset;
+                if ((distance <= 0.0f) != (previous_distance <= 0.0f))
+                    clipped[clipped_count++] = previous +
+                        (current - previous) *
+                            (previous_distance /
+                             (previous_distance - distance));
+                if (distance <= 0.0f) clipped[clipped_count++] = current;
+                previous = current;
+                previous_distance = distance;
+            }
+            count = clipped_count;
+            for (uint vertex_index = 0u; vertex_index < count;
+                 ++vertex_index)
+                polygon[vertex_index] = clipped[vertex_index];
+        }
+        for (uint vertex_index = 0u; vertex_index < count; ++vertex_index) {
+            const float distance =
+                dot(reference_normal, polygon[vertex_index]) - reference.offset;
+            const float3 local_point = polygon[vertex_index] -
+                reference_normal * (distance * 0.5f);
+            const float3 point = pm_world_point(
+                *reference_state, local_point);
+            if (distance <= margin) {
+                const PMContactRecord contact{
+                    pm_store(point), pm_store(normal), -distance, 1u};
+                pm_add_manifold_contact(
+                    manifold, contact, max(margin * 2.0f, 1.0e-4f));
+            }
+        }
+    }
+    // Parallel supporting faces with no overlap are separated, including
+    // adjacent corners that only coincide within floating-point roundoff.
+    // Falling back to intersecting triangles invents penetration there.
+    if (manifold.count == 0u && alignment > -0.999999f) return false;
+    output = manifold;
+    return true;
+}
+
 static void pm_load_triangle(
     device const PMRigidBodyState &state,
     device const PMTriangleMeshInfo &mesh,
@@ -3043,6 +3219,7 @@ kernel void pm_rigid_contact_generate(
     device const uint &active_pair_count [[buffer(19)]],
     device const PMMeshLeafInfo *mesh_leaf_infos [[buffer(23)]],
     device const uint *bvh_leaves [[buffer(24)]],
+    device const PMCollisionPlane *solid_planes [[buffer(26)]],
     uint active_index [[thread_position_in_grid]]) {
     (void)forces;
     (void)torques;
@@ -3063,6 +3240,17 @@ kernel void pm_rigid_contact_generate(
     const PMHingeContactFrame collider_hinge = pm_rigid_hinge_contact_frame(
         parameters, step.body_count, collider, states, constraints,
         step.constraint_capacity, collider_reference);
+    PMQuaternion body_axial_orientation{};
+    PMQuaternion collider_axial_orientation{};
+    const PMGuidedFrame body_guide = pm_rigid_guided_frame(
+        parameters, step.body_count, body, states, constraints,
+        step.constraint_capacity, body_axial_orientation);
+    const PMGuidedFrame collider_guide = pm_rigid_guided_frame(
+        parameters, step.body_count, collider, states, constraints,
+        step.constraint_capacity, collider_axial_orientation);
+    const bool guided_static_pair =
+        (body_guide.active && parameters[collider].motion == 0u) ||
+        (collider_guide.active && parameters[body].motion == 0u);
     const bool fixed_cluster_contact =
         body_hinge.fixed_member || collider_hinge.fixed_member;
     // CUDA uses the standard triangle closest-pair query. Metal also keeps
@@ -3083,6 +3271,21 @@ kernel void pm_rigid_contact_generate(
         mesh_leaf_infos[parameters[collider].mesh_index];
     const float margin = parameters[body].collision_margin +
                          parameters[collider].collision_margin;
+    const bool face_pair = !guided_static_pair &&
+        body_mesh.solid_plane_count != 0u &&
+        collider_mesh.solid_plane_count != 0u &&
+        body_mesh.index_count <= 96u && collider_mesh.index_count <= 96u &&
+        !pm_requires_swept_pair_contact(
+            previous_states[body], states[body], body_mesh,
+            previous_states[collider], states[collider], collider_mesh,
+            margin);
+    PMContactManifold face_manifold{};
+    if (face_pair && pm_convex_face_manifold(
+            states[body], body_mesh, states[collider], collider_mesh,
+            vertices, indices, solid_planes, margin, face_manifold)) {
+        output = face_manifold;
+        return;
+    }
     output = pm_collide_meshes(
         previous_states[body], states[body], previous_body_reference,
         body_reference, body_mesh,

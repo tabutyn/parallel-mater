@@ -21,24 +21,24 @@ known CUDA variability as a Metal-only failure.
 The 2026-10-06 package has been verified and compared on Apple Silicon against
 `run-01`. On unmodified merged source, Metal passes 13 of the 30 v1 cases. The
 current Metal conformance branch ports the CUDA convex/concave entry-side
-contact rule, the missing piston alignment row, and reduced-coordinate
-slider/piston integration. With those changes, these 16 cases pass:
+contact rule, small closed-convex face manifolds, the missing piston alignment
+row, and reduced-coordinate slider/piston integration. With those changes,
+these 18 cases pass:
 
-- `cloth-core`, `cloth-water`, and `fluid-lifecycle`;
+- `cloth-core`, `cloth-water`, and `compound-weld-lifecycle`;
 - `constraint-piston` and `constraint-slider`;
-- `rope-cloth` and `rope-fluid`;
+- `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 14 remaining cases and their current comparator difference counts are:
+The 12 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `compound-weld-lifecycle` (4), `passive-active` (49), `rigid-direct` (13) |
-| Constraints | `constraint-breaking` (22), `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (18), `constraint-hinge` (27), `constraint-motor` (5), `constraint-point` (22) |
-| Fluid coupling | `fluid-rigid` (1) |
+| Rigid lifecycle/contact | `passive-active` (49), `rigid-direct` (13) |
+| Constraints | `constraint-breaking` (22), `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (33), `constraint-hinge` (27), `constraint-motor` (5), `constraint-point` (22) |
 | Cloth/rope | `cloth-tear` (62), `rope-core` (212), `rope-soft-body` (8) |
 
 These counts describe comparison records, not necessarily independent bugs.
@@ -67,10 +67,25 @@ failing frame of each constraint case, capture:
 - contact keys/colors and each solver iteration's normal/friction impulses;
 - compound root/member remapping before and after lifecycle compaction.
 
-This is the first priority because CUDA has a small-convex face-manifold path
-and guided-contact behavior that do not yet have complete Metal equivalents.
-The trace must say whether the face path, triangle path, or swept path selected
-the final contact; final contact events alone cannot distinguish them.
+This is the first priority because Metal now generates CUDA-style small-convex
+face manifolds, but does not yet have CUDA's full persistent contact state and
+cache behavior. For `constraint-breaking`, `constraint-generic`,
+`passive-active`, and `rigid-direct`, also capture each contact's cache key,
+cache hit/miss, impact fraction, initial normal speed, persistent/face-patch
+flags, accumulated normal and friction impulses, response-patch membership,
+and cache contents before load and after store. Include the state immediately
+before contact initialization, after warm start, after every velocity and
+position sweep, and after cache write-back. The trace must say whether the
+face path, triangle path, or swept path selected the final contact; final
+contact events alone cannot distinguish them.
+
+For a guided or constrained body, include the complete contact frame used by
+CUDA: fixed, axial, axial-rotation, fixed-member, and static-body flags; body
+reference point; axis; projected point velocity; directional inverse mass;
+and the exact impulse applied to every aggregate member. Metal currently has
+separate integration guidance and a smaller contact-frame representation, so
+these records are needed to determine whether the first mismatch is geometry,
+contact initialization, or constrained impulse response.
 
 ### Constraint solve
 

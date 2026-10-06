@@ -367,13 +367,24 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   that robust fallback, so kinematic pairs retain CUDA's complete ordered
   manifold. This keeps slow falling bodies and the 120 m/s tunnelling
   regression above two-sided surfaces without rewriting contact normals,
-  closes `fluid-rigid`, and reduces `rigid-direct` from a different impact
-  trajectory to 12 sub-millimetre/sub-millimetre-per-second scalar differences
-  (its quaternion gate now passes).
-  The 11 outstanding cases are `cloth-tear`, `constraint-fixed`,
-  `constraint-generic-spring`, `constraint-generic`, `constraint-motor`,
-  `constraint-piston`, `constraint-point`, `passive-active`, `rigid-direct`,
-  `rope-core`, and `rope-soft-body`.
+  closes `fluid-rigid`. In the current package, `rigid-direct` first diverges
+  during the authored kinematic impact at frame 40 and retains 13 reported
+  differences; its post-replacement frame agrees again.
+  Small closed-convex rigid pairs now use CUDA's supporting-face selection and
+  clipped incident-face manifold instead of retaining redundant triangle-pair
+  contacts. This closes `compound-weld-lifecycle` and `fluid-rigid` against
+  the reviewed package without reopening a passing case. It also changes the
+  later `constraint-generic` trajectory from 18 to 33 reported fields, which
+  is why the next CUDA trace request focuses on persistent face-patch state,
+  contact-cache warm start, impact fractions, and response-patch reduction.
+  Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
+  18 of 30 cases. The 12 outstanding cases are `cloth-tear`,
+  `constraint-breaking`, `constraint-fixed`, `constraint-generic-spring`,
+  `constraint-generic`, `constraint-hinge`, `constraint-motor`,
+  `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
+  `rope-soft-body`. The package also exposes five CUDA cases that are not
+  byte-repeatable but remain inside the tolerance comparator; those captures
+  are retained rather than being misclassified as Metal-only failures.
   Fracturing cloth now rebuilds CUDA's per-face CSR constraint graph at idle
   frame boundaries, preserves active bending links, and runs the detached-face
   strain limiter before sampling impact and strain damage. Impact fracture
@@ -442,10 +453,11 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   normals use the rigid origin or hinge anchor as CUDA does. Static-hinge
   contacts use the hinge's single rotational degree of freedom for effective
   mass, point velocity, friction, impulse application, and position recovery.
-  This makes `constraint-hinge` exact (28 reported differences to zero) and
-  preserves the rigid and constraint validation gates. The fast authored
-  kinematic sweep in `passive-active` remains an outstanding manifold-parity
-  case.
+  This made `constraint-hinge` exact against the older committed corpus and
+  preserves the rigid and constraint validation gates. The revised CUDA
+  package still reports 27 hinge differences, so it remains in the explicit
+  outstanding list above. The fast authored kinematic sweep in
+  `passive-active` likewise remains an outstanding manifold-parity case.
   Rope contact now follows CUDA's closed-convex-mesh semantics: nodes already
   inside a solid recover through the nearest or swept-entry plane, capsule
   segments use outward solid-plane normals, and zero-thickness triangle meshes

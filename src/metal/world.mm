@@ -1098,6 +1098,9 @@ struct World::Impl {
                                           atIndex:23];
                 [rigid_argument_table setAddress:next_bvh_leaves.gpuAddress
                                           atIndex:24];
+                [rigid_argument_table
+                    setAddress:next_solid_planes.gpuAddress
+                       atIndex:26];
                 if (mesh_vertices != nil)
                     [residency_set removeAllocation:mesh_vertices];
                 if (mesh_indices != nil)
@@ -1568,7 +1571,7 @@ Status World::create(WorldOptions options, NativeContext context,
 
             MTL4ArgumentTableDescriptor *argument_descriptor =
                 [[MTL4ArgumentTableDescriptor alloc] init];
-            argument_descriptor.maxBufferBindCount = 26;
+            argument_descriptor.maxBufferBindCount = 27;
             argument_descriptor.initializeBindings = YES;
             argument_descriptor.label = @"ParallelMater rigid arguments";
             impl->rigid_argument_table = [impl->device
@@ -1651,6 +1654,9 @@ Status World::create(WorldOptions options, NativeContext context,
             [impl->rigid_argument_table
                 setAddress:impl->rigid_compounds.gpuAddress
                    atIndex:25];
+            [impl->rigid_argument_table
+                setAddress:impl->mesh_solid_planes.gpuAddress
+                   atIndex:26];
 
             MTLResidencySetDescriptor *residency_descriptor =
                 [[MTLResidencySetDescriptor alloc] init];
