@@ -1340,12 +1340,12 @@ if(PARALLEL_MATER_BUILD_METAL)
             add_test(
                 NAME parallel-mater-metal-gallery-all-contexts
                 COMMAND parallel-mater-metal-gallery
-                        --all-scenes --frames 1 --validate
+                        --all-scenes --frames 60 --validate
                         --width 320 --height 240
                         --output ${CMAKE_CURRENT_BINARY_DIR}/metal-gallery-test-captures)
             set_tests_properties(
                 parallel-mater-metal-gallery-all-contexts
-                PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+                PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE
                            LABELS "metal;gallery;subsystem")
         endif()
     endif()

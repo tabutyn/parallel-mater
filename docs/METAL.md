@@ -38,6 +38,13 @@ cmake --build build-metal-gallery --target parallel-mater-metal-rigid-wall-tests
 ctest --test-dir build-metal-gallery -R '^parallel-mater-metal-rigid-wall-tests$' --output-on-failure
 ```
 
+`parallel-mater-metal-gallery-all-contexts` advances every one of the 29
+gallery entries for 60 frames, validates finite resources and a nonblank
+render, and writes fixed-size headless captures. All 29 passed this gate on an
+Apple M4 on 2026-10-07, including the 30,000-particle rope/fluid and
+smoke/water contexts. This replaces the former one-frame launch check, but it
+is still a runtime/lifecycle gate rather than image or CUDA physics parity.
+
 ## Implemented foundation
 
 - CMake starts as C++ and enables CUDA or Objective-C++ only for requested
