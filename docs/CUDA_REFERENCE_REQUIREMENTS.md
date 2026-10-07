@@ -67,6 +67,30 @@ changed only `rope-soft-body` and reduced that case from 19 differences to 8;
 the current full-build count is 11. Before accepting any later change, rerun
 all 30 cases so a local improvement does not hide a cross-system regression.
 
+## Opening gallery wall reference
+
+The default `Rigid Body` gallery scene is not one of the 30 v1 cases. Its 384
+bricks, sphere, and ground must be captured separately with
+`parallel-mater-rigid-wall-tests`. The expanded wall currently fails its CUDA
+stability limits as documented in `PERFORMANCE.md`, so a CUDA screenshot or a
+successful gallery launch is not an acceptable golden. First make the CUDA
+test pass on the exact review commit without changing the asset or tolerances,
+then return its complete log and a physics trace from that passing build.
+
+For both the failing baseline and passing candidate, capture every substep from
+the initial gravity frame through the first brick that exceeds any wall-test
+limit. Include stable body IDs; predicted and solved poses/velocities; active
+body pairs; reduced manifolds and face-patch flags; contact colors; cache
+hit/miss and loaded impulses; and per-iteration normal/friction impulses. Name
+the first body and solver phase that diverges from its authored pose. Also
+capture the later ball-only tilt, support-impulse, independent-impact, and
+teleport/cache-invalidation phases so a resting-wall fix cannot freeze the
+bricks or break controls.
+
+Metal can emit the same schema from
+`parallel-mater-metal-rigid-wall-tests`. Comparing those phase records—not the
+30-case score—is the acceptance path for the first simulation users see.
+
 ## CUDA engine traces still needed
 
 The public checkpoints identify which scenarios differ, but they do not expose

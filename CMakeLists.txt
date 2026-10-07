@@ -1220,6 +1220,25 @@ if(PARALLEL_MATER_BUILD_METAL)
         target_compile_options(parallel-mater-metal-gallery-scene
                                PRIVATE -Wall -Wextra -Wpedantic)
 
+        if(BUILD_TESTING)
+            add_executable(parallel-mater-metal-rigid-wall-tests
+                           tests/metal/rigid_wall_tests.mm)
+            target_compile_options(parallel-mater-metal-rigid-wall-tests
+                                   PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+            target_compile_definitions(
+                parallel-mater-metal-rigid-wall-tests PRIVATE
+                PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+            target_link_libraries(
+                parallel-mater-metal-rigid-wall-tests PRIVATE
+                parallel-mater-metal-gallery-scene
+                ${PARALLEL_MATER_METAL_FRAMEWORK})
+            add_test(NAME parallel-mater-metal-rigid-wall-tests
+                     COMMAND parallel-mater-metal-rigid-wall-tests)
+            set_tests_properties(
+                parallel-mater-metal-rigid-wall-tests
+                PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "metal;gallery;rigid")
+        endif()
+
         execute_process(
             COMMAND git rev-parse HEAD
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

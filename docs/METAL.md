@@ -4,6 +4,34 @@ The Metal backend is additive. The CUDA API, `ParallelMater::parallel_mater`
 target, OptiX gallery, and CUDA implementation remain unchanged when
 `PARALLEL_MATER_BUILD_CUDA=ON`.
 
+## Opening gallery scene status
+
+The opening `Rigid Body` scene is **not currently conformant**. Its authored
+asset contains 384 independent bricks plus the sphere and ground (386 rigid
+bodies total). The 30-case `conformance/v1` score does not include this scene,
+and `parallel-mater-metal-first-context` only checks finite state, resource
+counts, and a nonblank render. Passing that launch smoke test is not evidence
+that the wall physics is correct.
+
+`parallel-mater-metal-rigid-wall-tests` ports the CUDA gallery regression to
+the Metal API and is the acceptance gate for this scene. It checks first-frame
+support, ten seconds of wall stability, ball-only gravity steering, support
+impulses, independent brick impact, and contact-cache invalidation. On
+2026-10-07 the unmodified Metal solver failed its ten-second phase with a
+42.2455 m maximum drop, 43.1401 m maximum displacement, 3.14159 rad maximum
+rotation, and 26.5543 m/s peak speed. The current CUDA implementation also
+fails this expanded-wall gate, but much less severely (the CUDA measurements
+are recorded in `PERFORMANCE.md`). The opening scene must not be described as
+conformant until this test passes; cross-backend parity against an already
+failing CUDA wall is insufficient.
+
+Run the exact Metal gate with:
+
+```bash
+cmake --build build-metal-gallery --target parallel-mater-metal-rigid-wall-tests
+ctest --test-dir build-metal-gallery -R '^parallel-mater-metal-rigid-wall-tests$' --output-on-failure
+```
+
 ## Implemented foundation
 
 - CMake starts as C++ and enables CUDA or Objective-C++ only for requested
