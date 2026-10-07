@@ -31,31 +31,40 @@ projected conservative advancement. Dense mesh pairs also honor CUDA's
 Motor-driven contacts also resolve nearly parallel triangle normals
 to the authored collider plane, removing backend-local tangent noise without
 changing the manifold. Convex face patches discard numerically near-collinear
-triangle-seam samples while retaining CUDA's full eight-contact capacity. With
-those changes, these 20 cases pass:
+triangle-seam samples while retaining CUDA's full eight-contact capacity.
+
+A forced metallib regeneration on 2026-10-07 exposed that an earlier local
+incremental-build capture had not embedded the current shader source. Treat
+that 20/30 capture as invalid. A fresh exact-HEAD build and the current
+rope/soft candidate both pass these 18 cases:
 
 - `cloth-core` and `cloth-water`;
-- `constraint-breaking`, `constraint-motor`, `constraint-piston`, and
-  `constraint-slider`;
+- `constraint-motor`, `constraint-piston`, and `constraint-slider`;
 - `compound-weld-lifecycle`;
-- `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
+- `fluid-lifecycle`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 10 remaining cases and their current comparator difference counts are:
+The 12 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `passive-active` (30), `rigid-direct` (13) |
-| Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (11), `constraint-hinge` (2), `constraint-point` (22) |
-| Cloth/rope | `cloth-tear` (62), `rope-core` (177), `rope-soft-body` (12) |
+| Rigid lifecycle/contact | `passive-active` (43), `rigid-direct` (13) |
+| Constraints | `constraint-breaking` (6), `constraint-fixed` (45), `constraint-generic-spring` (12), `constraint-generic` (8), `constraint-hinge` (4), `constraint-point` (16) |
+| Fluid/rigid | `fluid-rigid` (1) |
+| Cloth/rope | `cloth-tear` (50), `rope-core` (279), `rope-soft-body` (8) |
 
 These counts describe comparison records, not necessarily independent bugs.
 For example, one earlier contact-manifold difference can alter every later
-state and event record. Before accepting a change, rerun all 30 cases so a
-local improvement does not hide a cross-system regression.
+state and event record. The rope/soft candidate replaces Metal's second
+barycentric projection with CUDA's single region test and reconstructs the
+segment fraction exactly as CUDA does. On equally fresh builds this changes
+only `rope-soft-body` and reduces that case from 19 differences to 8; the other
+29 cases compare within their configured tolerances. Before accepting any
+later change, rerun all 30 cases so a local improvement does not hide a
+cross-system regression.
 
 ## CUDA engine traces still needed
 
@@ -81,34 +90,33 @@ constraint case, capture:
 This is the first priority because Metal now generates CUDA-style small-convex
 face manifolds and implements persistent contact state plus substep-local cache
 reuse, but the public checkpoints still cannot distinguish geometry drift from
-solver drift. The cache work makes `constraint-breaking` exact, and the
-combined contact ports reduce `constraint-generic` from 33 to 11 records and
-`constraint-hinge` from 27 records to one contact-count/list mismatch.
-Removing Metal's additional dynamic-pair robust-manifold replacement preserves
-CUDA's standard ordered manifold and reduces `passive-active` from 49 to 30
-records without reopening any of the 20 passing cases. At checkpoint 24 both
-backends now report all 17 contacts. The remaining first-checkpoint difference
-is concentrated in the `Suzanne`/`Plane` solve: Metal reports a normal impulse
-of approximately 0.019762 where CUDA reports 0.114126, with CUDA also retaining
-nonzero friction. Prioritize that pair's color, warm start, and per-sweep
-impulse history, followed by the extra Metal contact at checkpoint 48.
+solver drift. On the forced fresh build, `constraint-breaking` differs only in
+four checkpoint-12 normal impulses by about 0.00625 and two final penetrations
+by one float ULP. The combined contact ports leave `constraint-generic` at 8
+records and `constraint-hinge` at 4 contact count/list records. Removing
+Metal's additional dynamic-pair robust-manifold replacement preserves CUDA's
+standard ordered manifold, but `passive-active` still has 43 records. At
+checkpoint 24 both backends report all 17 contacts. The first-checkpoint
+difference remains concentrated in the `Suzanne`/`Plane` solve. Prioritize
+that pair's color, warm start, and per-sweep impulse history, followed by the
+extra Metal contact at checkpoint 48.
 `compound-weld-lifecycle` is now exact: Metal removes only near-collinear
 triangle-seam samples from a clipped convex patch, yielding CUDA's four patch
 corners without imposing a blanket four-contact cap. No additional compound
 trace is required unless a future CUDA capture changes that case.
 
-The remaining `constraint-hinge` mismatch is isolated more narrowly than the
-public count suggests. At frame 90, the `Gear.001`/`Gear.002` pair has 697
+The remaining `constraint-hinge` mismatch is isolated to contact cardinality.
+CUDA reports 9 contacts at frame 45 and 8 at frame 90; freshly compiled Metal
+reports 11 and 9. At frame 90, the `Gear.001`/`Gear.002` pair has 697
 overlapping BVH leaf pairs, so both backends cross CUDA's 512-entry cache limit.
-CUDA's final manifold contains contacts at z = 2.02543545, 2.40554595, and
-2.34251475 m; Metal's serial fallback retains the first two. The omitted CUDA
-contact has zero normal/friction impulse, while all rigid states pass tolerance.
-For this pair, capture the cache-overflow flag, every serial BVH stack push and
-pop, leaf and reordered triangle IDs, closest points, acceptance/rejection
-reason, and the manifold immediately after every `add_manifold_contact` call.
-The trace must cover the final non-empty substep at frames 45 and 90. This is
-the shortest reference artifact that can identify the remaining geometry-order
-difference without perturbing solver behavior.
+For this pair and the dynamic `Gear.002`/`Ground.002` pair, capture the
+cache-overflow flag, selected face/triangle path, the raw clipped face polygon
+before reduction, every serial BVH stack push and pop, leaf and reordered
+triangle IDs, closest points, acceptance/rejection reason, and the manifold
+immediately after every `add_manifold_contact` call. The trace must cover the
+final non-empty substep at frames 45 and 90. This is the shortest reference
+artifact that can distinguish clipping arithmetic from geometry order without
+perturbing solver behavior.
 
 `constraint-motor` is now exact. For motor-driven bodies, Metal replaces only
 a triangle contact normal already parallel to an authored convex collider plane
@@ -127,11 +135,13 @@ after cache write-back. The trace must say whether the face path, triangle
 path, or swept path selected the final contact; final contact events alone
 cannot distinguish them.
 
-Cross-frame cache reuse is not enabled yet. A direct lifetime experiment
-reopened `fluid-rigid` and increased `constraint-generic` from 13 to 22
-records, while closing no case. The trace therefore needs to identify CUDA's
-first cross-frame cache match and the resulting warm-start impulse, not merely
-the final cached values.
+Cross-frame cache reuse is not enabled yet. A historical lifetime experiment
+increased `constraint-generic` differences while closing no case. In the fresh
+baseline, `fluid-rigid` differs only in its final rigid-contact count (CUDA 107,
+Metal 123). Capture the sorted particle/body candidate keys, deduplication
+decisions, event-emission mask, and final compacted event indices for that
+checkpoint. For rigid-only traces, identify CUDA's first cross-frame cache
+match and resulting warm-start impulse, not merely the final cached values.
 
 For a guided or constrained body, include the complete contact frame used by
 CUDA: fixed, axial, axial-rotation, fixed-member, and static-body flags; body
@@ -160,10 +170,17 @@ are required.
   projection rows, BVH triangle visitation order, collision candidates,
   selected triangle/fraction, per-iteration corrections, and the
   contribution/reduction inputs that update the rope and soft body. Metal now
-  mirrors CUDA's right-first BVH leaf order and exact rigid orientation update;
-  the trace should begin before the first frame-36 `rope-core` orientation and
-  velocity mismatch and before the frame-24 `rope-soft-body` maximum-speed
-  mismatch.
+  uses CUDA's one-pass closest-point/barycentric region tests and reconstructs
+  the segment fraction from the selected rope point. This reduces
+  `rope-soft-body` from 19 differences to 8 without changing any other case.
+  For each candidate, include the triangle ID, region ID, closest rope and
+  surface points, barycentric weights, segment fraction, normal/depth, and
+  exact float bits before selection; then include every per-node soft reaction
+  and its stable reduction order. The trace should begin before the first
+  frame-36 `rope-core` orientation/velocity mismatch and before the frame-24
+  `rope-soft-body` maximum-speed mismatch. At frame 48 also explain the public
+  observable-contact count (CUDA 47, Metal 46) and capture the missing
+  candidate's rejection decision.
 
 ### Trace contract
 

@@ -10440,6 +10440,66 @@ kernel void pm_rope_soft_sample(
     anchors[end].inverse_mass = 0.0f;
 }
 
+// Match fluid_closest_triangle_barycentric in the CUDA backend. Returning
+// the closest point and its weights from the same region tests avoids a
+// second projection whose rounding can move reaction weight between soft
+// nodes at triangle edges.
+static float3 pm_closest_point_triangle_weights(
+    float3 point, float3 a, float3 b, float3 c,
+    thread float3 &weights) {
+    const float3 ab = b - a;
+    const float3 ac = c - a;
+    const float3 ap = point - a;
+    const float d1 = dot(ab, ap);
+    const float d2 = dot(ac, ap);
+    if (d1 <= 0.0f && d2 <= 0.0f) {
+        weights = float3(1.0f, 0.0f, 0.0f);
+        return a;
+    }
+    const float3 bp = point - b;
+    const float d3 = dot(ab, bp);
+    const float d4 = dot(ac, bp);
+    if (d3 >= 0.0f && d4 <= d3) {
+        weights = float3(0.0f, 1.0f, 0.0f);
+        return b;
+    }
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+        const float v = d1 / (d1 - d3);
+        weights = float3(1.0f - v, v, 0.0f);
+        return a + ab * v;
+    }
+    const float3 cp = point - c;
+    const float d5 = dot(ab, cp);
+    const float d6 = dot(ac, cp);
+    if (d6 >= 0.0f && d5 <= d6) {
+        weights = float3(0.0f, 0.0f, 1.0f);
+        return c;
+    }
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
+        const float w = d2 / (d2 - d6);
+        weights = float3(1.0f - w, 0.0f, w);
+        return a + ac * w;
+    }
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0f && d4 - d3 >= 0.0f && d5 - d6 >= 0.0f) {
+        const float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        weights = float3(0.0f, 1.0f - w, w);
+        return b + (c - b) * w;
+    }
+    const float denominator = va + vb + vc;
+    if (denominator <= 1.0e-12f) {
+        weights = float3(1.0f, 0.0f, 0.0f);
+        return a;
+    }
+    const float inverse = 1.0f / denominator;
+    const float v = vb * inverse;
+    const float w = vc * inverse;
+    weights = float3(1.0f - v - w, v, w);
+    return a + ab * v + ac * w;
+}
+
 static void pm_rope_soft_contact_packed(
     device uint *packed, uint node, bool segment, uint rope_count,
     float timestep, bool first_attached, bool last_attached,
@@ -10512,6 +10572,13 @@ static void pm_rope_soft_contact_packed(
             pm_closest_segment_triangle(first, second, a, b, c,
                                         fraction, rope_point,
                                         surface_point, weights);
+            surface_point = pm_closest_point_triangle_weights(
+                surface_point, a, b, c, weights);
+            const float3 rope_edge = second - first;
+            fraction = clamp(
+                dot(rope_point - first, rope_edge) /
+                    max(dot(rope_edge, rope_edge), 1.0e-12f),
+                0.0f, 1.0f);
             const float3 delta = rope_point - surface_point;
             const float distance_value = length(delta);
             const float side = dot(delta, face);
@@ -10535,8 +10602,8 @@ static void pm_rope_soft_contact_packed(
 
         // Match CUDA's closed-skin nearest/swept query for rope nodes. A
         // maximum-penetration search can select the far wall of a thin body.
-        surface_point = pm_closest_point_triangle(first, a, b, c);
-        weights = pm_triangle_weights(surface_point, a, b, c);
+        surface_point = pm_closest_point_triangle_weights(
+            first, a, b, c, weights);
         const float squared = dot(first - surface_point,
                                   first - surface_point);
         if (earliest > 1.0f && squared < nearest_squared) {
@@ -10567,13 +10634,15 @@ static void pm_rope_soft_contact_packed(
         const float3 crossing =
             transported_start + (first - transported_start) * time -
             face * radius;
-        const float3 hit = pm_closest_point_triangle(crossing, a, b, c);
+        float3 hit_weights = 0.0f;
+        const float3 hit = pm_closest_point_triangle_weights(
+            crossing, a, b, c, hit_weights);
         if (dot(crossing - hit, crossing - hit) > 1.0e-8f) continue;
         earliest = time;
         best_depth = radius - after;
         best_fraction = 0.0f;
         best_normal = face;
-        best_weights = pm_triangle_weights(hit, a, b, c);
+        best_weights = hit_weights;
         best_surface_point = hit;
         best_base = base;
     }
