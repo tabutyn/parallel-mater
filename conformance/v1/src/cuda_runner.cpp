@@ -970,14 +970,16 @@ Json timing_json(Runtime &runtime) {
 }
 
 Json run_case(const CaseDefinition &definition,
-              const std::filesystem::path &source_root) {
+              const std::filesystem::path &source_root,
+              bool every_frame = false) {
     Runtime runtime = make_runtime(definition, source_root);
     Vec3 gravity{static_cast<float>(definition.gravity[0]),
                  static_cast<float>(definition.gravity[1]),
                  static_cast<float>(definition.gravity[2])};
     Json checkpoints = Json::array();
-    if (std::find(definition.checkpoints.begin(), definition.checkpoints.end(), 0U)
-        != definition.checkpoints.end())
+    if (every_frame ||
+        std::find(definition.checkpoints.begin(), definition.checkpoints.end(), 0U)
+            != definition.checkpoints.end())
         checkpoints.push_back(checkpoint(runtime, definition, 0U));
     for (std::uint32_t frame = 0U; frame < definition.frames; ++frame) {
         for (const Command &command : definition.commands)
@@ -988,12 +990,14 @@ Json run_case(const CaseDefinition &definition,
             .collect_kernel_timings=true,.collect_rigid_contacts=true,
             .collect_fluid_contacts=true}), "step conformance world");
         const std::uint32_t completed = frame + 1U;
-        if (std::find(definition.checkpoints.begin(), definition.checkpoints.end(),
+        if (every_frame ||
+            std::find(definition.checkpoints.begin(), definition.checkpoints.end(),
                       completed) != definition.checkpoints.end())
             checkpoints.push_back(checkpoint(runtime, definition, completed));
     }
     const std::string canonical_case = serialize_case(definition);
     Json diagnostics = Json::object();
+    if (every_frame) diagnostics["checkpoint_mode"] = "every_frame";
     diagnostics["timings"] = timing_json(runtime);
     diagnostics["state_hash"] = sha256(checkpoints.serialize());
     Json provenance = Json::object();
@@ -1146,6 +1150,7 @@ struct Arguments {
     bool check{};
     bool provenance{};
     bool update{};
+    bool every_frame{};
     std::string case_id{};
     std::filesystem::path output{};
 };
@@ -1158,6 +1163,7 @@ Arguments parse_arguments(int argc, char **argv) {
         else if (argument == "--check-inputs") result.check = true;
         else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--update-goldens") result.update = true;
+        else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
         else if (argument == "--output" && index + 1 < argc)
@@ -1181,6 +1187,10 @@ Arguments parse_arguments(int argc, char **argv) {
 #endif
     if (result.update && !result.case_id.empty() && result.case_id != "all")
         throw std::runtime_error("golden refreshes must cover --case all");
+    if (result.every_frame &&
+        (result.update || result.case_id.empty() || result.case_id == "all"))
+        throw std::runtime_error(
+            "--every-frame requires one named --case and cannot update goldens");
     if (!result.update && !result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
     return result;
@@ -1230,7 +1240,8 @@ int main(int argc, char **argv) {
         }
         for (const CaseDefinition *definition : definitions) {
             std::cout << "RUN " << definition->id << std::endl;
-            const Json result = run_case(*definition, source_root);
+            const Json result = run_case(
+                *definition, source_root, arguments.every_frame);
             write_file(output / (definition->id + ".json"), result.serialize());
         }
         if (update) write_manifest(source_root);

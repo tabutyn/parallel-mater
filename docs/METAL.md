@@ -462,6 +462,10 @@ is still a runtime/lifecycle gate rather than image or CUDA physics parity.
   `constraint-generic` differences in an earlier experiment, so the next CUDA
   handoff requests the first cache match and warm-start delta for the remaining
   rigid-only failures.
+  Both conformance producers now accept `--every-frame` for one named case,
+  making first-divergent-frame capture available without editing the canonical
+  registry or changing its SHA-256. Kernel-local cache and solver traces are
+  still required after the outer frame is isolated.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
   20 of 30 cases. The 10 outstanding cases are `cloth-tear`, `constraint-fixed`,
   `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,

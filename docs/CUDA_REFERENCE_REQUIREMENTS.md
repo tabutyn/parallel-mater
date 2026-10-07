@@ -191,6 +191,21 @@ those contact-frame fields, so these records are needed to determine whether
 the first mismatch is geometry, frame construction, or constrained impulse
 response.
 
+The shared conformance runner can now produce the frame-level outer trace
+without modifying the canonical registry. Run the CUDA and Metal binaries
+with the same command before adding kernel-local instrumentation:
+
+```bash
+parallel-mater-conformance --case rigid-direct --every-frame \
+  --output /path/to/cuda-every-frame
+parallel-mater-metal-conformance --case rigid-direct --every-frame \
+  --output /path/to/metal-every-frame
+```
+
+Repeat for a remaining case to identify the first divergent frame. This mode
+retains canonical case provenance, cannot update goldens, and does not replace
+the cache/solver fields requested above.
+
 ### Constraint solve
 
 For each failing constraint case, dump the prepared world anchors and frames,
