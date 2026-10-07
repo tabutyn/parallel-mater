@@ -390,9 +390,13 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   fixed-capacity, generation-checked cache between substeps without allocating
   or waiting in a step, applies all warm starts before velocity sweeps, uses
   CUDA's translational projection, and raises face patches to the CUDA 32-sweep
-  budget. In the fresh reference comparison, `constraint-breaking` has 6
-  differences, `constraint-generic` has 8, `constraint-hinge` has 4, and
-  `rigid-direct` has 13.
+  budget. Metal shaders retain strict floating-point math but explicitly allow
+  fused contraction, matching the CUDA reference's instruction semantics for
+  the breakable fixed-joint solve. This makes `constraint-breaking` exact,
+  reduces `constraint-fixed` from 45 to 6 differences, `passive-active` from
+  43 to 30, and `rope-core` from 279 to 203. The complete 30-case run is the
+  acceptance gate because contraction changes arithmetic throughout the
+  metallib; no previously passing case regresses.
   For worlds of at least 32 bodies, ordinary non-kinematic persistent pairs
   now keep both body states in local solver storage throughout the row solve,
   matching CUDA's register/aliasing contract. This changes only `fluid-rigid`
@@ -410,8 +414,7 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   handoff requests the first cache match and warm-start delta for the remaining
   rigid-only failures.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
-  19 of 30 cases. The 11 outstanding cases are `cloth-tear`,
-  `constraint-breaking`, `constraint-fixed`,
+  20 of 30 cases. The 10 outstanding cases are `cloth-tear`, `constraint-fixed`,
   `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
   `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
   `rope-soft-body`. The package also exposes five CUDA cases that are not

@@ -1012,7 +1012,7 @@ if(PARALLEL_MATER_BUILD_METAL)
                 CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
                 -std=metal4.0 -mmacosx-version-min=26.0
-                -fno-fast-math
+                -fno-fast-math -ffp-contract=fast
                 -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 -c ${CMAKE_CURRENT_SOURCE_DIR}/src/metal/kernels.metal
                 -o ${PARALLEL_MATER_METAL_AIR}

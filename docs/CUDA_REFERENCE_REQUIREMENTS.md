@@ -26,8 +26,9 @@ row, reduced-coordinate slider/piston integration, and CUDA-style persistent
 contact initialization, warm starting, accumulated impulses, and cache
 write-back. Guided static mechanisms now use CUDA's entry-only sweep, stable
 face projection, 0.1 mm rest offset, guide-space normal selection, and
-projected conservative advancement. Dense mesh pairs also honor CUDA's
-512-entry leaf-pair cache limit before switching to serial BVH traversal.
+projected conservative advancement. Dense mesh pairs use a fixed leaf-pair
+cache before switching to serial BVH traversal; the remaining small-world
+capacity distinction is documented with the hinge trace request below.
 Motor-driven contacts also resolve nearly parallel triangle normals
 to the authored collider plane, removing backend-local tangent noise without
 changing the manifold. Convex face patches discard numerically near-collinear
@@ -35,11 +36,13 @@ triangle-seam samples while retaining CUDA's full eight-contact capacity.
 
 A forced metallib regeneration on 2026-10-07 exposed that an earlier local
 incremental-build capture had not embedded the current shader source. Treat
-that 20/30 capture as invalid. A fresh build with the accepted rope/soft fix
-and the large-world persistent-pair solver passes these 19 cases:
+that earlier 20/30 capture as invalid. A fresh build with the accepted
+rope/soft fix, the large-world persistent-pair solver, and floating-point
+contraction enabled while retaining strict Metal math passes these 20 cases:
 
 - `cloth-core` and `cloth-water`;
-- `constraint-motor`, `constraint-piston`, and `constraint-slider`;
+- `constraint-breaking`, `constraint-motor`, `constraint-piston`, and
+  `constraint-slider`;
 - `compound-weld-lifecycle`;
 - `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
@@ -47,23 +50,22 @@ and the large-world persistent-pair solver passes these 19 cases:
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 11 remaining cases and their current comparator difference counts are:
+The 10 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `passive-active` (43), `rigid-direct` (13) |
-| Constraints | `constraint-breaking` (6), `constraint-fixed` (45), `constraint-generic-spring` (12), `constraint-generic` (8), `constraint-hinge` (4), `constraint-point` (16) |
-| Cloth/rope | `cloth-tear` (50), `rope-core` (279), `rope-soft-body` (8) |
+| Rigid lifecycle/contact | `passive-active` (30), `rigid-direct` (13) |
+| Constraints | `constraint-fixed` (6), `constraint-generic-spring` (17), `constraint-generic` (22), `constraint-hinge` (10), `constraint-point` (28) |
+| Cloth/rope | `cloth-tear` (56), `rope-core` (203), `rope-soft-body` (11) |
 
 These counts describe comparison records, not necessarily independent bugs.
 For example, one earlier contact-manifold difference can alter every later
 state and event record. The rope/soft candidate replaces Metal's second
 barycentric projection with CUDA's single region test and reconstructs the
-segment fraction exactly as CUDA does. On equally fresh builds this changes
-only `rope-soft-body` and reduces that case from 19 differences to 8; the other
-29 cases compare within their configured tolerances. Before accepting any
-later change, rerun all 30 cases so a local improvement does not hide a
-cross-system regression.
+segment fraction exactly as CUDA does. Before contraction was enabled, this
+changed only `rope-soft-body` and reduced that case from 19 differences to 8;
+the current full-build count is 11. Before accepting any later change, rerun
+all 30 cases so a local improvement does not hide a cross-system regression.
 
 ## CUDA engine traces still needed
 
@@ -89,12 +91,13 @@ constraint case, capture:
 This is the first priority because Metal now generates CUDA-style small-convex
 face manifolds and implements persistent contact state plus substep-local cache
 reuse, but the public checkpoints still cannot distinguish geometry drift from
-solver drift. On the forced fresh build, `constraint-breaking` differs only in
-four checkpoint-12 normal impulses by about 0.00625 and two final penetrations
-by one float ULP. The combined contact ports leave `constraint-generic` at 8
-records and `constraint-hinge` at 4 contact count/list records. Removing
-Metal's additional dynamic-pair robust-manifold replacement preserves CUDA's
-standard ordered manifold, but `passive-active` still has 43 records. At
+solver drift. Allowing contraction under Metal's otherwise strict
+floating-point mode reproduces CUDA's fixed-joint arithmetic closely enough to
+make `constraint-breaking` exact; no additional breaking trace is currently
+needed. The same change leaves `constraint-fixed` at 6 records,
+`constraint-generic` at 22 records, and `constraint-hinge` at 10 records.
+Removing Metal's additional dynamic-pair robust-manifold replacement preserves
+CUDA's standard ordered manifold, but `passive-active` still has 30 records. At
 checkpoint 24 both backends report all 17 contacts. The first-checkpoint
 difference remains concentrated in the `Suzanne`/`Plane` solve. Prioritize
 that pair's color, warm start, and per-sweep impulse history, followed by the
@@ -107,9 +110,12 @@ trace is required unless a future CUDA capture changes that case.
 The remaining `constraint-hinge` mismatch is isolated to contact cardinality.
 CUDA reports 9 contacts at frame 45 and 8 at frame 90; freshly compiled Metal
 reports 11 and 9. At frame 90, the `Gear.001`/`Gear.002` pair has 697
-overlapping BVH leaf pairs, so both backends cross CUDA's 512-entry cache limit.
-For this pair and the dynamic `Gear.002`/`Ground.002` pair, capture the
-cache-overflow flag, selected face/triangle path, the raw clipped face polygon
+overlapping BVH leaf pairs. CUDA gives worlds of at most eight bodies a
+4096-entry leaf-pair cache, while current Metal uses 512. Temporarily raising
+Metal to 4096 produced byte-identical hinge output, so the capacity difference
+is not the cause. For this pair and the dynamic `Gear.002`/`Ground.002` pair,
+capture the cache-overflow flag, selected face/triangle path, the raw clipped
+face polygon
 before reduction, every serial BVH stack push and pop, leaf and reordered
 triangle IDs, closest points, acceptance/rejection reason, and the manifold
 immediately after every `add_manifold_contact` call. The trace must cover the
