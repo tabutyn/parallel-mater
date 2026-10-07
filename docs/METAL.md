@@ -26,6 +26,14 @@ same run to a 0.703478 m drop, 1.04422 m displacement, 1.1501 rad rotation,
 2.61814 m/s peak speed, and 0.00250788 m maximum floor penetration. All 24
 non-golden Metal gates still pass and the CUDA comparison remains 20/30 with
 no reopened case. This is a material stability improvement, not acceptance.
+Prepared-response experiments were also rejected rather than merged. Porting
+CUDA's bounded response patch made the wall drop 16.8339 m; combining it with
+CUDA's first-fit ordinary-stack coloring made it drop 26.9338 m. Running the
+current solver at eight substeps reduced the failure to a 0.0426712 m drop,
+0.124037 m displacement, 0.519787 rad rotation, 0.239287 m/s peak speed, and
+0.049189 m/s late speed, but still missed the same acceptance limits while
+raising this gate's runtime from roughly 46 seconds to 129 seconds. None of
+those candidates is retained in the source or gallery defaults.
 The current CUDA implementation also fails this expanded-wall gate, but less
 severely (the CUDA measurements are recorded in `PERFORMANCE.md`). The opening
 scene must not be described as conformant until this test passes;

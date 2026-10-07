@@ -91,6 +91,14 @@ Metal can emit the same schema from
 `parallel-mater-metal-rigid-wall-tests`. Comparing those phase records—not the
 30-case score—is the acceptance path for the first simulation users see.
 
+Metal probes also rule out three broad substitutions: a prepared response
+patch alone, that patch combined with first-fit coloring, and simply doubling
+the world substeps. The first two destabilize the wall more; eight substeps
+improves but does not pass the unchanged gate and costs about 2.8 times the
+wall-test runtime. The requested trace therefore needs the first divergent
+contact row and cache transition, not just CUDA's high-level solver mode or a
+different gallery timestep.
+
 ## CUDA engine traces still needed
 
 The public checkpoints identify which scenarios differ, but they do not expose
