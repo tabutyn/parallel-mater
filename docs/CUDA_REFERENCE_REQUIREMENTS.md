@@ -48,7 +48,7 @@ The 10 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
-| Rigid lifecycle/contact | `passive-active` (49), `rigid-direct` (13) |
+| Rigid lifecycle/contact | `passive-active` (30), `rigid-direct` (13) |
 | Constraints | `constraint-fixed` (7), `constraint-generic-spring` (17), `constraint-generic` (11), `constraint-hinge` (2), `constraint-point` (22) |
 | Cloth/rope | `cloth-tear` (62), `rope-core` (177), `rope-soft-body` (12) |
 
@@ -84,6 +84,14 @@ reuse, but the public checkpoints still cannot distinguish geometry drift from
 solver drift. The cache work makes `constraint-breaking` exact, and the
 combined contact ports reduce `constraint-generic` from 33 to 11 records and
 `constraint-hinge` from 27 records to one contact-count/list mismatch.
+Removing Metal's additional dynamic-pair robust-manifold replacement preserves
+CUDA's standard ordered manifold and reduces `passive-active` from 49 to 30
+records without reopening any of the 20 passing cases. At checkpoint 24 both
+backends now report all 17 contacts. The remaining first-checkpoint difference
+is concentrated in the `Suzanne`/`Plane` solve: Metal reports a normal impulse
+of approximately 0.019762 where CUDA reports 0.114126, with CUDA also retaining
+nonzero friction. Prioritize that pair's color, warm start, and per-sweep
+impulse history, followed by the extra Metal contact at checkpoint 48.
 `compound-weld-lifecycle` is now exact: Metal removes only near-collinear
 triangle-seam samples from a clipped convex patch, yielding CUDA's four patch
 corners without imposing a blanket four-contact cap. No additional compound

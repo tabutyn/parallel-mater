@@ -359,21 +359,21 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   pairs that exceed it discard the partial reduction and rerun through the
   serial BVH fallback, preserving CUDA's capacity behavior without allocating
   during a step.
-  Rigid manifolds now use CUDA's standard triangle-pair closest points first.
-  Metal's segment/triangle query is only a numerical fallback for an empty
-  deep-sweep manifold, a body-reference plane crossing with no approaching
-  standard contact, or inconsistent depths across an otherwise coplanar deep
-  sweep. A moving, unconstrained pair whose standard manifold contains only
-  separating contacts switches to swept-only evaluation once its relative
-  motion exceeds the collision margin; separating swept samples are then
-  discarded. Fixed clusters retain the CUDA-ordered standard manifold. Mixed
-  approaching/separating pruning is likewise limited to pairs eligible for
-  that robust fallback, so kinematic pairs retain CUDA's complete ordered
-  manifold. This keeps slow falling bodies and the 120 m/s tunnelling
-  regression above two-sided surfaces without rewriting contact normals,
-  closes `fluid-rigid`. In the current package, `rigid-direct` first diverges
-  during the authored kinematic impact at frame 40 and retains 13 reported
-  differences; its post-replacement frame agrees again.
+  Rigid manifolds use CUDA's standard triangle-pair closest points and preserve
+  their complete stable order. An additional Metal-only dynamic-pair fallback
+  used to replace or prune a valid standard manifold after deep motion; it has
+  been removed because CUDA has no corresponding post-generation step. A
+  static-collider-only recovery remains for a body that crosses a one-sided
+  convex surface by more than 0.25 m in one substep; this is required by the
+  deterministic 120 m/s tunnelling regression and never rewrites an ordinary
+  dynamic-pair manifold. The narrower rule preserves all 17 CUDA contacts at
+  `passive-active` checkpoint 24 and reduces that case from 49 to 30 reported
+  differences without reopening any passing case. The remaining
+  first-checkpoint drift is in the contact solve rather than manifold count:
+  the `Suzanne`/`Plane` impulse is too small and loses its friction impulse. In
+  the current package, `rigid-direct` first diverges during the authored
+  kinematic impact at frame 40 and retains 13 reported differences; its
+  post-replacement frame agrees again.
   Guided static mechanisms use CUDA's entry-only swept contacts rather than
   mixing endpoint and entry normals. Their sweep uses stable face projection,
   the 0.1 mm guided rest offset, guide-space normal selection, first-impact
@@ -484,7 +484,8 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   preserves the rigid and constraint validation gates. The revised CUDA
   package still reports 27 hinge differences, so it remains in the explicit
   outstanding list above. The fast authored kinematic sweep in
-  `passive-active` likewise remains an outstanding manifold-parity case.
+  `passive-active` now reaches contact-count parity at its first failing
+  checkpoint but remains an outstanding contact-solver parity case.
   Rope contact now follows CUDA's closed-convex-mesh semantics: nodes already
   inside a solid recover through the nearest or swept-entry plane, capsule
   segments use outward solid-plane normals, and zero-thickness triangle meshes

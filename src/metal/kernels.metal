@@ -3889,14 +3889,6 @@ kernel void pm_rigid_contact_generate(
         (collider_guide.active && parameters[body].motion == 0u);
     const bool fixed_cluster_contact =
         body_hinge.fixed_member || collider_hinge.fixed_member;
-    // CUDA uses the standard triangle closest-pair query. Metal also keeps
-    // the segment/triangle query as a numerical fallback for deep sweeps that
-    // the standard query misses or resolves inconsistently; it must not
-    // replace a valid CUDA-ordered manifold, because doing so changes follow-
-    // up contact impulses.
-    const bool allow_robust_fallback = parameters[body].motion != 1u &&
-                                       parameters[collider].motion != 1u;
-
     device const PMTriangleMeshInfo &body_mesh =
         meshes[parameters[body].mesh_index];
     device const PMTriangleMeshInfo &collider_mesh =
@@ -3939,11 +3931,6 @@ kernel void pm_rigid_contact_generate(
         margin, step.timestep, false, fixed_cluster_contact, false,
         body_hinge, collider_hinge);
     bool has_approaching_contact = false;
-    bool has_separating_contact = false;
-    float minimum_penetration = INFINITY;
-    float maximum_penetration = -INFINITY;
-    float3 first_normal = 0.0f;
-    bool coplanar_normals = true;
     bool body_reference_crossed_contact = false;
     for (uint contact_index = 0u; contact_index < output.count;
          ++contact_index) {
@@ -3958,49 +3945,20 @@ kernel void pm_rigid_contact_generate(
         body_reference_crossed_contact =
             body_reference_crossed_contact ||
             previous_reference_side * current_reference_side < 0.0f;
-        if (contact_index == 0u)
-            first_normal = contact_normal;
-        else
-            coplanar_normals = coplanar_normals &&
-                dot(first_normal, contact_normal) > 0.999f;
-        minimum_penetration = min(
-            minimum_penetration, contact.penetration);
-        maximum_penetration = max(
-            maximum_penetration, contact.penetration);
-        const float normal_speed = pm_contact_normal_speed(
-            states[body], states[collider], pm_load(contact.point),
-            contact_normal);
         has_approaching_contact = has_approaching_contact ||
-            normal_speed < -pm_rigid_surface_tolerance;
-        has_separating_contact = has_separating_contact ||
-            normal_speed > pm_rigid_surface_tolerance;
+            pm_contact_normal_speed(
+                states[body], states[collider], pm_load(contact.point),
+                contact_normal) < -pm_rigid_surface_tolerance;
     }
-    const bool deep_pair_motion = pm_requires_swept_pair_contact(
-        previous_states[body], states[body], body_mesh,
-        previous_states[collider], states[collider], collider_mesh,
-        max(margin * 8.0f, 0.25f));
-    // The robust filter is a Metal CCD safeguard. Preserve CUDA's complete
-    // ordered manifold for kinematic pairs, which cannot use that fallback.
-    if (has_approaching_contact && has_separating_contact &&
-        deep_pair_motion && allow_robust_fallback) {
-        uint retained = 0u;
-        for (uint contact_index = 0u; contact_index < output.count;
-             ++contact_index) {
-            const PMContactRecord contact = output.contacts[contact_index];
-            if (pm_contact_normal_speed(
-                    states[body], states[collider],
-                    pm_load(contact.point), pm_load(contact.normal)) >
-                pm_rigid_surface_tolerance)
-                continue;
-            output.contacts[retained++] = contact;
-        }
-        output.count = retained;
-        has_separating_contact = false;
-    }
-    const bool inconsistent_coplanar_sweep = output.count > 1u &&
-        coplanar_normals &&
-        maximum_penetration - minimum_penetration >
-            max(margin * 4.0f, 0.05f);
+    // Keep the numerical recovery confined to extreme dynamic/static sweeps.
+    // CUDA does not replace a valid ordinary dynamic-pair manifold.
+    const bool deep_static_pair =
+        (parameters[body].motion == 0u ||
+         parameters[collider].motion == 0u) &&
+        pm_requires_swept_pair_contact(
+            previous_states[body], states[body], body_mesh,
+            previous_states[collider], states[collider], collider_mesh,
+            max(margin * 8.0f, 0.25f));
     const bool pair_requires_predictive_replacement =
         pm_requires_swept_pair_contact(
             previous_states[body], states[body], body_mesh,
@@ -4012,12 +3970,11 @@ kernel void pm_rigid_contact_generate(
         ((body_mesh.solid_plane_count != 0u) !=
          (collider_mesh.solid_plane_count != 0u)) &&
         pair_requires_predictive_replacement;
-    const bool needs_tunnel_recovery =
-        (output.count == 0u && deep_pair_motion) ||
-        (!has_approaching_contact && body_reference_crossed_contact) ||
-        crossed_convex_surface;
-    if ((needs_tunnel_recovery || inconsistent_coplanar_sweep) &&
-        allow_robust_fallback) {
+    const bool needs_static_tunnel_recovery = deep_static_pair &&
+        (output.count == 0u ||
+         (!has_approaching_contact && body_reference_crossed_contact) ||
+         crossed_convex_surface);
+    if (needs_static_tunnel_recovery) {
         const bool swept_only =
             !fixed_cluster_contact && output.count != 0u &&
             pair_requires_predictive_replacement &&
