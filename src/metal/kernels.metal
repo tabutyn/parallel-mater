@@ -95,6 +95,7 @@ struct PMContactManifold {
     uint face_patch;
     uint body_fixed_member;
     uint collider_fixed_member;
+    uint cached;
 };
 
 struct PMCachedContact {
@@ -166,6 +167,7 @@ struct PMStepConstants {
     uint collect_rigid_contacts;
     uint rigid_event_capacity;
     uint substeps;
+    uint ordinary_rigid_stack;
 };
 
 struct PMRigidConstraintResource {
@@ -241,7 +243,7 @@ static_assert(sizeof(PMRigidBodyState) == 52);
 static_assert(sizeof(PMRigidParameters) == 108);
 static_assert(sizeof(PMTriangleMeshInfo) == 72);
 static_assert(sizeof(PMCollisionPlane) == 16);
-static_assert(sizeof(PMContactManifold) == 548);
+static_assert(sizeof(PMContactManifold) == 552);
 static_assert(sizeof(PMCachedContact) == 40);
 static_assert(sizeof(PMCachedContactPair) == 352);
 static_assert(sizeof(PMBvhNode) == 40);
@@ -250,7 +252,7 @@ static_assert(sizeof(PMWorldAabb) == 24);
 static_assert(sizeof(PMHandle) == 8);
 static_assert(sizeof(PMRigidContactEvent) == 60);
 static_assert(sizeof(PMContactEvent) == 48);
-static_assert(sizeof(PMStepConstants) == 36);
+static_assert(sizeof(PMStepConstants) == 40);
 static_assert(sizeof(PMRigidConstraintResource) == 236);
 static_assert(sizeof(PMRigidConstraintAxisGeometry) == 44);
 static_assert(sizeof(PMRigidConstraintGeometry) == 208);
@@ -626,6 +628,7 @@ static void pm_load_rigid_contact_cache(
         }
         if (match == 8u) continue;
         used |= 1u << match;
+        manifold.cached = 1u;
         device const PMCachedContact &previous = saved.contacts[match];
         contact.accumulated_normal_impulse = previous.normal_impulse;
         const float3 friction = pm_load(previous.friction_impulse);
@@ -4461,7 +4464,12 @@ kernel void pm_rigid_contact_reduce(
         for (uint active_index = 0u;
              active_index < active_pair_count; ++active_index) {
             const uint pair = active_pairs[active_index];
-            if (manifolds[pair].face_patch != 0u) iterations = 32u;
+            if (manifolds[pair].face_patch == 0u) continue;
+            iterations = 32u;
+            if (step.ordinary_rigid_stack != 0u &&
+                manifolds[pair].contacts[0].persistent != 0u &&
+                manifolds[pair].cached == 0u)
+                iterations = 64u;
         }
     }
     threadgroup_barrier(

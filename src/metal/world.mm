@@ -125,6 +125,7 @@ struct ContactManifold {
     std::uint32_t face_patch{};
     std::uint32_t body_fixed_member{};
     std::uint32_t collider_fixed_member{};
+    std::uint32_t cached{};
 };
 
 struct CachedContact {
@@ -170,6 +171,7 @@ struct StepConstants {
     std::uint32_t collect_rigid_contacts{};
     std::uint32_t rigid_event_capacity{};
     std::uint32_t substeps{};
+    std::uint32_t ordinary_rigid_stack{};
 };
 
 struct RigidConstraintResource {
@@ -268,13 +270,13 @@ static_assert(sizeof(RigidBodyState) == 52U);
 static_assert(sizeof(RigidParameters) == 108U);
 static_assert(sizeof(TriangleMeshInfo) == 72U);
 static_assert(sizeof(ContactRecord) == 64U);
-static_assert(sizeof(ContactManifold) == 548U);
+static_assert(sizeof(ContactManifold) == 552U);
 static_assert(sizeof(CachedContact) == 40U);
 static_assert(sizeof(CachedContactPair) == 352U);
 static_assert(sizeof(BvhNode) == 40U);
 static_assert(sizeof(MeshLeafInfo) == 8U);
 static_assert(sizeof(WorldAabb) == 24U);
-static_assert(sizeof(StepConstants) == 36U);
+static_assert(sizeof(StepConstants) == 40U);
 static_assert(sizeof(RigidBodyId) == 8U);
 static_assert(sizeof(RigidContactEvent) == 60U);
 static_assert(sizeof(RigidConstraintResource) == 236U);
@@ -2905,7 +2907,12 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                       ? 1U
                                       : 0U,
                                   impl_->options.contact_capacity,
-                                  options.substeps};
+                                  options.substeps,
+                                  impl_->rigid_body_count >= 32U &&
+                                          impl_->rigid_constraint_count == 0U &&
+                                          impl_->systems.empty()
+                                      ? 1U
+                                      : 0U};
                     [encoder setArgumentTable:impl_->rigid_argument_table];
                 }
                 impl_->systems.encode(

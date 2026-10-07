@@ -17,13 +17,19 @@ that the wall physics is correct.
 the Metal API and is the acceptance gate for this scene. It checks first-frame
 support, ten seconds of wall stability, ball-only gravity steering, support
 impulses, independent brick impact, and contact-cache invalidation. On
-2026-10-07 the unmodified Metal solver failed its ten-second phase with a
+2026-10-07 the pre-gate Metal solver failed its ten-second phase with a
 42.2455 m maximum drop, 43.1401 m maximum displacement, 3.14159 rad maximum
-rotation, and 26.5543 m/s peak speed. The current CUDA implementation also
-fails this expanded-wall gate, but much less severely (the CUDA measurements
-are recorded in `PERFORMANCE.md`). The opening scene must not be described as
-conformant until this test passes; cross-backend parity against an already
-failing CUDA wall is insufficient.
+rotation, and 26.5543 m/s peak speed. Metal now records whether a face patch
+matched the previous substep's cache and gives an ordinary uncached stack 64
+solve sweeps before returning to the 32-sweep cached budget. This reduces the
+same run to a 0.703478 m drop, 1.04422 m displacement, 1.1501 rad rotation,
+2.61814 m/s peak speed, and 0.00250788 m maximum floor penetration. All 24
+non-golden Metal gates still pass and the CUDA comparison remains 20/30 with
+no reopened case. This is a material stability improvement, not acceptance.
+The current CUDA implementation also fails this expanded-wall gate, but less
+severely (the CUDA measurements are recorded in `PERFORMANCE.md`). The opening
+scene must not be described as conformant until this test passes;
+cross-backend parity against an already failing CUDA wall is insufficient.
 
 Run the exact Metal gate with:
 
