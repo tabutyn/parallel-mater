@@ -1701,8 +1701,8 @@ static float3 pm_world_point(device const PMRigidBodyState &state,
     return pm_load(state.position) + pm_rotate(state.orientation, local_point);
 }
 
-static float3 pm_closest_point_triangle(float3 point, float3 a, float3 b,
-                                        float3 c) {
+static float3 pm_closest_point_triangle_mode(
+    float3 point, float3 a, float3 b, float3 c, bool stable_face) {
     const float3 ab = b - a;
     const float3 ac = c - a;
     const float3 ap = point - a;
@@ -1735,9 +1735,18 @@ static float3 pm_closest_point_triangle(float3 point, float3 a, float3 b,
         return b + ((d4 - d3) / ((d4 - d3) + (d5 - d6))) * (c - b);
     }
 
+    if (stable_face) {
+        const float3 normal = cross(ab, ac);
+        return point - normal * (dot(ap, normal) / dot(normal, normal));
+    }
     const float denominator = 1.0f / (va + vb + vc);
     return a +
         (ab * (vb * denominator) + ac * (vc * denominator));
+}
+
+static float3 pm_closest_point_triangle(float3 point, float3 a, float3 b,
+                                        float3 c) {
+    return pm_closest_point_triangle_mode(point, a, b, c, false);
 }
 
 static float3 pm_triangle_weights(float3 point, float3 a, float3 b,
@@ -2035,7 +2044,8 @@ static bool pm_triangle_bounds_overlap(
 
 static void pm_closest_triangle_pair(
     float3 a0, float3 a1, float3 a2, float3 b0, float3 b1, float3 b2,
-    thread float3 &point_a, thread float3 &point_b) {
+    thread float3 &point_a, thread float3 &point_b,
+    bool stable_face = false) {
     const float3 a[3] = {a0, a1, a2};
     const float3 b[3] = {b0, b1, b2};
 
@@ -2081,7 +2091,8 @@ static void pm_closest_triangle_pair(
     }
     for (uint vertex_index = 0u; vertex_index < 3u; ++vertex_index) {
         const float3 on_triangle =
-            pm_closest_point_triangle(a[vertex_index], b0, b1, b2);
+            pm_closest_point_triangle_mode(
+                a[vertex_index], b0, b1, b2, stable_face);
         const float squared = dot(a[vertex_index] - on_triangle,
                                   a[vertex_index] - on_triangle);
         if (squared < best_squared) {
@@ -2092,7 +2103,8 @@ static void pm_closest_triangle_pair(
     }
     for (uint vertex_index = 0u; vertex_index < 3u; ++vertex_index) {
         const float3 on_triangle =
-            pm_closest_point_triangle(b[vertex_index], a0, a1, a2);
+            pm_closest_point_triangle_mode(
+                b[vertex_index], a0, a1, a2, stable_face);
         const float squared = dot(on_triangle - b[vertex_index],
                                   on_triangle - b[vertex_index]);
         if (squared < best_squared) {
@@ -2160,6 +2172,41 @@ static void pm_closest_triangle_pair_swept(
             point_b = on_segment;
         }
     }
+}
+
+static float3 pm_guided_triangle_normal(
+    float3 a0, float3 a1, float3 a2, float3 b0, float3 b1, float3 b2,
+    float3 point_a, float3 point_b, float3 fallback) {
+    const float3 delta = point_a - point_b;
+    float3 normal = pm_normalized_or(delta, fallback);
+    const float3 faces[2] = {
+        pm_normalized_or(cross(a1 - a0, a2 - a0), normal),
+        pm_normalized_or(cross(b1 - b0, b2 - b0), normal)};
+    float best_error = 4.0e-12f;
+    if (dot(delta, delta) > 1.0e-12f) {
+        for (uint face_index = 0u; face_index < 2u; ++face_index) {
+            const float3 face = faces[face_index];
+            const float projection = dot(delta, face);
+            const float3 error_vector = delta - face * projection;
+            const float error = dot(error_vector, error_vector);
+            if (error < best_error) {
+                best_error = error;
+                normal = projection >= 0.0f ? face : -face;
+            }
+        }
+    }
+    return normal;
+}
+
+static bool pm_triangle_pair_face_contact(
+    thread const float3 *a, thread const float3 *b, float3 separation) {
+    const float3 normal = pm_normalized_or(separation, float3(0.0f));
+    const float3 face_a = pm_normalized_or(
+        cross(a[1] - a[0], a[2] - a[0]), float3(0.0f));
+    const float3 face_b = pm_normalized_or(
+        cross(b[1] - b[0], b[2] - b[0]), float3(0.0f));
+    return abs(dot(normal, face_a)) > 0.9999f ||
+           abs(dot(normal, face_b)) > 0.9999f;
 }
 
 static void pm_add_manifold_contact(
@@ -2547,6 +2594,7 @@ static void pm_collide_triangle_ranges(
     thread const PMHingeContactFrame &body_hinge,
     thread const PMHingeContactFrame &collider_hinge,
     thread PMContactManifold &manifold) {
+    if (pm_guided_static_contact(body_hinge, collider_hinge)) return;
     const float rest_offset = pm_rigid_rest_offset(margin);
     for (uint body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
@@ -2696,7 +2744,10 @@ static void pm_collide_triangle_ranges_swept(
     thread const PMHingeContactFrame &body_hinge,
     thread const PMHingeContactFrame &collider_hinge,
     thread PMContactManifold &manifold) {
-    const float rest_offset = pm_rigid_rest_offset(margin);
+    const bool guided = pm_guided_static_contact(
+        body_hinge, collider_hinge);
+    const float rest_offset = guided
+        ? min(margin, 1.0e-4f) : pm_rigid_rest_offset(margin);
     for (uint body_triangle = body_first;
          body_triangle < body_first + body_count; ++body_triangle) {
         float3 previous_a[3];
@@ -2790,6 +2841,9 @@ static void pm_collide_triangle_ranges_swept(
             if (speed_bound <= 1.0e-6f) continue;
 
             float time = 0.0f;
+            bool starts_near_contact = false;
+            float3 separating_normal = 0.0f;
+            bool have_separating_normal = false;
             for (uint iteration = 0u; iteration < 32u; ++iteration) {
                 float3 a[3];
                 float3 b[3];
@@ -2802,7 +2856,11 @@ static void pm_collide_triangle_ranges_swept(
                 }
                 float3 point_a = 0.0f;
                 float3 point_b = 0.0f;
-                if (robust_closest)
+                if (guided)
+                    pm_closest_triangle_pair(
+                        a[0], a[1], a[2], b[0], b[1], b[2],
+                        point_a, point_b, true);
+                else if (robust_closest)
                     pm_closest_triangle_pair_swept(
                         a[0], a[1], a[2], b[0], b[1], b[2],
                         point_a, point_b);
@@ -2813,42 +2871,117 @@ static void pm_collide_triangle_ranges_swept(
                 const float3 delta = point_a - point_b;
                 const float distance =
                     sqrt(max(0.0f, dot(delta, delta)));
-                if (distance <= rest_offset + pm_rigid_surface_tolerance) {
-                    if (iteration == 0u) break;
+                float contact_offset = rest_offset;
+                if (guided &&
+                    !pm_triangle_pair_face_contact(a, b, delta)) {
+                    thread const PMHingeContactFrame &guide = body_hinge.axial
+                        ? body_hinge : collider_hinge;
+                    const float3 direction = pm_normalized_or(delta, 0.0f);
+                    const float axial = dot(direction, guide.axis);
+                    const float angular = dot(
+                        guide.axis,
+                        cross(point_a - guide.anchor, direction));
+                    if (abs(axial) > 1.0e-3f &&
+                        abs(angular) > 1.0e-3f)
+                        contact_offset = 0.0f;
+                }
+                if (iteration == 0u)
+                    starts_near_contact = distance <=
+                        contact_offset +
+                            5.0f * pm_rigid_surface_tolerance;
+                if (distance <=
+                    contact_offset + pm_rigid_surface_tolerance) {
+                    if (iteration == 0u && !guided) break;
                     const float3 collider_normal = pm_normalized_or(
                         cross(b[1] - b[0], b[2] - b[0]),
                         float3(0.0f, 1.0f, 0.0f));
-                    const float3 body_center = previous_body_reference +
-                        (body_reference - previous_body_reference) * time;
+                    float3 body_center =
+                        pm_load(previous_body_state.position) +
+                        (pm_load(body_state.position) -
+                         pm_load(previous_body_state.position)) * time;
+                    if (body_hinge.present)
+                        body_center = previous_body_reference +
+                            (body_reference - previous_body_reference) * time;
                     const float reference_side =
                         dot(collider_normal, body_center - point_b);
                     const float3 fallback = reference_side >= 0.0f
                         ? collider_normal
                         : -collider_normal;
-                    const float3 normal = distance <= pm_rigid_surface_tolerance
-                        ? fallback
-                        : pm_normalized_or(delta, fallback);
+                    const float3 normal =
+                        guided && have_separating_normal &&
+                                distance <= pm_rigid_surface_tolerance
+                            ? separating_normal
+                            : guided
+                                ? pm_guided_triangle_normal(
+                                      a[0], a[1], a[2], b[0], b[1], b[2],
+                                      point_a, point_b,
+                                      have_separating_normal
+                                          ? separating_normal : fallback)
+                                : distance <= pm_rigid_surface_tolerance
+                                    ? fallback
+                                    : pm_normalized_or(delta, fallback);
                     const float3 point = (point_a + point_b) * 0.5f;
                     const float normal_speed = pm_contact_normal_speed(
                         body_state, collider_state, point, normal);
                     if (normal_speed > pm_rigid_surface_tolerance) break;
-                    const float remaining = max(
-                        0.0f,
-                        -normal_speed * timestep * (1.0f - time) - distance);
-                    const float swept_penetration =
-                        remaining + rest_offset +
-                        pm_rigid_surface_tolerance;
+                    const float remaining =
+                        -normal_speed * timestep * (1.0f - time) - distance;
+                    const float swept_penetration = guided
+                        ? max(0.0f, remaining + contact_offset) +
+                              pm_rigid_surface_tolerance
+                        : max(0.0f, remaining) + rest_offset +
+                              pm_rigid_surface_tolerance;
                     PMContactRecord contact = pm_make_contact_record(
-                        point, normal, swept_penetration, time);
+                        point, normal, swept_penetration,
+                        starts_near_contact ? 0.0f : time);
                     pm_add_pair_manifold_contact(
                         manifold, contact,
                         max(margin * 2.0f, 1.0e-4f), body_hinge,
                         collider_hinge);
                     break;
                 }
+                separating_normal = pm_guided_triangle_normal(
+                    a[0], a[1], a[2], b[0], b[1], b[2], point_a, point_b,
+                    pm_normalized_or(
+                        delta, float3(0.0f, 1.0f, 0.0f)));
+                have_separating_normal = true;
                 float advancement =
-                    (distance - rest_offset) /
+                    (distance - contact_offset) /
                     (speed_bound + 1.0e-6f) * 0.9f;
+                if (guided) {
+                    const float3 plane = pm_guided_triangle_normal(
+                        a[0], a[1], a[2], b[0], b[1], b[2],
+                        point_a, point_b, separating_normal);
+                    float minimum_a = INFINITY;
+                    float maximum_b = -INFINITY;
+                    float minimum_speed_a = INFINITY;
+                    float maximum_speed_b = -INFINITY;
+                    for (uint vertex_index = 0u; vertex_index < 3u;
+                         ++vertex_index) {
+                        minimum_a = min(
+                            minimum_a,
+                            dot(a[vertex_index] - point_b, plane));
+                        maximum_b = max(
+                            maximum_b,
+                            dot(b[vertex_index] - point_b, plane));
+                        minimum_speed_a = min(
+                            minimum_speed_a,
+                            dot(delta_a[vertex_index], plane));
+                        maximum_speed_b = max(
+                            maximum_speed_b,
+                            dot(delta_b[vertex_index], plane));
+                    }
+                    const float gap =
+                        minimum_a - maximum_b - contact_offset;
+                    const float closing_speed =
+                        maximum_speed_b - minimum_speed_a;
+                    if (gap > pm_rigid_surface_tolerance &&
+                        closing_speed <= 0.0f)
+                        break;
+                    if (gap > 0.0f && closing_speed > 1.0e-6f)
+                        advancement = max(
+                            advancement, 0.9f * gap / closing_speed);
+                }
                 advancement = max(advancement, 1.0e-5f);
                 time += advancement;
                 if (time > 1.0f) break;
@@ -2874,9 +3007,11 @@ static PMContactManifold pm_collide_meshes(
     thread const PMHingeContactFrame &body_hinge,
     thread const PMHingeContactFrame &collider_hinge) {
     PMContactManifold manifold{};
-    const bool swept = swept_only || pm_requires_swept_pair_contact(
-        previous_body_state, body_state, body_mesh,
-        previous_collider_state, collider_state, collider_mesh, margin);
+    const bool swept = swept_only ||
+        pm_guided_static_contact(body_hinge, collider_hinge) ||
+        pm_requires_swept_pair_contact(
+            previous_body_state, body_state, body_mesh,
+            previous_collider_state, collider_state, collider_mesh, margin);
     const bool deep_sweep = robust_closest &&
         pm_requires_swept_pair_contact(
             previous_body_state, body_state, body_mesh,
@@ -2907,16 +3042,17 @@ static PMContactManifold pm_collide_meshes(
             body_minimum, body_maximum, collider_minimum, collider_maximum))
         return manifold;
 
-    // CUDA enumerates BVH leaves as a stable Cartesian product distributed
-    // over 128 lanes, then reduces each leaf-pair manifold in that exact
-    // candidate order. Preserve that ordering so symmetric contacts select
-    // the same representative points on both backends.
+    // CUDA compacts the Cartesian product into per-lane runs before contact
+    // evaluation. Preserve that lane-grouped candidate order so symmetric
+    // contacts select the same representative points.
     const uint body_leaf_count = body_leaf_info.count;
     const uint collider_leaf_count = collider_leaf_info.count;
     if (body_leaf_count != 0u && collider_leaf_count != 0u) {
         const uint candidate_count = body_leaf_count * collider_leaf_count;
         const float separation = max(margin * 2.0f, 1.0e-4f);
-        for (uint lane = 0u; lane < 128u; ++lane) {
+        uint overlapping_candidate_count = 0u;
+        bool leaf_pair_overflow = false;
+        for (uint lane = 0u; lane < 128u && !leaf_pair_overflow; ++lane) {
             for (uint candidate = lane; candidate < candidate_count;
                  candidate += 128u) {
                 const uint body_leaf = candidate / collider_leaf_count;
@@ -2953,6 +3089,10 @@ static PMContactManifold pm_collide_meshes(
                         body_minimum, body_maximum, collider_minimum,
                         collider_maximum))
                     continue;
+                if (++overlapping_candidate_count > 512u) {
+                    leaf_pair_overflow = true;
+                    break;
+                }
                 PMContactManifold local{};
                 if (!swept_only)
                     pm_collide_triangle_ranges(
@@ -2983,7 +3123,10 @@ static PMContactManifold pm_collide_meshes(
                         body_hinge, collider_hinge);
             }
         }
-        return manifold;
+        if (!leaf_pair_overflow) return manifold;
+        // CUDA's bounded leaf-pair cache marks this pair as overflow and the
+        // finalizer recomputes it with the serial BVH traversal below.
+        manifold = {};
     }
 
     uint2 stack[256];

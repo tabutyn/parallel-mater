@@ -355,6 +355,10 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   Rigid contact generation uploads the CUDA-style BVH leaf order and reduces
   leaf-pair manifolds in the same stable 128-lane candidate order; this is
   required for symmetric impacts to make the same deterministic choice.
+  The leaf-pair cache is bounded to CUDA's 512 candidates per body pair. Dense
+  pairs that exceed it discard the partial reduction and rerun through the
+  serial BVH fallback, preserving CUDA's capacity behavior without allocating
+  during a step.
   Rigid manifolds now use CUDA's standard triangle-pair closest points first.
   Metal's segment/triangle query is only a numerical fallback for an empty
   deep-sweep manifold, a body-reference plane crossing with no approaching
@@ -370,6 +374,10 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   closes `fluid-rigid`. In the current package, `rigid-direct` first diverges
   during the authored kinematic impact at frame 40 and retains 13 reported
   differences; its post-replacement frame agrees again.
+  Guided static mechanisms use CUDA's entry-only swept contacts rather than
+  mixing endpoint and entry normals. Their sweep uses stable face projection,
+  the 0.1 mm guided rest offset, guide-space normal selection, first-impact
+  filtering, and projected conservative advancement at shallow corners.
   Small closed-convex rigid pairs now use CUDA's supporting-face selection and
   clipped incident-face manifold instead of retaining redundant triangle-pair
   contacts. Near-collinear triangle-seam vertices in those patches are reduced

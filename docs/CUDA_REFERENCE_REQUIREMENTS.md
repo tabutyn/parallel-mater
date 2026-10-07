@@ -24,7 +24,11 @@ current Metal conformance branch ports the CUDA convex/concave entry-side
 contact rule, small closed-convex face manifolds, the missing piston alignment
 row, reduced-coordinate slider/piston integration, and CUDA-style persistent
 contact initialization, warm starting, accumulated impulses, and cache
-write-back. Motor-driven contacts also resolve nearly parallel triangle normals
+write-back. Guided static mechanisms now use CUDA's entry-only sweep, stable
+face projection, 0.1 mm rest offset, guide-space normal selection, and
+projected conservative advancement. Dense mesh pairs also honor CUDA's
+512-entry leaf-pair cache limit before switching to serial BVH traversal.
+Motor-driven contacts also resolve nearly parallel triangle normals
 to the authored collider plane, removing backend-local tangent noise without
 changing the manifold. Convex face patches discard numerically near-collinear
 triangle-seam samples while retaining CUDA's full eight-contact capacity. With
@@ -84,6 +88,19 @@ combined contact ports reduce `constraint-generic` from 33 to 11 records and
 triangle-seam samples from a clipped convex patch, yielding CUDA's four patch
 corners without imposing a blanket four-contact cap. No additional compound
 trace is required unless a future CUDA capture changes that case.
+
+The remaining `constraint-hinge` mismatch is isolated more narrowly than the
+public count suggests. At frame 90, the `Gear.001`/`Gear.002` pair has 697
+overlapping BVH leaf pairs, so both backends cross CUDA's 512-entry cache limit.
+CUDA's final manifold contains contacts at z = 2.02543545, 2.40554595, and
+2.34251475 m; Metal's serial fallback retains the first two. The omitted CUDA
+contact has zero normal/friction impulse, while all rigid states pass tolerance.
+For this pair, capture the cache-overflow flag, every serial BVH stack push and
+pop, leaf and reordered triangle IDs, closest points, acceptance/rejection
+reason, and the manifold immediately after every `add_manifold_contact` call.
+The trace must cover the final non-empty substep at frames 45 and 90. This is
+the shortest reference artifact that can identify the remaining geometry-order
+difference without perturbing solver behavior.
 
 `constraint-motor` is now exact. For motor-driven bodies, Metal replaces only
 a triangle contact normal already parallel to an authored convex collider plane
