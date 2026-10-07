@@ -382,28 +382,36 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   clipped incident-face manifold instead of retaining redundant triangle-pair
   contacts. Near-collinear triangle-seam vertices in those patches are reduced
   geometrically while preserving CUDA's full eight-contact capacity; no
-  blanket four-point cap is used. This closes both `fluid-rigid` and
-  `compound-weld-lifecycle`.
+  blanket four-point cap is used. This closes `compound-weld-lifecycle` and
+  supplies the manifold shape used by the `fluid-rigid` solver fix below.
   Persistent rigid contacts now carry CUDA's impact fraction, initial normal
   speed, accumulated normal/friction impulse, warm-start state, initial
   relative position, and face-patch classification. Metal loads and stores a
   fixed-capacity, generation-checked cache between substeps without allocating
-  or waiting in a step, applies all warm starts before velocity sweeps, uses CUDA's
-  translational projection, and raises face patches to the CUDA 32-sweep
-  budget. This makes `constraint-breaking` exact, reduces
-  `constraint-generic` from 33 to 11 reported fields, reduces
-  `constraint-hinge` from 27 fields to one contact-count/list mismatch, and
-  brings `rigid-direct` to sub-millimetre positional drift.
+  or waiting in a step, applies all warm starts before velocity sweeps, uses
+  CUDA's translational projection, and raises face patches to the CUDA 32-sweep
+  budget. In the fresh reference comparison, `constraint-breaking` has 6
+  differences, `constraint-generic` has 8, `constraint-hinge` has 4, and
+  `rigid-direct` has 13.
+  For worlds of at least 32 bodies, ordinary non-kinematic persistent pairs
+  now keep both body states in local solver storage throughout the row solve,
+  matching CUDA's register/aliasing contract. This changes only `fluid-rigid`
+  among the 30 cases: Metal's final rigid-contact count moves from 123 to 102
+  versus CUDA's 107, closing the case within its chaotic-scene tolerance.
+  Small analytic or articulated scenes, fixed-cluster contacts, guided pairs,
+  and kinematic pairs retain the established device-memory path until tighter
+  CUDA traces can independently validate their solver semantics.
   Motor-constrained body contacts stabilize a triangle normal that is already
   parallel to an authored convex collider plane by using the transformed plane
   normal. This removes backend-local tangent noise while retaining contact
   position, depth, and ordering, and makes `constraint-motor` exact.
-  Cross-frame cache reuse remains gated: enabling it directly reopens
-  `fluid-rigid` and increases `constraint-generic` from 13 to 22 differences,
-  so the next CUDA handoff requests the first cache match and warm-start delta.
+  Cross-frame cache reuse remains gated: enabling it directly increased
+  `constraint-generic` differences in an earlier experiment, so the next CUDA
+  handoff requests the first cache match and warm-start delta for the remaining
+  rigid-only failures.
   Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
-  20 of 30 cases. The 10 outstanding cases are `cloth-tear`,
-  `constraint-fixed`,
+  19 of 30 cases. The 11 outstanding cases are `cloth-tear`,
+  `constraint-breaking`, `constraint-fixed`,
   `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
   `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
   `rope-soft-body`. The package also exposes five CUDA cases that are not

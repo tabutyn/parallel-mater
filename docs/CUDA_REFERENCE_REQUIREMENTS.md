@@ -35,25 +35,24 @@ triangle-seam samples while retaining CUDA's full eight-contact capacity.
 
 A forced metallib regeneration on 2026-10-07 exposed that an earlier local
 incremental-build capture had not embedded the current shader source. Treat
-that 20/30 capture as invalid. A fresh exact-HEAD build and the current
-rope/soft candidate both pass these 18 cases:
+that 20/30 capture as invalid. A fresh build with the accepted rope/soft fix
+and the large-world persistent-pair solver passes these 19 cases:
 
 - `cloth-core` and `cloth-water`;
 - `constraint-motor`, `constraint-piston`, and `constraint-slider`;
 - `compound-weld-lifecycle`;
-- `fluid-lifecycle`, `rope-cloth`, and `rope-fluid`;
+- `fluid-lifecycle`, `fluid-rigid`, `rope-cloth`, and `rope-fluid`;
 - `smoke-cloth`, `smoke-grid`, `smoke-rope`, `smoke-soft-body`, and
   `smoke-water`;
 - `soft-body-cloth`, `soft-body-core`, `soft-body-fluid`, and
   `soft-body-rigid`.
 
-The 12 remaining cases and their current comparator difference counts are:
+The 11 remaining cases and their current comparator difference counts are:
 
 | Area | Cases |
 | --- | --- |
 | Rigid lifecycle/contact | `passive-active` (43), `rigid-direct` (13) |
 | Constraints | `constraint-breaking` (6), `constraint-fixed` (45), `constraint-generic-spring` (12), `constraint-generic` (8), `constraint-hinge` (4), `constraint-point` (16) |
-| Fluid/rigid | `fluid-rigid` (1) |
 | Cloth/rope | `cloth-tear` (50), `rope-core` (279), `rope-soft-body` (8) |
 
 These counts describe comparison records, not necessarily independent bugs.
@@ -136,12 +135,15 @@ path, or swept path selected the final contact; final contact events alone
 cannot distinguish them.
 
 Cross-frame cache reuse is not enabled yet. A historical lifetime experiment
-increased `constraint-generic` differences while closing no case. In the fresh
-baseline, `fluid-rigid` differs only in its final rigid-contact count (CUDA 107,
-Metal 123). Capture the sorted particle/body candidate keys, deduplication
-decisions, event-emission mask, and final compacted event indices for that
-checkpoint. For rigid-only traces, identify CUDA's first cross-frame cache
-match and resulting warm-start impulse, not merely the final cached values.
+increased `constraint-generic` differences while closing no case. The former
+`fluid-rigid` mismatch was a rigid-manifold count, not fluid-event
+deduplication: CUDA emits 107 rigid contacts. Keeping both body states in local
+solver storage for each ordinary persistent pair in a large world gives Metal
+102 contacts deterministically, within the chaotic-case tolerance, and changes
+none of the other 29 cases. No particle-candidate trace is needed for that
+case. For the remaining rigid-only failures, identify CUDA's first cross-frame
+cache match and resulting warm-start impulse, not merely the final cached
+values.
 
 For a guided or constrained body, include the complete contact frame used by
 CUDA: fixed, axial, axial-rotation, fixed-member, and static-body flags; body
