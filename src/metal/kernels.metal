@@ -4049,14 +4049,14 @@ kernel void pm_rigid_contact_generate(
         (parameters[collider].motion != 2u ||
          (collider_mesh.solid_plane_count != 0u &&
           collider_mesh.index_count <= 96u));
-    const bool face_pair = !guided_static_pair &&
+    const bool convex_pair = !guided_static_pair &&
         body_mesh.solid_plane_count != 0u &&
         collider_mesh.solid_plane_count != 0u &&
-        body_mesh.index_count <= 96u && collider_mesh.index_count <= 96u &&
-        !pm_requires_swept_pair_contact(
-            previous_states[body], states[body], body_mesh,
-            previous_states[collider], states[collider], collider_mesh,
-            margin);
+        body_mesh.index_count <= 96u && collider_mesh.index_count <= 96u;
+    const bool swept_pair = pm_requires_swept_pair_contact(
+        previous_states[body], states[body], body_mesh,
+        previous_states[collider], states[collider], collider_mesh, margin);
+    const bool face_pair = convex_pair && !swept_pair;
     if (step.ordinary_rigid_stack != 0u && face_pair) {
         const uint cache_slot =
             pm_rigid_pair_slot(body, collider, step.body_count);
@@ -4080,7 +4080,7 @@ kernel void pm_rigid_contact_generate(
         }
     }
     PMContactManifold face_manifold{};
-    if (face_pair && pm_convex_face_manifold(
+    if (convex_pair && pm_convex_face_manifold(
             states[body], body_mesh, states[collider], collider_mesh,
             vertices, indices, solid_planes, margin, face_manifold)) {
         pm_reduce_collinear_face_contacts(face_manifold);
