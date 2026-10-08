@@ -3,3 +3,7 @@
 /out/
 *.nsys-rep
 *.ncu-rep
+__pycache__/
+*.py[cod]
+*.blend[0-9]*
+/examples/assets/cache_fluid_*/

@@ -9,6 +9,7 @@ Scripting workspace, or use it with Blender's --background --python flags.
 """
 
 import argparse
+import math
 import pathlib
 import sys
 
@@ -101,7 +102,14 @@ def rigid_metadata(
         exported["pm_initial_velocity_x"] = float(velocity[0])
         exported["pm_initial_velocity_y"] = float(velocity[2])
         exported["pm_initial_velocity_z"] = -float(velocity[1])
-    exported["pm_checkerboard"] = bool(source.get("pm_checkerboard", passive))
+    if "pm_arrow" in source:
+        force = source["pm_arrow"]
+        if (isinstance(force, bool) or not isinstance(force, (int, float)) or
+                not math.isfinite(force) or force < 0.0 or force > 3.402823466e38):
+            raise RuntimeError(f"{source.name}: pm_arrow must be finite, non-negative newtons")
+        if force > 0.0 and motion != "dynamic":
+            raise RuntimeError(f"{source.name}: pm_arrow requires an ACTIVE, non-Animated rigid body")
+        exported["pm_arrow"] = float(force)
     exported["pm_paintable"] = bool(source.get("pm_paintable", False))
     exported["pm_smoke_collider"] = bool(source.get("pm_smoke_collider", False))
     exported["pm_gravity_tilt"] = bool(source.get("pm_gravity_tilt", True))
@@ -377,6 +385,41 @@ def copy_collision_for_export(
     exported["pm_schema"] = SCHEMA_VERSION
     exported["pm_system"] = "collision_mesh"
     exported["pm_name"] = exported_name
+    return exported
+
+
+def copy_sphere_cluster_for_export(source, collection, created_meshes, created_materials):
+    """An Empty supplies the cluster pose; export one shared sphere template.
+
+    This is spawn metadata, not an extra simulated body. Display size and scale
+    of the Empty do not change the 0.1 m sphere radius or 0.23 m grid spacing.
+    """
+    if source.parent is not None or source.rigid_body_constraint is not None:
+        raise RuntimeError(f"{source.name}: sphere cluster must be a scene-root Empty without a constraint")
+    mesh = bpy.data.meshes.new("SphereClusterTemplate")
+    created_meshes.append(mesh)
+    geometry = bmesh.new()
+    bmesh.ops.create_icosphere(geometry, subdivisions=2, radius=0.1)
+    geometry.to_mesh(mesh)
+    geometry.free()
+    material = bpy.data.materials.new("SphereClusterPayload")
+    created_materials.append(material)
+    material.use_nodes = True
+    material.diffuse_color = (0.72, 0.39, 0.12, 1.0)
+    material.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = material.diffuse_color
+    mesh.materials.append(material)
+    exported = bpy.data.objects.new(source.name, mesh)
+    collection.objects.link(exported)
+    location, rotation, _ = source.matrix_world.decompose()
+    exported.matrix_world = Matrix.LocRotScale(location, rotation, None)
+    for key, value in {
+        "pm_schema": SCHEMA_VERSION, "pm_system": "sphere_cluster",
+        "pm_name": source.name, "pm_source_name": source.name,
+        "pm_motion": "dynamic", "pm_mass": 0.04, "pm_friction": 0.35,
+        "pm_restitution": 0.02, "pm_linear_damping": 0.02,
+        "pm_angular_damping": 0.02, "pm_collision_margin": 0.005,
+    }.items():
+        exported[key] = value
     return exported
 
 
@@ -917,8 +960,10 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         if obj.type == "MESH" and
         bool(obj.get("pm_hit_box", obj.get("pm_load_box", False)))
     ]
+    sphere_clusters = [obj for obj in bpy.context.scene.objects
+                       if obj.type == "EMPTY" and obj.name == "SphereCluster"]
     if not (sources or flows or cloths or soft_bodies or ropes or constraints or
-            hit_boxes):
+            hit_boxes or sphere_clusters):
         raise RuntimeError(
             "the scene contains no supported physics objects")
 
@@ -998,6 +1043,9 @@ def export_scene(filepath: str | pathlib.Path | None = None) -> pathlib.Path:
         for source in hit_boxes:
             created_objects.append(copy_hit_box_for_export(
                 source, collection, depsgraph, created_meshes))
+        for source in sphere_clusters:
+            created_objects.append(copy_sphere_cluster_for_export(
+                source, collection, created_meshes, created_materials))
         for source in thermal_surfaces:
             created_objects.append(copy_thermal_surface_for_export(
                 source, collection, created_meshes))

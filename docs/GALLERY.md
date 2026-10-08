@@ -32,17 +32,22 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
-2. **Rigid constraints** — seven Blender-authored scenes exercise all eight
-   joint types: Fixed, Point, Hinge + Slider, Piston, Generic, Generic Spring,
-   and Motor.
-   Fixed collects loose spheres on contact. Point starts with four spheres
-   orbiting a shared anchor in two perpendicular pairs; `Space` releases or
-   reattaches all four. The four-wheel Motor car uses arrow-key tank controls.
+2. **Rigid constraints** — six Blender-authored scenes exercise all eight
+   joint types: Fixed, Point, Hinge + Slider, Piston, Generic, and Motor +
+   Spring.
+   Fixed collects loose spheres on contact. Point uses the simplified Celestial
+   asset: four plain spheres on rigid arms share one elevated point, with
+   different lengths and opposing initial velocities. Arrows tilt gravity.
+   `Space` releases the arms; pressing it again
+   restores their authored poses and velocities before re-enabling the joints,
+   avoiding a violent snap from distant release positions. `R` reloads the GLB.
    Hinge + Slider contains a three-gear train with an integrated panel and a
    slider rod, without a loose ball. Piston uses alternating gravity to slide
    a toothed sleeve along its shaft and index its rotation; eight complete
-   right–left cycles should produce one revolution. Generic and Generic Spring
-   receive an authored sphere impact.
+   right–left cycles should produce one revolution. Generic's authored
+   `GenericBlockA` uses `pm_arrow = 100.0` for screen-space force controls;
+   Motor + Spring connects four powered wheels through separate dynamically
+   suspended hubs.
 
    `parallel-mater-piston-scene-tests` drives sixteen alternating strokes at
    60 Hz with four physics substeps, using both abrupt side-camera input and
@@ -52,8 +57,11 @@ Headless physics builds remain free of OpenGL and OptiX.
    cycles from that pose finish at approximately 360.66 degrees. The smoothed
    test starts at a seated endpoint and checks a 360-degree turn within
    0.002 radians. Neutral-gravity release is checked independently.
-3. **DUMP** — 10–1,000 shared-mesh spheres pour from a kinematic open hopper
-   into a larger static receiver.
+3. **DUMP** — a Blender-authored dump truck uses Motor + Spring's four-wheel
+   drive and steering rig. Its rear bucket starts upright with a bottom and four
+   walls, but no top. Space tips it rearward to 100 degrees and holds it there;
+   another press lowers it. The dynamic bucket carries 10–1,000 shared-mesh
+   spheres and transmits load through the chassis and suspension.
 4. **Fluid flow** — Blender Inflow emits repelling particles over a passive
    triangle surface; Outflow removes them and impact agitation shows as foam.
 5. **Fluid + rigid** — 64 independently simulated dynamic spheres from a
@@ -149,34 +157,49 @@ still respond to the sphere's contact impulses. Its non-rendered `LoadBox` is
 imported as an oriented hit-box query volume; C++ does not restate the body
 list, transforms, or trigger bounds.
 
-`Tab` opens an examples-only context selector ordered Rigid Body, the seven
+`Tab` opens an examples-only context selector ordered Rigid Body, the six
 Constraint scenes, DUMP, Fluid,
 Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, Water Cloth, Soft Body,
 Soft Body Rigid, Soft Body Cloth, Soft Body Fluid, Rope, Rope Fluid.
 Constraint scenes are also selectable headlessly with
 `--constraint-fixed`, `--constraint-point`, `--constraint-hinge`,
-`--constraint-piston`, `--constraint-generic`,
-`--constraint-generic-spring`, and `--constraint-motor`. Automated runs can
+`--constraint-piston`, `--constraint-generic`, and
+`--constraint-motor-spring`. Automated runs can
 trigger the toggle after N frames with `--constraint-action-after-frames N`
 or drive the car with `--motor-forward`.
-`--constraint-hinge` selects **Hinge + Slider**. The standalone Slider entry and
-its CLI option have been removed; `ConstraintSlider.blend` and `.glb` remain
-test/conformance fixtures, not gallery entries.
-Arrow keys tilt gravity relative to the current camera in every Constraint
-scene except Motor. Motor keeps
-arrow-key tank drive controls; Point keeps its `Space` toggle and starts
-enabled with four spheres orbiting its shared authored anchor. Fixed uses
+`--constraint-hinge` selects **Hinge + Slider**. The standalone Slider, Generic
+Spring, and Motor entries and their CLI options have been removed; their
+`.blend` and `.glb` files remain test/conformance fixtures, not gallery entries.
+Arrow keys tilt gravity relative to the current camera in Constraint scenes
+except Motor + Spring and scenes with positive `pm_arrow` properties. On Generic,
+arrows apply 100 N at `GenericBlockA`'s center of mass along the current
+camera-relative screen direction projected onto the floor, while gravity stays
+vertical. Diagonals retain the same total force; release stops adding force,
+not momentum. Positive
+`pm_arrow` anywhere in a scene takes ownership of arrow-key input, without
+also tilting gravity or driving a kinematic body. See the complete
+[Blender property reference](BLENDER_SCENES.md#supported-pm_-properties).
+Both Motor scenes use Up/Down for common wheel drive. Motor + Spring uses
+Left/Right for four-wheel steering: each hub and wheel yaw around the vertical
+suspension axis, with the rear axle opposite the front. Point starts enabled with
+four spheres on different-length arms sharing an elevated anchor; `Space` releases
+or restores the assembly. Fixed uses
 contact-driven collection instead.
 Up/Down changes selection and Enter activates an available scene. A shared
 camera controller works in all scenes: left-drag orbits,
 Shift+left-drag pans, and the wheel zooms. Switching scenes resets the pan to
 the new scene's target while preserving orbit and zoom. The Fluid camera can
-also move beneath the level for inspection. DUMP uses one
-procedural sphere mesh—eight cube corners plus six face centers, projected to a
-radius and joined as four triangles per face—and instances it for every body.
-Its hopper omits top and right faces; Left Arrow rotates the hopper clockwise.
-`P` opens a 10–1,000 sphere-count editor and applying a value rebuilds the DUMP
-runtime. Fluid loads the supplied Blender-authored `Fluid.blend` via its GLB
+also move beneath the level for inspection. DUMP loads `DumpTruck.glb`, with
+Up/Down drive and Left/Right four-wheel steering. Space raises/lowers the bucket
+between 0 and 100 degrees at 30 degrees per second. Its low-friction liner lets
+the last spheres slide out over the rear wall at the final angle.
+The default 100-sphere grid is centered on the Blender Empty `SphereCluster`.
+`P` opens a 10–1,000 sphere-count editor; applying any count repacks around that
+same Empty's position and rotation. `DumpLoadVolume` is no longer used.
+Save and re-export the Blender scene after moving the Empty. `--dump` selects it;
+`--dump-spheres N` also sets the load and
+`--dump-after-frames N` triggers Space in headless checks. The original procedural
+hopper remains only as a physics stress/conformance fixture. Fluid loads the supplied Blender-authored `Fluid.blend` via its GLB
 export. In Fluid, `P` edits the particle cap (100–100,000; default 30,000)
 and restarts the scene. `--fluid-particles N` sets the cap for a headless run.
 `R` rebuilds the active scene from its initial state, clearing particles and

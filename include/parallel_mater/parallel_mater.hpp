@@ -1177,6 +1177,15 @@ struct WorldStatistics {
     std::uint32_t rigid_body_count{};
     std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
+    // Last rigid substep, diagnostic only; zero before the first solve.
+    std::uint32_t rigid_contact_island_count{};
+    std::uint32_t rigid_contact_early_exit_count{};
+    std::uint32_t rigid_contact_maximum_passes{};
+    std::uint32_t rigid_contact_color_count{};
+    std::uint32_t rigid_contact_overflow_pairs{};
+    std::uint32_t rigid_contact_grid_blocks{};
+    std::uint32_t rigid_contact_candidate_pairs{};
+    std::uint32_t rigid_contact_live_pairs{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
     std::uint32_t maximum_fluid_neighbor_count{};

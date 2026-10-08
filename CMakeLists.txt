@@ -246,6 +246,12 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery-renderer PRIVATE -Wall -Wextra -Wpedantic)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
+        add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
+        target_link_libraries(parallel-mater-dump-truck-benchmark PRIVATE parallel-mater-gallery-renderer)
+        target_compile_definitions(parallel-mater-dump-truck-benchmark PRIVATE
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
+            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+        target_compile_options(parallel-mater-dump-truck-benchmark PRIVATE -Wall -Wextra -Wpedantic)
         add_executable(parallel-mater-rigid-frame-benchmark benchmarks/rigid_frame.cpp)
         target_link_libraries(parallel-mater-rigid-frame-benchmark
                               PRIVATE parallel-mater-gallery-renderer)
@@ -267,12 +273,12 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
-            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
+            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb"
             PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
             PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
             PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
+            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb"
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
             PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
             PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
             PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
@@ -297,6 +303,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 endif()
 
 if(BUILD_TESTING)
+    add_subdirectory(tests/solver)
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
@@ -452,6 +459,24 @@ if(BUILD_TESTING)
 
         add_executable(parallel-mater-rigid-constraint-scene-tests
                        tests/gallery/rigid_constraint_scene_tests.cpp)
+        add_executable(parallel-mater-celestial-scene-tests
+                       tests/gallery/celestial_scene_tests.cpp)
+        add_executable(parallel-mater-dump-truck-tests tests/gallery/dump_truck_tests.cpp)
+        target_link_libraries(parallel-mater-dump-truck-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-dump-truck-tests PRIVATE
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
+        add_test(NAME parallel-mater-dump-truck-tests COMMAND parallel-mater-dump-truck-tests)
+        add_test(NAME parallel-mater-dump-payload-tests
+                 COMMAND parallel-mater-dump-truck-tests --metadata-only)
+        set_tests_properties(parallel-mater-dump-truck-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        target_link_libraries(parallel-mater-celestial-scene-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-celestial-scene-tests PRIVATE
+            PARALLEL_MATER_CELESTIAL_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb")
+        add_test(NAME parallel-mater-celestial-scene-tests
+                 COMMAND parallel-mater-celestial-scene-tests)
+        set_tests_properties(parallel-mater-celestial-scene-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
         target_link_libraries(parallel-mater-rigid-constraint-scene-tests
                               PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(
@@ -463,7 +488,8 @@ if(BUILD_TESTING)
             PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
             PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
             PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb")
+            PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
+            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb")
         add_test(NAME parallel-mater-rigid-constraint-scene-tests
                  COMMAND parallel-mater-rigid-constraint-scene-tests)
         set_tests_properties(parallel-mater-rigid-constraint-scene-tests
@@ -483,6 +509,20 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-piston-scene-tests)
         set_tests_properties(parallel-mater-piston-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
+        add_executable(parallel-mater-arrow-force-tests tests/gallery/arrow_force_tests.cpp)
+        target_link_libraries(parallel-mater-arrow-force-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-arrow-force-tests PRIVATE
+            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb")
+        add_test(NAME parallel-mater-arrow-force-tests COMMAND parallel-mater-arrow-force-tests)
+        set_tests_properties(parallel-mater-arrow-force-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+
+        add_executable(parallel-mater-generic-contact-tests tests/gallery/generic_contact_tests.cpp)
+        target_link_libraries(parallel-mater-generic-contact-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-generic-contact-tests PRIVATE
+            PARALLEL_MATER_GENERIC_TRAY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/generic_tray.glb")
+        add_test(NAME parallel-mater-generic-contact-tests COMMAND parallel-mater-generic-contact-tests)
+        set_tests_properties(parallel-mater-generic-contact-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 
         add_executable(parallel-mater-cloth-tests tests/gallery/cloth_tests.cpp)
         target_link_libraries(parallel-mater-cloth-tests
@@ -772,8 +812,11 @@ if(BUILD_TESTING)
             --gravity-tilt-degrees 30)
         add_gallery_headless_test(
             parallel-mater-constraint-point-headless-test
-            parallel-mater-constraint-point.ppm 120 --constraint-point
-            --constraint-action-after-frames 56)
+            parallel-mater-constraint-point.ppm 180 --constraint-point)
+        add_gallery_headless_test(
+            parallel-mater-constraint-point-release-headless-test
+            parallel-mater-constraint-point-release.ppm 180 --constraint-point
+            --constraint-action-after-frames 60)
         add_gallery_headless_test(
             parallel-mater-constraint-hinge-headless-test
             parallel-mater-constraint-hinge.ppm 120 --constraint-hinge)
@@ -784,13 +827,9 @@ if(BUILD_TESTING)
             parallel-mater-constraint-generic-headless-test
             parallel-mater-constraint-generic.ppm 120 --constraint-generic)
         add_gallery_headless_test(
-            parallel-mater-constraint-generic-spring-headless-test
-            parallel-mater-constraint-generic-spring.ppm 120
-            --constraint-generic-spring)
-        add_gallery_headless_test(
-            parallel-mater-constraint-motor-headless-test
-            parallel-mater-constraint-motor.ppm 120 --constraint-motor
-            --motor-forward)
+            parallel-mater-constraint-motor-spring-headless-test
+            parallel-mater-constraint-motor-spring.ppm 120
+            --constraint-motor-spring --motor-forward --motor-right)
         add_gallery_headless_test(
             parallel-mater-rope-headless-test
             parallel-mater-rope-settled.ppm 900 --rope)
@@ -832,6 +871,12 @@ if(BUILD_TESTING)
         add_gallery_headless_test(
             parallel-mater-dump-headless-test
             parallel-mater-dump-test.ppm 150 --dump-spheres 10)
+        add_gallery_headless_test(
+            parallel-mater-dump-tip-headless-test
+            parallel-mater-dump-tip.ppm 480 --dump-spheres 100 --dump-after-frames 120)
+        add_gallery_headless_test(
+            parallel-mater-dump-drive-headless-test
+            parallel-mater-dump-drive.ppm 60 --dump-spheres 10 --motor-forward --motor-right)
         add_gallery_headless_test(
             parallel-mater-fluid-headless-test
             parallel-mater-fluid-test.ppm 30 --fluid)

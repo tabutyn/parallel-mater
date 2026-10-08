@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.hpp>
+#include <parallel_mater/solver/contact.hpp>
 
 #include <cuda_runtime.h>
 #include <cuda/atomic>
+#include <cooperative_groups.h>
 
 #include <cub/device/device_select.cuh>
 #include <cub/device/device_radix_sort.cuh>
@@ -1153,7 +1155,12 @@ struct World::Impl {
     std::uint64_t rigid_contact_revision{};
     std::uint32_t *rigid_color_owners{};
     std::uint8_t *rigid_pair_colors{};
+    std::uint32_t *rigid_color_work{};
     std::uint32_t *rigid_color_state{};
+    ContactSchedule *rigid_contact_schedule{};
+    ContactIsland *rigid_contact_islands{};
+    std::uint32_t rigid_contact_grid_limit{1U};
+    std::uint32_t rigid_contact_block_size{8U};
     std::uint32_t *rigid_contact_event_offsets{};
     WorldAabb *rigid_world_bounds{};
     std::uint8_t *hit_box_rigid_flags{};
@@ -1355,6 +1362,9 @@ struct World::Impl {
         release_managed(fluid_contact_overflow);
         release_managed(rigid_contact_event_offsets);
         release_managed(rigid_color_state);
+        release_managed(rigid_contact_schedule);
+        release_managed(rigid_contact_islands);
+        release_managed(rigid_color_work);
         release_managed(rigid_pair_colors);
         release_managed(rigid_color_owners);
         release_managed(rigid_manifolds);
@@ -1593,6 +1603,21 @@ Status World::create(WorldOptions options, World &output,
     }
     implementation->options = options;
     implementation->device_ordinal = device;
+    int multiprocessors = 0;
+    error = cudaDeviceGetAttribute(&multiprocessors, cudaDevAttrMultiProcessorCount, device);
+    if (error != cudaSuccess) return cuda_failure(error, "failed to query contact multiprocessors");
+    int cooperative = 0;
+    error = cudaDeviceGetAttribute(&cooperative, cudaDevAttrCooperativeLaunch, device);
+    if (error != cudaSuccess) return cuda_failure(error, "query cooperative contact launch support");
+    int resident_blocks = 1;
+    implementation->rigid_contact_block_size = cooperative ? 8U : 128U;
+    error = cudaOccupancyMaxActiveBlocksPerMultiprocessor(&resident_blocks,
+        resolve_rigid_contacts_kernel, implementation->rigid_contact_block_size, 0);
+    if (error != cudaSuccess) return cuda_failure(error, "query contact kernel occupancy");
+    // One resident block per SM avoids over-subscribing grid barriers. Launch
+    // geometry changes scheduling only; equations and budgets stay shared.
+    implementation->rigid_contact_grid_limit = cooperative && resident_blocks > 0
+        ? static_cast<unsigned>(std::max(1, multiprocessors)) : 1U;
     Status status = allocate_managed(implementation->paint_fields,
                                      options.paint_field_capacity);
     if (!status) return status;
@@ -1723,6 +1748,13 @@ Status World::create(WorldOptions options, World &output,
     if (!status) {
         return status;
     }
+    status = allocate_managed(implementation->rigid_color_work, manifold_count);
+    if (!status) return status;
+    status = allocate_managed(implementation->rigid_contact_schedule, 1U);
+    if (!status) return status;
+    *implementation->rigid_contact_schedule = {};
+    status = allocate_managed(implementation->rigid_contact_islands, options.rigid_body_capacity);
+    if (!status) return status;
     status = allocate_managed(implementation->rigid_contact_event_offsets,
                               manifold_count);
     if (!status) {
@@ -6405,18 +6437,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         : impl_->rigid_body_count < 9U
             ? impl_->rigid_body_count * (impl_->rigid_body_count - 1U) / 2U
             : k_contact_color_count;
-    const bool small_rigid_contacts = impl_->rigid_body_count <= 256U;
-    // Fixed contact Jacobians and a different dependent color order are
-    // validated for ordinary stacks, not small analytic/articulated cases or
-    // coupled systems. Those keep their established contact response.
-    const bool ordinary_rigid_stack = small_rigid_contacts &&
-        impl_->rigid_body_count >= 32U && impl_->rigid_constraint_count == 0U &&
-        impl_->fluid_count == 0U && !has_cloth && !has_soft_body && !has_smoke &&
-        std::none_of(impl_->ropes.begin(), impl_->ropes.end(),
-            [](const auto &rope) { return rope && rope->alive; });
-    impl_->rigid_solve_kernels_per_substep = (small_rigid_contacts ? 7U :
-        5U + 3U * color_round_count + 9U * (color_round_count + 1U)) +
-        (impl_->rigid_constraint_count != 0U ? 2U : 0U);
+    const bool single_block_coloring = impl_->rigid_body_count <= 256U;
+    impl_->rigid_solve_kernels_per_substep = (single_block_coloring ? 8U :
+        7U + 3U * color_round_count) +
+        (impl_->rigid_constraint_count != 0U ? 3U : 0U);
     const auto coupled_cloth = [&](std::uint32_t index) {
         return std::any_of(impl_->soft_cloth_couplings.begin(),
             impl_->soft_cloth_couplings.end(), [&](const auto &coupling) {
@@ -7410,13 +7434,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_contact_epoch += 2U;
         impl_->rigid_contact_revision = impl_->revision;
         ++impl_->rigid_contact_epoch;
-        load_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
-            impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
-            impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
-            impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
-            impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
-            impl_->parameters,
-            ordinary_rigid_stack ? impl_->rigid_contact_responses : nullptr);
         prepare_parallel_contact_events_kernel<<<1U, 1U, 0, stream>>>(
             impl_->rigid_body_count, impl_->rigid_manifolds,
             impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
@@ -7424,11 +7441,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_contact_events, impl_->rigid_contact_capacity,
             impl_->rigid_contact_count,
             collect_rigid_contacts, substep == 0U);
+        load_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
+            impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
+            impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
+            impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
+            impl_->rigid_contact_responses);
         initialize_parallel_colors_kernel<<<
             contact_block_count, block_size, 0, stream>>>(
                 impl_->rigid_active_pair_count,
                 impl_->rigid_pair_colors, impl_->rigid_color_state);
-        if (small_rigid_contacts) {
+        if (single_block_coloring) {
             color_small_rigid_contacts_kernel<<<1U, block_size, 0, stream>>>(
                 impl_->parameters, impl_->rigid_body_count,
                 impl_->rigid_manifolds, impl_->rigid_active_pairs,
@@ -7436,8 +7459,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_color_owners, impl_->rigid_color_state,
                 color_round_count,
                 impl_->rigid_constraint_count != 0U
-                    ? impl_->rigid_compounds : nullptr,
-                ordinary_rigid_stack);
+                    ? impl_->rigid_compounds : nullptr);
         } else {
             for (std::uint32_t color = 0U;
                  color < color_round_count; ++color) {
@@ -7466,55 +7488,36 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                             ? impl_->rigid_compounds : nullptr);
             }
         }
-        if (small_rigid_contacts) {
-            resolve_small_rigid_contacts_kernel<<<1U, block_size, 0, stream>>>(
-                impl_->parameters, impl_->states[output_state],
-                impl_->rigid_body_count, impl_->rigid_manifolds,
-                impl_->rigid_active_pairs,
-                impl_->rigid_active_pair_count,
-                impl_->rigid_pair_colors, impl_->rigid_color_state,
-                impl_->rigid_contact_event_offsets,
-                impl_->rigid_contact_events,
-                collect_rigid_contacts
-                    ? impl_->rigid_contact_capacity : 0U,
-                substep_timestep,
-                impl_->rigid_constraint_count != 0U
-                    ? impl_->rigid_compounds : nullptr,
-                impl_->rigid_contact_responses,
-                ordinary_rigid_stack ? impl_->rigid_leaf_pair_slot_capacity : 0U);
-        } else {
-            for (std::uint32_t pass = 0U; pass <= 8U; ++pass) {
-                for (std::uint32_t color = 0U;
-                     color < color_round_count; ++color) {
-                    resolve_colored_rigid_contacts_kernel<<<
-                        contact_block_count, block_size, 0, stream>>>(
-                        impl_->parameters, impl_->states[output_state],
-                        impl_->rigid_body_count, impl_->rigid_manifolds,
-                        impl_->rigid_active_pairs,
-                        impl_->rigid_active_pair_count,
-                        impl_->rigid_pair_colors, impl_->rigid_color_state,
-                        impl_->rigid_contact_event_offsets,
-                        impl_->rigid_contact_events,
-                        collect_rigid_contacts
-                            ? impl_->rigid_contact_capacity : 0U,
-                        color, substep_timestep, pass == 1U,
-                        impl_->rigid_constraint_count != 0U
-                            ? impl_->rigid_compounds : nullptr, pass == 0U);
-                }
-                resolve_uncolored_rigid_contacts_kernel<<<1U, 1U, 0, stream>>>(
-                    impl_->parameters, impl_->states[output_state],
-                    impl_->rigid_body_count, impl_->rigid_manifolds,
-                    impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
-                    impl_->rigid_pair_colors, impl_->rigid_color_state,
-                    impl_->rigid_contact_event_offsets,
-                    impl_->rigid_contact_events,
-                    collect_rigid_contacts
-                        ? impl_->rigid_contact_capacity : 0U,
-                    substep_timestep, pass == 1U,
-                    impl_->rigid_constraint_count != 0U
-                        ? impl_->rigid_compounds : nullptr, pass == 0U);
+        // One row/schedule implementation for every launch size. Fine-grained
+        // blocks distribute even a narrow stack color across multiprocessors.
+        const unsigned contact_grid = impl_->rigid_body_count <= 256U ? 1U :
+            std::min(impl_->rigid_contact_grid_limit, std::max(1U, (impl_->rigid_body_count + 3U) / 4U));
+        const unsigned contact_block = contact_grid == 1U ? 128U : impl_->rigid_contact_block_size;
+        prepare_rigid_contact_schedule_kernel<<<1U, 128U, 0, stream>>>(
+            impl_->parameters, impl_->rigid_body_count, impl_->rigid_manifolds,
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count, impl_->rigid_pair_colors,
+            impl_->rigid_color_work, impl_->rigid_contact_schedule, impl_->rigid_contact_islands,
+            impl_->rigid_constraints,
+            impl_->rigid_constraint_count != 0U ? impl_->options.rigid_constraint_capacity : 0U,
+            impl_->ids, contact_grid);
+        const auto launch_contacts = [&](auto... arguments) {
+            if (contact_grid == 1U) {
+                resolve_rigid_contacts_kernel<<<1U, contact_block, 0, stream>>>(arguments...);
+                return cudaGetLastError();
             }
-        }
+            void *kernel_arguments[]{static_cast<void *>(&arguments)...};
+            return cudaLaunchCooperativeKernel(reinterpret_cast<void *>(resolve_rigid_contacts_kernel),
+                dim3(contact_grid), dim3(contact_block), kernel_arguments, 0, stream);
+        };
+        const auto contact_error = launch_contacts(
+            impl_->parameters, impl_->states[output_state], impl_->rigid_body_count,
+            impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_contact_event_offsets,
+            impl_->rigid_contact_events, collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
+            substep_timestep, impl_->rigid_constraint_count != 0U ? impl_->rigid_compounds : nullptr,
+            impl_->rigid_contact_responses, impl_->rigid_leaf_pair_slot_capacity,
+            impl_->rigid_color_work, impl_->rigid_contact_schedule, impl_->rigid_contact_islands,
+            impl_->rigid_color_state);
+        if (contact_error != cudaSuccess) return cuda_failure(contact_error, "launch shared contact grid");
         if (impl_->rigid_constraint_count != 0U) {
             solve_rigid_constraints_kernel<<<1U, 1U, 0, stream>>>(
                 impl_->rigid_constraints,
@@ -7525,7 +7528,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_active_pair_count, impl_->rigid_contact_event_offsets,
                 impl_->rigid_contact_events,
                 collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
-                impl_->rigid_compounds);
+                impl_->rigid_compounds, impl_->rigid_contact_responses,
+                impl_->rigid_leaf_pair_slot_capacity);
             project_fixed_ground_contacts_kernel<<<1U, 1U, 0, stream>>>(
                 impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
                 impl_->ids, impl_->parameters, impl_->states[output_state],
@@ -7550,8 +7554,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
             impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
             impl_->rigid_contact_event_offsets, impl_->rigid_contact_events,
-            collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U,
-            ordinary_rigid_stack ? impl_->rigid_contact_responses : nullptr);
+            collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
@@ -8884,6 +8887,17 @@ Status World::collect_statistics(WorldStatistics &output,
     output.rigid_body_count = impl_->rigid_body_count;
     output.rigid_constraint_count = impl_->rigid_constraint_count;
     output.triangle_mesh_count = impl_->triangle_mesh_count;
+    if (impl_->frame_index != 0U && impl_->rigid_body_count != 0U) {
+        const auto &schedule = *impl_->rigid_contact_schedule;
+        output.rigid_contact_island_count = schedule.island_count;
+        output.rigid_contact_early_exit_count = schedule.early_exit_count;
+        output.rigid_contact_maximum_passes = schedule.maximum_passes;
+        output.rigid_contact_color_count = impl_->rigid_color_state[0];
+        output.rigid_contact_overflow_pairs = schedule.counts[28];
+        output.rigid_contact_grid_blocks = schedule.blocks;
+        output.rigid_contact_candidate_pairs = schedule.candidates;
+        output.rigid_contact_live_pairs = schedule.contacts;
+    }
     output.allocated_bytes +=
         capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
@@ -8900,8 +8914,9 @@ Status World::collect_statistics(WorldStatistics &output,
         impl_->rigid_leaf_pair_slot_capacity * sizeof(ContactResponsePatch) +
         capacity * capacity * sizeof(std::uint32_t) +
         capacity * sizeof(std::uint32_t) +
-        capacity * (capacity - 1U) / 2U * sizeof(std::uint8_t) +
+        capacity * (capacity - 1U) / 2U * (sizeof(std::uint8_t) + sizeof(std::uint32_t)) +
         2U * sizeof(std::uint32_t) +
+        sizeof(ContactSchedule) + capacity * sizeof(ContactIsland) +
         capacity * (capacity - 1U) / 2U * sizeof(std::uint32_t) +
         capacity * (2U * sizeof(WorldAabb) + sizeof(std::uint32_t)) +
         capacity * capacity *

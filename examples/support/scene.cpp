@@ -36,6 +36,8 @@ class FlatJson {
   public:
     explicit FlatJson(const char *json) : json_(json != nullptr ? json : "") {}
 
+    [[nodiscard]] bool contains(std::string_view key) const { return find(key).has_value(); }
+
     [[nodiscard]] std::optional<std::string> string(std::string_view key) const {
         const std::optional<std::string_view> value = find(key);
         if (!value || value->empty() || value->front() != '"') {
@@ -151,7 +153,6 @@ class FlatJson {
 
 [[nodiscard]] bool read_metadata(const cgltf_node &node,
                                  RigidBodyOptions &options,
-                                 bool &checkerboard,
                                  std::string &error) {
     const FlatJson extras(node.extras.data);
     const std::optional<double> schema = extras.number("pm_schema");
@@ -164,7 +165,7 @@ class FlatJson {
         error = node_name + ": unsupported or missing pm_schema";
         return false;
     }
-    if (!system || *system != "rigid_body") {
+    if (!system || (*system != "rigid_body" && *system != "sphere_cluster")) {
         error = node_name + ": unsupported pm_system";
         return false;
     }
@@ -210,7 +211,6 @@ class FlatJson {
             extras.number("pm_collision_margin")) {
         options.collision_margin = static_cast<float>(*margin);
     }
-    checkerboard = extras.boolean("pm_checkerboard").value_or(false);
     return true;
 }
 
@@ -254,7 +254,7 @@ class FlatJson {
 }
 
 [[nodiscard]] bool append_primitive(const cgltf_primitive &primitive,
-                                    Vec3 scale, bool checkerboard,
+                                    Vec3 scale,
                                     std::string_view name,
                                     TriangleMesh &mesh,
                                     std::string &error) {
@@ -280,7 +280,6 @@ class FlatJson {
     mesh.name = std::string(name);
     mesh.base_color = material_color(primitive.material);
     mesh.visible = material_visible(primitive.material);
-    mesh.checkerboard = checkerboard;
     mesh.vertices.resize(positions->count);
     const Vec3 inverse_scale{1.0F / scale.x, 1.0F / scale.y, 1.0F / scale.z};
     for (cgltf_size index = 0; index < positions->count; ++index) {
@@ -461,7 +460,7 @@ struct Pin { Vec3 position; float weight; bool matched{}; };
          primitive_index < node.mesh->primitives_count; ++primitive_index) {
         TriangleMesh mesh{};
         if (!append_primitive(node.mesh->primitives[primitive_index], scale,
-                              false, "fluid initial volume", mesh, error))
+                              "fluid initial volume", mesh, error))
             return false;
         const auto base = static_cast<std::uint32_t>(vertices.size());
         for (const Vertex &vertex : mesh.vertices)
@@ -563,8 +562,7 @@ void append_quad(std::vector<std::uint32_t> &indices, std::uint32_t first,
 }
 
 [[nodiscard]] TriangleMesh make_open_cube(std::string name, float half_extent,
-                                          bool remove_right, Vec3 color,
-                                          bool checkerboard) {
+                                          bool remove_right, Vec3 color) {
     const std::array<Vec3, 8> corners{{
         {-half_extent, -half_extent, -half_extent},
         {half_extent, -half_extent, -half_extent},
@@ -578,7 +576,6 @@ void append_quad(std::vector<std::uint32_t> &indices, std::uint32_t first,
     TriangleMesh result{};
     result.name = std::move(name);
     result.base_color = color;
-    result.checkerboard = checkerboard;
     result.vertices.reserve(corners.size());
     for (const Vec3 corner : corners) {
         result.vertices.push_back({corner, normalize(corner)});
@@ -701,7 +698,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             const std::string mesh_name =
                 node_name + "/primitive_" + std::to_string(primitive_index);
             if (!append_primitive(node.mesh->primitives[primitive_index], scale,
-                                  false, mesh_name, mesh, error)) {
+                                  mesh_name, mesh, error)) {
                 return false;
             }
             proxy.mesh_indices.push_back(
@@ -760,7 +757,6 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
     std::unordered_set<std::string> used_collision_proxies;
     struct SharedRenderMesh {
         Vec3 scale{};
-        bool checkerboard{};
         std::vector<std::uint32_t> indices{};
         Vec3 center{};
     };
@@ -771,14 +767,14 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             continue;
         }
         const FlatJson extras(node.extras.data);
-        if (extras.string("pm_system").value_or("") != "rigid_body") {
+        const auto system = extras.string("pm_system").value_or("");
+        if (system != "rigid_body" && system != "sphere_cluster") {
             continue;
         }
         RigidBodyDefinition body{};
         body.name = node.name != nullptr ? node.name
                                          : "node_" + std::to_string(node_index);
-        bool checkerboard = false;
-        if (!read_metadata(node, body.options, checkerboard, error)) {
+        if (!read_metadata(node, body.options, error)) {
             if (error.empty()) {
                 continue;
             }
@@ -790,6 +786,16 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         body.smoke_collider = extras.boolean("pm_smoke_collider").value_or(false);
         body.follows_gravity_tilt =
             extras.boolean("pm_gravity_tilt").value_or(true);
+        if (extras.contains("pm_arrow")) {
+            const auto force = extras.number("pm_arrow");
+            if (!force || !std::isfinite(*force) || *force < 0.0 ||
+                *force > std::numeric_limits<float>::max() ||
+                (*force > 0.0 && body.options.motion != MotionType::dynamic)) {
+                error = body.name + ": pm_arrow requires finite, non-negative newtons on a dynamic rigid body";
+                return false;
+            }
+            body.arrow_force = static_cast<float>(*force);
+        }
         if (const auto resolution = extras.number("pm_paint_resolution")) {
             if (!std::isfinite(*resolution) || *resolution < 32.0 ||
                 *resolution > 2048.0 || std::floor(*resolution) != *resolution) {
@@ -830,8 +836,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         const bool reuse = !has_proxy && cached != shared_render_meshes.end() &&
             cached->second.scale.x == scale.x &&
             cached->second.scale.y == scale.y &&
-            cached->second.scale.z == scale.z &&
-            cached->second.checkerboard == checkerboard;
+            cached->second.scale.z == scale.z;
         if (reuse) {
             body.mesh_indices = cached->second.indices;
         } else {
@@ -841,7 +846,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 const std::string mesh_name =
                     body.name + "/primitive_" + std::to_string(primitive_index);
                 if (!append_primitive(node.mesh->primitives[primitive_index], scale,
-                                      checkerboard, mesh_name, mesh, error)) {
+                                      mesh_name, mesh, error)) {
                     return false;
                 }
                 body.mesh_indices.push_back(
@@ -881,10 +886,20 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                 return false;
             if (!has_proxy)
                 shared_render_meshes.emplace(node.mesh,
-                    SharedRenderMesh{scale, checkerboard, body.mesh_indices,
+                    SharedRenderMesh{scale, body.mesh_indices,
                                      center});
         }
-        output.rigid_bodies.push_back(std::move(body));
+        if (system == "sphere_cluster") {
+            if (body.options.motion != MotionType::dynamic ||
+                !finite(body.options.initial_state.position) ||
+                !finite(body.options.initial_state.orientation)) {
+                error = body.name + ": invalid sphere cluster template";
+                return false;
+            }
+            output.sphere_clusters.push_back(std::move(body));
+        } else {
+            output.rigid_bodies.push_back(std::move(body));
+        }
     }
     for (cgltf_size node_index = 0; node_index < data->nodes_count; ++node_index) {
         const cgltf_node &node = data->nodes[node_index];
@@ -1106,7 +1121,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         std::vector<Pin> pins;
         if (!read_pins(extras, name, pins, error)) return false;
         TriangleMesh mesh{};
-        if (!append_primitive(node.mesh->primitives[0], scale, false,
+        if (!append_primitive(node.mesh->primitives[0], scale,
                               name, mesh, error)) return false;
         if (pressure_enabled || extras.boolean("pm_weld_vertices").value_or(false))
             weld_pressure_cloth(mesh);
@@ -1236,7 +1251,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         body.solver_iterations =
             static_cast<std::uint32_t>(solver_iterations);
         TriangleMesh mesh{};
-        if (!append_primitive(node.mesh->primitives[0], scale, false,
+        if (!append_primitive(node.mesh->primitives[0], scale,
                               body.name, mesh, error)) return false;
         const RigidBodyState state = node_state(node);
         for (Vertex &vertex : mesh.vertices) {
@@ -1407,7 +1422,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                  ++primitive) {
                 TriangleMesh mesh;
                 if (!append_primitive(node.mesh->primitives[primitive], scale,
-                                      false, name, mesh, error)) return false;
+                                      name, mesh, error)) return false;
                 for (const Vertex &vertex : mesh.vertices) {
                     low = {std::min(low.x, vertex.position.x),
                            std::min(low.y, vertex.position.y),
@@ -1466,7 +1481,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
                  ++primitive) {
                 TriangleMesh mesh;
                 if (!append_primitive(node.mesh->primitives[primitive], scale,
-                                      false, name, mesh, error)) return false;
+                                      name, mesh, error)) return false;
                 for (const Vertex &vertex : mesh.vertices) {
                     const Vec3 point = add(state.position,
                                            rotate(state.orientation, vertex.position));
@@ -1616,7 +1631,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
             const auto state = node_state(node);
             for (cgltf_size primitive = 0; primitive < node.mesh->primitives_count; ++primitive) {
                 TriangleMesh mesh;
-                if (!append_primitive(node.mesh->primitives[primitive], scale, false, name, mesh, error)) return false;
+                if (!append_primitive(node.mesh->primitives[primitive], scale, name, mesh, error)) return false;
                 const auto offset = static_cast<std::uint32_t>(source.vertices.size());
                 for (const auto &vertex : mesh.vertices)
                     source.vertices.push_back(add(state.position, rotate(state.orientation, vertex.position)));
@@ -1702,7 +1717,7 @@ bool load_glb_scene(const std::filesystem::path &path, SceneDefinition &output,
         output.soft_bodies.empty() && output.ropes.empty() &&
         output.particle_sources.empty() && output.destroy_planes.empty() &&
         output.initial_particles.empty() && output.hit_boxes.empty() &&
-        !output.has_smoke) {
+        output.sphere_clusters.empty() && !output.has_smoke) {
         error = "GLB contains no ParallelMater physics objects";
         return false;
     }
@@ -1722,9 +1737,9 @@ SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
     result.meshes.reserve(3U);
     result.rigid_bodies.reserve(static_cast<std::size_t>(sphere_count) + 2U);
     result.meshes.push_back(make_open_cube("dump_hopper", source_half_extent,
-                                           true, {0.42F, 0.48F, 0.56F}, false));
+                                           true, {0.42F, 0.48F, 0.56F}));
     result.meshes.push_back(make_open_cube("dump_receiver", 2.5F, false,
-                                           {0.22F, 0.31F, 0.42F}, true));
+                                           {0.22F, 0.31F, 0.42F}));
     result.meshes.push_back(make_cube_projected_sphere(sphere_radius));
 
     const RigidBodyState hopper_state{
