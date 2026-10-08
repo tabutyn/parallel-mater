@@ -1307,6 +1307,13 @@ if(PARALLEL_MATER_BUILD_METAL)
 
         add_executable(parallel-mater-metal-gallery MACOSX_BUNDLE
                        examples/metal_gallery/main.mm)
+        file(GLOB PARALLEL_MATER_METAL_GALLERY_ASSETS CONFIGURE_DEPENDS
+             "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
+        target_sources(parallel-mater-metal-gallery PRIVATE
+                       ${PARALLEL_MATER_METAL_GALLERY_ASSETS})
+        set_source_files_properties(
+            ${PARALLEL_MATER_METAL_GALLERY_ASSETS}
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/assets")
         add_dependencies(parallel-mater-metal-gallery
                          parallel-mater-metal-gallery-build-info)
         set_target_properties(

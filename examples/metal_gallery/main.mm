@@ -108,6 +108,7 @@ struct Options {
     bool validate{};
     bool list_scenes{};
     bool all_scenes{};
+    bool scene_overridden{};
     bool help{};
     bool version{};
 };
@@ -148,8 +149,9 @@ struct UiUniforms {
     float viewport[2]{};
 };
 
-struct RigidInstance {
+struct alignas(16) RigidInstance {
     float position[3]{};
+    float padding{};
     float orientation[4]{};
 };
 
@@ -219,7 +221,7 @@ static_assert(sizeof(ParticleVertex) == 32U);
 static_assert(sizeof(UiVertex) == 24U);
 static_assert(sizeof(GalleryUniforms) == 116U);
 static_assert(sizeof(UiUniforms) == 8U);
-static_assert(sizeof(RigidInstance) == 28U);
+static_assert(sizeof(RigidInstance) == 32U);
 
 bool parse_u32(std::string_view text, std::uint32_t &output) {
     const char *begin = text.data();
@@ -313,6 +315,7 @@ bool parse_options(int argc, char **argv, Options &output) {
             const std::string_view value{argv[++index]};
             if (argument == "--scene") {
                 output.scene = value;
+                output.scene_overridden = true;
             } else if (argument == "--output") {
                 output.output = value;
             } else {
@@ -800,6 +803,7 @@ bool append_rigid_instance(const MetalMesh &mesh, std::uint32_t mesh_index,
     }
     batch->instances.push_back(
         {{state.position.x, state.position.y, state.position.z},
+         0.0F,
          {state.orientation.x, state.orientation.y,
           state.orientation.z, state.orientation.w}});
     return true;
@@ -1016,6 +1020,23 @@ bool drive_motors(Runtime &runtime, DirectionalInput input,
     return true;
 }
 
+std::filesystem::path bundled_scene_path(
+    const std::filesystem::path &configured_path) {
+    if (configured_path.empty()) return {};
+    @autoreleasepool {
+        NSString *resource_path = [NSBundle mainBundle].resourcePath;
+        if (resource_path != nil) {
+            const auto candidate =
+                std::filesystem::path(resource_path.UTF8String) / "assets" /
+                configured_path.filename();
+            std::error_code error;
+            if (std::filesystem::is_regular_file(candidate, error))
+                return candidate;
+        }
+    }
+    return configured_path;
+}
+
 std::filesystem::path scene_path(const Options &options,
                                  GallerySceneSource source) {
     const std::array paths{
@@ -1049,7 +1070,12 @@ std::filesystem::path scene_path(const Options &options,
         std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
-    return paths[static_cast<std::size_t>(source)];
+    const auto configured_path = paths[static_cast<std::size_t>(source)];
+    if (source == GallerySceneSource::default_scene &&
+        options.scene_overridden) {
+        return configured_path;
+    }
+    return bundled_scene_path(configured_path);
 }
 
 bool build_runtime(const Options &options, GalleryContext context,

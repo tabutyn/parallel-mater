@@ -115,6 +115,9 @@ cmake --build build-metal-gallery --target deploy-metal-gallery
 The deployed window title and `--version` identify the exact Git commit,
 working-tree state, and build time. Quit and reopen an already-running gallery
 after deployment because macOS keeps its current executable mapped in memory.
+The application bundle carries its gallery GLBs in `Contents/Resources`, so a
+deployed build does not read scene assets from the source checkout or request
+access to its external drive.
 
 Measure the opening brick scene with sleeping disabled and enabled using:
 

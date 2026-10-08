@@ -47,7 +47,8 @@ That was the intermediate retained-cache result. The completed path now also:
   solver threadgroup per island;
 - stops converged island iterations and optionally sleeps supported quiet
   islands; and
-- renders rigid meshes from static vertex buffers with per-body instances.
+- renders rigid meshes from static vertex buffers with aligned 32-byte
+  per-body instances.
 
 The repeatable `parallel-mater-metal-rigid-scene-benchmark` measures the first
 scene with kernel timing enabled. A final Apple M4 run produced:
