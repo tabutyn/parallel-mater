@@ -7,12 +7,64 @@ The current `RigidBody.blend` and GLB contain 384 independent 1 kg bricks
 export `pm_gravity_tilt = false`. Export and scene-loader regressions pass
 with the expanded counts, and the full Release build succeeds.
 
-The unchanged physical acceptance limits do **not** pass for this expanded
-wall: its ten-second vertical-gravity regression measures 0.126318 m maximum
-drop, 0.286006 m displacement, and 0.524741 rad rotation. At 386 bodies the
-scene uses the larger-world contact solver, outside the optimized 32–256-body
-stack path described below. Larger-stack support remains unresolved; the
-regression is retained and must pass before this change is ready to merge.
+The CUDA reference does **not** pass the unchanged physical acceptance limits
+for this expanded wall: its ten-second vertical-gravity regression measures
+0.126318 m maximum drop, 0.286006 m displacement, and 0.524741 rad rotation.
+At 386 bodies CUDA uses its larger-world contact solver, outside the optimized
+32–256-body stack path described below. CUDA larger-stack support remains
+unresolved; the Metal result is recorded separately below.
+
+## Metal expanded-wall contact scheduling (Apple M4, 2026-10-08)
+
+The 386-body Metal opening scene previously invalidated its rigid-contact cache
+at every frame boundary and scanned every active pair for every contact color
+and solver pass. The retained path now preserves cache epochs across adjacent
+ordinary-stack frames, invalidates them on public state/resource mutation,
+and compacts colored work into adjacent lanes in the broad-phase flag scratch.
+It also keeps the maximum requested cold-patch iteration budget instead of
+allowing a later cached patch to reduce 64 passes back to 32.
+
+A physics-only Apple M4 run measured 120 frames after 10 warm-up frames at
+1/60 s, four substeps, with kernel timing enabled and no rendering/readback:
+
+| Stage | Before | After |
+| --- | ---: | ---: |
+| Contact solve median | 96.07 ms | 29.56 ms |
+| Contact evaluation median | 4.29 ms | 2.64 ms |
+| Total GPU median | 113.01 ms | 46.08 ms |
+| Step wall median | 113.43 ms | 46.57 ms |
+
+The contact solve is 69% lower and total GPU time is 59% lower in this sample.
+That was the intermediate retained-cache result. The completed path now also:
+
+- stores manifolds and caches in triangular pair space and initializes only
+  compacted active manifolds;
+- generates contacts and saves caches through indirect active-pair dispatches;
+- reconstructs validated convex face geometry and persistent colors from the
+  preceding substep;
+- caches ordinary-stack inertia inputs inside the two-body solver;
+- partitions the contact graph into independent islands and dispatches one
+  solver threadgroup per island;
+- stops converged island iterations and optionally sleeps supported quiet
+  islands; and
+- renders rigid meshes from static vertex buffers with per-body instances.
+
+The repeatable `parallel-mater-metal-rigid-scene-benchmark` measures the first
+scene with kernel timing enabled. A final Apple M4 run produced:
+
+| Phase | Wall median | GPU median | Solve median |
+| --- | ---: | ---: | ---: |
+| Historical retained-cache result | 46.57 ms | 46.08 ms | 29.56 ms |
+| Current, sleeping disabled, settled | 29.66 ms | 29.22 ms | 25.56 ms |
+| Current, sleeping enabled, startup | 29.37 ms | 28.97 ms | 25.95 ms |
+| Current, sleeping enabled, settled | 1.25 ms | 0.88 ms | 0.27 ms |
+
+All 385 dynamic bricks sleep in the settled sample. Allocated bytes fell from
+144,485,608 in the historical run to 87,140,640 with sleeping enabled. The
+strict wall gate now passes with 0.00197983 m maximum drop, 0.00305353 m
+maximum displacement, 0.000976562 rad maximum angle, and 0.000646994 m minimum
+clearance. Prepared response and first-fit coloring remain excluded because
+the earlier probes destabilized this expanded wall.
 
 The following audit, timing numbers, and prior passing wall replays concern
 the earlier 96-brick asset. They are not acceptance results for the current

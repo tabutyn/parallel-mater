@@ -106,6 +106,24 @@ cmake --build build-metal-gallery
   --output build-metal-gallery/captures
 ```
 
+Build and atomically replace the Dock-pinned development app with:
+
+```bash
+cmake --build build-metal-gallery --target deploy-metal-gallery
+```
+
+The deployed window title and `--version` identify the exact Git commit,
+working-tree state, and build time. Quit and reopen an already-running gallery
+after deployment because macOS keeps its current executable mapped in memory.
+
+Measure the opening brick scene with sleeping disabled and enabled using:
+
+```bash
+cmake --build build-metal-gallery \
+  --target parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+```
+
 Use `--list-scenes` to list every scene selector. In the interactive gallery,
 Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
 the highlighted scene, the mouse orbits/pans/zooms, arrows run the scene's

@@ -1220,6 +1220,19 @@ if(PARALLEL_MATER_BUILD_METAL)
         target_compile_options(parallel-mater-metal-gallery-scene
                                PRIVATE -Wall -Wextra -Wpedantic)
 
+        add_executable(parallel-mater-metal-rigid-scene-benchmark
+                       benchmarks/metal_rigid_scene.mm)
+        target_compile_options(
+            parallel-mater-metal-rigid-scene-benchmark
+            PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+        target_compile_definitions(
+            parallel-mater-metal-rigid-scene-benchmark PRIVATE
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+        target_link_libraries(
+            parallel-mater-metal-rigid-scene-benchmark PRIVATE
+            parallel-mater-metal-gallery-scene
+            ${PARALLEL_MATER_METAL_FRAMEWORK})
+
         if(BUILD_TESTING)
             add_executable(parallel-mater-metal-rigid-wall-tests
                            tests/metal/rigid_wall_tests.mm)
@@ -1275,8 +1288,27 @@ if(PARALLEL_MATER_BUILD_METAL)
                            LABELS "metal;conformance")
         endif()
 
-        add_executable(parallel-mater-metal-gallery
+        set(PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/metal_gallery")
+        file(MAKE_DIRECTORY ${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR})
+        set(PARALLEL_MATER_METAL_GALLERY_BUILD_INFO
+            "${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR}/parallel_mater_gallery_build_info.hpp")
+        add_custom_target(
+            parallel-mater-metal-gallery-build-info
+            COMMAND
+                ${CMAKE_COMMAND}
+                -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+                -DOUTPUT_FILE=${PARALLEL_MATER_METAL_GALLERY_BUILD_INFO}
+                -DPROJECT_VERSION=${PROJECT_VERSION}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateBuildInfo.cmake
+            BYPRODUCTS ${PARALLEL_MATER_METAL_GALLERY_BUILD_INFO}
+            COMMENT "Generating Metal gallery build identity"
+            VERBATIM)
+
+        add_executable(parallel-mater-metal-gallery MACOSX_BUNDLE
                        examples/metal_gallery/main.mm)
+        add_dependencies(parallel-mater-metal-gallery
+                         parallel-mater-metal-gallery-build-info)
         set_target_properties(
             parallel-mater-metal-gallery
             PROPERTIES
@@ -1284,12 +1316,22 @@ if(PARALLEL_MATER_BUILD_METAL)
                 CXX_STANDARD_REQUIRED YES
                 OBJCXX_STANDARD 20
                 OBJCXX_STANDARD_REQUIRED YES
+                OUTPUT_NAME "ParallelMater Metal Gallery"
+                MACOSX_BUNDLE_INFO_PLIST
+                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/metal_gallery/Info.plist.in"
+                MACOSX_BUNDLE_BUNDLE_NAME "ParallelMater Metal Gallery"
+                MACOSX_BUNDLE_GUI_IDENTIFIER
+                    "com.tabutyn.parallel-mater.metal-gallery"
+                MACOSX_BUNDLE_BUNDLE_VERSION "1"
+                MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
                 OSX_DEPLOYMENT_TARGET 26.0)
         target_compile_options(parallel-mater-metal-gallery
                                PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
         target_include_directories(
             parallel-mater-metal-gallery
-            PRIVATE ${PARALLEL_MATER_METAL_GENERATED_DIR})
+            PRIVATE
+                ${PARALLEL_MATER_METAL_GENERATED_DIR}
+                ${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR})
         target_compile_definitions(
             parallel-mater-metal-gallery
             PRIVATE
@@ -1329,6 +1371,29 @@ if(PARALLEL_MATER_BUILD_METAL)
                 glfw
                 ${PARALLEL_MATER_APPKIT_FRAMEWORK}
                 ${PARALLEL_MATER_QUARTZCORE_FRAMEWORK})
+        add_custom_command(
+            TARGET parallel-mater-metal-gallery POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -f
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-metal-gallery
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                    $<TARGET_FILE:parallel-mater-metal-gallery>
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-metal-gallery
+            COMMENT "Creating Metal gallery command-line compatibility link"
+            VERBATIM)
+
+        set(PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY "/Applications"
+            CACHE PATH "Directory containing the Dock-pinned Metal gallery")
+        add_custom_target(
+            deploy-metal-gallery
+            COMMAND
+                ${CMAKE_COMMAND}
+                -DSOURCE_APP=$<TARGET_BUNDLE_DIR:parallel-mater-metal-gallery>
+                -DDESTINATION_APP=${PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY}/ParallelMater\ Metal\ Gallery.app
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployMacOSBundle.cmake
+            DEPENDS parallel-mater-metal-gallery
+            COMMENT "Deploying ParallelMater Metal Gallery to ${PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY}"
+            USES_TERMINAL
+            VERBATIM)
 
         if(BUILD_TESTING)
             add_test(

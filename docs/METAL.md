@@ -26,6 +26,15 @@ same run to a 0.703478 m drop, 1.04422 m displacement, 1.1501 rad rotation,
 2.61814 m/s peak speed, and 0.00250788 m maximum floor penetration. All 24
 non-golden Metal gates still pass and the CUDA comparison remains 20/30 with
 no reopened case. This is a material stability improvement, not acceptance.
+Ordinary rigid stacks now retain that cache across adjacent frames, while
+resource or state mutations still invalidate it, compact each contact color
+into adjacent solver lanes, reconstruct validated face-patch geometry, and
+reuse persistent colors. The solver partitions disconnected islands, uses a
+specialized two-body path with cached inertia inputs, applies a strict
+convergence exit, and can sleep supported quiet islands. On the same Apple M4
+gate, the expanded wall now passes with a 0.00197983 m drop, 0.00305353 m
+displacement, 0.000976562 rad rotation, 0.103747 m/s peak speed, 0.00433236 m/s
+late speed, and 0.000646994 m minimum clearance.
 Prepared-response experiments were also rejected rather than merged. Porting
 CUDA's bounded response patch made the wall drop 16.8339 m; combining it with
 CUDA's first-fit ordinary-stack coloring made it drop 26.9338 m. Running the
@@ -458,10 +467,14 @@ is still a runtime/lifecycle gate rather than image or CUDA physics parity.
   parallel to an authored convex collider plane by using the transformed plane
   normal. This removes backend-local tangent noise while retaining contact
   position, depth, and ordering, and makes `constraint-motor` exact.
-  Cross-frame cache reuse remains gated: enabling it directly increased
-  `constraint-generic` differences in an earlier experiment, so the next CUDA
-  handoff requests the first cache match and warm-start delta for the remaining
-  rigid-only failures.
+  Cross-frame cache reuse is enabled only for ordinary rigid stacks with at
+  least 32 bodies and no constraints or coupled systems. This gives the wall
+  CUDA-style adjacent-frame warm starts without reopening the earlier
+  `constraint-generic` difference. Any body/resource mutation advances the
+  world revision again, so teleports and lifecycle edits still invalidate the
+  cache. Ordinary stacks also reuse the dead broad-phase flag buffer to pack
+  each color's contacts into adjacent lanes before solver iteration; smaller,
+  constrained, and coupled worlds retain their established scheduling.
   Both conformance producers now accept `--every-frame` for one named case,
   making first-divergent-frame capture available without editing the canonical
   registry or changing its SHA-256. Kernel-local cache and solver traces are

@@ -1,0 +1,47 @@
+if(NOT DEFINED SOURCE_DIR OR NOT DEFINED OUTPUT_FILE OR
+   NOT DEFINED PROJECT_VERSION)
+    message(FATAL_ERROR
+            "SOURCE_DIR, OUTPUT_FILE, and PROJECT_VERSION are required")
+endif()
+
+execute_process(
+    COMMAND git rev-parse --short=12 HEAD
+    WORKING_DIRECTORY "${SOURCE_DIR}"
+    OUTPUT_VARIABLE GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(NOT GIT_COMMIT)
+    set(GIT_COMMIT "unknown")
+endif()
+
+execute_process(
+    COMMAND git status --porcelain --untracked-files=normal
+    WORKING_DIRECTORY "${SOURCE_DIR}"
+    OUTPUT_VARIABLE GIT_STATUS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(GIT_STATUS)
+    set(GIT_DIRTY "dirty")
+else()
+    set(GIT_DIRTY "clean")
+endif()
+
+string(TIMESTAMP BUILD_TIME "%Y-%m-%dT%H:%M:%SZ" UTC)
+set(BUILD_INFO
+"#pragma once
+#define PARALLEL_MATER_GALLERY_VERSION \"${PROJECT_VERSION}\"
+#define PARALLEL_MATER_GALLERY_GIT_COMMIT \"${GIT_COMMIT}\"
+#define PARALLEL_MATER_GALLERY_GIT_STATUS \"${GIT_DIRTY}\"
+#define PARALLEL_MATER_GALLERY_BUILD_TIME \"${BUILD_TIME}\"
+")
+
+set(WRITE_OUTPUT TRUE)
+if(EXISTS "${OUTPUT_FILE}")
+    file(READ "${OUTPUT_FILE}" EXISTING_BUILD_INFO)
+    if(EXISTING_BUILD_INFO STREQUAL BUILD_INFO)
+        set(WRITE_OUTPUT FALSE)
+    endif()
+endif()
+if(WRITE_OUTPUT)
+    file(WRITE "${OUTPUT_FILE}" "${BUILD_INFO}")
+endif()
