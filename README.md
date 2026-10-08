@@ -125,6 +125,8 @@ Measure the opening brick scene with sleeping disabled and enabled using:
 cmake --build build-metal-gallery \
   --target parallel-mater-metal-rigid-scene-benchmark
 ./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
 ```
 
 Use `--list-scenes` to list every scene selector. In the interactive gallery,

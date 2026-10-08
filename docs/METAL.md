@@ -6,47 +6,32 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
 
 ## Opening gallery scene status
 
-The opening `Rigid Body` scene is **not currently conformant**. Its authored
-asset contains 384 independent bricks plus the sphere and ground (386 rigid
-bodies total). The 30-case `conformance/v1` score does not include this scene,
-and `parallel-mater-metal-first-context` only checks finite state, resource
-counts, and a nonblank render. Passing that launch smoke test is not evidence
-that the wall physics is correct.
+The opening `Rigid Body` scene passes its authored physical acceptance gate.
+The asset contains 384 independent bricks plus the sphere and ground (386
+rigid bodies total). This is separate from CUDA trajectory parity: the
+30-case `conformance/v1` corpus does not include this scene, and the recorded
+CUDA expanded-wall reference still fails its own stability gate.
 
-`parallel-mater-metal-rigid-wall-tests` ports the CUDA gallery regression to
-the Metal API and is the acceptance gate for this scene. It checks first-frame
-support, ten seconds of wall stability, ball-only gravity steering, support
-impulses, independent brick impact, and contact-cache invalidation. On
-2026-10-07 the pre-gate Metal solver failed its ten-second phase with a
-42.2455 m maximum drop, 43.1401 m maximum displacement, 3.14159 rad maximum
-rotation, and 26.5543 m/s peak speed. Metal now records whether a face patch
-matched the previous substep's cache and gives an ordinary uncached stack 64
-solve sweeps before returning to the 32-sweep cached budget. This reduces the
-same run to a 0.703478 m drop, 1.04422 m displacement, 1.1501 rad rotation,
-2.61814 m/s peak speed, and 0.00250788 m maximum floor penetration. All 24
-non-golden Metal gates still pass and the CUDA comparison remains 20/30 with
-no reopened case. This is a material stability improvement, not acceptance.
-Ordinary rigid stacks now retain that cache across adjacent frames, while
-resource or state mutations still invalidate it, compact each contact color
-into adjacent solver lanes, reconstruct validated face-patch geometry, and
-reuse persistent colors. The solver partitions disconnected islands, uses a
-specialized two-body path with cached inertia inputs, applies a strict
-convergence exit, and can sleep supported quiet islands. On the same Apple M4
-gate, the expanded wall now passes with a 0.00197983 m drop, 0.00305353 m
-displacement, 0.000976562 rad rotation, 0.103747 m/s peak speed, 0.00433236 m/s
-late speed, and 0.000646994 m minimum clearance.
-Prepared-response experiments were also rejected rather than merged. Porting
-CUDA's bounded response patch made the wall drop 16.8339 m; combining it with
-CUDA's first-fit ordinary-stack coloring made it drop 26.9338 m. Running the
-current solver at eight substeps reduced the failure to a 0.0426712 m drop,
-0.124037 m displacement, 0.519787 rad rotation, 0.239287 m/s peak speed, and
-0.049189 m/s late speed, but still missed the same acceptance limits while
-raising this gate's runtime from roughly 46 seconds to 129 seconds. None of
-those candidates is retained in the source or gallery defaults.
-The current CUDA implementation also fails this expanded-wall gate, but less
-severely (the CUDA measurements are recorded in `PERFORMANCE.md`). The opening
-scene must not be described as conformant until this test passes;
-cross-backend parity against an already failing CUDA wall is insufficient.
+`parallel-mater-metal-rigid-wall-tests` checks first-frame support, ten seconds
+of wall stability, ball-only gravity steering, support impulses, independent
+brick impact, cache invalidation, compensated-load sleeping, and wake behavior.
+The 2026-10-08 optimized Metal run retains the unchanged thresholds and reports
+0.00197983 m maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation,
+0.103747 m/s peak speed, 0.00441963 m/s late speed, and 0.000647023 m minimum
+clearance.
+
+Ordinary stacks preserve validated contact geometry, impulses and colors
+across substeps and frames, invalidate caches on state/resource edits, and
+solve independent islands. Bounded expensive leaf pairs now use cooperative
+contact generation with deterministic merging; unconstrained pairs use local
+body state for both persistent and transient responses. Unchanged net loads
+allow quiet islands to remain asleep even while the API receives repeated
+gravity-compensation forces. Impulses and changed loads still wake bodies.
+
+On Apple M4, the repeatable API impact replay improves from 159.25 to 89.30 ms
+median and held steering from 31.10 to 1.42 ms. `PERFORMANCE.md` records the
+workloads, bounds, measurements, rejected probes, and remaining bottlenecks.
+These changes do not establish full CUDA conformance or replace CUDA goldens.
 
 Run the exact Metal gate with:
 
@@ -58,7 +43,7 @@ ctest --test-dir build-metal-gallery -R '^parallel-mater-metal-rigid-wall-tests$
 `parallel-mater-metal-gallery-all-contexts` advances every one of the 29
 gallery entries for 60 frames, validates finite resources and a nonblank
 render, and writes fixed-size headless captures. All 29 passed this gate on an
-Apple M4 on 2026-10-07, including the 30,000-particle rope/fluid and
+Apple M4 on 2026-10-08, including the 30,000-particle rope/fluid and
 smoke/water contexts. This replaces the former one-frame launch check, but it
 is still a runtime/lifecycle gate rather than image or CUDA physics parity.
 

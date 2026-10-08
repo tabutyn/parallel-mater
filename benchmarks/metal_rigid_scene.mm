@@ -38,10 +38,16 @@ double percentile95(std::vector<double> values) {
 }
 
 bool step(World &world, bool timing, WorldStepTimings *output = nullptr,
-          double *wall = nullptr) {
+          double *wall = nullptr,
+          parallel_mater::HostSpan<parallel_mater::RigidBodyId> vertical = {}) {
+    const parallel_mater::Vec3 gravity = vertical.size == 0U
+        ? parallel_mater::Vec3{0.0F, -9.81F, 0.0F}
+        : parallel_mater::Vec3{4.905F, -8.495709F, 0.0F};
+    if (vertical.size != 0U && !world.apply_central_acceleration(
+            vertical, {-gravity.x, -9.81F - gravity.y, 0.0F})) return false;
     const StepOptions options{.timestep = 1.0F / 60.0F,
                               .substeps = 4U,
-                              .gravity = {0.0F, -9.81F, 0.0F},
+                              .gravity = gravity,
                               .collect_kernel_timings = timing};
     const auto begin = std::chrono::steady_clock::now();
     const auto status = world.step(options);
@@ -63,7 +69,8 @@ bool step(World &world, bool timing, WorldStepTimings *output = nullptr,
 }
 
 bool measure(World &world, const char *mode, const char *phase,
-             std::uint32_t frames) {
+             std::uint32_t frames,
+             parallel_mater::HostSpan<parallel_mater::RigidBodyId> vertical = {}) {
     std::vector<double> wall;
     std::vector<double> gpu;
     std::vector<double> solve;
@@ -77,7 +84,7 @@ bool measure(World &world, const char *mode, const char *phase,
     for (std::uint32_t frame = 0U; frame < frames; ++frame) {
         WorldStepTimings timings{};
         double milliseconds = 0.0;
-        if (!step(world, true, &timings, &milliseconds)) return false;
+        if (!step(world, true, &timings, &milliseconds, vertical)) return false;
         wall.push_back(milliseconds);
         gpu.push_back(timings.total_gpu_milliseconds);
         solve.push_back(timings.rigid_contact_solve.total_milliseconds);
@@ -85,10 +92,14 @@ bool measure(World &world, const char *mode, const char *phase,
             timings.rigid_contact_evaluation.total_milliseconds);
         filter.push_back(timings.rigid_pair_filter.total_milliseconds);
     }
+    WorldStatistics statistics{};
+    if (!world.collect_statistics(statistics)) return false;
     std::cout << "mode=" << mode << " phase=" << phase
               << " frames=" << frames
               << " wall_median_ms=" << median(wall)
               << " wall_p95_ms=" << percentile95(wall)
+              << " wall_max_ms=" << *std::max_element(wall.begin(), wall.end())
+              << " sleeping_bodies=" << statistics.sleeping_rigid_body_count
               << " gpu_median_ms=" << median(gpu)
               << " solve_median_ms=" << median(solve)
               << " contact_median_ms=" << median(evaluate)
@@ -119,7 +130,7 @@ void print_motion(World &world, const char *mode) {
               << maximum_angular << '\n';
 }
 
-bool run(const SceneDefinition &scene, bool sleeping) {
+bool run(const SceneDefinition &scene, bool sleeping, std::string_view scenario) {
     WorldOptions options{};
     auto status = parallel_mater::metal::gallery::scene_world_options(
         scene, options);
@@ -139,6 +150,45 @@ bool run(const SceneDefinition &scene, bool sleeping) {
         return false;
     }
     const char *mode = sleeping ? "sleep" : "awake";
+    if (scenario != "quiet") {
+        for (unsigned frame = 0; frame < 120U; ++frame)
+            if (!step(world, false)) return false;
+        if (scenario == "steering") {
+            std::vector<parallel_mater::RigidBodyId> vertical;
+            for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i)
+                if (!scene.rigid_bodies[i].follows_gravity_tilt)
+                    vertical.push_back(instance.rigid_bodies[i]);
+            const parallel_mater::HostSpan<parallel_mater::RigidBodyId> bodies{
+                vertical.data(), vertical.size()};
+            return measure(world, mode, "steering-start", 60U, bodies) &&
+                   measure(world, mode, "steering-held", 120U, bodies);
+        }
+        std::size_t ball = scene.rigid_bodies.size();
+        for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i)
+            if (scene.rigid_bodies[i].source_name == "Icosphere") ball = i;
+        if (ball == scene.rigid_bodies.size()) return false;
+        RigidBodyState state = scene.rigid_bodies[ball].options.initial_state;
+        state.position = {0.0F, 1.05F, 2.5F};
+        state.linear_velocity = {0.0F, 0.0F, -10.0F};
+        if (!world.set_rigid_body_state(instance.rigid_bodies[ball], state))
+            return false;
+        if (!measure(world, mode, "impact", 120U)) return false;
+        unsigned displaced = 0U;
+        for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
+            RigidBodyState current{};
+            if (!world.read_rigid_body_state(instance.rigid_bodies[i], current))
+                return false;
+            if (!std::isfinite(current.position.x) ||
+                !std::isfinite(current.position.y) ||
+                !std::isfinite(current.position.z)) return false;
+            const auto initial = scene.rigid_bodies[i].options.initial_state.position;
+            if (!scene.rigid_bodies[i].follows_gravity_tilt &&
+                std::hypot(current.position.x - initial.x,
+                           current.position.z - initial.z) > 0.05F) ++displaced;
+        }
+        std::cout << "mode=" << mode << " displaced_bricks=" << displaced << '\n';
+        return displaced >= 16U;
+    }
     if (!measure(world, mode, "startup", 24U)) return false;
     if (!measure(world, mode, "motion", 96U)) return false;
     for (std::uint32_t frame = 120U; frame < 360U; ++frame)
@@ -157,14 +207,24 @@ bool run(const SceneDefinition &scene, bool sleeping) {
 } // namespace
 
 int main(int argc, char **argv) {
-    const std::filesystem::path path = argc > 1
-        ? std::filesystem::path(argv[1])
-        : std::filesystem::path(PARALLEL_MATER_RIGID_BODY_SCENE_PATH);
+    std::filesystem::path path{PARALLEL_MATER_RIGID_BODY_SCENE_PATH};
+    std::string_view scenario = "quiet";
+    std::string_view mode = "both";
+    for (int i = 1; i < argc; ++i) {
+        const std::string_view arg{argv[i]};
+        if ((arg == "--scenario" || arg == "--mode") && i + 1 < argc) {
+            if (arg == "--scenario") scenario = argv[++i];
+            else mode = argv[++i];
+        } else path = argv[i];
+    }
+    if ((scenario != "quiet" && scenario != "impact" && scenario != "steering") ||
+        (mode != "awake" && mode != "sleep" && mode != "both")) return 2;
     SceneDefinition scene;
     std::string error;
     if (!parallel_mater::metal::gallery::load_glb_scene(path, scene, error)) {
         std::cerr << error << '\n';
         return 1;
     }
-    return run(scene, false) && run(scene, true) ? 0 : 1;
+    return (mode == "sleep" || run(scene, false, scenario)) &&
+           (mode == "awake" || run(scene, true, scenario)) ? 0 : 1;
 }

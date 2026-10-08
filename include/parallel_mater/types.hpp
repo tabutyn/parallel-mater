@@ -297,6 +297,8 @@ struct WorldOptions {
     bool deterministic{true};
     // Allows stable, unconstrained rigid islands to stop integrating after
     // they have remained below the velocity thresholds for half a second.
+    // Metal preserves sleep under unchanged net loads (including gravity
+    // compensation); changed loads, impulses and state edits wake bodies.
     bool rigid_sleeping{};
     std::uint32_t cloth_capacity{1U};
     std::uint32_t soft_body_capacity{1U};

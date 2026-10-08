@@ -800,6 +800,7 @@ struct World::Impl {
     id<MTLComputePipelineState> rigid_pair_prefix_rows_pipeline{nil};
     id<MTLComputePipelineState> rigid_pair_scatter_rows_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_generate_pipeline{nil};
+    id<MTLComputePipelineState> rigid_contact_cooperative_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_reduce_pipeline{nil};
     id<MTLComputePipelineState> rigid_stack_solve_pipeline{nil};
     id<MTLComputePipelineState> rigid_sleep_update_pipeline{nil};
@@ -857,8 +858,8 @@ struct World::Impl {
     std::uint32_t triangle_mesh_count{};
     std::uint64_t revision{};
     std::uint64_t rigid_contact_epoch{1U};
-    Vec3 sleep_gravity{};
-    bool has_sleep_gravity{};
+    std::vector<Vec3> sleep_accelerations{};
+    std::vector<Vec3> sleep_torques{};
     std::uint64_t rigid_contact_revision{
         std::numeric_limits<std::uint64_t>::max()};
     detail::MetalSystems systems{};
@@ -1239,6 +1240,10 @@ Status World::create(WorldOptions options, NativeContext context,
             impl->options = options;
             impl->rigid_slots.resize(options.rigid_body_capacity);
             impl->rigid_meshes.resize(options.rigid_body_capacity);
+            if (options.rigid_sleeping) {
+                impl->sleep_accelerations.resize(options.rigid_body_capacity);
+                impl->sleep_torques.resize(options.rigid_body_capacity);
+            }
             impl->pending_impulses.resize(options.rigid_body_capacity);
             impl->pending_angular_impulses.resize(options.rigid_body_capacity);
             impl->meshes.resize(options.triangle_mesh_capacity);
@@ -1333,6 +1338,8 @@ Status World::create(WorldOptions options, NativeContext context,
                 newFunctionWithName:@"pm_rigid_increment_substep"];
             id<MTLFunction> rigid_contact_generate_function = [impl->library
                 newFunctionWithName:@"pm_rigid_contact_generate"];
+            id<MTLFunction> rigid_contact_cooperative_function = [impl->library
+                newFunctionWithName:@"pm_rigid_contact_generate_cooperative"];
             id<MTLFunction> rigid_contact_reduce_function = [impl->library
                 newFunctionWithName:@"pm_rigid_contact_reduce"];
             id<MTLFunction> rigid_stack_solve_function = [impl->library
@@ -1353,6 +1360,7 @@ Status World::create(WorldOptions options, NativeContext context,
                 rigid_advance_substep_function == nil ||
                 rigid_increment_substep_function == nil ||
                 rigid_contact_generate_function == nil ||
+                rigid_contact_cooperative_function == nil ||
                 rigid_contact_reduce_function == nil ||
                 rigid_stack_solve_function == nil ||
                 rigid_sleep_update_function == nil ||
@@ -1428,6 +1436,13 @@ Status World::create(WorldOptions options, NativeContext context,
             if (impl->rigid_contact_generate_pipeline == nil) {
                 return metal_failure(error,
                     "Could not create rigid contact generation pipeline");
+            }
+            impl->rigid_contact_cooperative_pipeline = [impl->device
+                newComputePipelineStateWithFunction:rigid_contact_cooperative_function
+                                             error:&error];
+            if (impl->rigid_contact_cooperative_pipeline == nil) {
+                return metal_failure(error,
+                    "Could not create cooperative contact pipeline");
             }
             impl->rigid_contact_reduce_pipeline = [impl->device
                 newComputePipelineStateWithFunction:rigid_contact_reduce_function
@@ -1562,7 +1577,7 @@ Status World::create(WorldOptions options, NativeContext context,
                                     sizeof(std::uint32_t)
                            options:MTLResourceStorageModePrivate];
             impl->rigid_active_pair_count = [impl->device
-                newBufferWithLength:4U * sizeof(std::uint32_t)
+                newBufferWithLength:7U * sizeof(std::uint32_t)
                            options:MTLResourceStorageModePrivate];
             impl->rigid_pair_row_offsets = [impl->device
                 newBufferWithLength:(body_capacity + 1U) *
@@ -2871,16 +2886,6 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
             const bool debug_enabled =
                 impl_->options.physics_debug.frame_capacity != 0U;
             impl_->last_step_options = options;
-            if (impl_->options.rigid_sleeping &&
-                (!impl_->has_sleep_gravity ||
-                 options.gravity.x != impl_->sleep_gravity.x ||
-                 options.gravity.y != impl_->sleep_gravity.y ||
-                 options.gravity.z != impl_->sleep_gravity.z)) {
-                std::memset(impl_->rigid_sleep_states.contents, 0,
-                            impl_->rigid_sleep_states.length);
-                impl_->sleep_gravity = options.gravity;
-                impl_->has_sleep_gravity = true;
-            }
             if (debug_enabled) {
                 const auto *forces =
                     static_cast<const Vec3 *>(impl_->rigid_forces.contents);
@@ -2907,17 +2912,33 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                 const Vec3 impulse = impl_->pending_impulses[index];
                 const Vec3 angular_impulse =
                     impl_->pending_angular_impulses[index];
-                if (input_forces[index].x != 0.0F ||
-                    input_forces[index].y != 0.0F ||
-                    input_forces[index].z != 0.0F ||
-                    input_torques[index].x != 0.0F ||
-                    input_torques[index].y != 0.0F ||
-                    input_torques[index].z != 0.0F ||
-                    impulse.x != 0.0F || impulse.y != 0.0F ||
-                    impulse.z != 0.0F || angular_impulse.x != 0.0F ||
-                    angular_impulse.y != 0.0F ||
-                    angular_impulse.z != 0.0F)
-                    sleep_states[index] = {};
+                if (impl_->options.rigid_sleeping) {
+                    // A steady supported load may sleep. Wake on changes in
+                    // net acceleration, not on repeated gravity compensation.
+                    const Vec3 acceleration = add(
+                        options.gravity, multiply(input_forces[index],
+                                                  parameters[index].inverse_mass));
+                    const Vec3 prior = impl_->sleep_accelerations[index];
+                    const Vec3 torque = input_torques[index];
+                    const Vec3 prior_torque = impl_->sleep_torques[index];
+                    if (std::fabs(acceleration.x - prior.x) > 1.0e-5F ||
+                        std::fabs(acceleration.y - prior.y) > 1.0e-5F ||
+                        std::fabs(acceleration.z - prior.z) > 1.0e-5F ||
+                        torque.x != prior_torque.x ||
+                        torque.y != prior_torque.y ||
+                        torque.z != prior_torque.z ||
+                        impulse.x != 0.0F || impulse.y != 0.0F ||
+                        impulse.z != 0.0F ||
+                        angular_impulse.x != 0.0F || angular_impulse.y != 0.0F ||
+                        angular_impulse.z != 0.0F)
+                        sleep_states[index] = {};
+                    // Keep the sleep reference fixed: many sub-threshold
+                    // load changes must eventually accumulate into a wake.
+                    if (sleep_states[index].asleep == 0U) {
+                        impl_->sleep_accelerations[index] = acceleration;
+                        impl_->sleep_torques[index] = torque;
+                    }
+                }
                 states[index].linear_velocity = add(
                     states[index].linear_velocity,
                     multiply(impl_->pending_impulses[index],
@@ -3147,6 +3168,17 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                        beforeEncoderStages:MTLStageDispatch
                                          visibilityOptions:
                                              MTL4VisibilityOptionDevice];
+                        if (ordinary_rigid_stack) {
+                            [encoder setComputePipelineState:
+                                         impl_->rigid_contact_cooperative_pipeline];
+                            [encoder dispatchThreadgroupsWithIndirectBuffer:
+                                         impl_->rigid_active_pair_count.gpuAddress +
+                                             4U * sizeof(std::uint32_t)
+                                threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+                            [encoder barrierAfterEncoderStages:MTLStageDispatch
+                                           beforeEncoderStages:MTLStageDispatch
+                                             visibilityOptions:MTL4VisibilityOptionDevice];
+                        }
                         end_timing(encoder, timing_context,
                                    generation_timing);
                         detail::MetalTimingRecord *solve_timing =
@@ -3552,6 +3584,8 @@ Status World::collect_statistics(WorldStatistics &output) const noexcept {
         impl_->rigid_contact_count_buffer.length +
         impl_->systems.allocated_bytes());
     output.allocated_bytes +=
+        impl_->sleep_accelerations.capacity() * sizeof(Vec3) +
+        impl_->sleep_torques.capacity() * sizeof(Vec3) +
         impl_->debug_input_forces.capacity() * sizeof(Vec3) +
         impl_->debug_input_torques.capacity() * sizeof(Vec3) +
         impl_->debug_frames.capacity() * sizeof(PhysicsDebugFrame);

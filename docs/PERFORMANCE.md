@@ -14,6 +14,76 @@ At 386 bodies CUDA uses its larger-world contact solver, outside the optimized
 32–256-body stack path described below. CUDA larger-stack support remains
 unresolved; the Metal result is recorded separately below.
 
+## Metal steering and impact follow-up (Apple M4, 2026-10-08)
+
+The next audit reproduced the reported slowdown through the public Metal API,
+without rendering. Baseline is commit `353ae2b`; all runs use the same authored
+386-body scene, 1/60 s timestep, four substeps, and kernel timestamps. The
+interactive gallery was closed during these sequential runs.
+
+| Workload | Before wall median | After wall median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Settled, sleeping disabled | 29.66 ms* | 25.01 ms | 31.16 ms* | 25.95 ms |
+| Held steering, sleeping enabled | 31.10 ms | 1.42 ms | 39.43 ms | 6.94 ms |
+| Ball impact, sleeping enabled | 159.25 ms | 89.30 ms | 191.40 ms | 102.94 ms |
+
+\* Previous recorded quiet-scene run on the same baseline commit. Steering
+and impact were measured again before and after this change. These are sample
+timings on a fanless M4, not frame-rate guarantees or rendered-frame timings.
+The final sleeping rest median is 1.23 ms. Impact contact generation fell from
+83.20 to 19.72 ms and contact solving from 73.86 to 54.23 ms. Stage medians do
+not sum to the whole-frame median.
+
+The impact replay settles for 120 frames, places the authored 100 kg ball at
+`(0, 1.05, 2.5)` moving toward the wall at 10 m/s, and measures the following
+120 frames. It requires finite final positions and at least 16 independently
+displaced bricks. The final run displaced all 384 bricks by more than 5 cm;
+the solver refactor changes floating-point trajectories, so this is a physical
+acceptance check rather than a claim of bitwise CUDA parity.
+
+Retained engine changes:
+
+- **Wake on changed net loads.** Repeated gravity-compensation forces no longer
+  reset the quiet timer for every brick. The API tracks each body's effective
+  acceleration and torque; impulses, changed loads, and state/resource edits
+  still wake affected bodies. All 384 bricks stay asleep while the ball follows
+  the steering gravity.
+- **Cooperative narrow phase.** For unconstrained rigid worlds, bounded leaf
+  products are evaluated by a 32-lane threadgroup. Each leaf pair uses the
+  existing contact and continuous-collision routines. Lane zero merges the
+  results in the original CUDA lane-grouped order. Products larger than 512
+  candidates, missing leaf data, deep static sweeps, constrained worlds, and
+  coupled systems retain the existing fallback.
+- **Compact ordinary solver.** Persistent and transient contacts hold both
+  body states locally and bypass hinge, compound, and constraint traversal.
+  Contact budgets, friction/restitution formulas, timestep, geometry, and wall
+  acceptance tolerances are retained. Overflow contacts cannot trigger the
+  convergence shortcut without being included in its residual.
+
+The unchanged wall gate passes with 0.00197983 m maximum drop, 0.00305891 m
+maximum displacement, 0.000976562 rad maximum angle, and 0.000647023 m minimum
+clearance. It now also checks sleeping under compensated steering and waking
+under an impulse, changed gravity, or gradually changing force. The load
+reference stays fixed during sleep, so small changes cannot drift unnoticed.
+Memory with sleeping is 87,215,452 bytes.
+
+Rejected probes: reducing the solve threadgroup from 256 to 32 lanes increased
+impact median to 199 ms; independent per-island budgets/colors did not improve
+the retained 89 ms result. Both were removed. The remaining dominant work is
+the contact solve inside the connected impact island (54 ms median), followed
+by narrow-phase evaluation (20 ms). Future work should improve utilization of
+that connected solve and reuse contact response calculations while continuing
+to pass the strict wall gate; previous prepared-response probes did not.
+
+Reproduce all three workloads:
+
+```bash
+cmake --build build-metal-gallery --target parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
+```
+
 ## Metal expanded-wall contact scheduling (Apple M4, 2026-10-08)
 
 The 386-body Metal opening scene previously invalidated its rigid-contact cache
