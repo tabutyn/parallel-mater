@@ -45,9 +45,12 @@ On Apple M4, the repeatable API impact replay improved from 159.25 to 89.30 ms
 in the first follow-up, then to 73.51–73.85 ms. The corrected result is
 63.32 ms median and 79.88 ms p95. The previously reported 47.53 ms result is
 invalid because it used unstable physics. The impact benchmark now rejects
-energy explosions before reporting timings. `PERFORMANCE.md` records the
-regressions, valid measurements, rejected experiments, and remaining costs. These
-changes do not establish full CUDA conformance or replace CUDA goldens.
+energy explosions before reporting timings. A later exact rebuild A/B retains
+compiler threadgroup limits and removes convergence atomics from passes that
+cannot exit, measuring 61.33 ms median versus 61.66 ms control. Authored bricks
+remain indexed triangle meshes. `PERFORMANCE.md` records the regressions, valid
+measurements, rejected experiments, and remaining costs. These changes do not
+establish full CUDA conformance or replace CUDA goldens.
 
 Run the exact Metal gate with:
 

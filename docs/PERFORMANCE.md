@@ -1,5 +1,65 @@
 # Physics performance
 
+## Metal post-regression solver audit (Apple M4, 2026-10-08)
+
+The opening scene continues to use its authored indexed triangle meshes. No
+box primitive, simplified collision shape, welded brick, reduced substep, or
+reduced solver budget is used in this follow-up.
+
+An exact rebuild A/B closed the interactive gallery, ran the public-API impact
+replay twice on `0fac9c4`, rebuilt the candidate, then ran the same replay
+twice. Each replay settles for 120 frames and measures 120 frames at 1/60 s
+with four substeps and sleeping enabled:
+
+| Build | Wall median | Wall p95 | GPU median |
+| --- | ---: | ---: | ---: |
+| `0fac9c4` control, average of two | 61.66 ms | 76.21 ms | 61.27 ms |
+| Retained candidate, average of two | 61.33 ms | 75.95 ms | 60.90 ms |
+
+The retained change is deliberately small: about 0.5% wall time and 0.6% GPU
+time in this final paired sample. Both candidate runs improved their paired
+control run, but the difference is near normal run-to-run variation and should
+not be extrapolated. The impact trajectory remains unchanged at 384 displaced
+bricks, peak speed 10.1393 m/s, and peak mechanical-energy ratio 1.0.
+
+Retained implementation changes:
+
+- Declare the actual maximum threadgroup sizes used by contact generation,
+  cooperative triangle contact collection, cache matching, contact reduction,
+  and stack solving. This gives the Metal compiler a tighter register-allocation
+  bound without changing dispatch sizes.
+- Do not initialize or update the convergence maximum during passes 0–15,
+  because the existing solver cannot exit before pass 16. Pass 16 onward keeps
+  the same residual, threshold, overflow rule, contact order, and iteration
+  budget.
+
+Measured and rejected experiments:
+
+| Experiment | Result | Decision |
+| --- | --- | --- |
+| Exact 128-thread compiler cap | 62.19–62.83 ms median | Reject; slower than 256-thread cap |
+| 64-thread solver group | 72.89–74.91 ms median | Reject; 128 threads remains faster |
+| SIMD convergence reduction | 61.29 ms average median | Reject; whole step regressed despite cheaper solve |
+| Two local pair sweeps per color visit | 63.94 ms median, 91.73 ms p95 | Reject; slower and changed trajectory |
+| Algebraic friction normalization removal | 60.76 ms average median, 382 displaced bricks | Reject; marginal gain changed trajectory |
+| Cached friction coefficient | 61.98 ms average median | Reject; added manifold bandwidth cost more |
+| Explicit residual-result gating | 60.98 ms average median | Reject; no gain over compiler optimization |
+
+The two-sweep experiment remained within the energy bound over six seconds,
+but moving dependent work inside each pair reduced propagation through the
+connected wall. Earlier prepared-Jacobian, cross-threadgroup block, transformed
+leaf-cache, and permissive cached-anchor experiments remain rejected for the
+stability or performance reasons recorded below. A CPU/GPU hybrid was not
+implemented: the current step encodes all four substeps in one GPU command
+buffer, so inserting a CPU solve requires four execution/read/write boundaries
+and a different step architecture rather than a local solver optimization.
+
+These results still do not establish a hardware limit. They show that local
+shader tuning is now yielding sub-millisecond changes while the connected
+Gauss-Seidel solve remains serial across contact colors inside one GPU
+threadgroup. A material improvement requires a stable solver that exposes
+more independent work or converges in fewer dependent sweeps.
+
 ## Metal impact regression correction (Apple M4, 2026-10-08)
 
 The 47.53 ms impact result reported at `20a1072` is invalid. The wall could
