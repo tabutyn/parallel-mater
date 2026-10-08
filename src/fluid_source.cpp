@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: MIT
+#if defined(PARALLEL_MATER_METAL_GEOMETRY)
+#include <parallel_mater/metal.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
+#define PM_GEOMETRY_SUCCESS 0
+#else
 #include <parallel_mater/parallel_mater.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater
+#define PM_GEOMETRY_SUCCESS cudaSuccess
+#endif
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <map>
 #include <vector>
 
-namespace parallel_mater {
+namespace PM_GEOMETRY_NAMESPACE {
 Status sample_fluid_source(ParticleSourceMesh mesh, std::vector<Vec3> &output) noexcept {
     const auto fail = [](const char *message) {
-        return Status{StatusCode::invalid_argument, cudaSuccess, message};
+        return Status{StatusCode::invalid_argument, PM_GEOMETRY_SUCCESS, message};
     };
     if (!mesh.vertices.data || mesh.vertices.size < 3 ||
         !mesh.triangle_indices.data || mesh.triangle_indices.size < 3 ||
@@ -46,11 +54,11 @@ Status sample_fluid_source(ParticleSourceMesh mesh, std::vector<Vec3> &output) n
             if (nx*nx+ny*ny+nz*nz < 1e-24) continue;
             const double divisions=std::ceil(std::sqrt(std::max({squared(a,b),squared(a,c),squared(b,c)}))*inverse*1.5);
             if (divisions>2000)
-                return {StatusCode::capacity_exceeded,cudaSuccess,"fluid source subdivision budget exceeded"};
+                return {StatusCode::capacity_exceeded,PM_GEOMETRY_SUCCESS,"fluid source subdivision budget exceeded"};
             const int n=std::max(1,int(divisions));
             candidates += std::size_t(n+1)*(n+2)/2;
             if (candidates>2'000'000)
-                return {StatusCode::capacity_exceeded,cudaSuccess,"fluid source sample budget exceeded"};
+                return {StatusCode::capacity_exceeded,PM_GEOMETRY_SUCCESS,"fluid source sample budget exceeded"};
             for (int i=0;i<=n;++i) for(int j=0;j<=n-i;++j) {
                 const float u=float(i)/n, v=float(j)/n;
                 const Vec3 p{a.x+u*(b.x-a.x)+v*(c.x-a.x),a.y+u*(b.y-a.y)+v*(c.y-a.y),a.z+u*(b.z-a.z)+v*(c.z-a.z)};
@@ -63,7 +71,7 @@ Status sample_fluid_source(ParticleSourceMesh mesh, std::vector<Vec3> &output) n
                 }
                 if (occupied) continue;
                 if (result.size()==65'536)
-                    return {StatusCode::capacity_exceeded,cudaSuccess,"too many fluid source sites"};
+                    return {StatusCode::capacity_exceeded,PM_GEOMETRY_SUCCESS,"too many fluid source sites"};
                 cells[cell].push_back(p);
                 result.push_back(p);
             }
@@ -72,7 +80,9 @@ Status sample_fluid_source(ParticleSourceMesh mesh, std::vector<Vec3> &output) n
         output.swap(result);
         return {};
     } catch (...) {
-        return {StatusCode::out_of_memory,cudaSuccess,"fluid source sampling allocation failed"};
+        return {StatusCode::out_of_memory,PM_GEOMETRY_SUCCESS,"fluid source sampling allocation failed"};
     }
 }
 } // namespace parallel_mater
+#undef PM_GEOMETRY_SUCCESS
+#undef PM_GEOMETRY_NAMESPACE

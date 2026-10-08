@@ -1,24 +1,42 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(ParallelMater VERSION 0.1.0 LANGUAGES CXX CUDA)
+project(ParallelMater VERSION 0.1.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(FetchContent)
 include(CTest)
+include(CheckLanguage)
 
-# CMake 3.25 assumes the removed nvToolsExt library exists when discovering
-# CUDA 13. NVTX is not used by the public target, so provide the compatibility
-# target before FindCUDAToolkit evaluates that deprecated component.
-if(NOT TARGET CUDA::nvToolsExt)
-    add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
+if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
 endif()
-find_package(CUDAToolkit REQUIRED)
 
+if(APPLE)
+    set(PARALLEL_MATER_CUDA_DEFAULT OFF)
+    set(PARALLEL_MATER_METAL_DEFAULT ON)
+else()
+    set(PARALLEL_MATER_CUDA_DEFAULT ON)
+    set(PARALLEL_MATER_METAL_DEFAULT OFF)
+endif()
+
+option(PARALLEL_MATER_BUILD_CUDA
+       "Build the CUDA physics backend" ${PARALLEL_MATER_CUDA_DEFAULT})
+option(PARALLEL_MATER_BUILD_METAL
+       "Build the Apple Metal 4 physics backend" ${PARALLEL_MATER_METAL_DEFAULT})
+option(PARALLEL_MATER_BUILD_METAL_GALLERY
+       "Build the native Metal gallery" OFF)
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
+
+if(PARALLEL_MATER_BUILD_OPTIX_GALLERY AND NOT PARALLEL_MATER_BUILD_CUDA)
+    message(FATAL_ERROR "The OptiX gallery requires PARALLEL_MATER_BUILD_CUDA")
+endif()
+if(PARALLEL_MATER_BUILD_METAL_GALLERY AND NOT PARALLEL_MATER_BUILD_METAL)
+    message(FATAL_ERROR "The Metal gallery requires PARALLEL_MATER_BUILD_METAL")
+endif()
 if(PARALLEL_MATER_BUILD_BENCHMARKS AND
    NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     message(FATAL_ERROR
@@ -26,8 +44,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
 endif()
 
 # The conformance case registry intentionally has no CUDA or engine dependency.
-# Metal and future backends can compile it as ordinary C++ and byte-check the
-# same canonical inputs without installing the CUDA World API.
+# Every backend byte-checks and executes the same canonical inputs.
 add_library(parallel-mater-conformance-registry STATIC
             conformance/v1/src/case_registry.cpp)
 target_compile_features(parallel-mater-conformance-registry PUBLIC cxx_std_20)
@@ -43,6 +60,32 @@ target_link_libraries(parallel-mater-conformance-cases
 target_compile_options(parallel-mater-conformance-cases
                        PRIVATE -Wall -Wextra -Wpedantic)
 
+set(PARALLEL_MATER_INSTALL_TARGETS)
+
+if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
+   PARALLEL_MATER_BUILD_METAL_GALLERY)
+    FetchContent_Declare(
+        parallel_mater_cgltf
+        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+        GIT_TAG 85cd62382dfea638278962690cf515023f33ed00
+        GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(parallel_mater_cgltf)
+endif()
+
+if(PARALLEL_MATER_BUILD_CUDA)
+check_language(CUDA)
+if(NOT CMAKE_CUDA_COMPILER)
+    message(FATAL_ERROR "PARALLEL_MATER_BUILD_CUDA is ON but no CUDA compiler was found")
+endif()
+enable_language(CUDA)
+
+# CMake 3.25 assumes the removed nvToolsExt library exists when discovering
+# CUDA 13. NVTX is not used by the public target, so provide the compatibility
+# target before FindCUDAToolkit evaluates that deprecated component.
+if(NOT TARGET CUDA::nvToolsExt)
+    add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
+endif()
+find_package(CUDAToolkit REQUIRED)
 add_library(
     parallel-mater STATIC
     src/world.cu
@@ -72,6 +115,7 @@ add_library(
     src/rope_geometry.cpp)
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
+list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
 set_target_properties(
     parallel-mater
     PROPERTIES
@@ -95,16 +139,6 @@ target_compile_options(
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall,-Wextra>)
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
-    FetchContent_Declare(
-        parallel_mater_cgltf
-        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
-        GIT_TAG 85cd62382dfea638278962690cf515023f33ed00
-        GIT_SHALLOW TRUE)
-    FetchContent_GetProperties(parallel_mater_cgltf)
-    if(NOT parallel_mater_cgltf_POPULATED)
-        FetchContent_Populate(parallel_mater_cgltf)
-    endif()
-
     add_library(parallel-mater-gallery-scene STATIC
                 examples/support/scene.cpp
                 examples/support/rope_render.cpp
@@ -303,16 +337,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 endif()
 
 if(BUILD_TESTING)
-    add_subdirectory(tests/solver)
-    add_test(NAME parallel-mater-conformance-case-registry
-        COMMAND parallel-mater-conformance-cases --check
-                ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_test(NAME parallel-mater-conformance-comparator-tests
-        COMMAND ${Python3_EXECUTABLE} -m unittest discover
-                -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
-                -p test_*.py)
-
     add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
     target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
@@ -329,6 +353,13 @@ if(BUILD_TESTING)
         parallel-mater-api-contract-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-api-contract-tests
              COMMAND parallel-mater-api-contract-tests)
+
+    add_executable(parallel-mater-cuda-parity-capture tests/parity/cuda_capture.cpp)
+    target_link_libraries(parallel-mater-cuda-parity-capture PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-cuda-parity-capture-self-test
+             COMMAND parallel-mater-cuda-parity-capture --self-test)
+    set_tests_properties(parallel-mater-cuda-parity-capture-self-test
+                         PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 
     add_executable(parallel-mater-rigid-tests tests/rigid_tests.cpp)
     target_link_libraries(
@@ -977,7 +1008,505 @@ if(BUILD_TESTING)
             parallel-mater-fluid-particles-test.ppm 30 --fluid-particle-view)
     endif()
 endif()
+endif() # PARALLEL_MATER_BUILD_CUDA
 
+if(PARALLEL_MATER_BUILD_METAL)
+    if(NOT APPLE)
+        message(FATAL_ERROR "PARALLEL_MATER_BUILD_METAL requires Apple platforms")
+    endif()
+    enable_language(OBJCXX)
+    find_library(PARALLEL_MATER_FOUNDATION_FRAMEWORK Foundation REQUIRED)
+    find_library(PARALLEL_MATER_METAL_FRAMEWORK Metal REQUIRED)
+    find_program(PARALLEL_MATER_XCRUN_EXECUTABLE xcrun REQUIRED)
+    find_program(PARALLEL_MATER_XXD_EXECUTABLE xxd REQUIRED)
+    execute_process(
+        COMMAND ${PARALLEL_MATER_XCRUN_EXECUTABLE} -f metal
+        OUTPUT_VARIABLE PARALLEL_MATER_METAL_COMPILER
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        COMMAND_ERROR_IS_FATAL ANY)
+    get_filename_component(PARALLEL_MATER_METAL_TOOLCHAIN_DIR
+                           ${PARALLEL_MATER_METAL_COMPILER} DIRECTORY)
+    set(PARALLEL_MATER_METALLIB_COMPILER
+        ${PARALLEL_MATER_METAL_TOOLCHAIN_DIR}/metallib)
+    if(NOT EXISTS ${PARALLEL_MATER_METALLIB_COMPILER})
+        message(FATAL_ERROR "The Xcode Metal toolchain does not contain metallib")
+    endif()
+
+    set(PARALLEL_MATER_METAL_GENERATED_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/metal)
+    set(PARALLEL_MATER_METAL_AIR
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater.air)
+    set(PARALLEL_MATER_METALLIB
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater.metallib)
+    set(PARALLEL_MATER_METALLIB_INCLUDE
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_metallib.inc)
+
+    add_custom_command(
+        OUTPUT ${PARALLEL_MATER_METALLIB_INCLUDE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                ${PARALLEL_MATER_METAL_GENERATED_DIR}
+        COMMAND ${CMAKE_COMMAND} -E env
+                CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
+                -std=metal4.0 -mmacosx-version-min=26.0
+                -fno-fast-math -ffp-contract=fast
+                -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                -c ${CMAKE_CURRENT_SOURCE_DIR}/src/metal/kernels.metal
+                -o ${PARALLEL_MATER_METAL_AIR}
+        COMMAND ${PARALLEL_MATER_METALLIB_COMPILER}
+                ${PARALLEL_MATER_METAL_AIR} -o ${PARALLEL_MATER_METALLIB}
+        COMMAND ${PARALLEL_MATER_XXD_EXECUTABLE} -i
+                -n parallel_mater_metallib_data
+                ${PARALLEL_MATER_METALLIB}
+                ${PARALLEL_MATER_METALLIB_INCLUDE}
+        DEPENDS src/metal/kernels.metal
+        VERBATIM)
+    set_source_files_properties(
+        src/metal/world.mm
+        PROPERTIES OBJECT_DEPENDS ${PARALLEL_MATER_METALLIB_INCLUDE})
+
+    add_library(parallel-mater-metal STATIC
+        src/metal/world.mm
+        src/metal/systems.mm
+        src/rope_geometry.cpp
+        src/fluid_geometry.cpp
+        src/fluid_source.cpp
+        src/soft_body_geometry.cpp)
+    add_library(ParallelMater::metal ALIAS parallel-mater-metal)
+    set_target_properties(
+        parallel-mater-metal
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            OBJCXX_STANDARD 20
+            OBJCXX_STANDARD_REQUIRED YES
+            OSX_DEPLOYMENT_TARGET 26.0
+            EXPORT_NAME metal
+            POSITION_INDEPENDENT_CODE ON)
+    set_property(TARGET parallel-mater-metal
+                 PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_20)
+    target_include_directories(
+        parallel-mater-metal
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE ${PARALLEL_MATER_METAL_GENERATED_DIR})
+    target_compile_options(
+        parallel-mater-metal PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-ffp-contract=off>
+        $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc;-ffp-contract=off;-Wall;-Wextra;-Wpedantic>)
+    target_compile_definitions(
+        parallel-mater-metal PRIVATE PARALLEL_MATER_METAL_GEOMETRY=1)
+    target_link_libraries(
+        parallel-mater-metal
+        PUBLIC
+            ${PARALLEL_MATER_FOUNDATION_FRAMEWORK}
+            ${PARALLEL_MATER_METAL_FRAMEWORK})
+    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-metal)
+
+    if(BUILD_TESTING)
+        add_executable(parallel-mater-metal-api-contract-tests
+                       tests/metal/api_contract.cpp)
+        target_link_libraries(parallel-mater-metal-api-contract-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-api-contract-tests
+                 COMMAND parallel-mater-metal-api-contract-tests)
+
+        add_executable(parallel-mater-metal-foundation-tests
+                       tests/metal/foundation_tests.cpp)
+        target_link_libraries(parallel-mater-metal-foundation-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-foundation-tests
+                 COMMAND parallel-mater-metal-foundation-tests)
+
+        add_executable(parallel-mater-metal-rigid-tests
+                       tests/metal/rigid_tests.cpp)
+        target_link_libraries(parallel-mater-metal-rigid-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-rigid-tests
+                 COMMAND parallel-mater-metal-rigid-tests)
+
+        add_executable(parallel-mater-metal-hit-box-tests
+                       tests/metal/hit_box_tests.cpp)
+        target_link_libraries(parallel-mater-metal-hit-box-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-hit-box-tests
+                 COMMAND parallel-mater-metal-hit-box-tests)
+        set_tests_properties(parallel-mater-metal-hit-box-tests
+                             PROPERTIES LABELS "metal;rigid;hit-box")
+
+        add_executable(parallel-mater-metal-constraint-tests
+                       tests/metal/constraint_tests.cpp)
+        target_link_libraries(parallel-mater-metal-constraint-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-constraint-tests
+                 COMMAND parallel-mater-metal-constraint-tests)
+        set_tests_properties(parallel-mater-metal-constraint-tests
+                             PROPERTIES LABELS "metal;rigid;constraints")
+
+        add_executable(parallel-mater-metal-particle-system-tests
+                       tests/metal/particle_system_tests.mm)
+        target_compile_options(parallel-mater-metal-particle-system-tests
+                               PRIVATE -fobjc-arc)
+        target_link_libraries(parallel-mater-metal-particle-system-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-particle-system-tests
+                 COMMAND parallel-mater-metal-particle-system-tests)
+        set_tests_properties(parallel-mater-metal-particle-system-tests
+                             PROPERTIES LABELS "metal;couplings")
+
+        add_executable(parallel-mater-metal-subsystem-tests
+                       tests/metal/subsystem_tests.mm)
+        target_compile_options(parallel-mater-metal-subsystem-tests
+                               PRIVATE -fobjc-arc)
+        target_link_libraries(parallel-mater-metal-subsystem-tests
+                              PRIVATE ParallelMater::metal)
+        foreach(PARALLEL_MATER_METAL_SUBSYSTEM
+                fluid cloth soft-body rope smoke couplings paint debug)
+            add_test(
+                NAME parallel-mater-metal-${PARALLEL_MATER_METAL_SUBSYSTEM}-tests
+                COMMAND parallel-mater-metal-subsystem-tests
+                        ${PARALLEL_MATER_METAL_SUBSYSTEM})
+            set_tests_properties(
+                parallel-mater-metal-${PARALLEL_MATER_METAL_SUBSYSTEM}-tests
+                PROPERTIES LABELS
+                           "metal;subsystem;${PARALLEL_MATER_METAL_SUBSYSTEM}")
+        endforeach()
+
+        add_executable(parallel-mater-metal-buffer-upload-tests
+                       tests/metal/buffer_upload_tests.mm)
+        target_compile_options(parallel-mater-metal-buffer-upload-tests
+                               PRIVATE -fobjc-arc)
+        target_link_libraries(parallel-mater-metal-buffer-upload-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-buffer-upload-tests
+                 COMMAND parallel-mater-metal-buffer-upload-tests)
+
+        add_executable(parallel-mater-metal-primitive-tests
+                       tests/metal/primitive_tests.mm)
+        target_compile_options(parallel-mater-metal-primitive-tests
+                               PRIVATE -fobjc-arc)
+        target_compile_definitions(parallel-mater-metal-primitive-tests PRIVATE
+            PARALLEL_MATER_TEST_METALLIB_PATH="${PARALLEL_MATER_METALLIB}")
+        target_link_libraries(parallel-mater-metal-primitive-tests
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-primitive-tests
+                 COMMAND parallel-mater-metal-primitive-tests)
+
+        add_executable(parallel-mater-metal-parity-capture
+                       tests/metal/parity_capture.mm)
+        target_compile_options(parallel-mater-metal-parity-capture
+                               PRIVATE -fobjc-arc)
+        target_link_libraries(parallel-mater-metal-parity-capture
+                              PRIVATE ParallelMater::metal)
+        add_test(NAME parallel-mater-metal-parity-capture-self-test
+                 COMMAND parallel-mater-metal-parity-capture --self-test)
+        set_tests_properties(parallel-mater-metal-parity-capture-self-test
+                             PROPERTIES LABELS "metal;parity;couplings"
+                                        TIMEOUT 120)
+    endif()
+
+    if(PARALLEL_MATER_BUILD_METAL_GALLERY)
+        find_package(glfw3 3.3 REQUIRED)
+        find_library(PARALLEL_MATER_APPKIT_FRAMEWORK AppKit REQUIRED)
+        find_library(PARALLEL_MATER_QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+
+        set(PARALLEL_MATER_METAL_GALLERY_AIR
+            ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_gallery.air)
+        set(PARALLEL_MATER_METAL_GALLERY_METALLIB
+            ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_gallery.metallib)
+        set(PARALLEL_MATER_METAL_GALLERY_INCLUDE
+            ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_gallery_metallib.inc)
+        add_custom_command(
+            OUTPUT ${PARALLEL_MATER_METAL_GALLERY_INCLUDE}
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    ${PARALLEL_MATER_METAL_GENERATED_DIR}
+            COMMAND ${CMAKE_COMMAND} -E env
+                    CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                    ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
+                    -std=metal4.0 -mmacosx-version-min=26.0
+                    -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                    -c ${CMAKE_CURRENT_SOURCE_DIR}/examples/metal_gallery/shaders.metal
+                    -o ${PARALLEL_MATER_METAL_GALLERY_AIR}
+            COMMAND ${PARALLEL_MATER_METALLIB_COMPILER}
+                    ${PARALLEL_MATER_METAL_GALLERY_AIR}
+                    -o ${PARALLEL_MATER_METAL_GALLERY_METALLIB}
+            COMMAND ${PARALLEL_MATER_XXD_EXECUTABLE} -i
+                    -n parallel_mater_metal_gallery_metallib_data
+                    ${PARALLEL_MATER_METAL_GALLERY_METALLIB}
+                    ${PARALLEL_MATER_METAL_GALLERY_INCLUDE}
+            DEPENDS examples/metal_gallery/shaders.metal
+            VERBATIM)
+        set_source_files_properties(
+            examples/metal_gallery/main.mm
+            PROPERTIES OBJECT_DEPENDS ${PARALLEL_MATER_METAL_GALLERY_INCLUDE})
+
+        add_library(parallel-mater-metal-gallery-scene STATIC
+            examples/support/scene.cpp
+            examples/support/rope_render.cpp)
+        target_compile_features(parallel-mater-metal-gallery-scene
+                                PUBLIC cxx_std_20)
+        target_compile_definitions(parallel-mater-metal-gallery-scene
+                                   PUBLIC PARALLEL_MATER_GALLERY_METAL=1)
+        target_include_directories(
+            parallel-mater-metal-gallery-scene
+            PUBLIC examples/support/include
+            PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
+        target_link_libraries(parallel-mater-metal-gallery-scene
+                              PUBLIC ParallelMater::metal)
+        target_compile_options(parallel-mater-metal-gallery-scene
+                               PRIVATE -Wall -Wextra -Wpedantic)
+
+        add_executable(parallel-mater-metal-rigid-scene-benchmark
+                       benchmarks/metal_rigid_scene.mm)
+        target_compile_options(
+            parallel-mater-metal-rigid-scene-benchmark
+            PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+        target_compile_definitions(
+            parallel-mater-metal-rigid-scene-benchmark PRIVATE
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+        target_link_libraries(
+            parallel-mater-metal-rigid-scene-benchmark PRIVATE
+            parallel-mater-metal-gallery-scene
+            ${PARALLEL_MATER_METAL_FRAMEWORK})
+
+        if(BUILD_TESTING)
+            add_executable(parallel-mater-metal-rigid-wall-tests
+                           tests/metal/rigid_wall_tests.mm)
+            target_compile_options(parallel-mater-metal-rigid-wall-tests
+                                   PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+            target_compile_definitions(
+                parallel-mater-metal-rigid-wall-tests PRIVATE
+                PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+            target_link_libraries(
+                parallel-mater-metal-rigid-wall-tests PRIVATE
+                parallel-mater-metal-gallery-scene
+                ${PARALLEL_MATER_METAL_FRAMEWORK})
+            add_test(NAME parallel-mater-metal-rigid-wall-tests
+                     COMMAND parallel-mater-metal-rigid-wall-tests)
+            set_tests_properties(
+                parallel-mater-metal-rigid-wall-tests
+                PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "metal;gallery;rigid")
+        endif()
+
+        execute_process(
+            COMMAND git rev-parse HEAD
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
+            set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
+        endif()
+        add_executable(parallel-mater-metal-conformance
+                       conformance/v1/src/metal_runner.mm)
+        target_link_libraries(parallel-mater-metal-conformance PRIVATE
+            parallel-mater-conformance-registry
+            parallel-mater-metal-gallery-scene
+            ${PARALLEL_MATER_METAL_FRAMEWORK})
+        target_compile_definitions(parallel-mater-metal-conformance PRIVATE
+            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+        target_compile_options(parallel-mater-metal-conformance
+                               PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+
+        if(BUILD_TESTING)
+            add_test(NAME parallel-mater-metal-conformance-inputs
+                     COMMAND parallel-mater-metal-conformance --check-inputs)
+            add_test(NAME parallel-mater-metal-conformance-cuda-goldens
+                COMMAND ${Python3_EXECUTABLE}
+                        ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/reproduce.py
+                        --runner $<TARGET_FILE:parallel-mater-metal-conformance>
+                        --comparator ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/compare.py
+                        --cases ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases
+                        --golden ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/golden/cuda)
+            set_tests_properties(parallel-mater-metal-conformance-cuda-goldens
+                PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900 RUN_SERIAL TRUE
+                           LABELS "metal;conformance")
+        endif()
+
+        set(PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/metal_gallery")
+        file(MAKE_DIRECTORY ${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR})
+        set(PARALLEL_MATER_METAL_GALLERY_BUILD_INFO
+            "${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR}/parallel_mater_gallery_build_info.hpp")
+        add_custom_target(
+            parallel-mater-metal-gallery-build-info
+            COMMAND
+                ${CMAKE_COMMAND}
+                -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+                -DOUTPUT_FILE=${PARALLEL_MATER_METAL_GALLERY_BUILD_INFO}
+                -DPROJECT_VERSION=${PROJECT_VERSION}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateBuildInfo.cmake
+            BYPRODUCTS ${PARALLEL_MATER_METAL_GALLERY_BUILD_INFO}
+            COMMENT "Generating Metal gallery build identity"
+            VERBATIM)
+
+        add_executable(parallel-mater-metal-gallery MACOSX_BUNDLE
+                       examples/metal_gallery/main.mm)
+        file(GLOB PARALLEL_MATER_METAL_GALLERY_ASSETS CONFIGURE_DEPENDS
+             "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
+        target_sources(parallel-mater-metal-gallery PRIVATE
+                       ${PARALLEL_MATER_METAL_GALLERY_ASSETS})
+        set_source_files_properties(
+            ${PARALLEL_MATER_METAL_GALLERY_ASSETS}
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/assets")
+        add_dependencies(parallel-mater-metal-gallery
+                         parallel-mater-metal-gallery-build-info)
+        set_target_properties(
+            parallel-mater-metal-gallery
+            PROPERTIES
+                CXX_STANDARD 20
+                CXX_STANDARD_REQUIRED YES
+                OBJCXX_STANDARD 20
+                OBJCXX_STANDARD_REQUIRED YES
+                OUTPUT_NAME "ParallelMater Metal Gallery"
+                MACOSX_BUNDLE_INFO_PLIST
+                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/metal_gallery/Info.plist.in"
+                MACOSX_BUNDLE_BUNDLE_NAME "ParallelMater Metal Gallery"
+                MACOSX_BUNDLE_GUI_IDENTIFIER
+                    "com.tabutyn.parallel-mater.metal-gallery"
+                MACOSX_BUNDLE_BUNDLE_VERSION "1"
+                MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+                OSX_DEPLOYMENT_TARGET 26.0)
+        target_compile_options(parallel-mater-metal-gallery
+                               PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+        target_include_directories(
+            parallel-mater-metal-gallery
+            PRIVATE
+                ${PARALLEL_MATER_METAL_GENERATED_DIR}
+                ${PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR})
+        target_compile_definitions(
+            parallel-mater-metal-gallery
+            PRIVATE
+                PARALLEL_MATER_GALLERY_METAL=1
+                PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
+                PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
+                PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
+                PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
+                PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
+                PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
+                PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
+                PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
+                PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
+                PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
+                PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
+                PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
+                PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
+                PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
+                PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
+                PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
+                PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
+                PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
+                PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
+                PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
+                PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb"
+                PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb"
+                PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb"
+                PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
+                PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
+                PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
+                PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
+                PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
+        target_link_libraries(
+            parallel-mater-metal-gallery
+            PRIVATE
+                parallel-mater-metal-gallery-scene
+                glfw
+                ${PARALLEL_MATER_APPKIT_FRAMEWORK}
+                ${PARALLEL_MATER_QUARTZCORE_FRAMEWORK})
+        add_custom_command(
+            TARGET parallel-mater-metal-gallery POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -f
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-metal-gallery
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                    $<TARGET_FILE:parallel-mater-metal-gallery>
+                    ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-metal-gallery
+            COMMENT "Creating Metal gallery command-line compatibility link"
+            VERBATIM)
+
+        set(PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY "/Applications"
+            CACHE PATH "Directory containing the Dock-pinned Metal gallery")
+        add_custom_target(
+            deploy-metal-gallery
+            COMMAND
+                ${CMAKE_COMMAND}
+                -DSOURCE_APP=$<TARGET_BUNDLE_DIR:parallel-mater-metal-gallery>
+                -DDESTINATION_APP=${PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY}/ParallelMater\ Metal\ Gallery.app
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployMacOSBundle.cmake
+            DEPENDS parallel-mater-metal-gallery
+            COMMENT "Deploying ParallelMater Metal Gallery to ${PARALLEL_MATER_METAL_GALLERY_DEPLOY_DIRECTORY}"
+            USES_TERMINAL
+            VERBATIM)
+
+        if(BUILD_TESTING)
+            add_test(
+                NAME parallel-mater-metal-first-context
+                COMMAND parallel-mater-metal-gallery
+                        --headless --frames 120 --validate)
+            set_tests_properties(parallel-mater-metal-first-context
+                                 PROPERTIES TIMEOUT 180 LABELS "metal;gallery")
+            add_test(
+                NAME parallel-mater-metal-gallery-all-contexts
+                COMMAND parallel-mater-metal-gallery
+                        --all-scenes --frames 60 --validate
+                        --width 320 --height 240
+                        --output ${CMAKE_CURRENT_BINARY_DIR}/metal-gallery-test-captures)
+            set_tests_properties(
+                parallel-mater-metal-gallery-all-contexts
+                PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE
+                           LABELS "metal;gallery;subsystem")
+        endif()
+    endif()
+endif()
+
+if(BUILD_TESTING)
+    add_subdirectory(tests/solver)
+    # Compile both registry/header contracts on Linux too; the native Metal
+    # renderer and GPU kernels still require validation on an Apple host.
+    foreach(registry_backend IN ITEMS cuda metal)
+        if(registry_backend STREQUAL "cuda" AND NOT PARALLEL_MATER_BUILD_CUDA)
+            continue()
+        endif()
+        set(registry_target parallel-mater-${registry_backend}-gallery-registry-tests)
+        add_executable(${registry_target} tests/gallery/gallery_registry_contract_tests.cpp)
+        target_compile_features(${registry_target} PRIVATE cxx_std_20)
+        target_include_directories(${registry_target} PRIVATE include examples/support/include)
+        if(registry_backend STREQUAL "metal")
+            target_compile_definitions(${registry_target} PRIVATE PARALLEL_MATER_GALLERY_METAL=1)
+        else()
+            target_link_libraries(${registry_target} PRIVATE CUDA::cudart)
+        endif()
+        add_test(NAME ${registry_target} COMMAND ${registry_target})
+    endforeach()
+    add_test(NAME parallel-mater-conformance-case-registry
+        COMMAND parallel-mater-conformance-cases --check
+                ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
+    add_test(NAME parallel-mater-conformance-comparator-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
+                -p test_*.py)
+
+    add_executable(parallel-mater-types-contract-tests
+                   tests/types_contract.cpp)
+    target_compile_features(parallel-mater-types-contract-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-types-contract-tests
+                               PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME parallel-mater-types-contract-tests
+             COMMAND parallel-mater-types-contract-tests)
+
+    add_executable(parallel-mater-parity-compare
+                   tests/parity/compare.cpp)
+    target_compile_features(parallel-mater-parity-compare PRIVATE cxx_std_20)
+    add_test(NAME parallel-mater-parity-compare-self-test
+             COMMAND parallel-mater-parity-compare --self-test)
+endif()
+
+if(NOT PARALLEL_MATER_INSTALL_TARGETS)
+    message(FATAL_ERROR "At least one ParallelMater backend must be enabled")
+endif()
+
+set(PARALLEL_MATER_PACKAGE_NEEDS_CUDA ${PARALLEL_MATER_BUILD_CUDA})
 configure_package_config_file(
     cmake/ParallelMaterConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake
@@ -988,7 +1517,7 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion)
 
 install(
-    TARGETS parallel-mater
+    TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
     EXPORT ParallelMaterTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

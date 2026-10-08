@@ -21,7 +21,11 @@
 #include <unordered_set>
 #include <utility>
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+namespace parallel_mater::metal::gallery {
+#else
 namespace parallel_mater::gallery {
+#endif
 namespace {
 
 using math::add;
@@ -31,6 +35,12 @@ using math::multiply;
 using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
+
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+constexpr std::int64_t k_backend_success = 0;
+#else
+constexpr cudaError_t k_backend_success = cudaSuccess;
+#endif
 
 class FlatJson {
   public:
@@ -1850,7 +1860,7 @@ Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
         scene.cloths.size() > maximum || scene.soft_bodies.size() > maximum ||
         scene.ropes.size() > maximum ||
         (!scene.cloths.empty() && scene.soft_bodies.size() > maximum / scene.cloths.size())) {
-        return {StatusCode::capacity_exceeded, cudaSuccess,
+        return {StatusCode::capacity_exceeded, k_backend_success,
                 "gallery scene exceeds world capacity range"};
     }
     output = {
@@ -1916,7 +1926,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         output.ropes.reserve(scene.ropes.size());
         mesh_cache.reserve(scene.meshes.size() + scene.collision_meshes.size());
     } catch (...) {
-        return {StatusCode::out_of_memory, cudaSuccess,
+        return {StatusCode::out_of_memory, k_backend_success,
                 "failed to allocate gallery body bindings"};
     }
 
@@ -1934,7 +1944,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             }
             if (vertex_count > std::numeric_limits<std::uint32_t>::max() ||
                 index_count > std::numeric_limits<std::uint32_t>::max()) {
-                return {StatusCode::capacity_exceeded, cudaSuccess,
+                return {StatusCode::capacity_exceeded, k_backend_success,
                         "gallery triangle mesh exceeds uint32 range"};
             }
             vertices.reserve(vertex_count);
@@ -1951,29 +1961,35 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 }
             }
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess,
+            return {StatusCode::out_of_memory, k_backend_success,
                     "failed to assemble gallery triangle mesh"};
         }
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+        return world.add_triangle_mesh(
+            HostSpan<const Vec3>{vertices.data(), vertices.size()},
+            HostSpan<const std::uint32_t>{indices.data(), indices.size()},
+            mesh_id);
+#else
         Vec3 *device_vertices = nullptr;
         std::uint32_t *device_indices = nullptr;
         cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_vertices),
                                        vertices.size() * sizeof(Vec3));
-        if (error == cudaSuccess) {
+        if (error == k_backend_success) {
             error = cudaMalloc(reinterpret_cast<void **>(&device_indices),
                                indices.size() * sizeof(std::uint32_t));
         }
-        if (error == cudaSuccess) {
+        if (error == k_backend_success) {
             error = cudaMemcpy(device_vertices, vertices.data(),
                                vertices.size() * sizeof(Vec3),
                                cudaMemcpyHostToDevice);
         }
-        if (error == cudaSuccess) {
+        if (error == k_backend_success) {
             error = cudaMemcpy(device_indices, indices.data(),
                                indices.size() * sizeof(std::uint32_t),
                                cudaMemcpyHostToDevice);
         }
-        if (error != cudaSuccess) {
+        if (error != k_backend_success) {
             cudaFree(device_indices);
             cudaFree(device_vertices);
             return {StatusCode::cuda_failure, error,
@@ -1988,6 +2004,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return mesh_status;
         }
         return {};
+#endif
     };
 
     for (const RigidBodyDefinition &definition : scene.rigid_bodies) {
@@ -2006,7 +2023,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 cache_key.append(std::to_string(mesh_index));
             }
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess,
+            return {StatusCode::out_of_memory, k_backend_success,
                     "failed to identify shared gallery mesh"};
         }
 
@@ -2023,7 +2040,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             try {
                 mesh_cache.emplace(std::move(cache_key), mesh_id);
             } catch (...) {
-                return {StatusCode::out_of_memory, cudaSuccess,
+                return {StatusCode::out_of_memory, k_backend_success,
                         "failed to cache shared gallery mesh"};
             }
         }
@@ -2038,7 +2055,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     for (const RigidConstraintDefinition &definition : scene.rigid_constraints) {
         if (definition.body_a >= output.rigid_bodies.size() ||
             definition.body_b >= output.rigid_bodies.size())
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "gallery rigid constraint body index is invalid"};
         RigidConstraintOptions options = definition.options;
         options.body_a = output.rigid_bodies[definition.body_a];
@@ -2055,13 +2072,13 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 (scene.rigid_bodies[index].name == scene.smoke_obstacle_name ||
                  scene.rigid_bodies[index].source_name == scene.smoke_obstacle_name)) {
                 if (obstacle >= 0)
-                    return {StatusCode::invalid_argument, cudaSuccess,
+                    return {StatusCode::invalid_argument, k_backend_success,
                             "smoke obstacle name is ambiguous"};
                 obstacle = static_cast<int>(index);
             }
         }
         if (!scene.smoke_obstacle_name.empty() && obstacle < 0)
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "smoke obstacle rigid mesh was not found"};
         SmokeOptions options = scene.smoke_options;
         const Status status = world.add_smoke(options, output.smoke);
@@ -2083,7 +2100,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     for (const ClothDefinition &definition : scene.cloths) {
         if (definition.mesh_index >= scene.meshes.size())
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "gallery cloth mesh index is invalid"};
         const TriangleMesh &mesh = scene.meshes[definition.mesh_index];
         std::vector<Vec3> positions;
@@ -2092,7 +2109,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             for (const Vertex &vertex : mesh.vertices)
                 positions.push_back(vertex.position);
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess,
+            return {StatusCode::out_of_memory, k_backend_success,
                     "failed to assemble gallery cloth vertices"};
         }
         ClothId cloth{};
@@ -2128,7 +2145,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     for (const SoftBodyDefinition &definition : scene.soft_bodies) {
         if (definition.mesh_index >= scene.meshes.size())
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "gallery soft-body mesh index is invalid"};
         const TriangleMesh &mesh = scene.meshes[definition.mesh_index];
         std::vector<Vec3> surface_vertices;
@@ -2137,7 +2154,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             for (const Vertex &vertex : mesh.vertices)
                 surface_vertices.push_back(vertex.position);
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess,
+            return {StatusCode::out_of_memory, k_backend_success,
                     "failed to assemble gallery soft-body surface"};
         }
         SoftBodyId body{};
@@ -2183,7 +2200,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         options.centerline={rope.centerline.data(),rope.centerline.size()};
         for (int body : {rope.first_body, rope.last_body})
             if (body >= 0 && static_cast<std::size_t>(body) >= output.rigid_bodies.size())
-                return {StatusCode::invalid_argument, cudaSuccess,
+                return {StatusCode::invalid_argument, k_backend_success,
                         "gallery rope attachment index is invalid"};
         if(rope.first_body>=0)options.first.body=output.rigid_bodies[rope.first_body];
         if(rope.last_body>=0)options.last.body=output.rigid_bodies[rope.last_body];
@@ -2242,18 +2259,24 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                 initial.push_back(scene.initial_particles[source]);
             }
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess,
+            return {StatusCode::out_of_memory, k_backend_success,
                     "failed to select initial gallery particles"};
         }
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+        Status status = world.add_fluid(
+            scene.fluid_options,
+            HostSpan<const FluidParticle>{initial.data(), initial.size()},
+            output.fluid);
+#else
         FluidParticle *device_initial = nullptr;
         if (!initial.empty()) {
             cudaError_t error = cudaMalloc(
                 reinterpret_cast<void **>(&device_initial),
                 initial.size() * sizeof(FluidParticle));
-            if (error == cudaSuccess)
+            if (error == k_backend_success)
                 error = cudaMemcpy(device_initial, initial.data(),
                     initial.size() * sizeof(FluidParticle), cudaMemcpyHostToDevice);
-            if (error != cudaSuccess) {
+            if (error != k_backend_success) {
                 cudaFree(device_initial);
                 return {StatusCode::cuda_failure, error,
                         "failed to upload initial gallery particles"};
@@ -2262,6 +2285,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         Status status = world.add_fluid(scene.fluid_options,
             {device_initial, initial.size()}, output.fluid);
         cudaFree(device_initial);
+#endif
         if (!status) return status;
         output.has_fluid = true;
         for (SoftBodyId body : output.soft_bodies) {
@@ -2296,7 +2320,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     }
     if (!scene.thermal_surfaces.empty() &&
         (!output.has_fluid || !output.has_smoke))
-        return {StatusCode::invalid_argument, cudaSuccess,
+        return {StatusCode::invalid_argument, k_backend_success,
                 "thermal surfaces require both water and smoke"};
     for (const auto &surface : scene.thermal_surfaces) {
         FluidSmokeCouplingId coupling{};
@@ -2313,7 +2337,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
     for (std::size_t index = 0U; index < scene.cloths.size(); ++index) {
         if (!scene.cloths[index].contains_fluid) continue;
         if (!output.has_fluid || index >= output.cloths.size())
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "contained cloth needs a scene fluid"};
         FluidClothCouplingId coupling{};
         const Status status = world.add_fluid_cloth_coupling(
@@ -2330,13 +2354,24 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         std::vector<Vec2> uvs;
         uvs.reserve(mesh.vertices.size());
         for (const Vertex &vertex : mesh.vertices) uvs.push_back(vertex.uv);
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+        PaintFieldId field{};
+        const PaintFieldHostOptions host_options{
+            .body = options.body,
+            .mesh = options.mesh,
+            .cloth = options.cloth,
+            .vertex_uvs = {uvs.data(), uvs.size()},
+            .width = options.width,
+            .height = options.height};
+        Status status = world.add_paint_field(host_options, field);
+#else
         Vec2 *device_uvs = nullptr;
         cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_uvs),
                                       uvs.size() * sizeof(Vec2));
-        if (error == cudaSuccess)
+        if (error == k_backend_success)
             error = cudaMemcpy(device_uvs, uvs.data(),
                 uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice);
-        if (error != cudaSuccess) {
+        if (error != k_backend_success) {
             cudaFree(device_uvs);
             return {StatusCode::cuda_failure, error, "failed to upload paint UVs"};
         }
@@ -2344,6 +2379,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         PaintFieldId field{};
         Status status = world.add_paint_field(options, field);
         cudaFree(device_uvs);
+#endif
         if (!status) return status;
         PaintRuleId rule{};
         rule_options.target = field;
@@ -2357,7 +2393,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         const RigidBodyDefinition &body = scene.rigid_bodies[body_index];
         if (!body.paintable) continue;
         if (!output.has_fluid)
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "paintable gallery body needs a fluid source"};
         for (const std::uint32_t mesh_index : body.mesh_indices) {
             const std::string key = "paint:" + std::to_string(mesh_index);
@@ -2384,7 +2420,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         const ClothDefinition &cloth = scene.cloths[cloth_index];
         if (!cloth.paintable) continue;
         if (cloth.paint_source.empty())
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "paintable cloth needs an authored rigid paint source"};
         const auto source = std::find_if(scene.rigid_bodies.begin(),
             scene.rigid_bodies.end(), [&](const RigidBodyDefinition &body) {
@@ -2392,13 +2428,13 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             });
         if (source == scene.rigid_bodies.end() ||
             source->options.motion != MotionType::dynamic)
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "cloth paint source must name a dynamic rigid body"};
         if (std::any_of(source + 1, scene.rigid_bodies.end(),
                 [&](const RigidBodyDefinition &body) {
                     return body.source_name == cloth.paint_source;
                 }))
-            return {StatusCode::invalid_argument, cudaSuccess,
+            return {StatusCode::invalid_argument, k_backend_success,
                     "cloth paint source names more than one rigid body"};
         const auto source_index = static_cast<std::size_t>(
             source - scene.rigid_bodies.begin());
@@ -2411,7 +2447,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         if (!status) return status;
     }
     } catch (...) {
-        return {StatusCode::out_of_memory, cudaSuccess,
+        return {StatusCode::out_of_memory, k_backend_success,
                 "failed to assemble gallery paint bindings"};
     }
     return {};
@@ -2427,4 +2463,8 @@ Status create_scene_world(const SceneDefinition &scene, World &world,
     return status ? instantiate_scene(scene, world, output) : status;
 }
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+} // namespace parallel_mater::metal::gallery
+#else
 } // namespace parallel_mater::gallery
+#endif

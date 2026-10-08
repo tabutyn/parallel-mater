@@ -1,7 +1,8 @@
 # ParallelMater
 
-ParallelMater is an MIT-licensed CUDA C++ physics library. The first complete
-milestone couples particle fluid with triangle rigid bodies; later solvers
+ParallelMater is an MIT-licensed GPU physics library. CUDA is the complete
+reference backend; an Apple Metal 4 backend is under active development. The
+first complete milestone couples particle fluid with triangle rigid bodies; later solvers
 will be added only after the small public API is proven by gallery examples.
 
 The current implementation provides the `World` lifecycle and GPU rigid-body
@@ -65,6 +66,80 @@ The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
+### Metal 4 foundation
+
+On Apple Silicon with macOS 26 and Xcode 26, CMake defaults to the Metal target
+and does not require a CUDA toolkit:
+
+```bash
+cmake -S . -B build-metal \
+  -DPARALLEL_MATER_BUILD_CUDA=OFF \
+  -DPARALLEL_MATER_BUILD_METAL=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-metal
+ctest --test-dir build-metal --output-on-failure
+```
+
+The installed target is `ParallelMater::metal`, with its public API in
+`<parallel_mater/metal.hpp>`. The current correctness milestone implements the
+Metal 4 queue/frame lifecycle, embedded MSL 4 shaders, rigid bodies and all
+eight constraint types, fluid, cloth, soft bodies, ropes, particle/grid smoke,
+fluid sources/outflow, rigid contact for every particle family, and the exposed
+pairwise coupling handles. The native Metal gallery loads the shared 29-entry
+registry and renders rigid bodies, live cloth/soft-body surfaces, rebuilt rope
+tubes, fluid particles, and smoke through embedded MSL shaders. CUDA/Metal
+numerical parity, production parallel kernels, and ray-traced visual parity
+remain gated; see [Metal port status](docs/METAL.md), the [gallery parity
+audit](docs/METAL_GALLERY_PARITY.md), and the [CUDA reference package needed
+for engine parity](docs/CUDA_REFERENCE_REQUIREMENTS.md).
+
+Run the gallery on Apple Silicon with:
+
+```bash
+cmake -S . -B build-metal-gallery \
+  -DPARALLEL_MATER_BUILD_CUDA=OFF \
+  -DPARALLEL_MATER_BUILD_METAL=ON \
+  -DPARALLEL_MATER_BUILD_METAL_GALLERY=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-metal-gallery
+./build-metal-gallery/parallel-mater-metal-gallery
+./build-metal-gallery/parallel-mater-metal-gallery \
+  --cloth-tear
+./build-metal-gallery/parallel-mater-metal-gallery \
+  --all-scenes --frames 1 --headless --validate \
+  --output build-metal-gallery/captures
+```
+
+Build and atomically replace the Dock-pinned development app with:
+
+```bash
+cmake --build build-metal-gallery --target deploy-metal-gallery
+```
+
+The deployed window title and `--version` identify the exact Git commit,
+working-tree state, and build time. Quit and reopen an already-running gallery
+after deployment because macOS keeps its current executable mapped in memory.
+The application bundle carries its gallery GLBs in `Contents/Resources`, so a
+deployed build does not read scene assets from the source checkout or request
+access to its external drive.
+
+Measure the opening brick scene with sleeping disabled and enabled using:
+
+```bash
+cmake --build build-metal-gallery \
+  --target parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
+```
+
+Use `--list-scenes` to list every scene selector. In the interactive gallery,
+Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
+the highlighted scene, the mouse orbits/pans/zooms, arrows run the scene's
+control policy, Space performs its scene action, `R` reloads, and Escape closes
+the scene page or exits. Headless rendering writes PPM captures and uses the
+same embedded Metal pipelines as the windowed path.
+
 ## Blender and OptiX gallery
 
 The optional gallery loads a committed Blender-authored `.glb`, creates its
@@ -102,9 +177,10 @@ the suspension's up axis, with rear steering opposite the front. Hinge launches 
 hinged gears; contact propagates through both interfaces with alternating
 rotation. Slider, Piston, and Generic launch an
 authored sphere impact automatically.
-Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 96
-independent bricks sharing two meshes, and arrows tilt gravity relative to the
-current camera to drive the sphere through the wall. The authored `LoadBox`
+Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 384
+independent bricks sharing two meshes. Arrows tilt the sphere's gravity relative
+to the current camera to drive it through the wall while the bricks retain
+vertical gravity. The authored `LoadBox`
 is available as a non-colliding hit-box query volume. In
 DUMP, arrows drive and steer the suspended dump truck; Space tips its open-top
 rear bucket 100 degrees, and another press lowers it. Press `P` to edit its

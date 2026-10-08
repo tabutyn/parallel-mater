@@ -4,7 +4,11 @@
 #include <parallel_mater_conformance/sha256.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+#import <Metal/Metal.h>
+#else
 #include <cuda_runtime_api.h>
+#endif
 
 #include <algorithm>
 #include <array>
@@ -34,9 +38,14 @@
 
 namespace {
 
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+using namespace parallel_mater::metal;
+using namespace parallel_mater::metal::gallery;
+#else
 using namespace parallel_mater;
-using namespace parallel_mater::conformance;
 using namespace parallel_mater::gallery;
+#endif
+using namespace parallel_mater::conformance;
 
 constexpr std::size_t complete_state_limit = 256U;
 constexpr std::size_t large_sample_limit = 32U;
@@ -47,13 +56,29 @@ void require(Status status, std::string_view operation) {
         (status.message != nullptr ? status.message : "unknown error"));
 }
 
+#if !defined(PARALLEL_MATER_CONFORMANCE_METAL)
 void require_cuda(cudaError_t status, std::string_view operation) {
     if (status == cudaSuccess) return;
     throw std::runtime_error(std::string(operation) + ": " +
                              cudaGetErrorString(status));
 }
+#endif
 
 template <typename T>
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+std::vector<T> download(BufferSpan<const T> span) {
+    std::vector<T> result(static_cast<std::size_t>(span.size));
+    if (!result.empty()) {
+        id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)span.buffer;
+        if (buffer == nil || buffer.contents == nullptr)
+            throw std::runtime_error("Metal conformance buffer is not host visible");
+        const auto *source = reinterpret_cast<const T *>(
+            static_cast<const std::byte *>(buffer.contents) + span.byte_offset);
+        std::copy_n(source, result.size(), result.data());
+    }
+    return result;
+}
+#else
 std::vector<T> download(DeviceSpan<const T> span) {
     std::vector<T> result(static_cast<std::size_t>(span.size));
     if (!result.empty())
@@ -63,6 +88,7 @@ std::vector<T> download(DeviceSpan<const T> span) {
                      "download device state");
     return result;
 }
+#endif
 
 Json vector_json(Vec3 value) {
     Json result = Json::array();
@@ -191,6 +217,13 @@ Json samples_json(const std::vector<Vec3> &positions,
 
 TriangleMeshId upload_mesh(World &world, const std::vector<Vec3> &vertices,
                            const std::vector<std::uint32_t> &indices) {
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    TriangleMeshId mesh{};
+    require(world.add_triangle_mesh({vertices.data(), vertices.size()},
+                                    {indices.data(), indices.size()}, mesh),
+            "add conformance triangle mesh");
+    return mesh;
+#else
     Vec3 *device_vertices = nullptr;
     std::uint32_t *device_indices = nullptr;
     require_cuda(cudaMalloc(reinterpret_cast<void **>(&device_vertices),
@@ -214,6 +247,7 @@ TriangleMeshId upload_mesh(World &world, const std::vector<Vec3> &vertices,
     cudaFree(device_vertices);
     require(status, "add conformance triangle mesh");
     return mesh;
+#endif
 }
 
 TriangleMeshId add_box_mesh(World &world, Vec3 half) {
@@ -936,14 +970,16 @@ Json timing_json(Runtime &runtime) {
 }
 
 Json run_case(const CaseDefinition &definition,
-              const std::filesystem::path &source_root) {
+              const std::filesystem::path &source_root,
+              bool every_frame = false) {
     Runtime runtime = make_runtime(definition, source_root);
     Vec3 gravity{static_cast<float>(definition.gravity[0]),
                  static_cast<float>(definition.gravity[1]),
                  static_cast<float>(definition.gravity[2])};
     Json checkpoints = Json::array();
-    if (std::find(definition.checkpoints.begin(), definition.checkpoints.end(), 0U)
-        != definition.checkpoints.end())
+    if (every_frame ||
+        std::find(definition.checkpoints.begin(), definition.checkpoints.end(), 0U)
+            != definition.checkpoints.end())
         checkpoints.push_back(checkpoint(runtime, definition, 0U));
     for (std::uint32_t frame = 0U; frame < definition.frames; ++frame) {
         for (const Command &command : definition.commands)
@@ -954,20 +990,35 @@ Json run_case(const CaseDefinition &definition,
             .collect_kernel_timings=true,.collect_rigid_contacts=true,
             .collect_fluid_contacts=true}), "step conformance world");
         const std::uint32_t completed = frame + 1U;
-        if (std::find(definition.checkpoints.begin(), definition.checkpoints.end(),
+        if (every_frame ||
+            std::find(definition.checkpoints.begin(), definition.checkpoints.end(),
                       completed) != definition.checkpoints.end())
             checkpoints.push_back(checkpoint(runtime, definition, completed));
     }
     const std::string canonical_case = serialize_case(definition);
     Json diagnostics = Json::object();
+    if (every_frame) diagnostics["checkpoint_mode"] = "every_frame";
     diagnostics["timings"] = timing_json(runtime);
     diagnostics["state_hash"] = sha256(checkpoints.serialize());
     Json provenance = Json::object();
     provenance["deterministic"] = true;
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    id<MTLDevice> device =
+        (__bridge id<MTLDevice>)runtime.world.native_context().device;
+    provenance["device_name"] =
+        device != nil ? std::string(device.name.UTF8String) : "unknown";
+    provenance["registry_id"] = static_cast<std::uint64_t>(
+        device != nil ? device.registryID : 0U);
+#else
     provenance["device_ordinal"] =
         static_cast<std::int64_t>(runtime.world.device_ordinal());
+#endif
     Json result = Json::object();
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    result["backend"] = "metal";
+#else
     result["backend"] = "cuda";
+#endif
     result["case_id"] = definition.id;
     result["case_sha256"] = sha256(canonical_case);
     result["checkpoints"] = std::move(checkpoints);
@@ -1041,6 +1092,15 @@ bool check_inputs(const std::filesystem::path &source_root) {
 }
 
 Json device_provenance() {
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device == nil) throw std::runtime_error("no Metal device available");
+    Json result = Json::object();
+    result["device_name"] = std::string(device.name.UTF8String);
+    result["host_compiler"] = __VERSION__;
+    result["registry_id"] = static_cast<std::uint64_t>(device.registryID);
+    return result;
+#else
     int device = 0;
     require_cuda(cudaGetDevice(&device), "get CUDA device");
     cudaDeviceProp properties{};
@@ -1057,6 +1117,7 @@ Json device_provenance() {
     result["device_name"] = properties.name;
     result["host_compiler"] = __VERSION__;
     return result;
+#endif
 }
 
 void write_manifest(const std::filesystem::path &source_root) {
@@ -1069,7 +1130,11 @@ void write_manifest(const std::filesystem::path &source_root) {
     deterministic["enabled"] = true;
     deterministic["timings_gate_correctness"] = false;
     Json manifest = Json::object();
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    manifest["backend"] = "metal";
+#else
     manifest["backend"] = "cuda";
+#endif
     manifest["case_count"] = static_cast<std::uint64_t>(case_registry().size());
     manifest["deterministic_settings"] = std::move(deterministic);
     manifest["device_and_toolchain"] = device_provenance();
@@ -1083,7 +1148,9 @@ void write_manifest(const std::filesystem::path &source_root) {
 struct Arguments {
     bool list{};
     bool check{};
+    bool provenance{};
     bool update{};
+    bool every_frame{};
     std::string case_id{};
     std::filesystem::path output{};
 };
@@ -1094,7 +1161,9 @@ Arguments parse_arguments(int argc, char **argv) {
         const std::string argument = argv[index];
         if (argument == "--list") result.list = true;
         else if (argument == "--check-inputs") result.check = true;
+        else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--update-goldens") result.update = true;
+        else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
         else if (argument == "--output" && index + 1 < argc)
@@ -1103,15 +1172,25 @@ Arguments parse_arguments(int argc, char **argv) {
     }
     const unsigned modes = static_cast<unsigned>(result.list) +
         static_cast<unsigned>(result.check) +
+        static_cast<unsigned>(result.provenance) +
         static_cast<unsigned>(result.update || !result.case_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
-                                 "--case, or --update-goldens");
+                                 "--provenance, --case, or --update-goldens");
     if (result.update && !result.output.empty())
         throw std::runtime_error("--update-goldens writes only to golden/cuda; "
                                  "do not combine it with --output");
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+    if (result.update)
+        throw std::runtime_error(
+            "Metal runner cannot update the CUDA reference goldens");
+#endif
     if (result.update && !result.case_id.empty() && result.case_id != "all")
         throw std::runtime_error("golden refreshes must cover --case all");
+    if (result.every_frame &&
+        (result.update || result.case_id.empty() || result.case_id == "all"))
+        throw std::runtime_error(
+            "--every-frame requires one named --case and cannot update goldens");
     if (!result.update && !result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
     return result;
@@ -1131,9 +1210,19 @@ int main(int argc, char **argv) {
         }
         if (arguments.check)
             return check_inputs(source_root) ? 0 : 1;
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
+        if (MTLCreateSystemDefaultDevice() == nil) return 77;
+#else
         int devices = 0;
         if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0) return 77;
+#endif
         const bool update = arguments.update;
+        if (arguments.provenance) {
+            Json provenance = device_provenance();
+            provenance["source_commit"] = PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT;
+            std::cout << provenance.serialize();
+            return 0;
+        }
         const std::string selected = update || arguments.case_id.empty()
             ? "all" : arguments.case_id;
         const std::filesystem::path output = update
@@ -1151,7 +1240,8 @@ int main(int argc, char **argv) {
         }
         for (const CaseDefinition *definition : definitions) {
             std::cout << "RUN " << definition->id << std::endl;
-            const Json result = run_case(*definition, source_root);
+            const Json result = run_case(
+                *definition, source_root, arguments.every_frame);
             write_file(output / (definition->id + ".json"), result.serialize());
         }
         if (update) write_manifest(source_root);

@@ -30,6 +30,10 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 ## First gallery sequence
 
+This sequence describes the OptiX gallery. The native Metal gallery retains
+its earlier Point/Motor/Generic Spring/procedural dump controllers; see the
+[Metal parity integration notes](METAL_GALLERY_PARITY.md) for the current gap.
+
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
 2. **Rigid constraints** — six Blender-authored scenes exercise all eight

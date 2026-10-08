@@ -34,9 +34,16 @@ Build with `PARALLEL_MATER_BUILD_OPTIX_GALLERY=ON`, then use:
 ```text
 parallel-mater-conformance --list
 parallel-mater-conformance --check-inputs
+parallel-mater-conformance --provenance
 parallel-mater-conformance --case <id|all> --output <directory>
+parallel-mater-conformance --case <id> --every-frame --output <directory>
 parallel-mater-conformance --update-goldens
 ```
+
+`--every-frame` is a diagnostic mode shared by the CUDA and Metal runners. It
+emits frame 0 and every completed frame for one named case while retaining the
+canonical case SHA-256. It never updates goldens; compare two every-frame
+captures directly or inspect them to locate the first divergent frame.
 
 `--update-goldens` is the only command that writes `golden/cuda/` or the
 manifest. It always refreshes the complete corpus. Reconfigure CMake after the
@@ -66,18 +73,70 @@ backend-specific hashes are diagnostic and never gate correctness.
 - Direct integration uses `1e-5`; constraint/contact positions use `2e-3 m`
   and velocities `2e-2 m/s`; deformable samples use `5e-3 m` and `5e-2 m/s`.
   Quaternion angular error uses `2e-3 rad`, with opposite signs equivalent.
-- Contact lists are matched one-to-one within stable body/particle identities;
-  every matched field must pass its existing tolerance. Floating-point impulse
-  differences cannot reorder the correspondence. NaN, infinity, missing entities, changed
-  topology, and a changed case hash fail.
+- Contact lists are canonicalized and rigid manifolds aligned by geometric
+  cost within body pairs. Final comparison requires a one-to-one match within
+  stable body/particle identities, with every matched field satisfying its
+  existing tolerance. Floating-point noise cannot reorder the correspondence.
+  NaN, infinity, missing entities, changed topology, and changed case hashes fail.
 - Systems of at most 256 elements emit complete state. Larger systems emit
   stable-ID samples plus counts, bounds, center of mass, momentum, energy,
   maximum speed, divergence, strain, clearance/contact, and topology data.
-- Cases marked `chaotic_envelope` retain samples for inspection but gate
-  aggregate bounds/centres at `0.1 m + 5%`, momentum at `25 + 25%`, energy at
-  `25 + 25%`, and scalar envelopes at `0.05 + 10%`; individual trajectories
-  do not gate.
+- Cases marked `chaotic_envelope` retain particle samples, rigid trajectories,
+  and raw contact records for inspection, but those individual trajectories do
+  not gate. Aggregate bounds/centres gate at `0.1 m + 5%`, momentum at
+  `25 + 25%`, and energy at `25 + 25%`. Contact counts use a symmetric
+  `0.05 + 10%` tolerance. Divergence, pressure residual, and strain are
+  upper-bound envelopes; minimum clearance is a lower-bound envelope, with the
+  same tolerance. Improving those safety metrics never fails conformance.
+  Identities, lifecycle counts, and topology remain exact.
 
 CTest byte-checks registry serialization and GLB hashes, exercises comparator
 edge cases, and reproduces CUDA results in a temporary directory without
 rewriting the committed goldens.
+
+## NVIDIA reference handoff
+
+Available captures:
+[2026-10-06 CUDA diagnostic package](references/cuda-20261006/README.md).
+Its strict repeatability limitations are recorded alongside the complete data.
+
+`capture_reference.py` retains ten complete runs, raw timings, device and
+source provenance, build options, per-file hashes, and the first divergent
+record. It refuses dirty source or a runner configured for another commit.
+Output must be a new directory outside the source worktree. It never updates
+goldens or relaxes tolerances.
+
+```bash
+python3 conformance/v1/capture_reference.py \
+  --runner /path/to/build/parallel-mater-conformance \
+  --parity-runner /path/to/build/parallel-mater-cuda-parity-capture \
+  --output /path/to/new-cuda-reference
+```
+
+Only `diagnostics.timings` is excluded from exact same-device repeatability;
+every checkpoint, discrete value, ordering, state hash and provenance field
+remains exact. All raw runs survive a failure. `--allow-dirty` is available
+for investigation only and always produces an unqualified package.
+
+After qualification, explicitly run `--update-goldens`, inspect all numerical
+diffs, and rerun the complete CTest suite. Retain its log and lossless gallery
+images alongside the package. Do not call a non-repeatable capture a golden.
+
+The CUDA and Metal all-system capture executables share
+`tests/parity/capture_scenario.hpp`. This is Metal's detailed public-view
+diagnostic format, not a replacement for the 30-case conformance contract:
+
+```bash
+build-metal/parallel-mater-metal-parity-capture /tmp/metal.capture
+build-metal/parallel-mater-parity-compare \
+  /path/to/new-cuda-reference/all-systems-01.capture /tmp/metal.capture
+build-metal/parallel-mater-metal-conformance --case all --output /tmp/metal-results
+python3 conformance/v1/compare.py --cases conformance/v1/cases \
+  --expected conformance/v1/golden/cuda --actual /tmp/metal-results \
+  --report /tmp/metal-report.json
+```
+
+See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
+for conditional first-divergent-phase instrumentation and the separate visual
+and performance handoffs. A CUDA reference alone does not establish Metal
+parity.

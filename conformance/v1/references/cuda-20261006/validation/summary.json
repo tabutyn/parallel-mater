@@ -1,0 +1,213 @@
+{
+  "schema": "parallel-mater-cuda-validation/v1",
+  "source_commit": "cc2a2e40656c2a850176d97220d7c32d6da6bf2d",
+  "tests": 101,
+  "failures": [
+    "parallel-mater-conformance-cuda-goldens",
+    "parallel-mater-rigid-wall-tests"
+  ],
+  "skipped": [],
+  "gallery_images": [
+    {
+      "file": "parallel-mater-cloth-paint-test.ppm",
+      "sha256": "17a01ba8d70f721f703e7bb58ac0db81c3a257a8b42a2c5292dffc966a1b4927",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-cloth-tear-rolled-test.ppm",
+      "sha256": "0e0c9eefc0a27deb1a117144970c8c3e7265c5de04bbb04a4349c279f2bfc205",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-cloth-tear-test.ppm",
+      "sha256": "a920159608df9e60432e4424149ae2156723049a009f60566d7d7bbd27d86573",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-cloth-test.ppm",
+      "sha256": "a9f070baaa16cfc5e1fd535e8017776be6c71f07278c04e33dc8024022988c31",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-fixed.ppm",
+      "sha256": "b7cf41ba68a2e21a43994d2d92b256ebc77ae8f3f775624caa376d5c2c1d2c65",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-generic-spring.ppm",
+      "sha256": "f51ce833915878c102b5294e2c5aa233a1df9eeb9d4cfc493e3ddde5f33f8e61",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-generic.ppm",
+      "sha256": "ce0e552701dfd3d6000f9301f6c04f0d4fc668888748ea37a6af90c1f9a7b192",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-hinge.ppm",
+      "sha256": "b3d29d4f1b233b4843915a94f741fb36043c54df8d0461ef115a2294172023dd",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-motor.ppm",
+      "sha256": "d5a4704b5aecd2e10eb8c760744c815f8c8e4374f927fc481b13be6ff87a9a5d",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-piston.ppm",
+      "sha256": "16c266090a00a691f2ee21c6084322988fd99fe6babc7ec6f362df5381c1a06a",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-constraint-point.ppm",
+      "sha256": "e0648c5503924fa967cbc1a0465504110f18d362bcb38ef472c38556faa0e507",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-dump-test.ppm",
+      "sha256": "7c19e5650d38ed3f48ab4c92e24bd1bdd144221adf1df3ca34bdf43bd1f1c074",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-fluid-cap-test.ppm",
+      "sha256": "f6baaa6bbe4a9310737c240ecf3b758aa14c05a4f038bd0ebe9f6ddf16bb08e4",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-fluid-containment-test.ppm",
+      "sha256": "74bc24e995190f23640fa400a7cf23d9331b9341257ed130d5a66276f75bf88b",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-fluid-particles-test.ppm",
+      "sha256": "4e113339f772a33f75ba2c6e10b6543e3f7ccaadf590f6f323f2cc1744d18b43",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-fluid-rigid-test.ppm",
+      "sha256": "18a724fd2656193f6360b685e8b1128a4bf530efdff1387f482f474745a783be",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-fluid-test.ppm",
+      "sha256": "b8e5020fe1e8463745dcc4fd804f178620ae894ffad0b5d626489978d6c29efb",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-optix-test.ppm",
+      "sha256": "f1df4a47d6b74a640cf069f7ec4dcc8660139f6176d810e7f49f733817acc9ea",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-peg-paint-cap-test.ppm",
+      "sha256": "9aba706ca40e10e142e3b61d92cd993dab63bb74b0a38bf7aa0065ed271d28a9",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-peg-paint-containment-test.ppm",
+      "sha256": "63e66de6743bf24d0049fb0dad21b6a1e4864fa14a58a7d1432a51f0d66432bc",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-peg-paint-test.ppm",
+      "sha256": "a839737ad3c088def0d5a890fcdeab1ce6215298a9d901de451eea675f178f2f",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-physics-capture-test.ppm",
+      "sha256": "fec3c0ef4aa1c249424210678904ef5989e94dc0003179ccc8f7d73f64fc62cb",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-rope-cloth.ppm",
+      "sha256": "aef326b419a102398a8d86031bfa48c329dfcf468729257af85f6fa64278ed3e",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-rope-fluid.ppm",
+      "sha256": "71cf31ce45cbae8f847fea783a31e5cb3ce328339b84ed814299dcb986f01f55",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-rope-settled.ppm",
+      "sha256": "6b6621a071670d7f62560678127dff366cbd6315941ff095eeebde713ea2034c",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-rope-soft-body.ppm",
+      "sha256": "9156202e6e5e97da0f7347679c23f03a582475f1f49d2d398d11f262dc67648f",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-smoke-cloth.ppm",
+      "sha256": "867a2876847347ad149e374f84d40357e420c99ae1fd429f31a4d6b7b67a15c3",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-smoke-rope-tilt.ppm",
+      "sha256": "71f6a77e4b1215395ea040b6fd78a635b15d47e9a0385bf053a35993a5a156b9",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-smoke-rope.ppm",
+      "sha256": "c9100332b7336dbe97988f6e586b57918ef209ffaa24ccd09ffad16faea6249f",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-smoke-soft-body.ppm",
+      "sha256": "5342f21d47e4755e8276a313271d67835f1ddca1af762900e0381a7763a4c4ba",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-smoke.ppm",
+      "sha256": "49ce5523ce62a74006a08c68c664f6c3bd2a927abf657771fb5e2e0918b6e2f0",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-cloth-tear-debug.ppm",
+      "sha256": "01d32b9e43972168aae26711ab70cbef872c7f65457a66e05aa7583a03fe943c",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-cloth-test.ppm",
+      "sha256": "ed7a6608df61fc04c56138f5d70e600cdebe9131a342f056127021a9e71fcc9d",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-fluid-test.ppm",
+      "sha256": "657bcf60b95cc161df8e855b48de2959ee3458ce08c7636f54759ba3b15771d1",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-rigid-test.ppm",
+      "sha256": "482af771ba688845a58ac7cd20791b951e5b4e066bb0f551a948c9e0ba56c38a",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-test.ppm",
+      "sha256": "bf039243700e6776a8395a17142091d3f8c7d5dc1f381b764c4e17db9952f78f",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-soft-body-tilt-test.ppm",
+      "sha256": "99b3a8991ce7b791e6233a69d319cdf3ef6d93cf4eb6bda69872d650e2c5fa0e",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-water-cloth-debug-test.ppm",
+      "sha256": "c46822a8dc09a86e03a8272782a69fc77b4e7ca55d3fd8acd8ed82d207d40591",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-water-cloth-left-test.ppm",
+      "sha256": "83a7ecf4e847602925e8492da4d5787a9243e4e6e62d5e1bc38f7ba338554b10",
+      "bytes": 2073615
+    },
+    {
+      "file": "parallel-mater-water-cloth-test.ppm",
+      "sha256": "81049f4adf4c39f1102f717080efd02a932f768894643982056765a68a3107e5",
+      "bytes": 2073615
+    }
+  ],
+  "gallery_scope": "Existing headless/render CTest coverage, not the complete 29-scene/debug-view visual approval matrix"
+}

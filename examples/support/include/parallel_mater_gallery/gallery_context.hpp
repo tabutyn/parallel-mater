@@ -17,7 +17,14 @@ enum class GalleryContext : std::uint8_t {
     constraint_hinge,
     constraint_piston,
     constraint_generic,
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+    // Keep the native gallery's existing scene/control contract until its
+    // Motor + Spring and authored dump-truck controllers are ported.
+    constraint_generic_spring,
+    constraint_motor,
+#else
     constraint_motor_spring,
+#endif
     dump,
     fluid,
     fluid_rigid,
@@ -48,8 +55,14 @@ enum class GallerySceneSource : std::uint8_t {
     constraint_hinge,
     constraint_piston,
     constraint_generic,
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+    constraint_generic_spring,
+    constraint_motor,
+    procedural_dump,
+#else
     constraint_motor_spring,
     dump_truck,
+#endif
     fluid,
     fluid_rigid,
     peg_paint,
@@ -76,7 +89,12 @@ enum class GalleryControlPolicy : std::uint8_t {
     rigid_gravity,
     constraint_toggle_gravity,
     collector_gravity,
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+    tank_motor,
+    dump_rotation,
+#else
     motor_drive,
+#endif
     none,
     peg_gravity,
     cloth_gravity,
@@ -155,10 +173,17 @@ inline constexpr std::array gallery_entries{
         GallerySceneSource::constraint_point,
         GalleryControlPolicy::constraint_toggle_gravity, GalleryCountKind::none,
         "--constraint-point", "CONSTRAINT: POINT",
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+        "ARROWS GRAVITY  SPACE RELEASE / ATTACH", {48, 40, 31, 235},
+        {245, 151, 52},
+        {.target = {0.0F, 0.8F, 0.0F}, .distance_scale = 0.72F},
+        false, false, 0U, 0U},
+#else
         "ARROWS GRAVITY  SPACE RELEASE / RESTORE  R RESET", {25, 32, 54, 235},
         {235, 190, 101},
         {.target = {0.0F, 3.1F, 0.0F}, .distance_scale = 1.65F,
          .pitch = 0.40F}, false, false, 0U, 0U},
+#endif
     GalleryEntry{GalleryContext::constraint_hinge,
         GallerySceneSource::constraint_hinge,
         GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
@@ -178,10 +203,35 @@ inline constexpr std::array gallery_entries{
         GallerySceneSource::constraint_generic,
         GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
         "--constraint-generic", "CONSTRAINT: GENERIC",
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+        "ARROWS GRAVITY  LINEAR + ANGULAR LIMITS", {42, 38, 57, 235},
+#else
         "ARROWS FORCE  LINEAR + ANGULAR LIMITS", {42, 38, 57, 235},
+#endif
         {151, 113, 235},
         {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.70F},
         false, false, 0U, 0U},
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+    GalleryEntry{GalleryContext::constraint_generic_spring,
+        GallerySceneSource::constraint_generic_spring,
+        GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
+        "--constraint-generic-spring", "CONSTRAINT: GENERIC SPRING",
+        "ARROWS GRAVITY  LIMITED SPRINGS", {45, 36, 54, 235}, {210, 116, 220},
+        {.target = {0.0F, 0.7F, 0.0F}, .distance_scale = 0.70F},
+        false, false, 0U, 0U},
+    GalleryEntry{GalleryContext::constraint_motor,
+        GallerySceneSource::constraint_motor,
+        GalleryControlPolicy::tank_motor, GalleryCountKind::none,
+        "--constraint-motor", "CONSTRAINT: MOTOR",
+        "ARROWS TANK DRIVE", {28, 42, 52, 235}, {50, 154, 228},
+        {.target = {0.0F, 0.6F, 0.0F}, .distance_scale = 0.92F},
+        false, false, 0U, 0U},
+    GalleryEntry{GalleryContext::dump, GallerySceneSource::procedural_dump,
+        GalleryControlPolicy::dump_rotation, GalleryCountKind::dump_spheres, {},
+        "DUMP", "AVAILABLE  P EDITS SPHERES", {62, 38, 22, 235},
+        {245, 130, 45}, {.target = {0.5F, 2.2F, 0.0F}}, false, false,
+        10U, 1'000U},
+#else
     GalleryEntry{GalleryContext::constraint_motor_spring,
         GallerySceneSource::constraint_motor_spring,
         GalleryControlPolicy::motor_drive, GalleryCountKind::none,
@@ -195,6 +245,7 @@ inline constexpr std::array gallery_entries{
         {245, 130, 45}, {.target = {0.0F, 1.8F, 0.0F}, .distance_scale = 1.3F,
                        .pitch = 0.85F}, false, false,
         10U, 1'000U},
+#endif
     GalleryEntry{GalleryContext::fluid, GallerySceneSource::fluid,
         GalleryControlPolicy::none, GalleryCountKind::fluid_particles, "--fluid",
         "FLUID", "P CAP  V PARTICLES  R RESET", {12, 42, 65, 235},

@@ -1,0 +1,1548 @@
+{
+  "captured_at_utc": "2026-10-06T12:28:23.263585+00:00",
+  "case_count": 30,
+  "clean_source": true,
+  "cmake_returncode": 0,
+  "device_and_toolchain": {
+    "compute_capability": "8.6",
+    "cuda_driver_version": 13010,
+    "cuda_runtime_version": 13010,
+    "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "host_compiler": "12.2.0",
+    "source_commit": "cc2a2e40656c2a850176d97220d7c32d6da6bf2d"
+  },
+  "excluded_from_repeatability": [
+    "diagnostics.timings"
+  ],
+  "first_divergence": {
+    "actual": -3.3850932121276855,
+    "expected": -3.045713424682617,
+    "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]",
+    "run": 2
+  },
+  "gpu_returncode": 0,
+  "qualified": false,
+  "repeatable": false,
+  "runner_sha256": "6b712f7551f831ecb8f8ac9ca323c4fa8fa1e35fc0d314974298704626a4a3b3",
+  "runs": [
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "156aeb0c5db57c49fceeb8c271ae87b51b2a7ecc7fc7a25465eb093f6e3a886d"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "4d601e8a77c94dc999ad3a42815ef0c4dfb53f046045973c88bd074b8317490c"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "e41d9fb54aee2ebf78cc56b84398c2488cb0f0ff5b8e4720b7657e04a9f5a303",
+          "file_sha256": "148ea5a7672efb069c48c527a44c158959ea7a6916bfd6d398a4abd5322aa806"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "b190c16ef14ad203a74af452be9685aa9a5d257b7b8269236faa8a10dde735f4"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "84e58195c2b853197a73ea385896d71a7c8b77588004342aa4f57ec021f09dcc"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "bde027b52857bc43366ad5e33099ff711c908cff83b88ef7cbcafe6850f6b434"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "9f7a397966f7b3a140d6e7b4328faeb466be2f0502d3256c1987cbaf95287e6a"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "9f8d755a09139b7efd4062b694c91f3e31498a6409c63ee6732e9e70d47da6c9"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "576956c9a41f54d0497f77e1bbbd320f77070ff2eb8248693f722e493c4dac16"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "5e341e81f9034fba9d36a1370c20a3c4aa48c7a2b5b5defdbfc9f423353ad39e"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "626ed6905202964fce7f349198ffcccf9f7071419855749163dea58593917fee"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "d102e78264ea4b34f022282fa7322e1a2d8cf6bac4b065d7cb0741fb23520ba2"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "df4579e4669e9a6220a50950523752b418fbbfe1395dfbb72a1e532dcc7a95f7"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "3acf4f7550589581e39729d62937e66a824a4a06eee0bb832ac1cec48524fe50"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "71cc7b9e0884dead66346dab478e32d98264c2a0b7c01c8504e220f195405eca"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "6a7a1a45a4e4466acfdd88fc41b20906449cfdd3ff47158647f0485bd08e6a45"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "ea9107e588fac1aac36f29f9990cc8438ac5e743b8c546d83991283d0c04af39"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "db64fa00155455bd8b3d3c8ad6b239483c790fc09088f9aa4d48b9622365ccd1"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "55fad9e1945308a51264965603d578313d662ee0b5b189372dbe10af59c7c693"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "4096734122c3dc55b2f9446c4dbd232e496019a7ebd20f0ca85c2a0ed1a52e5d"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "4cf835c3b0ddf5b1e006e28a13a2781cc8fdd5a3448e98fa57e108586279773d"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "1b3035307df2cf45e304ba54e32f7e5d4e563c73cd89efc2a17a46322423d364",
+          "file_sha256": "a81d15dd6c7bdab66391a87ed39020cfdec1193aee22a631a179d8f35edb9e32"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "31d8740be02054510e418c77c6b3e229851fea88edbcdf7e9a206e4c1fab7235"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "47bf7d73ce3fcd2bd22728168f0c1b87fabe5b3dd2013d7be9c2c281efa9759f",
+          "file_sha256": "b84d3f9f80743135a675d8b9e2ffc50f522749f5afc902b641d4d8fa9f9c0e3e"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "d11818abe506707a5c1a96248a04c742031c36ed0f045e2d136e12c4d54c4fac",
+          "file_sha256": "6bfa5b6982921cf7be6e5afbeb559919f078b14b0d455dcd58f9a72c058d9a15"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "3a7cd497d87788ead8560d73c0cdbcf378693abd4ec9522a71f99271a4e197a8",
+          "file_sha256": "a6b2a6e9dc649882aec5bde96b6fce681899b3eef036eaf0151a99e9ca44e28e"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "39ee1752abdcf61d1c270bce36139e83be77c38a3898bbdfa8e6dfe0ca2a4efe"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "f4e923eacd97b15bf2d2e1ce3af7fe49e82c0586da9386b18551070e5b7dc7e6"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "de58e7f80d85ed0b5c5f8670b296ebe5d1c92a3df6fdc245756f9fe9f49ff02a"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "6353d4bbfae8772ffb3f61438df7cbba2b8a39184e0fd548b61654ebb80cdb4a"
+        }
+      },
+      "differences": [],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 1
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "67f147118a40398ac01c8e222a4d6c47ea25d740b17282d9d7edb7a4380493f8"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "13d219e007061696e8675cd0c58fa15a698f95835e3ddb948d499eb7bf6df9b8"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "c4e0b1587c2953f41663851224236cbb92aa5e6a7727c73b13a01929506e4287",
+          "file_sha256": "bbb74f636a78ff681c448237944931f13688e5d7dec366d85c414c030d978368"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "a04448d24d38c88a8d33d95c4d5b5505c103b2e583ce8bf52ef93fa68118048c"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "9cdcbe9e8978f9390e610d70c508874078811742c741f737efddac5065984210"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "1a248da7bfb16eabdf0b5044e56baf837d10696c0bf2b578e50b725f0be6a486"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "a2761fe9485f19cca86f21707f3612c832a6a9c8a89e8679b876139459f3135b"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "7e1962f59355e9a6f058d3e5d6ef07e996ec909fc1067477d1fab1cb9c7cab7a"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "eea9121d4ff91797bc1b696359b4a1d80dae628fea96c0f11494038176653c42"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "1789e677a36674f05869fe2a6ff23584e4c18e7be61e2376e3b4c243150d9e38"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "ce73d8442555ddb694614f889aad7add209a1896146571728868287cea9ee02a"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "f3174e490507ef2daeec553ae212d777b7979a28980ed922f895f329cdfca0bd"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "83fc5be6db62c280492f42ee8717c6d6d47363bc033b1ca177ab8cb8a9352eee"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "f1891135bb19a7ebbe6c686a626e99a828f95b6f07740a83de6e398c58676994"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "cebf83f748d70db03c458cbcdc256c5e86880b9eaa883f482148ab5ab2df5599"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "7ae5fa276dfe3492de437fa203d45d49796db4ec580ec6e0d4739bf063d10175"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "a081a55c8574c5abb55bd300269f9c924d13cfba1bc50545bed99b59ed6f28a3"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "22d5ed0859f80ddd584eca858b9c0f48b42d41cd4f2d90714e8192365d4dfe4a"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "c4328b24240192932a36dc52f76dce57fa89b43f2e087328b2d88d40a59e199c"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "f29c787ccbed49b7b53fc76cbdd399a6ca114e7b2e9b8b007dc5bb725cb5e120"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "e31027baf3ae931274a7c9a41a12a360bc44e7f3363edb19d59ee69011c6512b"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "d4bafa7cf5d73aa239fb04b077a8557f00d5cc899287149860f4bf28fa2bba17",
+          "file_sha256": "21f97f459f685c9d219ea37de66552711c1e3d90be5daaeddfc24547fa457516"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "f5b2bbf8f80d543db5cb42dc507f5ca860ee67afd541ac749a52e286f1eae0c4"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "9483c9e725907c5b7d061dcb8d71638c6214c25007fcb8bbd8579efd7fa06bd0",
+          "file_sha256": "8900889e7a5ca6d08eb9576cd8a19437e90f86264ae3aa5afe4d7851b6a5307e"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "544e8dfe1d5e32a705a5ba6a64885cfbf0ab348004fb0714535feb93c4adb95c",
+          "file_sha256": "a2a0b5afd3438c5f8f82789addeb8fa4aa820dc7740d1fca976e3c69dd7e34f1"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "9cd5865c4152bab028bff07dc7181bc8336c09122937dad2c60ceff71ee07f41",
+          "file_sha256": "c701af1b8edb68f16359a3d2d530877eff3be8c71b55fc5fe793952bcf9e6eb0"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "227f508d611b2e1424567a4e89f8105d0804f4971e16abc4a987a5a774b1b682"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "f8ea4f697468e687f42d9ab1cceede6028b2e91b13bb278dc5fa9edfc310519a"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "093fe9a146f101905163e575b3e9c991a7c9d0325c190e80d70b08e26d199207"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "253f637557b5eb2d68a4912d806ec58f65eec4cfc3f40c956728196e9beb35bb"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.3850932121276855,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00021197125897742808,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65542858466506e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.0005206860048637853,
+          "expected": 0.0005206859338459541,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[2].grid.rms_divergence"
+        },
+        {
+          "actual": 0.24155347049236298,
+          "expected": 0.24155336618423462,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[2]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 2
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "f93c86f9f9fb7d906d54858085d093b03c7d85e5371acfb92501279f4d978cc6"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "e024b32b143f9f434c6b47dffe42df5ea7ef1fae3546b9cd7e41519dfaf39735"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "df65e6a19b528ce56f3bf1253cc0604448c9c37e0d572c5b431016fbf65c05c1",
+          "file_sha256": "e2ff855d433818b46f43644ab31e6d01c16fd872b4c1097c3cea0528e1c33747"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "685d7948d5804e3011a0a963cfc5e99f623fa3ae3e960373e3d3df7308182c37"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "d235512d95121ab75c09671d6864b2a8ddbdffba5af8d6ff40b02990007e5dcd"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "0b839d2527b5c1eeccaceef2d69275739c8f6cdfe7075ac6af1240f65c327ea2"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "96835bffdb548b22878a8cce1bbb651dd10399eb15dd0f1139bfec8b27502552"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "2dcfc8003628e2f5a4af5f795d75c9218027cc3cc676c51aaa984677513bb1b8"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "68a547a5f7b1bb7dbc4a4f1b91c0e120ee19e306fe05504d36c1fbe81f86ee8a"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "744a37e208db357319065105de86aa04a5f3b15ed0af1bb9c9bf04ed21b27368"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "9e66d6fa83bf4c2a406ba3645dc2377ead35f6a422c7adf0db7a541954b5666b"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "6706708619c3edbd642f0ac63462c17c47b7d1a4c09ed1e780849bb9b054d2fc"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "358e22f91427e484c4641022b08665dce69b8dc6b3ae9e6f66ef1f79c4b547cc"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "daaf5c6d384d0f5a0371b88498704699f911c685e07dc74552616ea35fd60e93"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "c9bad65a747c5151143302a73da7dfe5c7aa6035a812c12d543489afe68a0ff1"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "028fb901ea683adcaffc96597f955b7e470739d5bf045925425d22f7562dd616"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "51e9b8fcc96a0e9cca4ae113d4155e77712c3db709ca19cc38cd9b387aa4cfb8"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "ac4a8b2b94f245df784177e603baf9bbc2a5366ccf619cf510b1f727640dd247"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "666d3671a3c631e66b748cb56df24cfdeea89e2e36240ee4863c9d9c47ccdbd2"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "36c5e8a3f9640c068a91d5e8fd8bc32e26c0f8cb26e30ed2a040b4c804b31fa9"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "35fe276eab6785c850d85d3fcbb0df2a6a2505f10c998c07d2ce401a66964462"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "4f11ea99f885d05faa8ea3d0b499c7394848a9d47b8c843562383a27ea46489d",
+          "file_sha256": "037140ad84673b7ac529b7a3f881ac142870b81e91aae0fa54cac41dce74a459"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "d0309a8f16c0da4eaffd5a5e9775fb3e8acaac26246da6d598cc58e1735460c0"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "bbf2014b60853caac40314821a2c19dbe90ace2a671b3a63c62d01372392de74",
+          "file_sha256": "e19b6f2000a75e0485ee7325471dcb669547a078e6ce7c963de36cf807b08e75"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "a3a3c9290a9b572fe4e0e3472e2665593c365882ac3b8026c2d0c81bd0834756",
+          "file_sha256": "226d621a100b320650fd76435c60f3b9f208e6756cb39e3998d0f773bcac3608"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "151ffec00630783986b7f8698cf01b72241cd7463c18f45c3ded236ea341d585",
+          "file_sha256": "286506f5aaf7347d0de96d59114cf42c5077579c54e590126e8a918919f8c91b"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "d73c11e637b9a5192d9cfbc97efcfb5041be6455137f1a54501689ff14ae9601"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "94c6a33cf2c90858ca946fcd3e6f04b166ddcacf028cf60ebf1d7fcd7b40bb72"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "7cb0da08dc86efb8f1e3b7c21573ba27a137ff5e22bb32233ea879e584f3bf03"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "1693de93598ebf3c3ca0680e84ea0b878dc3c65d8e9d68fca7ee9af033288b2b"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.090451240539551,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020050587772857398,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.00019217022054363042,
+          "expected": 0.00019218212401028723,
+          "path": "smoke-soft-body.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": -1.552748680114746,
+          "expected": -1.5527487993240356,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[0]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 3
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "070f27f8e6525da0509a06f6e49dd45bfcf8fbfae7768b174e32e66c0bb5a710"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "4b912941955a63018dea01ffcf594d0aece8c38ab69bcf26a55395df6b568d42"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "c80014e4961b761a5b538a7420c51e13a13a6b1178958c1d7b224d613b29c67b",
+          "file_sha256": "e10ed55e64c32f4d7b65110888a46623adb2245a33be6ed397ec628654bdd626"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "f1e214072d5b45851a41b0ae86093595cb6b3de45a9b3ec358787ee9d6756dc8"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "1bba3301c378cd8b9636bf2d56213885bf0ddee86aa71e3b449f86a1f011de35"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "ec45763bd5ea8c488838e8427990e9b3c5e05bad4c3ecf0cfedfa61d6eb830a8"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "04b0156690dafdf0a1abbae0608bc6f2b739f719c0257d446e158602b176fab8"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "df17f14a5a7fb91e7ccaba123398dc5e4bac50cb2746b50b46d75c7a149c7dfe"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "95d9ace7b933fe08ae747fa25d41b351d3883b3ce9ac3e40b56fcabb6a9a8863"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "c055e15ab9fe5fc35e116c54c98b4b9c9884c80493fbaf62717b06c2707c5472"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "5790af2e49eff1fa3af8c0e1489a89ac35d97cfb116bec5c0a3037e376e69af0"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "efc50b0ea428435c762f33451b074d8e8149eac3b895a907611ed5eb5507296e"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "4d131fd7ae5df7a9509e348d261cdfc2e837ee79e37cc9a53fab98f7686b7316"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "db173a8030850ab3f889f961ab23039a63e3f1938e6fa75f82a77c07d1f37cfd"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "e5d88c6d2e370cffe6109ea05dc6c4802cb1a20575e3f0f346b8f08d44effeb1"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "ac0c0b3fb2e67fa7f26252da34056b7e7fc10aff020af9049a99df4528e5f8fa"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "a43a2b7da07f7f750860c90d3f10d4418b676b737d719e7ba5c38b63b658db38"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "24ac58cbf0aec92d58d43f8a4600286da5dda875398b8d6efb0c8926dee372f9"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "7c9d87b2cbf18a5c07bf57b9e4ae8ea948a5ef66fa6bf41ced21bdb56e3213f1"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "72f47c9494c44119345dd4e21ed0b06ae12c63d10c8240b4e6fcd34cd29b3ff4"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "39a04c9322f60a3fd8a87d6715550ec4ff513902331a371438e5408746e6c89b"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "09f43f24d94e796daaedab32ba4721fce6c9104e578aa7c41f2e8d96ca334d3d",
+          "file_sha256": "892d1329b98ae97b10474639ee63ec833d8387b4f786dc9ccd2c912744657a7d"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "116430e9e8d6e2393e207e7ff7b1d43a941fd3de631bb72b177576fc38909c01"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "6fa187614a02691a4a4bb423b6cb7f308c5d3fede2e130025134c7865c75c8bc",
+          "file_sha256": "6e466aedc09945db801e60bd5f50ef0310be352c444372c40649edce0f1a2c30"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "b1b13765028a55fc7915be2b914914750b01684dec65da76d799d51f1107ed09",
+          "file_sha256": "bda107f4a484fa8a03b3e830e509051e4db44d2a7c52cd7aff4ac651cda0349f"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "5082b866c6e8dbdf25430c097c9ddaa997f44b9d01db541c524612095e640c5d",
+          "file_sha256": "9c28ad8c738ed4c31a566c36d4434ff0161b37a0e8d4900b3611c2ab46769c67"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "b3052261575b68e2703f80cf3d7a9c6b38ab0f36ebd4decfd8f74ee107a8b834"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "3df2e92722e78caebdf7bc4191114baa61d6d36abb0c7ca34218c422889f06fb"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "4e4ece76c001c339bfcf45dc58a27f166681fc4ca4e5794921e0d1c9532b5e4b"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "5300df4b8f3b4d7ed5b77d44da0f2e33f13baba8a6a08381f6f9e86b16eab53e"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.171985387802124,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020052227773703635,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.002204825635999441,
+          "expected": 0.002199347596615553,
+          "path": "smoke-soft-body.json.checkpoints[2].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": -1.552748680114746,
+          "expected": -1.5527487993240356,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[0]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 4
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "e1c9046b00b10b1202dd38c1dc0ec8a289a6246dbc97ff3361ae78b85b5b42a8"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "c81ce230743eb2cbdd0893b84cdcf6fe459674d8dd238ed45f92b76897a5bf38"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "da6e75c4a09b96ecd79b35208a9410e840dc5e7ee3756d87d8f80b7e104f7753",
+          "file_sha256": "27e74b61f25e55ed4363fd69a512bee09484924e38ab0fadee0b9672902ac941"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "1580cf1fd60d16c60fe4c569314a3644530ce411a789d8ac113e2ba7a714d0f7"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "c64beed292d6881daccfe25126083001b042eb5f6fee92f2e5178f209b045688"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "66e610b29bb1439852986306bb7a572770769165b694d24c613f4a3d07daf811"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "4901a6e14831aec8cac4f3f93a867c9371c059964f93d9986cd3ade5159c2790"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "f6a2c34941f25a39a61ab98f0dd28ba5247870ba0aa05da057b5e7b47c83663e"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "5b201f0ca0408c315aed4c7deec6568d57b55a8a7ff43fcfe6d6ad5d85acbf7d"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "556177bfa70fc994ecc750f5b1eae5e7c59eed9e0e83f13eafa46addff157b01"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "fd6a8ba2403e3b2ec6d30166834d7ad39993a6fe1e3c0b7308e7f4d7de3cfe94"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "16133dd1c5c72f34864172a91703d88754e880c565c43a77fe3a408a7bf93bee"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "6751b3e80e362ed56b7a6dfda8d6d2d3034a1e4fb6cdb8406ef2c6bbac894500"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "df03ce5f17e07fae57cf85439d6f79efb8b7923c7c5e8f74f0d58de7154fb7c0"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "4fe3dbd22e29358697e189b463acb423bd0aa950871a65d0e7a99dfe993aef80"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "de235f51f427ec19a8fa229761421554bf0cd348a3b98379caaac76a4a3e6158"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "351d6d3c47903db12ab1ce1123406e84623f9bd0a016d665aa37549fbea4042e"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "7a05ee812c73ceaf9d674ed06745d340904484e5945e4c4c354521011c0db2c5"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "290c0615e6d827b204bc31db4dff724693dd70578b13bf99ba6ced2cbb668c5c"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "7b1fd1b1900225d04a704a3743411d417d5bf85d88b1d93c5feadebff6403dd6"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "dc65ac9759bc7fee56efc5c8181b3b1db0d524334695711e967f56995caa6282"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "7c869256b2d1e51f107e1ee93fd674249e4c4b9a82d05648d917a329aff040d0",
+          "file_sha256": "1cfb8b5c14e2452543e4e051dc3822c36e5355eae215f00ea9830a1891986618"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "634e2cab112eb44c2252dcb14c33a62706b88f1d07224565e1ccdf5aa566de65"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "f328a417fc521ea5666b05cc1e802a3dcab09e5f9f4bebc5946424399fa9d911",
+          "file_sha256": "7715193f0376a8417e9e77dc84a833d01eeea51948f1034d7d51eb94dce90346"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "60dba8bfaf4b2953c00c0807901fa4ffeac73d0904caaab0515080800fb5af68",
+          "file_sha256": "d1782164a4a9edff338d2ff3c400ab17399cc10c8c948ffcb5b5a07675abe15e"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "565d6af29f28d91d468c6971fe2acf97649b3cdd76383d5867ddbe2af2f9b9ca",
+          "file_sha256": "bae84be4a8eb1da59c880c29721e2b182dd550e58b74d3cb263cc20bdcd6b541"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "7a1b27ae05dcc9e6585a4b09294da7c1eb8ad8d297cabbf02a2b57d0d2ba57f2"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "2d0beb9c8e8df5e5c1d839578eee97fa5031543b1f71c388369ad8de789be722"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "18a2dbc0089be8de01f0d15c729bc6426123c59045f80270ef8370811031f462"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "323ca3c779bea1c13db3c30f4c16efad09f27cb857af3e3fd02df5946bf8cebb"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.0574190616607666,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020050586317665875,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": -1.1705613367496426e-08,
+          "expected": -1.1705122204830332e-08,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[1]"
+        },
+        {
+          "actual": -0.0004357650177553296,
+          "expected": -0.00043576504685916007,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[0].angular_velocity[0]"
+        },
+        {
+          "actual": -1.5527489185333252,
+          "expected": -1.5527487993240356,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[0]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 5
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "b709fc86c3a1e912102b34850225aef05d9f22d83fbf5e130fe9ee8a01ea85cf"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "28fcac150dc67f3190c29a6f855ad94af940f51cd822e849f2799bce367931ae"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "1978a212aee3108d74d516b7ad6d3e7f4e992a8fb27f1a0a1ee8f98c7fea25c7",
+          "file_sha256": "5b57cfe45bb2dbfb42739050387b904819690380e5d138f9575ec12e496338b8"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "3190db7f4561e6dfb4874d17c24321a0d3f92ee104c5dc2037fa4b82ab727b4e"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "ac469985832a8c91257b3bbd534f5b8d9028c74d6bcd0f6321cef553e4019289"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "a451465bfebe220351f6e3be52e20107416bacaa9439fc19eec6e3dd9d1d8cfc"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "05848f3058dd41b7187693b37c90d1c92e40641d122178f752d817aee6890820"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "3fb2ea0962744c8d1ac789fce734197a7bbc4dada7416cdfbb0c2f2454fae7ff"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "215d7bf6f2284c6bc1bfec830892be4ee34f3fd38b98be6dfbb6a10f7ee99a52"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "c3aa25d00bb09b4cc7a55a8757532a51a0a47c72267d7d8186f6ed9e55c612d4"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "71b251342eacac10c502e39f39314a7bcfa9443215b0143506845dbcde904b1a"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "5ad43bc5236fd727cb87ab54a1d8accda73fb675744d50cef08c29bd4c4af02b"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "11081f84e32b785f4fa1b1e5a0f038c416d09eca44f5513cc5fdf298d36910b0"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "e1623e347b573ccdea06334746d6cafb2c226e87eb51c13253fd3194e7d5b310"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "86044ed1dcf0e37c9aa1ebfe8be6350d9f5e2e6e068eaeecce7decfb53aff6b7"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "868681c0a2bf044c2140884665e880a1785bc5925408825712f49ca6da02413e"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "a3f410b31f140b4c33bc5e835e4c78bec81b7952e1add02aec8988ba20871b6f"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "367c68607ee02357985d28465cbd82f1daa43167018509b2e7c988b8dd82a784"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "988c849254014259a245db0f9d42a24ebe253ca90ad5212d6d21caf012bd157a"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "7ea84672b2da237ca17d39e342bf5947dcac1bc49bfe3cebace208035a76243b"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "d97df27c98e25b452e7ee2592c70c57c58ae9f659fd322302c4daefabfd8ca06"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "c3b45cc48ce5bd8438188000f978448c4eee1e311b07b8a92e6a4070ed6cde45",
+          "file_sha256": "31fc17c807045043c2e5a255575c39298ab09aade7d8d6b63a05e45858285469"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "3698c65d2a079655fb60ce081ecd52ff718bc2b7ad25e31f0e580f7062232e89"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "5c47246bc342d6ded179e3b4d92bded36cdebef9d052ebe557acdbcb058cc332",
+          "file_sha256": "d262589d80710635786b7a9d15e521a245fd849c23c08ba67008825a321d185c"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "6286f50c7e3b049cee26fc994c307ed053dfc930978a145e08b0acfcdabbb246",
+          "file_sha256": "b32dc851a42b69f6359f024bfd39e7bd3d4562e76f969385a670afea1fe7a81c"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "758bc83ea27f5dc4aa8088252bbe33dff18b8dab25d1d38bb793d83ff5ef979c",
+          "file_sha256": "65142ef8c8962995af36a57a2a4b5bd64535358707e1db932ae8fdab029d3846"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "dfa4d83af98aa504a102543d1560329de791c6bdf8c8df187db76456a17dcbbf"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "f958f1b8749904971ac4ce49526ab96948890f593ba79a7e3cfc6d30370b6ab9"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "cde5662139958f9abee4c7798fd4a817d818b933c684d0f7f81f7564ddd34468"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "e84c034fa5df34a0164de2cf22583a41f5a85e6b860ad3498c95e8b9edc4a2ae"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.1295852661132812,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020624524040613323,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.0005206859338202809,
+          "expected": 0.0005206859338459541,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[2].grid.rms_divergence"
+        },
+        {
+          "actual": 0.2415534257888794,
+          "expected": 0.24155336618423462,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[2]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 6
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "15c897a946b525e788c2902342b3f8dcee76dc2ec9ef07186c2634f0bba767f7"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "a17970788797d988337b91dd97ad883c036aee78afbc09517deceb5fa0a8425a"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "2838e4337e72383581bba7b8435ce8aa41c24a2f5a0f5cd8dd003cfa7417f070",
+          "file_sha256": "0fc13c3f32fdb5d5da0deb30e57d838018c271ccfa0b64bfcf03b0a930ff464b"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "a6df622cfb686f9994903807a83b2acaebf30fb77b40887c0c38a2de7c4aa9b9"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "d84fadb19a81a6781868bc3e0bbefd2705e3ada87c6d701f4c2153da813a59ac"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "99ad25f872044bc010a7f2580745fe22138aa6ca135005215e031f1396537e5a"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "bd193c19a5b76400a2195973a387a0c54f76ecc750cba49e0cbcc555ba0c5d44"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "c91be58cceb7119ff16f1d5abdff95ca88e7818b9e21170ed774a7cfc509768a"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "23998367631b321addb63c7a4c1fb5049bc88786993196d91c4fa5d4bad819a6"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "89f1fc1f0b6b34403f9f6390a55f941e7597ad9b74526eb2ba4a0062f57068c5"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "01d3ca5c9f3e3fc2972df38e28a9e217d4a113f31c48e8f2ea2023856f606500"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "a40bad601e1f14327c028ef1edf7bf6a1419fbf824508ecd62f96c9a65cc46b8"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "e72e8ddbef57425dc6cced351fc6d5b8349c36f1336d46982edb99b3e149ec4a"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "09ae421b67c925689b21ffec46fe1feddc7659e6c42b556fc2e666faf4bccd73"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "39f5b25f032744d0b3aa6bbdea545832366cc146ba4bc16cdb692308951504ac"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "7b297b86cade9cb2f9259887beb7d58732c2dd8d71518144bcabba7e3bed3d3e"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "78b6ed00145237d3cb77554f24490cabe0049430bc41f4fce857f168ef1740da"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "3b9a75e0893329f7c4b9b9b8c52224977b814612ba2e4bfda52bd2978ce4f8ff"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "99999d40e85378e49fe1a958d31d99b3a45c919b1d37f3eab72f91e8fe2e0da5"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "84cc73b0154fb11dafb7d921b05a8c484e1c414fbfe74db74d989ae6339c341d"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "45983ef8067f6e733439f56739f5be4bba27086e129be041dea3b54c7d6d6b3f"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "eb6abbeabf01870adf683c7548d5224b0a76329b2136a55ea1e1a7ed6954a758",
+          "file_sha256": "7ee74895560cd32fbc04ad907359ad7af31ef1559f5193aaec43d0ef65a7971c"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "0472dc1f0e5694a096ea73222a30bf382a193e7c23d06c48e96aa361070b189a"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "9a6ce64bd914d0e0bc290253b693b262b281d0631238c35f4183686165e6582f",
+          "file_sha256": "d2320e32e4708678b877abc4f7907ef6984ac359a4d46da4dc90ff7312b1efb9"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "2b7bdb47198fb5eaa0372efc644e9bebe0a232f0654ef4e1fc3f7792a77edcbe",
+          "file_sha256": "7acc9a1d29b8ab37df11a3358c06f88fa9e3da8a7b9a4fe341249b2662262a1f"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "7ab2263fe2ba8fc4aef26a3a50defe8392bf1432a54fedfaea1ec2bfc5ac5fc6",
+          "file_sha256": "1c96f1ca06fdf33639e2d86d18bf53961523004bfc2053c5011a79545ed914cc"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "d41704addc5fc818c19d84975b5580baa2b2b6ed96bc494e2ffc1ac2262f9606"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "b5e1e1642d550c73259163a21e3d9fa622ffb248df0123234f20a11e9e19223d"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "842d72d03bd4272c9f60a26e04f2b219da1c56e5b159cbbbbc54d658a41f2bd2"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "d28c617c5ddc3838b91ef26f492cac75fc946932774d5fca9506e721d8fe5a59"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.3540937900543213,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020050590683240443,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.002199209062382579,
+          "expected": 0.002199347596615553,
+          "path": "smoke-soft-body.json.checkpoints[2].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.9423454403877258,
+          "expected": 0.9423452615737915,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[1]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 7
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "a9bafdb5ebc45c80212f778d58661e5987e9440119fe1f62a9d7ea0fc6742a81"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "899cacfce6ee01fcb54669a1572f7ba27f9b1ae8a2798424daf0baf9a20c4b4f"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "f878378a4222f7b1180c80b5cab82aedd35c68cd7e7dbf0fb8dcee4334e4b01f",
+          "file_sha256": "901a475cc9956a19753703abd38326b9ccccc66f8064427e11851eeccbce4c85"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "cc98dbf0ca2791099d9d1e9787fa64462255567d0d72957a101bb025da49d848"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "675654c9050366f1a6f959107db2dc4bb941672dd22aabd993851e25bbd4465a"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "dc5f49f56696401f83e875742f18a71a96c17f45f7fd2f40cb66295a3a70ef09"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "b309f0c5ea1e92c82ca14cef13ee862d1d6ad3b369320cb113ed83b4af9be7d4"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "485e5b50bed33285c54eb0820ca6d1b9fd86da5318d0b9009c1ea70a543f2a7e"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "71e35348712974423c736da4eacdf2f6c0efaa4a5a6d47a96e61cd58a6d04750"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "ed9182819101e3db95ddac4a31083cc72287311181ea0666d3afeab25d26dc35"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "4daae37e03fcbf61be4f9da5ca6e747f4778f8184e388651493984785058057b"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "4ce3327ed09b14add097c8de717e88d095a3602289466a6ad51af21b7d66294a"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "c0c40878ad2b3db56cbc8bb7d6d0e471765dc9933995edf9d94b5be8c3e7cca9"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "2887263be4705c636da856b5351ab1dddee629d5ff360831ebd7d5edb6655efa"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "2a6a599a3ba8f4a3a9694977f56a74bc93fac69fc5bd7ff47eb298a496fd5a2a"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "0f890fcc6d07ad0bed77752f0a6a3b261e3deeae01a350b7b4c4565845cac3ea"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "ac3d8c23d34f043b619d7e1124af247234e497758c748e98f8c5d3fcbc2174a9"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "985145a1a946c6238b051c442c3cab42292aa302416ef025704bd861965c07c3"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "94545f8fb260acfe34236fd03d1b0929281d78776e7647d8bde1c204854de490"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "ece6da534a1b85f03c8cb2b617dbd039113917874fe695339849330e224fa1a3"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "5ddb2bde32532f32196cef9e6181c98d067a8aa009f178e1a186d27fe575c1c4"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "b2f3cb498607d70a142b6889c85b547f0b4ea30314ac54dc71c359a940ff3e54",
+          "file_sha256": "c96c207c9711f39270087b819279ceecb75435e95874fe5780e797110c60b42a"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "e48cca9367b0934f75b0a819795fb93f13b331c2dab6fa7f5be63b7a241d3651"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "dd88d81a7d9d47a83d36ed8dcdd7f1bb084006efd2f567baad286592c8505ccf",
+          "file_sha256": "dd9346c4ccf78e55a24527ad6ea52d66c5faf01b31f847d1d0b3b93287638dfb"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "66e422f6af5e3475dfe918f9bb8137f3ad7d6ebbc4b6ed1a8c1fe5df6322ddc3",
+          "file_sha256": "0c6d99b6fb96629423f8958df082410c4320efd8cf933dff57a6f10f3f7d13bd"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "bfbc20ddd5fe51256f9e56038328f6f687a007574cf088c0a2bdc95478b8938c",
+          "file_sha256": "89fc96dc36ad8d9dd114739ff78dabd08478d313f104e98d05c51d7e4f697f88"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "9d37f3afb1693bbfe09430a8b0d9dbba5ddda67c29fb9976a545e96aa797cb27"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "9a28f31f0393429e4b33d8b0a9dcefda1a48c7e3d5cf16f03bbb7d31e67ab737"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "46ddb15fdedd8d5030f8cf3c7aea6712882e16a4241d2eff3d4e137efe7eaab0"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "cdd241263b7e8c3774a82163903030c0496c715f5d7587fb095951d85df1d1b5"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.2249112129211426,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00020623933232855052,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.406590834259987e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": -0.0035883523523807526,
+          "expected": -0.0035883525852113962,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[0].linear_velocity[1]"
+        },
+        {
+          "actual": -1.552748680114746,
+          "expected": -1.5527487993240356,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[0]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 8
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "7dc14e7b69764a6da57de21e2d4eb01bf9bc9c50d554cfcc5bf986d202df4074"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "a01441610e6c252ec7a3bc79189181265aa04dd9fb8d06efb92d02e5cdd6445a"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "3935a010e3791c239d42b4d22afea7bbea04f9bb39b22f871503af215f665ba2",
+          "file_sha256": "38982a53aede7e6d7bce7414f360c2eed70edcbb1588765348a3ec2a1f679dba"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "7632a306ffe5ef13768b944abffec42a9791cf5e769ecac3329290bcf1a2207b"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "0d5fcc721575f2004ef5a299489e0cae6e02bf6b633985001b8cf3bab5bc7387"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "044229cacfe3e177e644e85e4d7b82625d1e3b4751eb4b094916489238e138d0"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "be67f961398b53cb83a159b022f575186822a5cbc2969ac1da66764be3d7ebcc"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "8ad4f1f0967d4163267541003ca7d02e7aabb7ebb643e4d3a46d95f9ebb08218"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "2135779a42b375825653a29856239ff69f0a38c2e029d9a20cb6d8bfa5c36f0d"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "660c247f76242dd523150c464e7af0646ac0fbe4a481b9d96a1622d8f5515197"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "1b387d3c69183b95e88dce5ca0a6717d54b62640db5f8a6e56483457f60b7d85"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "849952c812b3316d3f67d1daf168fdaebae9ea09ab22fe5c28700734cfe10b65"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "5b59ad3af5cb71c038d92ef17372c42a135f57c0196dc5b6b688c4bc8ddd58e6"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "6e701591c8a1b5cf1fc4152921df2e01c2f614c1e881386e5849f16327264b5f"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "b1026be28108fc3b1d37a66ff3fe3a577dc74067ac9260e9661be003ff937476"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "ef972a10ab378e9447e0b0bbd87caec00a584e9dec04d251945bc3ec3437d28b"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "e2e9e6d8d40324cb69a1b9438b07e06481c382c70816c3c5e5e2a7726a7ec320"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "e66e26b7985efb5a0b7f7e8ffdaf31baaefa96653773bd30e550a09531f49995"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "d219c04d23df4584c09a2b78328ad3e0c79b400de75445079b64f8f9d6734cd6"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "1cf6002260c85597ca638c7fb387a5a1f3d7a26de2cfa038c16c99ee06491cef"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "eccb9184509977d2161dede726e71011e3e592ee92e511146293c6c0bd91f873"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "c815ac85bde79c6f2a1c3c407b5dc159f82abaac778d4c7184b70374982cb93b",
+          "file_sha256": "58dc10a9be26159e3b6812f59e123a68fb634fefecaac62486121fb5ecd63dd9"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "6f1a9504b350a9931d634f44dca9026751a9a228eaccaacf47a8e40945bab77f"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "e211cdbef25bc1fbe631b56f9db5ee0b56e4d6d2d150a97a830a5adc44fc068e",
+          "file_sha256": "85760f54ea278533188547f438d126a8d7a0433579ff14ad689dbe04d2c68747"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "26a7b142191db849860ce7902d1fc71dfe4afd23c57366dbc80cb54c73bb311b",
+          "file_sha256": "0a5fc4fa5f97054d074a899e923a83dd1cdf39a1dd143d11f3a9712728f4b6c4"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "dbc54437c9f9435435cb89c65980aed6b9d9f4a4a13bc44f589707e1b56be008",
+          "file_sha256": "2ec2fa8cfc105d02194dbf241576110cf52bf918f4ff4a9536be0fd60a8f149a"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "2ea1ddd93c18a38c9ad7e2fd3fc2587f56664ee9f0b581d458474ef9c69266fc"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "b0a4690b5c5875b57b0985442d73e11a0de95ced72b109fc7b499d010bd5884c"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "da44c5dc99d930b846f1fdcc50fda304fbfef68fa71248a2d7d4008934c0dc08"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "9a9c78bc2d4422624ba05876aefb53f3b2b1608a2d5b5090ee54f5ec46055599"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.3611361980438232,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.00019477400928735733,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.0005206859338202809,
+          "expected": 0.0005206859338459541,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[2].grid.rms_divergence"
+        },
+        {
+          "actual": 0.2415534108877182,
+          "expected": 0.24155336618423462,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[2]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 9
+    },
+    {
+      "cases": {
+        "cloth-core.json": {
+          "deterministic_sha256": "53545e75cea655286db7c7462dc1df9876d7b763194eb3b64a51c859ecb51310",
+          "file_sha256": "47dc2c90b792b9475d001f44f2d70a68619c0797877a8282f352f66b4282296c"
+        },
+        "cloth-tear.json": {
+          "deterministic_sha256": "1f936412b848d7594ec49b3955fd607f7a15804edfc8272eb838480e1494ed45",
+          "file_sha256": "8c6f980f3bcc8d5db6d154ef5b57ddd0f1df399991975833d16796a3cf7478ec"
+        },
+        "cloth-water.json": {
+          "deterministic_sha256": "5d5d6f8a00db553997178dac1619e6d03683e7d2333673ffe44f8bc55d83b040",
+          "file_sha256": "70708b641a37e9a63c72a1402a30b6782e743f4cc58537c17bd8b87d2845094c"
+        },
+        "compound-weld-lifecycle.json": {
+          "deterministic_sha256": "457be8402430298ceeee456ae1544c296c4c42e411cff86040bc138b7dda458c",
+          "file_sha256": "d921c5e2693d224bd602b3b6926151a0750e641ee5826de99faa6740995c8850"
+        },
+        "constraint-breaking.json": {
+          "deterministic_sha256": "1d55a2b338a5b506f5c8fc7add1815c9fd7a86174401ed4dc413422a0ac525c2",
+          "file_sha256": "a81c93fec9abd87b3ada464f87a57c99364dceb9edfb5c41c35ce3f89518b69d"
+        },
+        "constraint-fixed.json": {
+          "deterministic_sha256": "39fdcfdef74e0d72bae8b701a8440c694dcdf45f66423502e27dab4e38498346",
+          "file_sha256": "f0e13b7e67e342340ca1e4a52eca45cd37fbe6d3348f7455bb3cf7cf3c148754"
+        },
+        "constraint-generic-spring.json": {
+          "deterministic_sha256": "faa6118281d12656e54156a4961a2b09cb87891c4ce3b3b8f99c804e9a5c4c4d",
+          "file_sha256": "8ac85319519751555a3c702b6a5c1958fdd141bec98d5152e0157b10b8f7d8a3"
+        },
+        "constraint-generic.json": {
+          "deterministic_sha256": "74538667df1c6d1c98c911b79737e99cd9a4e3c22f9d089c7f3174350cd7a44b",
+          "file_sha256": "3a29c05c6d838d471569469ca37c0784a38d907de853a8d66f0f1d32171d467a"
+        },
+        "constraint-hinge.json": {
+          "deterministic_sha256": "ce854ff3b31551e1d36564b908c416d7c47218c4c8a3180899e4807cb4de4706",
+          "file_sha256": "a0a15d5f5e1d74a77214cdb18e0193bd76e291282f33d87233bcee7a11a12f85"
+        },
+        "constraint-motor.json": {
+          "deterministic_sha256": "134f0554525fe9520bac95538f8ca96f1cda4aa15a6795590cb301b3c2abf17d",
+          "file_sha256": "80f0958977777eea98d15e5bdcc0f44745ac25d03e08e767063607ad54fc4d4f"
+        },
+        "constraint-piston.json": {
+          "deterministic_sha256": "b3c44c1879d261f48f17e292cab18d7d0f276f765fd2c484acf6d04eaba787ef",
+          "file_sha256": "be1dcdb32cae88c32ff3ba094acfae10693a97a10c83ab01fb2e0aadc6f281d7"
+        },
+        "constraint-point.json": {
+          "deterministic_sha256": "53866986d6f5041d7cb727e450d3718e015c8bbacaa2254f982ab7c8f1c8bd68",
+          "file_sha256": "e983ed6089e043770fe4e1533c4b40c4440a3bcaa4417c85c6ee44b91e64d8e8"
+        },
+        "constraint-slider.json": {
+          "deterministic_sha256": "46e75559163e2fae89683e50f86ffd660f3d7caea47e8f426bcbf2f3d19f0602",
+          "file_sha256": "129e38c0b9c8351624ce5c608f9f93cf673c92590d8a3c91037bda93d7eafb5c"
+        },
+        "fluid-lifecycle.json": {
+          "deterministic_sha256": "2af542171c04d1456be0970efac007c8f958f3dc1e3c44b4e04c89acd33dd61c",
+          "file_sha256": "75894047d63269448462f2c3603b3ce799c459d884a39059a6aa45d9105af1e1"
+        },
+        "fluid-rigid.json": {
+          "deterministic_sha256": "81c0fda98b212f0a6047bf5dbe50834abc04864eddca90914876501f1d84129b",
+          "file_sha256": "4b4e3760091611bdff3df6b35ed0aeb0c90ff27fcf3a3ba406d87b181e6998ef"
+        },
+        "passive-active.json": {
+          "deterministic_sha256": "74fcdf4b4abd50dd1c6d2f03db26add1e7719cf42a7f9941c2bc6f6d89e98e51",
+          "file_sha256": "680edeec49d968aedcac8046e8673ccf32c209de72ba17f737286134992a7861"
+        },
+        "rigid-direct.json": {
+          "deterministic_sha256": "650c3c4bf17563dfb36e0055cda5063139a9e0b09e6f60001938957e23fef0bf",
+          "file_sha256": "cedacb5f719fd0fa4c84a75eb2f8160b47db784da7b5dc4f94dbfac83db6c871"
+        },
+        "rope-cloth.json": {
+          "deterministic_sha256": "8d12482090bd4c1e9d136064d652ad5550d673fa8d5b5a81e1bb2d530c7f10ba",
+          "file_sha256": "c85500816ee938a39ccacbb244007194dabd437dd0e976a13e182bd34e773b0b"
+        },
+        "rope-core.json": {
+          "deterministic_sha256": "82cf5b791a78502c0a430b91b7f32228b629503fcab3a11a5be33b74d64f550b",
+          "file_sha256": "d2b7e28d7bd34ea4c8226a4ed0f9786eceb3fa8fc2b24c054d11dfd98ceb712f"
+        },
+        "rope-fluid.json": {
+          "deterministic_sha256": "374ad2dc55c3d97a74cb5b9bbf32edb6ad76f554fa1071b7d41ff3a413b48884",
+          "file_sha256": "94a39315e05b582bf020b2b738beda1607da8d32f83a59e616a46aa7431b8873"
+        },
+        "rope-soft-body.json": {
+          "deterministic_sha256": "fb3ba6109935c760da355aacd713be0511edab27c93f152db5cba6cab89ddc31",
+          "file_sha256": "c9c72632bd464b43c2d909a68c806da25f9a443542aff391ec9d71c3ee6bf9cf"
+        },
+        "smoke-cloth.json": {
+          "deterministic_sha256": "7b9cae5a01d5857a2e648fe49425df55ed5a711553148b9770dcb980980c0fb1",
+          "file_sha256": "b3dd70d7726bde4c609c71572d0582600528371a9be069dd3fd67c663d3823ca"
+        },
+        "smoke-grid.json": {
+          "deterministic_sha256": "a08fc7f6149e8e6ea90fe2b74276bd6a57a1a760cc7971f15eb279bc4cfc033c",
+          "file_sha256": "c67a657d6b044f64b9fed66b4575bb3309d3e181918cc0a537cc2a0570dfde2e"
+        },
+        "smoke-rope.json": {
+          "deterministic_sha256": "691cc8a605772ac7e5e56a6e8be6208d1e02405865121dcd0ab3db6951195cc9",
+          "file_sha256": "55ab99b751a965946956cc354ae8ff208af41c22d5aca7bdff7faf0405b90f3d"
+        },
+        "smoke-soft-body.json": {
+          "deterministic_sha256": "544e8dfe1d5e32a705a5ba6a64885cfbf0ab348004fb0714535feb93c4adb95c",
+          "file_sha256": "cff980f8bca971a873d9c836e9c25cb12db8aa6f34ef4aae5601293e5e592188"
+        },
+        "smoke-water.json": {
+          "deterministic_sha256": "0120ca45265c943f421a0700a9922339e73df766bc0e665dcbc78fecaff917a4",
+          "file_sha256": "c3c16d318bda74fa580ebb122c5290f25d95624d93f66e35023a44761077dd5b"
+        },
+        "soft-body-cloth.json": {
+          "deterministic_sha256": "82d0487ab542ac90b45e001af826ee46e54b5cd680025f1223f280734d5018ef",
+          "file_sha256": "c99f3896f9f885146d91a8401e38b87e3a10c03326db2f37513edddf177882e2"
+        },
+        "soft-body-core.json": {
+          "deterministic_sha256": "f5bbca27155705a256e53e090db86bb619b38f226315d4790cc5ba8417510137",
+          "file_sha256": "5418f0dfd045ce896441c9613bfd778cb6b5c0783b32057aab1eb7ed0c23c407"
+        },
+        "soft-body-fluid.json": {
+          "deterministic_sha256": "b06687fe91392bc4682d270bb34113d3f0ea8ab771fe8aa834af3bc943560d0b",
+          "file_sha256": "7cd062931bbd3c2edd101b949ac5830599c7bd95110010d89e33360012c5b675"
+        },
+        "soft-body-rigid.json": {
+          "deterministic_sha256": "b7cbb7c98c913bcb312002b434e78c1d78839952baf61683cc0e6cedd7e8fdce",
+          "file_sha256": "c32271a7cdb91c6aa47ee182d556b8e9bffe2d5cea17142985245c106a97b7cf"
+        }
+      },
+      "differences": [
+        {
+          "actual": -3.195322275161743,
+          "expected": -3.045713424682617,
+          "path": "cloth-water.json.checkpoints[1].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 0.0002062452695099637,
+          "expected": 0.0002119712153216824,
+          "path": "smoke-cloth.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 9.65557701420039e-05,
+          "expected": 9.655576286604628e-05,
+          "path": "smoke-rope.json.checkpoints[1].contacts.rigid_contacts[0].friction_impulse[0]"
+        },
+        {
+          "actual": 0.0005206860048637853,
+          "expected": 0.0005206859338459541,
+          "path": "smoke-soft-body.json.checkpoints[1].resources[2].grid.rms_divergence"
+        },
+        {
+          "actual": -1.5527485609054565,
+          "expected": -1.5527487993240356,
+          "path": "smoke-water.json.checkpoints[1].resources[5].aggregate.bounds.maximum[0]"
+        }
+      ],
+      "parity_sha256": "dd9517392f40e90dc41342653623bcedf592b42e29b44d6700965f0cb1207609",
+      "returncode": 0,
+      "run": 10
+    }
+  ],
+  "runs_requested": 10,
+  "schema": "parallel-mater-cuda-reference-package/v1",
+  "source_commit": "cc2a2e40656c2a850176d97220d7c32d6da6bf2d",
+  "source_status": "",
+  "source_unchanged": true
+}

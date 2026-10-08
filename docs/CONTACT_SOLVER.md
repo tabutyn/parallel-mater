@@ -39,7 +39,10 @@ Do not implement a free-body approximation for hinge/slider/compound responses.
 CPU C++ implementations can include the header directly. Metal shader code
 still needs a platform adaptation (including address spaces/math intrinsics);
 the header and shared fixtures specify the equations rather than claiming a
-tested Metal port. No other backend checkout was available during this change.
+tested Metal port. The merge of `main` retains the native Metal implementation;
+adapting that implementation to this equation core remains separate work.
+`types.hpp` owns the shared statistics layout, including the new CUDA contact
+diagnostics (zero on backends that do not populate them).
 
 ## History, cache and scheduling rules
 

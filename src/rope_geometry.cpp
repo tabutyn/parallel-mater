@@ -1,19 +1,27 @@
 // SPDX-License-Identifier: MIT
+#if defined(PARALLEL_MATER_METAL_GEOMETRY)
+#include <parallel_mater/metal.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
+#define PM_GEOMETRY_SUCCESS 0
+#else
 #include <parallel_mater/parallel_mater.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater
+#define PM_GEOMETRY_SUCCESS cudaSuccess
+#endif
 #include <algorithm>
 #include <cmath>
 #include <vector>
-namespace parallel_mater {
+namespace PM_GEOMETRY_NAMESPACE {
 Status sample_rope_centerline(HostSpan<const Vec3> line, float spacing,
                              std::vector<Vec3> &output) noexcept {
     if (!line.data || line.size < 2 || !std::isfinite(spacing) || spacing <= 0)
-        return {StatusCode::invalid_argument,cudaSuccess,"invalid rope centerline or spacing"};
+        return {StatusCode::invalid_argument,PM_GEOMETRY_SUCCESS,"invalid rope centerline or spacing"};
     try {
         std::vector<double> arc(line.size,0);
         for(std::size_t i=0;i<line.size;++i) {
             const Vec3 p=line.data[i];
             if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(p.z))
-                return {StatusCode::invalid_argument,cudaSuccess,"nonfinite rope centerline"};
+                return {StatusCode::invalid_argument,PM_GEOMETRY_SUCCESS,"nonfinite rope centerline"};
             if(i) {
                 const auto q=line.data[i-1];
                 const double x=double(p.x)-q.x,y=double(p.y)-q.y,z=double(p.z)-q.z;
@@ -22,7 +30,7 @@ Status sample_rope_centerline(HostSpan<const Vec3> line, float spacing,
         }
         const double length=arc.back(), steps=std::ceil(length/spacing);
         if(length<1e-6 || steps>1023)
-            return {StatusCode::invalid_argument,cudaSuccess,"rope needs positive length and at most 1024 nodes"};
+            return {StatusCode::invalid_argument,PM_GEOMETRY_SUCCESS,"rope needs positive length and at most 1024 nodes"};
         const auto n=std::max(1U,static_cast<unsigned>(steps));
         std::vector<Vec3> nodes;
         nodes.reserve(n+1);
@@ -37,6 +45,8 @@ Status sample_rope_centerline(HostSpan<const Vec3> line, float spacing,
         nodes.front()=line.data[0];nodes.back()=line.data[line.size-1];
         output.swap(nodes);
         return {};
-    } catch(...) {return {StatusCode::out_of_memory,cudaSuccess,"rope sampling allocation failed"};}
+    } catch(...) {return {StatusCode::out_of_memory,PM_GEOMETRY_SUCCESS,"rope sampling allocation failed"};}
 }
 } // namespace parallel_mater
+#undef PM_GEOMETRY_SUCCESS
+#undef PM_GEOMETRY_NAMESPACE

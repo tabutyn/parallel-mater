@@ -46,6 +46,7 @@ enum class SmokeDebugMode : std::uint8_t {
     divergence,
 };
 
+#if !defined(PARALLEL_MATER_GALLERY_METAL)
 class OptixRenderer {
   public:
     OptixRenderer() noexcept;
@@ -89,5 +90,6 @@ class OptixRenderer {
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
+#endif
 
 } // namespace parallel_mater::gallery
