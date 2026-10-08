@@ -4577,7 +4577,8 @@ static void pm_resolve_local_persistent_pair(
     }
 
 
-    if (manifold.face_patch != 0u && manifold.count > 1u) {
+    if (manifold.face_patch != 0u && manifold.count > 1u &&
+        (step.rigid_sleeping != 0u || manifold.cached == 0u)) {
         float normal_impulses[8]{};
         float3 combined_impulse = 0.0f;
         float3 body_angular_impulse = 0.0f;
