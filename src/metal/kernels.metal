@@ -98,6 +98,13 @@ struct PMContactManifold {
     uint cached;
 };
 
+struct PMContactGeometry {
+    PMPackedVec3 point;
+    PMPackedVec3 normal;
+    float penetration;
+    float impact_fraction;
+};
+
 struct PMCachedContact {
     PMPackedVec3 local_point;
     PMPackedVec3 collider_local_point;
@@ -4313,7 +4320,8 @@ kernel void pm_rigid_contact_generate_cooperative(
     PMHingeContactFrame collider_hinge{};
     body_hinge.static_body = parameters[body].motion == 0u;
     collider_hinge.static_body = parameters[collider].motion == 0u;
-    threadgroup PMContactManifold scratch[32];
+    threadgroup PMContactGeometry scratch_contacts[32][8];
+    threadgroup uint scratch_counts[32];
     PMContactManifold result{};
     for (uint base = 0u; base < candidate_count; base += 32u) {
         const uint ordinal = base + lane;
@@ -4369,13 +4377,26 @@ kernel void pm_rigid_contact_generate_cooperative(
                         body_hinge, collider_hinge, local);
             }
         }
-        scratch[lane] = local;
+        scratch_counts[lane] = local.count;
+        for (uint point = 0u; point < local.count; ++point) {
+            scratch_contacts[lane][point] = {
+                local.contacts[point].point,
+                local.contacts[point].normal,
+                local.contacts[point].penetration,
+                local.contacts[point].impact_fraction};
+        }
         threadgroup_barrier(mem_flags::mem_threadgroup);
         if (lane == 0u) {
             for (uint item = 0u; item < min(32u, candidate_count - base); ++item)
-                for (uint point = 0u; point < scratch[item].count; ++point) {
-                    const PMContactRecord contact =
-                        scratch[item].contacts[point];
+                for (uint point = 0u; point < scratch_counts[item]; ++point) {
+                    const PMContactGeometry geometry =
+                        scratch_contacts[item][point];
+                    PMContactRecord contact{};
+                    contact.point = geometry.point;
+                    contact.normal = geometry.normal;
+                    contact.penetration = geometry.penetration;
+                    contact.found = 1u;
+                    contact.impact_fraction = geometry.impact_fraction;
                     pm_add_pair_manifold_contact(
                         result, contact, separation, body_hinge, collider_hinge);
                 }
