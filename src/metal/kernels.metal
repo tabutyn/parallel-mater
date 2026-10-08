@@ -4475,6 +4475,24 @@ static void pm_apply_local_contact_impulse_fast(
             cross(point - pm_load(state.position), impulse)));
 }
 
+static void pm_apply_local_contact_wrench_fast(
+    device const PMRigidParameters &body,
+    thread PMRigidBodyState &state,
+    thread const PMQuaternion &orientation,
+    thread const PMQuaternion &inverse_orientation,
+    float3 inverse_inertia,
+    float3 linear_impulse, float3 angular_impulse) {
+    if (body.inverse_mass <= 0.0f) return;
+    state.linear_velocity = pm_store(
+        pm_load(state.linear_velocity) +
+        linear_impulse * body.inverse_mass);
+    state.angular_velocity = pm_store(
+        pm_load(state.angular_velocity) +
+        pm_cached_inverse_inertia_mul(
+            orientation, inverse_orientation, inverse_inertia,
+            angular_impulse));
+}
+
 // CUDA deliberately resolves an ordinary persistent patch with both body
 // states in local storage.  Besides avoiding global-memory traffic, that
 // prevents contact-record pointers from aliasing body-state pointers and
@@ -4556,6 +4574,123 @@ static void pm_resolve_local_persistent_pair(
                     pm_load(collider_state.position) -
                     correction * collider.inverse_mass);
         }
+    }
+
+
+    if (manifold.face_patch != 0u && manifold.count > 1u) {
+        float normal_impulses[8]{};
+        float3 combined_impulse = 0.0f;
+        float3 body_angular_impulse = 0.0f;
+        float3 collider_angular_impulse = 0.0f;
+        for (uint contact_index = 0u;
+             contact_index < manifold.count; ++contact_index) {
+            device PMContactRecord &record = manifold.contacts[contact_index];
+            const float3 point = pm_load(record.point);
+            const float3 normal = pm_load(record.normal);
+            const float3 relative_velocity =
+                pm_local_contact_point_velocity(body_state, point) -
+                pm_local_contact_point_velocity(collider_state, point);
+            const float normal_speed = dot(relative_velocity, normal);
+            const float separation = max(0.0f, -record.penetration);
+            float target_speed = separation > pm_rigid_surface_tolerance
+                ? -separation / max(step.timestep, 1.0e-6f)
+                : 0.0f;
+            if (separation <= pm_rigid_surface_tolerance &&
+                record.initial_normal_speed < 0.0f)
+                target_speed = max(
+                    target_speed,
+                    -min(body.restitution, collider.restitution) *
+                        record.initial_normal_speed);
+            const float denominator =
+                pm_local_contact_inverse_mass_fast(
+                    body, body_state, body_orientation,
+                    body_inverse_orientation, body_inverse_inertia,
+                    point, normal) +
+                pm_local_contact_inverse_mass_fast(
+                    collider, collider_state, collider_orientation,
+                    collider_inverse_orientation, collider_inverse_inertia,
+                    point, normal);
+            if (denominator <= 1.0e-6f) continue;
+            const float accumulated_normal = max(
+                0.0f, record.accumulated_normal_impulse +
+                          (target_speed - normal_speed) / denominator);
+            const float normal_impulse =
+                accumulated_normal - record.accumulated_normal_impulse;
+            record.accumulated_normal_impulse = accumulated_normal;
+            normal_impulses[contact_index] = normal_impulse;
+            const float3 impulse = normal * normal_impulse;
+            combined_impulse += impulse;
+            body_angular_impulse += cross(
+                point - pm_load(body_state.position), impulse);
+            collider_angular_impulse += cross(
+                point - pm_load(collider_state.position), -impulse);
+        }
+        pm_apply_local_contact_wrench_fast(
+            body, body_state, body_orientation, body_inverse_orientation,
+            body_inverse_inertia, combined_impulse, body_angular_impulse);
+        pm_apply_local_contact_wrench_fast(
+            collider, collider_state, collider_orientation,
+            collider_inverse_orientation, collider_inverse_inertia,
+            -combined_impulse, collider_angular_impulse);
+        for (uint contact_index = 0u;
+             contact_index < manifold.count; ++contact_index) {
+            device PMContactRecord &record = manifold.contacts[contact_index];
+            const float3 point = pm_load(record.point);
+            const float3 normal = pm_load(record.normal);
+            const float separation = max(0.0f, -record.penetration);
+            float3 relative_velocity =
+                pm_local_contact_point_velocity(body_state, point) -
+                pm_local_contact_point_velocity(collider_state, point);
+            float3 tangent = relative_velocity -
+                normal * dot(relative_velocity, normal);
+            const float tangent_length = length(tangent);
+            float3 friction = separation <= pm_rigid_rest_offset(
+                    body.collision_margin + collider.collision_margin)
+                ? pm_load(record.accumulated_friction_impulse)
+                : float3(0.0f);
+            if (separation <= pm_rigid_rest_offset(
+                    body.collision_margin + collider.collision_margin) &&
+                tangent_length > 1.0e-6f) {
+                tangent /= tangent_length;
+                const float tangent_denominator =
+                    pm_local_contact_inverse_mass_fast(
+                        body, body_state, body_orientation,
+                        body_inverse_orientation, body_inverse_inertia,
+                        point, tangent) +
+                    pm_local_contact_inverse_mass_fast(
+                        collider, collider_state, collider_orientation,
+                        collider_inverse_orientation,
+                        collider_inverse_inertia, point, tangent);
+                if (tangent_denominator > 1.0e-6f)
+                    friction -= tangent *
+                        (tangent_length / tangent_denominator);
+            }
+            friction = pm_clamp_vector_length(
+                friction,
+                friction_coefficient *
+                    record.accumulated_normal_impulse);
+            const float3 friction_impulse =
+                friction - pm_load(record.accumulated_friction_impulse);
+            record.accumulated_friction_impulse = pm_store(friction);
+            pm_apply_local_contact_impulse_fast(
+                body, body_state, body_orientation,
+                body_inverse_orientation, body_inverse_inertia,
+                point, friction_impulse);
+            pm_apply_local_contact_impulse_fast(
+                collider, collider_state, collider_orientation,
+                collider_inverse_orientation, collider_inverse_inertia,
+                point, -friction_impulse);
+            const uint event_index = manifold.event_offset + contact_index;
+            if (step.collect_rigid_contacts != 0u &&
+                event_index < step.rigid_event_capacity) {
+                events[event_index].normal_impulse +=
+                    normal_impulses[contact_index];
+                events[event_index].friction_impulse = pm_store(
+                    pm_load(events[event_index].friction_impulse) +
+                    friction_impulse);
+            }
+        }
+        return;
     }
 
     for (uint contact_index = 0u;
