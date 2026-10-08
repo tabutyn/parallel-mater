@@ -334,10 +334,9 @@ void test_floor_contact_and_async_contract() {
               // candidate-order reduction, and solver initialization.
               timings.rigid_contact_evaluation.launch_count == 16U &&
               timings.rigid_contact_generation.launch_count == 32U &&
-              // The small-world path fuses coloring and all solve passes;
-              // Cache load/save, prepare, initialize, color, solve, and clamp
-              // each launch once per substep.
-              timings.rigid_contact_solve.launch_count == 4U * 7U &&
+              // Cache/event/color preparation, island scheduling, one resident
+              // contact kernel, clamping and publication: eight per substep.
+              timings.rigid_contact_solve.launch_count == 4U * 8U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
@@ -723,6 +722,95 @@ void test_fixed_cluster_ground_support() {
                   << maximum_late_support_vertical_speed
                   << " minimum_clearance=" << minimum_support_clearance << '\n';
     }
+}
+
+void test_point_constraint_ground_support() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 6U,
+                                .rigid_constraint_capacity = 4U,
+                                .triangle_mesh_capacity = 3U},
+                               world),
+                 "create point ground-support world");
+    const TriangleMeshId plane_mesh = add_plane(world);
+    const TriangleMeshId anchor_mesh = add_box(world, {0.1F, 0.1F, 0.1F});
+    const TriangleMeshId body_mesh = add_box(world, {0.4F, 0.4F, 0.4F});
+    RigidBodyId floor{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body,
+                      .mesh = plane_mesh,
+                      .friction = 0.8F,
+                      .collision_margin = 0.006F},
+                     floor),
+                 "add point-support floor");
+    RigidBodyId anchor{};
+    check_status(world.add_rigid_body(
+                     {.motion = MotionType::static_body,
+                      .mesh = anchor_mesh,
+                      .initial_state = {.position = {0.0F, 1.25F, 0.0F}}},
+                     anchor),
+                 "add point-support anchor");
+    constexpr float radius = 1.2F;
+    constexpr float height = 0.405F;
+    constexpr std::array<Vec3, 4U> positions{{
+        {radius, height, 0.0F}, {-radius, height, 0.0F},
+        {0.0F, height, radius}, {0.0F, height, -radius},
+    }};
+    constexpr std::array<Vec3, 4U> velocities{{
+        {0.0F, -3.0F, 0.0F}, {0.0F, 0.0F, 3.0F},
+        {-3.0F, 0.0F, 0.0F}, {-3.0F, 0.0F, 0.0F},
+    }};
+    constexpr std::array<Vec3, 4U> angular_velocities{{
+        {0.0F, 0.0F, -2.5F}, {}, {}, {},
+    }};
+    std::array<RigidBodyId, positions.size()> bodies{};
+    for (std::size_t index = 0U; index < bodies.size(); ++index) {
+        check_status(world.add_rigid_body(
+                         {.mesh = body_mesh,
+                          .initial_state = {.position = positions[index],
+                                            .linear_velocity = velocities[index],
+                                            .angular_velocity =
+                                                angular_velocities[index]},
+                          .mass = 1.0F,
+                          .friction = 0.8F,
+                          .linear_damping = 0.01F,
+                          .angular_damping = 0.01F,
+                          .collision_margin = 0.006F},
+                         bodies[index]),
+                     "add point-supported body");
+        RigidConstraintId constraint{};
+        check_status(world.add_rigid_constraint(
+                         {.type = RigidConstraintType::point,
+                          .body_a = anchor,
+                          .body_b = bodies[index],
+                          .local_anchor_a = {0.0F, height - 1.25F, 0.0F},
+                          .local_anchor_b = {-positions[index].x, 0.0F,
+                                             -positions[index].z},
+                          .enabled = true,
+                          .solver_iterations = 16U},
+                         constraint),
+                     "attach point-supported body");
+    }
+
+    float minimum_center_height = height;
+    for (int frame = 0; frame < 600; ++frame) {
+        check_status(world.step({.timestep = 1.0F / 60.0F,
+                                 .substeps = 8U,
+                                 .gravity = {0.0F, -9.81F, 0.0F}}),
+                     "step point ground-support collision");
+        for (RigidBodyId body : bodies) {
+            RigidBodyState state{};
+            check_status(world.read_rigid_body_state(body, state),
+                         "read point-supported body");
+            minimum_center_height = std::min(
+                minimum_center_height, state.position.y);
+        }
+    }
+    check(minimum_center_height > 0.2F,
+          "point-constrained collisions must not tunnel through the ground");
+    if (minimum_center_height <= 0.2F)
+        std::cerr << "point support minimum_center_height="
+                  << minimum_center_height << '\n';
 }
 
 void test_high_speed_swept_triangle_contact() {
@@ -1155,6 +1243,37 @@ void test_rigid_constraint_types() {
     check(spring.linear_velocity.x < -0.05F,
           "generic spring must pull displaced bodies toward equilibrium");
 
+    constexpr float spring_angle = 0.1F;
+    RigidBodyState angular_spring = exercise_constraint(
+        {.type = RigidConstraintType::generic_spring,
+         .angular_limits = {.axes = rigid_constraint_axis_z,
+                            .lower = {0.0F, 0.0F, -0.5F},
+                            .upper = {0.0F, 0.0F, 0.5F}},
+         .angular_springs = {.axes = rigid_constraint_axis_z,
+                             .stiffness = {0.0F, 0.0F, 1.0F},
+                             .damping = {0.0F, 0.0F, 0.01F}}},
+        {.orientation = {0.0F, 0.0F, std::sin(spring_angle * 0.5F),
+                         std::cos(spring_angle * 0.5F)},
+         .angular_velocity = {0.0F, 0.0F, 2.0F}});
+    check(angular_spring.angular_velocity.z > 1.0F,
+          "generic angular spring must remain compliant under angular motion");
+
+    constexpr float outside_limit_angle = 0.5F;
+    RigidBodyState limited_spring = exercise_constraint(
+        {.type = RigidConstraintType::generic_spring,
+         .angular_limits = {.axes = rigid_constraint_axis_z,
+                            .lower = {0.0F, 0.0F, -0.2F},
+                            .upper = {0.0F, 0.0F, 0.2F}},
+         .angular_springs = {.axes = rigid_constraint_axis_z}},
+        {.orientation = {0.0F, 0.0F,
+                         std::sin(outside_limit_angle * 0.5F),
+                         std::cos(outside_limit_angle * 0.5F)}});
+    const float limited_angle = 2.0F * std::atan2(
+        std::fabs(limited_spring.orientation.z),
+        std::fabs(limited_spring.orientation.w));
+    check(limited_angle < outside_limit_angle - 0.05F,
+          "generic angular spring must also enforce its angular limit");
+
     RigidBodyState motor = exercise_constraint(
         {.type = RigidConstraintType::motor,
          .motor = {.angular_enabled = true,
@@ -1420,6 +1539,115 @@ void test_piston_thin_rotational_stop() {
     }
 }
 
+void test_contact_world_composition() {
+    using namespace parallel_mater;
+    RigidBodyState reference{};
+    for (const std::uint32_t count : {4U, 31U, 32U, 256U, 257U}) {
+        for (const bool joint : {false, true}) {
+            World world;
+            check_status(World::create({.rigid_body_capacity = count,
+                .rigid_constraint_capacity = 1U, .triangle_mesh_capacity = 2U}, world),
+                "create world-composition contact fixture");
+            const auto plane = add_plane(world);
+            const auto cube = add_box(world, {0.5F, 0.5F, 0.5F});
+            RigidBodyId floor{}, box{}, anchor{}, bob{};
+            check_status(world.add_rigid_body({.motion = MotionType::static_body,
+                .mesh = plane, .friction = 0.8F}, floor), "add composition floor");
+            check_status(world.add_rigid_body({.mesh = cube,
+                .initial_state = {.position = {0, 0.495F, 0}},
+                .friction = 0.8F, .restitution = 0}, box), "add composition box");
+            check_status(world.add_rigid_body({.motion = MotionType::static_body,
+                .mesh = cube, .initial_state = {.position = {100, 100, 0}}}, anchor),
+                "add distant anchor");
+            check_status(world.add_rigid_body({.mesh = cube,
+                .initial_state = {.position = {100, 98, 0}}}, bob), "add distant bob");
+            for (std::uint32_t i = 4; i < count; ++i) {
+                RigidBodyId padding{};
+                check_status(world.add_rigid_body({.motion = MotionType::static_body,
+                    .mesh = cube, .initial_state = {.position = {200 + 2.0F*i, 100, 0}}}, padding),
+                    "add noninteracting padding body");
+            }
+            if (joint) {
+                RigidConstraintId id{};
+                check_status(world.add_rigid_constraint({.type = RigidConstraintType::point,
+                    .body_a = anchor, .body_b = bob, .local_anchor_a = {0, -1, 0},
+                    .local_anchor_b = {0, 1, 0}}, id), "add unrelated point constraint");
+            }
+            for (unsigned frame = 0; frame < 30; ++frame)
+                check_status(world.step({.substeps = 4U}), "step composition fixture");
+            RigidBodyState state{};
+            check_status(world.read_rigid_body_state(box, state), "read composition box");
+            if (count == 4U && !joint) reference = state;
+            check(near(state.position.y, reference.position.y, 0.002F) &&
+                  near(state.linear_velocity.y, reference.linear_velocity.y, 0.02F) &&
+                  near(state.orientation.w, reference.orientation.w, 0.001F),
+                  "unrelated joints/body-count thresholds must preserve isolated support");
+            check(state.position.y >= 0.499F && std::fabs(state.linear_velocity.y) < 0.02F,
+                  "isolated support must remain stable under every contact schedule");
+        }
+    }
+}
+
+void test_contact_island_convergence_and_diagnostics() {
+    using namespace parallel_mater;
+    World world;
+    check_status(World::create({.rigid_body_capacity = 104U,
+        .rigid_constraint_capacity = 1U, .triangle_mesh_capacity = 3U}, world), "create island fixture");
+    const auto plane = add_box(world, {10, 0.5F, 10});
+    const auto cube = add_box(world, {0.5F, 0.5F, 0.5F});
+    RigidBodyId floor{}, a{}, b{};
+    check_status(world.add_rigid_body({.motion = MotionType::static_body, .mesh = plane,
+        .initial_state = {.position = {0, -0.5F, 0}}}, floor), "add island floor");
+    const auto add_supported = [&](float x, RigidBodyId &id) {
+        check_status(world.add_rigid_body({.mesh = cube, .initial_state = {.position = {x, 0.5F, 0}},
+            .mass = 2.0F, .restitution = 0, .linear_damping = 0, .angular_damping = 0}, id), "add island box");
+    };
+    // Disconnected tiny triangles have overlapping broad bounds but no actual
+    // contacts. Put the supported boxes after >4096 candidate pairs: empty
+    // candidates must not evict their response/history cache entries.
+    const auto sparse = upload_mesh(world,
+        {{-100, -100, -100}, {-99.9F, -100, -100}, {-100, -100, -99.9F},
+         {100, 100, 100}, {100.1F, 100, 100}, {100, 100, 100.1F}},
+        {0, 1, 2, 3, 4, 5}, "add sparse broad-bound mesh");
+    for (unsigned index = 1; index < 102; ++index) {
+        RigidBodyId id{};
+        check_status(world.add_rigid_body({.mesh = sparse,
+            .initial_state = {.position = {0, 0.04F * index, 0}},
+            .collision_margin = 0.001F}, id), "pad island candidates");
+    }
+    add_supported(-2, a);
+    add_supported(2, b);
+    for (unsigned frame = 0; frame < 90; ++frame)
+        check_status(world.step({.substeps = 4, .collect_rigid_contacts = true}), "settle independent islands");
+    WorldStatistics statistics{};
+    check_status(world.collect_statistics(statistics), "read island convergence");
+    check(statistics.rigid_contact_candidate_pairs > 4096 && statistics.rigid_contact_live_pairs == 2,
+          "sparse broad-phase candidates must not consume live contact cache slots");
+    check(statistics.rigid_contact_island_count == 2, "shared static ground must not merge contact islands");
+    check(statistics.rigid_contact_early_exit_count == 2 && statistics.rigid_contact_maximum_passes >= 8 &&
+          statistics.rigid_contact_maximum_passes < 32, "settled islands must stop after measured convergence");
+    const auto contacts = world.rigid_contacts();
+    std::vector<RigidContactEvent> events(contacts.event_count);
+    check(cudaMemcpy(events.data(), contacts.events.data, events.size() * sizeof(RigidContactEvent),
+                     cudaMemcpyDeviceToHost) == cudaSuccess, "read deferred support impulses");
+    float support = 0;
+    for (const auto &event : events) support += event.normal_impulse;
+    check(near(support, 4.0F * 9.81F / 240.0F, 0.002F),
+          "deferred diagnostics include warm-start support exactly once for the final substep");
+    RigidConstraintId joint{};
+    check_status(world.add_rigid_constraint({.type = RigidConstraintType::point, .body_a = a, .body_b = b,
+        .local_anchor_a = {2, 0, 0}, .local_anchor_b = {-2, 0, 0}}, joint), "connect supported islands");
+    check_status(world.step({.substeps = 4}), "step connected islands");
+    check_status(world.collect_statistics(statistics), "read joined island");
+    check(statistics.rigid_contact_island_count == 1, "a live dynamic joint must merge convergence islands");
+    check_status(world.remove_rigid_constraint(joint), "release convergence islands");
+    check_status(world.apply_impulse(a, {2, 0, 0}, {}), "wake a converged island");
+    check_status(world.step({.substeps = 4}), "step reactivated island");
+    RigidBodyState state{};
+    check_status(world.read_rigid_body_state(a, state), "read reactivated box");
+    check(state.linear_velocity.x > 0.5F, "early stopping must not sleep or freeze an impacted body");
+}
+
 } // namespace
 
 int main() {
@@ -1437,6 +1665,7 @@ int main() {
     test_rotation_dynamic_coupling_and_determinism();
     test_fixed_cluster_collision_filter();
     test_fixed_cluster_ground_support();
+    test_point_constraint_ground_support();
     test_high_speed_swept_triangle_contact();
     test_swept_contact_when_leaf_cache_overflows(2U);
     test_swept_contact_when_leaf_cache_overflows(17U);
@@ -1452,6 +1681,8 @@ int main() {
     test_static_axial_guide_lifecycle();
     test_guided_edge_clearance();
     test_piston_thin_rotational_stop();
+    test_contact_world_composition();
+    test_contact_island_convergence_and_diagnostics();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";
         return 1;

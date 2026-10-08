@@ -19,6 +19,10 @@ Generation-checked rigid constraints provide fixed, point, hinge, slider,
 piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
+Rigid contacts share one solve loop and a CUDA-independent C++17
+[contact-equation core](docs/CONTACT_SOLVER.md), with host/device fixtures for
+other backends to reuse. Joints no longer disable a separate stack fast path.
+
 The current rigid pipeline reduced the measured five-body Blender scene from
 24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
 rejected experiments, sparse-world result, and high-speed fixture are recorded
@@ -161,24 +165,27 @@ ctest --test-dir build-gallery --output-on-failure
 ```
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, eight Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
+the selector for Rigid Body, six Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
 Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
 Up/Down and Enter to switch.
 Fixed collects loose spheres on contact. Point starts with four spheres
 orbiting a shared anchor in two perpendicular pairs; `Space` releases or
 reattaches all four. Arrow keys tilt gravity relative to the current camera in
-every Constraint scene except Motor, where they keep controlling the car's
-tank drive. Hinge launches a sphere into a panel merged with the first of three
+Constraint scenes except Motor + Spring. Up/Down drives all four Motor + Spring
+wheels together. Left/Right yaws each hub and wheel around
+the suspension's up axis, with rear steering opposite the front. Hinge launches a sphere into a panel merged with the first of three
 hinged gears; contact propagates through both interfaces with alternating
-rotation. Slider, Piston, Generic, and Generic Spring launch an
+rotation. Slider, Piston, and Generic launch an
 authored sphere impact automatically.
 Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 384
 independent bricks sharing two meshes. Arrows tilt the sphere's gravity relative
 to the current camera to drive it through the wall while the bricks retain
 vertical gravity. The authored `LoadBox`
 is available as a non-colliding hit-box query volume. In
-DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
-10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel
+DUMP, arrows drive and steer the suspended dump truck; Space tips its open-top
+rear bucket 100 degrees, and another press lowers it. Press `P` to edit its
+10–1,000 sphere load centered on the Blender Empty `SphereCluster`; applying a
+count restarts DUMP. `F` toggles per-kernel
 GPU timings. Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the

@@ -232,8 +232,6 @@ int main() {
         check(scene.rigid_bodies[4].name == "Suzanne.001" &&
                   scene.rigid_bodies[4].options.motion == MotionType::dynamic,
               "the second Blender ACTIVE Suzanne must load as dynamic");
-        check(scene.meshes[0].checkerboard,
-              "exported passive ground must retain its checkerboard flag");
         for (const TriangleMesh &mesh : scene.meshes) {
             check(!mesh.vertices.empty() && !mesh.indices.empty() &&
                       mesh.indices.size() % 3U == 0U,

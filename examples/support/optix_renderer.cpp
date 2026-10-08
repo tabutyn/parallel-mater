@@ -704,7 +704,6 @@ struct OptixRenderer::Impl {
                 hits[index].data.paint_height = paint_views[index].height;
             }
             hits[index].data.base_color = make_float(mesh.base_color);
-            hits[index].data.checkerboard = mesh.checkerboard ? 1U : 0U;
             hits[index].data.transparent_skin =
                 bindings[index].visibility_mask ==
                     k_transparent_skin_visibility ? 1U : 0U;

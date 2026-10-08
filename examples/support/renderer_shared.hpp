@@ -47,7 +47,6 @@ struct HitData {
     unsigned int paint_width{};
     unsigned int paint_height{};
     float3 base_color{};
-    unsigned int checkerboard{};
     unsigned int transparent_skin{};
 };
 

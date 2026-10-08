@@ -84,37 +84,61 @@ void check_pan(CameraController &controller, const char *message) {
 int main() {
     using parallel_mater::gallery::GalleryContext;
     using parallel_mater::gallery::GalleryControlPolicy;
+    using parallel_mater::gallery::axle_steering_angles;
     using parallel_mater::gallery::gallery_entry;
     using parallel_mater::gallery::toggles_constraint;
     using parallel_mater::gallery::uses_rigid_gravity;
     for (const GalleryContext context : {GalleryContext::constraint_fixed,
-            GalleryContext::constraint_point, GalleryContext::constraint_hinge,
+            GalleryContext::constraint_point,
+            GalleryContext::constraint_hinge,
             GalleryContext::constraint_piston,
-            GalleryContext::constraint_generic,
-            GalleryContext::constraint_generic_spring})
+            GalleryContext::constraint_generic})
         check(uses_rigid_gravity(gallery_entry(context).controls),
               "every non-motor constraint scene has arrow gravity controls");
-    const GalleryControlPolicy motor_controls =
-        gallery_entry(GalleryContext::constraint_motor).controls;
+    const GalleryControlPolicy motor_spring_controls =
+        gallery_entry(GalleryContext::constraint_motor_spring).controls;
+    check(gallery_entry(GalleryContext::dump).controls == motor_spring_controls &&
+              !toggles_constraint(gallery_entry(GalleryContext::dump).controls),
+          "DUMP shares motor drive controls; Space must not release its suspension");
     check(gallery_entry(GalleryContext::constraint_hinge).name ==
               "CONSTRAINT: HINGE + SLIDER",
           "combined hinge and slider scene must use its new display name");
-    for (const auto &entry : parallel_mater::gallery::gallery_entries)
-        check(entry.command_line_option != "--constraint-slider",
-              "standalone slider must not remain in the gallery or CLI");
+    for (const auto &entry : parallel_mater::gallery::gallery_entries) {
+        check(entry.command_line_option != "--constraint-slider" &&
+                  entry.command_line_option != "--constraint-generic-spring" &&
+                  entry.command_line_option != "--constraint-motor" &&
+                  entry.command_line_option != "--celestial",
+              "covered standalone constraints must not remain in gallery or CLI");
+    }
     check(parallel_mater::gallery::gallery_context_index(
               GalleryContext::constraint_piston) ==
               parallel_mater::gallery::gallery_context_index(
                   GalleryContext::constraint_hinge) + 1U,
           "Piston must directly follow Hinge + Slider in gallery navigation");
-    check(!uses_rigid_gravity(motor_controls) &&
-              motor_controls == GalleryControlPolicy::tank_motor,
-          "motor constraint scene keeps arrow tank controls");
+    check(!uses_rigid_gravity(motor_spring_controls) &&
+              motor_spring_controls == GalleryControlPolicy::motor_drive,
+          "Motor + Spring keeps arrow motor controls");
+    const auto right_steering = axle_steering_angles(1.0F, 0.4F);
+    check(near(right_steering.front, 0.4F) &&
+              near(right_steering.rear, -0.4F),
+          "Right Arrow yaws front and rear axles in opposite directions");
+    const auto left_steering = axle_steering_angles(-1.0F, 0.4F);
+    check(near(left_steering.front, -0.4F) &&
+              near(left_steering.rear, 0.4F),
+          "Left Arrow reverses front and rear steering yaw");
     check(!toggles_constraint(
               gallery_entry(GalleryContext::constraint_fixed).controls) &&
               toggles_constraint(
                   gallery_entry(GalleryContext::constraint_point).controls),
-          "only the point scene uses the explicit Space constraint toggle");
+          "Point uses the explicit Space constraint toggle");
+    check(parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_point) ==
+              parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_fixed) + 1U &&
+              parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_hinge) ==
+              parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_point) + 1U,
+          "Point must appear between Fixed and Hinge with no separate Celestial entry");
+    check(gallery_entry(GalleryContext::constraint_point).name == "CONSTRAINT: POINT" &&
+              near(gallery_entry(GalleryContext::constraint_point).camera.target.y, 3.1F),
+          "Point must use the replacement arm scene's name and elevated camera");
     for (const GalleryContext context : {GalleryContext::smoke,
             GalleryContext::smoke_water, GalleryContext::smoke_soft_body,
             GalleryContext::smoke_cloth, GalleryContext::smoke_rope})

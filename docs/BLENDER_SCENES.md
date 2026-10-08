@@ -5,6 +5,9 @@ collision by default, while an optional Blender-authored lower-resolution mesh
 can be selected per body as its collision proxy. ParallelMater has no separate
 sphere, box, capsule, or plane collider types.
 
+For the complete custom-property index, see
+[Supported `pm_*` properties](#supported-pm_-properties) below.
+
 ## Authoring contract
 
 1. Model every rigid object as a Blender mesh. Open, disconnected,
@@ -44,6 +47,15 @@ sphere, box, capsule, or plane collider types.
    still be displaced by contacts and impulses; the full acceleration stays
    vertical while other bodies follow steering. Array instances inherit the
    source property. Use a Boolean property with the checkbox **unchecked**.
+10. For direct arrow-key force, give an ACTIVE, non-Animated rigid body a
+    numeric custom property `pm_arrow = 100.0`. While held, arrow keys apply
+    100 newtons at its center of mass. The requested screen-space direction is
+    projected onto the floor and normalized, so force stays parallel to the
+    ground and diagonals still total 100 N. Opposite keys cancel, and releasing
+    keys stops the force without removing momentum. Each Array instance inherits
+    the full force. Scenes with a positive `pm_arrow` use arrows for force
+    instead of gravity tilt or their other arrow-key controls; ordinary
+    vertical gravity remains. Scenes without it keep their existing controls.
 
 The exporter rejects parented rigid bodies for now. Continuous collision,
 compound bodies, and automatic convex decomposition are not part of this
@@ -56,6 +68,72 @@ collision triangles. This works per material slot, not by object name. Constant
 glTF `MASK` alpha respects its cutoff; `BLEND` alpha zero is invisible. Partial
 alpha blending and alpha textures are not supported yet; glTF `OPAQUE`
 materials remain visible regardless of their alpha value.
+
+## Point constraint scene
+
+`examples/assets/Celestial.blend` supplies the gallery's **Constraint: Point**
+entry, replacing the original demo. There is no separate Celestial gallery entry.
+The original `ConstraintPoint.blend`/`.glb` remain test/conformance fixtures.
+Rebuild its editable source with:
+
+```bash
+blender --background --python examples/assets/tools/make_celestial_scene.py
+blender --background examples/assets/Celestial.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/Celestial.glb
+./build-gallery/parallel-mater-gallery --constraint-point
+```
+
+Four dynamic meshes each combine a straight gray arm with a plain colored sphere.
+The arms have different lengths; the base and central post are undecorated. Native
+POINT constraints connect them to `CelestialAnchor` at Blender `(0, 0, 6.3)`.
+Separate low-resolution collision meshes retain arms and spheres, omitting the
+shared pivot neighborhood. The passive base has its own collider. Collision
+proxies are hidden in the Blender viewport and render.
+No motors, keyframed movement or scene-specific solver forces are used.
+The exported `pm_initial_velocity` values start opposing motion in ParallelMater;
+Blender's own playback does not apply those custom initial velocities.
+
+The source includes a presentation camera and studio lights for editing/rendering.
+The gallery uses its own camera and material-color lighting. Arrows tilt gravity; Space releases
+or restores the assembly; R resets. The GPU scene test checks shared anchor drift,
+motion, tilted gravity, release and restoration at the gallery's four substeps.
+
+## Dump truck
+
+`DumpTruck.blend` supplies DUMP. Rebuild and export it with:
+
+```bash
+blender --background --python examples/assets/tools/make_dump_truck_scene.py
+blender --background examples/assets/DumpTruck.blend \
+  --python tools/blender/export_parallel_mater_scene.py -- \
+  --output examples/assets/DumpTruck.glb
+./build-gallery/parallel-mater-gallery --dump
+```
+
+The builder derives four motor-driven wheels and four suspended steering hubs
+from `ConstraintMotorSpring.blend`, preserving that source. `MotorChassis` includes
+a simple cab; `DumpBucket` is one dynamic mesh containing a floor and four solid
+walls, with no lid. `DumpLift` holds its rear pivot to the dynamic chassis. The
+gallery smoothly rotates that generic constraint's chassis-side frame from zero
+to 100 degrees on Space, then holds it; another Space press lowers it. The solver
+owns the resulting rigid motion, payload contacts and suspension reactions.
+
+Add a scene-root **Empty named `SphereCluster`** where the payload grid should be
+centered. Its position and rotation drive every load, including the default 100
+and all P / `--dump-spheres` choices from 10 to 1,000. Save and re-export after
+moving the Empty. Display size and scale do not resize the spheres. The old
+`DumpLoadVolume` helper is ignored by payload packing and may be removed.
+
+The shared exporter writes `pm_system=sphere_cluster`: a non-simulated template
+at the Empty's pose, carrying an 80-triangle icosphere of radius 0.1 m, mass
+0.04 kg and friction 0.35. Runtime instances share that mesh and use 0.23 m
+center spacing. The occupied grid's bounds are centered on the Empty, including
+partial top layers; larger loads may start above the bucket and fall into it.
+No authored sphere mesh or Array is required. The low-friction bucket
+liner is intentional: at 100 degrees the rear wall slopes only ten degrees
+toward the open rim, so a grippy wall would retain some of the payload.
+Arrow controls match Motor + Spring; P edits the load count and R resets.
 
 ## Smoke flow
 
@@ -246,23 +324,156 @@ contract; the current gallery loader consumes it and constructs public API
 resources. A reusable runtime scene importer and Blender property panels can
 grow around this boundary without introducing another export implementation.
 
-The generated metadata is:
+## Supported `pm_*` properties
 
-| Property | Source |
+This is the authoring index for
+[`tools/blender/export_parallel_mater_scene.py`](../tools/blender/export_parallel_mater_scene.py)
+and the gallery loader. Add these under **Object Properties → Custom
+Properties** on the applicable object, then save and export. Names are
+case-sensitive. Defaults below combine exporter and gallery defaults.
+Distances use metres, masses kilograms, time seconds, and angles radians.
+Properties do not replace Blender's native physics panels unless explicitly
+listed as overrides. Unlisted custom properties are not supported controls.
+
+### Rigid bodies, triggers, and paint
+
+| Property | Type / default | Meaning |
+|---|---|---|
+| `pm_arrow` | Number, `0` | Continuous force in newtons at the rigid body's center of mass. Its camera-relative screen direction is projected onto the floor, normalized, and applied parallel to the ground. Finite, non-negative float; positive values require ACTIVE, non-Animated bodies. Applies once per physics step, not per rendered frame. Enables force-only arrow controls scene-wide. |
+| `pm_gravity_tilt` | Boolean, `true` | Follow gallery gravity steering. `false` keeps full vertical gravity on this dynamic body; it does not freeze it. |
+| `pm_initial_velocity` | Three numbers, `[0, 0, 0]` | Initial rigid velocity in Blender world X/Y/Z, m/s. Export converts it to glTF Y-up. |
+| `pm_collision_proxy` | String, unset | Name of a separate collision mesh without a Rigid Body; detailed mesh still renders. |
+| `pm_hit_box` | Boolean, `false` | Export a root mesh without a rigid body as an oriented, non-rendered trigger volume. |
+| `pm_load_box` | Boolean, `false` | Compatibility alias for `pm_hit_box`; explicit `pm_hit_box` takes precedence. |
+| `pm_smoke_collider` | Boolean, `false` | Opt static/kinematic rigid geometry into smoke coupling. Dynamic rigid bodies couple automatically. |
+| `pm_paintable` | Boolean, `false` | Register a paint field on a rigid body or cloth. |
+| `pm_paint_resolution` | Integer, `512` | Square paint-mask size, 32–2048 texels per side. |
+| `pm_paint_source` | String, empty | On cloth, name the rigid body that paints it on contact. |
+| `pm_paint_brush_radius` | Number, `0.15` | Cloth contact-paint brush radius in metres. |
+
+`pm_arrow = 100.0` applies **100 N**, not 100 m/s² or an impulse. A free
+1 kg body gains 100 m/s each second; a 4 kg body gains 25 m/s each second,
+before gravity, damping, and contact/constraint reactions. Diagonal input is
+normalized. Release adds no force and preserves momentum. Arrays inherit the
+force per body, not divided across the array. This is gallery input metadata,
+not a new installed `World` API; other clients can apply the same force using
+the existing force/central-acceleration API. Materials determine surface
+color; the renderer no longer adds a procedural floor pattern.
+
+### Cloth
+
+These require a native Cloth modifier. Pins and pressure come from its native
+settings; paint properties above also apply.
+
+| Property | Default | Meaning |
+|---|---|---|
+| `pm_vertex_mass` | `0.001` | Mass per cloth vertex, kg. |
+| `pm_thickness` | `0.025` | Collision thickness, m. |
+| `pm_stretch_compliance` | `1e-6` | Stretch softness; zero requests stiff constraints. |
+| `pm_solver_iterations` | `8` | Constraint iteration budget, integer. |
+| `pm_velocity_damping` | Native Air Damping | Velocity damping override. |
+| `pm_contact_friction` | `0.4` | Contact friction coefficient. |
+| `pm_break_strain` | `0` | Relative extension that can break a bond; zero disables strain tearing. |
+| `pm_fracture_persistence_substeps` | `4` | Consecutive over-strain substeps required to tear, integer. |
+| `pm_impact_break_impulse` | `0` | Impact tear threshold; zero disables impact tearing. |
+| `pm_contains_fluid` | `false` | Boolean; a closed pressure cloth contains fluid. |
+
+### Soft bodies
+
+These require a native Soft Body modifier. Goal-group pins come from Blender.
+
+| Property | Default | Meaning |
+|---|---|---|
+| `pm_total_mass` | Native Mass | Total soft-body mass, kg. |
+| `pm_node_spacing` | Geometry-derived | Physical lattice spacing, m. See the Soft-body scenes section. |
+| `pm_node_radius` | `0.35 × pm_node_spacing` | Physical node radius, m. |
+| `pm_stretch_compliance` | `1e-7` | Spring softness; zero requests stiff constraints. |
+| `pm_velocity_damping` | Non-negative native Damping | Velocity damping override. |
+| `pm_spring_damping` | `0.85` | Relative spring-velocity damping. |
+| `pm_contact_friction` | Native Friction | Contact friction coefficient. |
+| `pm_shape_matching_stiffness` | Native Goal Default × Stiffness, or `0` | Co-rotated shape recovery; native default applies only with Goal enabled and no Goal vertex group. |
+| `pm_maximum_projection_fraction` | `0.20` | Per-projection correction fraction cap. |
+| `pm_constraint_velocity_response` | `0.70` | Constraint correction contribution to velocity. |
+| `pm_maximum_speed` | `2.0` | Node speed cap, m/s. |
+| `pm_solver_iterations` | `16` | Constraint iteration budget, integer. |
+
+### Ropes
+
+Use a supported open curve. Endpoint attachments come from Hooks or inferred
+endpoint geometry, not hand-written target-name properties.
+
+| Property | Default | Meaning |
+|---|---|---|
+| `pm_rope_radius` | Bevel depth, otherwise `0.01` | Physical radius, m. |
+| `pm_rope_spacing` | `2 × pm_rope_radius` | Maximum node spacing, m. |
+| `pm_rope_mass` | Native Soft Body Mass, otherwise `0.1` | Total rope mass, kg. |
+| `pm_rope_compliance` | `0` | Stretch softness; zero requests a stiff rope. |
+| `pm_rope_friction` | `0.4` | Contact friction coefficient. |
+| `pm_rope_damping` | `0.1` | Velocity damping per second. |
+| `pm_rope_maximum_substep_timestep` | `1/480` | Maximum shared integration step, seconds. |
+| `pm_rope_iterations` | `24` | Nominal constraint/contact budget, integer. |
+
+### Liquid and heated surfaces
+
+| Property | Default | Meaning / applicable object |
+|---|---|---|
+| `pm_particle_spacing` | `0.06` | Initial particle spacing, m; Liquid Geometry flow. |
+| `pm_gravity_scale` | `1` | Gravity multiplier on Liquid Geometry flow; affects the gallery scene, not just that fluid volume. |
+| `pm_source_spacing` | `0` | Liquid Inflow emission-site spacing, m; zero uses fluid support radius. Also exported for Smoke Inflow. |
+| `pm_temperature` | `20` for liquid | Temperature in °C on Liquid Geometry/Inflow. On a root mesh with no rigid body or fluid modifier, presence of this property defines a heated surface; set its temperature explicitly. |
+| `pm_heat_transfer_rate` | `0.2` | Heated-surface heat-transfer rate, inverse seconds at contact. |
+| `pm_smoke_drag` | `2.0` | Heated-surface steam drag. |
+| `pm_steam_rise_speed` | `2.0` | Heated-surface steam rise speed. |
+
+Native Fluid Flow settings select Geometry/Inflow/Outflow and initial velocity.
+No custom properties are required for Liquid Outflow.
+
+### Smoke Inflow
+
+| Property | Default | Meaning |
+|---|---|---|
+| `pm_smoke_obstacle` | Unset | String naming a rigid mesh to couple to smoke. |
+| `pm_smoke_capacity` | `4500` | Maximum tracer count, integer 1–1,000,000. |
+| `pm_smoke_rate` | `900` | Emission rate, tracers/s. |
+| `pm_smoke_lifetime` | `5` | Tracer lifetime, seconds. |
+| `pm_smoke_radius` | `0.085` | Tracer radius, m. |
+| `pm_smoke_buoyancy` | `0.12` | Buoyancy coefficient. |
+| `pm_smoke_wind_response` | `0.5` | Wind response per second. |
+| `pm_smoke_rest_number_density` | `12` | Tracer rest number density. |
+| `pm_smoke_pressure_stiffness` | `2` | Particle pressure coefficient. |
+| `pm_smoke_viscosity` | `0.02` | Particle viscosity coefficient. |
+| `pm_smoke_vorticity_confinement` | `0.1` | Vorticity confinement strength. |
+| `pm_smoke_grid_resolution` | `128` | Horizontal X/Z grid resolution, integer 16–256; zero disables the grid. |
+| `pm_smoke_grid_vertical_resolution` | `32` | World-Y grid resolution, integer 8–256. |
+| `pm_smoke_grid_pressure_iterations` | `24` | Maximum pressure-solve work, integer 4–128. |
+| `pm_smoke_grid_kinematic_viscosity` | `1.5e-5` | Air-grid kinematic viscosity. |
+| `pm_smoke_grid_les_coefficient` | `0.12` | Subgrid turbulence coefficient. |
+| `pm_smoke_grid_pressure_tolerance` | `1e-3` | Relative pressure residual tolerance, greater than zero and at most one. |
+
+### Generated GLB metadata — not Blender custom overrides
+
+The exporter also writes the fields below. Change the corresponding native
+Blender setting or geometry, not a same-named source custom property.
+`AXIS` means each of `x`, `y`, and `z`; `END` means `first` and `last`.
+Authoring overrides listed above retain their documented exceptions (for
+example, `pm_solver_iterations` is an override on cloth/soft bodies but comes
+from the native constraint panel on joints).
+
+| Fields | Source |
 |---|---|
-| `pm_schema = 2` | Exporter version |
-| `pm_system = "rigid_body"` | Exporter |
-| `pm_motion` | Blender ACTIVE/PASSIVE setting |
-| `pm_mass` | Blender rigid-body mass |
-| `pm_friction`, `pm_restitution` | Blender rigid-body material |
-| `pm_linear_damping`, `pm_angular_damping` | Blender rigid-body damping |
-| `pm_collision_margin` | Blender margin when enabled, otherwise `0.005 m` |
-| `pm_initial_velocity` | Optional 3-component Blender-space custom property for a rigid body's initial linear velocity |
-| `pm_checkerboard` | Optional source custom property; defaults on for passive objects in the example exporter |
-| `pm_paintable` | Optional Boolean source custom property; gallery registers a persistent API paint field and fluid-to-rigid rule for that body |
-| `pm_smoke_collider` | Optional Boolean; gallery additionally registers smoke/rigid coupling for a static or kinematic mesh (dynamic bodies are coupled automatically) |
-| `pm_paint_resolution` | Optional integer 32–2048; square mask resolution (default 512) for a paintable body |
-| `pm_collision_proxy` | Optional source custom property naming a lower-resolution Blender mesh |
+| `pm_schema`, `pm_system`, `pm_name`, `pm_source_name` | Schema version, resource kind, exported name, and original object name. |
+| `pm_motion`, `pm_mass`, `pm_friction`, `pm_restitution`, `pm_linear_damping`, `pm_angular_damping`, `pm_collision_margin` | Native Rigid Body settings; disabled custom margin exports `0.005 m`. |
+| `pm_initial_velocity_AXIS` | Converted `pm_initial_velocity` vector. |
+| `pm_constraint_type`, `pm_body_a`, `pm_body_b`, `pm_enabled`, `pm_disable_collisions`, `pm_breaking_impulse_threshold`, `pm_solver_iterations` | Native Rigid Body Constraint settings and target names. |
+| `pm_use_limit_lin_AXIS`, `pm_limit_lin_AXIS_lower`, `pm_limit_lin_AXIS_upper`, `pm_use_limit_ang_AXIS`, `pm_limit_ang_AXIS_lower`, `pm_limit_ang_AXIS_upper` | Native per-axis limits. |
+| `pm_use_spring_AXIS`, `pm_spring_stiffness_AXIS`, `pm_spring_damping_AXIS`, `pm_use_spring_ang_AXIS`, `pm_spring_stiffness_ang_AXIS`, `pm_spring_damping_ang_AXIS` | Native per-axis springs. |
+| `pm_use_motor_lin`, `pm_motor_lin_target_velocity`, `pm_motor_lin_max_impulse`, `pm_use_motor_ang`, `pm_motor_ang_target_velocity`, `pm_motor_ang_max_impulse` | Native motor settings. |
+| `pm_half_extent_AXIS` | Hit-box bounds; pose comes from the glTF node. |
+| `pm_weld_vertices`, `pm_pin_group`, `pm_pin_vertices`, `pm_pin_stiffness` | Evaluated cloth topology and native pins; soft bodies also export Goal pin group/vertices. |
+| `pm_pressure_enabled`, `pm_uniform_pressure`, `pm_pressure_scale`, `pm_pressure_custom_volume`, `pm_pressure_target_volume`, `pm_pressure_fluid_density` | Native Cloth pressure settings. |
+| `pm_rope_points`, `pm_rope_END_body`, `pm_rope_END_soft_body`, `pm_rope_END_cloth` | Evaluated curve and resolved endpoint attachments. |
+| `pm_velocity_AXIS` | Native fluid/smoke Initial Velocity, converted to Y-up. |
+| `pm_smoke_model_version` | Exporter smoke model version (`3`). |
 
 Hit boxes export as empty `pm_system = "hit_box"` nodes with `pm_name` and
 `pm_half_extent_x/y/z`. Their scene-root translation and rotation define the

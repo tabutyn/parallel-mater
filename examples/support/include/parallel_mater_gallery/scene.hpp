@@ -29,7 +29,6 @@ struct TriangleMesh {
     std::vector<Vertex> vertices{};
     std::vector<std::uint32_t> indices{};
     Vec3 base_color{0.7F, 0.7F, 0.7F};
-    bool checkerboard{};
     // Constant material alpha can hide render faces without removing collision.
     // Partial alpha blending and texture cutouts are not supported.
     bool visible{true};
@@ -48,6 +47,8 @@ struct RigidBodyDefinition {
     // authored vertical gravity. This does not make the body static: contacts
     // and impulses still move it normally.
     bool follows_gravity_tilt{true};
+    // Per-object arrow force in newtons, applied at the center of mass.
+    float arrow_force{};
     std::uint32_t paint_resolution{512U};
     std::string source_name{};
 };
@@ -133,6 +134,8 @@ struct SceneDefinition {
     std::vector<TriangleMesh> meshes{};
     std::vector<TriangleMesh> collision_meshes{};
     std::vector<RigidBodyDefinition> rigid_bodies{};
+    // Non-simulated templates at Blender Empty poses, expanded by the gallery.
+    std::vector<RigidBodyDefinition> sphere_clusters{};
     std::vector<RigidConstraintDefinition> rigid_constraints{};
     std::vector<ClothDefinition> cloths{};
     std::vector<SoftBodyDefinition> soft_bodies{};
@@ -191,7 +194,8 @@ struct SceneInstance {
                                   std::string &error);
 
 // Examples-only rigid stress scene. The installed physics API has no scene
-// concepts; DUMP builds reusable triangle meshes through SceneDefinition.
+// concepts; the legacy hopper fixture builds reusable triangle meshes through
+// SceneDefinition. The gallery's DUMP entry now loads DumpTruck.glb instead.
 [[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
 
 // Derives the capacities needed by the shared scene instantiator. Gallery

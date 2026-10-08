@@ -4,7 +4,25 @@ Audit baseline: `main` commit `e005be8`. The CUDA gallery is the behavioral
 and visual reference. Physics conformance is tracked separately under
 `conformance/v1`; this document covers the gallery application and renderer.
 
-## Current comparison
+## Merge integration update (2026-10-08)
+
+The contact/gallery branch now includes `main` through `06cd364`. Its OptiX
+gallery has a 28-entry registry with Celestial Point, Motor + Spring, authored
+arrow forces, and the `SphereCluster` dump truck. Metal retains its existing
+29-entry registry and legacy Point, Generic Spring, tank Motor, and procedural
+dump controls until those application controllers are ported. The registry
+header selects these entries with `PARALLEL_MATER_GALLERY_METAL`; shared scene
+definitions and the remaining entries stay common. CPU-only contract tests
+compile both registries/API headers and check source-index order, preventing
+silent selection of the wrong GLB after a merge.
+
+The obsolete checkerboard mesh flag is no longer read by either renderer;
+Metal retains its vertex/shader layout with a zero checkerboard attribute.
+Native Metal rendering and physics still require an Apple-host validation run.
+The historical comparison below must not be interpreted as parity for the
+new OptiX scene/control changes or the new CUDA contact solver.
+
+## Historical comparison before the gallery/contact merge
 
 | Area | CUDA gallery | Metal gallery | Status |
 | --- | --- | --- | --- |

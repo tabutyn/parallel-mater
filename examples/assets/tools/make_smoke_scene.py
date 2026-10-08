@@ -16,7 +16,6 @@ def main() -> None:
     )
     sphere = bpy.context.object
     sphere.name = "VortexSphere"
-    sphere["pm_checkerboard"] = False
     bpy.ops.rigidbody.object_add()
     sphere.rigid_body.type = "PASSIVE"
     material = bpy.data.materials.new("Warm sphere")

@@ -296,6 +296,65 @@ def is_exact_path(path: str, expected: Any, chaotic: bool = False) -> bool:
     )
 
 
+def compare_contacts(expected: list[Any], actual: list[Any], case: dict[str, Any],
+                     comparison: Comparison, path: str,
+                     tolerance_class: str | None, exact: bool) -> None:
+    # Sorting whole JSON records orders contacts by floating impulse components.
+    # A tiny, legal backend rounding difference can then compare different points.
+    # Match within stable identities, requiring every field of each matched
+    # record to pass the unchanged comparator. No field/tolerance is discarded.
+    def identity(contact: Any) -> str:
+        if not isinstance(contact, dict):
+            return json.dumps(contact, sort_keys=True)
+        keys = ("body", "collider", "rigid_body", "stable_particle_id")
+        return json.dumps({key: contact[key] for key in keys if key in contact},
+                          sort_keys=True)
+
+    groups: dict[str, list[int]] = {}
+    for index, contact in enumerate(actual):
+        groups.setdefault(identity(contact), []).append(index)
+    edges: list[list[int]] = []
+    for index, contact in enumerate(expected):
+        compatible: list[int] = []
+        for candidate in groups.get(identity(contact), []):
+            probe = Comparison(comparison.case_id)
+            compare_value(contact, actual[candidate], case, probe,
+                          f"{path}[{index}]", tolerance_class, exact)
+            if probe.passed:
+                compatible.append(candidate)
+        edges.append(compatible)
+
+    # Augmenting paths avoid greedy mismatches where two near-coincident
+    # contacts can both match one record but only one can match the other.
+    owners: dict[int, int] = {}
+    for start in range(len(expected)):
+        pending = [start]
+        previous: dict[int, tuple[int, int]] = {}
+        visited = {start}
+        free: tuple[int, int] | None = None
+        while pending and free is None:
+            left = pending.pop()
+            for right in edges[left]:
+                if right not in owners:
+                    free = (left, right)
+                    break
+                owner = owners[right]
+                if owner not in visited:
+                    visited.add(owner)
+                    previous[owner] = (left, right)
+                    pending.append(owner)
+        if free is None:
+            comparison.fail(f"{path}[{start}]",
+                            "no one-to-one contact match within existing tolerances",
+                            expected[start], None)
+            continue
+        left, right = free
+        owners[right] = left
+        while left != start:
+            left, right = previous[left]
+            owners[right] = left
+
+
 def compare_value(expected: Any, actual: Any, case: dict[str, Any],
                   comparison: Comparison, path: str = "$",
                   tolerance_class: str | None = None,
@@ -346,6 +405,10 @@ def compare_value(expected: Any, actual: Any, case: dict[str, Any],
             return
         if len(expected) != len(actual):
             comparison.fail(path, "length mismatch", len(expected), len(actual))
+            return
+        if path.rsplit(".", 1)[-1] in {"contacts", "rigid_contacts", "fluid_contacts"}:
+            compare_contacts(expected, actual, case, comparison, path,
+                             tolerance_class, exact)
             return
         for index, (left, right) in enumerate(zip(expected, actual)):
             compare_value(left, right, case, comparison, f"{path}[{index}]",
