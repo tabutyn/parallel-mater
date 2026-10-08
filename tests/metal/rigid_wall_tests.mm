@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -395,9 +396,80 @@ bool run_sleeping_wall(const SceneDefinition &scene) {
     std::cout << "sleeping wall: compensated steering, impulse and gravity wake passed\n";
     return true;
 }
+
+bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
+    WorldOptions options{};
+    if (!require(scene_world_options(scene, options))) return false;
+    options.rigid_sleeping = sleeping;
+    World world;
+    SceneInstance instance;
+    if (!require(World::create(options, world)) ||
+        !require(instantiate_scene(scene, world, instance))) return false;
+    std::vector<RigidBodyState> states;
+    for (unsigned frame = 0; frame < 120U; ++frame)
+        if (!require(world.step({}))) return false;
+    std::size_t ball = scene.rigid_bodies.size();
+    for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i)
+        if (scene.rigid_bodies[i].source_name == "Icosphere") ball = i;
+    if (ball == scene.rigid_bodies.size()) return false;
+    auto launched = scene.rigid_bodies[ball].options.initial_state;
+    launched.position = {0.0F, 1.05F, 2.5F};
+    launched.linear_velocity = {0.0F, 0.0F, -10.0F};
+    if (!require(world.set_rigid_body_state(instance.rigid_bodies[ball], launched)) ||
+        !read_states(world, instance, states)) return false;
+    // No external work follows the launch. Translational kinetic energy plus
+    // signed gravitational potential is a lower bound on total mechanical
+    // energy. Keep the potential signed: bricks can fall off the finite floor.
+    // Allow 10% numerical drift without accepting finite energy explosions.
+    double available_energy = 0.0;
+    for (std::size_t i = 0; i < states.size(); ++i) {
+        const auto &body = scene.rigid_bodies[i].options;
+        if (body.motion != MotionType::dynamic) continue;
+        const double speed = length(states[i].linear_velocity);
+        available_energy += body.mass *
+            (9.81 * states[i].position.y + 0.5 * speed * speed);
+    }
+    double peak_kinetic = 0.0;
+    double peak_mechanical = 0.0;
+    float peak_speed = 0.0F;
+    unsigned displaced = 0U;
+    for (unsigned frame = 0; frame < 360U; ++frame) {
+        if (!require(world.step({})) || !read_states(world, instance, states)) return false;
+        double kinetic = 0.0;
+        double potential = 0.0;
+        displaced = 0U;
+        for (std::size_t i = 0; i < states.size(); ++i) {
+            const auto &body = scene.rigid_bodies[i];
+            if (body.options.motion != MotionType::dynamic) continue;
+            const double speed = length(states[i].linear_velocity);
+            kinetic += 0.5 * body.options.mass * speed * speed;
+            potential += body.options.mass * 9.81 * states[i].position.y;
+            peak_speed = std::max(peak_speed, static_cast<float>(speed));
+            if (brick(body) && std::hypot(
+                    states[i].position.x - body.options.initial_state.position.x,
+                    states[i].position.z - body.options.initial_state.position.z) > 0.05F)
+                ++displaced;
+        }
+        peak_kinetic = std::max(peak_kinetic, kinetic);
+        peak_mechanical = std::max(peak_mechanical, kinetic + potential);
+        if (kinetic + potential > available_energy * 1.1) {
+            std::cerr << "Impact injected energy: sleeping=" << sleeping
+                      << " frame=" << frame << " kinetic=" << kinetic
+                      << " potential=" << potential << " available=" << available_energy
+                      << " peak_speed=" << peak_speed << '\n';
+            return false;
+        }
+    }
+    std::cout << "impact sleeping=" << sleeping
+              << " peak_kinetic_ratio=" << peak_kinetic / available_energy
+              << " peak_mechanical_ratio=" << peak_mechanical / available_energy
+              << " peak_speed=" << peak_speed
+              << " displaced_bricks=" << displaced << '\n';
+    return displaced >= 16U;
+}
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
     @autoreleasepool {
         SceneDefinition scene;
         std::string error;
@@ -405,6 +477,10 @@ int main() {
             std::cerr << error << '\n';
             return 1;
         }
-        return run_wall(scene) && run_sleeping_wall(scene) ? 0 : 1;
+        const bool impact_only = argc == 2 &&
+            std::string_view(argv[1]) == "--impact-only";
+        return (impact_only || (run_wall(scene) && run_sleeping_wall(scene))) &&
+            run_impact_energy(scene, true) && run_impact_energy(scene, false)
+            ? 0 : 1;
     }
 }

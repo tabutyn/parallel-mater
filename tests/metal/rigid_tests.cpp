@@ -584,6 +584,50 @@ int main() {
         {0.1F, 0.1F, 0.1F},    {-0.1F, 0.1F, 0.1F},
     }};
 
+    // Endpoints can be separated even though the projectile crosses a convex
+    // solid during the step. A discrete face-manifold miss must not bypass CCD.
+    for (const std::uint32_t body_count : {2U, 32U}) {
+        World convex_sweep_world;
+        status = World::create(
+            {.rigid_body_capacity = body_count, .triangle_mesh_capacity = 1U},
+            convex_sweep_world);
+        TriangleMeshId convex_mesh{};
+        status = status ? convex_sweep_world.add_triangle_mesh(
+            {centered_box_vertices.data(), centered_box_vertices.size()},
+            {box_indices.data(), box_indices.size()}, convex_mesh) : status;
+        RigidBodyId projectile{};
+        status = status ? convex_sweep_world.add_rigid_body(
+            {.mesh = convex_mesh,
+             .initial_state = {.position = {-0.7F, 0.0F, 0.0F},
+                               .linear_velocity = {90.0F, 0.0F, 0.0F}},
+             .friction = 0.0F, .linear_damping = 0.0F, .angular_damping = 0.0F},
+            projectile) : status;
+        for (std::uint32_t i = 1U; status && i < body_count; ++i) {
+            RigidBodyId obstacle{};
+            status = convex_sweep_world.add_rigid_body(
+                {.motion = MotionType::static_body, .mesh = convex_mesh,
+                 .initial_state = {.position = {
+                     i == 1U ? 0.0F : 10.0F + 3.0F * float(i), 0.0F, 0.0F}},
+                 .friction = 0.0F}, obstacle);
+        }
+        status = status ? convex_sweep_world.step(
+            {.timestep = 1.0F / 60.0F, .substeps = 1U, .gravity = {},
+             .collect_rigid_contacts = true}) : status;
+        RigidBodyState result{};
+        status = status ? convex_sweep_world.read_rigid_body_state(
+            projectile, result) : status;
+        if (!require(status.ok() && finite(result.position) &&
+                         finite(result.linear_velocity) &&
+                         convex_sweep_world.rigid_contacts().event_count != 0U &&
+                         result.position.x < 0.0F && result.linear_velocity.x < 1.0F,
+                     "Separated convex endpoints bypassed swept collision")) {
+            std::cerr << "convex sweep bodies=" << body_count
+                      << " x=" << result.position.x
+                      << " vx=" << result.linear_velocity.x << '\n';
+            return 1;
+        }
+    }
+
     World two_sided_world;
     status = World::create(
         {.rigid_body_capacity = 3U, .triangle_mesh_capacity = 2U},

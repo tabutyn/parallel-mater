@@ -15,10 +15,11 @@ CUDA expanded-wall reference still fails its own stability gate.
 `parallel-mater-metal-rigid-wall-tests` checks first-frame support, ten seconds
 of wall stability, ball-only gravity steering, support impulses, independent
 brick impact, cache invalidation, compensated-load sleeping, and wake behavior.
-The final 2026-10-08 optimized Metal run retains the unchanged thresholds and
-reports 0.00171757 m maximum drop, 0.00234057 m displacement, 0.000690534 rad
-rotation, 0.0849767 m/s peak speed, 0.00276931 m/s late speed, and
-0.000679761 m minimum clearance.
+It also audits every frame of a six-second ball impact with sleeping enabled
+and disabled, rejecting finite energy explosions. The corrected 2026-10-08
+Metal run retains the unchanged quiet-wall thresholds and reports 0.00197983 m
+maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation, 0.103747 m/s
+peak speed, 0.00441963 m/s late speed, and 0.000647023 m minimum clearance.
 
 Ordinary stacks preserve validated contact geometry, impulses and colors
 across substeps and frames, invalidate caches on state/resource edits, and
@@ -33,17 +34,19 @@ labeling into parallel work and rejects conservatively separated swept
 oriented bounds before leaf evaluation. Solver budgets and contact ordering
 are retained. Existing API timing counters include the additional dispatches.
 
-Cooperative contact generation now uses compact geometry-only threadgroup
-scratch. Eligible swept convex pairs use the face-manifold path when current
-geometry already supplies a valid contact, while retaining swept triangle
-fallback otherwise. Active convex face patches batch their normal impulse
-wrench and retain per-contact friction.
+Cooperative contact generation uses compact geometry-only threadgroup scratch.
+The later batched normal-impulse optimization was removed after reproducing
+an impact energy explosion. Contact rows again update body velocities
+sequentially. The swept convex-face shortcut was also removed because empty
+discrete manifolds could bypass CCD; a fast-crossing regression now covers
+both generic and ordinary-stack worlds.
 
 On Apple M4, the repeatable API impact replay improved from 159.25 to 89.30 ms
-in the first follow-up, then to 73.51–73.85 ms. The latest retained result is
-47.53 ms median and 89.29 ms p95, with quiet awake physics at about 20.3 ms and
-sleeping rest at 1.12 ms. `PERFORMANCE.md` records workloads, bounds
-verification, all seven latest experiments, and remaining bottlenecks. These
+in the first follow-up, then to 73.51–73.85 ms. The corrected result is
+63.32 ms median and 79.88 ms p95. The previously reported 47.53 ms result is
+invalid because it used unstable physics. The impact benchmark now rejects
+energy explosions before reporting timings. `PERFORMANCE.md` records the
+regressions, valid measurements, rejected experiments, and remaining costs. These
 changes do not establish full CUDA conformance or replace CUDA goldens.
 
 Run the exact Metal gate with:

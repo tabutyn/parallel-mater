@@ -68,9 +68,69 @@ bool step(World &world, bool timing, WorldStepTimings *output = nullptr,
     return true;
 }
 
+struct ImpactAudit {
+    const SceneDefinition &scene;
+    const SceneInstance &instance;
+    double available_energy{};
+    double peak_kinetic{};
+    double peak_mechanical{};
+    float peak_speed{};
+
+    bool sample(World &world, bool initial, std::uint32_t frame = 0U) {
+        RigidBodyDeviceView view{};
+        if (!world.rigid_body_view(view) || view.states.buffer == nullptr ||
+            view.ids.buffer == nullptr || view.states.size != scene.rigid_bodies.size() ||
+            view.ids.size != instance.rigid_bodies.size()) return false;
+        id<MTLBuffer> state_buffer = (__bridge id<MTLBuffer>)view.states.buffer;
+        id<MTLBuffer> id_buffer = (__bridge id<MTLBuffer>)view.ids.buffer;
+        if (state_buffer.contents == nullptr || id_buffer.contents == nullptr) return false;
+        const auto *states = reinterpret_cast<const RigidBodyState *>(
+            static_cast<const std::uint8_t *>(state_buffer.contents) + view.states.byte_offset);
+        const auto *ids = reinterpret_cast<const parallel_mater::RigidBodyId *>(
+            static_cast<const std::uint8_t *>(id_buffer.contents) + view.ids.byte_offset);
+        if (!std::equal(instance.rigid_bodies.begin(), instance.rigid_bodies.end(), ids))
+            return false;
+        double kinetic = 0.0;
+        double potential = 0.0;
+        for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
+            const auto &state = states[i];
+            const auto finite = [](parallel_mater::Vec3 v) {
+                return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
+            };
+            if (!finite(state.position) || !finite(state.linear_velocity) ||
+                !finite(state.angular_velocity) || !std::isfinite(state.orientation.x) ||
+                !std::isfinite(state.orientation.y) || !std::isfinite(state.orientation.z) ||
+                !std::isfinite(state.orientation.w)) return false;
+            const auto &body = scene.rigid_bodies[i].options;
+            if (body.motion != parallel_mater::MotionType::dynamic) continue;
+            const auto v = state.linear_velocity;
+            const double squared_speed = double(v.x) * v.x + double(v.y) * v.y +
+                                         double(v.z) * v.z;
+            kinetic += 0.5 * body.mass * squared_speed;
+            potential += body.mass * 9.81 * state.position.y;
+            peak_speed = std::max(peak_speed, static_cast<float>(std::sqrt(squared_speed)));
+        }
+        if (initial) available_energy = kinetic + potential;
+        peak_kinetic = std::max(peak_kinetic, kinetic);
+        peak_mechanical = std::max(peak_mechanical, kinetic + potential);
+        // Translation + signed gravitational potential is a conservative
+        // lower bound on total energy, including bricks falling off the floor.
+        // Reject exploding trajectories before printing a successful timing.
+        if (kinetic + potential > 1.1 * available_energy) {
+            std::cerr << "Invalid impact benchmark: frame=" << frame
+                      << " kinetic=" << kinetic << " potential=" << potential
+                      << " available=" << available_energy
+                      << " peak_speed=" << peak_speed << '\n';
+            return false;
+        }
+        return true;
+    }
+};
+
 bool measure(World &world, const char *mode, const char *phase,
              std::uint32_t frames,
-             parallel_mater::HostSpan<parallel_mater::RigidBodyId> vertical = {}) {
+             parallel_mater::HostSpan<parallel_mater::RigidBodyId> vertical = {},
+             ImpactAudit *impact = nullptr) {
     std::vector<double> wall;
     std::vector<double> gpu;
     std::vector<double> solve;
@@ -85,6 +145,9 @@ bool measure(World &world, const char *mode, const char *phase,
         WorldStepTimings timings{};
         double milliseconds = 0.0;
         if (!step(world, true, &timings, &milliseconds, vertical)) return false;
+        // Read shared states after the timed step so auditing is not included
+        // in the physics timer. Check every frame, not just the final state.
+        if (impact != nullptr && !impact->sample(world, false, frame)) return false;
         wall.push_back(milliseconds);
         gpu.push_back(timings.total_gpu_milliseconds);
         solve.push_back(timings.rigid_contact_solve.total_milliseconds);
@@ -104,6 +167,12 @@ bool measure(World &world, const char *mode, const char *phase,
               << " solve_median_ms=" << median(solve)
               << " contact_median_ms=" << median(evaluate)
               << " filter_median_ms=" << median(filter) << '\n';
+    if (impact != nullptr)
+        std::cout << "mode=" << mode << " impact_peak_kinetic_ratio="
+                  << impact->peak_kinetic / impact->available_energy
+                  << " impact_peak_mechanical_ratio="
+                  << impact->peak_mechanical / impact->available_energy
+                  << " impact_peak_speed=" << impact->peak_speed << '\n';
     return true;
 }
 
@@ -172,7 +241,9 @@ bool run(const SceneDefinition &scene, bool sleeping, std::string_view scenario)
         state.linear_velocity = {0.0F, 0.0F, -10.0F};
         if (!world.set_rigid_body_state(instance.rigid_bodies[ball], state))
             return false;
-        if (!measure(world, mode, "impact", 120U)) return false;
+        ImpactAudit impact{scene, instance};
+        if (!impact.sample(world, true) ||
+            !measure(world, mode, "impact", 120U, {}, &impact)) return false;
         unsigned displaced = 0U;
         for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
             RigidBodyState current{};

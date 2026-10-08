@@ -1,60 +1,74 @@
 # Physics performance
 
-## Metal contact occupancy and patch solve follow-up (Apple M4, 2026-10-08)
+## Metal impact regression correction (Apple M4, 2026-10-08)
 
-Seven further experiments targeted the opening 384-brick wall after commit
-`ea276e5`. Runs use the public Metal API, the authored 386-body scene, a 1/60 s
-timestep, four substeps, sleeping enabled for impact, and 120 measured frames
-after settling. The interactive gallery was closed. Three baseline runs and
-two final runs produced:
+The 47.53 ms impact result reported at `20a1072` is invalid. The wall could
+explode while all positions and velocities remained finite. The old benchmark
+only checked finite final states and displaced bricks, and the quiet-wall
+and short wake tests did not detect this impact failure.
 
-| Impact metric | `ea276e5` | Retained result |
+Two unsafe changes have been removed:
+
+- Batched normal impulses used the same stale pair velocity for every contact
+  on a face, then summed the impulses without accounting for their coupling.
+  The solver again updates both body velocities after each contact row before
+  evaluating the next row, including sleeping-enabled worlds.
+- The discrete convex-face shortcut replaced required swept collision tests.
+  Its success return can describe an empty manifold at separated endpoints,
+  so a fast body could pass completely through another body. Swept pairs
+  again use the existing CCD path.
+
+The compact geometry-only cooperative scratch optimization remains. It stores
+32-byte point, normal, penetration, and impact records, reducing the 32-lane
+scratch allocation from 17,664 to 8,320 bytes. Lane zero reconstructs the
+unchanged solver records in the same deterministic merge order. This retains
+the measured improvement without changing contact response or CCD semantics.
+
+Corrected runs use the public Metal API, the authored 386-body scene, a 1/60 s
+timestep, four substeps, sleeping enabled, and 120 measured impact frames after
+120 settling frames. The interactive gallery was closed. The averages of three
+earlier baseline runs and two corrected runs are:
+
+| Impact metric | `ea276e5` | Corrected result |
 | --- | ---: | ---: |
-| Wall median | 73.12 ms | 47.53 ms |
-| Wall p95 | 93.52 ms | 89.29 ms |
-| GPU median | 72.63 ms | 46.74 ms |
-| Contact solve median | 46.50 ms | 36.91 ms |
-| Contact evaluation median | 17.37 ms | 8.17 ms |
+| Wall median | 73.12 ms | 63.32 ms |
+| Wall p95 | 93.52 ms | 79.88 ms |
+| GPU median | 72.63 ms | 62.63 ms |
+| Contact solve median | 46.50 ms | 44.58 ms |
+| Contact evaluation median | 17.37 ms | 12.88 ms |
 
-The retained median is about 35% lower. All 384 bricks moved independently by
-more than 5 cm and all final states remained finite. The p95 reduction is much
-smaller, so peak collision work remains the limiting problem.
+Individual corrected impact medians are 63.43 and 63.22 ms; p95 is 80.26 and
+79.50 ms. The median is about 13% below the earlier valid baseline, not the
+previously claimed 35%. These are separate runs subject to thermal and host
+scheduling variation, not a new interleaved comparison. All 384 bricks moved
+independently by more than 5 cm. Solve work remains the largest cost.
 
-Retained changes:
+The new regression launches the authored 100 kg ball at 10 m/s and checks every
+frame for six seconds with sleeping both enabled and disabled. It rejects
+translational kinetic energy plus signed gravitational potential above 110%
+of the starting budget. Signed potential accounts for bricks falling off the
+finite floor. This is a lower-bound energy check, not a full rotational-energy
+or trajectory-parity proof. The benchmark runs the same check outside its
+physics timer and refuses to report successful impact timings on failure.
 
-- Cooperative narrow phase stores only 32-byte point, normal, penetration,
-  and impact records in threadgroup scratch. This reduces the 32-lane scratch
-  allocation from about 17.7 KiB to 8.1 KiB before lane zero reconstructs the
-  unchanged solver records and deterministic merge order. In isolation this
-  reduced impact median from about 73.1 to 63.8 ms.
-- Eligible small convex pairs try the current convex-face manifold even when
-  their motion requires swept collision testing. A valid current manifold is
-  used directly; pairs without one retain the swept triangle/CCD path. With
-  compact scratch this reduced impact median to about 58.2 ms.
-- Multi-contact convex face patches compute normal impulses from one pair
-  state, combine their linear and angular effect, and apply one wrench per
-  body. Friction remains per contact. Sleeping-enabled worlds use this path
-  for cached and cold patches; sleeping-disabled worlds use it only for cold
-  patches so steady awake stacks keep the prior sequential solve cost.
+Both guards reject the old build at frame 18: 581,367 J kinetic plus 10,478 J
+potential energy versus a 15,071 J starting budget, with a peak speed of
+203.6 m/s. The corrected six-second runs peak at 0.99951 of the starting
+mechanical-energy budget. A separate regression checks a 90 m/s cube crossing
+a static cube in both two-body and 32-body worlds; it fails the unsafe shortcut
+and passes the restored CCD path.
 
-The final sleeping-disabled quiet run measured 20.32 ms during motion and
-20.41 ms at rest, compared with the earlier retained 20.18 ms result. Sleeping
-rest measured 1.12 ms with all 385 dynamic bodies asleep. Held steering
-measured 1.48 ms with 384 bricks asleep. These small differences include host
-scheduling and thermal variation.
-
-The strict wall gate passes with 0.00171757 m maximum drop, 0.00234057 m
-maximum displacement, 0.000690534 rad maximum rotation, 0.0849767 m/s peak
-speed, 0.00276931 m/s late speed, 1.00004 maximum energy ratio, and
-0.000679761 m minimum clearance. Compensated steering, impulse wake, changed
-gravity wake, and gradual-force wake also pass.
+The strict quiet-wall gate retains its unchanged thresholds: 0.00197983 m
+maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation, 0.103747 m/s
+peak speed, 0.00441963 m/s late speed, 1.00007 maximum energy ratio, and
+0.000647023 m minimum clearance.
 
 Rejected experiments:
 
 - Caching a world inverse-inertia matrix per pair/pass raised impact median to
-  about 86.2 ms. Extra live matrix state reduced overall shader occupancy.
+  about 86.2 ms. Lower occupancy was suspected but not measured directly.
 - Caching the four transformed triangles in each BVH leaf raised median to
-  about 81.1 ms for the same reason.
+  about 81.1 ms. Its cause was not isolated.
 - Merging restored cached anchors into newly discovered swept manifolds raised
   median from 63.8 to 65.4 ms and changed the displaced-brick count to 382.
 - Allowing convergence after pass 8 at a `1e-8` squared velocity-change
