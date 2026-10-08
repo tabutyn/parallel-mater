@@ -20,6 +20,11 @@ struct GalleryUniforms {
     packed_float3 camera_w;
 };
 
+struct RigidInstance {
+    packed_float3 position;
+    float4 orientation;
+};
+
 struct ParticleVertex {
     packed_float3 position;
     packed_float4 color;
@@ -46,6 +51,35 @@ vertex GalleryVarying gallery_vertex(
     output.position = uniforms.view_projection *
                       float4(output.world_position, 1.0f);
     output.normal = normalize(float3(source.normal));
+    output.color = float3(source.color);
+    output.uv = float2(source.uv);
+    output.checkerboard = source.checkerboard;
+    output.view_vector = output.world_position - float3(uniforms.eye);
+    return output;
+}
+
+static float3 rotate_quaternion(float4 quaternion, float3 value) {
+    const float3 vector = quaternion.xyz;
+    return value + 2.0f * cross(
+        vector, cross(vector, value) + quaternion.w * value);
+}
+
+vertex GalleryVarying gallery_rigid_vertex(
+    device const GalleryVertex *vertices [[buffer(0)]],
+    constant GalleryUniforms &uniforms [[buffer(1)]],
+    device const RigidInstance *instances [[buffer(2)]],
+    uint vertex_id [[vertex_id]],
+    uint instance_id [[instance_id]]) {
+    const device GalleryVertex &source = vertices[vertex_id];
+    const device RigidInstance &instance = instances[instance_id];
+    const float4 orientation = instance.orientation;
+    GalleryVarying output;
+    output.world_position = float3(instance.position) +
+        rotate_quaternion(orientation, float3(source.position));
+    output.position = uniforms.view_projection *
+        float4(output.world_position, 1.0f);
+    output.normal = normalize(
+        rotate_quaternion(orientation, float3(source.normal)));
     output.color = float3(source.color);
     output.uv = float2(source.uv);
     output.checkerboard = source.checkerboard;

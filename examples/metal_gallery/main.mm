@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <parallel_mater_gallery/scene.hpp>
+#include "parallel_mater_gallery_build_info.hpp"
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -107,7 +108,9 @@ struct Options {
     bool validate{};
     bool list_scenes{};
     bool all_scenes{};
+    bool scene_overridden{};
     bool help{};
+    bool version{};
 };
 
 struct GalleryVertex {
@@ -146,8 +149,21 @@ struct UiUniforms {
     float viewport[2]{};
 };
 
+struct alignas(16) RigidInstance {
+    float position[3]{};
+    float padding{};
+    float orientation[4]{};
+};
+
+struct RigidBatch {
+    std::uint32_t mesh_index{};
+    std::vector<GalleryVertex> vertices{};
+    std::vector<RigidInstance> instances{};
+};
+
 struct RenderFrame {
     std::vector<GalleryVertex> triangles{};
+    std::vector<RigidBatch> rigid_batches{};
     std::vector<ParticleVertex> particles{};
     std::vector<ParticleVertex> smoke_particles{};
 };
@@ -205,6 +221,7 @@ static_assert(sizeof(ParticleVertex) == 32U);
 static_assert(sizeof(UiVertex) == 24U);
 static_assert(sizeof(GalleryUniforms) == 116U);
 static_assert(sizeof(UiUniforms) == 8U);
+static_assert(sizeof(RigidInstance) == 32U);
 
 bool parse_u32(std::string_view text, std::uint32_t &output) {
     const char *begin = text.data();
@@ -240,6 +257,7 @@ void print_help() {
            "  --dump-spheres N        procedural dump sphere count\n"
            "  --validate              check physics and rendered output\n"
            "  --list-scenes           print the gallery registry\n"
+           "  --version               print build identity\n"
            "  --help                  show this message\n\n"
            "Interactive controls: Tab opens scenes; Up/Down selects and Enter\n"
            "loads; mouse orbits/pans/zooms; arrows run each scene control;\n"
@@ -259,11 +277,26 @@ void print_help() {
     }
 }
 
+std::string build_label() {
+    std::string label{PARALLEL_MATER_GALLERY_GIT_COMMIT};
+    if (std::string_view{PARALLEL_MATER_GALLERY_GIT_STATUS} == "dirty")
+        label += "-dirty";
+    return label;
+}
+
+void print_version() {
+    std::cout << "ParallelMater Metal Gallery "
+              << PARALLEL_MATER_GALLERY_VERSION << " (" << build_label()
+              << ", built " << PARALLEL_MATER_GALLERY_BUILD_TIME << ")\n";
+}
+
 bool parse_options(int argc, char **argv, Options &output) {
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument{argv[index]};
         if (argument == "--help") {
             output.help = true;
+        } else if (argument == "--version") {
+            output.version = true;
         } else if (argument == "--list-scenes") {
             output.list_scenes = true;
         } else if (argument == "--headless") {
@@ -282,6 +315,7 @@ bool parse_options(int argc, char **argv, Options &output) {
             const std::string_view value{argv[++index]};
             if (argument == "--scene") {
                 output.scene = value;
+                output.scene_overridden = true;
             } else if (argument == "--output") {
                 output.output = value;
             } else {
@@ -745,6 +779,36 @@ bool append_rigid_mesh(const MetalMesh &mesh, RigidBodyState state,
     return true;
 }
 
+bool append_rigid_instance(const MetalMesh &mesh, std::uint32_t mesh_index,
+                           RigidBodyState state, RenderFrame &frame) {
+    auto batch = std::find_if(
+        frame.rigid_batches.begin(), frame.rigid_batches.end(),
+        [mesh_index](const RigidBatch &candidate) {
+            return candidate.mesh_index == mesh_index;
+        });
+    if (batch == frame.rigid_batches.end()) {
+        frame.rigid_batches.push_back({mesh_index});
+        batch = frame.rigid_batches.end() - 1;
+        batch->vertices.reserve(mesh.indices.size());
+        for (const std::uint32_t vertex_index : mesh.indices) {
+            if (vertex_index >= mesh.vertices.size()) return false;
+            const auto &source = mesh.vertices[vertex_index];
+            batch->vertices.push_back(
+                {{source.position.x, source.position.y, source.position.z},
+                 {source.normal.x, source.normal.y, source.normal.z},
+                 {mesh.base_color.x, mesh.base_color.y, mesh.base_color.z},
+                 {source.uv.x, source.uv.y},
+                 mesh.checkerboard ? 1.0F : 0.0F});
+        }
+    }
+    batch->instances.push_back(
+        {{state.position.x, state.position.y, state.position.z},
+         0.0F,
+         {state.orientation.x, state.orientation.y,
+          state.orientation.z, state.orientation.w}});
+    return true;
+}
+
 bool append_surface(const Vec3 *positions, std::size_t position_count,
                     const std::uint32_t *indices, std::size_t index_count,
                     Vec3 color, RenderFrame &frame,
@@ -956,6 +1020,23 @@ bool drive_motors(Runtime &runtime, DirectionalInput input,
     return true;
 }
 
+std::filesystem::path bundled_scene_path(
+    const std::filesystem::path &configured_path) {
+    if (configured_path.empty()) return {};
+    @autoreleasepool {
+        NSString *resource_path = [NSBundle mainBundle].resourcePath;
+        if (resource_path != nil) {
+            const auto candidate =
+                std::filesystem::path(resource_path.UTF8String) / "assets" /
+                configured_path.filename();
+            std::error_code error;
+            if (std::filesystem::is_regular_file(candidate, error))
+                return candidate;
+        }
+    }
+    return configured_path;
+}
+
 std::filesystem::path scene_path(const Options &options,
                                  GallerySceneSource source) {
     const std::array paths{
@@ -989,7 +1070,12 @@ std::filesystem::path scene_path(const Options &options,
         std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
-    return paths[static_cast<std::size_t>(source)];
+    const auto configured_path = paths[static_cast<std::size_t>(source)];
+    if (source == GallerySceneSource::default_scene &&
+        options.scene_overridden) {
+        return configured_path;
+    }
+    return bundled_scene_path(configured_path);
 }
 
 bool build_runtime(const Options &options, GalleryContext context,
@@ -1015,6 +1101,7 @@ bool build_runtime(const Options &options, GalleryContext context,
                "derive gallery world capacities", error)) {
         return false;
     }
+    world_options.rigid_sleeping = true;
     if (entry.controls == GalleryControlPolicy::collector_gravity) {
         world_options.rigid_constraint_capacity =
             FixedContactCollector::constraint_capacity(next.scene);
@@ -1066,6 +1153,13 @@ bool read_rigid_states(Runtime &runtime,
         error = "rigid-body render view is unavailable or invalid";
         return false;
     }
+    bool dense_order = states.size() == view.ids.size;
+    for (std::size_t index = 0U; dense_order && index < states.size(); ++index)
+        dense_order = ids[index] == runtime.instance.rigid_bodies[index];
+    if (dense_order) {
+        std::copy_n(device_states, states.size(), states.begin());
+        return true;
+    }
     for (std::size_t index = 0U; index < states.size(); ++index) {
         const auto handle = runtime.instance.rigid_bodies[index];
         std::size_t dense_index = 0U;
@@ -1085,6 +1179,7 @@ bool assemble_frame(Runtime &runtime, RenderFrame &frame,
                     std::string &error,
                     const MetalDebugState *debug = nullptr) {
     frame.triangles.clear();
+    frame.rigid_batches.clear();
     frame.particles.clear();
     frame.smoke_particles.clear();
     if (!read_rigid_states(runtime, rigid_states, error)) return false;
@@ -1104,9 +1199,13 @@ bool assemble_frame(Runtime &runtime, RenderFrame &frame,
                               mesh_index, paint, has_paint, error)) {
                 return false;
             }
-            if (mesh.visible && !append_rigid_mesh(
-                    mesh, rigid_states[body_index], frame,
-                    has_paint ? &paint : nullptr)) {
+            const bool appended = !mesh.visible ||
+                (has_paint
+                     ? append_rigid_mesh(mesh, rigid_states[body_index],
+                                         frame, &paint)
+                     : append_rigid_instance(
+                           mesh, mesh_index, rigid_states[body_index], frame));
+            if (!appended) {
                 error = "rigid render mesh contains an invalid index";
                 return false;
             }
@@ -1683,6 +1782,8 @@ class Renderer {
             }
             id<MTLFunction> triangle_vertex =
                 [library newFunctionWithName:@"gallery_vertex"];
+            id<MTLFunction> rigid_vertex =
+                [library newFunctionWithName:@"gallery_rigid_vertex"];
             id<MTLFunction> triangle_fragment =
                 [library newFunctionWithName:@"gallery_fragment"];
             id<MTLFunction> sky_vertex =
@@ -1697,7 +1798,8 @@ class Renderer {
                 [library newFunctionWithName:@"gallery_ui_vertex"];
             id<MTLFunction> ui_fragment =
                 [library newFunctionWithName:@"gallery_ui_fragment"];
-            if (triangle_vertex == nil || triangle_fragment == nil ||
+            if (triangle_vertex == nil || rigid_vertex == nil ||
+                triangle_fragment == nil ||
                 sky_vertex == nil || sky_fragment == nil ||
                 particle_vertex == nil || particle_fragment == nil ||
                 ui_vertex == nil || ui_fragment == nil) {
@@ -1706,6 +1808,8 @@ class Renderer {
             }
             if (!create_pipeline(triangle_vertex, triangle_fragment, false,
                                  triangle_pipeline_, native_error) ||
+                !create_pipeline(rigid_vertex, triangle_fragment, false,
+                                 rigid_pipeline_, native_error) ||
                 !create_pipeline(sky_vertex, sky_fragment, false,
                                  sky_pipeline_, native_error) ||
                 !create_pipeline(particle_vertex, particle_fragment, true,
@@ -1863,6 +1967,13 @@ class Renderer {
     }
 
   private:
+    struct CachedRigidMesh {
+        std::uint32_t mesh_index{};
+        std::uint64_t hash{};
+        std::size_t vertex_count{};
+        id<MTLBuffer> __strong buffer{nil};
+    };
+
     bool create_pipeline(id<MTLFunction> vertex, id<MTLFunction> fragment,
                          bool blending,
                          id<MTLRenderPipelineState> __strong &output,
@@ -1980,8 +2091,60 @@ class Renderer {
         const std::size_t smoke_particle_bytes =
             frame.smoke_particles.size() * sizeof(ParticleVertex);
         const std::size_t ui_bytes = ui_vertices_.size() * sizeof(UiVertex);
+        rigid_instances_.clear();
+        rigid_mesh_indices_.clear();
+        rigid_instance_offsets_.clear();
+        std::size_t rigid_instance_count = 0U;
+        for (const RigidBatch &batch : frame.rigid_batches)
+            rigid_instance_count += batch.instances.size();
+        rigid_instances_.reserve(rigid_instance_count);
+        for (const RigidBatch &batch : frame.rigid_batches) {
+            std::uint64_t hash = 1469598103934665603ULL;
+            const auto *bytes = reinterpret_cast<const std::uint8_t *>(
+                batch.vertices.data());
+            for (std::size_t index = 0U;
+                 index < batch.vertices.size() * sizeof(GalleryVertex);
+                 ++index) {
+                hash ^= bytes[index];
+                hash *= 1099511628211ULL;
+            }
+            auto cached = std::find_if(
+                rigid_mesh_cache_.begin(), rigid_mesh_cache_.end(),
+                [&](const CachedRigidMesh &candidate) {
+                    return candidate.mesh_index == batch.mesh_index &&
+                        candidate.hash == hash &&
+                        candidate.vertex_count == batch.vertices.size();
+                });
+            if (cached == rigid_mesh_cache_.end()) {
+                const std::size_t bytes_size =
+                    batch.vertices.size() * sizeof(GalleryVertex);
+                id<MTLBuffer> buffer = bytes_size == 0U
+                    ? [device_ newBufferWithLength:1U
+                                           options:MTLResourceStorageModeShared]
+                    : [device_ newBufferWithBytes:batch.vertices.data()
+                                             length:bytes_size
+                                            options:MTLResourceStorageModeShared];
+                if (buffer == nil) {
+                    error = "could not allocate a static rigid mesh buffer";
+                    return false;
+                }
+                rigid_mesh_cache_.push_back(
+                    {batch.mesh_index, hash, batch.vertices.size(), buffer});
+                cached = rigid_mesh_cache_.end() - 1;
+            }
+            rigid_mesh_indices_.push_back(static_cast<std::size_t>(
+                cached - rigid_mesh_cache_.begin()));
+            rigid_instance_offsets_.push_back(rigid_instances_.size());
+            rigid_instances_.insert(rigid_instances_.end(),
+                                    batch.instances.begin(),
+                                    batch.instances.end());
+        }
+        const std::size_t rigid_instance_bytes =
+            rigid_instances_.size() * sizeof(RigidInstance);
         if (!ensure_buffer(triangle_buffers_[slot], triangle_bytes,
                            "triangle", error) ||
+            !ensure_buffer(rigid_instance_buffers_[slot],
+                           rigid_instance_bytes, "rigid instance", error) ||
             !ensure_buffer(particle_buffers_[slot], particle_bytes,
                            "particle", error) ||
             !ensure_buffer(smoke_particle_buffers_[slot],
@@ -1993,6 +2156,9 @@ class Renderer {
             std::memcpy(triangle_buffers_[slot].contents,
                         frame.triangles.data(),
                         triangle_bytes);
+        if (rigid_instance_bytes != 0U)
+            std::memcpy(rigid_instance_buffers_[slot].contents,
+                        rigid_instances_.data(), rigid_instance_bytes);
         if (particle_bytes != 0U)
             std::memcpy(particle_buffers_[slot].contents,
                         frame.particles.data(),
@@ -2072,6 +2238,28 @@ class Renderer {
                         vertexStart:0
                         vertexCount:frame.triangles.size()];
         }
+        if (!frame.rigid_batches.empty()) {
+            [encoder setRenderPipelineState:rigid_pipeline_];
+            [encoder setVertexBytes:&uniforms
+                             length:sizeof(uniforms)
+                            atIndex:1];
+            for (std::size_t batch_index = 0U;
+                 batch_index < frame.rigid_batches.size(); ++batch_index) {
+                const RigidBatch &batch = frame.rigid_batches[batch_index];
+                [encoder setVertexBuffer:
+                             rigid_mesh_cache_[
+                                 rigid_mesh_indices_[batch_index]].buffer
+                                 offset:0 atIndex:0];
+                [encoder setVertexBuffer:rigid_instance_buffers_[slot]
+                                 offset:rigid_instance_offsets_[batch_index] *
+                                        sizeof(RigidInstance)
+                                atIndex:2];
+                [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                            vertexStart:0
+                            vertexCount:batch.vertices.size()
+                          instanceCount:batch.instances.size()];
+            }
+        }
         if (!frame.particles.empty()) {
             [encoder setRenderPipelineState:particle_pipeline_];
             [encoder setVertexBuffer:particle_buffers_[slot]
@@ -2142,6 +2330,7 @@ class Renderer {
     id<MTLDevice> device_{nil};
     id<MTLCommandQueue> command_queue_{nil};
     id<MTLRenderPipelineState> triangle_pipeline_{nil};
+    id<MTLRenderPipelineState> rigid_pipeline_{nil};
     id<MTLRenderPipelineState> sky_pipeline_{nil};
     id<MTLRenderPipelineState> particle_pipeline_{nil};
     id<MTLRenderPipelineState> ui_pipeline_{nil};
@@ -2149,6 +2338,7 @@ class Renderer {
     id<MTLDepthStencilState> transparent_depth_state_{nil};
     id<MTLDepthStencilState> ui_depth_state_{nil};
     id<MTLBuffer> __strong triangle_buffers_[k_buffer_count]{};
+    id<MTLBuffer> __strong rigid_instance_buffers_[k_buffer_count]{};
     id<MTLBuffer> __strong particle_buffers_[k_buffer_count]{};
     id<MTLBuffer> __strong smoke_particle_buffers_[k_buffer_count]{};
     id<MTLBuffer> __strong ui_buffers_[k_buffer_count]{};
@@ -2160,6 +2350,10 @@ class Renderer {
     dispatch_semaphore_t inflight_semaphore_{nullptr};
     std::size_t next_slot_{};
     std::vector<UiVertex> ui_vertices_{};
+    std::vector<CachedRigidMesh> rigid_mesh_cache_{};
+    std::vector<RigidInstance> rigid_instances_{};
+    std::vector<std::size_t> rigid_mesh_indices_{};
+    std::vector<std::size_t> rigid_instance_offsets_{};
     std::uint32_t width_{};
     std::uint32_t height_{};
 };
@@ -2363,9 +2557,17 @@ bool run_headless_context(const Options &options, GalleryContext context,
                "collect gallery statistics", error)) {
         return false;
     }
+    std::size_t rigid_instances = 0U;
+    std::size_t rigid_triangles = 0U;
+    for (const RigidBatch &batch : render_frame.rigid_batches) {
+        rigid_instances += batch.instances.size();
+        rigid_triangles +=
+            (batch.vertices.size() / 3U) * batch.instances.size();
+    }
     std::cout << "PASS " << entry.name << ": " << options.frames
-              << " frames, " << render_frame.triangles.size() / 3U
-              << " triangles, "
+              << " frames, "
+              << render_frame.triangles.size() / 3U + rigid_triangles
+              << " triangles, " << rigid_instances << " rigid instances, "
               << render_frame.particles.size() +
                      render_frame.smoke_particles.size()
               << " particles\n";
@@ -2481,6 +2683,12 @@ bool run_interactive(const Options &options, std::string &error) {
         error = "Metal gallery window creation failed";
         return false;
     }
+    NSWindow *native_window = glfwGetCocoaWindow(window);
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    [native_window makeKeyAndOrderFront:nil];
+    [NSApp activate];
+    glfwFocusWindow(window);
+    glfwPollEvents();
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     InteractiveInput input;
     input.camera.set_preset(gallery_entry(options.context).camera);
@@ -2537,18 +2745,25 @@ bool run_interactive(const Options &options, std::string &error) {
     bool up_latch = false;
     bool down_latch = false;
     std::uint32_t completed_frames = 0U;
+    std::uint32_t reported_completed_frames = 0U;
     float dump_angle = k_dump_initial_angle;
     Vec3 peg_gravity = default_gravity(runtime);
     Vec3 cloth_gravity = peg_gravity;
-    auto update_title = [&](std::optional<double> fps = std::nullopt) {
+    auto update_title = [&](std::optional<double> fps = std::nullopt,
+                            std::optional<double> simulation_hz =
+                                std::nullopt) {
         const GalleryEntry &entry = gallery_entry(runtime.context);
         std::string title =
-            "ParallelMater Metal — " + std::string(entry.name) + " [" +
+            "ParallelMater Metal " + build_label() + " — " +
+            std::string(entry.name) + " [" +
             std::to_string(gallery_context_index(runtime.context) + 1U) +
             "/" + std::to_string(gallery_entries.size()) + "]";
         if (fps.has_value())
             title += " — " +
                      std::to_string(static_cast<int>(*fps + 0.5)) + " FPS";
+        if (simulation_hz.has_value())
+            title += " / " + std::to_string(
+                static_cast<int>(*simulation_hz + 0.5)) + " SIM Hz";
         glfwSetWindowTitle(window, title.c_str());
         if (!fps.has_value())
             std::cout << "Scene " << gallery_context_index(runtime.context)
@@ -2590,6 +2805,7 @@ bool run_interactive(const Options &options, std::string &error) {
         runtime = std::move(replacement);
         input.camera.set_preset(gallery_entry(runtime.context).camera);
         completed_frames = 0U;
+        reported_completed_frames = 0U;
         dump_angle = k_dump_initial_angle;
         peg_gravity = default_gravity(runtime);
         cloth_gravity = peg_gravity;
@@ -2988,8 +3204,12 @@ bool run_interactive(const Options &options, std::string &error) {
         const double fps_interval =
             std::chrono::duration<double>(now - fps_start).count();
         if (fps_interval >= 0.5) {
-            update_title(static_cast<double>(presented_frames) /
-                         fps_interval);
+            update_title(
+                static_cast<double>(presented_frames) / fps_interval,
+                static_cast<double>(completed_frames -
+                                    reported_completed_frames) /
+                    fps_interval);
+            reported_completed_frames = completed_frames;
             fps_start = now;
             presented_frames = 0U;
         }
@@ -3011,6 +3231,10 @@ int main(int argc, char **argv) {
     if (!parse_options(argc, argv, options)) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
+    }
+    if (options.version) {
+        print_version();
+        return 0;
     }
     if (options.help || options.list_scenes) {
         print_help();

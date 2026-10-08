@@ -32,8 +32,14 @@ parallel-mater-conformance --list
 parallel-mater-conformance --check-inputs
 parallel-mater-conformance --provenance
 parallel-mater-conformance --case <id|all> --output <directory>
+parallel-mater-conformance --case <id> --every-frame --output <directory>
 parallel-mater-conformance --update-goldens
 ```
+
+`--every-frame` is a diagnostic mode shared by the CUDA and Metal runners. It
+emits frame 0 and every completed frame for one named case while retaining the
+canonical case SHA-256. It never updates goldens; compare two every-frame
+captures directly or inspect them to locate the first divergent frame.
 
 `--update-goldens` is the only command that writes `golden/cuda/` or the
 manifest. It always refreshes the complete corpus. Reconfigure CMake after the

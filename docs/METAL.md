@@ -4,6 +4,65 @@ The Metal backend is additive. The CUDA API, `ParallelMater::parallel_mater`
 target, OptiX gallery, and CUDA implementation remain unchanged when
 `PARALLEL_MATER_BUILD_CUDA=ON`.
 
+## Opening gallery scene status
+
+The opening `Rigid Body` scene passes its authored physical acceptance gate.
+The asset contains 384 independent bricks plus the sphere and ground (386
+rigid bodies total). This is separate from CUDA trajectory parity: the
+30-case `conformance/v1` corpus does not include this scene, and the recorded
+CUDA expanded-wall reference still fails its own stability gate.
+
+`parallel-mater-metal-rigid-wall-tests` checks first-frame support, ten seconds
+of wall stability, ball-only gravity steering, support impulses, independent
+brick impact, cache invalidation, compensated-load sleeping, and wake behavior.
+It also audits every frame of a six-second ball impact with sleeping enabled
+and disabled, rejecting finite energy explosions. The corrected 2026-10-08
+Metal run retains the unchanged quiet-wall thresholds and reports 0.00197983 m
+maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation, 0.103747 m/s
+peak speed, 0.00441963 m/s late speed, and 0.000647023 m minimum clearance.
+
+Ordinary stacks preserve validated contact geometry, impulses and colors
+across substeps and frames, invalidate caches on state/resource edits, and
+solve independent islands. Bounded expensive leaf pairs now use cooperative
+contact generation with deterministic merging; unconstrained pairs use local
+body state for both persistent and transient responses. Unchanged net loads
+allow quiet islands to remain asleep even while the API receives repeated
+gravity-compensation forces. Impulses and changed loads still wake bodies.
+
+A further audit moves cache matching, cached-color validation, and island
+labeling into parallel work and rejects conservatively separated swept
+oriented bounds before leaf evaluation. Solver budgets and contact ordering
+are retained. Existing API timing counters include the additional dispatches.
+
+Cooperative contact generation uses compact geometry-only threadgroup scratch.
+The later batched normal-impulse optimization was removed after reproducing
+an impact energy explosion. Contact rows again update body velocities
+sequentially. The swept convex-face shortcut was also removed because empty
+discrete manifolds could bypass CCD; a fast-crossing regression now covers
+both generic and ordinary-stack worlds.
+
+On Apple M4, the repeatable API impact replay improved from 159.25 to 89.30 ms
+in the first follow-up, then to 73.51–73.85 ms. The corrected result is
+63.32 ms median and 79.88 ms p95. The previously reported 47.53 ms result is
+invalid because it used unstable physics. The impact benchmark now rejects
+energy explosions before reporting timings. `PERFORMANCE.md` records the
+regressions, valid measurements, rejected experiments, and remaining costs. These
+changes do not establish full CUDA conformance or replace CUDA goldens.
+
+Run the exact Metal gate with:
+
+```bash
+cmake --build build-metal-gallery --target parallel-mater-metal-rigid-wall-tests
+ctest --test-dir build-metal-gallery -R '^parallel-mater-metal-rigid-wall-tests$' --output-on-failure
+```
+
+`parallel-mater-metal-gallery-all-contexts` advances every one of the 29
+gallery entries for 60 frames, validates finite resources and a nonblank
+render, and writes fixed-size headless captures. All 29 passed this gate on an
+Apple M4 on 2026-10-08, including the 30,000-particle rope/fluid and
+smoke/water contexts. This replaces the former one-frame launch check, but it
+is still a runtime/lifecycle gate rather than image or CUDA physics parity.
+
 ## Implemented foundation
 
 - CMake starts as C++ and enables CUDA or Objective-C++ only for requested
@@ -355,25 +414,79 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   Rigid contact generation uploads the CUDA-style BVH leaf order and reduces
   leaf-pair manifolds in the same stable 128-lane candidate order; this is
   required for symmetric impacts to make the same deterministic choice.
-  Rigid manifolds now use CUDA's standard triangle-pair closest points first.
-  Metal's segment/triangle query is only a numerical fallback for an empty
-  deep-sweep manifold, a body-reference plane crossing with no approaching
-  standard contact, or inconsistent depths across an otherwise coplanar deep
-  sweep. A moving, unconstrained pair whose standard manifold contains only
-  separating contacts switches to swept-only evaluation once its relative
-  motion exceeds the collision margin; separating swept samples are then
-  discarded. Fixed clusters retain the CUDA-ordered standard manifold. Mixed
-  approaching/separating pruning is likewise limited to pairs eligible for
-  that robust fallback, so kinematic pairs retain CUDA's complete ordered
-  manifold. This keeps slow falling bodies and the 120 m/s tunnelling
-  regression above two-sided surfaces without rewriting contact normals,
-  closes `fluid-rigid`, and reduces `rigid-direct` from a different impact
-  trajectory to 12 sub-millimetre/sub-millimetre-per-second scalar differences
-  (its quaternion gate now passes).
-  The 11 outstanding cases are `cloth-tear`, `constraint-fixed`,
-  `constraint-generic-spring`, `constraint-generic`, `constraint-motor`,
-  `constraint-piston`, `constraint-point`, `passive-active`, `rigid-direct`,
-  `rope-core`, and `rope-soft-body`.
+  The leaf-pair cache is bounded to CUDA's 512 candidates per body pair. Dense
+  pairs that exceed it discard the partial reduction and rerun through the
+  serial BVH fallback, preserving CUDA's capacity behavior without allocating
+  during a step.
+  Rigid manifolds use CUDA's standard triangle-pair closest points and preserve
+  their complete stable order. An additional Metal-only dynamic-pair fallback
+  used to replace or prune a valid standard manifold after deep motion; it has
+  been removed because CUDA has no corresponding post-generation step. A
+  static-collider-only recovery remains for a body that crosses a one-sided
+  convex surface by more than 0.25 m in one substep; this is required by the
+  deterministic 120 m/s tunnelling regression and never rewrites an ordinary
+  dynamic-pair manifold. The narrower rule preserves all 17 CUDA contacts at
+  `passive-active` checkpoint 24 and reduces that case from 49 to 30 reported
+  differences without reopening any passing case. The remaining
+  first-checkpoint drift is in the contact solve rather than manifold count:
+  the `Suzanne`/`Plane` impulse is too small and loses its friction impulse. In
+  the current package, `rigid-direct` first diverges during the authored
+  kinematic impact at frame 40 and retains 13 reported differences; its
+  post-replacement frame agrees again.
+  Guided static mechanisms use CUDA's entry-only swept contacts rather than
+  mixing endpoint and entry normals. Their sweep uses stable face projection,
+  the 0.1 mm guided rest offset, guide-space normal selection, first-impact
+  filtering, and projected conservative advancement at shallow corners.
+  Small closed-convex rigid pairs now use CUDA's supporting-face selection and
+  clipped incident-face manifold instead of retaining redundant triangle-pair
+  contacts. Near-collinear triangle-seam vertices in those patches are reduced
+  geometrically while preserving CUDA's full eight-contact capacity; no
+  blanket four-point cap is used. This closes `compound-weld-lifecycle` and
+  supplies the manifold shape used by the `fluid-rigid` solver fix below.
+  Persistent rigid contacts now carry CUDA's impact fraction, initial normal
+  speed, accumulated normal/friction impulse, warm-start state, initial
+  relative position, and face-patch classification. Metal loads and stores a
+  fixed-capacity, generation-checked cache between substeps without allocating
+  or waiting in a step, applies all warm starts before velocity sweeps, uses
+  CUDA's translational projection, and raises face patches to the CUDA 32-sweep
+  budget. Metal shaders retain strict floating-point math but explicitly allow
+  fused contraction, matching the CUDA reference's instruction semantics for
+  the breakable fixed-joint solve. This makes `constraint-breaking` exact,
+  reduces `constraint-fixed` from 45 to 6 differences, `passive-active` from
+  43 to 30, and `rope-core` from 279 to 203. The complete 30-case run is the
+  acceptance gate because contraction changes arithmetic throughout the
+  metallib; no previously passing case regresses.
+  For worlds of at least 32 bodies, ordinary non-kinematic persistent pairs
+  now keep both body states in local solver storage throughout the row solve,
+  matching CUDA's register/aliasing contract. This changes only `fluid-rigid`
+  among the 30 cases: Metal's final rigid-contact count moves from 123 to 102
+  versus CUDA's 107, closing the case within its chaotic-scene tolerance.
+  Small analytic or articulated scenes, fixed-cluster contacts, guided pairs,
+  and kinematic pairs retain the established device-memory path until tighter
+  CUDA traces can independently validate their solver semantics.
+  Motor-constrained body contacts stabilize a triangle normal that is already
+  parallel to an authored convex collider plane by using the transformed plane
+  normal. This removes backend-local tangent noise while retaining contact
+  position, depth, and ordering, and makes `constraint-motor` exact.
+  Cross-frame cache reuse is enabled only for ordinary rigid stacks with at
+  least 32 bodies and no constraints or coupled systems. This gives the wall
+  CUDA-style adjacent-frame warm starts without reopening the earlier
+  `constraint-generic` difference. Any body/resource mutation advances the
+  world revision again, so teleports and lifecycle edits still invalidate the
+  cache. Ordinary stacks also reuse the dead broad-phase flag buffer to pack
+  each color's contacts into adjacent lanes before solver iteration; smaller,
+  constrained, and coupled worlds retain their established scheduling.
+  Both conformance producers now accept `--every-frame` for one named case,
+  making first-divergent-frame capture available without editing the canonical
+  registry or changing its SHA-256. Kernel-local cache and solver traces are
+  still required after the outer frame is isolated.
+  Against `run-01` of the reviewed 2026-10-06 CUDA package, this branch passes
+  20 of 30 cases. The 10 outstanding cases are `cloth-tear`, `constraint-fixed`,
+  `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`,
+  `constraint-point`, `passive-active`, `rigid-direct`, `rope-core`, and
+  `rope-soft-body`. The package also exposes five CUDA cases that are not
+  byte-repeatable but remain inside the tolerance comparator; those captures
+  are retained rather than being misclassified as Metal-only failures.
   Fracturing cloth now rebuilds CUDA's per-face CSR constraint graph at idle
   frame boundaries, preserves active bending links, and runs the detached-face
   strain limiter before sampling impact and strain damage. Impact fracture
@@ -396,8 +509,11 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   This closes both maximum-strain differences in that case (about 2.18% and
   1.64% on the prior Metal path). The coupling now also uses CUDA's cumulative
   frame contact count, 256-lane anchor-weight reduction order, and closed-skin
-  nearest/swept point query. Those changes reduce the remaining report from 95
-  differences to 8.
+  nearest/swept point query. Those changes reduced the report from 95
+  differences to 8 before the rigid-contact traversal port. CUDA-ordered BVH
+  traversal changes the late coupled trajectory and the current full report
+  contains 12 differences; its earlier frame-24 soft-body maximum-speed defect
+  is unchanged and remains the first requested CUDA trace point.
   Fluid/rope reactions now gather particle impulses per rope node before
   applying CUDA's single acceleration cap, exclude rigid-attached endpoints,
   and leave fluid acceleration diagnostics unchanged by the post-integration
@@ -442,18 +558,24 @@ target, OptiX gallery, and CUDA implementation remain unchanged when
   normals use the rigid origin or hinge anchor as CUDA does. Static-hinge
   contacts use the hinge's single rotational degree of freedom for effective
   mass, point velocity, friction, impulse application, and position recovery.
-  This makes `constraint-hinge` exact (28 reported differences to zero) and
-  preserves the rigid and constraint validation gates. The fast authored
-  kinematic sweep in `passive-active` remains an outstanding manifold-parity
-  case.
+  This made `constraint-hinge` exact against the older committed corpus and
+  preserves the rigid and constraint validation gates. The revised CUDA
+  package still reports 27 hinge differences, so it remains in the explicit
+  outstanding list above. The fast authored kinematic sweep in
+  `passive-active` now reaches contact-count parity at its first failing
+  checkpoint but remains an outstanding contact-solver parity case.
   Rope contact now follows CUDA's closed-convex-mesh semantics: nodes already
   inside a solid recover through the nearest or swept-entry plane, capsule
   segments use outward solid-plane normals, and zero-thickness triangle meshes
   retain their two-sided behavior. Each rope node also retains CUDA's cached
   solid-plane hint across substeps, and segment/triangle intersection uses the
   same CUDA thresholds and barycentric acceptance. The current `rope-core`
-  capture does not exercise an interior-solid recovery and therefore remains
-  one of the outstanding trajectory-parity cases.
+  capture does not exercise an interior-solid recovery. Rigid contact
+  traversal now follows CUDA's right-first BVH triangle order, recomputes the
+  segment fraction from the selected point, applies reaction torque at the
+  already-computed world arm, and uses CUDA's exact quaternion increment for
+  rigid attachments. This reduces `rope-core` from 212 to 177 reported fields;
+  it remains an outstanding trajectory-parity case.
 
 ## Gated work remaining
 

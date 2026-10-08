@@ -295,6 +295,11 @@ struct WorldOptions {
     // Maximum diagnostic contact events retained for a requested frame.
     std::uint32_t contact_capacity{65'536U};
     bool deterministic{true};
+    // Allows stable, unconstrained rigid islands to stop integrating after
+    // they have remained below the velocity thresholds for half a second.
+    // Metal preserves sleep under unchanged net loads (including gravity
+    // compensation); changed loads, impulses and state edits wake bodies.
+    bool rigid_sleeping{};
     std::uint32_t cloth_capacity{1U};
     std::uint32_t soft_body_capacity{1U};
     std::uint32_t fluid_cloth_coupling_capacity{1U};
@@ -942,6 +947,7 @@ struct WorldStatistics {
     std::uint64_t emitted_smoke_particle_count{};
     std::uint64_t boiled_particle_count{};
     std::uint32_t rigid_body_count{};
+    std::uint32_t sleeping_rigid_body_count{};
     std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
     std::uint32_t contact_count{};

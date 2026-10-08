@@ -106,6 +106,29 @@ cmake --build build-metal-gallery
   --output build-metal-gallery/captures
 ```
 
+Build and atomically replace the Dock-pinned development app with:
+
+```bash
+cmake --build build-metal-gallery --target deploy-metal-gallery
+```
+
+The deployed window title and `--version` identify the exact Git commit,
+working-tree state, and build time. Quit and reopen an already-running gallery
+after deployment because macOS keeps its current executable mapped in memory.
+The application bundle carries its gallery GLBs in `Contents/Resources`, so a
+deployed build does not read scene assets from the source checkout or request
+access to its external drive.
+
+Measure the opening brick scene with sleeping disabled and enabled using:
+
+```bash
+cmake --build build-metal-gallery \
+  --target parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
+```
+
 Use `--list-scenes` to list every scene selector. In the interactive gallery,
 Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
 the highlighted scene, the mouse orbits/pans/zooms, arrows run the scene's
@@ -149,9 +172,10 @@ tank drive. Hinge launches a sphere into a panel merged with the first of three
 hinged gears; contact propagates through both interfaces with alternating
 rotation. Slider, Piston, Generic, and Generic Spring launch an
 authored sphere impact automatically.
-Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 96
-independent bricks sharing two meshes, and arrows tilt gravity relative to the
-current camera to drive the sphere through the wall. The authored `LoadBox`
+Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 384
+independent bricks sharing two meshes. Arrows tilt the sphere's gravity relative
+to the current camera to drive it through the wall while the bricks retain
+vertical gravity. The authored `LoadBox`
 is available as a non-colliding hit-box query volume. In
 DUMP, hold Left Arrow to rotate the hopper clockwise and press `P` to edit its
 10–1,000 sphere count; applying a count restarts DUMP. `F` toggles per-kernel

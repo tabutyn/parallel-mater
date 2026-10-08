@@ -1,5 +1,87 @@
 # Physics performance
 
+## Metal impact regression correction (Apple M4, 2026-10-08)
+
+The 47.53 ms impact result reported at `20a1072` is invalid. The wall could
+explode while all positions and velocities remained finite. The old benchmark
+only checked finite final states and displaced bricks, and the quiet-wall
+and short wake tests did not detect this impact failure.
+
+Two unsafe changes have been removed:
+
+- Batched normal impulses used the same stale pair velocity for every contact
+  on a face, then summed the impulses without accounting for their coupling.
+  The solver again updates both body velocities after each contact row before
+  evaluating the next row, including sleeping-enabled worlds.
+- The discrete convex-face shortcut replaced required swept collision tests.
+  Its success return can describe an empty manifold at separated endpoints,
+  so a fast body could pass completely through another body. Swept pairs
+  again use the existing CCD path.
+
+The compact geometry-only cooperative scratch optimization remains. It stores
+32-byte point, normal, penetration, and impact records, reducing the 32-lane
+scratch allocation from 17,664 to 8,320 bytes. Lane zero reconstructs the
+unchanged solver records in the same deterministic merge order. This retains
+the measured improvement without changing contact response or CCD semantics.
+
+Corrected runs use the public Metal API, the authored 386-body scene, a 1/60 s
+timestep, four substeps, sleeping enabled, and 120 measured impact frames after
+120 settling frames. The interactive gallery was closed. The averages of three
+earlier baseline runs and two corrected runs are:
+
+| Impact metric | `ea276e5` | Corrected result |
+| --- | ---: | ---: |
+| Wall median | 73.12 ms | 63.32 ms |
+| Wall p95 | 93.52 ms | 79.88 ms |
+| GPU median | 72.63 ms | 62.63 ms |
+| Contact solve median | 46.50 ms | 44.58 ms |
+| Contact evaluation median | 17.37 ms | 12.88 ms |
+
+Individual corrected impact medians are 63.43 and 63.22 ms; p95 is 80.26 and
+79.50 ms. The median is about 13% below the earlier valid baseline, not the
+previously claimed 35%. These are separate runs subject to thermal and host
+scheduling variation, not a new interleaved comparison. All 384 bricks moved
+independently by more than 5 cm. Solve work remains the largest cost.
+
+The new regression launches the authored 100 kg ball at 10 m/s and checks every
+frame for six seconds with sleeping both enabled and disabled. It rejects
+translational kinetic energy plus signed gravitational potential above 110%
+of the starting budget. Signed potential accounts for bricks falling off the
+finite floor. This is a lower-bound energy check, not a full rotational-energy
+or trajectory-parity proof. The benchmark runs the same check outside its
+physics timer and refuses to report successful impact timings on failure.
+
+Both guards reject the old build at frame 18: 581,367 J kinetic plus 10,478 J
+potential energy versus a 15,071 J starting budget, with a peak speed of
+203.6 m/s. The corrected six-second runs peak at 0.99951 of the starting
+mechanical-energy budget. A separate regression checks a 90 m/s cube crossing
+a static cube in both two-body and 32-body worlds; it fails the unsafe shortcut
+and passes the restored CCD path.
+
+The strict quiet-wall gate retains its unchanged thresholds: 0.00197983 m
+maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation, 0.103747 m/s
+peak speed, 0.00441963 m/s late speed, 1.00007 maximum energy ratio, and
+0.000647023 m minimum clearance.
+
+Rejected experiments:
+
+- Caching a world inverse-inertia matrix per pair/pass raised impact median to
+  about 86.2 ms. Lower occupancy was suspected but not measured directly.
+- Caching the four transformed triangles in each BVH leaf raised median to
+  about 81.1 ms. Its cause was not isolated.
+- Merging restored cached anchors into newly discovered swept manifolds raised
+  median from 63.8 to 65.4 ms and changed the displaced-brick count to 382.
+- Allowing convergence after pass 8 at a `1e-8` squared velocity-change
+  threshold raised median to about 67.9 ms. The changed trajectory created
+  more downstream work.
+- A four-partition, multi-threadgroup block preconditioner produced a
+  misleading 12.6 ms median by destabilizing the wall. The correctness gate
+  measured 310 m drop, 412 m displacement, and extreme energy growth, so the
+  implementation was removed.
+
+No public API signature or layout changed, and the CUDA implementation remains
+untouched.
+
 ## Expanded authored wall status (2026-10-05)
 
 The current `RigidBody.blend` and GLB contain 384 independent 1 kg bricks
@@ -7,12 +89,210 @@ The current `RigidBody.blend` and GLB contain 384 independent 1 kg bricks
 export `pm_gravity_tilt = false`. Export and scene-loader regressions pass
 with the expanded counts, and the full Release build succeeds.
 
-The unchanged physical acceptance limits do **not** pass for this expanded
-wall: its ten-second vertical-gravity regression measures 0.126318 m maximum
-drop, 0.286006 m displacement, and 0.524741 rad rotation. At 386 bodies the
-scene uses the larger-world contact solver, outside the optimized 32–256-body
-stack path described below. Larger-stack support remains unresolved; the
-regression is retained and must pass before this change is ready to merge.
+The CUDA reference does **not** pass the unchanged physical acceptance limits
+for this expanded wall: its ten-second vertical-gravity regression measures
+0.126318 m maximum drop, 0.286006 m displacement, and 0.524741 rad rotation.
+At 386 bodies CUDA uses its larger-world contact solver, outside the optimized
+32–256-body stack path described below. CUDA larger-stack support remains
+unresolved; the Metal result is recorded separately below.
+
+## Metal collision scheduling and bounds follow-up (Apple M4, 2026-10-08)
+
+A further audit of commit `f9540fa` found avoidable serial work inside the
+API's aggregate contact-solve timer. Cache matching ran in a single
+threadgroup; cached-color validation and iteration selection scanned every
+pair serially; island labeling scanned every body for every island. The
+ordinary solve itself remains the largest remaining cost.
+
+The authored impact replay below was measured twice with interleaved baseline
+and candidate binaries, the interactive gallery closed, and no concurrent GPU
+tests. Scene, timestep, four substeps, solver budgets, and physical acceptance
+thresholds are unchanged.
+
+| Impact run | Before median | After median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 89.42 ms | 73.51 ms | 101.94 ms | 95.46 ms |
+| 2 | 89.25 ms | 73.85 ms | 102.39 ms | 92.65 ms |
+
+This is about 18% less median physics time, or roughly 13.6 simulation steps/s
+during heavy impact. It is still above the 16.7 ms budget for 60 Hz. Both
+candidate runs displaced all 384 bricks independently by more than 5 cm,
+with finite positions, velocities, and orientations.
+
+The paired quiet run improved from 24.96 to 20.18 ms with sleeping disabled
+(p95 25.82 to 21.75 ms). Sleeping rest measured 1.14 ms with all 385 dynamic
+bodies asleep. Held steering measured 1.70 ms with 384 bricks asleep; its GPU
+median was 0.82 ms. Small wall-time differences in sleeping workloads include
+host scheduling latency and should not be treated as fixed frame costs.
+
+Retained backend changes:
+
+- Match cached contacts in an indirect pair-parallel dispatch before contact
+  reduction, preserving the same matching and warm-start formulas.
+- Validate cached colors and select the maximum 8/32/64-pass budget with
+  parallel atomic reductions. The existing all-or-nothing reuse decision,
+  deterministic recoloring, overflow behavior, and convergence threshold stay
+  unchanged.
+- Skip the serial contact-event prefix when events were not requested.
+  Requested events keep their existing ordering and capacity behavior.
+- Label island roots and members in parallel around a linear root-ID scan,
+  preserving ascending-root island IDs and the same contact graph.
+- Reject separated swept oriented bounding boxes before expensive leaf
+  contacts. The union of endpoint projections encloses the same linear vertex
+  motion as the existing triangle sweep; margins and a coordinate-scaled
+  roundoff guard make the rejection conservative. Larger leaf products, deep
+  static sweeps, and constrained/coupled paths keep their existing fallback.
+- Use 128-thread solver groups for ordinary worlds up to 512 bodies; larger
+  worlds keep 256. This adjusts scheduling without reducing solver passes.
+- Report all contact-generation and solve dispatches in the existing API
+  timing counters; the wall regression checks the ordinary-stack counts.
+
+A diagnostic run computed the proposed bounds rejection but still ran the
+original triangle evaluation for all 480 measured impact substeps. It found
+166,019 rejectable pair/substep instances and zero rejected pairs with actual
+contacts. The retained guard additionally includes unprojected coordinates to
+cover cancellation at large coordinates. Diagnostic kernels and readback were
+removed from the final build.
+
+The strict ten-second wall and sleep/wake gates retain the previous measured
+stability, including 0.00197983 m maximum drop, 0.00305891 m displacement,
+0.000976562 rad rotation, 0.00441963 m/s late speed, and 0.000647023 m minimum
+clearance. No rendered geometry, body mass, timestep, collision margin,
+friction, or restitution was simplified.
+
+Rejected probes: threadgroup-local body state and compact per-island work
+lists produced no reliable gain; distributing every color across GPU groups
+increased impact median to 104 ms because dispatch overhead outweighed
+parallelism. Those implementations were removed. Temporary stage probes
+isolated about 9–13 ms of baseline contact preparation, falling to roughly
+3–4 ms after scheduling changes. The final aggregate solve median is
+44–46 ms and contact evaluation about 18 ms; stage medians do not sum to the
+frame median. Further progress needs cheaper contact response or a scheduling
+scheme that spreads a connected solve without thousands of dispatches. These
+results do not establish a hardware limit or full CUDA trajectory parity.
+
+## Metal steering and impact follow-up (Apple M4, 2026-10-08)
+
+The next audit reproduced the reported slowdown through the public Metal API,
+without rendering. Baseline is commit `353ae2b`; all runs use the same authored
+386-body scene, 1/60 s timestep, four substeps, and kernel timestamps. The
+interactive gallery was closed during these sequential runs.
+
+| Workload | Before wall median | After wall median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Settled, sleeping disabled | 29.66 ms* | 25.01 ms | 31.16 ms* | 25.95 ms |
+| Held steering, sleeping enabled | 31.10 ms | 1.42 ms | 39.43 ms | 6.94 ms |
+| Ball impact, sleeping enabled | 159.25 ms | 89.30 ms | 191.40 ms | 102.94 ms |
+
+\* Previous recorded quiet-scene run on the same baseline commit. Steering
+and impact were measured again before and after this change. These are sample
+timings on a fanless M4, not frame-rate guarantees or rendered-frame timings.
+The final sleeping rest median is 1.23 ms. Impact contact generation fell from
+83.20 to 19.72 ms and contact solving from 73.86 to 54.23 ms. Stage medians do
+not sum to the whole-frame median.
+
+The impact replay settles for 120 frames, places the authored 100 kg ball at
+`(0, 1.05, 2.5)` moving toward the wall at 10 m/s, and measures the following
+120 frames. It requires finite final positions and at least 16 independently
+displaced bricks. The final run displaced all 384 bricks by more than 5 cm;
+the solver refactor changes floating-point trajectories, so this is a physical
+acceptance check rather than a claim of bitwise CUDA parity.
+
+Retained engine changes:
+
+- **Wake on changed net loads.** Repeated gravity-compensation forces no longer
+  reset the quiet timer for every brick. The API tracks each body's effective
+  acceleration and torque; impulses, changed loads, and state/resource edits
+  still wake affected bodies. All 384 bricks stay asleep while the ball follows
+  the steering gravity.
+- **Cooperative narrow phase.** For unconstrained rigid worlds, bounded leaf
+  products are evaluated by a 32-lane threadgroup. Each leaf pair uses the
+  existing contact and continuous-collision routines. Lane zero merges the
+  results in the original CUDA lane-grouped order. Products larger than 512
+  candidates, missing leaf data, deep static sweeps, constrained worlds, and
+  coupled systems retain the existing fallback.
+- **Compact ordinary solver.** Persistent and transient contacts hold both
+  body states locally and bypass hinge, compound, and constraint traversal.
+  Contact budgets, friction/restitution formulas, timestep, geometry, and wall
+  acceptance tolerances are retained. Overflow contacts cannot trigger the
+  convergence shortcut without being included in its residual.
+
+The unchanged wall gate passes with 0.00197983 m maximum drop, 0.00305891 m
+maximum displacement, 0.000976562 rad maximum angle, and 0.000647023 m minimum
+clearance. It now also checks sleeping under compensated steering and waking
+under an impulse, changed gravity, or gradually changing force. The load
+reference stays fixed during sleep, so small changes cannot drift unnoticed.
+Memory with sleeping is 87,215,452 bytes.
+
+Rejected probes: reducing the solve threadgroup from 256 to 32 lanes increased
+impact median to 199 ms; independent per-island budgets/colors did not improve
+the retained 89 ms result. Both were removed. The remaining dominant work is
+the contact solve inside the connected impact island (54 ms median), followed
+by narrow-phase evaluation (20 ms). Future work should improve utilization of
+that connected solve and reuse contact response calculations while continuing
+to pass the strict wall gate; previous prepared-response probes did not.
+
+Reproduce all three workloads:
+
+```bash
+cmake --build build-metal-gallery --target parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
+./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
+```
+
+## Metal expanded-wall contact scheduling (Apple M4, 2026-10-08)
+
+The 386-body Metal opening scene previously invalidated its rigid-contact cache
+at every frame boundary and scanned every active pair for every contact color
+and solver pass. The retained path now preserves cache epochs across adjacent
+ordinary-stack frames, invalidates them on public state/resource mutation,
+and compacts colored work into adjacent lanes in the broad-phase flag scratch.
+It also keeps the maximum requested cold-patch iteration budget instead of
+allowing a later cached patch to reduce 64 passes back to 32.
+
+A physics-only Apple M4 run measured 120 frames after 10 warm-up frames at
+1/60 s, four substeps, with kernel timing enabled and no rendering/readback:
+
+| Stage | Before | After |
+| --- | ---: | ---: |
+| Contact solve median | 96.07 ms | 29.56 ms |
+| Contact evaluation median | 4.29 ms | 2.64 ms |
+| Total GPU median | 113.01 ms | 46.08 ms |
+| Step wall median | 113.43 ms | 46.57 ms |
+
+The contact solve is 69% lower and total GPU time is 59% lower in this sample.
+That was the intermediate retained-cache result. The completed path now also:
+
+- stores manifolds and caches in triangular pair space and initializes only
+  compacted active manifolds;
+- generates contacts and saves caches through indirect active-pair dispatches;
+- reconstructs validated convex face geometry and persistent colors from the
+  preceding substep;
+- caches ordinary-stack inertia inputs inside the two-body solver;
+- partitions the contact graph into independent islands and dispatches one
+  solver threadgroup per island;
+- stops converged island iterations and optionally sleeps supported quiet
+  islands; and
+- renders rigid meshes from static vertex buffers with aligned 32-byte
+  per-body instances.
+
+The repeatable `parallel-mater-metal-rigid-scene-benchmark` measures the first
+scene with kernel timing enabled. A final Apple M4 run produced:
+
+| Phase | Wall median | GPU median | Solve median |
+| --- | ---: | ---: | ---: |
+| Historical retained-cache result | 46.57 ms | 46.08 ms | 29.56 ms |
+| Current, sleeping disabled, settled | 29.66 ms | 29.22 ms | 25.56 ms |
+| Current, sleeping enabled, startup | 29.37 ms | 28.97 ms | 25.95 ms |
+| Current, sleeping enabled, settled | 1.25 ms | 0.88 ms | 0.27 ms |
+
+All 385 dynamic bricks sleep in the settled sample. Allocated bytes fell from
+144,485,608 in the historical run to 87,140,640 with sleeping enabled. The
+strict wall gate now passes with 0.00197983 m maximum drop, 0.00305353 m
+maximum displacement, 0.000976562 rad maximum angle, and 0.000646994 m minimum
+clearance. Prepared response and first-fit coloring remain excluded because
+the earlier probes destabilized this expanded wall.
 
 The following audit, timing numbers, and prior passing wall replays concern
 the earlier 96-brick asset. They are not acceptance results for the current
