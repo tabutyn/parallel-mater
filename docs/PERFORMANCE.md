@@ -1,5 +1,73 @@
 # Physics performance
 
+## Metal contact occupancy and patch solve follow-up (Apple M4, 2026-10-08)
+
+Seven further experiments targeted the opening 384-brick wall after commit
+`ea276e5`. Runs use the public Metal API, the authored 386-body scene, a 1/60 s
+timestep, four substeps, sleeping enabled for impact, and 120 measured frames
+after settling. The interactive gallery was closed. Three baseline runs and
+two final runs produced:
+
+| Impact metric | `ea276e5` | Retained result |
+| --- | ---: | ---: |
+| Wall median | 73.12 ms | 47.53 ms |
+| Wall p95 | 93.52 ms | 89.29 ms |
+| GPU median | 72.63 ms | 46.74 ms |
+| Contact solve median | 46.50 ms | 36.91 ms |
+| Contact evaluation median | 17.37 ms | 8.17 ms |
+
+The retained median is about 35% lower. All 384 bricks moved independently by
+more than 5 cm and all final states remained finite. The p95 reduction is much
+smaller, so peak collision work remains the limiting problem.
+
+Retained changes:
+
+- Cooperative narrow phase stores only 32-byte point, normal, penetration,
+  and impact records in threadgroup scratch. This reduces the 32-lane scratch
+  allocation from about 17.7 KiB to 8.1 KiB before lane zero reconstructs the
+  unchanged solver records and deterministic merge order. In isolation this
+  reduced impact median from about 73.1 to 63.8 ms.
+- Eligible small convex pairs try the current convex-face manifold even when
+  their motion requires swept collision testing. A valid current manifold is
+  used directly; pairs without one retain the swept triangle/CCD path. With
+  compact scratch this reduced impact median to about 58.2 ms.
+- Multi-contact convex face patches compute normal impulses from one pair
+  state, combine their linear and angular effect, and apply one wrench per
+  body. Friction remains per contact. Sleeping-enabled worlds use this path
+  for cached and cold patches; sleeping-disabled worlds use it only for cold
+  patches so steady awake stacks keep the prior sequential solve cost.
+
+The final sleeping-disabled quiet run measured 20.32 ms during motion and
+20.41 ms at rest, compared with the earlier retained 20.18 ms result. Sleeping
+rest measured 1.12 ms with all 385 dynamic bodies asleep. Held steering
+measured 1.48 ms with 384 bricks asleep. These small differences include host
+scheduling and thermal variation.
+
+The strict wall gate passes with 0.00171757 m maximum drop, 0.00234057 m
+maximum displacement, 0.000690534 rad maximum rotation, 0.0849767 m/s peak
+speed, 0.00276931 m/s late speed, 1.00004 maximum energy ratio, and
+0.000679761 m minimum clearance. Compensated steering, impulse wake, changed
+gravity wake, and gradual-force wake also pass.
+
+Rejected experiments:
+
+- Caching a world inverse-inertia matrix per pair/pass raised impact median to
+  about 86.2 ms. Extra live matrix state reduced overall shader occupancy.
+- Caching the four transformed triangles in each BVH leaf raised median to
+  about 81.1 ms for the same reason.
+- Merging restored cached anchors into newly discovered swept manifolds raised
+  median from 63.8 to 65.4 ms and changed the displaced-brick count to 382.
+- Allowing convergence after pass 8 at a `1e-8` squared velocity-change
+  threshold raised median to about 67.9 ms. The changed trajectory created
+  more downstream work.
+- A four-partition, multi-threadgroup block preconditioner produced a
+  misleading 12.6 ms median by destabilizing the wall. The correctness gate
+  measured 310 m drop, 412 m displacement, and extreme energy growth, so the
+  implementation was removed.
+
+No public API signature or layout changed, and the CUDA implementation remains
+untouched.
+
 ## Expanded authored wall status (2026-10-05)
 
 The current `RigidBody.blend` and GLB contain 384 independent 1 kg bricks
