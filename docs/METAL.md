@@ -28,10 +28,17 @@ body state for both persistent and transient responses. Unchanged net loads
 allow quiet islands to remain asleep even while the API receives repeated
 gravity-compensation forces. Impulses and changed loads still wake bodies.
 
-On Apple M4, the repeatable API impact replay improves from 159.25 to 89.30 ms
-median and held steering from 31.10 to 1.42 ms. `PERFORMANCE.md` records the
-workloads, bounds, measurements, rejected probes, and remaining bottlenecks.
-These changes do not establish full CUDA conformance or replace CUDA goldens.
+A further audit moves cache matching, cached-color validation, and island
+labeling into parallel work and rejects conservatively separated swept
+oriented bounds before leaf evaluation. Solver budgets and contact ordering
+are retained. Existing API timing counters include the additional dispatches.
+
+On Apple M4, the repeatable API impact replay improved from 159.25 to 89.30 ms
+in the first follow-up. The next paired runs improve 89.25–89.42 to
+73.51–73.85 ms, with quiet awake physics at 20.18 ms and sleeping rest at
+1.14 ms. `PERFORMANCE.md` records workloads, bounds verification, rejected
+probes, and remaining bottlenecks. These changes do not establish full CUDA
+conformance or replace CUDA goldens.
 
 Run the exact Metal gate with:
 

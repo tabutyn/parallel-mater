@@ -178,9 +178,16 @@ bool run(const SceneDefinition &scene, bool sleeping, std::string_view scenario)
             RigidBodyState current{};
             if (!world.read_rigid_body_state(instance.rigid_bodies[i], current))
                 return false;
-            if (!std::isfinite(current.position.x) ||
-                !std::isfinite(current.position.y) ||
-                !std::isfinite(current.position.z)) return false;
+            const auto finite = [](parallel_mater::Vec3 value) {
+                return std::isfinite(value.x) && std::isfinite(value.y) &&
+                       std::isfinite(value.z);
+            };
+            if (!finite(current.position) || !finite(current.linear_velocity) ||
+                !finite(current.angular_velocity) ||
+                !std::isfinite(current.orientation.x) ||
+                !std::isfinite(current.orientation.y) ||
+                !std::isfinite(current.orientation.z) ||
+                !std::isfinite(current.orientation.w)) return false;
             const auto initial = scene.rigid_bodies[i].options.initial_state.position;
             if (!scene.rigid_bodies[i].follows_gravity_tilt &&
                 std::hypot(current.position.x - initial.x,

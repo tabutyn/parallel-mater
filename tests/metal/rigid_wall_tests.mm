@@ -71,8 +71,18 @@ bool run_wall(const SceneDefinition &scene) {
     std::vector<RigidBodyState> states;
     // Touching faces must not invent margin-deep penetration or velocity.
     // The open floor retains its 1 mm rest skin.
-    if (!require(world.step({.gravity = {}, .collect_rigid_contacts = true})) ||
+    const StepOptions support_probe{.gravity = {},
+                                    .collect_kernel_timings = true,
+                                    .collect_rigid_contacts = true};
+    if (!require(world.step(support_probe)) ||
         !read_states(world, instance, states)) return false;
+    WorldStepTimings timings{};
+    if (!require(world.collect_step_timings(timings)) || !timings.available ||
+        timings.rigid_contact_evaluation.launch_count != 2U * support_probe.substeps ||
+        timings.rigid_contact_solve.launch_count != 3U * support_probe.substeps) {
+        std::cerr << "Ordinary-stack API timings omit dispatched kernels\n";
+        return false;
+    }
     const auto view = world.rigid_contacts();
     id<MTLBuffer> contact_buffer =
         (__bridge id<MTLBuffer>)view.events.buffer;

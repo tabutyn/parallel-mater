@@ -4202,6 +4202,35 @@ kernel void pm_rigid_contact_generate(
     }
 }
 
+// The swept triangle path linearly interpolates endpoint vertices. The
+// union of endpoint projections conservatively bounds that same motion.
+static float2 pm_project_mesh_bounds(
+    device const PMRigidBodyState &state,
+    device const PMTriangleMeshInfo &mesh, float3 axis) {
+    const float3 center =
+        (pm_load(mesh.minimum) + pm_load(mesh.maximum)) * 0.5f;
+    const float3 extent =
+        (pm_load(mesh.maximum) - pm_load(mesh.minimum)) * 0.5f;
+    const float3 world_center =
+        pm_load(state.position) + pm_rotate(state.orientation, center);
+    const float3 local_axis =
+        pm_rotate(pm_quaternion_conjugate(state.orientation), axis);
+    const float projection = dot(world_center, axis);
+    const float radius = dot(abs(local_axis), extent);
+    return float2(projection - radius, projection + radius);
+}
+
+static float pm_bounds_coordinate_scale(
+    device const PMRigidBodyState &previous,
+    device const PMRigidBodyState &state,
+    device const PMTriangleMeshInfo &mesh) {
+    // Include unprojected coordinates: a projection can cancel large terms.
+    const float3 scale = max(abs(pm_load(previous.position)),
+                             abs(pm_load(state.position))) +
+        max(abs(pm_load(mesh.minimum)), abs(pm_load(mesh.maximum)));
+    return scale.x + scale.y + scale.z;
+}
+
 // Preserve CUDA's lane-grouped leaf order exactly: each lane evaluates one
 // leaf pair independently, then lane zero merges the bounded manifolds in
 // that same order. No atomically selected contact order or new CCD tolerance.
@@ -4243,6 +4272,43 @@ kernel void pm_rigid_contact_generate_cooperative(
     const bool swept = pm_requires_swept_pair_contact(
         previous_states[body], states[body], body_mesh,
         previous_states[collider], states[collider], collider_mesh, margin);
+    // Reject only separated endpoint envelopes. This bounds both discrete
+    // geometry and the existing linearly interpolated triangle sweep.
+    threadgroup atomic_uint separated;
+    if (lane == 0u)
+        atomic_store_explicit(&separated, 0u, memory_order_relaxed);
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    if (lane < 6u) {
+        const uint side = lane / 3u;
+        float3 local_axis = 0.0f;
+        local_axis[lane % 3u] = 1.0f;
+        const float3 axis = pm_rotate(
+            states[side == 0u ? body : collider].orientation, local_axis);
+        float2 first = pm_project_mesh_bounds(states[body], body_mesh, axis);
+        float2 second = pm_project_mesh_bounds(states[collider], collider_mesh, axis);
+        if (swept) {
+            const float2 previous_first = pm_project_mesh_bounds(
+                previous_states[body], body_mesh, axis);
+            const float2 previous_second = pm_project_mesh_bounds(
+                previous_states[collider], collider_mesh, axis);
+            first = float2(min(first.x, previous_first.x),
+                           max(first.y, previous_first.y));
+            second = float2(min(second.x, previous_second.x),
+                            max(second.y, previous_second.y));
+        }
+        const float scale = pm_bounds_coordinate_scale(
+            previous_states[body], states[body], body_mesh) +
+            pm_bounds_coordinate_scale(
+                previous_states[collider], states[collider], collider_mesh);
+        const float padding = margin * length(axis) + 1.0e-5f * (1.0f + scale);
+        if (first.x > second.y + padding || second.x > first.y + padding)
+            atomic_store_explicit(&separated, 1u, memory_order_relaxed);
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    if (atomic_load_explicit(&separated, memory_order_relaxed) != 0u) {
+        if (lane == 0u) manifolds[active_index] = PMContactManifold{};
+        return;
+    }
     PMHingeContactFrame body_hinge{};
     PMHingeContactFrame collider_hinge{};
     body_hinge.static_body = parameters[body].motion == 0u;
@@ -4728,15 +4794,31 @@ static void pm_resolve_rigid_contact_pair(
     }
 }
 
+kernel void pm_rigid_contact_match_cache(
+    device const PMRigidBodyState *states [[buffer(0)]],
+    constant PMStepConstants &step [[buffer(4)]],
+    device PMContactManifold *manifolds [[buffer(8)]],
+    device const PMHandle *ids [[buffer(10)]],
+    device const uint *active_pairs [[buffer(18)]],
+    device const uint &active_pair_count [[buffer(19)]],
+    device const uint &substep_index [[buffer(20)]],
+    device const PMCachedContactPair *cache [[buffer(27)]],
+    device const ulong &epoch_base [[buffer(28)]],
+    uint active_index [[thread_position_in_grid]]) {
+    if (active_index >= active_pair_count) return;
+    const uint pair = active_pairs[active_index];
+    const uint body = pair / step.body_count;
+    const uint collider = pair % step.body_count;
+    const uint slot = pm_rigid_pair_slot(body, collider, step.body_count);
+    pm_load_rigid_contact_cache(
+        manifolds[active_index], states[body], ids[body], ids[collider],
+        cache[slot], epoch_base + ulong(substep_index), step.timestep);
+}
+
 kernel void pm_rigid_contact_reduce(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
-    device PMPackedVec3 *forces [[buffer(2)]],
-    device PMPackedVec3 *torques [[buffer(3)]],
     constant PMStepConstants &step [[buffer(4)]],
-    device const PMPackedVec3 *vertices [[buffer(5)]],
-    device const uint *indices [[buffer(6)]],
-    device const PMTriangleMeshInfo *meshes [[buffer(7)]],
     device PMContactManifold *manifolds [[buffer(8)]],
     device const PMRigidConstraintResource *constraints [[buffer(9)]],
     device const PMHandle *ids [[buffer(10)]],
@@ -4746,46 +4828,27 @@ kernel void pm_rigid_contact_reduce(
     device atomic_uint *color_work [[buffer(17)]],
     device const uint *active_pairs [[buffer(18)]],
     device const uint &active_pair_count [[buffer(19)]],
-    device const uint &substep_index [[buffer(20)]],
     device const PMRigidCompound *compounds [[buffer(25)]],
-    device const PMCachedContactPair *cache [[buffer(27)]],
-    device const ulong &epoch_base [[buffer(28)]],
     device uint *island_data [[buffer(29)]],
     uint thread_index [[thread_index_in_threadgroup]],
     uint3 threads_per_group [[threads_per_threadgroup]]) {
-    (void)forces;
-    (void)torques;
-    (void)vertices;
-    (void)indices;
-    (void)meshes;
     constexpr uint color_round_count = 24u;
     constexpr uint uncolored = 0xffffffffu;
     const uint lane_count = threads_per_group.x;
     threadgroup atomic_uint used_colors;
     threadgroup atomic_uint overflow_count;
-    threadgroup uint iterations;
-    threadgroup uint reuse_colors = 0u;
-
-    const ulong epoch = epoch_base + ulong(substep_index);
-    for (uint active_index = thread_index;
-         active_index < active_pair_count; active_index += lane_count) {
-        const uint pair = active_pairs[active_index];
-        const uint body = pair / step.body_count;
-        const uint collider = pair % step.body_count;
-        const uint slot = pm_rigid_pair_slot(body, collider, step.body_count);
-        pm_load_rigid_contact_cache(
-            manifolds[active_index], states[body], ids[body], ids[collider],
-            cache[slot], epoch, step.timestep);
-    }
-    threadgroup_barrier(mem_flags::mem_device);
-
-    for (uint body = thread_index; body < step.body_count;
-         body += lane_count)
-        atomic_store_explicit(
-            color_owners + body, 0u, memory_order_relaxed);
-    threadgroup_barrier(mem_flags::mem_device);
-
+    threadgroup atomic_uint maximum_iterations;
+    threadgroup atomic_uint valid_cached_colors;
+    for (uint body = thread_index; body < step.body_count; body += lane_count)
+        atomic_store_explicit(color_owners + body, 0u, memory_order_relaxed);
     if (thread_index == 0u) {
+        atomic_store_explicit(&used_colors, 0u, memory_order_relaxed);
+        atomic_store_explicit(&overflow_count, 0u, memory_order_relaxed);
+        atomic_store_explicit(&maximum_iterations, 8u, memory_order_relaxed);
+        atomic_store_explicit(&valid_cached_colors,
+            step.ordinary_rigid_stack != 0u ? 1u : 0u, memory_order_relaxed);
+    }
+    if (thread_index == 0u && step.collect_rigid_contacts != 0u) {
         uint cursor = 0u;
         for (uint active_index = 0u;
              active_index < active_pair_count; ++active_index) {
@@ -4795,78 +4858,69 @@ kernel void pm_rigid_contact_reduce(
             manifold.event_offset = cursor;
             const uint body = pair / step.body_count;
             const uint collider = pair % step.body_count;
-            if (step.collect_rigid_contacts != 0u) {
-                const uint remaining = cursor < step.rigid_event_capacity
-                    ? step.rigid_event_capacity - cursor
-                    : 0u;
-                const uint retained = min(manifold.count, remaining);
-                for (uint contact_index = 0u;
-                     contact_index < retained; ++contact_index) {
-                    device const PMContactRecord &record =
-                        manifold.contacts[contact_index];
-                    events[cursor + contact_index] = {
-                        ids[body], ids[collider], record.point,
-                        record.normal, max(0.0f, record.penetration),
-                        0.0f, {}};
-                }
+            const uint remaining = cursor < step.rigid_event_capacity
+                ? step.rigid_event_capacity - cursor
+                : 0u;
+            const uint retained = min(manifold.count, remaining);
+            for (uint contact_index = 0u;
+                 contact_index < retained; ++contact_index) {
+                device const PMContactRecord &record =
+                    manifold.contacts[contact_index];
+                events[cursor + contact_index] = {
+                    ids[body], ids[collider], record.point,
+                    record.normal, max(0.0f, record.penetration),
+                    0.0f, {}};
             }
             cursor += manifold.count;
         }
         // Match CUDA: a contact-free later substep keeps the previous
         // substep's events, while a non-empty substep replaces them.
-        if (step.collect_rigid_contacts != 0u && cursor > 0u)
+        if (cursor > 0u)
             event_count = min(cursor, step.rigid_event_capacity);
-        atomic_store_explicit(
-            &used_colors, 0u, memory_order_relaxed);
-        atomic_store_explicit(
-            &overflow_count, 0u, memory_order_relaxed);
-        reuse_colors = step.ordinary_rigid_stack != 0u ? 1u : 0u;
-        iterations = 8u;
-        for (uint active_index = 0u;
-             active_index < active_pair_count; ++active_index) {
-            const uint pair = active_pairs[active_index];
-            device PMContactManifold &manifold = manifolds[active_index];
-            if (reuse_colors != 0u && manifold.count != 0u) {
-                const uint color = manifold.color;
+    }
+    threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup);
+    // Atomic set membership validates the same all-or-nothing cached coloring
+    // without serially scanning every pair. Conflicts still force recoloring.
+    for (uint active = thread_index; active < active_pair_count;
+         active += lane_count) {
+        device PMContactManifold &manifold = manifolds[active];
+        if (step.collect_rigid_contacts == 0u) manifold.event_offset = 0u;
+        if (step.ordinary_rigid_stack != 0u && manifold.count != 0u) {
+            const uint color = manifold.color;
+            const uint bit = color < color_round_count ? 1u << color : 0u;
+            if (manifold.cached == 0u || bit == 0u) {
+                atomic_store_explicit(
+                    &valid_cached_colors, 0u, memory_order_relaxed);
+            } else {
+                const uint pair = active_pairs[active];
                 const uint body = pair / step.body_count;
                 const uint collider = pair % step.body_count;
-                const uint bit = color < color_round_count
-                    ? 1u << color : 0u;
-                const uint body_colors = atomic_load_explicit(
-                    color_owners + body, memory_order_relaxed);
-                const uint collider_colors = atomic_load_explicit(
-                    color_owners + collider, memory_order_relaxed);
-                if (manifold.cached == 0u || bit == 0u ||
-                    (body_colors & bit) != 0u ||
-                    (parameters[collider].inverse_mass > 0.0f &&
-                     (collider_colors & bit) != 0u)) {
-                    reuse_colors = 0u;
-                } else {
+                const uint first = atomic_fetch_or_explicit(
+                    color_owners + body, bit, memory_order_relaxed);
+                const uint second = parameters[collider].inverse_mass > 0.0f
+                    ? atomic_fetch_or_explicit(
+                          color_owners + collider, bit, memory_order_relaxed)
+                    : 0u;
+                if (((first | second) & bit) != 0u)
                     atomic_store_explicit(
-                        color_owners + body, body_colors | bit,
-                        memory_order_relaxed);
-                    if (parameters[collider].inverse_mass > 0.0f)
-                        atomic_store_explicit(
-                            color_owners + collider,
-                            collider_colors | bit, memory_order_relaxed);
-                    atomic_store_explicit(
-                        &used_colors,
-                        max(atomic_load_explicit(
-                                &used_colors, memory_order_relaxed),
-                            color + 1u),
-                        memory_order_relaxed);
-                }
+                        &valid_cached_colors, 0u, memory_order_relaxed);
+                atomic_fetch_max_explicit(
+                    &used_colors, color + 1u, memory_order_relaxed);
             }
-            if (manifolds[active_index].face_patch == 0u) continue;
-            iterations = max(iterations, 32u);
-            if (step.ordinary_rigid_stack != 0u &&
-                manifolds[active_index].contacts[0].persistent != 0u &&
-                manifolds[active_index].cached == 0u)
-                iterations = max(iterations, 64u);
+        }
+        if (manifold.face_patch != 0u) {
+            const uint budget = step.ordinary_rigid_stack != 0u &&
+                manifold.contacts[0].persistent != 0u && manifold.cached == 0u
+                ? 64u : 32u;
+            atomic_fetch_max_explicit(
+                &maximum_iterations, budget, memory_order_relaxed);
         }
     }
-    threadgroup_barrier(
-        mem_flags::mem_device | mem_flags::mem_threadgroup);
+    threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup);
+    const uint iterations = atomic_load_explicit(
+        &maximum_iterations, memory_order_relaxed);
+    const uint reuse_colors = atomic_load_explicit(
+        &valid_cached_colors, memory_order_relaxed);
 
     if (reuse_colors == 0u) {
         if (thread_index == 0u)
@@ -4979,11 +5033,11 @@ kernel void pm_rigid_contact_reduce(
         // Build deterministic connected components once.  The following
         // solve kernel assigns one threadgroup to each component, so groups
         // never write the same dynamic body.
+        constexpr uint header = 8u;
+        device uint *parents = island_data + header;
+        device uint *body_islands = parents + step.body_count;
+        device uint *pair_islands = body_islands + step.body_count;
         if (thread_index == 0u) {
-            constexpr uint header = 8u;
-            device uint *parents = island_data + header;
-            device uint *body_islands = parents + step.body_count;
-            device uint *pair_islands = body_islands + step.body_count;
             for (uint body = 0u; body < step.body_count; ++body) {
                 parents[body] = 0xffffffffu;
                 body_islands[body] = 0xffffffffu;
@@ -5010,26 +5064,21 @@ kernel void pm_rigid_contact_reduce(
                 while (parents[second] != second) second = parents[second];
                 if (first != second) parents[max(first, second)] = min(first, second);
             }
-            for (uint body = 0u; body < step.body_count; ++body) {
-                if (parents[body] == 0xffffffffu) continue;
-                uint root = body;
-                while (parents[root] != root) root = parents[root];
-                parents[body] = root;
-            }
+        }
+        threadgroup_barrier(mem_flags::mem_device);
+        // Compute roots without overwriting parents another lane still reads.
+        for (uint body = thread_index; body < step.body_count; body += lane_count) {
+            if (parents[body] == 0xffffffffu) continue;
+            uint root = body;
+            while (parents[root] != root) root = parents[root];
+            body_islands[body] = root;
+        }
+        threadgroup_barrier(mem_flags::mem_device);
+        if (thread_index == 0u) {
+            // Preserve ascending-root island IDs with one linear scan.
             uint island_count = 0u;
-            for (uint body = 0u; body < step.body_count; ++body) {
-                if (parents[body] != body) continue;
-                for (uint member = 0u; member < step.body_count; ++member)
-                    if (parents[member] == body)
-                        body_islands[member] = island_count;
-                ++island_count;
-            }
-            for (uint active_index = 0u;
-                 active_index < active_pair_count; ++active_index) {
-                if (manifolds[active_index].count == 0u) continue;
-                const uint body = active_pairs[active_index] / step.body_count;
-                pair_islands[active_index] = body_islands[body];
-            }
+            for (uint body = 0u; body < step.body_count; ++body)
+                if (parents[body] == body) parents[body] = island_count++;
             island_data[0] = island_count;
             island_data[1] = 1u;
             island_data[2] = 1u;
@@ -5037,6 +5086,14 @@ kernel void pm_rigid_contact_reduce(
             island_data[4] = iterations;
             island_data[5] = has_overflow ? 1u : 0u;
         }
+        threadgroup_barrier(mem_flags::mem_device);
+        for (uint body = thread_index; body < step.body_count; body += lane_count)
+            if (body_islands[body] != 0xffffffffu)
+                body_islands[body] = parents[body_islands[body]];
+        threadgroup_barrier(mem_flags::mem_device);
+        for (uint active = thread_index; active < active_pair_count; active += lane_count)
+            if (manifolds[active].count != 0u)
+                pair_islands[active] = body_islands[active_pairs[active] / step.body_count];
         threadgroup_barrier(mem_flags::mem_device);
         return;
     }

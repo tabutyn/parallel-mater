@@ -803,6 +803,7 @@ struct World::Impl {
     id<MTLComputePipelineState> rigid_contact_cooperative_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_reduce_pipeline{nil};
     id<MTLComputePipelineState> rigid_stack_solve_pipeline{nil};
+    id<MTLComputePipelineState> rigid_contact_match_pipeline{nil};
     id<MTLComputePipelineState> rigid_sleep_update_pipeline{nil};
     id<MTLComputePipelineState> rigid_advance_substep_pipeline{nil};
     id<MTLComputePipelineState> rigid_increment_substep_pipeline{nil};
@@ -1344,6 +1345,8 @@ Status World::create(WorldOptions options, NativeContext context,
                 newFunctionWithName:@"pm_rigid_contact_reduce"];
             id<MTLFunction> rigid_stack_solve_function = [impl->library
                 newFunctionWithName:@"pm_rigid_stack_solve"];
+            id<MTLFunction> rigid_contact_match_function = [impl->library
+                newFunctionWithName:@"pm_rigid_contact_match_cache"];
             id<MTLFunction> rigid_sleep_update_function = [impl->library
                 newFunctionWithName:@"pm_rigid_sleep_update"];
             id<MTLFunction> rigid_clear_function = [impl->library
@@ -1363,6 +1366,7 @@ Status World::create(WorldOptions options, NativeContext context,
                 rigid_contact_cooperative_function == nil ||
                 rigid_contact_reduce_function == nil ||
                 rigid_stack_solve_function == nil ||
+                rigid_contact_match_function == nil ||
                 rigid_sleep_update_function == nil ||
                 rigid_clear_function == nil ||
                 rigid_constraint_function == nil) {
@@ -1457,6 +1461,13 @@ Status World::create(WorldOptions options, NativeContext context,
             if (impl->rigid_stack_solve_pipeline == nil) {
                 return metal_failure(error,
                     "Could not create rigid stack solve pipeline");
+            }
+            impl->rigid_contact_match_pipeline = [impl->device
+                newComputePipelineStateWithFunction:rigid_contact_match_function
+                                             error:&error];
+            if (impl->rigid_contact_match_pipeline == nil) {
+                return metal_failure(error,
+                    "Could not create rigid contact cache matching pipeline");
             }
             impl->rigid_sleep_update_pipeline = [impl->device
                 newComputePipelineStateWithFunction:rigid_sleep_update_function
@@ -3157,7 +3168,8 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                             begin_timing(
                                 encoder, timing_context,
                                 detail::MetalTimingStage::
-                                    rigid_contact_evaluation);
+                                    rigid_contact_evaluation,
+                                ordinary_rigid_stack ? 2U : 1U);
                         [encoder setComputePipelineState:
                                      impl_->rigid_contact_generate_pipeline];
                         [encoder dispatchThreadgroupsWithIndirectBuffer:
@@ -3185,7 +3197,19 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                             begin_timing(
                                 encoder, timing_context,
                                 detail::MetalTimingStage::
-                                    rigid_contact_solve);
+                                    rigid_contact_solve,
+                                ordinary_rigid_stack
+                                    ? (impl_->options.rigid_sleeping ? 4U : 3U)
+                                    : 2U);
+                        [encoder setComputePipelineState:
+                                     impl_->rigid_contact_match_pipeline];
+                        [encoder dispatchThreadgroupsWithIndirectBuffer:
+                                     impl_->rigid_active_pair_count.gpuAddress +
+                                         sizeof(std::uint32_t)
+                            threadsPerThreadgroup:MTLSizeMake(64, 1, 1)];
+                        [encoder barrierAfterEncoderStages:MTLStageDispatch
+                                       beforeEncoderStages:MTLStageDispatch
+                                         visibilityOptions:MTL4VisibilityOptionDevice];
                         [encoder setComputePipelineState:
                                      impl_->rigid_contact_reduce_pipeline];
                         const NSUInteger solve_group_size =
@@ -3205,8 +3229,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                          impl_->rigid_stack_solve_pipeline];
                             const NSUInteger stack_group_size =
                                 std::min<NSUInteger>(
-                                    256, impl_->rigid_stack_solve_pipeline
-                                             .maxTotalThreadsPerThreadgroup);
+                                    thread_count <= 512U ? 128U : 256U,
+                                    impl_->rigid_stack_solve_pipeline
+                                        .maxTotalThreadsPerThreadgroup);
                             [encoder dispatchThreadgroupsWithIndirectBuffer:
                                          impl_->rigid_island_data.gpuAddress
                                 threadsPerThreadgroup:

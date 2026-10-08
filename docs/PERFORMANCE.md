@@ -14,6 +14,81 @@ At 386 bodies CUDA uses its larger-world contact solver, outside the optimized
 32–256-body stack path described below. CUDA larger-stack support remains
 unresolved; the Metal result is recorded separately below.
 
+## Metal collision scheduling and bounds follow-up (Apple M4, 2026-10-08)
+
+A further audit of commit `f9540fa` found avoidable serial work inside the
+API's aggregate contact-solve timer. Cache matching ran in a single
+threadgroup; cached-color validation and iteration selection scanned every
+pair serially; island labeling scanned every body for every island. The
+ordinary solve itself remains the largest remaining cost.
+
+The authored impact replay below was measured twice with interleaved baseline
+and candidate binaries, the interactive gallery closed, and no concurrent GPU
+tests. Scene, timestep, four substeps, solver budgets, and physical acceptance
+thresholds are unchanged.
+
+| Impact run | Before median | After median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 89.42 ms | 73.51 ms | 101.94 ms | 95.46 ms |
+| 2 | 89.25 ms | 73.85 ms | 102.39 ms | 92.65 ms |
+
+This is about 18% less median physics time, or roughly 13.6 simulation steps/s
+during heavy impact. It is still above the 16.7 ms budget for 60 Hz. Both
+candidate runs displaced all 384 bricks independently by more than 5 cm,
+with finite positions, velocities, and orientations.
+
+The paired quiet run improved from 24.96 to 20.18 ms with sleeping disabled
+(p95 25.82 to 21.75 ms). Sleeping rest measured 1.14 ms with all 385 dynamic
+bodies asleep. Held steering measured 1.70 ms with 384 bricks asleep; its GPU
+median was 0.82 ms. Small wall-time differences in sleeping workloads include
+host scheduling latency and should not be treated as fixed frame costs.
+
+Retained backend changes:
+
+- Match cached contacts in an indirect pair-parallel dispatch before contact
+  reduction, preserving the same matching and warm-start formulas.
+- Validate cached colors and select the maximum 8/32/64-pass budget with
+  parallel atomic reductions. The existing all-or-nothing reuse decision,
+  deterministic recoloring, overflow behavior, and convergence threshold stay
+  unchanged.
+- Skip the serial contact-event prefix when events were not requested.
+  Requested events keep their existing ordering and capacity behavior.
+- Label island roots and members in parallel around a linear root-ID scan,
+  preserving ascending-root island IDs and the same contact graph.
+- Reject separated swept oriented bounding boxes before expensive leaf
+  contacts. The union of endpoint projections encloses the same linear vertex
+  motion as the existing triangle sweep; margins and a coordinate-scaled
+  roundoff guard make the rejection conservative. Larger leaf products, deep
+  static sweeps, and constrained/coupled paths keep their existing fallback.
+- Use 128-thread solver groups for ordinary worlds up to 512 bodies; larger
+  worlds keep 256. This adjusts scheduling without reducing solver passes.
+- Report all contact-generation and solve dispatches in the existing API
+  timing counters; the wall regression checks the ordinary-stack counts.
+
+A diagnostic run computed the proposed bounds rejection but still ran the
+original triangle evaluation for all 480 measured impact substeps. It found
+166,019 rejectable pair/substep instances and zero rejected pairs with actual
+contacts. The retained guard additionally includes unprojected coordinates to
+cover cancellation at large coordinates. Diagnostic kernels and readback were
+removed from the final build.
+
+The strict ten-second wall and sleep/wake gates retain the previous measured
+stability, including 0.00197983 m maximum drop, 0.00305891 m displacement,
+0.000976562 rad rotation, 0.00441963 m/s late speed, and 0.000647023 m minimum
+clearance. No rendered geometry, body mass, timestep, collision margin,
+friction, or restitution was simplified.
+
+Rejected probes: threadgroup-local body state and compact per-island work
+lists produced no reliable gain; distributing every color across GPU groups
+increased impact median to 104 ms because dispatch overhead outweighed
+parallelism. Those implementations were removed. Temporary stage probes
+isolated about 9–13 ms of baseline contact preparation, falling to roughly
+3–4 ms after scheduling changes. The final aggregate solve median is
+44–46 ms and contact evaluation about 18 ms; stage medians do not sum to the
+frame median. Further progress needs cheaper contact response or a scheduling
+scheme that spreads a connected solve without thousands of dispatches. These
+results do not establish a hardware limit or full CUDA trajectory parity.
+
 ## Metal steering and impact follow-up (Apple M4, 2026-10-08)
 
 The next audit reproduced the reported slowdown through the public Metal API,
