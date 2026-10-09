@@ -4,7 +4,28 @@ The Metal backend is additive. The CUDA API, `ParallelMater::parallel_mater`
 target, OptiX gallery, and CUDA implementation remain unchanged when
 `PARALLEL_MATER_BUILD_CUDA=ON`.
 
-## Opening gallery scene status
+## AVBD migration status (2026-10-09)
+
+Rigid contacts and joints now use the same numerical AVBD header as CUDA,
+with a Metal geometry/scheduling adapter. The former contact-row, compound
+and guided-projection solve paths are removed. The automatic budget starts at
+ten iterations per phase and can be raised by active authored joints; impact
+correction uses the same body blocks in a second phase. See
+[CONTACT_SOLVER.md](CONTACT_SOLVER.md) for equations, diagnostics and limits.
+
+Rigid sleeping is conservatively disabled while its previous state machinery
+is replaced: sleep options remain accepted, but bodies stay awake. Shared
+graph preparation caches 512 bodies/contacts and 64 joints in 22,016 bytes of
+threadgroup storage; overflow uses the same graph algorithm in device memory.
+
+Linux translated shader syntax, host/shader layouts and graph-cache boundary
+checks pass. These are not native Metal compiler or device tests. The wall,
+sleeping, performance and 29-scene acceptance results below are **historical
+pre-AVBD results** and must be rerun on an Apple host. CUDA numerical tests
+alone do not establish Metal parity; the existing guided-contact collision
+adapter differences also remain.
+
+## Historical opening gallery scene status (pre-AVBD)
 
 The opening `Rigid Body` scene passes its authored physical acceptance gate.
 The asset contains 384 independent bricks plus the sphere and ground (386

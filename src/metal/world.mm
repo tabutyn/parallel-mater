@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/metal.hpp>
+#include <parallel_mater/solver/avbd.hpp>
 
 #include "systems_internal.hpp"
 
@@ -114,6 +115,9 @@ struct ContactRecord {
     float impact_fraction{};
     std::uint32_t persistent{};
     std::uint32_t warm_started{};
+    avbd::Dual avbd_dual[3]{};
+    Vec3 avbd_anchor_a{}, avbd_anchor_b{}, avbd_error{};
+    std::uint32_t avbd_cached{};
 };
 
 struct ContactManifold {
@@ -126,6 +130,7 @@ struct ContactManifold {
     std::uint32_t body_fixed_member{};
     std::uint32_t collider_fixed_member{};
     std::uint32_t cached{};
+    std::uint32_t avbd_next_a{}, avbd_next_b{};
 };
 
 struct CachedContact {
@@ -135,6 +140,8 @@ struct CachedContact {
     float penetration{};
     float normal_impulse{};
     Vec3 friction_impulse{};
+    avbd::Dual avbd_dual[3]{};
+    Vec3 avbd_anchor_a{}, avbd_anchor_b{};
 };
 
 struct CachedContactPair {
@@ -175,8 +182,9 @@ struct StepConstants {
     std::uint32_t collect_rigid_contacts{};
     std::uint32_t rigid_event_capacity{};
     std::uint32_t substeps{};
-    std::uint32_t ordinary_rigid_stack{};
+    std::uint32_t cooperative_contact_generation{};
     std::uint32_t rigid_sleeping{};
+    std::uint32_t rigid_contact_pass_limit{};
 };
 
 struct RigidSleepState {
@@ -218,41 +226,33 @@ struct RigidConstraintResource {
     float angular_maximum_impulse{};
     std::uint32_t solver_iterations{};
     std::uint32_t disable_collisions{};
+    avbd::Row avbd_rows[18]{};
+    std::uint32_t avbd_count{}, avbd_next_a{}, avbd_next_b{};
 };
 
-struct RigidConstraintAxisGeometry {
-    Vec3 axis{};
-    Vec3 inverse_angular_a{};
-    Vec3 inverse_angular_b{};
-    float angular_denominator{};
-    float linear_denominator{};
+struct AvbdBody {
+    RigidBodyState target{};
+    Quaternion current_orientation{};
+    avbd::Vector6 displacement{};
+    avbd::Block inertia{};
+    std::uint32_t contact_head{}, joint_head{}, color{};
+    std::uint32_t parent{}, impact{};
+    Vec3 previous_velocity{};
+    std::uint32_t history_valid{};
 };
-
-struct RigidConstraintGeometry {
-    std::uint32_t valid{};
-    Vec3 arm_a{};
-    Vec3 arm_b{};
-    Vec3 anchor_error{};
-    Vec3 rotation_error{};
-    Vec3 hinge_alignment_error{};
-    Vec3 piston_alignment_error{};
-    RigidConstraintAxisGeometry axes[3]{};
+struct AvbdSchedule {
+    std::uint32_t budget{}, colors{}, maximum_passes{};
+    std::uint32_t candidates{}, contacts{}, islands{}, reserved[2]{};
 };
+static_assert(sizeof(AvbdBody) == 296U);
+static_assert(sizeof(AvbdSchedule) == 32U);
 
-struct RigidCompound {
+struct RigidCollisionGroup {
     std::uint32_t root{};
-    std::uint32_t member_count{};
     std::uint32_t eligible{};
-    std::uint32_t blocked{};
-    Vec3 center{};
-    float inverse_mass{};
-    Vec3 inverse_inertia[3]{};
-    std::uint32_t projection_root{};
-    std::uint32_t projection_movable{};
-    Vec3 projection_translation{};
 };
 
-static_assert(sizeof(RigidCompound) == 88U);
+static_assert(sizeof(RigidCollisionGroup) == 8U);
 
 struct HandleSlot {
     std::uint32_t generation{1};
@@ -279,19 +279,17 @@ struct TriangleMeshStorage {
 static_assert(sizeof(RigidBodyState) == 52U);
 static_assert(sizeof(RigidParameters) == 108U);
 static_assert(sizeof(TriangleMeshInfo) == 72U);
-static_assert(sizeof(ContactRecord) == 64U);
-static_assert(sizeof(ContactManifold) == 552U);
-static_assert(sizeof(CachedContact) == 56U);
-static_assert(sizeof(CachedContactPair) == 488U);
+static_assert(sizeof(ContactRecord) == 128U);
+static_assert(sizeof(ContactManifold) == 1072U);
+static_assert(sizeof(CachedContact) == 104U);
+static_assert(sizeof(CachedContactPair) == 872U);
 static_assert(sizeof(BvhNode) == 40U);
 static_assert(sizeof(MeshLeafInfo) == 8U);
 static_assert(sizeof(WorldAabb) == 24U);
-static_assert(sizeof(StepConstants) == 44U);
+static_assert(sizeof(StepConstants) == 48U);
 static_assert(sizeof(RigidBodyId) == 8U);
 static_assert(sizeof(RigidContactEvent) == 60U);
-static_assert(sizeof(RigidConstraintResource) == 236U);
-static_assert(sizeof(RigidConstraintAxisGeometry) == 44U);
-static_assert(sizeof(RigidConstraintGeometry) == 208U);
+static_assert(sizeof(RigidConstraintResource) == 1832U);
 
 bool completion_ready(const std::shared_ptr<CompletionState> &state) noexcept {
     if (!state) {
@@ -792,8 +790,7 @@ struct World::Impl {
     id<MTLLibrary> library{nil};
     id<MTLComputePipelineState> noop_pipeline{nil};
     id<MTLComputePipelineState> rigid_integrate_pipeline{nil};
-    id<MTLComputePipelineState> rigid_compound_pipeline{nil};
-    id<MTLComputePipelineState> rigid_constraint_pipeline{nil};
+    id<MTLComputePipelineState> rigid_collision_groups_pipeline{nil};
     id<MTLComputePipelineState> rigid_world_bounds_pipeline{nil};
     id<MTLComputePipelineState> rigid_pair_filter_pipeline{nil};
     id<MTLComputePipelineState> rigid_pair_count_rows_pipeline{nil};
@@ -801,10 +798,9 @@ struct World::Impl {
     id<MTLComputePipelineState> rigid_pair_scatter_rows_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_generate_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_cooperative_pipeline{nil};
-    id<MTLComputePipelineState> rigid_contact_reduce_pipeline{nil};
-    id<MTLComputePipelineState> rigid_stack_solve_pipeline{nil};
+    id<MTLComputePipelineState> rigid_avbd_prepare_pipeline{nil};
+    id<MTLComputePipelineState> rigid_avbd_solve_pipeline{nil};
     id<MTLComputePipelineState> rigid_contact_match_pipeline{nil};
-    id<MTLComputePipelineState> rigid_sleep_update_pipeline{nil};
     id<MTLComputePipelineState> rigid_advance_substep_pipeline{nil};
     id<MTLComputePipelineState> rigid_increment_substep_pipeline{nil};
     id<MTLComputePipelineState> rigid_clear_pipeline{nil};
@@ -830,9 +826,8 @@ struct World::Impl {
     id<MTLBuffer> contact_records{nil};
     id<MTLBuffer> rigid_contact_cache{nil};
     id<MTLBuffer> rigid_contact_epoch_buffer{nil};
-    id<MTLBuffer> rigid_island_data{nil};
+    id<MTLBuffer> rigid_avbd_schedule{nil};
     id<MTLBuffer> rigid_sleep_states{nil};
-    id<MTLBuffer> rigid_color_owners{nil};
     id<MTLBuffer> rigid_world_bounds{nil};
     id<MTLBuffer> rigid_pair_flags{nil};
     id<MTLBuffer> rigid_active_pairs{nil};
@@ -840,8 +835,8 @@ struct World::Impl {
     id<MTLBuffer> rigid_pair_row_offsets{nil};
     id<MTLBuffer> rigid_substep_index{nil};
     id<MTLBuffer> rigid_constraints{nil};
-    id<MTLBuffer> rigid_constraint_geometry{nil};
-    id<MTLBuffer> rigid_compounds{nil};
+    id<MTLBuffer> rigid_avbd_bodies{nil};
+    id<MTLBuffer> rigid_collision_groups{nil};
     id<MTLBuffer> rigid_contact_events{nil};
     id<MTLBuffer> rigid_contact_count_buffer{nil};
 
@@ -1321,8 +1316,8 @@ Status World::create(WorldOptions options, NativeContext context,
 
             id<MTLFunction> rigid_integrate_function =
                 [impl->library newFunctionWithName:@"pm_rigid_integrate"];
-            id<MTLFunction> rigid_compound_function =
-                [impl->library newFunctionWithName:@"pm_build_rigid_compounds"];
+            id<MTLFunction> rigid_collision_groups_function =
+                [impl->library newFunctionWithName:@"pm_avbd_collision_groups"];
             id<MTLFunction> rigid_world_bounds_function = [impl->library
                 newFunctionWithName:@"pm_rigid_world_bounds"];
             id<MTLFunction> rigid_pair_filter_function = [impl->library
@@ -1341,20 +1336,16 @@ Status World::create(WorldOptions options, NativeContext context,
                 newFunctionWithName:@"pm_rigid_contact_generate"];
             id<MTLFunction> rigid_contact_cooperative_function = [impl->library
                 newFunctionWithName:@"pm_rigid_contact_generate_cooperative"];
-            id<MTLFunction> rigid_contact_reduce_function = [impl->library
-                newFunctionWithName:@"pm_rigid_contact_reduce"];
-            id<MTLFunction> rigid_stack_solve_function = [impl->library
-                newFunctionWithName:@"pm_rigid_stack_solve"];
+            id<MTLFunction> rigid_avbd_prepare_function = [impl->library
+                newFunctionWithName:@"pm_avbd_prepare"];
+            id<MTLFunction> rigid_avbd_solve_function = [impl->library
+                newFunctionWithName:@"pm_avbd_solve"];
             id<MTLFunction> rigid_contact_match_function = [impl->library
                 newFunctionWithName:@"pm_rigid_contact_match_cache"];
-            id<MTLFunction> rigid_sleep_update_function = [impl->library
-                newFunctionWithName:@"pm_rigid_sleep_update"];
             id<MTLFunction> rigid_clear_function = [impl->library
                 newFunctionWithName:@"pm_rigid_clear_accumulators"];
-            id<MTLFunction> rigid_constraint_function = [impl->library
-                newFunctionWithName:@"pm_rigid_constraints_serial"];
             if (rigid_integrate_function == nil ||
-                rigid_compound_function == nil ||
+                rigid_collision_groups_function == nil ||
                 rigid_world_bounds_function == nil ||
                 rigid_pair_filter_function == nil ||
                 rigid_pair_count_rows_function == nil ||
@@ -1364,12 +1355,10 @@ Status World::create(WorldOptions options, NativeContext context,
                 rigid_increment_substep_function == nil ||
                 rigid_contact_generate_function == nil ||
                 rigid_contact_cooperative_function == nil ||
-                rigid_contact_reduce_function == nil ||
-                rigid_stack_solve_function == nil ||
+                rigid_avbd_prepare_function == nil ||
+                rigid_avbd_solve_function == nil ||
                 rigid_contact_match_function == nil ||
-                rigid_sleep_update_function == nil ||
-                rigid_clear_function == nil ||
-                rigid_constraint_function == nil) {
+                rigid_clear_function == nil) {
                 return metal_failure(nil,
                                      "Embedded Metal rigid kernels are missing");
             }
@@ -1380,12 +1369,12 @@ Status World::create(WorldOptions options, NativeContext context,
                 return metal_failure(error,
                                      "Could not create rigid integration pipeline");
             }
-            impl->rigid_compound_pipeline = [impl->device
-                newComputePipelineStateWithFunction:rigid_compound_function
+            impl->rigid_collision_groups_pipeline = [impl->device
+                newComputePipelineStateWithFunction:rigid_collision_groups_function
                                              error:&error];
-            if (impl->rigid_compound_pipeline == nil) {
+            if (impl->rigid_collision_groups_pipeline == nil) {
                 return metal_failure(
-                    error, "Could not create rigid compound pipeline");
+                    error, "Could not create rigid collision-group pipeline");
             }
             impl->rigid_world_bounds_pipeline = [impl->device
                 newComputePipelineStateWithFunction:rigid_world_bounds_function
@@ -1426,13 +1415,6 @@ Status World::create(WorldOptions options, NativeContext context,
                 return metal_failure(
                     error, "Could not create rigid substep pipeline");
             }
-            impl->rigid_constraint_pipeline = [impl->device
-                newComputePipelineStateWithFunction:rigid_constraint_function
-                                             error:&error];
-            if (impl->rigid_constraint_pipeline == nil) {
-                return metal_failure(
-                    error, "Could not create rigid constraint pipeline");
-            }
             impl->rigid_contact_generate_pipeline = [impl->device
                 newComputePipelineStateWithFunction:
                     rigid_contact_generate_function
@@ -1448,19 +1430,19 @@ Status World::create(WorldOptions options, NativeContext context,
                 return metal_failure(error,
                     "Could not create cooperative contact pipeline");
             }
-            impl->rigid_contact_reduce_pipeline = [impl->device
-                newComputePipelineStateWithFunction:rigid_contact_reduce_function
+            impl->rigid_avbd_prepare_pipeline = [impl->device
+                newComputePipelineStateWithFunction:rigid_avbd_prepare_function
                                              error:&error];
-            if (impl->rigid_contact_reduce_pipeline == nil) {
+            if (impl->rigid_avbd_prepare_pipeline == nil) {
                 return metal_failure(error,
-                    "Could not create rigid contact reduction pipeline");
+                    "Could not create rigid AVBD preparation pipeline");
             }
-            impl->rigid_stack_solve_pipeline = [impl->device
-                newComputePipelineStateWithFunction:rigid_stack_solve_function
+            impl->rigid_avbd_solve_pipeline = [impl->device
+                newComputePipelineStateWithFunction:rigid_avbd_solve_function
                                              error:&error];
-            if (impl->rigid_stack_solve_pipeline == nil) {
+            if (impl->rigid_avbd_solve_pipeline == nil) {
                 return metal_failure(error,
-                    "Could not create rigid stack solve pipeline");
+                    "Could not create rigid AVBD solve pipeline");
             }
             impl->rigid_contact_match_pipeline = [impl->device
                 newComputePipelineStateWithFunction:rigid_contact_match_function
@@ -1468,13 +1450,6 @@ Status World::create(WorldOptions options, NativeContext context,
             if (impl->rigid_contact_match_pipeline == nil) {
                 return metal_failure(error,
                     "Could not create rigid contact cache matching pipeline");
-            }
-            impl->rigid_sleep_update_pipeline = [impl->device
-                newComputePipelineStateWithFunction:rigid_sleep_update_function
-                                             error:&error];
-            if (impl->rigid_sleep_update_pipeline == nil) {
-                return metal_failure(error,
-                    "Could not create rigid sleep update pipeline");
             }
             impl->rigid_clear_pipeline = [impl->device
                 newComputePipelineStateWithFunction:rigid_clear_function
@@ -1565,17 +1540,12 @@ Status World::create(WorldOptions options, NativeContext context,
                            options:shared];
             impl->rigid_contact_epoch_buffer = [impl->device
                 newBufferWithLength:sizeof(std::uint64_t) options:shared];
-            impl->rigid_island_data = [impl->device
-                newBufferWithLength:(8U + 2U * body_capacity +
-                                     static_cast<NSUInteger>(pair_capacity)) *
-                                        sizeof(std::uint32_t)
-                           options:MTLResourceStorageModePrivate];
+            impl->rigid_avbd_schedule = [impl->device
+                newBufferWithLength:sizeof(AvbdSchedule)
+                           options:shared];
             impl->rigid_sleep_states = [impl->device
                 newBufferWithLength:body_capacity * sizeof(RigidSleepState)
                            options:shared];
-            impl->rigid_color_owners = [impl->device
-                newBufferWithLength:body_capacity * sizeof(std::uint32_t)
-                           options:MTLResourceStorageModePrivate];
             impl->rigid_world_bounds = [impl->device
                 newBufferWithLength:body_capacity * sizeof(WorldAabb)
                            options:MTLResourceStorageModePrivate];
@@ -1604,15 +1574,11 @@ Status World::create(WorldOptions options, NativeContext context,
                                             options.rigid_constraint_capacity) *
                                             sizeof(RigidConstraintResource))
                            options:shared];
-            impl->rigid_constraint_geometry = [impl->device
-                newBufferWithLength:std::max<NSUInteger>(
-                                        sizeof(RigidConstraintGeometry),
-                                        static_cast<NSUInteger>(
-                                            options.rigid_constraint_capacity) *
-                                            sizeof(RigidConstraintGeometry))
-                           options:MTLResourceStorageModePrivate];
-            impl->rigid_compounds = [impl->device
-                newBufferWithLength:body_capacity * sizeof(RigidCompound)
+            impl->rigid_avbd_bodies = [impl->device
+                newBufferWithLength:body_capacity * sizeof(AvbdBody)
+                           options:shared];
+            impl->rigid_collision_groups = [impl->device
+                newBufferWithLength:body_capacity * sizeof(RigidCollisionGroup)
                            options:MTLResourceStorageModePrivate];
             impl->rigid_contact_events = [impl->device
                 newBufferWithLength:std::max<NSUInteger>(
@@ -1636,17 +1602,16 @@ Status World::create(WorldOptions options, NativeContext context,
                 impl->contact_records == nil ||
                 impl->rigid_contact_cache == nil ||
                 impl->rigid_contact_epoch_buffer == nil ||
-                impl->rigid_island_data == nil ||
+                impl->rigid_avbd_schedule == nil ||
                 impl->rigid_sleep_states == nil ||
-                impl->rigid_color_owners == nil ||
                 impl->rigid_world_bounds == nil ||
                 impl->rigid_pair_flags == nil ||
                 impl->rigid_active_pairs == nil ||
                 impl->rigid_active_pair_count == nil ||
                 impl->rigid_pair_row_offsets == nil ||
                 impl->rigid_substep_index == nil ||
-                impl->rigid_constraint_geometry == nil ||
-                impl->rigid_compounds == nil) {
+                impl->rigid_avbd_bodies == nil ||
+                impl->rigid_collision_groups == nil) {
                 return metal_failure(nil,
                                      "Could not allocate fixed rigid buffers");
             }
@@ -1686,6 +1651,7 @@ Status World::create(WorldOptions options, NativeContext context,
                         impl->rigid_contact_cache.length);
             std::memset(impl->rigid_contact_epoch_buffer.contents, 0,
                         impl->rigid_contact_epoch_buffer.length);
+            std::memset(impl->rigid_avbd_bodies.contents, 0, impl->rigid_avbd_bodies.length);
             std::memset(impl->rigid_sleep_states.contents, 0,
                         impl->rigid_sleep_states.length);
             std::memset(impl->rigid_substep_index.contents, 0,
@@ -1759,9 +1725,6 @@ Status World::create(WorldOptions options, NativeContext context,
                 setAddress:impl->rigid_previous_states.gpuAddress
                    atIndex:14];
             [impl->rigid_argument_table
-                setAddress:impl->rigid_color_owners.gpuAddress
-                   atIndex:15];
-            [impl->rigid_argument_table
                 setAddress:impl->rigid_world_bounds.gpuAddress
                    atIndex:16];
             [impl->rigid_argument_table
@@ -1780,7 +1743,7 @@ Status World::create(WorldOptions options, NativeContext context,
                 setAddress:impl->rigid_pair_row_offsets.gpuAddress
                    atIndex:21];
             [impl->rigid_argument_table
-                setAddress:impl->rigid_constraint_geometry.gpuAddress
+                setAddress:impl->rigid_avbd_bodies.gpuAddress
                    atIndex:22];
             [impl->rigid_argument_table
                 setAddress:impl->mesh_leaf_infos.gpuAddress
@@ -1789,7 +1752,7 @@ Status World::create(WorldOptions options, NativeContext context,
                 setAddress:impl->mesh_bvh_leaves.gpuAddress
                    atIndex:24];
             [impl->rigid_argument_table
-                setAddress:impl->rigid_compounds.gpuAddress
+                setAddress:impl->rigid_collision_groups.gpuAddress
                    atIndex:25];
             [impl->rigid_argument_table
                 setAddress:impl->mesh_solid_planes.gpuAddress
@@ -1801,7 +1764,7 @@ Status World::create(WorldOptions options, NativeContext context,
                 setAddress:impl->rigid_contact_epoch_buffer.gpuAddress
                    atIndex:28];
             [impl->rigid_argument_table
-                setAddress:impl->rigid_island_data.gpuAddress
+                setAddress:impl->rigid_avbd_schedule.gpuAddress
                    atIndex:29];
             [impl->rigid_argument_table
                 setAddress:impl->rigid_sleep_states.gpuAddress
@@ -1826,21 +1789,22 @@ Status World::create(WorldOptions options, NativeContext context,
                 impl->rigid_torques,    impl->step_constants,
                 impl->mesh_vertices,    impl->mesh_indices,
                 impl->mesh_infos,       impl->contact_records,
-                impl->rigid_color_owners,
                 impl->rigid_world_bounds, impl->rigid_pair_flags,
                 impl->rigid_active_pairs, impl->rigid_active_pair_count,
                 impl->rigid_pair_row_offsets,
                 impl->rigid_substep_index,
-                impl->rigid_constraints, impl->rigid_constraint_geometry,
+                impl->rigid_constraints, impl->rigid_avbd_bodies,
                 impl->rigid_contact_events,
                 impl->rigid_contact_count_buffer, impl->mesh_bvh_nodes,
                 impl->mesh_solid_planes, impl->mesh_leaf_infos,
-                impl->mesh_bvh_leaves, impl->rigid_compounds,
+                impl->mesh_bvh_leaves, impl->rigid_collision_groups,
                 impl->rigid_contact_cache,
                 impl->rigid_contact_epoch_buffer,
-                impl->rigid_island_data,
+                impl->rigid_avbd_schedule,
                 impl->rigid_sleep_states};
-            [impl->residency_set addAllocations:allocations count:32];
+            [impl->residency_set
+                addAllocations:allocations
+                          count:sizeof(allocations) / sizeof(allocations[0])];
             [impl->residency_set commit];
 
             const Status system_status = detail::MetalSystems::create(
@@ -2241,6 +2205,7 @@ Status World::add_rigid_body(RigidBodyOptions options,
     auto *torques = static_cast<Vec3 *>(impl_->rigid_torques.contents);
 
     ids[dense_index] = id;
+    static_cast<AvbdBody *>(impl_->rigid_avbd_bodies.contents)[dense_index] = {};
     states[dense_index] = options.initial_state;
     states[dense_index].orientation =
         normalized(states[dense_index].orientation);
@@ -2330,6 +2295,8 @@ Status World::remove_rigid_body(RigidBodyId body) noexcept {
     auto *torques = static_cast<Vec3 *>(impl_->rigid_torques.contents);
     const std::uint32_t last = impl_->rigid_body_count - 1;
     if (dense_index != last) {
+        auto *history = static_cast<AvbdBody *>(impl_->rigid_avbd_bodies.contents);
+        history[dense_index] = history[last];
         ids[dense_index] = ids[last];
         states[dense_index] = states[last];
         parameters[dense_index] = parameters[last];
@@ -2379,6 +2346,7 @@ Status World::set_rigid_body_state(RigidBodyId body,
         return invalid_handle("Rigid body handle is stale");
     }
     state.orientation = normalized(state.orientation);
+    static_cast<AvbdBody *>(impl_->rigid_avbd_bodies.contents)[dense_index].history_valid = 0U;
     static_cast<RigidBodyState *>(impl_->rigid_states.contents)[dense_index] =
         state;
     static_cast<Vec3 *>(impl_->rigid_forces.contents)[dense_index] = {};
@@ -2388,6 +2356,14 @@ Status World::set_rigid_body_state(RigidBodyId body,
     static_cast<RigidParameters *>(impl_->rigid_parameters.contents)
         [dense_index]
             .has_kinematic_target = 0;
+    auto *constraints = static_cast<RigidConstraintResource *>(impl_->rigid_constraints.contents);
+    for (std::uint32_t index = 0U; index < impl_->options.rigid_constraint_capacity; ++index) {
+        auto &joint = constraints[index];
+        if (joint.alive != 0U && (joint.body_a == dense_index || joint.body_b == dense_index)) {
+            for (auto &row : joint.avbd_rows) row = {};
+            joint.avbd_count = 0U;
+        }
+    }
     impl_->systems.invalidate_smoke_grid_static_metadata();
     ++impl_->revision;
     return success();
@@ -2717,6 +2693,8 @@ Status World::add_rigid_constraint(
     options.local_orientation_a = normalized(options.local_orientation_a);
     options.local_orientation_b = normalized(options.local_orientation_b);
     RigidConstraintResource &resource = resources[slot];
+    for (auto &row : resource.avbd_rows) row = {};
+    resource.avbd_count = 0U;
     if (resource.generation == 0U) resource.generation = 1U;
     resource.alive = 1U;
     resource.type = static_cast<std::uint32_t>(options.type);
@@ -2784,6 +2762,13 @@ Status World::update_rigid_constraint(
     }
     options.local_orientation_a = normalized(options.local_orientation_a);
     options.local_orientation_b = normalized(options.local_orientation_b);
+    const bool retain_contact_cache = impl_->rigid_contact_revision == impl_->revision &&
+        resource->type == static_cast<std::uint32_t>(options.type) &&
+        resource->body_a == body_a && resource->body_b == body_b &&
+        resource->enabled == (options.enabled ? 1U : 0U) && resource->broken == 0U &&
+        resource->disable_collisions == (options.disable_collisions ? 1U : 0U);
+    for (auto &row : resource->avbd_rows) row = {};
+    resource->avbd_count = 0U;
     resource->type = static_cast<std::uint32_t>(options.type);
     resource->body_a = body_a;
     resource->body_b = body_b;
@@ -2817,6 +2802,7 @@ Status World::update_rigid_constraint(
     resource->disable_collisions = options.disable_collisions ? 1U : 0U;
     impl_->rigid_constraint_options[constraint.index] = options;
     ++impl_->revision;
+    if (retain_contact_cache) impl_->rigid_contact_revision = impl_->revision;
     return success();
 }
 
@@ -2833,14 +2819,8 @@ Status World::remove_rigid_constraint(RigidConstraintId constraint) noexcept {
     resource->applied_impulse = 0.0F;
     if (++resource->generation == 0U) resource->generation = 1U;
     --impl_->rigid_constraint_count;
-    // Compound data is rebuilt by the GPU while any constraint remains.
-    // Removing the last constraint skips that pass, so explicitly discard
-    // the derived state before the next broad phase. Otherwise bodies from
-    // the former compound remain collision-filtered indefinitely.
-    if (impl_->rigid_constraint_count == 0U) {
-        std::memset(impl_->rigid_compounds.contents, 0,
-                    impl_->rigid_compounds.length);
-    }
+    // Collision groups are rebuilt before every broad phase, including after
+    // removing the last joint. Private GPU storage has no CPU .contents.
     ++impl_->revision;
     return success();
 }
@@ -2875,9 +2855,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
     }
     if (!(options.timestep > 0.0F) || !std::isfinite(options.timestep) ||
         options.substeps == 0 || options.substeps > 1'024U ||
-        !finite(options.gravity)) {
+        !finite(options.gravity) || options.rigid_contact_pass_limit > 64U) {
         return invalid_argument(
-            "StepOptions require a finite positive timestep and substeps");
+            "StepOptions require valid timestep, substeps, gravity and contact pass limit");
     }
     options.substeps =
         impl_->systems.required_substeps(options.timestep, options.substeps);
@@ -2923,6 +2903,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                 const Vec3 impulse = impl_->pending_impulses[index];
                 const Vec3 angular_impulse =
                     impl_->pending_angular_impulses[index];
+                // Conservative migration policy: no body remains asleep while
+                // AVBD's graph-wide sleep/wake policy is not implemented yet.
+                sleep_states[index] = {};
                 if (impl_->options.rigid_sleeping) {
                     // A steady supported load may sleep. Wake on changes in
                     // net acceleration, not on repeated gravity compensation.
@@ -3021,10 +3004,6 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                 return metal_failure(nil,
                                      "Could not create Metal 4 compute encoder");
             }
-            const bool ordinary_rigid_stack =
-                impl_->rigid_body_count >= 32U &&
-                impl_->rigid_constraint_count == 0U &&
-                impl_->systems.empty();
             if (impl_->rigid_body_count == 0 && impl_->systems.empty()) {
                 [encoder setComputePipelineState:impl_->noop_pipeline];
                 [encoder dispatchThreads:MTLSizeMake(1, 1, 1)
@@ -3046,11 +3025,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                       : 0U,
                                   impl_->options.contact_capacity,
                                   options.substeps,
-                                  ordinary_rigid_stack ? 1U : 0U,
-                                  ordinary_rigid_stack &&
-                                          impl_->options.rigid_sleeping
-                                      ? 1U
-                                      : 0U};
+                                  1U, // Cooperative collision generation for every AVBD graph.
+                                  0U, // AVBD sleeping requires its own graph-wide wake policy.
+                                  options.rigid_contact_pass_limit};
                     [encoder setArgumentTable:impl_->rigid_argument_table];
                 }
                 impl_->systems.encode(
@@ -3064,7 +3041,7 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                         detail::MetalTimingRecord *integration_timing =
                             begin_timing(
                                 encoder, timing_context,
-                                detail::MetalTimingStage::rigid_integration);
+                                detail::MetalTimingStage::rigid_integration, 2U);
                         [encoder setArgumentTable:impl_->rigid_argument_table];
                         [encoder setComputePipelineState:
                                      impl_->rigid_integrate_pipeline];
@@ -3074,11 +3051,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                        beforeEncoderStages:MTLStageDispatch
                                          visibilityOptions:
                                              MTL4VisibilityOptionDevice];
-                        end_timing(encoder, timing_context,
-                                   integration_timing);
-                        if (impl_->rigid_constraint_count != 0U) {
+                        {
                             [encoder setComputePipelineState:
-                                         impl_->rigid_compound_pipeline];
+                                         impl_->rigid_collision_groups_pipeline];
                             [encoder dispatchThreads:MTLSizeMake(1, 1, 1)
                                 threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
                             [encoder barrierAfterEncoderStages:MTLStageDispatch
@@ -3086,6 +3061,7 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                              visibilityOptions:
                                                  MTL4VisibilityOptionDevice];
                         }
+                        end_timing(encoder, timing_context, integration_timing);
                         detail::MetalTimingRecord *bounds_timing =
                             begin_timing(
                                 encoder, timing_context,
@@ -3169,7 +3145,7 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                 encoder, timing_context,
                                 detail::MetalTimingStage::
                                     rigid_contact_evaluation,
-                                ordinary_rigid_stack ? 2U : 1U);
+                                2U);
                         [encoder setComputePipelineState:
                                      impl_->rigid_contact_generate_pipeline];
                         [encoder dispatchThreadgroupsWithIndirectBuffer:
@@ -3180,7 +3156,7 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                        beforeEncoderStages:MTLStageDispatch
                                          visibilityOptions:
                                              MTL4VisibilityOptionDevice];
-                        if (ordinary_rigid_stack) {
+                        {
                             [encoder setComputePipelineState:
                                          impl_->rigid_contact_cooperative_pipeline];
                             [encoder dispatchThreadgroupsWithIndirectBuffer:
@@ -3198,9 +3174,7 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                 encoder, timing_context,
                                 detail::MetalTimingStage::
                                     rigid_contact_solve,
-                                ordinary_rigid_stack
-                                    ? (impl_->options.rigid_sleeping ? 4U : 3U)
-                                    : 2U);
+                                3U);
                         [encoder setComputePipelineState:
                                      impl_->rigid_contact_match_pipeline];
                         [encoder dispatchThreadgroupsWithIndirectBuffer:
@@ -3211,10 +3185,10 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                        beforeEncoderStages:MTLStageDispatch
                                          visibilityOptions:MTL4VisibilityOptionDevice];
                         [encoder setComputePipelineState:
-                                     impl_->rigid_contact_reduce_pipeline];
+                                     impl_->rigid_avbd_prepare_pipeline];
                         const NSUInteger solve_group_size =
                             std::min<NSUInteger>(
-                                256, impl_->rigid_contact_reduce_pipeline
+                                256, impl_->rigid_avbd_prepare_pipeline
                                          .maxTotalThreadsPerThreadgroup);
                         [encoder dispatchThreads:
                                      MTLSizeMake(solve_group_size, 1, 1)
@@ -3224,60 +3198,16 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                                        beforeEncoderStages:MTLStageDispatch
                                          visibilityOptions:
                                              MTL4VisibilityOptionDevice];
-                        if (ordinary_rigid_stack) {
-                            [encoder setComputePipelineState:
-                                         impl_->rigid_stack_solve_pipeline];
-                            const NSUInteger stack_group_size =
-                                std::min<NSUInteger>(
-                                    thread_count <= 512U ? 128U : 256U,
-                                    impl_->rigid_stack_solve_pipeline
-                                        .maxTotalThreadsPerThreadgroup);
-                            [encoder dispatchThreadgroupsWithIndirectBuffer:
-                                         impl_->rigid_island_data.gpuAddress
-                                threadsPerThreadgroup:
-                                    MTLSizeMake(stack_group_size, 1, 1)];
-                            [encoder barrierAfterEncoderStages:MTLStageDispatch
-                                           beforeEncoderStages:MTLStageDispatch
-                                             visibilityOptions:
-                                                 MTL4VisibilityOptionDevice];
-                            if (impl_->options.rigid_sleeping) {
-                                [encoder setComputePipelineState:
-                                             impl_->rigid_sleep_update_pipeline];
-                                const NSUInteger sleep_group_size =
-                                    std::min<NSUInteger>(
-                                        256,
-                                        impl_->rigid_sleep_update_pipeline
-                                            .maxTotalThreadsPerThreadgroup);
-                                [encoder dispatchThreads:
-                                             MTLSizeMake(sleep_group_size, 1, 1)
-                                    threadsPerThreadgroup:
-                                        MTLSizeMake(sleep_group_size, 1, 1)];
-                                [encoder barrierAfterEncoderStages:
-                                             MTLStageDispatch
-                                               beforeEncoderStages:
-                                                   MTLStageDispatch
-                                                 visibilityOptions:
-                                                     MTL4VisibilityOptionDevice];
-                            }
-                        }
+                        [encoder setComputePipelineState:
+                                     impl_->rigid_avbd_solve_pipeline];
+                        const NSUInteger avbd_group_size = std::min<NSUInteger>(
+                            256, impl_->rigid_avbd_solve_pipeline.maxTotalThreadsPerThreadgroup);
+                        [encoder dispatchThreads:MTLSizeMake(avbd_group_size, 1, 1)
+                            threadsPerThreadgroup:MTLSizeMake(avbd_group_size, 1, 1)];
+                        [encoder barrierAfterEncoderStages:MTLStageDispatch
+                                       beforeEncoderStages:MTLStageDispatch
+                                         visibilityOptions:MTL4VisibilityOptionDevice];
                         end_timing(encoder, timing_context, solve_timing);
-                        if (impl_->rigid_constraint_count != 0U) {
-                            detail::MetalTimingRecord *constraint_timing =
-                                begin_timing(
-                                    encoder, timing_context,
-                                    detail::MetalTimingStage::
-                                        rigid_contact_solve);
-                            [encoder setComputePipelineState:
-                                         impl_->rigid_constraint_pipeline];
-                            [encoder dispatchThreads:MTLSizeMake(1, 1, 1)
-                                threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
-                            [encoder barrierAfterEncoderStages:MTLStageDispatch
-                                           beforeEncoderStages:MTLStageDispatch
-                                             visibilityOptions:
-                                                 MTL4VisibilityOptionDevice];
-                            end_timing(encoder, timing_context,
-                                       constraint_timing);
-                        }
                         [encoder setComputePipelineState:
                                      impl_->rigid_advance_substep_pipeline];
                         [encoder dispatchThreadgroupsWithIndirectBuffer:
@@ -3381,11 +3311,9 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
             impl_->timing_record_count = timing_context.record_count;
             ++impl_->frame_index;
             ++impl_->revision;
-            // Preserve CUDA-style adjacent-frame warm starts for ordinary
-            // unconstrained rigid stacks. Any public resource/state mutation
-            // advances revision again and invalidates the cache next frame.
-            if (ordinary_rigid_stack)
-                impl_->rigid_contact_revision = impl_->revision;
+            // Every rigid scene uses the same AVBD force/penalty cache.
+            // Public resource/state mutation advances revision and invalidates it.
+            impl_->rigid_contact_revision = impl_->revision;
             return success();
         } catch (const std::bad_alloc &) {
             return out_of_memory("Could not allocate Metal frame completion state");
@@ -3575,6 +3503,15 @@ Status World::collect_statistics(WorldStatistics &output) const noexcept {
         output.sleeping_rigid_body_count +=
             sleep_states[body].asleep != 0U ? 1U : 0U;
     output.rigid_constraint_count = impl_->rigid_constraint_count;
+    if (impl_->frame_index != 0U && impl_->rigid_body_count != 0U) {
+        const auto &schedule = *static_cast<const AvbdSchedule *>(impl_->rigid_avbd_schedule.contents);
+        output.rigid_contact_island_count = schedule.islands;
+        output.rigid_contact_maximum_passes = schedule.maximum_passes;
+        output.rigid_contact_color_count = schedule.colors;
+        output.rigid_contact_grid_blocks = 1U;
+        output.rigid_contact_candidate_pairs = schedule.candidates;
+        output.rigid_contact_live_pairs = schedule.contacts;
+    }
     output.triangle_mesh_count = impl_->triangle_mesh_count;
     impl_->systems.collect_statistics(output);
     const ContactDeviceView fluid_contacts =
@@ -3594,17 +3531,16 @@ Status World::collect_statistics(WorldStatistics &output) const noexcept {
         impl_->mesh_bvh_leaves.length + impl_->mesh_solid_planes.length +
         impl_->contact_records.length + impl_->rigid_contact_cache.length +
         impl_->rigid_contact_epoch_buffer.length +
-        impl_->rigid_island_data.length +
+        impl_->rigid_avbd_schedule.length +
         impl_->rigid_sleep_states.length +
-        impl_->rigid_color_owners.length +
         impl_->rigid_world_bounds.length + impl_->rigid_pair_flags.length +
         impl_->rigid_active_pairs.length +
         impl_->rigid_active_pair_count.length +
         impl_->rigid_pair_row_offsets.length +
         impl_->rigid_substep_index.length +
         impl_->rigid_constraints.length +
-        impl_->rigid_constraint_geometry.length +
-        impl_->rigid_compounds.length +
+        impl_->rigid_avbd_bodies.length +
+        impl_->rigid_collision_groups.length +
         impl_->rigid_contact_events.length +
         impl_->rigid_contact_count_buffer.length +
         impl_->systems.allocated_bytes());

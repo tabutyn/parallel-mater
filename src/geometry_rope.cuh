@@ -423,6 +423,61 @@ __device__ void rope_contact_move(RopeData r,unsigned node,Vec3 impulse,int firs
     if(body<0)r.positions[node]=add(r.positions[node],multiply(impulse,rope_node_weight(r,node,first,last)));
     else rope_accumulate_body(r,body,impulse,rotate(states[body].orientation,rope_anchor_local(r,node)),parameters,states);
 }
+// A positional contact must share the same support-reduced mass in its
+// denominator and movement. Otherwise a ball resting on rope pushes the much
+// lighter rope through the floor and BDF turns recovery into a bounce. Keep
+// velocity/soft-contact helpers above full-mass: their systems differ.
+__device__ unsigned rope_contact_support(RopeData r,unsigned node,Vec3 impulse) {
+    return (length_squared(r.normals[node])>0.5F && dot(impulse,r.normals[node])<=0 ? 1U:0U) |
+        (length_squared(r.normals2[node])>0.5F && dot(impulse,r.normals2[node])<=0 ? 2U:0U);
+}
+__device__ Vec3 rope_contact_project(RopeData r,unsigned node,Vec3 value,unsigned support) {
+    if(support==0)return value;
+    const Vec3 n=(support&1U)?r.normals[node]:((support&2U)?r.normals2[node]:Vec3{});
+    const Vec3 edge=(support==3U)?cross(n,r.normals2[node]):Vec3{};
+    if(length_squared(edge)>1e-4F) {
+        const Vec3 tangent=normalized_or(edge,{});
+        return multiply(tangent,dot(tangent,value));
+    }
+    return subtract(value,multiply(n,dot(n,value)));
+}
+__device__ float rope_position_contact_weight(RopeData r,unsigned node,Vec3 direction,unsigned support,
+    int first,int last,const BodyParameters *parameters,const RigidBodyState *states) {
+    if(support==0 || rope_anchor_body(r,node,first,last)>=0)
+        return rope_contact_weight(r,node,direction,first,last,parameters,states);
+    return fmaxf(0.0F,dot(direction,rope_contact_project(r,node,direction,support)))*
+        rope_node_weight(r,node,first,last);
+}
+__device__ Vec3 rope_position_contact_response(RopeData r,unsigned node,Vec3 direction,unsigned support,
+    int first,int last,const BodyParameters *parameters,const RigidBodyState *states) {
+    const int body=rope_anchor_body(r,node,first,last);
+    if(body<0)return multiply(rope_contact_project(r,node,direction,support),
+        rope_node_weight(r,node,first,last));
+    const Vec3 arm=rotate(states[body].orientation,rope_anchor_local(r,node));
+    return add(multiply(direction,parameters[body].inverse_mass),
+        cross(inverse_inertia_world(parameters[body],states[body],cross(arm,direction)),arm));
+}
+__device__ Vec3 rope_contact_pair_response(RopeData r,unsigned i,unsigned j,Vec3 direction,
+    unsigned support_a,unsigned support_b,float a,float b,Vec3 arm,unsigned collider,
+    int first,int last,const BodyParameters *parameters,const RigidBodyState *states) {
+    Vec3 response=multiply(rope_position_contact_response(r,i,direction,support_a,
+        first,last,parameters,states),a*a);
+    if(b>0)response=add(response,multiply(rope_position_contact_response(r,j,direction,support_b,
+        first,last,parameters,states),b*b));
+    response=add(response,multiply(direction,parameters[collider].inverse_mass));
+    return add(response,cross(inverse_inertia_world(parameters[collider],states[collider],
+        cross(arm,direction)),arm));
+}
+__device__ void rope_position_contact_move(RopeData r,unsigned node,Vec3 impulse,unsigned support,
+    int first,int last,const BodyParameters *parameters,const RigidBodyState *states) {
+    if(rope_anchor_body(r,node,first,last)>=0)
+        rope_contact_move(r,node,impulse,first,last,parameters,states);
+    else r.positions[node]=add(r.positions[node],multiply(
+        rope_contact_project(r,node,impulse,support),rope_node_weight(r,node,first,last)));
+    // Supports are unilateral: a separating correction releases them.
+    if(!(support&1U))r.normals[node]={};
+    if(!(support&2U))r.normals2[node]={};
+}
 __device__ void rope_contact(RopeData r,unsigned i,bool segment,float dt,int first,int last,
     const BodyParameters *parameters,const RigidBodyState *states,
     const RigidBodyState *old_states,const TriangleMeshResource *meshes,unsigned body_count) {
@@ -430,29 +485,57 @@ __device__ void rope_contact(RopeData r,unsigned i,bool segment,float dt,int fir
     if(hit.body<0)return;
     const unsigned j=segment?i+1:i;
     const float a=1-hit.fraction,b=hit.fraction;
-    const float wa=rope_contact_weight(r,i,hit.normal,first,last,parameters,states);
-    const float wb=segment?rope_contact_weight(r,j,hit.normal,first,last,parameters,states):0;
     const auto body=parameters[hit.body];const auto state=states[hit.body];
     const Vec3 arm=subtract(hit.point,state.position),torque=cross(arm,hit.normal);
     const float body_weight=body.inverse_mass+dot(torque,inverse_inertia_world(body,state,torque));
-    const float sum=wa*a*a+wb*b*b+body_weight;
-    if(sum<=1e-12F)return;
-    Vec3 impulse=multiply(hit.normal,hit.depth/sum);
     const Vec3 movement=subtract(add(multiply(subtract(r.positions[i],r.previous[i]),a),
         multiply(subtract(r.positions[j],r.previous[j]),b)),
         multiply(add(state.linear_velocity,cross(state.angular_velocity,arm)),dt));
-    const Vec3 tangent=subtract(movement,multiply(hit.normal,dot(movement,hit.normal)));
-    const float length=vector_length(tangent);
-    if(length>1e-8F) {
-        const Vec3 direction=multiply(tangent,1/length),axis=cross(arm,direction);
-        const float denom=rope_contact_weight(r,i,direction,first,last,parameters,states)*a*a+
-            (segment?rope_contact_weight(r,j,direction,first,last,parameters,states)*b*b:0)+
-            body.inverse_mass+dot(axis,inverse_inertia_world(body,state,axis));
-        impulse=subtract(impulse,multiply(direction,fminf(length/fmaxf(denom,1e-12F),r.options.friction*hit.depth/sum)));
+    unsigned support_a=rope_contact_support(r,i,hit.normal);
+    unsigned support_b=segment?rope_contact_support(r,j,hit.normal):0;
+    Vec3 impulse{};
+    // Coulomb friction can change which floor/wall reactions are active.
+    // Freeze one PSD projector throughout each candidate solve, then rebuild
+    // before moving if its total impulse would release/acquire a support.
+    for(unsigned active_set=0;active_set<5;++active_set) {
+    const float wa=rope_position_contact_weight(r,i,hit.normal,support_a,first,last,parameters,states);
+    const float wb=segment?rope_position_contact_weight(r,j,hit.normal,support_b,first,last,parameters,states):0;
+    const float sum=wa*a*a+wb*b*b+body_weight;
+    if(sum<=1e-12F)return;
+    const float normal_impulse=hit.depth/sum;
+    impulse=multiply(hit.normal,normal_impulse);
+    if(r.options.friction>0) {
+        const Vec3 normal_response=rope_contact_pair_response(r,i,j,hit.normal,support_a,support_b,
+            a,b,arm,unsigned(hit.body),first,last,parameters,states);
+        const Vec3 corrected_motion=add(movement,multiply(normal_response,normal_impulse));
+        const Vec3 tangent=subtract(corrected_motion,multiply(hit.normal,dot(corrected_motion,hit.normal)));
+        const float length=vector_length(tangent);
+        if(length>1e-8F) {
+            const Vec3 direction=multiply(tangent,1/length);
+            const Vec3 tangent_response=rope_contact_pair_response(r,i,j,direction,support_a,support_b,
+                a,b,arm,unsigned(hit.body),first,last,parameters,states);
+            const auto coupled=solver::coupled_contact_friction(normal_impulse,sum,
+                dot(hit.normal,tangent_response),dot(direction,tangent_response),length,r.options.friction);
+            impulse=add(multiply(hit.normal,coupled.normal),multiply(direction,coupled.tangent));
+        }
     }
-    rope_contact_move(r,i,multiply(impulse,a),first,last,parameters,states);
-    r.contact_forces[i]=add(r.contact_forces[i],multiply(impulse,a/(dt*dt)));
-    if(segment){rope_contact_move(r,j,multiply(impulse,b),first,last,parameters,states);r.contact_forces[j]=add(r.contact_forces[j],multiply(impulse,b/(dt*dt)));}
+    const unsigned next_a=rope_contact_support(r,i,impulse);
+    const unsigned next_b=segment?rope_contact_support(r,j,impulse):0;
+    if((next_a==support_a && next_b==support_b) || active_set==4)break;
+    if(active_set==3) {
+        // A friction/support active-set cycle gets one conservative solve
+        // retaining the known planes, never an unchecked inward movement.
+        support_a=rope_contact_support(r,i,{});
+        support_b=segment?rope_contact_support(r,j,{}):0;
+    } else {support_a=next_a;support_b=next_b;}
+    }
+    const Vec3 force_a=rope_anchor_body(r,i,first,last)<0?
+        rope_contact_project(r,i,impulse,support_a):impulse;
+    const Vec3 force_b=rope_anchor_body(r,j,first,last)<0?
+        rope_contact_project(r,j,impulse,support_b):impulse;
+    rope_position_contact_move(r,i,multiply(impulse,a),support_a,first,last,parameters,states);
+    r.contact_forces[i]=add(r.contact_forces[i],multiply(force_a,a/(dt*dt)));
+    if(segment){rope_position_contact_move(r,j,multiply(impulse,b),support_b,first,last,parameters,states);r.contact_forces[j]=add(r.contact_forces[j],multiply(force_b,b/(dt*dt)));}
     if(body.inverse_mass==0) {
         for(unsigned node=i;node<=j;++node) {
             if(length_squared(r.normals[node])<0.5F || dot(r.normals[node],hit.normal)>0.95F)

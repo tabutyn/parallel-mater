@@ -1,162 +1,204 @@
-# Shared rigid-contact solver
+# Unified rigid AVBD solver
 
-The CUDA backend now has one rigid-contact solve loop and one velocity-row
-implementation. There is no ordinary-stack mode, triangle-only impulse solver,
-or world-wide opt-out when a joint, fluid, cloth, rope or soft body exists.
+On CUDA and Metal, rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
+motor joints participate in the same Augmented Vertex Block Descent solver.
+There is no stack-only solver, joint-triggered fallback, welded-compound
+velocity solve, or guided-body projection in the production stepping path.
+Collision filtering still groups welded siblings; that does not merge their
+physical mass or replace their joints.
 
-## Backend-neutral core
+The D3D12 backend merged from `main` is preserved separately and has not been
+ported to AVBD. The equations, iteration semantics and validation below describe
+CUDA/Metal, not D3D12 solver parity.
 
-`include/parallel_mater/solver/contact.hpp` is C++17, header-only and independent
-of the CUDA runtime and public `World` API. It owns target velocity (speculative
-separation, restitution and fixed-member recovery), nonnegative normal impulse,
-Coulomb friction, persistent/transient impulse history, iteration budgets and
-the `ContactConvergence` stopping policy.
-CUDA invokes this header directly; it is not a second reference implementation.
+## Shared numerical core
 
-A backend supplies a vector aggregate with float `x`, `y`, `z`, the shared
-`ContactRow<Vector>` (or a compatible row), and a response adapter:
+[avbd.hpp](../include/parallel_mater/solver/avbd.hpp) compiles unchanged as
+C++17, CUDA and Metal shader code. It owns:
 
-- `relative_velocity()` returns A's contact-point velocity minus B's.
-- `normal_response()` returns the normal direction and its summed inverse
-  effective mass. Cached values must be invalidated when either pose changes.
-- `response(direction)` returns that direction and summed inverse effective
-  mass **quadratic in direction length**, `dᵀ M d`. The normal is unit length;
-  persistent friction uses the unnormalized sliding tangent, cancelling
-  normalization and its square root. Transient impacts retain their unit-tangent
-  normalization and scalar clamp order. Returning a unit-direction mass for an
-  arbitrary persistent tangent is wrong.
-- `apply(response, magnitude)` applies positive impulse to A and negative to B,
-  including allowed angular motion and every member of an eligible welded body.
-- `apply_friction(impulse)` applies an already-computed friction impulse without
-  needlessly evaluating its effective mass or evicting a cached unit tangent.
+- Coupled six-degree-of-freedom body blocks and an SPD LDLᵀ solve.
+- Augmented-Lagrangian forces, penalty growth and temporal warm starting.
+- Finite spring stiffness, implicit damping and bounded motor forces.
+- Nonnegative contact forces and a radial Coulomb friction cone.
+- Corrective-phase reference forces, so total motor/friction bounds are not
+  accidentally applied twice.
 
-Material mixing uses minimum restitution and geometric-mean friction. Normal
-points from B toward A; positive penetration means overlap; impulses are N·s.
-Backend storage, collision generation, guided-body response, compound mass,
-position projection and thread synchronization remain backend responsibilities.
-Do not implement a free-body approximation for hinge/slider/compound responses.
+The CUDA and Metal adapters own geometry, persistent state, adjacency, vertex
+coloring and GPU synchronization. Static/kinematic endpoints are read-only.
+Dynamic contact and joint edges connect islands; sharing a floor does not.
+CPU/CUDA equation fixtures use the actual production numerical header, not a
+separate reference implementation.
 
-CPU C++ implementations can include the header directly. Metal shader code
-still needs a platform adaptation (including address spaces/math intrinsics);
-the header and shared fixtures specify the equations rather than claiming a
-tested Metal port. The merge of `main` retains the native Metal implementation;
-adapting that implementation to this equation core remains separate work.
-`types.hpp` owns the shared statistics layout, including the new CUDA contact
-diagnostics (zero on backends that do not populate them).
+Well-conditioned blocks use ordinary LDLᵀ. If floating-point cancellation
+destroys an inertial pivot, the same block is equilibrated and retried with a
+roundoff-sized modified-Cholesky floor. Materially indefinite or nonfinite
+input is still rejected; this does not cap physical forces or add solve sweeps.
 
-## History, cache and scheduling rules
+The method follows [Giles, Diaz and Yuksel, SIGGRAPH 2025](https://graphics.cs.utah.edu/research/projects/avbd/Augmented_VBD-SIGGRAPH25.pdf).
+The authors' [reference implementation](https://github.com/savant117/avbd-demo3d)
+also informed the rigid-body formulation. This engine's collision geometry,
+unit scaling, API integration and impact treatment are adaptations; the
+paper's hardware timings are not performance promises for this library.
 
-1. Generate contacts and identify stable features. Triangle/open-mesh contacts
-   can remain transient; history eligibility is not a separate solver.
-2. Load persistent impulses only for matching body generations, cache epoch,
-   timestep and nearby local feature/normal. Project old friction onto the new
-   tangent plane. Invalidate after world revisions, handle reuse or missed steps.
-3. Color contacts so no dynamic body **or welded root** is written by two
-   simultaneous pairs. Static/kinematic state is shared read-only. Overflow
-   pairs run serially with the exact same row solver.
-4. Apply **all** warm starts within each island before any of its solve
-   iterations. Keep position projection interleaved with velocity solving;
-   transient impacts retain their one-time correction on the first pass.
-   Retain the existing positional and guided-body equations. The CUDA response
-   cache checks both positions and orientations **after** projection; cache
-   overflow prepares the same response locally, never switches equations.
-5. Use the maximum `contact_iteration_budget` over live patches: eight normal
-   passes or 32 for face patches. Warm-starting is an additional pass. The old
-   stack-only 64-pass cold-cache escalation is removed: cache availability,
-   world size and unrelated systems cannot select a different solve budget.
-   Within that cap, connected contact/joint islands may stop independently:
-   at least eight velocity passes and two consecutive complete quiet sweeps
-   (maximum linear/angular velocity change <= 1e-7, position change <= 1e-8,
-   normal/friction impulse change <= 1e-7 N·s). Check pair activity and net
-   whole-sweep body changes: opposing updates must not mask unconverged rows.
-   Reduce over the entire island after each sweep, not individual rows. Shared
-   static/kinematic bodies do not connect islands; live dynamic joint edges do.
-   Reset convergence every substep. This is not sleeping: impulses, new contacts
-   and changed joint settings remain active on the next substep.
-6. Converge Fixed/Point joints with their contacts. Other joints do not scan
-   every contact looking for nonexistent Fixed/Point membership. Finish speed
-   limits, guided-body finalization and persistent-cache publication as before.
-7. Publish diagnostic impulses after the contact and joint solves. Persistent
-   rows already contain the final accumulated support/friction impulse,
-   including warm starts; transient rows require a separate within-step sum.
-   Respect event capacity and preserve earlier-substep events if later substeps
-   contain no contacts.
+## One body solver, two explicit physical phases
 
-CUDA retains two *color construction* launch schedules (one-block versus
-multi-block), both using the same mutual-minimum ordering, and only one contact
-solve kernel. Work is compacted into flat color lists, then distributed across a
-resident cooperative grid, including contacts within a single connected stack.
-Grid barriers preserve color order. Islands can stop independently, but all
-active islands use the same warm-start/position/velocity schedule. Island IDs
-gate convergence, not a serial outer loop that would serialize independent
-contacts within a warp. Eight-thread
-blocks and one resident block per multiprocessor avoid over-subscribing the
-barriers on the measured GPU. Worlds with at most 256 bodies, and devices
-without cooperative launch, run the **same kernel** in one 128-thread block
-with block barriers. Launch geometry never changes the equations, pair order,
-iteration budget or convergence test. No per-color CPU launch loop or graph
-cache is involved. Temporary launch-tuning environment variables were removed.
+1. Integrate external forces, impulses and damping into inertial target poses.
+2. Prepare contacts/joints, load matching force/penalty history, and color the
+   body graph. Neighboring dynamic bodies have different colors.
+3. For each iteration, minimize each body's local six-dimensional energy, then
+   update constraint forces and penalties.
+4. Reconstruct velocities. Impacted islands additionally run the same AVBD
+   block/dual machinery in velocity coordinates `u = h*v`. This accounts for
+   post-impact velocity and restitution; whole-step pose differences alone
+   would report average travel velocity.
+5. Apply speed limits and publish total impulses and cache history.
 
-Prepared data includes material mixing, contact arms, normal effective mass,
-and (for retained free-body features) normal/tangent angular responses and the 2-D tangent
-response matrix. World-space inertia tensors are invalidated on rotation;
-translations refresh arms and Jacobians without rebuilding those tensors.
-Full rows enter the cache only after the same pose is observed twice, avoiding
-writes that neighboring position projections would immediately invalidate.
-Moving rows are prepared locally with current poses. Guided/compound responses
-retain the generalized body adapter. Its normal masses occupy a compact scalar
-cache, without copying unused free-body response columns. Transient impacts retain their direct quaternion response and
-global state-update arithmetic, because changing it perturbs coupled ropes.
-Preparation uses each body's actual free, guided or compound response, never a free-body
-approximation for a constrained body. Refresh after translation or rotation,
-including joint projections. Keep a row's prepared data
-local while evaluating it; global cache references in the inner adapter force
-costly reloads after state writes. No Jacobian is frozen across changing
-poses. Cache slots index live contact patches, not empty broad-phase candidates;
-the bounded-cache overflow uses identical row preparation without retention.
-The maximum budgets are unchanged, but precomputing response
-changes floating-point trajectories: integrated tests
-are required, not just scalar equation fixtures.
-Persistent patches may keep pair state local; transient patches preserve their
-global-state store order. Prepared response and simplified friction arithmetic
-can still change floating-point trajectories. Both storage policies invoke the same
-shared row solver. The free-body adapter excludes global world pointers from
-its velocity arithmetic; it does not duplicate normal/friction equations or
-select another iteration budget. Welded compounds retain aggregate application.
+The impact phase includes supporting contacts and hard joints in the affected
+island. It retains total force bounds, excludes a second application of spring
+forces, and leaves conservative collision-corrected poses unchanged. It is
+**not** an exact within-substep time-of-impact rebound trajectory.
 
-`WorldStatistics` exposes last-substep island/early-exit counts, maximum velocity
-passes, colors, overflow pairs, GPU block count, candidate pairs and live pairs.
-These are diagnostics, not switches that select physics.
-Convergence reductions group same-island lanes within each warp and skip zero
-atomic updates; opposing contact impulses still prevent a false early stop.
+Inactive unilateral joint rows have zero tangent stiffness. Bounded motors
+retain a conservative stiffness estimate to prevent Newton steps from cycling
+between opposite force caps. In either phase, if a proposed body update
+would activate an inactive normal contact, its stiffness is added and that
+local block is solved once more. Separating contacts retain zero curvature,
+so geometric overlap correction cannot leave artificial ejection velocity.
+Zero friction still means zero tangential stiffness. These are local Hessian
+safeguards, not additional global constraint sweeps.
 
-## Port and regression checks
+After each phase, a completely free dynamic island also minimizes the common
+translation mode of that same energy: subtract its mass-weighted mean pose or
+velocity-coordinate correction. Relative constraints are unchanged, while
+finite-iteration ordering cannot introduce net linear momentum. Islands with
+any static/kinematic contact or joint endpoint are excluded so external
+reaction impulses are preserved. The reduction uses deterministic body order.
 
-Run the scalar fixtures without any CUDA toolkit:
+Unilateral joint limits target recovery of 20% of a pre-existing violation
+per substep; their unviolated interior gap is unchanged. Equal-bound locks
+and other hard joints retain the shared stabilization parameter (a 1% recovery
+target). Finite iteration budgets do not guarantee either target is reached.
+Force warm-start decay retains the shared AVBD parameters.
+
+Linear multipliers are forces in N; angular multipliers are torques in N·m.
+Diagnostic impulses multiply these by the substep duration, yielding N·s or
+N·m·s respectively.
+Normals point from B to A; reported impulses act on A. Restitution mixes by
+minimum, friction by geometric mean. Persistent tangent forces are reprojected
+into the new contact basis. Sphere and constrained-body contacts use the same
+history rules as boxes.
+
+The contact slop band follows the collision adapter's rest offset, including
+the sharper offset used by guided swept contacts. Collision skin is not a
+request to push an already resting body outward.
+
+Contact cache matching checks body generations, nearby local features, normal,
+epoch and timestep. Teleports/topology edits invalidate history. Updating only
+a joint target/frame must not invalidate every unrelated contact in the world.
+Joint row history is reset when its authored definition changes or its slot is
+reused.
+
+## Iterations and diagnostics
+
+The default is ten primal/dual iterations per phase, raised by active joint
+`solver_iterations`. `StepOptions::rigid_contact_pass_limit` keeps its existing
+API name but now selects **iterations per AVBD phase**, for contacts and joints
+together: zero means automatic; 1–64 is explicit. This replaces its former
+contact-only hard-cap semantics. An impacted island can therefore use twice
+the requested number. Substeps are separate and unchanged.
+
+The overlay's AVBD iteration count reports actual pose plus impact work, not
+GPU launches. The usual default is 10 for ordinary stepping and 20 for a
+substep with impact correction. A smaller budget is not proof of convergence.
+
+CUDA distributes colored vertices over a resident cooperative grid; devices
+without cooperative launch use the same equations in one thread block.
+Graph preparation stages compact adjacency, parent and color metadata in a
+bounded shared-memory cache. CUDA caches the first 1,024 bodies/contacts and
+128 joints (44,032 bytes); Metal uses 512/512/64 (22,016 bytes). Entries outside
+those prefixes use global storage through the same accessors. Union order,
+coloring order and physical equations do not change at a cache boundary.
+Metal currently uses one threadgroup. Metal's optional rigid sleeping is
+conservatively disabled during this migration: bodies stay awake rather than
+using the old solver's incompatible sleeping state.
+
+## Validation
+
+Standalone numerical tests need no GPU toolkit:
 
 ```sh
-cmake -S tests/solver -B /tmp/parallel-mater-contact-core-build
-cmake --build /tmp/parallel-mater-contact-core-build
-ctest --test-dir /tmp/parallel-mater-contact-core-build --output-on-failure
+cmake -S tests/solver -B /tmp/parallel-mater-avbd-core-build
+cmake --build /tmp/parallel-mater-avbd-core-build
+ctest --test-dir /tmp/parallel-mater-avbd-core-build --output-on-failure
 ```
 
-The regular build also runs identical fixtures on CUDA and compares host/device
-outputs, including rebound, speculative separation, Coulomb clamping, removal
-of stale support, immovable pairs and penetration recovery. Rigid tests exercise
-isolated support with/without an unrelated Point joint at 4/31/32/256/257 bodies,
-static-ground island isolation, joint merging, impact reactivation and deferred
-warm-start support, and empty-candidate overflow beyond 4,096 pairs. The same
-25 equation/convergence fixtures run on CPU and CUDA, including anisotropic
-tangent response and opposing impulses hidden behind unchanged body velocities.
+The regular build also runs identical fixtures on CUDA, including an independent
+double-precision block reference, anisotropic inertia, off-center coupling,
+force bounds, finite stiffness, damping, cone projection, clamped contact
+curvature and corrective reference forces.
+Ordinary fixtures require component-wise CPU/CUDA parity. Deliberately
+ill-conditioned contact blocks instead require finite bounded descent and
+small diagonally scaled backward error on both platforms: float rounding can
+remove inertia from the matrix, so near-null forward components are not a
+meaningful parity contract. Materially indefinite or nonfinite blocks must
+still be rejected.
+The same fixture runners also validate a two-halfspace projection used by
+CUDA soft-surface contact cleanup. For two colliders, cleanup searches their convex
+face pairs for the smallest total squared corner correction, keeping one face
+pair for the whole triangle. This avoids both alternating opposing corrections
+and unnecessarily large escapes from extrapolated local planes. A seeded
+upper bound prunes deeper faces; single-collider arithmetic is unchanged.
+Mesh upload removes exact duplicate planes from this search's private candidate
+list, preserving the original per-triangle planes for every other consumer.
+Worst-case search cost remains quadratic in the number of distinct faces.
+It adds no cleanup passes. This is a coupled-surface repair, not another rigid
+solver. Fixtures cover nearly opposing thin boxes, sphere pinching and a
+triangle whose corners must not escape through inconsistent faces.
+`parallel-mater-avbd-rigid-tests` exercises the production World API: stacks,
+rotated joints, spring compliance, continuous motor turns, lifecycle resets
+and restitution. It also checks independent impact islands, spring impulse
+diagnostics during impact, pre-existing overlap recovery without ejection,
+stationary bodies within the collision skin, and unequal-mass closed-island
+momentum and center-of-mass preservation at one, four and ten iterations.
+The `schedule` case moves the same assembly across cached/uncached body and
+joint slots, then crosses the contact-cache boundary, checking states,
+impulses, contact order and graph diagnostics. The `skin` case includes unequal
+collision margins in both endpoint orders.
+Its `--case NAME` option
+supports focused diagnostics; `--trace` prints contact normals, points and
+impulses for `overlap` and `impact-spring`.
 
-For full-engine parity use [conformance v1](../conformance/v1/README.md) and the
-same canonical inputs/assets. Keep row fixtures and integrated conformance
-separate: scalar parity cannot prove collision detection, coupled-system
-behavior, joint projection or full-scene determinism. Never regenerate goldens
-or increase tolerances merely to bless a solver refactor.
+Run production physics tests serially so independent GPU workloads do not
+contend with each other or distort performance comparisons:
 
-The comparator now matches contacts one-to-one by stable identity and all
-existing field tolerances. Previously sorting entire JSON records could let a
-tiny friction rounding difference reorder unrelated contact points and report
-false backend failures. Tests cover ambiguous matching, duplicate/missing
-contacts, changed identities and real impulse violations; none are ignored.
+```sh
+# Full configured suite, including gallery and backend contracts.
+ctest --test-dir build-gallery -j1 --output-on-failure
+# Original gallery wall acceptance gate, without changing its tolerances.
+ctest --test-dir build-gallery -j1 --output-on-failure \
+  -R '^parallel-mater-rigid-wall-tests$'
+# Narrow solver diagnostic; this is not a substitute for the full suite.
+./build-gallery/parallel-mater-avbd-rigid-tests --case impact-spring --trace
+```
+
+Full gallery regressions and backend conformance remain separate requirements:
+scalar parity does not prove collision generation, scene stability or coupled
+fluid/rope/cloth behavior. Do not regenerate goldens or loosen physical
+tolerances to conceal a solver regression. Native Metal compilation and device
+testing require an Apple host; Linux layout/syntax checks are not substitutes.
+The pre-existing collision adapters are not identical: Metal lacks CUDA's
+per-triangle outward-shell normals used to reject some guided swept contacts.
+Thin/one-sided guided CCD therefore needs particular attention in native
+backend comparison; a shared numerical solver alone does not close that gap.
+
+The migration also repairs two coupled-contact cases exposed by changed rigid
+trajectories: opposing soft-surface planes use the two-halfspace projection
+above, and rigid-to-rope positional contacts honor existing static support in
+both effective mass and displacement. Shared `contact_friction.hpp` eliminates
+the normal row before the friction correction, accounting for the resulting
+anisotropic mass and enforcing the friction bound against the corrected normal
+force. This is one coupled tangent descent step, not a claim of fully converged
+sliding friction. Rope supports remain unilateral; an
+upward-gravity lift-off regression checks that settled nodes can still leave
+the floor. The rope correction is mirrored in Metal; the soft-surface cleanup
+is CUDA-only. These changes do not increase the global rigid iteration budget.

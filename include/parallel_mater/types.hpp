@@ -324,6 +324,13 @@ struct StepOptions {
     // Retains the strongest contact per surviving fluid particle in stable
     // particle order; moving-body contacts take priority over static ones.
     bool collect_fluid_contacts{};
+    // CUDA/Metal AVBD primal/dual iterations per phase (contacts AND joints).
+    // The D3D12 backend does not yet implement this override. The pose
+    // phase always runs; impacted islands also run a velocity-impact phase.
+    // Statistics report the sum, so an impact can report twice this value.
+    // Zero uses at least 10, raised by active joint solver_iterations.
+    // 1..64 explicitly overrides that unified budget; substeps are unchanged.
+    std::uint32_t rigid_contact_pass_limit{};
 };
 
 struct FluidParticle {
@@ -952,8 +959,11 @@ struct WorldStatistics {
     std::uint32_t triangle_mesh_count{};
     // Last rigid substep; zero before solving or when not reported by a backend.
     std::uint32_t rigid_contact_island_count{};
+    // Reserved for AVBD convergence tracking; currently zero (no early exit).
     std::uint32_t rigid_contact_early_exit_count{};
+    // Actual primal/dual iterations, summed over pose and impact phases.
     std::uint32_t rigid_contact_maximum_passes{};
+    // Body-vertex colors, not the former contact-edge color count.
     std::uint32_t rigid_contact_color_count{};
     std::uint32_t rigid_contact_overflow_pairs{};
     std::uint32_t rigid_contact_grid_blocks{};
