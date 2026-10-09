@@ -2,6 +2,10 @@
 // Portable AVBD numerical core. The surrounding geometry, graph construction,
 // storage, and dispatch adapters remain backend-specific.
 
+#ifndef PM_AVBD_RUNTIME
+#define PM_AVBD_RUNTIME 0
+#endif
+
 static const float kAvbdAlpha = 0.99f;
 static const float kAvbdGamma = 0.999f;
 static const float kAvbdMinimumPenalty = 1.0f;
@@ -94,6 +98,11 @@ struct AvbdVector6
     float values[6];
 };
 
+float avbdVectorElement(AvbdVector6 value, uint index)
+{
+    return value.values[index];
+}
+
 AvbdVector6 avbdZeroVector6()
 {
     AvbdVector6 result;
@@ -106,7 +115,8 @@ float avbdDot6(AvbdVector6 a, AvbdVector6 b)
 {
     float result = 0.0f;
     [ForceUnroll]
-    for (uint i = 0; i < 6; ++i) result += a.values[i] * b.values[i];
+    for (uint i = 0; i < 6; ++i)
+        result += avbdVectorElement(a, i) * avbdVectorElement(b, i);
     return result;
 }
 
@@ -265,6 +275,25 @@ struct AvbdRow
     float referenceForce;
 };
 
+float avbdRowVectorElement(AvbdRow row, uint side, uint index)
+{
+    return avbdVectorElement(side == 0u ? row.a : row.b, index);
+}
+
+float avbdRowScalarElement(AvbdRow row, uint member)
+{
+    if (member == 0u) return row.dual.lambda;
+    if (member == 1u) return row.dual.penalty;
+    if (member == 2u) return row.error;
+    if (member == 3u) return row.velocity;
+    if (member == 4u) return row.lower;
+    if (member == 5u) return row.upper;
+    if (member == 6u) return row.stiffness;
+    if (member == 7u) return row.damping;
+    if (member == 8u) return row.beta;
+    return row.referenceForce;
+}
+
 float avbdRowError(AvbdRow row, AvbdVector6 a, AvbdVector6 b)
 {
     return row.error + avbdDot6(row.a, a) + avbdDot6(row.b, b);
@@ -300,8 +329,58 @@ AvbdRow avbdAdvance(AvbdRow row, AvbdVector6 a, AvbdVector6 b)
     return row;
 }
 
-// Stable cross-target ABI used by the conformance runner. Production adapters
-// can import this module and call the same functions without this entry point.
+#if PM_AVBD_RUNTIME
+// Keep every numerical primitive visible to production adapters without
+// pulling the conformance resources and their global parameter block into the
+// generated CUDA translation unit. This entry is compiled but never launched;
+// the backend calls the generated device functions directly.
+[shader("compute")]
+[numthreads(1, 1, 1)]
+void avbdRuntimeMain(
+    uint3 threadId : SV_DispatchThreadID,
+    uniform AvbdBlock* blocks,
+    uniform AvbdRow* rows,
+    uniform AvbdVector6* vectors,
+    uniform AvbdDual* duals,
+    uniform AvbdContactForce* contactForces,
+    uniform uint count)
+{
+    uint index = threadId.x;
+    if (index >= count) return;
+    uint vectorIndex = index * 2u;
+    AvbdBlock block = blocks[index];
+    AvbdRow row = rows[index];
+    AvbdVector6 a = vectors[vectorIndex];
+    AvbdVector6 b = vectors[vectorIndex + 1u];
+    AvbdDual dual = avbdWarmStart(duals[index], row.stiffness);
+    dual = avbdUpdateDual(dual, row.error, row.beta,
+        row.lower, row.upper, row.stiffness);
+    row.dual = dual;
+    row.referenceForce += avbdForce(
+        dual, row.error, row.lower, row.upper);
+    AvbdContactForce force = avbdProjectContact(
+        contactForces[index], row.damping);
+    AvbdContactForce scales = avbdContactStiffnessScales(
+        force, row.damping);
+    row.velocity += avbdDot6(a, b) + avbdVectorElement(a, 0u)
+        + scales.normal;
+    avbdAddRow(block, row.a, row.stiffness, row.referenceForce);
+    avbdAccumulate(block, row, true, a, b, 1.0f);
+    row.error = avbdRowError(row, a, b);
+    row.velocity += avbdRowTrial(row, a, b, 1.0f);
+    row.referenceForce += avbdRowForce(row, a, b, 1.0f);
+    row = avbdAdvance(row, a, b);
+    row.referenceForce += avbdRowVectorElement(row, 0u, 0u)
+        + avbdRowScalarElement(row, 0u);
+    AvbdVector6 update = avbdZeroVector6();
+    if (avbdSolve(block, update)) vectors[vectorIndex] = update;
+    blocks[index] = block;
+    rows[index] = row;
+    duals[index] = dual;
+    contactForces[index] = force;
+}
+#else
+// Stable cross-target ABI used by the conformance runner.
 struct SlangAvbdInput
 {
     uint operation;
@@ -409,8 +488,8 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         output.values[0] = avbdRowError(row, a, b);
         output.values[1] = avbdRowTrial(row, a, b, dt);
         output.values[2] = avbdRowForce(row, a, b, dt);
-        output.values[3] = advanced.dual.lambda;
-        output.values[4] = advanced.dual.penalty;
+        output.values[3] = avbdRowScalarElement(advanced, 0u);
+        output.values[4] = avbdRowScalarElement(advanced, 1u);
         float gradientSum = 0.0f;
         float diagonalSum = 0.0f;
         [ForceUnroll]
@@ -424,3 +503,4 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
     }
     avbdOutputs[threadId.x] = output;
 }
+#endif

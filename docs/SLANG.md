@@ -1,31 +1,36 @@
 # Shared Slang kernels
 
-Slang is the source language for backend-neutral GPU physics. CUDA and Metal
-currently use two shared modules:
+Slang is the source language for backend-neutral GPU physics. The repository
+has two complementary layers:
 
-- `src/slang/fluid.slang` owns standalone fluid cell indexing, neighbor
+- `src/slang/fluid_shared.slang` owns production standalone fluid cell indexing, neighbor
   force/foam evaluation, and integration.
+- `src/slang/fluid.slang` is the 1:1 CUDA-reference mirror, including the
+  lifecycle kernels that are not yet shared by production backends.
 - `src/slang/avbd.slang` owns the numerical core used by the production CUDA
   and Metal rigid-body/brick solvers: dual updates, force projection, friction,
   six-degree-of-freedom block assembly and solve, and constraint-row updates.
+- Every CUDA physics source has a same-basename mirror under `src/slang/`.
+  Those files preserve all 120 CUDA entry-point names across rigid bodies,
+  fluid, cloth, soft bodies, ropes, smoke, and every coupling. The rigid
+  adapter is split between `geometry_constraints.slang` and
+  `avbd_cuda.slang`, while the portable numerical core remains
+  `avbd.slang`.
 
-The AVBD collision geometry, contact graph, graph coloring, body storage,
-scheduling, and dispatch adapters remain backend-specific. D3D12 still uses
-its existing rigid solver. The Slang AVBD conformance entry also emits HLSL so
-the shared numerical contract is ready for a later D3D12 adapter migration.
+The production CUDA and Metal adapters still own backend dispatch, allocation,
+sorting, and resource lifetime. D3D12 still uses its existing rigid solver.
+The full mirror gate targets CUDA and PTX; the smaller portable AVBD core also
+emits Metal and HLSL for cross-backend conformance.
 
 ## Source layout
 
-The source tree follows the CUDA subsystem boundary. Each particle system gets
-one top-level file (`fluid.slang`, then `cloth.slang`, `soft_body.slang`,
-`rope.slang`, and `smoke.slang`). Rigid-body numerical constraints live in
-`avbd.slang`; other shared constraints belong in `constraints.slang`. Pairwise
-interactions belong under `src/slang/couplings/` and migrate only after both
-standalone systems pass their backend conformance gates.
-
-Particle sources, destroy planes, contact generation, rigid/deformable/smoke
-couplings, CUDA CUB sorting, and Metal radix sorting remain native. Do not put
-couplings into a particle-system file.
+The source tree follows the CUDA subsystem boundary exactly. For example,
+`src/fluid_soft_body.cuh` maps to `src/slang/fluid_soft_body.slang`, and
+`src/world.cu` maps to `src/slang/world.slang`. Entry-point names do not change;
+only the folder and extension do. Shared ABI and CUDA-target intrinsics live in
+`cuda_common.slang`. `fluid_shared.slang` is intentionally separate because it
+is the compact cross-backend production pilot rather than the 1:1 reference
+mirror.
 
 ## Compiler toolchain
 
@@ -73,3 +78,16 @@ Generated source, reflection records, PTX, AIR, and metallibs stay below the
 build tree. A migration is complete only when both target generators succeed,
 the native compilers accept their output, and runtime and conformance tests
 pass on the target hardware.
+
+## Full CUDA mirror gate
+
+`PARALLEL_MATER_BUILD_SLANG_MIRRORS` follows `BUILD_TESTING` by default. It
+builds `parallel-mater-slang-kernel-mirrors`, compiling every mirrored module
+to CUDA and, when NVRTC is available, PTX with warnings treated as errors.
+The `parallel-mater-slang-kernel-mirror-coverage` test independently checks
+same-basename files and exact entry names.
+
+```sh
+cmake --build build --target parallel-mater-slang-kernel-mirrors
+ctest --test-dir build -R slang-kernel-mirror-coverage --output-on-failure
+```

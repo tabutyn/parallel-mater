@@ -42,6 +42,8 @@ option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
 option(PARALLEL_MATER_BUILD_SLANG_AVBD
        "Build and validate the portable Slang AVBD core" ${BUILD_TESTING})
+option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
+       "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
 
 # Ship prebuilt icons so ordinary builds need no image conversion tools.
 if(WIN32 AND (PARALLEL_MATER_BUILD_D3D12_GALLERY OR
@@ -73,7 +75,8 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_METAL OR
-   PARALLEL_MATER_BUILD_SLANG_AVBD)
+   PARALLEL_MATER_BUILD_SLANG_AVBD OR
+   PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/Slang.cmake)
     parallel_mater_require_slang()
 endif()
@@ -143,7 +146,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid.slang
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
             -DPM_TARGET_METAL=0 -DPM_TARGET_CUDA=1
             -entry pm_fluid_cell_keys
             -entry pm_fluid_forces
@@ -151,7 +154,7 @@ add_custom_command(
             -target cuda
             -fp-mode precise -O2 -line-directive-mode none
             -o ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
-    DEPENDS src/slang/fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    DEPENDS src/slang/fluid_shared.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
     COMMENT "Compiling shared fluid kernels from Slang to CUDA"
     VERBATIM)
 add_custom_command(
@@ -160,7 +163,8 @@ add_custom_command(
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/avbd.slang
-            -entry avbdConformanceMain -stage compute
+            -DPM_AVBD_RUNTIME=1
+            -entry avbdRuntimeMain -stage compute
             -target cuda -fp-mode precise -O2 -line-directive-mode none
             -o ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
     DEPENDS src/slang/avbd.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
@@ -1491,7 +1495,7 @@ if(PARALLEL_MATER_BUILD_METAL)
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 ${PARALLEL_MATER_METAL_GENERATED_DIR}
         COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid.slang
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
                 -DPM_TARGET_METAL=1 -DPM_TARGET_CUDA=0
                 -entry pm_fluid_cell_keys
                 -entry pm_fluid_forces
@@ -1533,7 +1537,7 @@ if(PARALLEL_MATER_BUILD_METAL)
                 ${PARALLEL_MATER_METALLIB}
                 ${PARALLEL_MATER_METALLIB_INCLUDE}
         DEPENDS src/metal/kernels.metal src/metal/avbd.metal
-                src/slang/fluid.slang src/slang/avbd.slang
+                src/slang/fluid_shared.slang src/slang/avbd.slang
                 include/parallel_mater/solver/avbd.hpp
                 include/parallel_mater/solver/contact_friction.hpp
                 ${PARALLEL_MATER_SLANGC_EXECUTABLE}
@@ -1973,6 +1977,11 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_AVBD)
     include(cmake/SlangAvbd.cmake)
     parallel_mater_add_slang_avbd()
+endif()
+
+if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
+    include(cmake/SlangKernelMirrors.cmake)
+    parallel_mater_add_slang_kernel_mirrors()
 endif()
 
 if(BUILD_TESTING)

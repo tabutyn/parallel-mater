@@ -23,7 +23,7 @@ __device__ std::uint32_t fluid_lower_bound(const std::uint64_t *keys,
 }
 
 // Core fluid cell indexing, force evaluation, and integration are generated
-// from src/slang/fluid.slang. Lifecycle kernels remain native below.
+// from src/slang/fluid_shared.slang. Lifecycle kernels remain native below.
 
 __global__ void fluid_reserve_contact_events(
     const std::uint32_t *selected_count, std::uint32_t *offset,
