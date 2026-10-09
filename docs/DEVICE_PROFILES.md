@@ -17,6 +17,38 @@ the command line, so regression tests retain the same scene on every machine.
 Interactive releases read the catalog bundled beside the executable; merely
 launching the app never opens a source checkout or external development drive.
 
+Interactive CUDA and Metal startup select bricks automatically from the current
+physics GPU and the bundled data, in this order:
+
+1. Use an exact compatible `verified_profiles` entry when one exists.
+2. Otherwise use `measurements` for the same GPU model/variant, backend, OS family,
+   power mode, scene/solver version and render resolution. Allow up to 256 MiB
+   difference in usable VRAM for driver reservations. Prefer records from the
+   same machine model, CPU and driver; among those, choose the largest stable
+   measured configuration with quiet **median <=16.67 ms** and collision
+   **p95 <=33.33 ms** (typical 60 FPS / difficult moments 30 FPS).
+3. Without suitable data, start with eight bricks, scale 2, one wall plane.
+
+Startup prints the GPU, brick count, scale, planes and selection source.
+The RTX 3050 Ti Laptop GPU records currently select **24 bricks, scale 2,
+one wall plane**. These short measurements give a startup recommendation, not
+sustained qualification or a guarantee of no dropped simulation time. They do
+not populate `verified_profiles`. Published GPU specifications never determine
+a brick count, and records from another backend or solver are not extrapolated.
+The earlier one-brick certification remains withdrawn.
+
+Explicit `--brick-count`, `--brick-scale` or `--brick-planes` values override the
+automatic selection. Headless regression scenes retain their fixed defaults.
+CUDA can report its normal startup decision without opening a window:
+
+```sh
+./build-gallery/parallel-mater-gallery --print-brick-profile
+```
+
+On Linux the running executable's actual path locates its bundled catalog even
+when launched through `PATH` from another directory. DMI supplies the machine
+model independently of whether the shell exports a hostname.
+
 Calibration measures completed physics and rendering during quiet support and
 scripted centered/off-center impacts. A candidate passes only when both phases
 have a 95th percentile at or below 15 ms, every measured frame is at or below
@@ -28,11 +60,13 @@ If the one-brick preset cannot qualify at 1080p, calibration stops and records
 that failed result rather than inventing a usable capacity. `--calibrate` exits
 after writing the local result.
 
-`config/device-profiles.json` contains two kinds of records:
+`config/device-profiles.json` contains three kinds of records:
 
 - `hardware` records transcribe published manufacturer specifications and link
   to the official source.
 - `verified_profiles` contain measured, human-approved scene configurations.
+- `measurements` contain short-run timings and provenance used for startup
+  recommendations. Saving a verified profile preserves these records.
 
 Missing manufacturer values remain absent. Compute-unit counts, memory
 bandwidth, and power figures provide search context; they never predict or
@@ -41,10 +75,10 @@ guide calibration. Contact solving contains dependent work and Metal contact
 storage grows approximately with the square of rigid-body count, so theoretical
 shader throughput is not a reliable capacity conversion.
 
-Profile matching includes machine/GPU variant, memory, backend, operating
+Verified profile matching includes machine/GPU variant, memory, backend, operating
 system/driver, power mode, 1080p dimensions, scene version, and solver version.
-An incompatible or unknown device uses the versioned built-in configuration
-until calibration produces a replacement.
+An incompatible verified profile is skipped; measurements or the modest startup
+fallback above supply the interactive configuration instead.
 
 The AVBD migration uses `cuda-avbd-v1` and `metal-avbd-v1` solver keys for
 both profile matching and new calibration results. Earlier `*-rigid-v1`

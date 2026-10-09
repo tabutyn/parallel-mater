@@ -9,6 +9,100 @@ rigid stepping. See [CONTACT_SOLVER.md](CONTACT_SOLVER.md) for the current
 shared body-block solver and per-phase iteration semantics. Do not compare
 iteration counts between the two methods as equivalent units of work.
 
+## RTX 3050 Ti brick calibration diagnosis (2026-10-09)
+
+The initial one-brick result is **not a validated 60/30 FPS device capacity**.
+Its prematurely promoted profile was withdrawn from `config/device-profiles.json`.
+The original measurement is retained here as evidence, not as a hardware limit
+or human approval. No replacement capacity has been qualified.
+
+Machine: ASUS TUF Dash F15 FX516PE, Intel i7-11370H, RTX 3050 Ti Laptop GPU
+(20 SMs, compute 8.6, 4 GiB physical VRAM; CUDA reports 3,953,721,344 usable bytes).
+NVIDIA driver 590.44.01 / CUDA driver API 13010, Linux 6.1.0-53-amd64.
+`nvidia-smi` reports a 60 W default and 75 W maximum power limit; the instantaneous
+limit query was unavailable. Physics and renderer: Release build from
+`e8db39681b6db3b4fc6b527293f24aeb3f70cf16`, with the local Linux machine-identity
+fallback correction. Diagnostic instrumentation did not change solver defaults.
+
+The original 181.792-second calibration chose one brick at scale 2, one plane:
+quiet p95/max 10.8871/16.7743 ms, collision p95/max 11.7711/17.6386 ms.
+Its eight-brick short trial reported collision p95 15.2123 ms and stopped the
+search. This result has several distinct causes:
+
+1. **The acceptance policy does not implement 60 FPS quiet / 30 FPS impact.**
+   `calibration_passes` requires both quiet and collision p95 <=15 ms (about
+   67 FPS), with every frame <=30 ms. The search stops on the first failing
+   preset; it did not measure 24, 48 or any larger count in that calibration.
+   Presets also change brick scale, wall shape and impact centering, so treating
+   one failure as a monotonic capacity boundary is an untested assumption.
+2. **The hybrid display path consumes a substantial part of the frame.**
+   CUDA/OptiX runs on NVIDIA, then downloads the 1920x1080 image to host memory;
+   `glDrawPixels` uploads it to the window's Intel Xe OpenGL context. The default
+   presentation step alone takes roughly 4.5-5.3 ms median in these samples.
+   An eight-brick comparison using `__NV_PRIME_RENDER_OFFLOAD=1` and
+   `__GLX_VENDOR_LIBRARY_NAME=nvidia` reduced presentation to 1.6-1.7 ms median;
+   total quiet/impact p95 was 13.312/14.698 ms. Physics timing also changed, so
+   this is an end-to-end comparison, not an isolated transfer-cost subtraction.
+3. **The AVBD implementation is expensive even at rest.** Nsight Systems traced
+   48 bricks: `solve_avbd_kernel` accounts for 68.0% of GPU kernel duration,
+   averaging 1.806 ms per substep (four substeps/frame). It launches two blocks
+   of 32 threads, using at most two of this GPU's 20 SMs at once. One thread
+   solves a body's 6x6 block; colors and iterations are sequential with barriers.
+   Resting bodies still receive all ten pose iterations: CUDA does not implement
+   the exposed `rigid_sleeping` option and this loop has no convergence exit.
+   This identifies a solver bottleneck, not proof that AVBD itself requires
+   these costs. A diagnostic one-iteration run cut 48-brick physics median to
+   4.498 ms quiet / 4.889 ms impact, but short endpoint checks do not establish
+   long-term support or validate changing the iteration budget.
+4. **The qualification loop differs from interactive scheduling.** It executes
+   one fixed 1/60-second step per rendered frame and derives progress from
+   aggregate elapsed work; `no_dropped_steps` is supplied as true. The app uses
+   an 8 ms catch-up budget and discards excess accumulated time. A 30 FPS display
+   needs two 60 Hz physics steps per frame to preserve simulation speed. With
+   24 bricks, a three-second impact diagnostic using the interactive budget
+   dropped 0.283333 s (simulation/wall ratio 0.903553). A separate 25 ms budget
+   experiment dropped 0.033333 s. Neither experiment changes production policy
+   or certifies a new configuration.
+5. **Rendering is not warmed before qualification samples.** The 30 settling
+   frames advance only physics. First renderer/presentation work is measured,
+   and sustained qualification rebuilds scenes repeatedly. In a 24-brick repeat,
+   30 render/present warmup frames reduced quiet total p95 from 24.540 to
+   19.177 ms; remaining presentation jitter still exceeded a 60 FPS budget.
+
+Serial diagnostic runs below reuse gallery runtime construction and scripted
+off-center impact: 30 physics settling frames, 60 quiet samples, 120 impact
+samples, four substeps, ten AVBD iterations per phase, 1080p OptiX rendering,
+30-frame debug capture ring, timing overlays disabled, swap interval zero.
+Default Intel Xe presentation, no render warmup. Times are milliseconds;
+these are short measurements, not sustained device qualification.
+
+| Bricks (scale, planes) | Quiet physics median | Impact physics median | Quiet total median / p95 | Impact total median / p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 8 (2, 1) | 4.622 | 3.595 | 12.436 / 16.950 | 12.132 / 15.941 |
+| 24 (2, 1) | 7.802 | 9.701 | 15.596 / 24.540 | 18.216 / 22.388 |
+| 48 (2, 1) | 9.980 | 10.470 | 17.862 / 22.708 | 18.756 / 26.661 |
+| 192 (1, 1) | 16.399 | 29.116 | 23.983 / 28.952 | 37.125 / 40.899 |
+
+OptiX rendering/readback medians remain around 3.1-3.2 ms across this table.
+All short runs passed the existing endpoint stability/impact checks. Those
+checks and these FPS samples do not validate arbitrary motion or long runs.
+
+The visible ball teleport is intentional: `launch_calibration_ball` resets it
+to `(0 or 1, 1.05, 3)` with velocity `(0, 0, -10)` between quiet and impact phases.
+It is workload setup, not a solver discontinuity. CUDA currently shows no
+calibration/reset status overlay, making this look like a normal scene fault.
+
+Next qualification must use the agreed quiet/impact targets, warm the complete
+frame path, identify the display GPU, measure actual simulated time and dropped
+steps under interactive scheduling, and report per-stage timings and rejection
+reasons. Solver parallelism and sleeping/convergence require separate correctness
+validation; lowering the acceptance bar alone will not fix resting solver cost.
+
+Local diagnostic sources: `/tmp/pm-calibration-diagnose.cpp` and
+`/tmp/pm-calibration-diagnose.mk`. CUDA trace:
+`/tmp/pm-bricks-48-diagnostic.nsys-rep`. The trace used the same 48-brick workload
+with rendering disabled; kernel percentages exclude host work and presentation.
+
 ## AVBD migration (2026-10-09)
 
 CUDA and Metal rigid contacts and joints now use shared six-degree-of-freedom

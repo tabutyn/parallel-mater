@@ -264,6 +264,22 @@ void write_profile(std::ostream &out, const VerifiedBrickProfile &value) {
     out << ",\"verifier\":"; quote(out, value.verifier); out << '}';
 }
 
+void write_measurement(std::ostream &out, const BrickMeasurement &value) {
+    out << "    {\"hardware\":"; write_identity(out, value.hardware);
+    out << ",\"scene\":{\"brick_count\":" << value.scene.brick_count
+        << ",\"brick_scale\":" << value.scene.brick_scale
+        << ",\"wall_planes\":" << value.scene.wall_planes << "}"
+        << ",\"width\":" << value.width << ",\"height\":" << value.height
+        << ",\"scene_version\":" << value.scene_version
+        << ",\"solver_version\":"; quote(out, value.solver_version);
+    out << ",\"build_revision\":"; quote(out, value.build_revision);
+    out << ",\"measured_at\":"; quote(out, value.measured_at);
+    out << ",\"source\":"; quote(out, value.source);
+    out << ",\"quiet_median_milliseconds\":" << value.quiet_median_milliseconds
+        << ",\"collision_p95_milliseconds\":" << value.collision_p95_milliseconds
+        << ",\"stable\":" << (value.stable ? "true" : "false") << '}';
+}
+
 bool parse_identity(const Json &json, HardwareIdentity &output) {
     const auto *value = object(json); if (value == nullptr) return false;
     output.machine_model = string(*value, "machine_model");
@@ -335,6 +351,37 @@ bool parse_catalog(const Json &json, DeviceProfileCatalog &output,
             profile.verified_at = string(*value, "verified_at");
             profile.verifier = string(*value, "verifier");
             output.verified_profiles.push_back(std::move(profile));
+        }
+    }
+    if (const Json *items = member(*root, "measurements")) {
+        const auto *values = array(*items);
+        if (values == nullptr) { error = "measurements must be an array"; return false; }
+        for (const Json &item : *values) {
+            const auto *value = object(item);
+            if (value == nullptr) { error = "measurement must be an object"; return false; }
+            BrickMeasurement measurement;
+            const Json *hardware = member(*value, "hardware");
+            const Json *scene = member(*value, "scene");
+            if (hardware == nullptr || !parse_identity(*hardware, measurement.hardware) ||
+                scene == nullptr || object(*scene) == nullptr) {
+                error = "measurement is incomplete"; return false;
+            }
+            const auto &s = *object(*scene);
+            measurement.scene = {static_cast<std::uint32_t>(number(s, "brick_count")),
+                static_cast<float>(number(s, "brick_scale")),
+                static_cast<std::uint32_t>(number(s, "wall_planes"))};
+            if (!validate_brick_config(measurement.scene, error)) return false;
+            measurement.width = static_cast<std::uint32_t>(number(*value, "width"));
+            measurement.height = static_cast<std::uint32_t>(number(*value, "height"));
+            measurement.scene_version = static_cast<std::uint32_t>(number(*value, "scene_version"));
+            measurement.solver_version = string(*value, "solver_version");
+            measurement.build_revision = string(*value, "build_revision");
+            measurement.measured_at = string(*value, "measured_at");
+            measurement.source = string(*value, "source");
+            measurement.quiet_median_milliseconds = number(*value, "quiet_median_milliseconds");
+            measurement.collision_p95_milliseconds = number(*value, "collision_p95_milliseconds");
+            measurement.stable = boolean(*value, "stable");
+            output.measurements.push_back(std::move(measurement));
         }
     }
     return true;
@@ -533,6 +580,11 @@ bool save_verified_profile(const std::filesystem::path &path,
         write_profile(output, catalog.verified_profiles[i]);
         output << (i + 1U == catalog.verified_profiles.size() ? "\n" : ",\n");
     }
+    output << "  ],\n  \"measurements\": [\n";
+    for (std::size_t i = 0; i < catalog.measurements.size(); ++i) {
+        write_measurement(output, catalog.measurements[i]);
+        output << (i + 1U == catalog.measurements.size() ? "\n" : ",\n");
+    }
     output << "  ]\n}\n";
     output.close();
     if (!output) { error = "could not write temporary profile file"; return false; }
@@ -575,6 +627,73 @@ const VerifiedBrickProfile *find_matching_profile(const DeviceProfileCatalog &ca
             (solver_version.empty() || profile.solver_version == solver_version))
             return &profile;
     return nullptr;
+}
+
+BrickStartupSelection select_startup_bricks(const DeviceProfileCatalog &catalog,
+    const HardwareIdentity &hardware, std::string_view solver_version,
+    std::uint32_t width, std::uint32_t height) {
+    if (const auto *verified = find_matching_profile(
+            catalog, hardware, width, height, solver_version))
+        return {verified->scene, BrickSelectionSource::verified};
+
+    const auto os_family = [](std::string_view os) {
+        return os.substr(0U, os.find(' '));
+    };
+    const auto match_score = [&](const BrickMeasurement &sample) {
+        const auto &recorded = sample.hardware;
+        const auto memory_difference = std::max(recorded.memory_bytes, hardware.memory_bytes) -
+            std::min(recorded.memory_bytes, hardware.memory_bytes);
+        // Usable VRAM can change slightly with driver reservations. Never
+        // extrapolate counts between different GPU models, capacities or backends.
+        if (hardware.gpu_model.empty() || hardware.gpu_variant.empty() ||
+            hardware.memory_bytes == 0U || recorded.memory_bytes == 0U ||
+            recorded.gpu_model != hardware.gpu_model ||
+            recorded.gpu_variant != hardware.gpu_variant ||
+            recorded.backend != hardware.backend ||
+            recorded.power_mode != hardware.power_mode ||
+            os_family(recorded.operating_system).empty() ||
+            os_family(recorded.operating_system) != os_family(hardware.operating_system) ||
+            memory_difference > 256ULL * 1024U * 1024U ||
+            sample.width != width || sample.height != height ||
+            sample.scene_version != brick_scene_version ||
+            solver_version.empty() || sample.solver_version != solver_version ||
+            sample.build_revision.empty() || sample.measured_at.empty() || sample.source.empty())
+            return -1;
+        return (recorded.machine_model == hardware.machine_model ? 4 : 0) +
+            (recorded.cpu_model == hardware.cpu_model ? 2 : 0) +
+            (recorded.driver == hardware.driver ? 1 : 0);
+    };
+    // Prefer this machine's data, even if a different machine with the same
+    // GPU measured faster. An OS patch/driver update need not erase estimates.
+    int best_match = -1;
+    for (const auto &sample : catalog.measurements)
+        best_match = std::max(best_match, match_score(sample));
+    BrickStartupSelection selection;
+    if (best_match < 0) return selection;
+    for (const auto &sample : catalog.measurements) {
+        std::string error;
+        if (match_score(sample) != best_match || !sample.stable ||
+            !validate_brick_config(sample.scene, error) ||
+            !std::isfinite(sample.quiet_median_milliseconds) ||
+            !std::isfinite(sample.collision_p95_milliseconds) ||
+            sample.quiet_median_milliseconds <= 0.0 ||
+            sample.collision_p95_milliseconds <= 0.0 ||
+            sample.quiet_median_milliseconds > 1000.0 / 60.0 ||
+            sample.collision_p95_milliseconds > 1000.0 / 30.0) continue;
+        if (selection.source == BrickSelectionSource::fallback ||
+            sample.scene.brick_count > selection.scene.brick_count)
+            selection = {sample.scene, BrickSelectionSource::measured};
+    }
+    return selection;
+}
+
+const char *brick_selection_label(BrickSelectionSource source) noexcept {
+    switch (source) {
+    case BrickSelectionSource::verified: return "verified profile";
+    case BrickSelectionSource::measured: return "measured recommendation";
+    case BrickSelectionSource::fallback: return "fallback; no suitable measurements";
+    }
+    return "fallback";
 }
 
 std::filesystem::path default_local_profiles_path() {
