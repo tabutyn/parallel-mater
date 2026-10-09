@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: MIT
-#if defined(PARALLEL_MATER_METAL_GEOMETRY)
+#if defined(PARALLEL_MATER_D3D12_GEOMETRY)
+#include <parallel_mater/d3d12.hpp>
+#define PM_GEOMETRY_NAMESPACE parallel_mater::d3d12
+#define PM_GEOMETRY_SUCCESS 0
+#elif defined(PARALLEL_MATER_METAL_GEOMETRY)
 #include <parallel_mater/metal.hpp>
 #define PM_GEOMETRY_NAMESPACE parallel_mater::metal
 #define PM_GEOMETRY_SUCCESS 0

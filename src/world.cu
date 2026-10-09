@@ -4674,16 +4674,16 @@ Status World::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
             const float d00=dot(ab,ab),d01=dot(ab,ac),d11=dot(ac,ac);
             const float denominator=d00*d11-d01*d01;
             if(denominator<=1e-14F)continue;
-            const Vec3 near=closest_on_triangle(point,a,b,c);
-            const float distance=length_squared(subtract(point,near));
+            const Vec3 nearest=closest_on_triangle(point,a,b,c);
+            const float distance=length_squared(subtract(point,nearest));
             if(distance>=best)continue;
-            const Vec3 ap=subtract(near,a);
+            const Vec3 ap=subtract(nearest,a);
             const float d20=dot(ap,ab),d21=dot(ap,ac);
             const float v=(d11*d20-d01*d21)/denominator;
             const float w=(d00*d21-d01*d20)/denominator;
             owner->anchor_triangle[end]=t;
             owner->anchor_weights[end]={1.0F-v-w,v,w};
-            owner->anchor_offset[end]=subtract(point,near);
+            owner->anchor_offset[end]=subtract(point,nearest);
             best=distance;
         }
         if(owner->anchor_triangle[end]==~0U)
@@ -5824,7 +5824,8 @@ Status World::add_rigid_constraint(
     RigidConstraintResource &resource = impl_->rigid_constraints[slot];
     if (resource.generation == 0U) resource.generation = 1U;
     resource.options = options;
-    resource.state = {.enabled = options.enabled};
+    resource.state = {};
+    resource.state.enabled = options.enabled;
     resource.alive = true;
     ++impl_->rigid_constraint_count;
     ++impl_->revision;
@@ -5856,7 +5857,8 @@ Status World::update_rigid_constraint(
     options.local_orientation_b = normalized_quaternion(
         options.local_orientation_b);
     resource->options = options;
-    resource->state = {.enabled = options.enabled};
+    resource->state = {};
+    resource->state.enabled = options.enabled;
     ++impl_->revision;
     return success();
 }
@@ -6789,7 +6791,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             for (std::uint32_t iteration = 0U;
                  iteration < body.solver_iterations; ++iteration) {
                 if(body.warp_neighbors) {
-                    constexpr std::uint32_t groups_per_block = block_size / 16U;
+                    constexpr std::uint32_t groups_per_block = 8U;
                     const std::uint32_t group_blocks =
                         (body.node_count + groups_per_block - 1U) /
                         groups_per_block;
@@ -6837,7 +6839,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 1.0F / substep_timestep,
                 body.constraint_velocity_response, body.maximum_speed);
             if (body.warp_neighbors) {
-                constexpr std::uint32_t groups_per_block = block_size / 16U;
+                constexpr std::uint32_t groups_per_block = 8U;
                 const std::uint32_t group_blocks =
                     (body.node_count + groups_per_block - 1U) /
                     groups_per_block;
