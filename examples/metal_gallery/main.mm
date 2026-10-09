@@ -26,9 +26,11 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <sys/sysctl.h>
 
 namespace {
 
@@ -54,6 +56,15 @@ using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::steer_gravity;
 using parallel_mater::gallery::toggles_constraint;
 using parallel_mater::gallery::uses_rigid_gravity;
+using parallel_mater::gallery::BrickSceneConfig;
+using parallel_mater::gallery::brick_minimum_count;
+using parallel_mater::gallery::brick_maximum_count;
+using parallel_mater::gallery::brick_minimum_scale;
+using parallel_mater::gallery::brick_maximum_scale;
+using parallel_mater::gallery::brick_maximum_planes;
+using parallel_mater::gallery::brick_render_width;
+using parallel_mater::gallery::brick_render_height;
+using parallel_mater::gallery::validate_brick_config;
 using parallel_mater::metal::BufferSpan;
 using parallel_mater::metal::ClothDeviceView;
 using parallel_mater::metal::FluidDeviceView;
@@ -94,13 +105,22 @@ constexpr float k_motor_speed = 8.0F;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
+CameraPreset camera_preset_for(GalleryContext context,
+                               BrickSceneConfig bricks) {
+    return context == GalleryContext::rigid_body
+        ? parallel_mater::gallery::brick_camera_preset(bricks)
+        : gallery_entry(context).camera;
+}
+
 struct Options {
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path output{};
     GalleryContext context{GalleryContext::rigid_body};
     std::uint32_t frames{240U};
-    std::uint32_t width{960U};
-    std::uint32_t height{720U};
+    std::uint32_t width{brick_render_width};
+    std::uint32_t height{brick_render_height};
+    BrickSceneConfig bricks{};
+    std::filesystem::path profiles_file{PARALLEL_MATER_DEVICE_PROFILES_PATH};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
     bool frames_set{};
@@ -111,6 +131,9 @@ struct Options {
     bool scene_overridden{};
     bool help{};
     bool version{};
+    bool calibrate{};
+    bool bricks_overridden{};
+    bool profiles_file_overridden{};
 };
 
 struct GalleryVertex {
@@ -173,6 +196,9 @@ struct GalleryOverlay {
     bool count_dialog_visible{};
     GalleryContext context{GalleryContext::rigid_body};
     std::string_view count_value{};
+    std::array<std::string_view, 3> brick_values{};
+    std::size_t brick_field{};
+    bool brick_dialog{};
     bool count_value_invalid{};
     std::string_view status{};
 };
@@ -230,6 +256,12 @@ bool parse_u32(std::string_view text, std::uint32_t &output) {
     return result.ec == std::errc{} && result.ptr == end;
 }
 
+bool parse_float(std::string_view text, float &output) {
+    const auto result = std::from_chars(text.data(), text.data() + text.size(), output);
+    return result.ec == std::errc{} && result.ptr == text.data() + text.size() &&
+        std::isfinite(output);
+}
+
 std::optional<GalleryContext> context_from_option(std::string_view option) {
     if (option == "--rigid") return GalleryContext::rigid_body;
     if (option == "--dump") return GalleryContext::dump;
@@ -255,6 +287,11 @@ void print_help() {
            "  --all-scenes            run every gallery entry\n"
            "  --particles N           fluid capacity\n"
            "  --dump-spheres N        procedural dump sphere count\n"
+           "  --brick-count N         procedural wall bricks (1..4096)\n"
+           "  --brick-scale N         brick scale (0.5..2.0)\n"
+           "  --brick-planes N        separated walls (1..16)\n"
+           "  --calibrate             run device calibration\n"
+           "  --profiles-file PATH    tracked device profile catalog\n"
            "  --validate              check physics and rendered output\n"
            "  --list-scenes           print the gallery registry\n"
            "  --version               print build identity\n"
@@ -306,11 +343,22 @@ bool parse_options(int argc, char **argv, Options &output) {
         } else if (argument == "--all-scenes") {
             output.all_scenes = true;
             output.headless = true;
+        } else if (argument == "--calibrate") {
+            output.calibrate = true;
+            output.context = GalleryContext::rigid_body;
+        } else if (argument == "--brick-scale") {
+            if (index + 1 >= argc || !parse_float(argv[++index], output.bricks.brick_scale))
+                return false;
+            output.context = GalleryContext::rigid_body;
+            output.bricks_overridden = true;
         } else if (argument == "--scene" || argument == "--output" ||
                    argument == "--frames" || argument == "--width" ||
                    argument == "--height" || argument == "--scene-index" ||
                    argument == "--particles" ||
-                   argument == "--dump-spheres") {
+                   argument == "--dump-spheres" ||
+                   argument == "--brick-count" ||
+                   argument == "--brick-planes" ||
+                   argument == "--profiles-file") {
             if (index + 1 >= argc) return false;
             const std::string_view value{argv[++index]};
             if (argument == "--scene") {
@@ -318,6 +366,9 @@ bool parse_options(int argc, char **argv, Options &output) {
                 output.scene_overridden = true;
             } else if (argument == "--output") {
                 output.output = value;
+            } else if (argument == "--profiles-file") {
+                output.profiles_file = value;
+                output.profiles_file_overridden = true;
             } else {
                 std::uint32_t number{};
                 if (!parse_u32(value, number)) return false;
@@ -332,6 +383,14 @@ bool parse_options(int argc, char **argv, Options &output) {
                     output.fluid_particles = number;
                 } else if (argument == "--dump-spheres") {
                     output.dump_spheres = number;
+                } else if (argument == "--brick-count") {
+                    output.bricks.brick_count = number;
+                    output.context = GalleryContext::rigid_body;
+                    output.bricks_overridden = true;
+                } else if (argument == "--brick-planes") {
+                    output.bricks.wall_planes = number;
+                    output.context = GalleryContext::rigid_body;
+                    output.bricks_overridden = true;
                 } else {
                     if (number >= gallery_entries.size()) return false;
                     output.context = gallery_entries[number].context;
@@ -343,10 +402,12 @@ bool parse_options(int argc, char **argv, Options &output) {
             return false;
         }
     }
+    std::string brick_error;
     if (output.width == 0U || output.height == 0U ||
         output.fluid_particles == 0U || output.dump_spheres == 0U) {
         return false;
     }
+    if (!validate_brick_config(output.bricks, brick_error)) return false;
     if (output.all_scenes && !output.frames_set) output.frames = 1U;
     return true;
 }
@@ -1037,6 +1098,90 @@ std::filesystem::path bundled_scene_path(
     return configured_path;
 }
 
+std::filesystem::path device_profiles_path(const Options &options) {
+    if (options.profiles_file_overridden) return options.profiles_file;
+    @autoreleasepool {
+        NSString *resource_path = [NSBundle mainBundle].resourcePath;
+        if (resource_path != nil) {
+            const auto bundled = std::filesystem::path(resource_path.UTF8String) /
+                "config/device-profiles.json";
+            std::error_code error;
+            if (std::filesystem::is_regular_file(bundled, error)) return bundled;
+        }
+    }
+    return options.profiles_file;
+}
+
+std::string sysctl_string(const char *name) {
+    std::size_t size = 0U;
+    if (sysctlbyname(name, nullptr, &size, nullptr, 0U) != 0 || size == 0U)
+        return {};
+    std::string value(size, '\0');
+    if (sysctlbyname(name, value.data(), &size, nullptr, 0U) != 0) return {};
+    while (!value.empty() && value.back() == '\0') value.pop_back();
+    return value;
+}
+
+std::string system_profiler_value(NSString *data_type, NSString *property) {
+    @autoreleasepool {
+        NSTask *task = [[NSTask alloc] init];
+        task.executableURL = [NSURL fileURLWithPath:@"/usr/sbin/system_profiler"];
+        task.arguments = @[data_type, @"-json"];
+        NSPipe *pipe = [NSPipe pipe];
+        task.standardOutput = pipe;
+        task.standardError = [NSFileHandle fileHandleWithNullDevice];
+        NSError *launch_error = nil;
+        if (![task launchAndReturnError:&launch_error])
+            return {};
+        [task waitUntilExit];
+        NSData *data = [pipe.fileHandleForReading readDataToEndOfFile];
+        if (task.terminationStatus == 0 && data.length != 0U) {
+            NSDictionary *root = [NSJSONSerialization JSONObjectWithData:data
+                options:0 error:nil];
+            NSArray *records = root[data_type];
+            NSDictionary *record = records.count != 0U ? records[0] : nil;
+            NSString *value = record[property];
+            if ([value isKindOfClass:[NSString class]] && value.length != 0U)
+                return value.UTF8String;
+        }
+        return {};
+    }
+}
+
+std::string metal_gpu_variant(id<MTLDevice> device) {
+    const std::string cores = system_profiler_value(
+        @"SPDisplaysDataType", @"sppci_cores");
+    return !cores.empty() ? cores + "-core GPU"
+        : device != nil ? std::string(device.name.UTF8String) : "Apple GPU";
+}
+
+parallel_mater::gallery::HardwareIdentity metal_hardware_identity(
+    id<MTLDevice> device) {
+    parallel_mater::gallery::HardwareIdentity result;
+    result.machine_model = sysctl_string("hw.model");
+    if (result.machine_model.empty())
+        result.machine_model = system_profiler_value(
+            @"SPHardwareDataType", @"machine_model");
+    result.cpu_model = sysctl_string("machdep.cpu.brand_string");
+    if (result.cpu_model.empty())
+        result.cpu_model = system_profiler_value(
+            @"SPHardwareDataType", @"chip_type");
+    if (result.cpu_model.empty())
+        result.cpu_model = device != nil ? device.name.UTF8String : "Apple CPU";
+    result.gpu_model = device != nil ? device.name.UTF8String : "Apple GPU";
+    // Metal does not expose the core bin, but system_profiler does. Keep the
+    // exact bin in the matching key so 8-core and 10-core Airs revalidate.
+    result.gpu_variant = metal_gpu_variant(device);
+    result.memory_bytes = NSProcessInfo.processInfo.physicalMemory;
+    result.backend = "metal";
+    result.operating_system =
+        NSProcessInfo.processInfo.operatingSystemVersionString.UTF8String;
+    result.driver = "Metal " + result.operating_system;
+    result.power_mode = NSProcessInfo.processInfo.isLowPowerModeEnabled
+        ? "low-power" : "normal";
+    return result;
+}
+
 std::filesystem::path scene_path(const Options &options,
                                  GallerySceneSource source) {
     const std::array paths{
@@ -1092,6 +1237,29 @@ bool build_runtime(const Options &options, GalleryContext context,
                    scene_path(options, entry.source), next.scene, error)) {
         error = "scene load failed: " + error;
         return false;
+    }
+    if (context == GalleryContext::rigid_body) {
+        MetalScene generated;
+        if (!parallel_mater::metal::gallery::make_brick_scene(
+                next.scene, options.bricks, generated, error)) {
+            error = "brick scene generation failed: " + error;
+            return false;
+        }
+        next.scene = std::move(generated);
+        id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+        const std::uint64_t recommended = device != nil
+            ? static_cast<std::uint64_t>(device.recommendedMaxWorkingSetSize) : 0U;
+        const std::uint64_t allocated = device != nil
+            ? static_cast<std::uint64_t>(device.currentAllocatedSize) : 0U;
+        const std::uint64_t available = recommended > allocated
+            ? recommended - allocated : recommended;
+        if (available != 0U &&
+            parallel_mater::gallery::estimated_metal_contact_bytes(
+                static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
+                available * 7U / 10U) {
+            error = "brick scene exceeds the available Metal memory budget";
+            return false;
+        }
     }
     if (entry.has_fluid)
         next.scene.fluid_options.capacity = options.fluid_particles;
@@ -1734,6 +1902,40 @@ void build_count_dialog(std::vector<UiVertex> &vertices,
                    "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);
 }
 
+void build_brick_dialog(std::vector<UiVertex> &vertices,
+                        std::uint32_t width, std::uint32_t height,
+                        const std::array<std::string_view, 3> &values,
+                        std::size_t selected, bool invalid) {
+    vertices.clear();
+    const int center_x = static_cast<int>(width) / 2;
+    const int center_y = static_cast<int>(height) / 2;
+    append_ui_rect(vertices, center_x - 300.0F, center_y - 180.0F,
+                   center_x + 300.0F, center_y + 180.0F, {4, 10, 16, 242});
+    append_ui_text(vertices, center_x - 260, center_y - 145,
+                   "BRICK WALL SETTINGS", {105, 255, 155, 255}, 2);
+    constexpr std::array labels{"COUNT  ", "SCALE  ", "WALLS  "};
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        const int y = center_y - 82 + static_cast<int>(index) * 58;
+        append_ui_rect(vertices, center_x - 260.0F, static_cast<float>(y),
+                       center_x + 260.0F, static_cast<float>(y + 42),
+                       index == selected
+                           ? (invalid ? GalleryColor{105, 20, 20, 255}
+                                      : GalleryColor{45, 72, 88, 255})
+                           : GalleryColor{27, 38, 48, 255});
+        append_ui_text(vertices, center_x - 238, y + 12,
+                       std::string(labels[index]) + std::string(values[index]),
+                       {245, 247, 250, 255}, 2);
+    }
+    append_ui_text(vertices, center_x - 260, center_y + 106,
+        invalid ? "COUNT 1-4096  SCALE .5-2  WALLS 1-16"
+                : "TAB FIELD  ENTER APPLY AND RESTART",
+        invalid ? GalleryColor{255, 105, 105, 255}
+                : GalleryColor{160, 190, 210, 255}, 1);
+    append_ui_text(vertices, center_x - 260, center_y + 138,
+        "C AUTO-CALIBRATE  V VERIFY AND SAVE  ESC CANCEL",
+        {160, 190, 210, 255}, 1);
+}
+
 void build_status_overlay(std::vector<UiVertex> &vertices,
                           std::string_view status) {
     vertices.clear();
@@ -1757,6 +1959,16 @@ class Renderer {
                                     DISPATCH_TIME_FOREVER);
         for (std::size_t index = 0U; index < k_buffer_count; ++index)
             dispatch_semaphore_signal(inflight_semaphore_);
+    }
+
+    bool finish(std::string &error) {
+        for (std::size_t index = 0U; index < k_buffer_count; ++index) {
+            if (pending_commands_[index] == nil) continue;
+            [pending_commands_[index] waitUntilCompleted];
+            if (!check_command(pending_commands_[index], error)) return false;
+            pending_commands_[index] = nil;
+        }
+        return true;
     }
 
     bool create(GLFWwindow *window, id<MTLDevice> device,
@@ -1861,10 +2073,9 @@ class Renderer {
               const GalleryOverlay &overlay,
               std::string &error) {
         @autoreleasepool {
-            int width = 0;
-            int height = 0;
-            glfwGetFramebufferSize(window, &width, &height);
-            if (width <= 0 || height <= 0) return true;
+            (void)window;
+            const int width = static_cast<int>(brick_render_width);
+            const int height = static_cast<int>(brick_render_height);
             layer_.drawableSize = CGSizeMake(width, height);
             id<CAMetalDrawable> drawable = [layer_ nextDrawable];
             if (drawable == nil) return true;
@@ -2079,10 +2290,16 @@ class Renderer {
         if (overlay.picker_selection.has_value())
             build_scene_picker(ui_vertices_, width, height,
                                *overlay.picker_selection);
-        else if (overlay.count_dialog_visible)
-            build_count_dialog(ui_vertices_, width, height, overlay.context,
-                               overlay.count_value,
-                               overlay.count_value_invalid);
+        else if (overlay.count_dialog_visible) {
+            if (overlay.brick_dialog)
+                build_brick_dialog(ui_vertices_, width, height,
+                                   overlay.brick_values, overlay.brick_field,
+                                   overlay.count_value_invalid);
+            else
+                build_count_dialog(ui_vertices_, width, height, overlay.context,
+                                   overlay.count_value,
+                                   overlay.count_value_invalid);
+        }
         else
             build_status_overlay(ui_vertices_, overlay.status);
         const std::size_t triangle_bytes =
@@ -2614,6 +2831,9 @@ struct InteractiveInput {
     bool replace_count_value{};
     bool count_value_invalid{};
     std::string count_value{};
+    std::array<std::string, 3> brick_values{};
+    std::size_t brick_field{};
+    bool brick_dialog{};
 };
 
 void mouse_button(GLFWwindow *window, int button, int action, int modifiers) {
@@ -2654,17 +2874,324 @@ void scroll(GLFWwindow *window, double, double offset) {
 void character_input(GLFWwindow *window, unsigned int codepoint) {
     auto *input = static_cast<InteractiveInput *>(
         glfwGetWindowUserPointer(window));
+    const bool digit = codepoint >= '0' && codepoint <= '9';
+    const bool scale_point = input != nullptr && input->brick_dialog &&
+        input->brick_field == 1U && codepoint == '.';
     if (input == nullptr || !input->count_dialog_visible ||
-        codepoint < '0' || codepoint > '9') {
+        (!digit && !scale_point)) {
         return;
     }
     if (input->replace_count_value) {
-        input->count_value.clear();
+        if (input->brick_dialog) input->brick_values[input->brick_field].clear();
+        else input->count_value.clear();
         input->replace_count_value = false;
     }
-    if (input->count_value.size() < 6U) {
-        input->count_value.push_back(static_cast<char>(codepoint));
+    std::string &value = input->brick_dialog
+        ? input->brick_values[input->brick_field] : input->count_value;
+    if (value.size() < 6U && (!scale_point || value.find('.') == std::string::npos)) {
+        value.push_back(static_cast<char>(codepoint));
         input->count_value_invalid = false;
+    }
+}
+
+bool launch_calibration_ball(Runtime &runtime, bool off_center,
+                             std::string &error) {
+    for (std::size_t index = 0U; index < runtime.scene.rigid_bodies.size(); ++index) {
+        if (runtime.scene.rigid_bodies[index].source_name != "Icosphere") continue;
+        RigidBodyState state =
+            runtime.scene.rigid_bodies[index].options.initial_state;
+        state.position = {off_center ? 1.0F : 0.0F, 1.05F, 3.0F};
+        state.linear_velocity = {0.0F, 0.0F, -10.0F};
+        state.angular_velocity = {};
+        return check(runtime.world.set_rigid_body_state(
+                         runtime.instance.rigid_bodies[index], state),
+                     "launch calibration ball", error);
+    }
+    error = "brick calibration scene has no ball";
+    return false;
+}
+
+bool calibration_scene_correct(const Runtime &runtime,
+                               const std::vector<RigidBodyState> &states,
+                               bool quiet, float scale) {
+    if (states.size() != runtime.scene.rigid_bodies.size()) return false;
+    unsigned displaced_bricks = 0U;
+    for (std::size_t index = 0U; index < states.size(); ++index) {
+        const auto &state = states[index];
+        const auto &body = runtime.scene.rigid_bodies[index];
+        if (!finite(state)) return false;
+        const float speed = std::sqrt(
+            state.linear_velocity.x * state.linear_velocity.x +
+            state.linear_velocity.y * state.linear_velocity.y +
+            state.linear_velocity.z * state.linear_velocity.z);
+        if (!std::isfinite(speed) || speed > 50.0F) return false;
+        if (body.source_name != "Layer1" && body.source_name != "Layer2")
+            continue;
+        const auto initial = body.options.initial_state.position;
+        const float displacement = std::hypot(
+            std::hypot(state.position.x - initial.x,
+                       state.position.y - initial.y),
+            state.position.z - initial.z);
+        if (quiet && displacement > std::max(0.03F, 0.04F * scale))
+            return false;
+        displaced_bricks += !quiet && displacement > 0.03F;
+    }
+    return quiet || displaced_bricks != 0U;
+}
+
+struct CalibrationResult {
+    BrickSceneConfig config{};
+    parallel_mater::gallery::CalibrationMetrics metrics{};
+    parallel_mater::gallery::HardwareIdentity hardware{};
+};
+
+bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
+                           GLFWwindow *window, Renderer &renderer,
+                           std::uint32_t quiet_frames,
+                           std::uint32_t collision_frames,
+                           bool off_center,
+                           std::vector<parallel_mater::gallery::CalibrationSample> &samples,
+                           bool &stable, std::string &error) {
+    Options candidate = base;
+    candidate.bricks = config;
+    Runtime runtime;
+    if (!build_runtime(candidate, GalleryContext::rigid_body, runtime, error))
+        return false;
+    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
+        if (!step_runtime(runtime, default_gravity(runtime), error)) return false;
+
+    RenderFrame render_frame;
+    std::vector<RigidBodyState> states;
+    auto measure = [&](bool collision) {
+        const auto begin = std::chrono::steady_clock::now();
+        if (!step_runtime(runtime, default_gravity(runtime), error) ||
+            !assemble_frame(runtime, render_frame, states, error) ||
+            !renderer.draw(window, render_frame,
+                gallery_entry(GalleryContext::rigid_body),
+                camera_for_preset(camera_preset_for(
+                    GalleryContext::rigid_body, config)),
+                {.context = GalleryContext::rigid_body,
+                 .status = collision ? "CALIBRATING COLLISION"
+                                     : "CALIBRATING QUIET"}, error) ||
+            !renderer.finish(error)) return false;
+        const double milliseconds = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - begin).count();
+        samples.push_back({milliseconds, collision, true});
+        glfwPollEvents();
+        return glfwWindowShouldClose(window) == GLFW_FALSE;
+    };
+    for (std::uint32_t frame = 0U; frame < quiet_frames; ++frame)
+        if (!measure(false)) { error = "brick calibration cancelled"; return false; }
+    stable = stable && calibration_scene_correct(
+        runtime, states, true, config.brick_scale);
+    if (!launch_calibration_ball(runtime, off_center, error)) return false;
+    for (std::uint32_t frame = 0U; frame < collision_frames; ++frame)
+        if (!measure(true)) { error = "brick calibration cancelled"; return false; }
+    std::string validation_error;
+    stable = stable && validate_runtime(runtime, states, validation_error) &&
+        calibration_scene_correct(runtime, states, false, config.brick_scale);
+    return true;
+}
+
+bool calibrate_bricks(Options &options, GLFWwindow *window, Renderer &renderer,
+                      id<MTLDevice> device, CalibrationResult &output,
+                      std::string &error) {
+    const auto &presets = parallel_mater::gallery::brick_calibration_presets();
+    std::optional<std::size_t> best;
+    for (std::size_t index = 0U; index < presets.size(); ++index) {
+        std::vector<parallel_mater::gallery::CalibrationSample> samples;
+        bool stable = true;
+        std::string trial_error;
+        const auto begin = std::chrono::steady_clock::now();
+        if (!run_calibration_trial(options, presets[index], window, renderer,
+                                   60U, 120U, index % 2U != 0U,
+                                   samples, stable, trial_error)) {
+            if (trial_error.find("memory budget") != std::string::npos) break;
+            error = trial_error;
+            return false;
+        }
+        const double duration = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - begin).count();
+        auto metrics = parallel_mater::gallery::summarize_calibration(
+            samples, duration, stable, false);
+        const double measured_seconds = std::accumulate(
+            samples.begin(), samples.end(), 0.0,
+            [](double total, const auto &sample) {
+                return total + sample.milliseconds / 1'000.0;
+            });
+        metrics.simulation_progress_ratio = measured_seconds > 0.0
+            ? std::min(1.0, samples.size() * static_cast<double>(k_timestep) /
+                              measured_seconds)
+            : 0.0;
+        std::cout << "Calibration " << presets[index].brick_count << " bricks, "
+                  << presets[index].wall_planes << " walls: collision p95 "
+                  << metrics.collision_p95_milliseconds << " ms, max "
+                  << metrics.collision_maximum_milliseconds << " ms\n";
+        if (index == 0U) {
+            output = {.config = presets[index], .metrics = metrics,
+                      .hardware = metal_hardware_identity(device)};
+        }
+        if (!parallel_mater::gallery::calibration_passes(metrics)) {
+            if (index == 0U) {
+                error = "minimum one-brick preset failed the 1080p frame budget";
+                return false;
+            }
+            if (best.has_value()) break;
+            continue;
+        }
+        best = index;
+    }
+    if (!best.has_value()) {
+        error = "no brick preset met the 1080p frame budget";
+        return false;
+    }
+
+    // Qualify the chosen preset under repeated impacts for three minutes.
+    for (std::size_t index = *best + 1U; index-- > 0U;) {
+        std::vector<parallel_mater::gallery::CalibrationSample> samples;
+        bool stable = true;
+        const auto begin = std::chrono::steady_clock::now();
+        bool off_center = false;
+        while (std::chrono::duration<double>(
+                   std::chrono::steady_clock::now() - begin).count() < 180.0) {
+            if (!run_calibration_trial(options, presets[index], window, renderer,
+                                       60U, 300U, off_center, samples, stable,
+                                       error))
+                return false;
+            if (!stable) break;
+            off_center = !off_center;
+        }
+        const double duration = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - begin).count();
+        auto metrics = parallel_mater::gallery::summarize_calibration(
+            samples, duration, stable, false);
+        const double measured_seconds = std::accumulate(
+            samples.begin(), samples.end(), 0.0,
+            [](double total, const auto &sample) {
+                return total + sample.milliseconds / 1'000.0;
+            });
+        metrics.simulation_progress_ratio = measured_seconds > 0.0
+            ? std::min(1.0, samples.size() * static_cast<double>(k_timestep) /
+                              measured_seconds)
+            : 0.0;
+        if (parallel_mater::gallery::calibration_passes(metrics)) {
+            options.bricks = presets[index];
+            output = {.config = presets[index], .metrics = metrics,
+                      .hardware = metal_hardware_identity(device)};
+            std::cout << "Qualified " << presets[index].brick_count
+                      << " bricks at 1080p: collision p95 "
+                      << metrics.collision_p95_milliseconds << " ms, max "
+                      << metrics.collision_maximum_milliseconds << " ms\n";
+            return true;
+        }
+        if (index == 0U) break;
+    }
+    error = "no brick preset passed sustained 1080p qualification";
+    return false;
+}
+
+void save_local_calibration(const CalibrationResult &result) {
+    auto path = parallel_mater::gallery::default_local_profiles_path();
+    path = path.parent_path() / "latest-brick-calibration.json";
+    std::error_code filesystem_error;
+    std::filesystem::create_directories(path.parent_path(), filesystem_error);
+    if (filesystem_error) return;
+    const auto temporary = path.string() + ".tmp";
+    std::ofstream output(temporary, std::ios::trunc);
+    if (!output) return;
+    output << "{\n  \"verified\": false,\n  \"backend\": \"metal\",\n"
+           << "  \"gpu_model\": \"" << result.hardware.gpu_model << "\",\n"
+           << "  \"gpu_variant\": \"" << result.hardware.gpu_variant << "\",\n"
+           << "  \"machine_model\": \"" << result.hardware.machine_model << "\",\n"
+           << "  \"cpu_model\": \"" << result.hardware.cpu_model << "\",\n"
+           << "  \"memory_bytes\": " << result.hardware.memory_bytes << ",\n"
+           << "  \"operating_system\": \""
+           << result.hardware.operating_system << "\",\n"
+           << "  \"driver\": \"" << result.hardware.driver << "\",\n"
+           << "  \"power_mode\": \"" << result.hardware.power_mode << "\",\n"
+           << "  \"width\": " << brick_render_width << ",\n"
+           << "  \"height\": " << brick_render_height << ",\n"
+           << "  \"scene_version\": "
+           << parallel_mater::gallery::brick_scene_version << ",\n"
+           << "  \"solver_version\": \"metal-rigid-v1\",\n"
+           << "  \"build_revision\": \"" << build_label() << "\",\n"
+           << "  \"brick_count\": " << result.config.brick_count << ",\n"
+           << "  \"brick_scale\": " << result.config.brick_scale << ",\n"
+           << "  \"wall_planes\": " << result.config.wall_planes << ",\n"
+           << "  \"collision_p95_milliseconds\": "
+           << result.metrics.collision_p95_milliseconds << ",\n"
+           << "  \"collision_maximum_milliseconds\": "
+           << result.metrics.collision_maximum_milliseconds << ",\n"
+           << "  \"quiet_p95_milliseconds\": "
+           << result.metrics.quiet_p95_milliseconds << ",\n"
+           << "  \"quiet_maximum_milliseconds\": "
+           << result.metrics.quiet_maximum_milliseconds << ",\n"
+           << "  \"duration_seconds\": "
+           << result.metrics.duration_seconds << ",\n"
+           << "  \"simulation_progress_ratio\": "
+           << result.metrics.simulation_progress_ratio << ",\n"
+           << "  \"stable\": "
+           << (result.metrics.stable ? "true" : "false") << ",\n"
+           << "  \"no_dropped_steps\": "
+           << (result.metrics.no_dropped_steps ? "true" : "false") << "\n}\n";
+    output.close();
+    if (!output) return;
+    std::filesystem::rename(temporary, path, filesystem_error);
+    if (filesystem_error) std::filesystem::remove(temporary);
+}
+
+bool verify_and_save_profile(const Options &options,
+                             const CalibrationResult &result,
+                             std::string &error) {
+    if (!parallel_mater::gallery::calibration_passes(result.metrics)) {
+        error = "current configuration has no passing calibration";
+        return false;
+    }
+    @autoreleasepool {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = @"Verify brick simulation";
+        alert.informativeText =
+            @"Confirm that the wall remained stable and impacts looked correct. Enter your name before saving this measured profile.";
+        [alert addButtonWithTitle:@"Verify and Save"];
+        [alert addButtonWithTitle:@"Cancel"];
+        NSTextField *verifier = [[NSTextField alloc]
+            initWithFrame:NSMakeRect(0, 0, 320, 24)];
+        verifier.placeholderString = @"Verifier name";
+        alert.accessoryView = verifier;
+        if ([alert runModal] != NSAlertFirstButtonReturn) {
+            error = "verification cancelled";
+            return false;
+        }
+        const std::string verifier_name = verifier.stringValue.UTF8String;
+        if (verifier_name.empty()) {
+            error = "verifier name is required";
+            return false;
+        }
+
+        std::filesystem::path destination = options.profiles_file;
+        if (!options.profiles_file_overridden) {
+            NSSavePanel *panel = [NSSavePanel savePanel];
+            panel.title = @"Update a tracked catalog or export a verified profile";
+            panel.prompt = @"Save Verified Profile";
+            panel.nameFieldStringValue = @"verified-profile-export.json";
+            if ([panel runModal] != NSModalResponseOK || panel.URL == nil) {
+                error = "profile file selection cancelled";
+                return false;
+            }
+            destination = panel.URL.fileSystemRepresentation;
+        }
+
+        parallel_mater::gallery::VerifiedBrickProfile profile;
+        profile.hardware = result.hardware;
+        profile.scene = result.config;
+        profile.solver_version = "metal-rigid-v1";
+        profile.build_revision = build_label();
+        profile.metrics = result.metrics;
+        NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
+        profile.verified_at = [formatter stringFromDate:[NSDate date]].UTF8String;
+        profile.verifier = verifier_name;
+        return parallel_mater::gallery::save_verified_profile(
+            destination, profile, error);
     }
 }
 
@@ -2677,7 +3204,7 @@ bool run_interactive(const Options &options, std::string &error) {
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow *window = glfwCreateWindow(
-        static_cast<int>(options.width), static_cast<int>(options.height),
+        960, 540,
         "ParallelMater Metal Gallery", nullptr, nullptr);
     if (window == nullptr) {
         glfwTerminate();
@@ -2692,7 +3219,7 @@ bool run_interactive(const Options &options, std::string &error) {
     glfwPollEvents();
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     InteractiveInput input;
-    input.camera.set_preset(gallery_entry(options.context).camera);
+    input.camera.set_preset(camera_preset_for(options.context, options.bricks));
     glfwSetWindowUserPointer(window, &input);
     glfwSetMouseButtonCallback(window, &mouse_button);
     glfwSetCursorPosCallback(window, &cursor_position);
@@ -2700,16 +3227,32 @@ bool run_interactive(const Options &options, std::string &error) {
     glfwSetCharCallback(window, &character_input);
 
     Options interactive_options = options;
-    Runtime runtime;
-    if (!build_runtime(interactive_options, options.context, runtime, error)) {
+    const auto device = MTLCreateSystemDefaultDevice();
+    Renderer renderer;
+    if (!renderer.create(window, device, error)) {
         glfwDestroyWindow(window);
         glfwTerminate();
         return false;
     }
-    const auto native = runtime.world.native_context();
-    const auto device = (__bridge id<MTLDevice>)native.device;
-    Renderer renderer;
-    if (!renderer.create(window, device, error)) {
+    std::optional<CalibrationResult> last_calibration;
+    if (interactive_options.calibrate) {
+        CalibrationResult result;
+        if (!calibrate_bricks(interactive_options, window, renderer, device,
+                              result, error)) {
+            if (result.metrics.duration_seconds > 0.0)
+                save_local_calibration(result);
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return false;
+        }
+        last_calibration = result;
+        save_local_calibration(result);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return true;
+    }
+    Runtime runtime;
+    if (!build_runtime(interactive_options, options.context, runtime, error)) {
         glfwDestroyWindow(window);
         glfwTerminate();
         return false;
@@ -2804,7 +3347,8 @@ bool run_interactive(const Options &options, std::string &error) {
     };
     auto adopt_runtime = [&](Runtime &&replacement) {
         runtime = std::move(replacement);
-        input.camera.set_preset(gallery_entry(runtime.context).camera);
+        input.camera.set_preset(camera_preset_for(
+            runtime.context, interactive_options.bricks));
         completed_frames = 0U;
         reported_completed_frames = 0U;
         dump_angle = k_dump_initial_angle;
@@ -2857,25 +3401,96 @@ bool run_interactive(const Options &options, std::string &error) {
         const bool down = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
 
         if (input.count_dialog_visible) {
+            if (input.brick_dialog && fluid_forces && !fluid_forces_latch) {
+                if (!finish_physics(false)) {
+                    glfwDestroyWindow(window);
+                    glfwTerminate();
+                    return false;
+                }
+                CalibrationResult result;
+                std::string calibration_error;
+                bool calibration_succeeded = false;
+                if (calibrate_bricks(interactive_options, window, renderer,
+                                     device, result, calibration_error)) {
+                    calibration_succeeded = true;
+                    last_calibration = result;
+                    save_local_calibration(result);
+                    input.brick_values = {
+                        std::to_string(result.config.brick_count),
+                        std::to_string(result.config.brick_scale),
+                        std::to_string(result.config.wall_planes)};
+                    input.count_dialog_visible = false;
+                    input.count_value_invalid = false;
+                } else {
+                    if (result.metrics.duration_seconds > 0.0)
+                        save_local_calibration(result);
+                    input.count_value_invalid = true;
+                    std::cerr << "Calibration failed: " << calibration_error << '\n';
+                }
+                if (calibration_succeeded) {
+                    Runtime replacement;
+                    if (!build_runtime(interactive_options,
+                                       GalleryContext::rigid_body, replacement,
+                                       error) ||
+                        !adopt_runtime(std::move(replacement))) {
+                        glfwDestroyWindow(window);
+                        glfwTerminate();
+                        return false;
+                    }
+                }
+            }
+            if (input.brick_dialog && primary_debug && !primary_debug_latch) {
+                std::string save_error;
+                if (!last_calibration.has_value() ||
+                    last_calibration->config != interactive_options.bricks) {
+                    save_error = "calibrate this exact configuration before verification";
+                } else if (verify_and_save_profile(
+                               interactive_options, *last_calibration,
+                               save_error)) {
+                    std::cout << "Verified device profile saved\n";
+                    input.count_dialog_visible = false;
+                }
+                if (!save_error.empty())
+                    std::cerr << "Profile not saved: " << save_error << '\n';
+            }
             if (escape && !escape_latch) {
                 input.count_dialog_visible = false;
                 input.count_value_invalid = false;
             }
             if (backspace && !backspace_latch) {
                 if (input.replace_count_value) {
-                    input.count_value.clear();
+                    if (input.brick_dialog)
+                        input.brick_values[input.brick_field].clear();
+                    else
+                        input.count_value.clear();
                     input.replace_count_value = false;
-                } else if (!input.count_value.empty()) {
-                    input.count_value.pop_back();
+                } else {
+                    std::string &value = input.brick_dialog
+                        ? input.brick_values[input.brick_field]
+                        : input.count_value;
+                    if (!value.empty()) value.pop_back();
                 }
+                input.count_value_invalid = false;
+            }
+            if (input.brick_dialog && tab && !tab_latch) {
+                input.brick_field = (input.brick_field + 1U) % 3U;
+                input.replace_count_value = true;
                 input.count_value_invalid = false;
             }
             if (enter && !enter_latch) {
                 std::uint32_t requested = 0U;
                 const GalleryEntry &entry = gallery_entry(runtime.context);
-                if (!parse_u32(input.count_value, requested) ||
-                    requested < entry.minimum_count ||
-                    requested > entry.maximum_count) {
+                BrickSceneConfig requested_bricks = interactive_options.bricks;
+                std::string validation_error;
+                const bool bricks_valid = !input.brick_dialog ||
+                    (parse_u32(input.brick_values[0], requested_bricks.brick_count) &&
+                     parse_float(input.brick_values[1], requested_bricks.brick_scale) &&
+                     parse_u32(input.brick_values[2], requested_bricks.wall_planes) &&
+                     validate_brick_config(requested_bricks, validation_error));
+                if (!bricks_valid || (!input.brick_dialog &&
+                    (!parse_u32(input.count_value, requested) ||
+                     requested < entry.minimum_count ||
+                     requested > entry.maximum_count))) {
                     input.count_value_invalid = true;
                 } else if (!finish_physics(false)) {
                     glfwDestroyWindow(window);
@@ -2883,7 +3498,10 @@ bool run_interactive(const Options &options, std::string &error) {
                     return false;
                 } else {
                     Options requested_options = interactive_options;
-                    if (entry.count_kind == GalleryCountKind::fluid_particles)
+                    if (input.brick_dialog) {
+                        requested_options.bricks = requested_bricks;
+                        requested_options.bricks_overridden = true;
+                    } else if (entry.count_kind == GalleryCountKind::fluid_particles)
                         requested_options.fluid_particles = requested;
                     else
                         requested_options.dump_spheres = requested;
@@ -2972,6 +3590,13 @@ bool run_interactive(const Options &options, std::string &error) {
                    gallery_entry(runtime.context).count_kind !=
                        GalleryCountKind::none) {
             input.count_dialog_visible = true;
+            input.brick_dialog = gallery_entry(runtime.context).count_kind ==
+                GalleryCountKind::brick_scene;
+            input.brick_field = 0U;
+            input.brick_values = {
+                std::to_string(interactive_options.bricks.brick_count),
+                std::to_string(interactive_options.bricks.brick_scale),
+                std::to_string(interactive_options.bricks.wall_planes)};
             input.count_value = std::to_string(
                 gallery_entry(runtime.context).count_kind ==
                         GalleryCountKind::fluid_particles
@@ -3189,11 +3814,15 @@ bool run_interactive(const Options &options, std::string &error) {
                 window, frame, gallery_entry(runtime.context),
                 input.camera.camera(),
                 {.picker_selection = picker_visible
-                     ? std::optional<GalleryContext>{picker_selection}
-                     : std::nullopt,
+                        ? std::optional<GalleryContext>{picker_selection}
+                        : std::nullopt,
                  .count_dialog_visible = input.count_dialog_visible,
                  .context = runtime.context,
                  .count_value = input.count_value,
+                 .brick_values = {input.brick_values[0], input.brick_values[1],
+                                  input.brick_values[2]},
+                 .brick_field = input.brick_field,
+                 .brick_dialog = input.brick_dialog,
                  .count_value_invalid = input.count_value_invalid,
                  .status = status_text},
                 error)) {
@@ -3233,6 +3862,10 @@ int main(int argc, char **argv) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
     }
+    if (options.calibrate && (options.headless || options.all_scenes)) {
+        std::cerr << "--calibrate requires the interactive gallery path\n";
+        return 2;
+    }
     if (options.version) {
         print_version();
         return 0;
@@ -3248,6 +3881,27 @@ int main(int argc, char **argv) {
             return 1;
         }
         std::cout << "Metal device: " << device.name.UTF8String << '\n';
+        if (!options.headless && !options.all_scenes &&
+            !options.bricks_overridden) {
+            parallel_mater::gallery::DeviceProfileCatalog catalog;
+            std::string profile_error;
+            if (parallel_mater::gallery::load_device_profiles(
+                    device_profiles_path(options), catalog, profile_error)) {
+                const auto hardware = metal_hardware_identity(device);
+                if (const auto *profile =
+                        parallel_mater::gallery::find_matching_profile(
+                            catalog, hardware, brick_render_width,
+                            brick_render_height, "metal-rigid-v1")) {
+                    options.bricks = profile->scene;
+                    std::cout << "Using verified brick profile: "
+                              << options.bricks.brick_count << " bricks, "
+                              << options.bricks.wall_planes << " walls\n";
+                }
+            } else {
+                std::cerr << "Device profile catalog unavailable: "
+                          << profile_error << '\n';
+            }
+        }
     }
     std::string error;
     const bool success = options.headless || options.all_scenes

@@ -7,6 +7,8 @@
 #include <parallel_mater/parallel_mater.hpp>
 #endif
 
+#include <parallel_mater_gallery/device_profiles.hpp>
+
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -197,6 +199,14 @@ struct SceneInstance {
 // concepts; the legacy hopper fixture builds reusable triangle meshes through
 // SceneDefinition. The gallery's DUMP entry now loads DumpTruck.glb instead.
 [[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
+
+// Replaces the authored wall bodies with a deterministic collection of
+// independent triangle-mesh bricks. The authored scene remains the source for
+// the floor, ball, materials, and physical properties.
+[[nodiscard]] bool make_brick_scene(const SceneDefinition &authored,
+                                    const ::parallel_mater::gallery::BrickSceneConfig &config,
+                                    SceneDefinition &output,
+                                    std::string &error);
 
 // Derives the capacities needed by the shared scene instantiator. Gallery
 // clients, tests, and benchmarks should use this instead of mirroring its

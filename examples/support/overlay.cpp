@@ -1317,4 +1317,36 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
          "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);
 }
 
+void draw_brick_settings_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const std::array<std::string, 3> &values,
+    std::size_t selected, bool invalid) {
+    const int center_x = static_cast<int>(width) / 2;
+    const int center_y = static_cast<int>(height) / 2;
+    rectangle(rgba, width, height, center_x - 300, center_y - 180,
+              center_x + 300, center_y + 180, {4, 10, 16, 242});
+    text(rgba, width, height, center_x - 260, center_y - 145,
+         "BRICK WALL SETTINGS", {105, 255, 155, 255}, 2);
+    constexpr std::array labels{"COUNT  ", "SCALE  ", "WALLS  "};
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        const int y = center_y - 82 + static_cast<int>(index) * 58;
+        rectangle(rgba, width, height, center_x - 260, y,
+                  center_x + 260, y + 42,
+                  index == selected
+                      ? (invalid ? Color{105, 20, 20, 255}
+                                 : Color{45, 72, 88, 255})
+                      : Color{27, 38, 48, 255});
+        text(rgba, width, height, center_x - 238, y + 12,
+             std::string(labels[index]) + values[index],
+             {245, 247, 250, 255}, 2);
+    }
+    text(rgba, width, height, center_x - 260, center_y + 106,
+         invalid ? "COUNT 1-4096  SCALE .5-2  WALLS 1-16"
+                 : "TAB FIELD  ENTER APPLY AND RESTART",
+         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
+    text(rgba, width, height, center_x - 260, center_y + 138,
+         "C AUTO-CALIBRATE  V VERIFY AND SAVE  ESC CANCEL",
+         {160, 190, 210, 255}, 1);
+}
+
 } // namespace parallel_mater::gallery
