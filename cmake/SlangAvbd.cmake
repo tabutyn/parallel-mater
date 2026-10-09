@@ -1,75 +1,10 @@
 # SPDX-License-Identifier: MIT
-include(ExternalProject)
-
-set(PARALLEL_MATER_SLANG_VERSION "2026.18" CACHE STRING
-    "Pinned Slang compiler version used for AVBD shaders")
-set(PARALLEL_MATER_SLANGC_EXECUTABLE "" CACHE FILEPATH
-    "Existing slangc executable; empty downloads the pinned release")
 
 function(parallel_mater_add_slang_avbd)
-    set(slang_dependency)
     set(slangc "${PARALLEL_MATER_SLANGC_EXECUTABLE}")
     if(NOT slangc)
-        find_program(slangc NAMES slangc HINTS "$ENV{SLANG_DIR}/bin")
-    endif()
-
-    if(slangc)
-        execute_process(
-            COMMAND "${slangc}" -version
-            OUTPUT_VARIABLE slangc_version
-            ERROR_VARIABLE slangc_version_error
-            RESULT_VARIABLE slangc_status)
-        if(NOT slangc_version)
-            set(slangc_version "${slangc_version_error}")
-        endif()
-        string(STRIP "${slangc_version}" slangc_version)
-        if(NOT slangc_status EQUAL 0 OR
-           NOT slangc_version STREQUAL PARALLEL_MATER_SLANG_VERSION)
-            message(FATAL_ERROR
-                "slangc reports '${slangc_version}', expected ${PARALLEL_MATER_SLANG_VERSION}")
-        endif()
-    else()
-        string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" slang_architecture)
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
-           slang_architecture MATCHES "^(x86_64|amd64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-linux-x86_64-glibc-2.27.tar.gz")
-            set(slang_hash "e45ea4f117d51b8c1e84fa49f562081e73a9f29d02bd4f7fad20678603282829")
-        elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
-               slang_architecture MATCHES "^(aarch64|arm64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-linux-aarch64-glibc-2.28.tar.gz")
-            set(slang_hash "5ab662d24241a963ccf7433198d8b89483721407398f035102a8dad5fc6dd501")
-        elseif(APPLE AND slang_architecture MATCHES "^(aarch64|arm64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-macos-aarch64.tar.gz")
-            set(slang_hash "59833c5cfa12aad72c6fbad9cfcc06be8781ecd58c5983e6c79425e819e16bb2")
-        elseif(APPLE AND slang_architecture MATCHES "^(x86_64|amd64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-macos-x86_64.tar.gz")
-            set(slang_hash "8d27b7020b102beecaa769c1ff7342dd2534c14cfae505a36e1b71d595208739")
-        elseif(WIN32 AND slang_architecture MATCHES "^(x86_64|amd64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-windows-x86_64.zip")
-            set(slang_hash "6ffa4827b519fd0a85b38407049d87ab0c1f045fe2289cb1e6831f965169f8a1")
-        elseif(WIN32 AND slang_architecture MATCHES "^(aarch64|arm64)$")
-            set(slang_archive "slang-${PARALLEL_MATER_SLANG_VERSION}-windows-aarch64.zip")
-            set(slang_hash "39ec2c02eba40ecd4d169599ae8c3cf00040729639b44be138dd82c62de4209e")
-        else()
-            message(FATAL_ERROR
-                "No pinned Slang package for ${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR}; "
-                "set PARALLEL_MATER_SLANGC_EXECUTABLE")
-        endif()
-
-        set(slang_root
-            "${CMAKE_CURRENT_BINARY_DIR}/_deps/parallel-mater-slang-${PARALLEL_MATER_SLANG_VERSION}")
-        ExternalProject_Add(parallel-mater-slang-toolchain
-            URL "https://github.com/shader-slang/slang/releases/download/v${PARALLEL_MATER_SLANG_VERSION}/${slang_archive}"
-            URL_HASH "SHA256=${slang_hash}"
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            SOURCE_DIR "${slang_root}"
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-            EXCLUDE_FROM_ALL TRUE)
-        set(slangc "${slang_root}/bin/slangc${CMAKE_EXECUTABLE_SUFFIX}")
-        set(slang_dependency parallel-mater-slang-toolchain)
+        message(FATAL_ERROR
+            "parallel_mater_require_slang() must run before AVBD generation")
     endif()
 
     set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/slang")
@@ -100,7 +35,7 @@ function(parallel_mater_add_slang_avbd)
             -target hlsl -profile sm_5_1 -fp-mode precise
             -warnings-as-errors all
             -o "${hlsl_source}" -reflection-json "${hlsl_reflection}"
-        DEPENDS "${source}" ${slang_dependency}
+        DEPENDS "${source}" "${slangc}"
         COMMENT "Compiling the AVBD numerical core with Slang ${PARALLEL_MATER_SLANG_VERSION}"
         VERBATIM)
 
@@ -118,7 +53,7 @@ function(parallel_mater_add_slang_avbd)
                 -target ptx -fp-mode precise -warnings-as-errors all
                 -nvrtc-path "$<TARGET_FILE_DIR:CUDA::nvrtc>/nvrtc"
                 -o "${ptx}"
-            DEPENDS "${source}" ${slang_dependency} CUDA::nvrtc
+            DEPENDS "${source}" "${slangc}" CUDA::nvrtc
             COMMENT "Compiling the Slang AVBD CUDA conformance kernel"
             VERBATIM)
         list(APPEND slang_outputs "${ptx}")
