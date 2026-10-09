@@ -1,6 +1,18 @@
 # Third-party notices
 
 ParallelMater's installed physics library has no bundled third-party source.
+The optional Vulkan build uses **Slang** 2026.19 as a build-time shader
+compiler under the Apache License 2.0 with LLVM exceptions. Generated SPIR-V
+is embedded in the library; Slang source, libraries, and executables are not
+linked, bundled, or installed by ParallelMater. The CI/bootstrap archive is
+pinned and SHA-256 verified from the official
+`shader-slang/slang` GitHub release.
+
+The Vulkan build also invokes **SPIRV-Tools** 2026 or newer (`spirv-opt` and
+`spirv-val`) under the Apache License 2.0. These host tools strip non-semantic
+debug records and validate the generated Vulkan 1.2 module; they are not linked
+or installed.
+
 The optional gallery fetches the following pinned development dependencies at
 configure time:
 

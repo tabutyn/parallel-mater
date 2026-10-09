@@ -7,5 +7,8 @@ if(@PARALLEL_MATER_PACKAGE_NEEDS_CUDA@)
     endif()
     find_dependency(CUDAToolkit)
 endif()
+if(@PARALLEL_MATER_PACKAGE_NEEDS_VULKAN@)
+    find_dependency(Vulkan 1.2)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/ParallelMaterTargets.cmake")

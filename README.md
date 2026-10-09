@@ -99,6 +99,22 @@ timings, `Tab` for the scene catalog, and arrows/Enter or click to select a
 supported scene. Gray catalog entries require unimplemented subsystems.
 See [the D3D12 backend guide](docs/D3D12.md).
 
+### Vulkan 1.2 rigid foundation
+
+Linux and Android can opt into the standalone compute-only Vulkan target with
+`PARALLEL_MATER_BUILD_VULKAN=ON`. The installed target is
+`ParallelMater::vulkan`, and the public header is
+`<parallel_mater/vulkan.hpp>`. This first slice provides owned/borrowed context
+lifecycle, stable rigid buffers, static/kinematic/dynamic direct integration,
+timeline completion, readback, statistics, and timings. It deliberately has no
+contacts, constraints, other particle/deformable systems, gallery, or
+conformance-v1 claim.
+
+Shaders compile at build time with pinned Slang 2026.19 into validated SPIR-V
+1.5 and are embedded in the static library. See [Vulkan backend status and
+build instructions](docs/VULKAN.md), including the standalone Android
+instrumentation smoke test.
+
 ### Metal 4 foundation
 
 On Apple Silicon with macOS 26 and Xcode 26, CMake defaults to the Metal target
