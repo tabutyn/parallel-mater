@@ -40,6 +40,8 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
+option(PARALLEL_MATER_BUILD_SLANG_AVBD
+       "Build and validate the portable Slang AVBD core" ${BUILD_TESTING})
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY AND NOT PARALLEL_MATER_BUILD_CUDA)
     message(FATAL_ERROR "The OptiX gallery requires PARALLEL_MATER_BUILD_CUDA")
@@ -1850,6 +1852,11 @@ if(PARALLEL_MATER_BUILD_METAL)
                            LABELS "metal;gallery;subsystem")
         endif()
     endif()
+endif()
+
+if(PARALLEL_MATER_BUILD_SLANG_AVBD)
+    include(cmake/SlangAvbd.cmake)
+    parallel_mater_add_slang_avbd()
 endif()
 
 if(BUILD_TESTING)

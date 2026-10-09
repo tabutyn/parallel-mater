@@ -25,6 +25,11 @@ Its numerical core compiles directly on CPU, CUDA and Metal. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
 
+A new [Slang AVBD implementation](docs/SLANG.md) expresses that numerical core
+once for CUDA, Metal, and D3D12-compatible HLSL. This first migration slice has
+cross-target ABI checks and executes generated PTX against the existing C++
+fixtures; production collision and scheduling adapters are not switched yet.
+
 The newly integrated D3D12 backend retains its existing solver; it has not yet
 been migrated to AVBD.
 
