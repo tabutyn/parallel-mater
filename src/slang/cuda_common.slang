@@ -200,6 +200,23 @@ struct SoftClothContact
     bool active;
 };
 
+struct SoftSurfaceInfluence
+{
+    uint corner;
+    float factor;
+};
+
+struct ClothBodyCorrection
+{
+    Vec3 offset;
+    Vec3 impulse;
+    Vec3 contact;
+    float support_radius;
+    float weight_sum;
+    uint vertices[3];
+    bool active;
+};
+
 struct RopeAttachment
 {
     RigidBodyId body;
