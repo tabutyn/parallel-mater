@@ -44,6 +44,13 @@ struct TriangleMeshId
     uint generation;
 };
 
+struct HitBox
+{
+    Vec3 center;
+    Quaternion orientation;
+    Vec3 half_extents;
+};
+
 enum MotionType : uint8_t
 {
     static_body,
