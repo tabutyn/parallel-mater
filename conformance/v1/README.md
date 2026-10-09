@@ -4,6 +4,10 @@ This directory is the backend-neutral correctness contract for CUDA, Metal,
 and future implementations. It is separate from physics capture v1, which
 remains a debugging/replay format.
 
+For shared implementation code and small host/device equation fixtures, see
+the [rigid-contact solver contract](../../docs/CONTACT_SOLVER.md). Full-engine
+conformance remains required; passing the portable row tests is not sufficient.
+
 ## Layout
 
 - `cases/` contains canonical, byte-stable JSON inputs in SI units. Analytic
@@ -69,10 +73,11 @@ backend-specific hashes are diagnostic and never gate correctness.
 - Direct integration uses `1e-5`; constraint/contact positions use `2e-3 m`
   and velocities `2e-2 m/s`; deformable samples use `5e-3 m` and `5e-2 m/s`.
   Quaternion angular error uses `2e-3 rad`, with opposite signs equivalent.
-- Contact lists are canonicalized. Rigid manifold samples are grouped by body
-  pair and matched by minimum geometric cost so harmless floating-point noise
-  cannot reorder otherwise equivalent contacts. NaN, infinity, missing
-  entities, changed topology, and a changed case hash fail.
+- Contact lists are canonicalized and rigid manifolds aligned by geometric
+  cost within body pairs. Final comparison requires a one-to-one match within
+  stable body/particle identities, with every matched field satisfying its
+  existing tolerance. Floating-point noise cannot reorder the correspondence.
+  NaN, infinity, missing entities, changed topology, and changed case hashes fail.
 - Systems of at most 256 elements emit complete state. Larger systems emit
   stable-ID samples plus counts, bounds, center of mass, momentum, energy,
   maximum speed, divergence, strain, clearance/contact, and topology data.

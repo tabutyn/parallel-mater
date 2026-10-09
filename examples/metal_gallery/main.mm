@@ -774,7 +774,7 @@ bool append_rigid_mesh(const MetalMesh &mesh, RigidBodyState state,
                           rotate(state.orientation, source.position)),
                       normalize(rotate(state.orientation, source.normal)),
                       painted_color(mesh.base_color, paint, source.uv),
-                      source.uv, mesh.checkerboard);
+                      source.uv);
     }
     return true;
 }
@@ -798,7 +798,7 @@ bool append_rigid_instance(const MetalMesh &mesh, std::uint32_t mesh_index,
                  {source.normal.x, source.normal.y, source.normal.z},
                  {mesh.base_color.x, mesh.base_color.y, mesh.base_color.z},
                  {source.uv.x, source.uv.y},
-                 mesh.checkerboard ? 1.0F : 0.0F});
+                 0.0F});
         }
     }
     batch->instances.push_back(
@@ -1070,6 +1070,7 @@ std::filesystem::path scene_path(const Options &options,
         std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
+    static_assert(paths.size() == static_cast<std::size_t>(GallerySceneSource::smoke_rope) + 1U);
     const auto configured_path = paths[static_cast<std::size_t>(source)];
     if (source == GallerySceneSource::default_scene &&
         options.scene_overridden) {

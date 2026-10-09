@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/arrow_forces.hpp>
+#include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
@@ -80,16 +82,16 @@ constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
 constexpr float k_collector_gravity_tilt_degrees =
     parallel_mater::gallery::collector_gravity_tilt_degrees;
 constexpr float k_pi = 3.14159265358979323846F;
-constexpr float k_dump_initial_angle = k_pi * 0.25F;
-constexpr float k_dump_final_angle = -k_pi * 0.25F;
-constexpr float k_dump_rotation_speed = k_pi * 0.25F;
 constexpr float k_motor_speed = 8.0F;
-constexpr std::uint32_t k_default_dump_spheres = 100U;
+constexpr float k_motor_steering_angle = 25.0F * k_pi / 180.0F;
+constexpr float k_motor_steering_speed = 90.0F * k_pi / 180.0F;
+constexpr std::uint32_t k_default_dump_spheres =
+    parallel_mater::gallery::default_dump_payload_count;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
 [[nodiscard]] constexpr std::uint32_t scene_substeps(
     GalleryContext context) noexcept {
-    return context == GalleryContext::constraint_hinge ? 8U : 4U;
+    return context == GalleryContext::constraint_hinge || context == GalleryContext::dump ? 8U : 4U;
 }
 
 struct Options {
@@ -107,6 +109,7 @@ struct Options {
     std::uint32_t headless_constraint_action_after_frames{};
     bool headless_cloth_tilt_left{};
     bool headless_motor_forward{};
+    bool headless_motor_right{};
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
     bool cloth_debug{};
@@ -123,6 +126,12 @@ struct InputState {
 struct DirectionalInput {
     float x{};
     float z{};
+};
+
+struct SuspensionSteeringJoint {
+    std::size_t constraint_index{};
+    Quaternion authored_local_orientation_a{};
+    bool front{};
 };
 
 enum class KeyAction : std::size_t {
@@ -196,6 +205,10 @@ struct GalleryRuntime {
     SceneInstance instance{};
     OptixRenderer renderer{};
     FixedContactCollector fixed_collector{};
+    parallel_mater::gallery::ArrowForces arrow_forces{};
+    parallel_mater::gallery::DumpTruckBed dump_bed{};
+    std::vector<SuspensionSteeringJoint> suspension_steering_joints{};
+    float steering_angle{};
     std::vector<RigidBodyId> gravity_tilt_bodies{};
     std::size_t kinematic_index{std::numeric_limits<std::size_t>::max()};
     RigidBodyState kinematic_target{};
@@ -379,14 +392,15 @@ struct FluidEscapeTrace {
     return true;
 }
 
-[[nodiscard]] DirectionalInput directional_input(GLFWwindow *window) {
+[[nodiscard]] DirectionalInput directional_input(
+    GLFWwindow *window, bool normalize_diagonal = true) {
     DirectionalInput input{
         static_cast<float>(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) -
             static_cast<float>(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS),
         static_cast<float>(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) -
             static_cast<float>(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)};
     const float length = std::sqrt(input.x * input.x + input.z * input.z);
-    if (length > 1.0F) {
+    if (normalize_diagonal && length > 1.0F) {
         input.x /= length;
         input.z /= length;
     }
@@ -488,13 +502,15 @@ struct FluidEscapeTrace {
                              output.headless_cloth_tilt_after_frames)) return false;
         } else if (argument == "--cloth-tilt-left") {
             output.headless_cloth_tilt_left = true;
-        } else if (argument == "--constraint-action-after-frames" &&
+        } else if ((argument == "--constraint-action-after-frames" || argument == "--dump-after-frames") &&
                    index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 100000U,
                              output.headless_constraint_action_after_frames))
                 return false;
         } else if (argument == "--motor-forward") {
             output.headless_motor_forward = true;
+        } else if (argument == "--motor-right") {
+            output.headless_motor_right = true;
         } else if (argument == "--fluid-particle-view") {
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
@@ -523,7 +539,9 @@ struct FluidEscapeTrace {
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
                          "[--constraint-action-after-frames N (headless)] "
+                         "[--dump-after-frames N (headless)] "
                          "[--motor-forward (headless)] "
+                         "[--motor-right (headless)] "
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--cloth-debug | --water-cloth-debug] "
                          "[--physics-capture output.log] "
@@ -561,6 +579,18 @@ struct FluidEscapeTrace {
         if (!require(runtime.world.read_rigid_constraint_state(id, state),
                      "read constraint state")) return false;
         enable = enable || !state.enabled;
+    }
+
+    if (enable && runtime.context == GalleryContext::constraint_point) {
+        // Released arms can be metres away. Restore the authored assembly
+        // before enabling its joints instead of injecting a snap-back impulse.
+        for (std::size_t index = 0; index < runtime.scene.rigid_bodies.size(); ++index) {
+            const auto &body = runtime.scene.rigid_bodies[index];
+            if (body.options.motion == MotionType::dynamic &&
+                !require(runtime.world.set_rigid_body_state(
+                             runtime.instance.rigid_bodies[index], body.options.initial_state),
+                         "restore point assembly")) return false;
+        }
     }
 
     for (std::size_t index = 0U;
@@ -601,15 +631,11 @@ struct FluidEscapeTrace {
 [[nodiscard]] bool drive_motors(GalleryRuntime &runtime,
                                 DirectionalInput input) {
     const float forward = -input.z;
-    const float left_speed = -(forward + input.x) * k_motor_speed;
-    const float right_speed = -(forward - input.x) * k_motor_speed;
+    const float target_velocity = -forward * k_motor_speed;
     for (std::size_t index = 0U;
          index < runtime.scene.rigid_constraints.size(); ++index) {
         auto &definition = runtime.scene.rigid_constraints[index];
         if (definition.options.type != RigidConstraintType::motor) continue;
-        const float target_velocity =
-            definition.name.find("Left") != std::string::npos
-                ? left_speed : right_speed;
         if (definition.options.motor.angular_target_velocity == target_velocity)
             continue;
         RigidConstraintOptions options = definition.options;
@@ -619,6 +645,34 @@ struct FluidEscapeTrace {
         if (!require(runtime.world.update_rigid_constraint(
                          runtime.instance.rigid_constraints[index], options),
                      "drive motor constraint")) return false;
+        definition.options = options;
+    }
+    return true;
+}
+
+[[nodiscard]] bool steer_motor_suspension(GalleryRuntime &runtime,
+                                           float right_input) {
+    const float target = right_input * k_motor_steering_angle;
+    const float maximum_step = k_motor_steering_speed * k_timestep;
+    const float previous = runtime.steering_angle;
+    runtime.steering_angle += std::clamp(
+        target - runtime.steering_angle, -maximum_step, maximum_step);
+    if (runtime.steering_angle == previous) return true;
+    const auto angles = parallel_mater::gallery::axle_steering_angles(
+        runtime.steering_angle, 1.0F);
+    for (const auto &steering : runtime.suspension_steering_joints) {
+        auto &definition =
+            runtime.scene.rigid_constraints[steering.constraint_index];
+        RigidConstraintOptions options = definition.options;
+        options.body_a = runtime.instance.rigid_bodies[definition.body_a];
+        options.body_b = runtime.instance.rigid_bodies[definition.body_b];
+        const float angle = steering.front ? angles.front : angles.rear;
+        options.local_orientation_a = multiply(
+            steering.authored_local_orientation_a, rotation_z(angle));
+        if (!require(runtime.world.update_rigid_constraint(
+                         runtime.instance.rigid_constraints[
+                             steering.constraint_index], options),
+                     "steer suspension constraint")) return false;
         definition.options = options;
     }
     return true;
@@ -734,9 +788,7 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     GalleryRuntime next{};
     next.context = context;
     const GalleryEntry &entry = gallery_entry(context);
-    if (entry.source == GallerySceneSource::procedural_dump) {
-        next.scene = parallel_mater::gallery::make_dump_scene(dump_spheres);
-    } else {
+    {
         const std::array scene_paths{
             options.scene,
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH),
@@ -745,9 +797,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH),
             std::filesystem::path(
-                PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH),
-            std::filesystem::path(PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH),
-            std::filesystem::path{},
+                PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH),
+            std::filesystem::path(PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH),
@@ -779,6 +830,42 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         if (entry.has_fluid)
             next.scene.fluid_options.capacity = fluid_particles;
     }
+    if (context == GalleryContext::dump) {
+        if (!parallel_mater::gallery::configure_dump_payload(next.scene, dump_spheres, error)) return false;
+        if (!next.dump_bed.initialize(next.scene)) {
+            error = "dump truck needs its authored DumpLift joint";
+            return false;
+        }
+    }
+    if (entry.controls == GalleryControlPolicy::motor_drive) {
+        for (std::size_t spring_index = 0U;
+             spring_index < next.scene.rigid_constraints.size();
+             ++spring_index) {
+            const auto &spring = next.scene.rigid_constraints[spring_index];
+            if (spring.options.type != RigidConstraintType::generic_spring)
+                continue;
+            const auto motor = std::find_if(
+                next.scene.rigid_constraints.begin(),
+                next.scene.rigid_constraints.end(), [&](const auto &candidate) {
+                    return candidate.options.type == RigidConstraintType::motor &&
+                           candidate.body_a == spring.body_b;
+                });
+            if (motor == next.scene.rigid_constraints.end() ||
+                (motor->name.find("Front") == std::string::npos &&
+                 motor->name.find("Rear") == std::string::npos)) {
+                error = spring.name +
+                    ": suspension hub needs a named Front or Rear motor";
+                return false;
+            }
+            next.suspension_steering_joints.push_back({
+                spring_index, spring.options.local_orientation_a,
+                motor->name.find("Front") != std::string::npos});
+        }
+        if (next.suspension_steering_joints.size() != 4U) {
+            error = "vehicle scene needs four steerable suspension hubs";
+            return false;
+        }
+    }
     parallel_mater::WorldOptions world_options{};
     Status create_status = parallel_mater::gallery::scene_world_options(
         next.scene, world_options,
@@ -793,6 +880,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     if (create_status)
         create_status = parallel_mater::gallery::instantiate_scene(
             next.scene, next.world, next.instance);
+    if (create_status)
+        create_status = next.arrow_forces.initialize(next.scene, next.instance);
     if (create_status) {
         next.gravity_tilt_bodies.reserve(next.scene.rigid_bodies.size());
         for (std::size_t index = 0U;
@@ -825,6 +914,13 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                   << " follow, " << next.gravity_tilt_bodies.size()
                   << " keep vertical\n";
     }
+    if (next.arrow_forces.active()) {
+        for (const auto &body : next.scene.rigid_bodies)
+            if (body.arrow_force > 0.0F)
+                std::cout << "Arrow force: " << body.source_name << " "
+                          << body.arrow_force
+                          << " N (camera-relative ground plane; gravity stays vertical)\n";
+    }
     if (!OptixRenderer::create(next.scene, next.world, next.instance,
                                PARALLEL_MATER_OPTIX_PTX_PATH,
                                options.width, options.height, next.renderer,
@@ -850,7 +946,6 @@ struct GallerySession {
     GalleryRuntime runtime{};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
-    float dump_angle{k_dump_initial_angle};
     parallel_mater::Vec3 peg_gravity{};
     parallel_mater::Vec3 cloth_gravity{};
     parallel_mater::WorldStepTimings timings{};
@@ -870,7 +965,6 @@ struct GallerySession {
         runtime = std::move(replacement);
         dump_spheres = requested_dump_spheres;
         fluid_particles = requested_fluid_particles;
-        dump_angle = k_dump_initial_angle;
         peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);
         cloth_gravity = peg_gravity;
         timings = {};
@@ -902,7 +996,6 @@ int main(int argc, char **argv) {
     GalleryRuntime &runtime = session.runtime;
     std::uint32_t &dump_spheres = session.dump_spheres;
     std::uint32_t &fluid_particles = session.fluid_particles;
-    float &dump_angle = session.dump_angle;
     Vec3 &peg_gravity = session.peg_gravity;
     Vec3 &cloth_gravity = session.cloth_gravity;
     WorldStepTimings &timings = session.timings;
@@ -980,34 +1073,25 @@ int main(int argc, char **argv) {
                           << spawn.options.initial_velocity.z << ")\n";
             }
         }
-        float headless_dump_angle = k_dump_initial_angle;
         for (int frame = 0; frame < options.frames; ++frame) {
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
-                    options.headless_constraint_action_after_frames) &&
-                toggles_constraint(
-                    gallery_entry(runtime.context).controls) &&
-                !toggle_constraints(runtime)) return 1;
-            if (options.headless_motor_forward &&
-                gallery_entry(runtime.context).controls ==
-                    GalleryControlPolicy::tank_motor &&
-                !drive_motors(runtime, {0.0F, -1.0F})) return 1;
-            if (gallery_entry(runtime.context).controls ==
-                    GalleryControlPolicy::dump_rotation &&
-                runtime.kinematic_index < runtime.instance.rigid_bodies.size()) {
-                headless_dump_angle = std::max(
-                    k_dump_final_angle,
-                    headless_dump_angle - k_dump_rotation_speed * k_timestep);
-                runtime.kinematic_target.orientation =
-                    rotation_z(headless_dump_angle);
-                if (!require(runtime.world.set_kinematic_target(
-                                 runtime.instance.rigid_bodies[
-                                     runtime.kinematic_index],
-                                 runtime.kinematic_target),
-                             "rotate headless DUMP hopper")) {
-                    return 1;
-                }
+                    options.headless_constraint_action_after_frames)) {
+                if (runtime.context == GalleryContext::dump) runtime.dump_bed.toggle();
+                else if (toggles_constraint(gallery_entry(runtime.context).controls) &&
+                         !toggle_constraints(runtime)) return 1;
             }
+            if (gallery_entry(runtime.context).controls ==
+                GalleryControlPolicy::motor_drive) {
+                const DirectionalInput motor_input{
+                    options.headless_motor_right ? 1.0F : 0.0F,
+                    options.headless_motor_forward ? -1.0F : 0.0F};
+                if (!drive_motors(runtime, motor_input) ||
+                    !steer_motor_suspension(runtime, motor_input.x)) return 1;
+            }
+            if (runtime.context == GalleryContext::dump &&
+                !require(runtime.dump_bed.advance(runtime.world, runtime.scene,
+                            runtime.instance, k_timestep), "tilt dump bucket")) return 1;
             StepOptions frame_step = headless_step;
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
@@ -1366,7 +1450,8 @@ int main(int argc, char **argv) {
                 input_state.count_value = std::to_string(
                     gallery_entry(runtime.context).count_kind ==
                             GalleryCountKind::fluid_particles
-                        ? fluid_particles : dump_spheres);
+                        ? fluid_particles
+                        : parallel_mater::gallery::dump_payload_count(runtime.scene));
                 input_state.replace_count_value = true;
                 input_state.count_value_invalid = false;
             }
@@ -1376,11 +1461,10 @@ int main(int argc, char **argv) {
                     std::cerr << "Scene reset failed: " << error << '\n';
                 }
             }
-            if (!context_visible && keys.pressed(KeyAction::action) &&
-                toggles_constraint(
-                    gallery_entry(runtime.context).controls) &&
-                !toggle_constraints(runtime)) {
-                break;
+            if (!context_visible && keys.pressed(KeyAction::action)) {
+                if (runtime.context == GalleryContext::dump) runtime.dump_bed.toggle();
+                else if (toggles_constraint(gallery_entry(runtime.context).controls) &&
+                         !toggle_constraints(runtime)) break;
             }
             if (keys.pressed(KeyAction::timing)) {
                 timing_visible = !timing_visible;
@@ -1425,38 +1509,39 @@ int main(int argc, char **argv) {
             rigid_interpolation_alpha = 1.0F;
         } else {
             physics_accumulator += frame_delta;
-            const DirectionalInput directional =
-                context_visible ? DirectionalInput{} : directional_input(window);
             const GalleryEntry &entry = gallery_entry(runtime.context);
+            const DirectionalInput directional = context_visible
+                ? DirectionalInput{}
+                : directional_input(
+                      window, entry.controls != GalleryControlPolicy::motor_drive);
+            // An authored force controller owns the arrow keys. It must not
+            // simultaneously tilt gravity or drive an unrelated kinematic body.
+            const DirectionalInput steering = runtime.arrow_forces.active()
+                ? DirectionalInput{} : directional;
             std::uint32_t physics_steps = 0U;
             parallel_mater::gallery::PhysicsFrameBudget physics_budget(k_maximum_catch_up_steps);
             bool step_failed = false;
             while (physics_accumulator >= k_timestep &&
                    physics_budget.can_step()) {
                 const auto physics_started = FrameClock::now();
-                if (entry.controls == GalleryControlPolicy::tank_motor &&
-                    !drive_motors(runtime, directional)) {
+                if (entry.controls == GalleryControlPolicy::motor_drive &&
+                    (!drive_motors(runtime, steering) ||
+                     !steer_motor_suspension(runtime, steering.x))) {
+                    step_failed = true;
+                    break;
+                }
+                if (runtime.context == GalleryContext::dump &&
+                    !require(runtime.dump_bed.advance(runtime.world, runtime.scene,
+                                runtime.instance, k_timestep), "tilt dump bucket")) {
                     step_failed = true;
                     break;
                 }
                 if (runtime.kinematic_index <
                     runtime.instance.rigid_bodies.size()) {
-                    if (entry.controls == GalleryControlPolicy::dump_rotation) {
-                        if (!context_visible &&
-                            glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-                            dump_angle = std::max(
-                                k_dump_final_angle,
-                                dump_angle -
-                                    k_dump_rotation_speed * k_timestep);
-                        }
-                        runtime.kinematic_target.orientation =
-                            rotation_z(dump_angle);
-                    } else {
-                        runtime.kinematic_target.position.x +=
-                            directional.x * k_kinematic_speed * k_timestep;
-                        runtime.kinematic_target.position.z +=
-                            directional.z * k_kinematic_speed * k_timestep;
-                    }
+                    runtime.kinematic_target.position.x +=
+                        steering.x * k_kinematic_speed * k_timestep;
+                    runtime.kinematic_target.position.z +=
+                        steering.z * k_kinematic_speed * k_timestep;
                     if (!require(runtime.world.set_kinematic_target(
                                      runtime.instance.rigid_bodies[
                                          runtime.kinematic_index],
@@ -1473,7 +1558,7 @@ int main(int argc, char **argv) {
                 if (entry.controls == GalleryControlPolicy::cloth_gravity) {
                     cloth_gravity = steer_gravity(
                         cloth_gravity, input_state.camera.camera(),
-                        directional.x, -directional.z,
+                        steering.x, -steering.z,
                         k_gravity * runtime.scene.gravity_scale,
                         k_cloth_gravity_tilt_degrees, k_timestep);
                     interactive_step.gravity = cloth_gravity;
@@ -1481,7 +1566,7 @@ int main(int argc, char **argv) {
                            GalleryControlPolicy::collector_gravity) {
                     interactive_step.collect_rigid_contacts = true;
                     interactive_step.gravity = collector_gravity_for(
-                        directional, runtime.scene.gravity_scale,
+                        steering, runtime.scene.gravity_scale,
                         input_state.camera.camera());
                     const Vec3 loose_gravity{
                         0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
@@ -1495,16 +1580,16 @@ int main(int argc, char **argv) {
                     }
                 } else if (uses_rigid_gravity(entry.controls)) {
                     interactive_step.gravity = gravity_for(
-                        directional, runtime.scene.gravity_scale,
+                        steering, runtime.scene.gravity_scale,
                         input_state.camera.camera());
                 } else if (entry.controls ==
                            GalleryControlPolicy::peg_gravity) {
-                    const float right = directional.x + (!context_visible ?
+                    const float right = steering.x + (!context_visible ?
                         static_cast<float>(glfwGetKey(
                             window, GLFW_KEY_D) == GLFW_PRESS) -
                         static_cast<float>(glfwGetKey(
                             window, GLFW_KEY_A) == GLFW_PRESS) : 0.0F);
-                    const float forward = -directional.z + (!context_visible ?
+                    const float forward = -steering.z + (!context_visible ?
                         static_cast<float>(glfwGetKey(
                             window, GLFW_KEY_W) == GLFW_PRESS) -
                         static_cast<float>(glfwGetKey(
@@ -1522,6 +1607,12 @@ int main(int argc, char **argv) {
                     break;
                 }
                 interactive_step.collect_kernel_timings = timing_visible;
+                if (!require(runtime.arrow_forces.apply(runtime.world,
+                                 input_state.camera.camera(), directional.x, -directional.z),
+                             "apply screen-space arrow force")) {
+                    step_failed = true;
+                    break;
+                }
                 if (!require(runtime.world.step(interactive_step),
                              "step gallery")) {
                     step_failed = true;

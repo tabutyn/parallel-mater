@@ -1,5 +1,29 @@
 # Physics performance
 
+## Metal integration with latest main (2026-10-09)
+
+Merged upstream `85384f0` (PR #39) into the Metal optimization branch. The
+shared CPU/CUDA contact core, diagnostics, scene updates, and backend-specific
+gallery registries are retained. The documentation conflict preserved both
+performance audits. Metal's retained compiler limits and convergence-bookkeeping
+optimization remain unchanged; no procedural brick generation was added.
+
+The native Release Metal build and authored-wall regression pass. The opening
+scene still has 384 triangle-mesh bricks plus the sphere and ground. Its upstream
+GLB node changes only remove `pm_checkerboard` metadata.
+
+Post-merge CTest result: **26/27 pass**, including all 29 Metal gallery scenes,
+the shared CPU contact fixtures, gallery registry, API, rigid/CCD, wall energy,
+and subsystem tests. The previously known CUDA-golden comparison remains
+excluded; the additional failure below was run and reported, not skipped.
+
+The merged `parallel-mater-metal-conformance-inputs` test reports checksum
+mismatches for all 27 pinned GLBs. Direct SHA-256 comparison of the assets and
+manifest on `origin/main` reproduces every mismatch, independently of the Metal
+branch. This is an inherited input-provenance failure after upstream scene
+re-exports. Pinned hashes, cases, tolerances, and CUDA goldens remain unchanged;
+updating the reference corpus requires a reviewed CUDA capture on NVIDIA hardware.
+
 ## Metal solver redesign experiments (Apple M4, 2026-10-09)
 
 No solver prototype from this round is retained. The production contact solver,
@@ -133,6 +157,272 @@ shader tuning is now yielding sub-millisecond changes while the connected
 Gauss-Seidel solve remains serial across contact colors inside one GPU
 threadgroup. A material improvement requires a stable solver that exposes
 more independent work or converges in fewer dependent sweeps.
+
+## Main integration (2026-10-08)
+
+Merged upstream `06cd364` into the gallery/contact branch. Shared API types
+remain in `types.hpp`, including the new contact diagnostics; upstream Metal
+physics remains intact. The CUDA equation core and solve implementation are
+unchanged by this merge. Backend-specific gallery entries preserve Metal's
+existing controllers while retaining the newer OptiX scenes.
+
+Post-merge validation: full Release CUDA/gallery build succeeds; **18/18**
+focused CTest entries pass, including the CUDA parity-capture self-test, rigid
+contacts, Fixed collector, dump regressions, long rope winding/release, both
+gallery registry contracts, shared types, conformance tooling, and CPU/CUDA
+contact fixtures. The conformance Python suite has 19 passing unit tests.
+The standalone C++ contact build passes, and the two shared scene sources used
+by the Metal gallery pass a Linux C++ syntax check in Metal mode.
+
+This is not a native Metal build/runtime validation; that requires an Apple
+host. The broad-suite failures, snapshot comparisons, and performance numbers
+below are **pre-merge** results, not newly measured acceptance claims. This
+merge does not claim to fix the previously reported physics or timing issues.
+
+## Contact optimization follow-up (2026-10-08)
+
+Four changes build on the unified solver:
+
+- One shared solve kernel uses a single block for small worlds and a resident
+  cooperative grid for larger worlds. This changes launch geometry, not contact
+  equations, ordering or iteration budgets. A connected stack can use multiple
+  multiprocessors; there is no scene-wide joint/coupled-system opt-out.
+- Prepared free-body responses retain orientation-only inertia separately from
+  pose-dependent arms/Jacobians. Moving rows are computed at their current pose;
+  full rows enter the cache after an unchanged-pose observation. Generalized
+  bodies retain the direct adapter and a compact scalar normal-mass cache.
+  Empty broad-phase candidates no longer consume bounded live-contact slots.
+- Diagnostic impulses are published after contact and joint solving. Transient
+  impulse totals and persistent accumulated support are handled separately.
+- The backend-neutral core owns conservative island convergence: at least eight
+  passes, two quiet sweeps, and checks on pair updates, whole-body changes and
+  normal/friction impulse changes. Opposing updates cannot falsely mark an
+  island converged. Per-warp reductions skip zero atomic updates.
+
+The same header also defines the compact equation row and 25 shared CPU/CUDA
+fixtures. See [CONTACT_SOLVER.md](CONTACT_SOLVER.md) for the porting contract.
+No scene assets, collision fidelity, substeps, golden snapshots or tolerance
+limits were changed. The maximum face-contact budget remains **32**, versus
+the old pre-unification large-wall fallback of eight. These optimizations do
+not promise the old eight-pass wall timing at four times its iteration budget.
+
+Final Release measurements on the RTX 3050 Ti Laptop GPU, without rendering or
+another concurrent CUDA test/benchmark:
+
+| Workload / metric | Initial unified solver | Optimization follow-up |
+| --- | ---: | ---: |
+| 384-brick wall, physics wall-time median | 41.66 ms | 35.38 ms |
+| 384-brick wall, solve median | 39.34 ms | 33.01 ms |
+| 100-sphere truck, physics wall-time median | 32.18 ms | 36.25 ms |
+| 100-sphere truck, solve median | 24.12 ms | 28.76 ms |
+
+The wall uses 386 bodies, four substeps, 360 settling frames, ten warmup frames
+and 120 measured frames. Its baseline executable was rerun serially immediately
+after the final benchmark. The truck uses eight substeps and 180 warmup / 180
+measured frames with `--no-render --no-capture --profile`; its baseline is the
+earlier captured initial-unification measurement. The wall improvement is about
+15%, but the truck regression is about 13%. This is not a universal performance
+win or a restoration of the old eight-pass wall timing (about 11 ms).
+
+The last broad physics-focused CTest run passed **67/72**, before the final
+flat-color scheduling change. Five pre-existing failures remain: stale authored
+asset hashes, expanded-wall stability, two MotorSpring metadata assertions,
+and the Generic arrow-force expectation. Wall stability is not fixed: that run
+measured 0.129 m maximum drop and 0.301 m displacement, versus 0.113 m / 0.265 m
+in the initial unified build. These results do not establish scene-wide parity.
+
+After the final scheduling change, **11/11 focused tests pass**: rigid contacts,
+Fixed collector, truck unload/lowering and payload, small/fused truck contacts,
+long rope/soft-body winding and release, rope release, and shared CPU/CUDA
+contact fixtures. The standalone C++-only fixture build also passes. The full
+gallery build succeeds; scene assets were not modified by this follow-up.
+
+Final integrated snapshots pass **26/30** against the captured pre-refactor
+working-tree baseline (which the initial unified solver matched in all 30
+cases). Remaining failures are `constraint-breaking`, `constraint-generic`,
+`fluid-rigid`, and `rigid-direct`. The first two include contact-impulse
+differences; fluid/rigid trajectories also differ, and rigid-direct exceeds its
+strict numerical tolerances. They remain unresolved; goldens and tolerances
+were not changed. All 30 match the immediately preceding optimization build,
+so the final flat-color scheduling change introduced no further snapshot
+failures. This is a manual-test build, not a clean conformance acceptance.
+
+Local final snapshot results and comparison reports are retained under
+`/tmp/parallel-mater-final-contact-validation-6JYBHA`; earlier build and broad
+CTest logs are under `/tmp/parallel-mater-contact-perf-3EsbxF`.
+
+The sections below are historical baselines, not validation claims for this
+follow-up.
+
+## Initial unified rigid-contact solver (2026-10-08; historical baseline)
+
+The stack/general implementation split has been replaced, not globally forced
+on. All rigid contacts now use one velocity-row implementation and one solve
+kernel. Normal effective-mass caching is available with joints and coupled
+systems, validated against current poses after position projection. Colored and
+overflow contacts share the same equations. Small and large worlds share
+eight passes (32 for face patches), with a separate warm-start pass.
+
+The old stack-specific first-fit ordering and 64-pass cold-cache rule are gone;
+all worlds use mutual-minimum pair ordering. Fixed/Point contact convergence
+is retained, while other joint types no longer repeatedly scan irrelevant
+contacts. Substeps, collision mesh fidelity, material values and assets were
+not reduced or changed. See the [shared solver contract](CONTACT_SOLVER.md)
+for backend adapter requirements and standalone CPU/CUDA fixtures.
+
+A complete 30-case snapshot was captured before the refactor and repeated
+unchanged to check determinism. **All 30 final cases pass against that baseline**
+at the existing tolerances. Committed goldens and input hashes were not
+regenerated: those predate the existing authored-asset changes. The comparator
+also now performs strict one-to-one contact matching instead of sorting by
+floating-point impulses; every matched field still uses its original tolerance.
+
+Rejected during validation: freezing free-body inertia response in a different
+matrix form, localizing transient-contact state, scene-dependent coloring and
+cold-cache budgets all changed coupled trajectories. The final implementation
+preserves transient state-store order and generalized hinge/compound response
+while sharing the equations and cache. Scalar parity alone did not catch these
+issues; integrated baseline comparison did.
+
+Large face-contact scenes now do 32 passes rather than the old eight-pass
+fallback above 256 bodies. This deliberately trades more solve work for the
+same convergence budget used by small scenes. It is not a claim that every
+workload is faster; the single-block solve still needs large-workload profiling.
+
+Final 100-sphere resting-truck comparison on the RTX 3050 Ti Laptop GPU:
+Release, eight substeps, 180 settling frames then 180 measured frames,
+`--no-render --no-capture --profile`. The other gallery process had exited;
+no other CUDA compute process was present. Baseline and final runs were serial.
+
+| Metric | Captured baseline | Unified solver |
+| --- | ---: | ---: |
+| Physics median | 43.31 ms | 32.18 ms |
+| Physics p99 | 46.07 ms | 34.45 ms |
+| Contact/joint solve median | 35.57 ms | 24.12 ms |
+| Reported world allocation | 52.61 MiB | 48.46 MiB |
+
+This is about 26% less physics time on this workload, not a 60 FPS claim or
+an end-to-end rendering benchmark. Final states remained finite. The desktop
+and laptop power/thermal behavior are not controlled laboratory conditions.
+
+The expanded 386-body wall remains an unresolved acceptance failure. In the
+final uniform-budget build it measures 0.11259 m maximum drop, 0.265311 m
+displacement and 0.523951 rad rotation, versus the captured baseline's
+0.114645 m / 0.260997 m / 0.525191 rad. Intermediate cold-cache experiments
+were more stable but broke coupled-scene parity and were not retained. The
+wall regression also takes more solve work with the shared 32-pass budget;
+do not interpret this refactor as a wall-stability or universal speed fix.
+
+Final validation: full build succeeds; standalone C++ contact fixtures and
+identical CUDA fixtures pass (14 cases), as do all 11 comparator unit tests.
+The physics-focused CTest run passes **67/72** tests, including dump unload /
+lowering, Fixed collector, Generic contacts, all new body-count/joint isolation
+checks, and long rope winding/release/settling tests. The five remaining failures
+are the existing expanded wall, stale conformance asset hashes, MotorSpring
+metadata assertions (two test entries), and Generic's authored 1,000 N arrow
+force versus a 100 N expectation. No authored assets were edited by this
+refactor; `DumpTruck.blend` retains its pre-refactor SHA-256.
+
+```sh
+ctest --test-dir build-gallery --output-on-failure \
+  -E 'blender|conformance-cuda-goldens|render|visibility|surface|headless|benchmark'
+```
+
+## Dump truck / 100-sphere investigation (2026-10-08)
+
+This subsection records the pre-unification diagnosis; the split described
+below has since been removed by the change above.
+
+The DUMP payload now expands at the Blender Empty `SphereCluster`; P no longer
+depends on the obsolete `DumpLoadVolume` or an authored sphere Array. Its
+default workload is 111 rigid bodies (100 payload spheres plus truck/ground),
+nine joints, and 8,548 instanced render/collision triangles. Each sphere shares
+one 80-triangle mesh. The source `.blend` was preserved and re-exported.
+
+These are **diagnostic, not isolated acceptance measurements**: another gallery
+process (PID 172613, 232 MiB GPU allocation) remained open throughout. It was
+not paused or terminated. The RTX 3050 Ti Laptop GPU was shared with that
+process, so neither medians nor tails should be advertised as standalone FPS.
+Release build, 1/60-second physics steps, eight substeps, 960×720 rendering and
+readback, 30-frame capture ring, no timing overlay or kernel profiling:
+
+| Workload | Physics median | Render median | Total median | Total p99 |
+| --- | ---: | ---: | ---: | ---: |
+| Empty truck, resting | 6.32 ms | 0.97 ms | 7.30 ms | 35.80 ms |
+| 100 spheres, resting | 47.11 ms | 1.05 ms | 48.19 ms | 124.10 ms |
+| 100 spheres, driving | 58.20 ms | 1.03 ms | 59.22 ms | 150.04 ms |
+| 100 spheres, tipping/unloading | 31.34 ms | 1.04 ms | 32.39 ms | 123.36 ms |
+
+Each run settles for 180 frames, then measures 180 frames (360 for tipping).
+Window upload/presentation and debug overlays are excluded. The tipping run
+includes the transition from loaded to unloaded, not a stationary workload.
+All final body states remained finite. Payload generation happens only at
+load/reset/count changes, not every frame. Bucket control itself costs about
+0.02 ms median while tipping; it is not the bottleneck.
+
+A separate 120-frame physics-only profile, with rendering and capture disabled,
+still measured 45.28 ms median: 37.53 ms in the aggregated solve stage and
+6.46 ms in triangle-contact evaluation. The concurrent gallery caveat still
+applies. A 60-frame Nsight CUDA capture of the same resting workload attributed:
+
+| Kernel | Share of measured GPU kernel duration |
+| --- | ---: |
+| `resolve_small_rigid_contacts_kernel` | 55.3% |
+| `solve_rigid_constraints_kernel` | 26.2% |
+| `evaluate_rigid_leaf_pairs_kernel` | 14.6% |
+
+Source inspection explains the main optimization candidates:
+
+- `src/geometry_constraints.cuh`, `resolve_small_rigid_contacts_kernel`: the
+  <=256-body solver uses one block and sequential, body-disjoint contact colors.
+  Any face patch raises the whole contact solve from eight to 32 iterations.
+- `src/world.cu`, `ordinary_rigid_stack`: **any joint in the world** disables
+  prepared contact responses and the ordinary-stack coloring optimization, even
+  for the free payload spheres. DUMP has nine joints, so it cannot use that path.
+- `src/geometry_constraints.cuh`, `solve_rigid_constraints_kernel`: a single GPU
+  thread solves the joints. On every joint iteration it also walks all active
+  contacts looking for Fixed/Point membership. This truck has Motor,
+  Generic Spring and Generic joints only, so those repeated membership scans
+  have no applicable Fixed/Point contact work. The bucket requests 32 iterations.
+- The gallery runs this scene at eight substeps, doubling repetition compared
+  with Motor + Spring's four. Reducing that is a quality/behavior change, not
+  an established solver optimization.
+
+No solver code, substep counts, collision fidelity or tolerances were changed
+in this investigation. First candidate: skip the Fixed/Point contact scan when
+no such enabled joints need it. Next: profile and validate prepared contact
+work for free payloads in an articulated world, preserving joint/contact
+coupling and deterministic ordering. Re-measure with the other gallery closed
+before setting a performance target or claiming an improvement.
+
+Reproduce with the retained benchmark:
+
+```sh
+cmake --build build-gallery --target parallel-mater-dump-truck-benchmark -j 4
+./build-gallery/parallel-mater-dump-truck-benchmark --csv out/dump-100-rest.csv
+./build-gallery/parallel-mater-dump-truck-benchmark --spheres 0 --csv out/dump-empty-rest.csv
+./build-gallery/parallel-mater-dump-truck-benchmark --mode drive --csv out/dump-100-drive.csv
+./build-gallery/parallel-mater-dump-truck-benchmark --mode tip --frames 360 --csv out/dump-100-tip.csv
+./build-gallery/parallel-mater-dump-truck-benchmark --no-render --no-capture --profile --frames 120
+nsys profile --trace=cuda --sample=none --cpuctxsw=none \
+  --capture-range=cudaProfilerApi --capture-range-end=stop \
+  -o out/dump-cluster-100-nsys \
+  ./build-gallery/parallel-mater-dump-truck-benchmark \
+  --no-render --no-capture --frames 60 --trace
+nsys stats --report cuda_gpu_kern_sum out/dump-cluster-100-nsys.nsys-rep
+```
+
+The zero-sphere setting is benchmark-only; P still accepts 10–1,000. The
+benchmark also accepts `--warmup`, `--frames`, and diagnostic `--substeps`
+overrides. Do not run benchmark processes concurrently.
+
+Validation: Empty export/loader/pose tests, repeated 10/24/100/101/1,000 count
+edits, moved/rotated Empty packing, 10/1,000-sphere gallery rendering, and the
+100-sphere loaded-drive / full unload / lowering GPU regression pass. The broad
+Blender suite still reports four unrelated fixture mismatches: stale
+`pm_checkerboard` properties in Generic and Generic Spring, Generic arrow force
+1,000 vs expected 100, and Motor Spring having 11 bodies vs expected ten.
+Those authored assets and their test expectations were not changed.
 
 ## Metal impact regression correction (Apple M4, 2026-10-08)
 

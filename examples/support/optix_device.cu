@@ -356,13 +356,6 @@ extern "C" __global__ void __closesthit__surface() {
             multiply(optixGetWorldRayDirection(), optixGetRayTmax()));
 
     float3 base_color = hit_data.base_color;
-    if (hit_data.checkerboard != 0U) {
-        const int checker = (static_cast<int>(floorf(hit_point.x)) +
-                             static_cast<int>(floorf(hit_point.z))) &
-                            1;
-        base_color = checker != 0 ? make_float3(0.08F, 0.1F, 0.13F)
-                                  : make_float3(0.82F, 0.85F, 0.9F);
-    }
     if (hit_data.paint_pixels != nullptr) {
         const unsigned int paint_side = optixIsFrontFaceHit() ? 1U : 2U;
         const float2 first = hit_data.vertices[triangle.x].uv;

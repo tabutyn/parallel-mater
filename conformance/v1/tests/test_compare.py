@@ -151,6 +151,29 @@ class ComparatorTests(unittest.TestCase):
         self.assertFalse(self.compare(expected, topology).passed)
         self.assertFalse(self.compare(expected, tolerance).passed)
 
+    def test_contact_rounding_cannot_change_correspondence(self):
+        first = {"body": "a", "collider": "b", "position": [0.0, 0.0, 0.0],
+                 "friction_impulse": [0.0001, 0.0, 0.0]}
+        second = {"body": "a", "collider": "b", "position": [1.0, 0.0, 0.0],
+                  "friction_impulse": [0.0002, 0.0, 0.0]}
+        changed = dict(first, friction_impulse=[0.0003, 0.0, 0.0])
+        expected = result({"contacts": [first, second]})
+        self.assertTrue(self.compare(expected, result({"contacts": [second, changed]})).passed)
+        self.assertFalse(self.compare(expected, result({"contacts": [changed, changed]})).passed)
+        self.assertFalse(self.compare(expected, result({"contacts": [second,
+            dict(changed, friction_impulse=[0.01, 0.0, 0.0])]})).passed)
+        self.assertFalse(self.compare(expected, result({"contacts": [second,
+            dict(changed, collider="other")]})).passed)
+
+    def test_contact_matching_is_one_to_one_not_greedy(self):
+        def contact(x):
+            return {"body": "a", "collider": "b", "position": [x, 0.0, 0.0]}
+        expected = result({"contacts": [contact(0.0), contact(0.002)]})
+        actual = result({"contacts": [contact(0.001), contact(-0.002)]})
+        self.assertTrue(self.compare(expected, actual).passed)
+        self.assertFalse(self.compare(expected,
+            result({"contacts": [contact(-0.002), contact(-0.002)]})).passed)
+
     def test_round_trip_preserves_binary64_text(self):
         value = 1.2345678901234567
         document = result({"name": "body", "position": [value, 0.0, 0.0]})

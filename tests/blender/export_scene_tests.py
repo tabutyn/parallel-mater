@@ -2,10 +2,12 @@
 """Exercise the one exporter in real Blender; all output stays in a temp dir."""
 
 import argparse
+import ast
 from collections import Counter
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -66,6 +68,21 @@ class ExportSceneTests(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
+    def test_property_reference_covers_exporter(self):
+        reference = (ROOT / "docs/BLENDER_SCENES.md").read_text()
+        documented = set(re.findall(r"`(pm_[A-Za-z0-9_]+)`", reference))
+        for name in tuple(documented):
+            if "AXIS" in name:
+                documented.update(name.replace("AXIS", axis) for axis in "xyz")
+            if "END" in name:
+                documented.update(name.replace("END", end) for end in ("first", "last"))
+        tree = ast.parse(EXPORTER.read_text())
+        properties = {node.value for node in ast.walk(tree)
+                      if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                      and re.fullmatch(r"pm_[a-z0-9_]*[a-z0-9]", node.value)}
+        self.assertFalse(properties - documented,
+                         f"Undocumented properties: {sorted(properties - documented)}")
+
     def check_export(self, expected):
         before = snapshot()
         self.assertEqual(exporter.export_scene(self.output), self.output)
@@ -74,6 +91,7 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(systems(document), expected)
         for node in document["nodes"]:
             self.assertEqual(node["extras"]["pm_schema"], exporter.SCHEMA_VERSION)
+            self.assertNotIn("pm_checkerboard", node["extras"])
         for mesh in document.get("meshes", []):
             for primitive in mesh["primitives"]:
                 self.assertEqual(primitive.get("mode", 4), 4)  # triangles
@@ -87,9 +105,45 @@ class ExportSceneTests(unittest.TestCase):
                             str(expected["fluid_inflow"]), str(expected["fluid_outflow"]),
                             str(int(expected["fluid_initial_volume"] > 0)),
                             str(expected["soft_body"]), str(expected["rope"]),
-                            str(expected["hit_box"])],
+                            str(expected["hit_box"]), str(expected["sphere_cluster"])],
                            check=True, timeout=60)
         return document
+
+    def test_sphere_cluster_empty_exports_pose_and_shared_template(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.object.empty_add(location=(1, 2, 3), rotation=(0.2, -0.3, 0.4))
+        marker = bpy.context.object
+        marker.name = "SphereCluster"
+        marker.scale = (2, 3, 4)  # Empty display scale must not resize payload.
+        bpy.context.view_layer.update()
+        document = self.check_export(Counter(sphere_cluster=1))
+        node = document["nodes"][0]
+        self.assertEqual(node["extras"]["pm_name"], "SphereCluster")
+        for actual, expected in zip(node["translation"], (1, 3, -2)):
+            self.assertAlmostEqual(actual, expected, places=5)
+        self.assertIn("rotation", node)
+        self.assertNotIn("scale", node)
+        primitive = document["meshes"][node["mesh"]]["primitives"][0]
+        self.assertEqual(document["accessors"][primitive["indices"]]["count"], 80*3)
+        bpy.ops.object.empty_add()
+        marker.parent = bpy.context.object
+        with self.assertRaisesRegex(RuntimeError, "scene-root Empty"):
+            exporter.export_scene(self.output)
+
+    def test_dump_truck_cluster_source(self):
+        source = ASSETS / "DumpTruck.blend"
+        digest = hashlib.sha256(source.read_bytes()).digest()
+        bpy.ops.wm.open_mainfile(filepath=str(source))
+        marker = bpy.data.objects["SphereCluster"]
+        self.assertEqual(marker.type, "EMPTY")
+        position = marker.matrix_world.translation
+        document = self.check_export(Counter(rigid_body=11, rigid_constraint=9,
+                                              hit_box=1, sphere_cluster=1))
+        node = next(node for node in document["nodes"]
+                    if node["extras"]["pm_system"] == "sphere_cluster")
+        for actual, expected in zip(node["translation"], (position.x, position.z, -position.y)):
+            self.assertAlmostEqual(actual, expected, places=5)
+        self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
 
     def test_canonical_hit_box_preserves_oriented_nonuniform_bounds(self):
         bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -115,18 +169,88 @@ class ExportSceneTests(unittest.TestCase):
         for name in ("PassiveActive", "RigidBody", "Fluid", "FluidRigid", "Pegs", "Cloth",
                      "ClothTear", "ClothPaint", "ClothWater", "Softbody",
                      "SoftbodyRigidBody", "SoftbodyCloth", "SoftbodyFluid", "Rope",
-                     "RopeFluid", "RopeCloth", "Smoke", "SmokeWater",
+                     "RopeFluid", "RopeCloth", "RopeSoftbody", "Smoke", "SmokeWater",
                      "SmokeRope", "SmokeSoftbody", "SmokeCloth",
-                     "ConstraintFixed", "ConstraintPoint", "ConstraintHinge",
+                     "ConstraintFixed", "ConstraintPoint", "Celestial", "ConstraintHinge",
                      "ConstraintSlider", "ConstraintPiston", "ConstraintGeneric",
-                     "ConstraintGenericSpring", "ConstraintMotor"):
+                     "ConstraintGenericSpring", "ConstraintMotor",
+                     "ConstraintMotorSpring", "DumpTruck"):
             with self.subTest(scene=name):
                 source = ASSETS / f"{name}.blend"
                 digest = hashlib.sha256(source.read_bytes()).digest()
                 bpy.ops.wm.open_mainfile(filepath=str(source))
+                for prop in bpy.data.bl_rna.properties:
+                    if prop.type == 'COLLECTION':
+                        for block in getattr(bpy.data, prop.identifier):
+                            if isinstance(block, bpy.types.ID):
+                                self.assertNotIn("pm_checkerboard", block)
                 expected = systems(read_glb(source.with_suffix(".glb")))
+                for node in read_glb(source.with_suffix(".glb"))["nodes"]:
+                    self.assertNotIn("pm_checkerboard", node.get("extras", {}))
                 self.check_export(expected)
                 self.assertEqual(hashlib.sha256(source.read_bytes()).digest(), digest)
+
+    def test_arrow_force_and_array_inheritance(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.mesh.primitive_cube_add()
+        body = bpy.context.object
+        bpy.ops.rigidbody.object_add()
+        body["pm_arrow"] = 100.0
+        modifier = body.modifiers.new("Copies", "ARRAY")
+        modifier.count = 2
+        modifier.relative_offset_displace = (2.0, 0.0, 0.0)
+        document = self.check_export(Counter(rigid_body=2))
+        self.assertTrue(all(node["extras"]["pm_arrow"] == 100.0 for node in document["nodes"]))
+        for value in (-1.0, float("inf"), float("nan"), True, "100", 1.0e100):
+            with self.subTest(value=value):
+                body["pm_arrow"] = value
+                with self.assertRaisesRegex(RuntimeError, "pm_arrow must be finite, non-negative newtons"):
+                    exporter.export_scene(self.output)
+        body["pm_arrow"] = 100.0
+        body.rigid_body.type = 'PASSIVE'
+        with self.assertRaisesRegex(RuntimeError, "pm_arrow requires an ACTIVE"):
+            exporter.export_scene(self.output)
+        body.rigid_body.type = 'ACTIVE'
+        body.rigid_body.kinematic = True
+        with self.assertRaisesRegex(RuntimeError, "pm_arrow requires an ACTIVE"):
+            exporter.export_scene(self.output)
+        body["pm_arrow"] = 0.0
+        self.check_export(Counter(rigid_body=2))
+
+    @unittest.skipUnless(options.loader, "needs gallery scene loader")
+    def test_loader_rejects_invalid_arrow_force(self):
+        # Validate the receiving side too: another exporter can write these.
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.mesh.primitive_cube_add()
+        bpy.ops.rigidbody.object_add()
+        bpy.context.object["pm_arrow"] = 100.0
+        exporter.export_scene(self.output)
+        raw = self.output.read_bytes()
+        size = struct.unpack_from('<I', raw, 12)[0]
+        tail = raw[20 + size:]
+        for value, motion in ((-1, 'dynamic'), ('100', 'dynamic'),
+                              (True, 'dynamic'), (None, 'dynamic'),
+                              (1e100, 'dynamic'), (100, 'static'),
+                              (100, 'kinematic')):
+            with self.subTest(value=value, motion=motion):
+                document = json.loads(raw[20:20 + size])
+                document['nodes'][0]['extras'].update(pm_arrow=value, pm_motion=motion)
+                encoded = json.dumps(document, allow_nan=False).encode()
+                encoded += b' ' * (-len(encoded) % 4)
+                self.output.write_bytes(struct.pack('<4sIIII', b'glTF', 2,
+                    20 + len(encoded) + len(tail), len(encoded), 0x4E4F534A) + encoded + tail)
+                result = subprocess.run([options.loader, str(self.output), '1', *(['0'] * 8)],
+                                        capture_output=True, text=True, timeout=60)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('pm_arrow', result.stderr + result.stdout)
+
+    def test_authored_generic_arrow_force(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "ConstraintGeneric.blend"))
+        document = self.check_export(Counter(rigid_body=4, rigid_constraint=1))
+        driven = [node["extras"] for node in document["nodes"] if node["extras"].get("pm_arrow", 0) > 0]
+        self.assertEqual(len(driven), 1)
+        self.assertEqual(driven[0]["pm_source_name"], "GenericBlockA")
+        self.assertEqual(driven[0]["pm_arrow"], 100.0)
 
     def test_rigid_body_array_wall_and_hit_box(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RigidBody.blend"))
@@ -325,11 +449,55 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertEqual(constraints[0]["pm_limit_lin_x_lower"], -1.0)
                     self.assertEqual(constraints[0]["pm_limit_lin_x_upper"], 1.0)
                 if kind == "generic_spring":
-                    self.assertTrue(constraints[0]["pm_use_spring_x"])
-                    self.assertTrue(constraints[0]["pm_use_spring_ang_z"])
+                    self.assertFalse(constraints[0]["pm_use_spring_x"])
+                    for axis in "xyz":
+                        self.assertTrue(
+                            constraints[0][f"pm_use_spring_ang_{axis}"])
+                        self.assertEqual(
+                            constraints[0][f"pm_spring_stiffness_ang_{axis}"],
+                            80.0)
+                        self.assertEqual(
+                            constraints[0][f"pm_spring_damping_ang_{axis}"],
+                            0.5)
                 if kind == "motor":
                     self.assertTrue(all(item["pm_use_motor_ang"]
                                         for item in constraints))
+
+    def test_motor_spring_constraint_settings(self):
+        bpy.ops.wm.open_mainfile(
+            filepath=str(ASSETS / "ConstraintMotorSpring.blend"))
+        document = self.check_export(Counter(rigid_body=10,
+                                             rigid_constraint=8))
+        constraints = [node["extras"] for node in document["nodes"]
+                       if node.get("extras", {}).get("pm_system") ==
+                       "rigid_constraint"]
+        self.assertEqual(Counter(item["pm_constraint_type"]
+                                 for item in constraints),
+                         Counter(motor=4, generic_spring=4))
+        motors = [item for item in constraints
+                  if item["pm_constraint_type"] == "motor"]
+        self.assertTrue(all(item["pm_use_motor_ang"] and
+                            item["pm_motor_ang_max_impulse"] == 8.0
+                            for item in motors))
+        springs = [item for item in constraints
+                   if item["pm_constraint_type"] == "generic_spring"]
+        for spring in springs:
+            for axis in "xy":
+                self.assertTrue(spring[f"pm_use_limit_lin_{axis}"])
+                self.assertEqual(spring[f"pm_limit_lin_{axis}_lower"], 0.0)
+                self.assertEqual(spring[f"pm_limit_lin_{axis}_upper"], 0.0)
+                self.assertFalse(spring[f"pm_use_spring_{axis}"])
+            self.assertTrue(spring["pm_use_limit_lin_z"])
+            self.assertAlmostEqual(spring["pm_limit_lin_z_lower"], -0.10)
+            self.assertAlmostEqual(spring["pm_limit_lin_z_upper"], 0.10)
+            self.assertTrue(spring["pm_use_spring_z"])
+            self.assertEqual(spring["pm_spring_stiffness_z"], 500.0)
+            self.assertEqual(spring["pm_spring_damping_z"], 8.0)
+            for axis in "xyz":
+                self.assertTrue(spring[f"pm_use_limit_ang_{axis}"])
+                self.assertEqual(spring[f"pm_limit_ang_{axis}_lower"], 0.0)
+                self.assertEqual(spring[f"pm_limit_ang_{axis}_upper"], 0.0)
+                self.assertFalse(spring[f"pm_use_spring_ang_{axis}"])
 
     def test_fixed_collector_scene(self):
         bpy.ops.wm.open_mainfile(
@@ -602,7 +770,7 @@ class ExportSceneTests(unittest.TestCase):
         self.assertEqual(heater["pm_temperature"], 500.0)
         sphere = next(node["extras"] for node in document["nodes"]
                       if node["extras"].get("pm_system") == "rigid_body")
-        self.assertFalse(sphere["pm_checkerboard"])
+        self.assertNotIn("pm_checkerboard", sphere)
 
     def test_rope_fluid_authored_mass_and_geometry(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RopeFluid.blend"))

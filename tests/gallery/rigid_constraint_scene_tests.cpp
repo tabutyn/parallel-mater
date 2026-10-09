@@ -175,6 +175,60 @@ int main(int argc, char **argv) {
         }
     }
 
+    SceneDefinition motor_spring_scene;
+    std::string motor_spring_error;
+    check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH,
+                         motor_spring_scene, motor_spring_error),
+          motor_spring_error.empty() ? "load motor spring scene"
+                                     : motor_spring_error.c_str());
+    check(motor_spring_scene.rigid_bodies.size() == 10U &&
+              motor_spring_scene.rigid_constraints.size() == 8U,
+          "motor spring scene must contain ten bodies and eight constraints");
+    std::size_t motor_count = 0U;
+    std::size_t spring_count = 0U;
+    for (const auto &constraint : motor_spring_scene.rigid_constraints) {
+        check(constraint.body_a < motor_spring_scene.rigid_bodies.size() &&
+                  constraint.body_b < motor_spring_scene.rigid_bodies.size(),
+              "motor spring constraint must resolve both body names");
+        if (constraint.options.type == RigidConstraintType::motor) {
+            ++motor_count;
+            check(constraint.options.motor.angular_enabled &&
+                      constraint.options.motor.angular_maximum_impulse == 8.0F &&
+                      constraint.options.solver_iterations == 16U,
+                  "suspended wheel must retain its authored angular motor");
+        } else if (constraint.options.type ==
+                   RigidConstraintType::generic_spring) {
+            ++spring_count;
+            check(constraint.options.linear_limits.axes ==
+                          rigid_constraint_all_axes &&
+                      constraint.options.angular_limits.axes ==
+                          rigid_constraint_all_axes &&
+                      constraint.options.linear_springs.axes ==
+                          rigid_constraint_axis_z &&
+                      constraint.options.angular_springs.axes == 0U &&
+                      constraint.options.linear_limits.lower.x == 0.0F &&
+                      constraint.options.linear_limits.upper.x == 0.0F &&
+                      constraint.options.linear_limits.lower.y == 0.0F &&
+                      constraint.options.linear_limits.upper.y == 0.0F &&
+                      constraint.options.linear_limits.lower.z == -0.10F &&
+                      constraint.options.linear_limits.upper.z == 0.10F &&
+                      constraint.options.angular_limits.lower.x == 0.0F &&
+                      constraint.options.angular_limits.upper.x == 0.0F &&
+                      constraint.options.angular_limits.lower.y == 0.0F &&
+                      constraint.options.angular_limits.upper.y == 0.0F &&
+                      constraint.options.angular_limits.lower.z == 0.0F &&
+                      constraint.options.angular_limits.upper.z == 0.0F &&
+                      constraint.options.linear_springs.stiffness.z == 500.0F &&
+                      constraint.options.linear_springs.damping.z == 8.0F &&
+                      constraint.options.solver_iterations == 8U,
+                  "suspension hub must retain its vertical spring and locked frame");
+        } else {
+            check(false, "motor spring scene contains an unexpected joint type");
+        }
+    }
+    check(motor_count == 4U && spring_count == 4U,
+          "motor spring scene must pair four motors with four springs");
+
     const SceneDefinition &fixed_scene = definitions[0];
     const auto &fixed_definition = fixed_scene.rigid_constraints.front();
     const auto &fixed = fixed_definition.options;
@@ -388,9 +442,16 @@ int main(int argc, char **argv) {
               generic.angular_limits.axes == rigid_constraint_all_axes,
           "generic constraint must limit all six axes");
     const auto &spring = definitions[6].rigid_constraints.front().options;
-    check(spring.linear_springs.axes == rigid_constraint_all_axes &&
+    check(spring.linear_springs.axes == 0U &&
               spring.angular_springs.axes == rigid_constraint_all_axes,
-          "generic spring must spring all six axes");
+          "generic spring must spring its three authored angular axes only");
+    check(spring.angular_springs.stiffness.x == 80.0F &&
+              spring.angular_springs.stiffness.y == 80.0F &&
+              spring.angular_springs.stiffness.z == 80.0F &&
+              spring.angular_springs.damping.x == 0.5F &&
+              spring.angular_springs.damping.y == 0.5F &&
+              spring.angular_springs.damping.z == 0.5F,
+          "generic spring must stay compliant without resting on its limits");
     for (const auto &constraint : definitions[7].rigid_constraints)
         check(constraint.options.motor.angular_enabled &&
                   constraint.options.motor.angular_maximum_impulse == 8.0F,
