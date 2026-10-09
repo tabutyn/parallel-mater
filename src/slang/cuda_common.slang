@@ -470,6 +470,29 @@ struct RopeData
     uint last_attachment_contact_skip;
 };
 
+struct RopeSoftTarget
+{
+    Vec3* surface;
+    Vec3* previous_surface;
+    Vec3* velocities;
+    Vec3* bounds;
+    BvhNode* tree;
+    uint* order;
+    uint* indices;
+    SoftBodySurfaceBinding* bindings;
+    float* inverse_masses;
+    Vec3* node_impulses;
+    uint* contact_count;
+    float* maximum_penetration;
+    uint triangle_count;
+    uint surface_vertex_count;
+    float distance;
+    float friction;
+    float orientation;
+    bool first_anchor;
+    bool last_anchor;
+};
+
 Vec3 add(Vec3 a, Vec3 b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
