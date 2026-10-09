@@ -6,7 +6,11 @@
 #include <cmath>
 #include <limits>
 
+#if defined(PARALLEL_MATER_GALLERY_D3D12)
+namespace parallel_mater::d3d12::gallery {
+#else
 namespace parallel_mater::gallery {
+#endif
 
 // Gallery-only actuator: the public solver moves a dynamic bucket around its
 // authored rear pivot, carrying reaction forces through the dynamic chassis.
@@ -34,7 +38,7 @@ class DumpTruckBed {
     [[nodiscard]] Status advance(World &world, SceneDefinition &scene,
                                  const SceneInstance &instance, float timestep) noexcept {
         if (index_ >= scene.rigid_constraints.size() || index_ >= instance.rigid_constraints.size())
-            return {StatusCode::invalid_argument, cudaSuccess, "dump lift bindings are missing"};
+            return {StatusCode::invalid_argument, {}, "dump lift bindings are missing"};
         const float next = angle_ + std::clamp((raised_ ? maximum_angle : 0.0F) - angle_,
                                               -angular_speed*timestep, angular_speed*timestep);
         if (next == angle_) return {};

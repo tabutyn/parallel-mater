@@ -15,6 +15,18 @@ std::string read_file(const std::filesystem::path &path) {
             std::istreambuf_iterator<char>()};
 }
 
+bool matches_canonical_text(std::string actual, const std::string &expected) {
+    std::string normalized;
+    normalized.reserve(actual.size());
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        if (actual[index] == '\r' && index + 1U < actual.size() &&
+            actual[index + 1U] == '\n')
+            continue;
+        normalized.push_back(actual[index]);
+    }
+    return normalized == expected;
+}
+
 bool write_file(const std::filesystem::path &path, const std::string &contents) {
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
@@ -45,7 +57,7 @@ int main(int argc, char **argv) {
                 valid = false;
             }
         } else if (!std::filesystem::exists(path) ||
-                   read_file(path) != expected) {
+                   !matches_canonical_text(read_file(path), expected)) {
             std::cerr << "non-canonical conformance input: " << path << '\n';
             valid = false;
         }

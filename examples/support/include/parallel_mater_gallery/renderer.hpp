@@ -46,7 +46,8 @@ enum class SmokeDebugMode : std::uint8_t {
     divergence,
 };
 
-#if !defined(PARALLEL_MATER_GALLERY_METAL)
+#if !defined(PARALLEL_MATER_GALLERY_METAL) && \
+    !defined(PARALLEL_MATER_GALLERY_D3D12)
 class OptixRenderer {
   public:
     OptixRenderer() noexcept;

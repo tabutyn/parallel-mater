@@ -117,12 +117,12 @@ __device__ FluidSoftNearest fluid_soft_nearest(
             if (length_squared(cross_normal) < 1.0e-16F) continue;
             const Vec3 normal = multiply(normalized_or(cross_normal, {}), orientation);
             Vec3 weights{};
-            const Vec3 near = fluid_closest_triangle_barycentric(point, a, b, c, weights);
-            const float squared = length_squared(subtract(point, near));
+            const Vec3 nearest = fluid_closest_triangle_barycentric(point, a, b, c, weights);
+            const float squared = length_squared(subtract(point, nearest));
             if (earliest > 1.0F && squared < best) {
                 best = squared;
-                result = {base, near, normal, weights,
-                          distance - dot(subtract(point, near), normal)};
+                result = {base, nearest, normal, weights,
+                          distance - dot(subtract(point, nearest), normal)};
             }
             if (!sweep) continue;
             // Follow the same material point on the previous skin. This also
@@ -130,7 +130,7 @@ __device__ FluidSoftNearest fluid_soft_nearest(
             const Vec3 old_near = add(multiply(previous[indices[base]], weights.x),
                 add(multiply(previous[indices[base + 1]], weights.y),
                     multiply(previous[indices[base + 2]], weights.z)));
-            const Vec3 transported_start = add(start, subtract(near, old_near));
+            const Vec3 transported_start = add(start, subtract(nearest, old_near));
             const float first = dot(subtract(transported_start, a), normal);
             const float last = dot(subtract(point, a), normal);
             if (first < distance || last >= distance || first - last < 1.0e-8F) continue;

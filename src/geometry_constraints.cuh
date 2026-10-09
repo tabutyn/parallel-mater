@@ -2386,8 +2386,10 @@ __global__ void build_rigid_compounds_kernel(
     RigidBodyState *states, std::uint32_t count,
     RigidCompound *compounds) {
     if (blockIdx.x != 0U || threadIdx.x != 0U) return;
-    for (std::uint32_t body = 0U; body < count; ++body)
-        compounds[body] = {.root = body};
+    for (std::uint32_t body = 0U; body < count; ++body) {
+        compounds[body] = {};
+        compounds[body].root = body;
+    }
 
     for (std::uint32_t index = 0U; index < capacity; ++index) {
         const auto &constraint = constraints[index];

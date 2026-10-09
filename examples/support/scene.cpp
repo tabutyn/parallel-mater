@@ -23,6 +23,8 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 namespace parallel_mater::metal::gallery {
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+namespace parallel_mater::d3d12::gallery {
 #else
 namespace parallel_mater::gallery {
 #endif
@@ -36,7 +38,7 @@ using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
+#if defined(PARALLEL_MATER_GALLERY_METAL) || defined(PARALLEL_MATER_GALLERY_D3D12)
 constexpr std::int64_t k_backend_success = 0;
 #else
 constexpr cudaError_t k_backend_success = cudaSuccess;
@@ -1965,7 +1967,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                     "failed to assemble gallery triangle mesh"};
         }
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
+#if defined(PARALLEL_MATER_GALLERY_METAL) || defined(PARALLEL_MATER_GALLERY_D3D12)
         return world.add_triangle_mesh(
             HostSpan<const Vec3>{vertices.data(), vertices.size()},
             HostSpan<const std::uint32_t>{indices.data(), indices.size()},
@@ -2262,7 +2264,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return {StatusCode::out_of_memory, k_backend_success,
                     "failed to select initial gallery particles"};
         }
-#if defined(PARALLEL_MATER_GALLERY_METAL)
+#if defined(PARALLEL_MATER_GALLERY_METAL) || defined(PARALLEL_MATER_GALLERY_D3D12)
         Status status = world.add_fluid(
             scene.fluid_options,
             HostSpan<const FluidParticle>{initial.data(), initial.size()},
@@ -2354,7 +2356,7 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         std::vector<Vec2> uvs;
         uvs.reserve(mesh.vertices.size());
         for (const Vertex &vertex : mesh.vertices) uvs.push_back(vertex.uv);
-#if defined(PARALLEL_MATER_GALLERY_METAL)
+#if defined(PARALLEL_MATER_GALLERY_METAL) || defined(PARALLEL_MATER_GALLERY_D3D12)
         PaintFieldId field{};
         const PaintFieldHostOptions host_options{
             .body = options.body,
@@ -2465,6 +2467,8 @@ Status create_scene_world(const SceneDefinition &scene, World &world,
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+} // namespace parallel_mater::d3d12::gallery
 #else
 } // namespace parallel_mater::gallery
 #endif
