@@ -272,7 +272,8 @@ void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
-                         const WorldStepTimings &timings) {
+                         const WorldStepTimings &timings,
+                         const WorldStatistics &statistics) {
     const std::array rows{
         TimingRow{"INTEGRATE", timings.rigid_integration},
         TimingRow{"BOUNDS", timings.rigid_world_bounds},
@@ -283,9 +284,17 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
         TimingRow{"SOLVE", timings.rigid_contact_solve},
         TimingRow{"CLEAR", timings.rigid_input_clear},
         TimingRow{"ROPE", timings.rope_solve}};
-    timing_panel(rgba, width, height, 390, 294, "GPU KERNELS",
+    timing_panel(rgba, width, height, 420, 326, "GPU TIMINGS / X: LAUNCHES",
                  timings.available, rows, 20, 244,
                  timings.total_gpu_milliseconds);
+    if (timings.available) {
+        char passes[64]{};
+        std::snprintf(passes, sizeof(passes), "AVBD ITERATIONS MAX: %u",
+                      statistics.rigid_contact_maximum_passes);
+        text(rgba, width, height, 32, 274, passes, {225, 235, 242, 255}, 2);
+        text(rgba, width, height, 32, 298, "LAST SUBSTEP / NO WARM START",
+             {225, 235, 242, 255}, 2);
+    }
 }
 
 void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,

@@ -2,8 +2,10 @@
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <iostream>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -51,14 +53,15 @@ bool read_states(World &world, const SceneInstance &instance,
     return true;
 }
 
-bool run_wall(const SceneDefinition &scene) {
+bool run_wall(const SceneDefinition &scene, unsigned pass_limit) {
     World world;
     SceneInstance instance;
     if (!require(create_scene_world(scene, world, instance))) return false;
     std::vector<RigidBodyState> states;
     // Touching faces must not invent margin-deep penetration or velocity.
     // The open floor retains its 1 mm rest skin.
-    if (!require(world.step({.gravity = {}, .collect_rigid_contacts = true})) ||
+    if (!require(world.step({.gravity = {}, .collect_rigid_contacts = true,
+                            .rigid_contact_pass_limit = pass_limit})) ||
         !read_states(world, instance, states)) return false;
     const auto view = world.rigid_contacts();
     std::vector<RigidContactEvent> contacts(view.event_count);
@@ -97,7 +100,8 @@ bool run_wall(const SceneDefinition &scene) {
             body.options.initial_state.position.y;
     constexpr unsigned settle_frames = 600U;
     for (unsigned frame = 0; frame < settle_frames; ++frame) {
-        if (!require(world.step({})) || !read_states(world, instance, states)) return false;
+        if (!require(world.step({.rigid_contact_pass_limit = pass_limit})) ||
+            !read_states(world, instance, states)) return false;
         float energy = 0.0F;
         for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
             const auto &body = scene.rigid_bodies[i];
@@ -133,7 +137,7 @@ bool run_wall(const SceneDefinition &scene) {
         }
         maximum_energy = std::max(maximum_energy, energy);
     }
-    std::cout << "authored wall max_drop=" << maximum_drop
+    std::cout << "authored wall pass_limit=" << pass_limit << " max_drop=" << maximum_drop
               << " max_displacement=" << maximum_displacement
               << " max_angle=" << maximum_angle
               << " peak_speed=" << maximum_speed << " resting_speed=" << resting_speed
@@ -186,7 +190,8 @@ bool run_wall(const SceneDefinition &scene) {
         if (!require(world.apply_central_acceleration(
                 {vertical_gravity_bodies.data(), vertical_gravity_bodies.size()},
                 wall_compensation)) ||
-            !require(world.step({.gravity = tilted_gravity})) ||
+            !require(world.step({.gravity = tilted_gravity,
+                                 .rigid_contact_pass_limit = pass_limit})) ||
             !read_states(world, instance, states)) return false;
         for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
             const auto &body = scene.rigid_bodies[i];
@@ -224,12 +229,13 @@ bool run_wall(const SceneDefinition &scene) {
     // The support diagnostic below measures the steady cached impulse, not
     // the deliberately stronger cold-start solve immediately after teleport.
     for (unsigned frame = 0; frame < 120U; ++frame)
-        if (!require(world.step({}))) return false;
+        if (!require(world.step({.rigid_contact_pass_limit = pass_limit}))) return false;
 
     // Batched diagnostics must include warm-started support, not just the
     // last incremental correction (which approaches zero at rest).
     const StepOptions diagnostic_step{.timestep = 1.0F / 60.0F, .substeps = 4U,
-                                      .collect_rigid_contacts = true};
+                                      .collect_rigid_contacts = true,
+                                      .rigid_contact_pass_limit = pass_limit};
     if (!require(world.step(diagnostic_step)) || !read_states(world, instance, states)) return false;
     const auto support = world.rigid_contacts();
     contacts.resize(support.event_count);
@@ -265,7 +271,7 @@ bool run_wall(const SceneDefinition &scene) {
         !require(world.apply_impulse(instance.rigid_bodies[target], {0, 0, 200}, before)))
         return false;
     for (unsigned frame = 0; frame < 30; ++frame)
-        if (!require(world.step({}))) return false;
+        if (!require(world.step({.rigid_contact_pass_limit = pass_limit}))) return false;
     if (!read_states(world, instance, states) || states[target].position.z - before.z < 0.03F) {
         std::cerr << "Supported brick did not respond to impact\n";
         return false;
@@ -278,7 +284,8 @@ bool run_wall(const SceneDefinition &scene) {
         if (brick(scene.rigid_bodies[i])) state.position.y += 3.0F;
         if (!require(world.set_rigid_body_state(instance.rigid_bodies[i], state))) return false;
     }
-    if (!require(world.step({.timestep = 1.0F / 120.0F, .substeps = 1U, .gravity = {}})) ||
+    if (!require(world.step({.timestep = 1.0F / 120.0F, .substeps = 1U, .gravity = {},
+                            .rigid_contact_pass_limit = pass_limit})) ||
         !read_states(world, instance, states)) return false;
     for (const auto &state : states)
         if (length(state.linear_velocity) > 1.0e-6F || length(state.angular_velocity) > 1.0e-6F)
@@ -287,7 +294,15 @@ bool run_wall(const SceneDefinition &scene) {
 }
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
+    unsigned pass_limit = 0;
+    if (argc != 1) {
+        if (argc != 3 || std::string_view(argv[1]) != "--passes") return 2;
+        const std::string_view value(argv[2]);
+        const auto parsed = std::from_chars(value.data(), value.data() + value.size(), pass_limit);
+        if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() || pass_limit > 64)
+            return 2;
+    }
     int devices = 0;
     if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0) return 77;
     SceneDefinition scene;
@@ -296,5 +311,5 @@ int main() {
         std::cerr << error << '\n';
         return 1;
     }
-    return run_wall(scene) ? 0 : 1;
+    return run_wall(scene, pass_limit) ? 0 : 1;
 }

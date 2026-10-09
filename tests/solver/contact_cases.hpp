@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include <parallel_mater/solver/contact.hpp>
+#include <parallel_mater/solver/contact_friction.hpp>
 
 #if defined(__CUDACC__)
 #define PM_FIXTURE_INLINE __host__ __device__ inline
@@ -33,7 +34,51 @@ struct Result {
     Vector velocity{}, friction{};
     float normal{}, accumulated{};
 };
-constexpr unsigned count = 25;
+constexpr unsigned count = 36;
+
+PM_FIXTURE_INLINE bool coupled_friction_case(unsigned index) {
+    using parallel_mater::solver::coupled_contact_friction;
+    float normal_mass=9.26357F, cross_mass=18.3384F, tangent_mass=41.6964F;
+    float normal=0.0001F/normal_mass, residual=0.000207963F, friction=0.5F;
+    if(index==27)friction=0.39F;
+    if(index==28)friction=0;
+    if(index==29){normal_mass=2;cross_mass=0;tangent_mass=3;normal=0.5F;residual=0.3F;}
+    if(index==30){normal_mass=2;cross_mass=-1;tangent_mass=3;normal=0.2F;residual=1;friction=0.4F;}
+    if(index==31){normal_mass=1;cross_mass=0.999F;tangent_mass=1;normal=0.001F;residual=0.1F;}
+    if(index==32){normal_mass=1;cross_mass=2;tangent_mass=5;normal=0.001F;residual=0.1F;friction=1;}
+    if(index==33)residual=0;
+    if(index==34){normal_mass=1;cross_mass=1;tangent_mass=1;}
+    if(index==35) {
+        // Signs, mass ratios, and cone-active states, with independent
+        // normal-equation, reduced-energy, and updated-cone checks.
+        for(unsigned i=0;i<96;++i) {
+            const float nn=0.25F+float(i%7), nt=(float(int(i%9)-4))*0.2F;
+            const float tt=nt*nt/nn+0.125F+float(i%5);
+            const float lambda=0.01F+float(i%3)*0.1F, r=0.02F+float(i%11)*0.03F;
+            const float mu=float(i%6)*0.2F;
+            const auto value=coupled_contact_friction(lambda,nn,nt,tt,r,mu);
+            const float delta=value.normal-lambda, schur=tt-nt*nt/nn;
+            if(fabsf(nn*delta+nt*value.tangent)>2.0e-6F || value.normal<0 ||
+                fabsf(value.tangent)>mu*value.normal+2.0e-6F ||
+                r*value.tangent+0.5F*schur*value.tangent*value.tangent>1.0e-7F)
+                return false;
+        }
+        return true;
+    }
+    const auto value=coupled_contact_friction(normal,normal_mass,cross_mass,tangent_mass,residual,friction);
+    const float normal_change=value.normal-normal;
+    const float schur=tangent_mass-cross_mass*cross_mass/normal_mass;
+    const float normal_error=normal_mass*normal_change+cross_mass*value.tangent;
+    const float final_tangent=residual+cross_mass*normal_change+tangent_mass*value.tangent;
+    if(fabsf(normal_error)>1.0e-7F || value.normal<0 ||
+        fabsf(value.tangent)>friction*value.normal+1.0e-7F ||
+        residual*value.tangent+0.5F*schur*value.tangent*value.tangent>1.0e-8F)return false;
+    if(index==26 || index==29 || index==32)return fabsf(final_tangent)<1.0e-6F;
+    if(index==27 || index==30 || index==31)
+        return final_tangent>0 && fabsf(-value.tangent-friction*value.normal)<1.0e-7F;
+    if(index==28 || index==33 || index==34)return value.normal==normal && value.tangent==0;
+    return false;
+}
 
 PM_FIXTURE_INLINE bool convergence_case(unsigned index) {
     parallel_mater::solver::ContactConvergence state{};
@@ -62,6 +107,8 @@ PM_FIXTURE_INLINE bool convergence_case(unsigned index) {
     case 24: // Opposing impulses can hide behind unchanged body velocities.
         state.observe(7, 32, 0, 0, 0.01F); state.observe(8, 32, 0, 0, 0.01F);
         return !state.finished && state.quiet_sweeps == 0;
+    case 25: // An explicit one-pass cap overrides the early-exit minimum.
+        state.observe(1, 1, 1, 1, 1); return state.finished;
     }
     return false;
 }
@@ -70,7 +117,8 @@ PM_FIXTURE_INLINE bool convergence_case(unsigned index) {
 // device code. New backends can execute these fixtures without the World API.
 PM_FIXTURE_INLINE Result evaluate(unsigned index) {
     using namespace parallel_mater::solver;
-    if ((index >= 14 && index < 22) || index == 24) return {{}, {}, convergence_case(index) ? 1.0F : 0.0F, 0};
+    if (index >= 26) return {{}, {}, coupled_friction_case(index) ? 1.0F : 0.0F, 0};
+    if ((index >= 14 && index < 22) || index >= 24) return {{}, {}, convergence_case(index) ? 1.0F : 0.0F, 0};
     Row row{};
     row.normal = {0, 1, 0};
     Adapter adapter{{0, -2, 0}, 1};
@@ -114,7 +162,7 @@ PM_FIXTURE_INLINE Result evaluate(unsigned index) {
 }
 
 PM_FIXTURE_INLINE Result expected(unsigned index) {
-    if ((index >= 14 && index < 22) || index == 24) return {{}, {}, 1, 0};
+    if ((index >= 14 && index < 22) || index >= 24) return {{}, {}, 1, 0};
     switch (index) {
     case 0: return {{0, 0, 0}, {}, 2, 0};
     case 1: return {{0, 1, 0}, {}, 3, 0};

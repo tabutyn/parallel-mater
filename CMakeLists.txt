@@ -367,6 +367,11 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-rigid-tests COMMAND parallel-mater-rigid-tests)
     set_tests_properties(parallel-mater-rigid-tests PROPERTIES SKIP_RETURN_CODE 77)
 
+    add_executable(parallel-mater-avbd-rigid-tests tests/avbd_rigid_tests.cpp)
+    target_link_libraries(parallel-mater-avbd-rigid-tests PRIVATE ParallelMater::parallel_mater)
+    add_test(NAME parallel-mater-avbd-rigid-tests COMMAND parallel-mater-avbd-rigid-tests)
+    set_tests_properties(parallel-mater-avbd-rigid-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
     add_executable(parallel-mater-hit-box-tests tests/hit_box_tests.cpp)
     target_link_libraries(
         parallel-mater-hit-box-tests PRIVATE ParallelMater::parallel_mater)
@@ -1050,6 +1055,7 @@ if(PARALLEL_MATER_BUILD_METAL)
                 ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
                 -std=metal4.0 -mmacosx-version-min=26.0
                 -fno-fast-math -ffp-contract=fast
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
                 -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 -c ${CMAKE_CURRENT_SOURCE_DIR}/src/metal/kernels.metal
                 -o ${PARALLEL_MATER_METAL_AIR}
@@ -1059,7 +1065,9 @@ if(PARALLEL_MATER_BUILD_METAL)
                 -n parallel_mater_metallib_data
                 ${PARALLEL_MATER_METALLIB}
                 ${PARALLEL_MATER_METALLIB_INCLUDE}
-        DEPENDS src/metal/kernels.metal
+        DEPENDS src/metal/kernels.metal src/metal/avbd.metal
+                include/parallel_mater/solver/avbd.hpp
+                include/parallel_mater/solver/contact_friction.hpp
         VERBATIM)
     set_source_files_properties(
         src/metal/world.mm

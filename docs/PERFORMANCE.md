@@ -1,5 +1,169 @@
 # Physics performance
 
+## Reading these measurements after the AVBD migration
+
+The historical sections below record earlier solver revisions, not the current AVBD
+implementation. In particular, the former 32-pass PGS budget, early exits,
+compound projection and 28-launch schedule no longer describe production
+rigid stepping. See [CONTACT_SOLVER.md](CONTACT_SOLVER.md) for the current
+shared body-block solver and per-phase iteration semantics. Do not compare
+iteration counts between the two methods as equivalent units of work.
+
+## AVBD migration (2026-10-09)
+
+Rigid contacts and joints now use shared six-degree-of-freedom AVBD blocks,
+with ten iterations per phase by default. Active authored joint budgets can
+raise that default; an explicit pass limit overrides it. Impacts use a second
+phase of the same solver. CUDA and Metal compile the same numerical header;
+native Metal compilation/runtime validation remains outstanding.
+
+Serial Release measurements on the RTX 3050 Ti Laptop GPU, without rendering
+or another GPU test: the authored `RigidBody.glb` brick scene, four substeps,
+360 settling frames, ten warmup frames and 60 timed frames.
+
+| Solver / budget | Physics wall-time median | Solve-group median |
+| --- | ---: | ---: |
+| Preserved pre-AVBD executable, 32 passes | 35.583 ms | 33.203 ms |
+| AVBD, 10 iterations | 19.914 ms | 16.913 ms |
+| AVBD, 4 iterations (experiment) | 15.190 ms | 12.191 ms |
+
+The default AVBD configuration takes about **44% less physics time** than the
+preserved baseline on this workload. Four iterations are faster but lose
+more support: benchmark endpoint maximum drop is 0.128802 m, versus
+0.0389338 m at ten. The default therefore remains ten. These are physics-only
+timings, not rendered FPS or a claim that every scene is faster.
+
+The 100-sphere resting truck is a significant counterexample: **100.282 ms**
+median physics time, 104.363 ms p99, with 88.206 ms median in the solve group.
+This uses 111 bodies, nine joints, eight substeps, 180 warmup and 180 measured
+frames, `--no-render --no-capture --profile`; all final states are finite.
+It is substantially slower than the historical 36.25 ms measurement below
+(that truck baseline was not rerun alongside the final build). Automatic
+iterations retain authored joint budgets; their old scalar-solver counts are
+not equivalent units of AVBD work. The migration does not resolve truck
+performance merely by reducing the contact-only scene's default to ten.
+
+The truck's authored maximum is 32. An explicit ten-iteration experiment
+measures **43.032 ms** physics / 30.892 ms solve with the same warmup, sampling
+and substeps. The complete unchanged-assertion truck test also passes at ten:
+100/100 payload retained while driving 4.795 m, 100° tip, 0/100 left aboard,
+successful return upright and 1.241 mm maximum pivot error. This is still slower
+than the historical truck measurement, and does not validate ten iterations
+for every joint scene. Authored budgets and automatic behavior remain unchanged.
+
+```sh
+./build-gallery/parallel-mater-dump-truck-benchmark \
+  --spheres 100 --warmup 180 --frames 180 --substeps 8 \
+  --no-render --no-capture --profile --passes 10
+./build-gallery/parallel-mater-dump-truck-tests --passes 10
+# Equivalent explicit gallery override for testing the truck:
+./build-gallery/parallel-mater-gallery --dump-spheres 100 --contact-passes 10
+```
+
+Profiling the initial AVBD adapter exposed graph preparation as its largest
+cost. Caching bounded prefixes of the graph metadata in shared memory reduced
+the ten-iteration median from 39.799 ms to 20.064 ms in the initial comparison.
+The final cleaned executable and baseline were then rerun serially for the
+table above. Cached, uncached and final executables report identical trajectory
+metrics at both AVBD iteration budgets.
+Dedicated tests also check physical states, contact/joint impulses and graph
+diagnostics across body, contact and joint cache boundaries. Oversized graphs
+use the same algorithm through global-memory accessors, not a second solver.
+The default brick workload reports 24 solve-group launches per frame, ten
+iterations in the last substep and four vertex colors.
+
+The separate 600-frame wall-stability test still fails its unchanged strict
+gate: maximum drop 0.041451 m and displacement 0.079596 m, versus the old
+solver's 0.128930 m and 0.301160 m. This is improved support, not an acceptance
+pass. Its whole-run metrics are not the benchmark's endpoint metrics above.
+Scene assets, reference snapshots and physical acceptance tolerances were not
+changed for this migration.
+
+Validation: the Release gallery build succeeds. The standalone CPU build and
+CUDA runners pass all 105 AVBD/geometry fixtures and 36 contact fixtures;
+one additional host regression checks exact plane deduplication. The broad
+physics-focused run passes **74/80** in 564.46 seconds, before the final removal
+of unreachable legacy CUDA helpers. It includes the original and new rigid
+suites, truck unloading/lowering, point constraints, full piston cycles,
+soft-contact stress cases, ordinary rope settling/release/winding and coupled
+fluid/cloth/smoke cases. Rendering, Blender export and stale golden comparisons
+were excluded from this run:
+
+```sh
+ctest --test-dir build-gallery -j1 --output-on-failure \
+  -E 'conformance-cuda-goldens|blender-export|headless|render-test|material-visibility|fluid-surface'
+```
+
+After removing the unreachable legacy helpers, the complete gallery rebuild
+and **13/13 focused tests** pass: original/new rigid suites, full truck cycle,
+point scene, piston cycles, all three soft/rigid contact cases, rope lift-off,
+and CPU/CUDA numerical runners. This cleanup removes code, not another physical
+iteration or a scene-specific solver branch.
+
+Five failures predate AVBD: authored input hashes, the brick stability gate,
+two MotorSpring metadata checks and the Generic arrow-force expectation.
+One additional failure remains: `parallel-mater-rope-soft-body-release-tests`.
+The 1,000-frame run reaches 0.399219 m post bend (limit 0.35 m) and 0.524010 m
+minimum height (limit 0.55 m) while winding, before release. It later recovers
+to 0.003596 m bend. The shorter 320-frame winding test passes but stops before
+that peak; it is not evidence that the longer regression is fixed.
+
+Support-aware rope contact and its shared normal/friction coupling correction
+pass floor settling, release and lift-off gates, but do not eliminate this
+soft-post overshoot. No test tolerance was loosened to hide it. This is a
+manual-test migration build, **not clean scene-wide acceptance**. Metal's
+translated syntax/layout and graph-cache checks pass; native Metal compilation,
+runtime tests and sleeping restoration remain outstanding. The new soft-surface
+face-selection cleanup is CUDA-only; the rigid AVBD core and rope friction
+equations are shared.
+
+Local measurements and diagnostic logs: `/tmp/parallel-mater-avbd-Z7wVqZ`.
+Historical sections below retain their original validation scopes and numbers.
+
+## Historical contact pass-budget experiment (2026-10-09)
+
+The brick scene's `316 X` was the solve group's **GPU launch count**, not
+iterations. The CUDA overlay now labels launches and separately shows maximum
+contact passes across islands in the last substep, excluding warm start.
+Color construction now uses one fused kernel for all world sizes, retaining
+the same ordering. This reduces solve-group launches to **28 per frame**.
+
+The shared CUDA/Metal `StepOptions::rigid_contact_pass_limit` accepts zero
+(automatic) or 1–64 as an explicit cap. CUDA gallery: `--contact-passes N`;
+rigid scene benchmark and wall test: `--passes N`. Joint iterations, substeps,
+collision geometry, test tolerances and default automatic budgets are unchanged.
+Metal's host/shader constant layouts and cap enforcement were updated together;
+native Metal execution has not been tested on this Linux workstation.
+
+Serial Release measurements on the RTX 3050 Ti Laptop GPU, with the gallery
+closed: four substeps, 360 settling frames, ten warmup frames, 60 timed frames.
+Quality uses the existing wall test's 600 gravity frames, including cold start.
+
+| Configuration | Physics median | Maximum brick drop | Maximum displacement |
+| --- | ---: | ---: | ---: |
+| Before change, automatic / 32 | 35.29 ms | 0.12893 m | 0.30116 m |
+| Fused coloring, 32 | 35.52 ms | 0.12893 m | 0.30116 m |
+| Fused coloring, 8 | 13.82 ms | 0.14105 m | 0.31871 m |
+| Fused coloring, 4 | 10.70 ms | 0.19331 m | 0.42525 m |
+| Fused coloring, 1 | 11.49 ms | 216.20 m | 217.59 m |
+
+**Every budget fails the existing wall-stability acceptance test**, including
+the unchanged baseline. One pass causes catastrophic loss of support; its
+changed contact workload also makes it slower than four passes. Eight passes
+is about 2.6 times faster than 32 but increases drift; it is an experiment,
+not a stability fix. Fusing launches preserves the 32-pass quality metrics
+exactly but does not demonstrate a wall-time improvement. The default remains
+unchanged; solve passes, not launch count alone, dominate this workload.
+
+Local logs: `/tmp/parallel-mater-passes-VCUqlr`. No scene assets, goldens or
+acceptance tolerances were changed.
+
+Validation: full CUDA/gallery build and **18/18 focused CTest entries pass**,
+including rigid pass-cap/launch-count checks, truck unloading and payload,
+long rope regressions, registry/type contracts and CPU/CUDA equation fixtures.
+The standalone C++-only build passes all 26 equation/convergence fixtures.
+These focused passes do not override the wall-stability failures above.
+
 ## Main integration (2026-10-08)
 
 Merged upstream `06cd364` into the gallery/contact branch. Shared API types

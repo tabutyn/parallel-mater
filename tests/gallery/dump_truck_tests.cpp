@@ -2,6 +2,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <cuda_runtime_api.h>
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -61,6 +62,18 @@ void check_cluster_payload(SceneDefinition &scene, unsigned requested) {
 }
 
 int main(int argc, char **argv) try {
+    unsigned pass_limit = 0;
+    bool metadata_only = false;
+    for (int argument = 1; argument < argc; ++argument) {
+        const std::string_view option(argv[argument]);
+        if (option == "--metadata-only") metadata_only = true;
+        else if (option == "--passes" && argument+1 < argc) {
+            const std::string_view value(argv[++argument]);
+            const auto parsed = std::from_chars(value.data(),value.data()+value.size(),pass_limit);
+            if (parsed.ec == std::errc{} && parsed.ptr == value.data()+value.size() && pass_limit <= 64) continue;
+            std::cerr << "Invalid dump test pass limit: " << value << '\n'; return 2;
+        } else { std::cerr << "Invalid dump test option: " << option << '\n'; return 2; }
+    }
     SceneDefinition source;
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH, source, error), error.c_str());
@@ -84,7 +97,7 @@ int main(int argc, char **argv) try {
     missing.sphere_clusters.clear();
     check(!configure_dump_payload(missing,100,error), "missing Empty must report an actionable error");
     std::cout << "Dump truck: SphereCluster anchor, rotation and repeated P count edits passed\n";
-    if (argc == 2 && std::string_view(argv[1]) == "--metadata-only") return 0;
+    if (metadata_only) return 0;
     int devices{};
     if (cudaGetDeviceCount(&devices) != cudaSuccess || !devices) {
         std::cout << "SKIP: dump truck metadata passed; CUDA unavailable\n";
@@ -104,6 +117,7 @@ int main(int argc, char **argv) try {
     require(create_scene_world(scene, world, instance));
     DumpTruckBed bed;
     check(bed.initialize(scene), "initialize dump lift");
+    std::cout << "Dump truck AVBD pass_limit=" << pass_limit << '\n';
     const auto state = [&](std::size_t i) {
         RigidBodyState result;
         require(world.read_rigid_body_state(instance.rigid_bodies[i],result));
@@ -132,12 +146,25 @@ int main(int argc, char **argv) try {
     const auto step = [&](unsigned frames) {
         for (unsigned frame = 0; frame < frames; ++frame) {
             require(bed.advance(world, scene, instance, 1.0F/60));
-            require(world.step({.timestep = 1.0F/60, .substeps = 8U}));
+            require(world.step({.timestep = 1.0F/60, .substeps = 8U,
+                                .rigid_contact_pass_limit = pass_limit}));
             const auto truck = state(chassis), load = state(bucket);
+            if (!(std::isfinite(length(truck.position)) && std::isfinite(length(load.position)) &&
+                  length(truck.linear_velocity) < 50 && length(load.linear_velocity) < 50))
+                std::cerr << "dump stability: frame=" << frame << " truck_speed="
+                          << length(truck.linear_velocity) << " bucket_speed="
+                          << length(load.linear_velocity) << " truck_y=" << truck.position.y
+                          << " bucket_y=" << load.position.y << '\n';
             check(std::isfinite(length(truck.position)) && std::isfinite(length(load.position)) &&
                   length(truck.linear_velocity) < 50 && length(load.linear_velocity) < 50,
                   "truck and bucket must stay finite and bounded");
-            check(rotate(truck.orientation,{0,1,0}).y > 0.8F, "truck must remain on its wheels");
+            const float upright = rotate(truck.orientation,{0,1,0}).y;
+            if (!(upright > 0.8F))
+                std::cerr << "dump attitude: frame=" << frame << " up_y=" << upright
+                          << " speed=" << length(truck.linear_velocity) << " spin="
+                          << length(truck.angular_velocity) << " bucket_angle="
+                          << bucket_angle()*180/3.14159265358979323846F << '\n';
+            check(upright > 0.8F, "truck must remain on its wheels");
             const auto lift = std::find_if(scene.rigid_constraints.begin(),scene.rigid_constraints.end(),
                 [](const auto &joint) { return joint.name == "DumpLift"; });
             const auto a = rotate(truck.orientation, lift->options.local_anchor_a);
