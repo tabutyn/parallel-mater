@@ -1,5 +1,10 @@
 # Unified rigid AVBD solver
 
+The production CUDA/Metal adapters described here still compile the portable
+C++/Metal-compatible core. The parallel [Slang implementation](SLANG.md)
+provides the migration target and cross-backend numerical/ABI gates; production
+runtime dispatch has not been switched in its first reviewable slice.
+
 On CUDA and Metal, rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
 There is no stack-only solver, joint-triggered fallback, welded-compound
