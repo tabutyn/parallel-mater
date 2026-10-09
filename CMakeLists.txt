@@ -141,6 +141,8 @@ target_compile_options(
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     add_library(parallel-mater-gallery-scene STATIC
                 examples/support/scene.cpp
+                examples/support/brick_scene.cpp
+                examples/support/device_profiles.cpp
                 examples/support/rope_render.cpp
                 examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
@@ -296,6 +298,10 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
+    set(PARALLEL_MATER_GALLERY_PROFILE_CATALOG
+        "${CMAKE_CURRENT_BINARY_DIR}/config/device-profiles.json")
+    configure_file(config/device-profiles.json
+                   "${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}" COPYONLY)
     target_link_libraries(
         parallel-mater-gallery
         PRIVATE
@@ -306,6 +312,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
+            PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}"
+            PARALLEL_MATER_GALLERY_GIT_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}"
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
             PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb"
             PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
@@ -334,6 +342,14 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
             PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+    add_custom_command(
+        TARGET parallel-mater-gallery POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:parallel-mater-gallery>/config"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+                "$<TARGET_FILE_DIR:parallel-mater-gallery>/config/device-profiles.json"
+        VERBATIM)
 endif()
 
 if(BUILD_TESTING)
@@ -458,6 +474,16 @@ if(BUILD_TESTING)
                  COMMAND parallel-mater-gallery-scene-tests)
         set_tests_properties(parallel-mater-gallery-scene-tests
                              PROPERTIES SKIP_RETURN_CODE 77)
+
+        add_executable(parallel-mater-device-profile-tests
+                       tests/gallery/device_profiles_tests.cpp)
+        target_link_libraries(parallel-mater-device-profile-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-device-profile-tests PRIVATE
+            PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+        add_test(NAME parallel-mater-device-profile-tests
+                 COMMAND parallel-mater-device-profile-tests)
 
         add_executable(parallel-mater-rigid-wall-tests
                        tests/gallery/rigid_wall_tests.cpp)
@@ -1243,6 +1269,8 @@ if(PARALLEL_MATER_BUILD_METAL)
 
         add_library(parallel-mater-metal-gallery-scene STATIC
             examples/support/scene.cpp
+            examples/support/brick_scene.cpp
+            examples/support/device_profiles.cpp
             examples/support/rope_render.cpp)
         target_compile_features(parallel-mater-metal-gallery-scene
                                 PUBLIC cxx_std_20)
@@ -1271,6 +1299,18 @@ if(PARALLEL_MATER_BUILD_METAL)
             ${PARALLEL_MATER_METAL_FRAMEWORK})
 
         if(BUILD_TESTING)
+            add_executable(parallel-mater-metal-device-profile-tests
+                           tests/gallery/device_profiles_tests.cpp)
+            target_compile_definitions(
+                parallel-mater-metal-device-profile-tests PRIVATE
+                PARALLEL_MATER_GALLERY_METAL=1
+                PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+                PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+            target_link_libraries(parallel-mater-metal-device-profile-tests
+                                  PRIVATE parallel-mater-metal-gallery-scene)
+            add_test(NAME parallel-mater-metal-device-profile-tests
+                     COMMAND parallel-mater-metal-device-profile-tests)
+
             add_executable(parallel-mater-metal-rigid-wall-tests
                            tests/metal/rigid_wall_tests.mm)
             target_compile_options(parallel-mater-metal-rigid-wall-tests
@@ -1351,6 +1391,11 @@ if(PARALLEL_MATER_BUILD_METAL)
         set_source_files_properties(
             ${PARALLEL_MATER_METAL_GALLERY_ASSETS}
             PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/assets")
+        target_sources(parallel-mater-metal-gallery PRIVATE
+                       ${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json)
+        set_source_files_properties(
+            ${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/config")
         add_dependencies(parallel-mater-metal-gallery
                          parallel-mater-metal-gallery-build-info)
         set_target_properties(
@@ -1380,6 +1425,7 @@ if(PARALLEL_MATER_BUILD_METAL)
             parallel-mater-metal-gallery
             PRIVATE
                 PARALLEL_MATER_GALLERY_METAL=1
+                PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
                 PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
                 PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
                 PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"

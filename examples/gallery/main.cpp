@@ -12,6 +12,7 @@
 #include <parallel_mater_gallery/surface_query.hpp>
 
 #include <GLFW/glfw3.h>
+#include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <array>
@@ -19,15 +20,23 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <ctime>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <limits>
+#include <numeric>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+#if defined(__linux__)
+#include <sys/utsname.h>
+#endif
 
 namespace {
 
@@ -42,6 +51,7 @@ using parallel_mater::SoftBodyDeviceView;
 using parallel_mater::SoftBodyId;
 using parallel_mater::SmokeDeviceView;
 using parallel_mater::Status;
+using parallel_mater::StepOptions;
 using parallel_mater::World;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
@@ -71,6 +81,15 @@ using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::SceneInstance;
 using parallel_mater::gallery::StaticTriangleSurface;
 using parallel_mater::gallery::SurfaceSelection;
+using parallel_mater::gallery::BrickSceneConfig;
+using parallel_mater::gallery::brick_minimum_count;
+using parallel_mater::gallery::brick_maximum_count;
+using parallel_mater::gallery::brick_minimum_scale;
+using parallel_mater::gallery::brick_maximum_scale;
+using parallel_mater::gallery::brick_maximum_planes;
+using parallel_mater::gallery::brick_render_width;
+using parallel_mater::gallery::brick_render_height;
+using parallel_mater::gallery::validate_brick_config;
 
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
@@ -89,19 +108,29 @@ constexpr std::uint32_t k_default_dump_spheres =
     parallel_mater::gallery::default_dump_payload_count;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
 
+parallel_mater::gallery::CameraPreset camera_preset_for(
+    GalleryContext context, BrickSceneConfig bricks) {
+    return context == GalleryContext::rigid_body
+        ? parallel_mater::gallery::brick_camera_preset(bricks)
+        : gallery_entry(context).camera;
+}
+
 [[nodiscard]] constexpr std::uint32_t scene_substeps(
     GalleryContext context) noexcept {
     return context == GalleryContext::constraint_hinge || context == GalleryContext::dump ? 8U : 4U;
 }
 
 struct Options {
+    std::filesystem::path executable_path{};
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
     std::filesystem::path physics_capture_output{};
     int frames{240};
-    std::uint32_t width{960U};
-    std::uint32_t height{720U};
+    std::uint32_t width{brick_render_width};
+    std::uint32_t height{brick_render_height};
     GalleryContext initial_context{GalleryContext::rigid_body};
+    BrickSceneConfig bricks{};
+    std::filesystem::path profiles_file{PARALLEL_MATER_DEVICE_PROFILES_PATH};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
     std::uint32_t headless_cloth_tilt_degrees{};
@@ -113,6 +142,9 @@ struct Options {
     bool fluid_particle_view{};
     bool trace_fluid_escapes{};
     bool cloth_debug{};
+    bool calibrate{};
+    bool bricks_overridden{};
+    bool profiles_file_overridden{};
 };
 
 struct InputState {
@@ -121,6 +153,9 @@ struct InputState {
     bool replace_count_value{};
     bool count_value_invalid{};
     std::string count_value{};
+    std::array<std::string, 3> brick_values{};
+    std::size_t brick_field{};
+    bool brick_dialog{};
 };
 
 struct DirectionalInput {
@@ -464,6 +499,16 @@ struct FluidEscapeTrace {
     return true;
 }
 
+[[nodiscard]] bool parse_scale(std::string_view value, float &output) {
+    float parsed = 0.0F;
+    const auto result = std::from_chars(value.data(), value.data() + value.size(), parsed);
+    if (result.ec != std::errc{} || result.ptr != value.data() + value.size() ||
+        !std::isfinite(parsed) || parsed < brick_minimum_scale ||
+        parsed > brick_maximum_scale) return false;
+    output = parsed;
+    return true;
+}
+
 [[nodiscard]] bool parse_options(int argc, char **argv, Options &output) {
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument(argv[index]);
@@ -482,6 +527,26 @@ struct FluidEscapeTrace {
                 return false;
             }
             output.initial_context = GalleryContext::dump;
+        } else if (argument == "--brick-count" && index + 1 < argc) {
+            if (!parse_count(argv[++index], brick_minimum_count,
+                             brick_maximum_count, output.bricks.brick_count)) return false;
+            output.initial_context = GalleryContext::rigid_body;
+            output.bricks_overridden = true;
+        } else if (argument == "--brick-scale" && index + 1 < argc) {
+            if (!parse_scale(argv[++index], output.bricks.brick_scale)) return false;
+            output.initial_context = GalleryContext::rigid_body;
+            output.bricks_overridden = true;
+        } else if (argument == "--brick-planes" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 1U, brick_maximum_planes,
+                             output.bricks.wall_planes)) return false;
+            output.initial_context = GalleryContext::rigid_body;
+            output.bricks_overridden = true;
+        } else if (argument == "--profiles-file" && index + 1 < argc) {
+            output.profiles_file = argv[++index];
+            output.profiles_file_overridden = true;
+        } else if (argument == "--calibrate") {
+            output.calibrate = true;
+            output.initial_context = GalleryContext::rigid_body;
         } else if (argument == "--fluid-particles" && index + 1 < argc) {
             const GalleryEntry &entry = gallery_entry(GalleryContext::fluid);
             if (!parse_count(argv[++index], entry.minimum_count,
@@ -527,6 +592,9 @@ struct FluidEscapeTrace {
             output.physics_capture_output = argv[++index];
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
+                         "[--brick-count 1..4096] [--brick-scale 0.5..2] "
+                         "[--brick-planes 1..16] [--calibrate] "
+                         "[--profiles-file file.json] "
                          "[--dump-spheres N] [";
             bool first = true;
             for (const GalleryEntry &entry : gallery_entries) {
@@ -552,7 +620,9 @@ struct FluidEscapeTrace {
             return false;
         }
     }
-    return !output.trace_fluid_escapes || !output.headless_output.empty();
+    std::string brick_error;
+    return (!output.trace_fluid_escapes || !output.headless_output.empty()) &&
+        validate_brick_config(output.bricks, brick_error);
 }
 
 [[nodiscard]] bool require(Status status, const char *operation) {
@@ -720,15 +790,21 @@ void scroll(GLFWwindow *window, double, double offset) {
 
 void character_input(GLFWwindow *window, unsigned int codepoint) {
     auto *input = static_cast<InputState *>(glfwGetWindowUserPointer(window));
-    if (!input->count_dialog_visible || codepoint < '0' || codepoint > '9') {
+    const bool digit = codepoint >= '0' && codepoint <= '9';
+    const bool scale_point = input->brick_dialog && input->brick_field == 1U &&
+        codepoint == '.';
+    if (!input->count_dialog_visible || (!digit && !scale_point)) {
         return;
     }
     if (input->replace_count_value) {
-        input->count_value.clear();
+        if (input->brick_dialog) input->brick_values[input->brick_field].clear();
+        else input->count_value.clear();
         input->replace_count_value = false;
     }
-    if (input->count_value.size() < 6U) {
-        input->count_value.push_back(static_cast<char>(codepoint));
+    std::string &value = input->brick_dialog
+        ? input->brick_values[input->brick_field] : input->count_value;
+    if (value.size() < 6U && (!scale_point || value.find('.') == std::string::npos)) {
+        value.push_back(static_cast<char>(codepoint));
         input->count_value_invalid = false;
     }
 }
@@ -827,6 +903,15 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             error = "scene load failed: " + error;
             return false;
         }
+        if (context == GalleryContext::rigid_body) {
+            SceneDefinition generated;
+            if (!parallel_mater::gallery::make_brick_scene(
+                    next.scene, options.bricks, generated, error)) {
+                error = "brick scene generation failed: " + error;
+                return false;
+            }
+            next.scene = std::move(generated);
+        }
         if (entry.has_fluid)
             next.scene.fluid_options.capacity = fluid_particles;
     }
@@ -867,6 +952,16 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         }
     }
     parallel_mater::WorldOptions world_options{};
+    if (context == GalleryContext::rigid_body) {
+        std::size_t free_bytes = 0U, total_bytes = 0U;
+        if (cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess &&
+            parallel_mater::gallery::estimated_metal_contact_bytes(
+                static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
+                static_cast<std::uint64_t>(free_bytes) * 7U / 10U) {
+            error = "brick scene exceeds the available GPU memory budget";
+            return false;
+        }
+    }
     Status create_status = parallel_mater::gallery::scene_world_options(
         next.scene, world_options,
         {.frame_capacity = context == GalleryContext::constraint_fixed ? 300U : 30U,
@@ -975,6 +1070,378 @@ struct GallerySession {
     }
 };
 
+struct CalibrationResult {
+    BrickSceneConfig config{};
+    parallel_mater::gallery::CalibrationMetrics metrics{};
+    parallel_mater::gallery::HardwareIdentity hardware{};
+};
+
+parallel_mater::gallery::HardwareIdentity cuda_hardware_identity() {
+    cudaDeviceProp properties{};
+    int device = 0;
+    int driver = 0;
+    cudaGetDevice(&device);
+    cudaGetDeviceProperties(&properties, device);
+    cudaDriverGetVersion(&driver);
+    parallel_mater::gallery::HardwareIdentity result;
+    const char *machine = std::getenv("COMPUTERNAME");
+    if (machine == nullptr) machine = std::getenv("HOSTNAME");
+    result.machine_model = machine != nullptr ? machine : properties.name;
+    result.cpu_model = "unknown CPU";
+#if defined(__linux__)
+    {
+        std::ifstream cpuinfo("/proc/cpuinfo");
+        std::string line;
+        while (std::getline(cpuinfo, line)) {
+            const std::string prefix = "model name";
+            if (!line.starts_with(prefix)) continue;
+            const auto separator = line.find(':');
+            if (separator != std::string::npos) {
+                result.cpu_model = line.substr(separator + 1U);
+                result.cpu_model.erase(0U, result.cpu_model.find_first_not_of(" \t"));
+            }
+            break;
+        }
+    }
+#elif defined(_WIN32)
+    if (const char *processor = std::getenv("PROCESSOR_IDENTIFIER"))
+        result.cpu_model = processor;
+#endif
+    result.gpu_model = properties.name;
+    result.gpu_variant = std::to_string(properties.multiProcessorCount) +
+        " SM, compute " + std::to_string(properties.major) + '.' +
+        std::to_string(properties.minor);
+    result.memory_bytes = properties.totalGlobalMem;
+    result.backend = "cuda";
+#if defined(_WIN32)
+    result.operating_system = "Windows";
+#elif defined(__linux__)
+    struct utsname system{};
+    result.operating_system = uname(&system) == 0
+        ? std::string(system.sysname) + ' ' + system.release
+        : "Linux";
+#else
+    result.operating_system = "unknown";
+#endif
+    result.driver = "CUDA driver " + std::to_string(driver);
+    result.power_mode = "driver-default";
+    return result;
+}
+
+std::filesystem::path device_profiles_path(const Options &options) {
+    if (options.profiles_file_overridden) return options.profiles_file;
+    if (!options.executable_path.empty()) {
+        const auto bundled = options.executable_path.parent_path() /
+            "config/device-profiles.json";
+        std::error_code error;
+        if (std::filesystem::is_regular_file(bundled, error)) return bundled;
+    }
+    return options.profiles_file;
+}
+
+bool launch_calibration_ball(GalleryRuntime &runtime, bool off_center,
+                             std::string &error) {
+    for (std::size_t index = 0U; index < runtime.scene.rigid_bodies.size(); ++index) {
+        if (runtime.scene.rigid_bodies[index].source_name != "Icosphere") continue;
+        RigidBodyState state = runtime.scene.rigid_bodies[index].options.initial_state;
+        state.position = {off_center ? 1.0F : 0.0F, 1.05F, 3.0F};
+        state.linear_velocity = {0.0F, 0.0F, -10.0F};
+        state.angular_velocity = {};
+        const Status status = runtime.world.set_rigid_body_state(
+            runtime.instance.rigid_bodies[index], state);
+        if (status) return true;
+        error = status.message != nullptr ? status.message : "could not launch ball";
+        return false;
+    }
+    error = "brick calibration scene has no ball";
+    return false;
+}
+
+bool stable_calibration_scene(GalleryRuntime &runtime, bool quiet,
+                              float scale, std::string &error) {
+    unsigned displaced_bricks = 0U;
+    for (std::size_t index = 0U; index < runtime.instance.rigid_bodies.size(); ++index) {
+        RigidBodyState state;
+        const Status status = runtime.world.read_rigid_body_state(
+            runtime.instance.rigid_bodies[index], state);
+        if (!status) {
+            error = status.message != nullptr ? status.message : "could not read body state";
+            return false;
+        }
+        if (!std::isfinite(state.position.x) || !std::isfinite(state.position.y) ||
+            !std::isfinite(state.position.z) ||
+            std::fabs(state.position.x) > 1'000.0F ||
+            std::fabs(state.position.y) > 1'000.0F ||
+            std::fabs(state.position.z) > 1'000.0F) {
+            error = "brick calibration produced an unstable body";
+            return false;
+        }
+        const float speed = std::sqrt(
+            state.linear_velocity.x * state.linear_velocity.x +
+            state.linear_velocity.y * state.linear_velocity.y +
+            state.linear_velocity.z * state.linear_velocity.z);
+        if (!std::isfinite(speed) || speed > 50.0F) {
+            error = "brick calibration produced excessive kinetic energy";
+            return false;
+        }
+        const auto &body = runtime.scene.rigid_bodies[index];
+        if (body.source_name != "Layer1" && body.source_name != "Layer2")
+            continue;
+        const auto initial = body.options.initial_state.position;
+        const float displacement = std::hypot(
+            std::hypot(state.position.x - initial.x,
+                       state.position.y - initial.y),
+            state.position.z - initial.z);
+        if (quiet && displacement > std::max(0.03F, 0.04F * scale)) {
+            error = "brick wall lost quiet support";
+            return false;
+        }
+        displaced_bricks += !quiet && displacement > 0.03F;
+    }
+    if (!quiet && displaced_bricks == 0U) {
+        error = "calibration impact did not reach the brick wall";
+        return false;
+    }
+    return true;
+}
+
+void present_calibration_frame(GLFWwindow *window,
+                               const std::vector<std::uint32_t> &pixels,
+                               std::uint32_t width, std::uint32_t height) {
+    int framebuffer_width = 0, framebuffer_height = 0;
+    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+    glViewport(0, 0, framebuffer_width, framebuffer_height);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glRasterPos2f(-1.0F, -1.0F);
+    glPixelZoom(static_cast<float>(framebuffer_width) / width,
+                static_cast<float>(framebuffer_height) / height);
+    glDrawPixels(static_cast<int>(width), static_cast<int>(height), GL_RGBA,
+                 GL_UNSIGNED_BYTE, pixels.data());
+    glfwSwapBuffers(window);
+}
+
+bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
+                           GLFWwindow *window, std::uint32_t quiet_frames,
+                           std::uint32_t collision_frames, bool off_center,
+                           std::vector<parallel_mater::gallery::CalibrationSample> &samples,
+                           bool &stable, std::string &error) {
+    Options candidate = base;
+    candidate.bricks = config;
+    GalleryRuntime runtime;
+    if (!build_runtime(candidate, GalleryContext::rigid_body,
+                       candidate.dump_spheres, candidate.fluid_particles,
+                       runtime, error)) return false;
+    const StepOptions step{.timestep = k_timestep, .substeps = 4U,
+                           .gravity = {0.0F, -k_gravity, 0.0F}};
+    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
+        if (!runtime.world.step(step)) { error = "calibration settle failed"; return false; }
+    std::vector<std::uint32_t> pixels;
+    CameraController camera;
+    camera.set_preset(camera_preset_for(GalleryContext::rigid_body, config));
+    auto measure = [&](bool collision) {
+        const auto begin = std::chrono::steady_clock::now();
+        const Status status = runtime.world.step(step);
+        if (!status) {
+            error = status.message != nullptr ? status.message : "calibration step failed";
+            return false;
+        }
+        if (!runtime.renderer.render(runtime.world, runtime.instance,
+                                     camera.camera(), pixels, error)) return false;
+        present_calibration_frame(window, pixels, candidate.width, candidate.height);
+        const double milliseconds = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - begin).count();
+        samples.push_back({milliseconds, collision, true});
+        glfwPollEvents();
+        return glfwWindowShouldClose(window) == GLFW_FALSE;
+    };
+    for (std::uint32_t frame = 0U; frame < quiet_frames; ++frame)
+        if (!measure(false)) { if (error.empty()) error = "calibration cancelled"; return false; }
+    std::string correctness_error;
+    stable = stable && stable_calibration_scene(
+        runtime, true, config.brick_scale, correctness_error);
+    if (!launch_calibration_ball(runtime, off_center, error)) return false;
+    for (std::uint32_t frame = 0U; frame < collision_frames; ++frame)
+        if (!measure(true)) { if (error.empty()) error = "calibration cancelled"; return false; }
+    correctness_error.clear();
+    stable = stable && stable_calibration_scene(
+        runtime, false, config.brick_scale, correctness_error);
+    return true;
+}
+
+double measured_seconds(
+    const std::vector<parallel_mater::gallery::CalibrationSample> &samples) {
+    return std::accumulate(samples.begin(), samples.end(), 0.0,
+        [](double total, const auto &sample) {
+            return total + sample.milliseconds / 1'000.0;
+        });
+}
+
+bool calibrate_bricks(Options &options, GLFWwindow *window,
+                      CalibrationResult &output, std::string &error) {
+    glfwSwapInterval(0);
+    const auto &presets = parallel_mater::gallery::brick_calibration_presets();
+    std::optional<std::size_t> best;
+    for (std::size_t index = 0U; index < presets.size(); ++index) {
+        std::vector<parallel_mater::gallery::CalibrationSample> samples;
+        bool stable = true;
+        std::string trial_error;
+        const auto begin = std::chrono::steady_clock::now();
+        if (!run_calibration_trial(options, presets[index], window, 60U, 120U,
+                                   index % 2U != 0U, samples, stable,
+                                   trial_error)) {
+            if (trial_error.find("memory budget") != std::string::npos) break;
+            glfwSwapInterval(1); error = trial_error; return false;
+        }
+        const double duration = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - begin).count();
+        auto metrics = parallel_mater::gallery::summarize_calibration(
+            samples, duration, stable, false);
+        const double work = measured_seconds(samples);
+        metrics.simulation_progress_ratio = work > 0.0
+            ? std::min(1.0, samples.size() * static_cast<double>(k_timestep) / work)
+            : 0.0;
+        std::cout << "Calibration " << presets[index].brick_count
+                  << " bricks: collision p95 "
+                  << metrics.collision_p95_milliseconds << " ms, max "
+                  << metrics.collision_maximum_milliseconds << " ms\n";
+        if (index == 0U) {
+            output = {.config = presets[index], .metrics = metrics,
+                      .hardware = cuda_hardware_identity()};
+        }
+        if (!parallel_mater::gallery::calibration_passes(metrics)) {
+            if (index == 0U) {
+                glfwSwapInterval(1);
+                error = "minimum one-brick preset failed the 1080p frame budget";
+                return false;
+            }
+            if (best.has_value()) break;
+            continue;
+        }
+        best = index;
+    }
+    if (!best.has_value()) {
+        glfwSwapInterval(1); error = "no brick preset met the 1080p frame budget";
+        return false;
+    }
+    for (std::size_t index = *best + 1U; index-- > 0U;) {
+        std::vector<parallel_mater::gallery::CalibrationSample> samples;
+        bool stable = true;
+        bool off_center = false;
+        const auto begin = std::chrono::steady_clock::now();
+        while (std::chrono::duration<double>(
+                   std::chrono::steady_clock::now() - begin).count() < 180.0) {
+            if (!run_calibration_trial(options, presets[index], window, 60U, 300U,
+                                       off_center, samples, stable, error)) {
+                glfwSwapInterval(1); return false;
+            }
+            if (!stable) break;
+            off_center = !off_center;
+        }
+        const double duration = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - begin).count();
+        auto metrics = parallel_mater::gallery::summarize_calibration(
+            samples, duration, stable, false);
+        const double work = measured_seconds(samples);
+        metrics.simulation_progress_ratio = work > 0.0
+            ? std::min(1.0, samples.size() * static_cast<double>(k_timestep) / work)
+            : 0.0;
+        if (parallel_mater::gallery::calibration_passes(metrics)) {
+            options.bricks = presets[index];
+            output = {.config = presets[index], .metrics = metrics,
+                      .hardware = cuda_hardware_identity()};
+            glfwSwapInterval(1);
+            return true;
+        }
+        if (index == 0U) break;
+    }
+    glfwSwapInterval(1);
+    error = "no brick preset passed sustained 1080p qualification";
+    return false;
+}
+
+void save_local_calibration(const CalibrationResult &result) {
+    auto path = parallel_mater::gallery::default_local_profiles_path();
+    path = path.parent_path() / "latest-brick-calibration.json";
+    std::error_code filesystem_error;
+    std::filesystem::create_directories(path.parent_path(), filesystem_error);
+    if (filesystem_error) return;
+    const auto temporary = path.string() + ".tmp";
+    std::ofstream output(temporary, std::ios::trunc);
+    if (!output) return;
+    output << "{\n  \"verified\": false,\n  \"backend\": \"cuda\",\n"
+           << "  \"gpu_model\": \"" << result.hardware.gpu_model << "\",\n"
+           << "  \"gpu_variant\": \"" << result.hardware.gpu_variant << "\",\n"
+           << "  \"machine_model\": \"" << result.hardware.machine_model << "\",\n"
+           << "  \"cpu_model\": \"" << result.hardware.cpu_model << "\",\n"
+           << "  \"memory_bytes\": " << result.hardware.memory_bytes << ",\n"
+           << "  \"operating_system\": \""
+           << result.hardware.operating_system << "\",\n"
+           << "  \"driver\": \"" << result.hardware.driver << "\",\n"
+           << "  \"power_mode\": \"" << result.hardware.power_mode << "\",\n"
+           << "  \"width\": " << brick_render_width << ",\n"
+           << "  \"height\": " << brick_render_height << ",\n"
+           << "  \"scene_version\": "
+           << parallel_mater::gallery::brick_scene_version << ",\n"
+           << "  \"solver_version\": \"cuda-rigid-v1\",\n"
+           << "  \"build_revision\": \""
+           << PARALLEL_MATER_GALLERY_GIT_COMMIT << "\",\n"
+           << "  \"brick_count\": " << result.config.brick_count << ",\n"
+           << "  \"brick_scale\": " << result.config.brick_scale << ",\n"
+           << "  \"wall_planes\": " << result.config.wall_planes << ",\n"
+           << "  \"collision_p95_milliseconds\": "
+           << result.metrics.collision_p95_milliseconds << ",\n"
+           << "  \"collision_maximum_milliseconds\": "
+           << result.metrics.collision_maximum_milliseconds << ",\n"
+           << "  \"quiet_p95_milliseconds\": "
+           << result.metrics.quiet_p95_milliseconds << ",\n"
+           << "  \"quiet_maximum_milliseconds\": "
+           << result.metrics.quiet_maximum_milliseconds << ",\n"
+           << "  \"duration_seconds\": "
+           << result.metrics.duration_seconds << ",\n"
+           << "  \"simulation_progress_ratio\": "
+           << result.metrics.simulation_progress_ratio << ",\n"
+           << "  \"stable\": "
+           << (result.metrics.stable ? "true" : "false") << ",\n"
+           << "  \"no_dropped_steps\": "
+           << (result.metrics.no_dropped_steps ? "true" : "false") << "\n}\n";
+    output.close();
+    if (!output) return;
+    std::filesystem::rename(temporary, path, filesystem_error);
+    if (filesystem_error) std::filesystem::remove(temporary);
+}
+
+bool verify_and_save_profile(const Options &options,
+                             const CalibrationResult &result,
+                             std::string &error) {
+    parallel_mater::gallery::VerifiedBrickProfile profile;
+    profile.hardware = result.hardware;
+    profile.scene = result.config;
+    profile.solver_version = "cuda-rigid-v1";
+    profile.build_revision = PARALLEL_MATER_GALLERY_GIT_COMMIT;
+    profile.metrics = result.metrics;
+    const std::time_t now = std::time(nullptr);
+    std::tm utc{};
+#if defined(_WIN32)
+    gmtime_s(&utc, &now);
+#else
+    gmtime_r(&now, &utc);
+#endif
+    std::ostringstream timestamp;
+    timestamp << std::put_time(&utc, "%Y-%m-%dT%H:%M:%SZ");
+    profile.verified_at = timestamp.str();
+    const char *user = std::getenv("USER");
+    if (user == nullptr) user = std::getenv("USERNAME");
+    profile.verifier = user != nullptr ? user : "human-verified";
+    const std::filesystem::path destination = options.profiles_file_overridden
+        ? options.profiles_file
+        : parallel_mater::gallery::default_local_profiles_path().parent_path() /
+              "verified-profile-export.json";
+    const bool saved = parallel_mater::gallery::save_verified_profile(
+        destination, profile, error);
+    if (saved) std::cout << "Verified profile written to " << destination << '\n';
+    return saved;
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -982,9 +1449,34 @@ int main(int argc, char **argv) {
     using namespace parallel_mater::gallery;
 
     Options options;
+    std::error_code executable_error;
+    options.executable_path = std::filesystem::absolute(argv[0], executable_error);
+    if (executable_error) options.executable_path = argv[0];
     if (!parse_options(argc, argv, options)) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
+    }
+    if (options.calibrate && !options.headless_output.empty()) {
+        std::cerr << "--calibrate requires the interactive gallery path\n";
+        return 2;
+    }
+    if (options.headless_output.empty() && !options.bricks_overridden) {
+        DeviceProfileCatalog catalog;
+        std::string profile_error;
+        if (load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
+            const HardwareIdentity hardware = cuda_hardware_identity();
+            if (const auto *profile = find_matching_profile(
+                    catalog, hardware, brick_render_width,
+                    brick_render_height, "cuda-rigid-v1")) {
+                options.bricks = profile->scene;
+                std::cout << "Using verified brick profile: "
+                          << options.bricks.brick_count << " bricks, "
+                          << options.bricks.wall_planes << " walls\n";
+            }
+        } else {
+            std::cerr << "Device profile catalog unavailable: "
+                      << profile_error << '\n';
+        }
     }
     std::string error;
     GallerySession session;
@@ -1001,6 +1493,7 @@ int main(int argc, char **argv) {
     WorldStepTimings &timings = session.timings;
     WorldStatistics &statistics = session.statistics;
     RendererTimings &renderer_timings = session.renderer_timings;
+    std::optional<CalibrationResult> last_calibration;
 
     const StepOptions step_options{.timestep = k_timestep,
                                    .substeps = scene_substeps(runtime.context),
@@ -1009,7 +1502,7 @@ int main(int argc, char **argv) {
                                        runtime.scene.gravity_scale)};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
-    input_state.camera.set_preset(gallery_entry(runtime.context).camera);
+    input_state.camera.set_preset(camera_preset_for(runtime.context, options.bricks));
     if (!options.headless_output.empty()) {
         StepOptions headless_step = step_options;
         const bool fixed_collection = runtime.fixed_collector.active();
@@ -1329,7 +1822,7 @@ int main(int argc, char **argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow *window = glfwCreateWindow(
-        static_cast<int>(options.width), static_cast<int>(options.height),
+        960, 540,
         "ParallelMater Gallery", nullptr, nullptr);
     if (window == nullptr) {
         std::cerr << "GLFW window creation failed\n";
@@ -1345,6 +1838,23 @@ int main(int argc, char **argv) {
     glfwSetCharCallback(window, &character_input);
     glDisable(GL_DEPTH_TEST);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+    if (options.calibrate) {
+        CalibrationResult result;
+        if (!calibrate_bricks(options, window, result, error)) {
+            if (result.metrics.duration_seconds > 0.0)
+                save_local_calibration(result);
+            std::cerr << "Calibration failed: " << error << '\n';
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return 1;
+        }
+        last_calibration = result;
+        save_local_calibration(result);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return 0;
+    }
 
     KeyEdges keys;
     bool timing_visible = false;
@@ -1369,17 +1879,74 @@ int main(int argc, char **argv) {
         keys.update(window);
 
         if (input_state.count_dialog_visible) {
+            if (input_state.brick_dialog &&
+                keys.pressed(KeyAction::fluid_forces)) {
+                CalibrationResult result;
+                std::string calibration_error;
+                bool calibration_succeeded = false;
+                if (calibrate_bricks(options, window, result,
+                                     calibration_error)) {
+                    calibration_succeeded = true;
+                    last_calibration = result;
+                    save_local_calibration(result);
+                    input_state.brick_values = {
+                        std::to_string(result.config.brick_count),
+                        std::to_string(result.config.brick_scale),
+                        std::to_string(result.config.wall_planes)};
+                    input_state.count_dialog_visible = false;
+                    input_state.count_value_invalid = false;
+                } else {
+                    if (result.metrics.duration_seconds > 0.0)
+                        save_local_calibration(result);
+                    input_state.count_value_invalid = true;
+                    std::cerr << "Calibration failed: "
+                              << calibration_error << '\n';
+                }
+                if (calibration_succeeded &&
+                    !session.rebuild(options, GalleryContext::rigid_body,
+                                     options.dump_spheres,
+                                     options.fluid_particles, error)) {
+                    std::cerr << error << '\n';
+                    break;
+                }
+            }
+            if (input_state.brick_dialog &&
+                keys.pressed(KeyAction::primary_debug)) {
+                std::string save_error;
+                if (!last_calibration.has_value() ||
+                    last_calibration->config != options.bricks) {
+                    save_error =
+                        "calibrate this exact configuration before verification";
+                } else if (verify_and_save_profile(
+                               options, *last_calibration, save_error)) {
+                    std::cout << "Verified device profile saved\n";
+                    input_state.count_dialog_visible = false;
+                }
+                if (!save_error.empty())
+                    std::cerr << "Profile not saved: " << save_error << '\n';
+            }
             if (keys.pressed(KeyAction::escape)) {
                 input_state.count_dialog_visible = false;
                 input_state.count_value_invalid = false;
             }
             if (keys.pressed(KeyAction::backspace)) {
                 if (input_state.replace_count_value) {
-                    input_state.count_value.clear();
+                    if (input_state.brick_dialog)
+                        input_state.brick_values[input_state.brick_field].clear();
+                    else
+                        input_state.count_value.clear();
                     input_state.replace_count_value = false;
-                } else if (!input_state.count_value.empty()) {
-                    input_state.count_value.pop_back();
+                } else {
+                    std::string &value = input_state.brick_dialog
+                        ? input_state.brick_values[input_state.brick_field]
+                        : input_state.count_value;
+                    if (!value.empty()) value.pop_back();
                 }
+                input_state.count_value_invalid = false;
+            }
+            if (input_state.brick_dialog && keys.pressed(KeyAction::scenes)) {
+                input_state.brick_field = (input_state.brick_field + 1U) % 3U;
+                input_state.replace_count_value = true;
                 input_state.count_value_invalid = false;
             }
             if (keys.pressed(KeyAction::enter)) {
@@ -1387,19 +1954,37 @@ int main(int argc, char **argv) {
                 const GalleryEntry &entry = gallery_entry(runtime.context);
                 const bool fluid_dialog =
                     entry.count_kind == GalleryCountKind::fluid_particles;
-                if (!parse_count(input_state.count_value, entry.minimum_count,
-                                 entry.maximum_count,
-                                 requested)) {
+                BrickSceneConfig requested_bricks = options.bricks;
+                const bool bricks_valid = !input_state.brick_dialog ||
+                    (parse_count(input_state.brick_values[0], brick_minimum_count,
+                                 brick_maximum_count, requested_bricks.brick_count) &&
+                     parse_scale(input_state.brick_values[1], requested_bricks.brick_scale) &&
+                     parse_count(input_state.brick_values[2], 1U, brick_maximum_planes,
+                                 requested_bricks.wall_planes) &&
+                     validate_brick_config(requested_bricks, error));
+                if (!bricks_valid || (!input_state.brick_dialog &&
+                    !parse_count(input_state.count_value, entry.minimum_count,
+                                 entry.maximum_count, requested))) {
                     input_state.count_value_invalid = true;
                 } else {
+                    const BrickSceneConfig previous_bricks = options.bricks;
+                    if (input_state.brick_dialog) options.bricks = requested_bricks;
                     if (session.rebuild(
                             options, runtime.context,
-                            fluid_dialog ? dump_spheres : requested,
+                            fluid_dialog || input_state.brick_dialog
+                                ? dump_spheres : requested,
                             fluid_dialog ? requested : fluid_particles,
                             error)) {
                         input_state.count_dialog_visible = false;
                         input_state.count_value_invalid = false;
+                        if (input_state.brick_dialog) {
+                            options.bricks_overridden = true;
+                            input_state.camera.set_preset(
+                                camera_preset_for(runtime.context,
+                                                  options.bricks));
+                        }
                     } else {
+                        options.bricks = previous_bricks;
                         std::cerr << "Scene restart failed: " << error << '\n';
                         input_state.count_value_invalid = true;
                     }
@@ -1436,7 +2021,7 @@ int main(int argc, char **argv) {
                         if (context_changed) {
                             debug.reset(options.fluid_particle_view);
                             input_state.camera.set_preset(
-                                gallery_entry(runtime.context).camera);
+                                camera_preset_for(runtime.context, options.bricks));
                         }
                         context_visible = false;
                     } else {
@@ -1447,6 +2032,12 @@ int main(int argc, char **argv) {
                            GalleryCountKind::none &&
                        keys.pressed(KeyAction::particle_count)) {
                 input_state.count_dialog_visible = true;
+                input_state.brick_dialog = gallery_entry(runtime.context).count_kind ==
+                    GalleryCountKind::brick_scene;
+                input_state.brick_field = 0U;
+                input_state.brick_values = {std::to_string(options.bricks.brick_count),
+                    std::to_string(options.bricks.brick_scale),
+                    std::to_string(options.bricks.wall_planes)};
                 input_state.count_value = std::to_string(
                     gallery_entry(runtime.context).count_kind ==
                             GalleryCountKind::fluid_particles
@@ -1788,16 +2379,27 @@ int main(int argc, char **argv) {
                                  runtime.renderer.height(), context_selection);
         }
         if (input_state.count_dialog_visible) {
-            draw_count_overlay(
-                pixels, runtime.renderer.width(), runtime.renderer.height(),
-                runtime.context, input_state.count_value,
-                input_state.count_value_invalid);
+            if (input_state.brick_dialog)
+                draw_brick_settings_overlay(
+                    pixels, runtime.renderer.width(), runtime.renderer.height(),
+                    input_state.brick_values, input_state.brick_field,
+                    input_state.count_value_invalid);
+            else
+                draw_count_overlay(
+                    pixels, runtime.renderer.width(), runtime.renderer.height(),
+                    runtime.context, input_state.count_value,
+                    input_state.count_value_invalid);
         }
 
-        glViewport(0, 0, static_cast<int>(options.width),
-                   static_cast<int>(options.height));
+        int framebuffer_width = 0, framebuffer_height = 0;
+        glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+        glViewport(0, 0, framebuffer_width, framebuffer_height);
         glClear(GL_COLOR_BUFFER_BIT);
         glRasterPos2f(-1.0F, -1.0F);
+        glPixelZoom(static_cast<float>(framebuffer_width) /
+                        static_cast<float>(options.width),
+                    static_cast<float>(framebuffer_height) /
+                        static_cast<float>(options.height));
         glDrawPixels(static_cast<int>(options.width),
                      static_cast<int>(options.height), GL_RGBA, GL_UNSIGNED_BYTE,
                      pixels.data());
