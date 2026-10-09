@@ -77,10 +77,34 @@ struct HardwareRecord {
     std::string source_url{};
 };
 
+// Short measured workloads may guide startup without claiming sustained,
+// human-verified qualification. Manufacturer specifications are not samples.
+struct BrickMeasurement {
+    HardwareIdentity hardware{};
+    BrickSceneConfig scene{};
+    std::uint32_t width{brick_render_width};
+    std::uint32_t height{brick_render_height};
+    std::uint32_t scene_version{brick_scene_version};
+    std::string solver_version{};
+    std::string build_revision{};
+    std::string measured_at{};
+    std::string source{};
+    double quiet_median_milliseconds{};
+    double collision_p95_milliseconds{};
+    bool stable{};
+};
+
 struct DeviceProfileCatalog {
     std::uint32_t schema_version{brick_profile_schema_version};
     std::vector<HardwareRecord> hardware{};
     std::vector<VerifiedBrickProfile> verified_profiles{};
+    std::vector<BrickMeasurement> measurements{};
+};
+
+enum class BrickSelectionSource { fallback, measured, verified };
+struct BrickStartupSelection {
+    BrickSceneConfig scene{8U, 2.0F, 1U};
+    BrickSelectionSource source{BrickSelectionSource::fallback};
 };
 
 struct CalibrationSample {
@@ -110,6 +134,12 @@ struct CalibrationSample {
     std::uint32_t width = brick_render_width,
     std::uint32_t height = brick_render_height,
     std::string_view solver_version = {}) noexcept;
+[[nodiscard]] BrickStartupSelection select_startup_bricks(
+    const DeviceProfileCatalog &catalog, const HardwareIdentity &hardware,
+    std::string_view solver_version,
+    std::uint32_t width = brick_render_width,
+    std::uint32_t height = brick_render_height);
+[[nodiscard]] const char *brick_selection_label(BrickSelectionSource source) noexcept;
 [[nodiscard]] std::filesystem::path default_local_profiles_path();
 
 } // namespace parallel_mater::gallery
