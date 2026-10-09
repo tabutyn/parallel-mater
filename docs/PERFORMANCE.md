@@ -1,5 +1,79 @@
 # Physics performance
 
+## Metal solver redesign experiments (Apple M4, 2026-10-09)
+
+No solver prototype from this round is retained. The production contact solver,
+64/32 fresh/cached sweep budgets, convergence criterion, triangle geometry,
+CCD, timestep, and four substeps are restored exactly to `927369b`.
+
+The coupled prototype solved pairs of normal rows as a two-variable linear
+complementarity problem. It included both bodies' off-diagonal angular response,
+enumerated the four active sets, projected accumulated impulses to nonnegative
+values, and fell back to sequential rows for ill-conditioned blocks. Friction
+remained sequential. This avoids the stale-state impulse summation that caused
+the previous explosion, but it did not provide a performance win. It is a
+contact-block experiment, not a completed multi-threadgroup solver.
+
+Exploratory results below use the public-API impact replay: 120 settling frames,
+120 measured frames, sleeping enabled, 1/60 s, four substeps, and the authored
+386-body triangle-mesh scene. The interactive gallery was closed. These are
+individual exploratory runs, not an interleaved statistical A/B; none justifies
+a retained speedup claim.
+
+| Prototype | Impact median | Rejection reason |
+| --- | ---: | --- |
+| Stable control, initial run | 61.34 ms | Reference |
+| Coupled two-row normal blocks, 64/32 sweeps | 99.97 ms | Quiet support passed, substantially slower |
+| Coupled blocks, 32/16 sweeps | 62.39 ms | Quiet wall dropped 132 mm |
+| Per-pair relative convergence | 65.84 ms | Required support/energy gates passed, slower |
+| Sequential solver, 48/32 sweeps | 53.59 ms | 2.10 mm drop exceeded existing 2 mm limit |
+| Normal over-relaxation 1.3, 32/32 sweeps | 42.93 ms | 6.81 mm displacement and 0.0292 rad rotation exceeded limits |
+| Normal over-relaxation 1.15, 48/32 sweeps | 54.48 ms | Passed original gates, increased 30-second displacement to 6.44 mm versus control's 5.03 mm |
+| Over-relaxation 1.15 on fresh patches only | Not timed | Extended support check failed before timing; displacement 5.51 mm |
+| Over-relaxation 1.3 for first 16 fresh-patch sweeps, then ordinary rows | 54.44 ms | Original support gate failed: 0.0280 rad rotation; p95 also regressed to 119.84 ms |
+| Island-relative convergence, squared relative scale `1e-9` | 66.40 ms | Required support/energy gates passed, slower |
+| Island-relative convergence, 0.1% motion tolerance above 0.5 m/s or rad/s | 64.56 ms | Required support/energy gates passed, no speed gain |
+
+The last two prototypes retained the original maximum sweep budgets and
+minimum 16 passes, and disabled early exit on color overflow. They measured
+each connected island's initial motion once and scaled its existing maximum
+velocity-correction criterion. Their quiet-wall summary matched the control,
+but changing convergence changed impact trajectories and did not reduce total
+step time. Contact evaluation and later collision work can offset a cheaper
+individual solve; lower sweep counts alone do not prove a faster simulation.
+
+Retained validation improvements:
+
+- The six-second impact regression now includes rotational kinetic energy,
+  using each body's explicit or mesh-derived principal inertia and angular
+  velocity rotated into its local inertia frame. The same 110% total-energy
+  ceiling remains; signed potential still accounts for bodies falling off the
+  finite floor. Both sleeping and awake worlds are checked. The benchmark's
+  separate translation-only guard remains a lower-bound check.
+- `parallel-mater-metal-rigid-wall-tests --long-quiet` extends quiet simulation
+  with sleeping disabled from 10 to 30 seconds while keeping the original
+  acceptance limits. Test output is flushed as each phase completes.
+
+The extended diagnostic exposed a baseline limitation: `927369b` also fails
+the original 2 mm drop limit over 30 seconds, reaching 2.49 mm drop, 5.03 mm
+displacement, and 0.000977 rad rotation with sleeping disabled. The optional
+stress mode reports failure honestly; it is not registered as a passing CTest
+and its thresholds have not been relaxed. The original ten-second support,
+wake, and impact gates remain mandatory. This slow baseline drift is distinct
+from the previously fixed impact-energy explosion.
+
+These attempts do not establish a hardware limit. They show that this two-row
+block implementation did not amortize its added work, while fixed sweep cuts
+and over-relaxation traded away support accuracy. A larger coupled solver or a
+stable decomposition across threadgroups remains unimplemented.
+
+After restoring the shader, two repeat impact medians were 61.76 and 62.34 ms
+(p95 75.84 and 76.33 ms). Both displaced 384 bricks and reproduced the control's
+10.1393 m/s peak speed. No production runtime optimization from these probes
+remains in the source. The API contract, rigid/CCD, and wall CTests pass with
+the stronger energy check; peak full mechanical-energy ratios are 0.999506
+and 0.999507 for sleeping and awake impact respectively.
+
 ## Metal post-regression solver audit (Apple M4, 2026-10-08)
 
 The opening scene continues to use its authored indexed triangle meshes. No

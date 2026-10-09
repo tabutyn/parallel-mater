@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <string_view>
 #include <vector>
 
@@ -65,7 +66,7 @@ bool read_states(World &world, const SceneInstance &instance,
     return true;
 }
 
-bool run_wall(const SceneDefinition &scene) {
+bool run_wall(const SceneDefinition &scene, unsigned settle_frames = 600U) {
     World world;
     SceneInstance instance;
     if (!require(create_scene_world(scene, world, instance))) return false;
@@ -126,7 +127,6 @@ bool run_wall(const SceneDefinition &scene) {
     for (const auto &body : scene.rigid_bodies)
         if (brick(body)) initial_energy += body.options.mass * 9.81F *
             body.options.initial_state.position.y;
-    constexpr unsigned settle_frames = 600U;
     for (unsigned frame = 0; frame < settle_frames; ++frame) {
         if (!require(world.step({})) || !read_states(world, instance, states)) return false;
         float energy = 0.0F;
@@ -397,6 +397,42 @@ bool run_sleeping_wall(const SceneDefinition &scene) {
     return true;
 }
 
+// Match the API's mesh-derived principal inertia, including explicit overrides.
+Vec3 inertia_diagonal(const SceneDefinition &scene, const RigidBodyDefinition &body) {
+    const auto explicit_inertia = body.options.inertia_diagonal;
+    if (explicit_inertia.x != 0.0F || explicit_inertia.y != 0.0F || explicit_inertia.z != 0.0F)
+        return explicit_inertia;
+    const float infinity = std::numeric_limits<float>::infinity();
+    Vec3 lo{infinity, infinity, infinity}, hi{-infinity, -infinity, -infinity};
+    const bool collision = !body.collision_mesh_indices.empty();
+    const auto &meshes = collision ? scene.collision_meshes : scene.meshes;
+    const auto &indices = collision ? body.collision_mesh_indices : body.mesh_indices;
+    for (const auto index : indices) {
+        for (const auto &vertex : meshes[index].vertices) {
+            const auto p = vertex.position;
+            lo = {std::min(lo.x, p.x), std::min(lo.y, p.y), std::min(lo.z, p.z)};
+            hi = {std::max(hi.x, p.x), std::max(hi.y, p.y), std::max(hi.z, p.z)};
+        }
+    }
+    const Vec3 h{(hi.x - lo.x) * 0.5F, (hi.y - lo.y) * 0.5F, (hi.z - lo.z) * 0.5F};
+    return {body.options.mass * std::max((h.y*h.y + h.z*h.z) / 3.0F, 1.0e-6F),
+            body.options.mass * std::max((h.x*h.x + h.z*h.z) / 3.0F, 1.0e-6F),
+            body.options.mass * std::max((h.x*h.x + h.y*h.y) / 3.0F, 1.0e-6F)};
+}
+
+double rotational_energy(const RigidBodyState &state, Vec3 inertia) {
+    const auto q = state.orientation;
+    const auto v = state.angular_velocity;
+    // Rotate world angular velocity into the principal-inertia frame with R^T.
+    const double x = (1.0 - 2.0*(q.y*q.y + q.z*q.z))*v.x +
+        2.0*(q.x*q.y + q.z*q.w)*v.y + 2.0*(q.x*q.z - q.y*q.w)*v.z;
+    const double y = 2.0*(q.x*q.y - q.z*q.w)*v.x +
+        (1.0 - 2.0*(q.x*q.x + q.z*q.z))*v.y + 2.0*(q.y*q.z + q.x*q.w)*v.z;
+    const double z = 2.0*(q.x*q.z + q.y*q.w)*v.x +
+        2.0*(q.y*q.z - q.x*q.w)*v.y + (1.0 - 2.0*(q.x*q.x + q.y*q.y))*v.z;
+    return 0.5 * (inertia.x*x*x + inertia.y*y*y + inertia.z*z*z);
+}
+
 bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
     WorldOptions options{};
     if (!require(scene_world_options(scene, options))) return false;
@@ -417,17 +453,19 @@ bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
     launched.linear_velocity = {0.0F, 0.0F, -10.0F};
     if (!require(world.set_rigid_body_state(instance.rigid_bodies[ball], launched)) ||
         !read_states(world, instance, states)) return false;
-    // No external work follows the launch. Translational kinetic energy plus
-    // signed gravitational potential is a lower bound on total mechanical
-    // energy. Keep the potential signed: bricks can fall off the finite floor.
+    // No external work follows the launch. Include translation, rotation and
+    // signed gravitational potential: bricks can fall off the finite floor.
     // Allow 10% numerical drift without accepting finite energy explosions.
     double available_energy = 0.0;
+    std::vector<Vec3> inertias(states.size());
     for (std::size_t i = 0; i < states.size(); ++i) {
         const auto &body = scene.rigid_bodies[i].options;
         if (body.motion != MotionType::dynamic) continue;
+        inertias[i] = inertia_diagonal(scene, scene.rigid_bodies[i]);
         const double speed = length(states[i].linear_velocity);
         available_energy += body.mass *
-            (9.81 * states[i].position.y + 0.5 * speed * speed);
+            (9.81 * states[i].position.y + 0.5 * speed * speed) +
+            rotational_energy(states[i], inertias[i]);
     }
     double peak_kinetic = 0.0;
     double peak_mechanical = 0.0;
@@ -442,7 +480,8 @@ bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
             const auto &body = scene.rigid_bodies[i];
             if (body.options.motion != MotionType::dynamic) continue;
             const double speed = length(states[i].linear_velocity);
-            kinetic += 0.5 * body.options.mass * speed * speed;
+            kinetic += 0.5 * body.options.mass * speed * speed +
+                rotational_energy(states[i], inertias[i]);
             potential += body.options.mass * 9.81 * states[i].position.y;
             peak_speed = std::max(peak_speed, static_cast<float>(speed));
             if (brick(body) && std::hypot(
@@ -471,6 +510,7 @@ bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
 
 int main(int argc, char **argv) {
     @autoreleasepool {
+        std::cout << std::unitbuf;
         SceneDefinition scene;
         std::string error;
         if (!load_glb_scene(PARALLEL_MATER_RIGID_BODY_SCENE_PATH, scene, error)) {
@@ -479,6 +519,8 @@ int main(int argc, char **argv) {
         }
         const bool impact_only = argc == 2 &&
             std::string_view(argv[1]) == "--impact-only";
+        if (argc == 2 && std::string_view(argv[1]) == "--long-quiet")
+            return run_wall(scene, 1800U) ? 0 : 1;
         return (impact_only || (run_wall(scene) && run_sleeping_wall(scene))) &&
             run_impact_energy(scene, true) && run_impact_energy(scene, false)
             ? 0 : 1;
