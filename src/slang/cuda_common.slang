@@ -32,6 +32,12 @@ struct FluidId
     uint generation;
 };
 
+struct SmokeId
+{
+    uint index;
+    uint generation;
+};
+
 struct RigidBodyId
 {
     uint index;
@@ -104,6 +110,47 @@ struct ClothId
     uint generation;
 };
 
+struct SmokeOptions
+{
+    uint capacity;
+    Vec3 emitter_center;
+    Vec2 emitter_half_extents;
+    Vec3 initial_velocity;
+    Vec3 wind;
+    float particles_per_second;
+    float lifetime;
+    float particle_radius;
+    float buoyancy;
+    float response;
+    float rest_number_density;
+    float pressure_stiffness;
+    float viscosity;
+    float vorticity_confinement;
+    float maximum_speed;
+    uint grid_resolution;
+    uint grid_vertical_resolution;
+    uint grid_pressure_iterations;
+    float grid_kinematic_viscosity;
+    float grid_les_coefficient;
+    float grid_pressure_tolerance;
+    Vec3 grid_minimum;
+    float grid_edge_length;
+};
+
+struct SmokeGridField
+{
+    uint n;
+    uint height;
+    Vec3 minimum;
+    float spacing;
+    Vec3* velocity;
+    float* density;
+    float* pressure;
+    float* face[3];
+    Vec3* vorticity;
+    float* strain;
+};
+
 struct FluidClothCouplingOptions
 {
     FluidId fluid;
@@ -122,6 +169,18 @@ struct ParticlePlane
     Vec3 center;
     Quaternion orientation;
     Vec2 half_extents;
+};
+
+struct FluidSmokeCouplingOptions
+{
+    FluidId fluid;
+    SmokeId smoke;
+    ParticlePlane heater;
+    float heater_temperature;
+    float boiling_temperature;
+    float heat_transfer_rate;
+    float wind_drag;
+    float steam_rise_speed;
 };
 
 enum CrossingDirection : uint8_t

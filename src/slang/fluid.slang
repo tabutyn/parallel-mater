@@ -6,7 +6,7 @@ import cuda_common;
 static const int kFluidCellBias = 1 << 20;
 static const uint64_t kFluidEmptyCell = 0xffffffffffffffffull;
 
-uint64_t fluid_cell_key(int x, int y, int z)
+public uint64_t fluid_cell_key(int x, int y, int z)
 {
     x = max(-kFluidCellBias, min(kFluidCellBias - 1, x));
     y = max(-kFluidCellBias, min(kFluidCellBias - 1, y));
@@ -16,7 +16,7 @@ uint64_t fluid_cell_key(int x, int y, int z)
            uint64_t(z + kFluidCellBias);
 }
 
-uint fluid_lower_bound(uint64_t* keys, uint size, uint64_t key)
+public uint fluid_lower_bound(uint64_t* keys, uint size, uint64_t key)
 {
     uint lo = 0u;
     uint hi = size;
