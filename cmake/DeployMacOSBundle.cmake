@@ -45,4 +45,15 @@ if(INSTALL_RESULT)
 endif()
 
 file(REMOVE_RECURSE "${PREVIOUS_APP}")
+# Notify Launch Services about changed bundle resources, including the Dock icon.
+set(LAUNCH_SERVICES_REGISTER
+    "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+if(EXISTS "${LAUNCH_SERVICES_REGISTER}")
+    execute_process(
+        COMMAND "${LAUNCH_SERVICES_REGISTER}" -f "${DESTINATION_APP}"
+        RESULT_VARIABLE REGISTER_RESULT)
+    if(NOT REGISTER_RESULT EQUAL 0)
+        message(WARNING "Installed app, but Launch Services refresh failed: ${REGISTER_RESULT}")
+    endif()
+endif()
 message(STATUS "Installed ${DESTINATION_APP}")
