@@ -1,0 +1,4 @@
+// SPDX-License-Identifier: MIT
+// GLFW uses this resource for the native window, taskbar and Alt-Tab icons.
+// Explorer and the installed launcher shortcut use its first icon group.
+GLFW_ICON ICON "@PARALLEL_MATER_GALLERY_ICON@"

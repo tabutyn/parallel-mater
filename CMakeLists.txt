@@ -43,6 +43,20 @@ option(PARALLEL_MATER_BUILD_BENCHMARKS
 option(PARALLEL_MATER_BUILD_SLANG_AVBD
        "Build and validate the portable Slang AVBD core" ${BUILD_TESTING})
 
+# Ship prebuilt icons so ordinary builds need no image conversion tools.
+if(WIN32 AND (PARALLEL_MATER_BUILD_D3D12_GALLERY OR
+              PARALLEL_MATER_BUILD_OPTIX_GALLERY))
+    enable_language(RC)
+    set(PARALLEL_MATER_GALLERY_ICON
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/ParallelMater.ico")
+    set(PARALLEL_MATER_GALLERY_ICON_RESOURCE
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/parallel_mater_gallery_icon.rc")
+    configure_file(examples/support/gallery_icon.rc.in
+                   "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}" @ONLY)
+    set_source_files_properties("${PARALLEL_MATER_GALLERY_ICON_RESOURCE}"
+        PROPERTIES OBJECT_DEPENDS "${PARALLEL_MATER_GALLERY_ICON}")
+endif()
+
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY AND NOT PARALLEL_MATER_BUILD_CUDA)
     message(FATAL_ERROR "The OptiX gallery requires PARALLEL_MATER_BUILD_CUDA")
 endif()
@@ -332,6 +346,10 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
+    if(WIN32)
+        target_sources(parallel-mater-gallery PRIVATE
+                       "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
+    endif()
     set(PARALLEL_MATER_GALLERY_PROFILE_CATALOG
         "${CMAKE_CURRENT_BINARY_DIR}/config/device-profiles.json")
     configure_file(config/device-profiles.json
@@ -1282,7 +1300,8 @@ if(PARALLEL_MATER_BUILD_D3D12)
 
         add_executable(parallel-mater-d3d12-gallery
             examples/d3d12_gallery/main.cpp
-            ${PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS})
+            ${PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS}
+            "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
         target_compile_features(parallel-mater-d3d12-gallery PRIVATE cxx_std_20)
         target_include_directories(parallel-mater-d3d12-gallery
                                    PRIVATE ${PARALLEL_MATER_D3D12_GENERATED_DIR})
@@ -1306,7 +1325,8 @@ if(PARALLEL_MATER_BUILD_D3D12)
         endif()
 
         add_executable(parallel-mater-d3d12-launcher WIN32
-            examples/d3d12_gallery/launcher.cpp)
+            examples/d3d12_gallery/launcher.cpp
+            "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
         target_compile_features(parallel-mater-d3d12-launcher PRIVATE cxx_std_20)
         target_link_libraries(parallel-mater-d3d12-launcher PRIVATE shell32 ole32 user32)
         set_target_properties(parallel-mater-d3d12-launcher PROPERTIES OUTPUT_NAME "Parallel-Mater")
@@ -1732,6 +1752,12 @@ if(PARALLEL_MATER_BUILD_METAL)
 
         add_executable(parallel-mater-metal-gallery MACOSX_BUNDLE
                        examples/metal_gallery/main.mm)
+        set(PARALLEL_MATER_METAL_GALLERY_ICON
+            "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/ParallelMater.icns")
+        target_sources(parallel-mater-metal-gallery PRIVATE
+                       "${PARALLEL_MATER_METAL_GALLERY_ICON}")
+        set_source_files_properties("${PARALLEL_MATER_METAL_GALLERY_ICON}"
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
         file(GLOB PARALLEL_MATER_METAL_GALLERY_ASSETS CONFIGURE_DEPENDS
              "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
         target_sources(parallel-mater-metal-gallery PRIVATE
@@ -1757,6 +1783,7 @@ if(PARALLEL_MATER_BUILD_METAL)
                 MACOSX_BUNDLE_INFO_PLIST
                     "${CMAKE_CURRENT_SOURCE_DIR}/examples/metal_gallery/Info.plist.in"
                 MACOSX_BUNDLE_BUNDLE_NAME "ParallelMater Metal Gallery"
+                MACOSX_BUNDLE_ICON_FILE "ParallelMater.icns"
                 MACOSX_BUNDLE_GUI_IDENTIFIER
                     "com.tabutyn.parallel-mater.metal-gallery"
                 MACOSX_BUNDLE_BUNDLE_VERSION "1"
