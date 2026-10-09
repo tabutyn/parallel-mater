@@ -146,6 +146,7 @@ struct Options {
     bool calibrate{};
     bool bricks_overridden{};
     bool profiles_file_overridden{};
+    bool print_brick_profile{};
 };
 
 struct InputState {
@@ -550,6 +551,8 @@ struct FluidEscapeTrace {
         } else if (argument == "--calibrate") {
             output.calibrate = true;
             output.initial_context = GalleryContext::rigid_body;
+        } else if (argument == "--print-brick-profile") {
+            output.print_brick_profile = true;
         } else if (argument == "--fluid-particles" && index + 1 < argc) {
             const GalleryEntry &entry = gallery_entry(GalleryContext::fluid);
             if (!parse_count(argv[++index], entry.minimum_count,
@@ -598,6 +601,7 @@ struct FluidEscapeTrace {
                          "[--brick-count 1..4096] [--brick-scale 0.5..2] "
                          "[--brick-planes 1..16] [--calibrate] "
                          "[--profiles-file file.json] "
+                         "[--print-brick-profile] "
                          "[--dump-spheres N] [";
             bool first = true;
             for (const GalleryEntry &entry : gallery_entries) {
@@ -624,7 +628,8 @@ struct FluidEscapeTrace {
         }
     }
     std::string brick_error;
-    return (!output.trace_fluid_escapes || !output.headless_output.empty()) &&
+    return (!output.print_brick_profile || output.headless_output.empty()) &&
+        (!output.trace_fluid_escapes || !output.headless_output.empty()) &&
         validate_brick_config(output.bricks, brick_error);
 }
 
@@ -1083,15 +1088,28 @@ parallel_mater::gallery::HardwareIdentity cuda_hardware_identity() {
     cudaDeviceProp properties{};
     int device = 0;
     int driver = 0;
-    cudaGetDevice(&device);
-    cudaGetDeviceProperties(&properties, device);
+    if (cudaGetDevice(&device) != cudaSuccess ||
+        cudaGetDeviceProperties(&properties, device) != cudaSuccess) return {};
     cudaDriverGetVersion(&driver);
     parallel_mater::gallery::HardwareIdentity result;
     const char *machine = std::getenv("COMPUTERNAME");
     if (machine == nullptr) machine = std::getenv("HOSTNAME");
-    result.machine_model = machine != nullptr ? machine : properties.name;
+    result.machine_model = machine != nullptr ? machine : "";
     result.cpu_model = "unknown CPU";
 #if defined(__linux__)
+    {
+        std::ifstream product_name("/sys/devices/virtual/dmi/id/product_name");
+        std::string value;
+        if (std::getline(product_name, value)) {
+            const auto last = value.find_last_not_of(" \t\r\n");
+            if (last != std::string::npos)
+                result.machine_model = value.substr(0U, last + 1U);
+        }
+    }
+    struct utsname system{};
+    const bool have_system_identity = uname(&system) == 0;
+    if (result.machine_model.empty() && have_system_identity)
+        result.machine_model = system.nodename;
     {
         std::ifstream cpuinfo("/proc/cpuinfo");
         std::string line;
@@ -1110,6 +1128,7 @@ parallel_mater::gallery::HardwareIdentity cuda_hardware_identity() {
     if (const char *processor = std::getenv("PROCESSOR_IDENTIFIER"))
         result.cpu_model = processor;
 #endif
+    if (result.machine_model.empty()) result.machine_model = properties.name;
     result.gpu_model = properties.name;
     result.gpu_variant = std::to_string(properties.multiProcessorCount) +
         " SM, compute " + std::to_string(properties.major) + '.' +
@@ -1119,8 +1138,7 @@ parallel_mater::gallery::HardwareIdentity cuda_hardware_identity() {
 #if defined(_WIN32)
     result.operating_system = "Windows";
 #elif defined(__linux__)
-    struct utsname system{};
-    result.operating_system = uname(&system) == 0
+    result.operating_system = have_system_identity
         ? std::string(system.sysname) + ' ' + system.release
         : "Linux";
 #else
@@ -1454,6 +1472,10 @@ int main(int argc, char **argv) {
 
     Options options;
     std::error_code executable_error;
+#if defined(__linux__)
+    options.executable_path = std::filesystem::read_symlink("/proc/self/exe", executable_error);
+    if (executable_error)
+#endif
     options.executable_path = std::filesystem::absolute(argv[0], executable_error);
     if (executable_error) options.executable_path = argv[0];
     if (!parse_options(argc, argv, options)) {
@@ -1464,24 +1486,31 @@ int main(int argc, char **argv) {
         std::cerr << "--calibrate requires the interactive gallery path\n";
         return 2;
     }
-    if (options.headless_output.empty() && !options.bricks_overridden) {
-        DeviceProfileCatalog catalog;
-        std::string profile_error;
-        if (load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
-            const HardwareIdentity hardware = cuda_hardware_identity();
-            if (const auto *profile = find_matching_profile(
-                    catalog, hardware, brick_render_width,
-                    brick_render_height, parallel_mater::gallery::cuda_rigid_solver_version)) {
-                options.bricks = profile->scene;
-                std::cout << "Using verified brick profile: "
-                          << options.bricks.brick_count << " bricks, "
-                          << options.bricks.wall_planes << " walls\n";
-            }
-        } else {
-            std::cerr << "Device profile catalog unavailable: "
-                      << profile_error << '\n';
+    if (options.headless_output.empty()) {
+        const HardwareIdentity hardware = cuda_hardware_identity();
+        if (hardware.gpu_model.empty()) {
+            std::cerr << "Could not identify the current CUDA device\n";
+            return 1;
         }
+        DeviceProfileCatalog catalog;
+        const char *selection_label = "command line";
+        if (!options.bricks_overridden) {
+            std::string profile_error;
+            if (!load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
+                std::cerr << "Device profile catalog unavailable: " << profile_error << '\n';
+                catalog = {};
+            }
+            const auto selection = select_startup_bricks(
+                catalog, hardware, cuda_rigid_solver_version, options.width, options.height);
+            options.bricks = selection.scene;
+            selection_label = brick_selection_label(selection.source);
+        }
+        std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend
+                  << ") -> " << options.bricks.brick_count << " bricks, scale "
+                  << options.bricks.brick_scale << ", " << options.bricks.wall_planes
+                  << " walls [" << selection_label << "]\n";
     }
+    if (options.print_brick_profile) return 0;
     std::string error;
     GallerySession session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,

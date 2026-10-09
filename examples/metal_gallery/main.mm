@@ -3886,22 +3886,22 @@ int main(int argc, char **argv) {
             !options.bricks_overridden) {
             parallel_mater::gallery::DeviceProfileCatalog catalog;
             std::string profile_error;
-            if (parallel_mater::gallery::load_device_profiles(
+            if (!parallel_mater::gallery::load_device_profiles(
                     device_profiles_path(options), catalog, profile_error)) {
-                const auto hardware = metal_hardware_identity(device);
-                if (const auto *profile =
-                        parallel_mater::gallery::find_matching_profile(
-                            catalog, hardware, brick_render_width,
-                            brick_render_height, parallel_mater::gallery::metal_rigid_solver_version)) {
-                    options.bricks = profile->scene;
-                    std::cout << "Using verified brick profile: "
-                              << options.bricks.brick_count << " bricks, "
-                              << options.bricks.wall_planes << " walls\n";
-                }
-            } else {
                 std::cerr << "Device profile catalog unavailable: "
                           << profile_error << '\n';
+                catalog = {};
             }
+            const auto hardware = metal_hardware_identity(device);
+            const auto selection = parallel_mater::gallery::select_startup_bricks(
+                catalog, hardware, parallel_mater::gallery::metal_rigid_solver_version,
+                options.width, options.height);
+            options.bricks = selection.scene;
+            std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend
+                      << ") -> " << options.bricks.brick_count << " bricks, scale "
+                      << options.bricks.brick_scale << ", " << options.bricks.wall_planes
+                      << " walls [" << parallel_mater::gallery::brick_selection_label(
+                             selection.source) << "]\n";
         }
     }
     std::string error;
