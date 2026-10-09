@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.hpp>
 #include <parallel_mater/solver/contact_friction.hpp>
+#include "parallel_mater_avbd_runtime.cu"
+#define PM_AVBD_SLANG_RUNTIME 1
 #include <parallel_mater/solver/avbd.hpp>
+#undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/halfspace.hpp>
 #include "convex_plane_dedup.hpp"
 
@@ -1055,6 +1058,34 @@ struct DestroyPlaneSlot {
     std::uint32_t generation{1U};
     bool alive{};
 };
+
+#include "parallel_mater_fluid.cu"
+
+static_assert(sizeof(PMPackedVec3_0) == sizeof(Vec3));
+static_assert(alignof(PMPackedVec3_0) == alignof(Vec3));
+static_assert(sizeof(PMFluidConstants_0) == 60U);
+
+PMFluidConstants_0 slang_fluid_constants(
+    const FluidOptions &options, Vec3 gravity, float timestep,
+    std::uint32_t count) noexcept {
+    return {timestep,
+            {gravity.x, gravity.y, gravity.z},
+            count,
+            options.particle_radius,
+            options.support_radius,
+            options.repulsion,
+            options.viscosity,
+            options.normal_damping,
+            options.velocity_damping,
+            options.maximum_speed,
+            options.maximum_pair_acceleration,
+            options.rest_density,
+            options.maximum_neighbors};
+}
+
+PMPackedVec3_0 slang_packed_vec3(Vec3 value) noexcept {
+    return {value.x, value.y, value.z};
+}
 
 #include "fluid.cuh"
 
@@ -7581,9 +7612,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (has_sources) {
             if (fluid.next_id > UINT32_MAX - (fluid.options.capacity - live))
                 return failure(StatusCode::capacity_exceeded, "stable fluid particle ID range exhausted");
-            fluid_emit_cells<<<blocks, block_size, 0, stream>>>(
-                fluid.positions, fluid.count, fluid.options.capacity,
-                1.0F/source_cell_size, fluid.keys[0], fluid.indices[0]);
+            pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
+                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
+                fluid.count, fluid.options.capacity, 1.0F / source_cell_size,
+                reinterpret_cast<ulonglong *>(fluid.keys[0]),
+                fluid.indices[0]);
             error = cub::DeviceRadixSort::SortPairs(
                 fluid.sort_workspace, fluid.sort_workspace_size,
                 fluid.keys[0], fluid.keys[1], fluid.indices[0], fluid.indices[1],
@@ -7626,6 +7659,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         const std::uint32_t iterations =
             options.substeps * fluid.options.solver_iterations;
         const float dt = options.timestep / static_cast<float>(iterations);
+        const PMFluidConstants_0 fluid_constants = slang_fluid_constants(
+            fluid.options, options.gravity, dt, live);
+        const PMPackedVec3_0 fluid_up = slang_packed_vec3(
+            normalized_or(multiply(options.gravity, -1.0F),
+                          {0.0F, 1.0F, 0.0F}));
         const float diameter = 2.0F * fluid.options.particle_radius;
         const float particle_mass = fluid.options.rest_density *
             (fluid.options.rest_particle_volume > 0.0F
@@ -7658,10 +7696,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         for (std::uint32_t iteration = 0U; iteration < iterations;
              ++iteration) {
-            fluid_emit_cells<<<blocks, block_size, 0, stream>>>(
-                fluid.positions, fluid.count, fluid.options.capacity,
+            pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
+                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
+                fluid.count, fluid.options.capacity,
                 1.0F / fluid.options.support_radius,
-                fluid.keys[0], fluid.indices[0]);
+                reinterpret_cast<ulonglong *>(fluid.keys[0]),
+                fluid.indices[0]);
             error = cub::DeviceRadixSort::SortPairs(
                 fluid.sort_workspace, fluid.sort_workspace_size,
                 fluid.keys[0], fluid.keys[1], fluid.indices[0],
@@ -7672,12 +7712,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
             status = record_timing_stage(TimingStage::fluid_neighbor_sort);
             if (!status) return status;
-            fluid_compute_forces<<<blocks, block_size, 0, stream>>>(
-                fluid.positions, fluid.velocities, fluid.count,
-                fluid.keys[1], fluid.indices[1], fluid.foam,
-                fluid.options, normalized_or(multiply(options.gravity, -1.0F),
-                                             {0.0F, 1.0F, 0.0F}),
-                fluid.forces, fluid.foam_source,
+            pm_fluid_forces<<<blocks, block_size, 0, stream>>>(
+                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
+                reinterpret_cast<const PMPackedVec3_0 *>(fluid.velocities),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.forces), fluid.foam,
+                fluid.count, fluid_constants, fluid_up, fluid.foam_source,
+                reinterpret_cast<ulonglong *>(fluid.keys[1]),
+                fluid.indices[1],
                 impl_->fluid_neighbor_overflow,
                 impl_->fluid_maximum_neighbor_count);
             status = record_timing_stage(TimingStage::fluid_neighbor_forces);
@@ -7738,11 +7779,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     TimingStage::fluid_cloth_contacts);
                 if (!status) return status;
             }
-            fluid_integrate<<<blocks, block_size, 0, stream>>>(
-                fluid.positions, fluid.velocities, fluid.previous,
-                fluid.foam, fluid.forces, fluid.foam_source,
-                fluid.count, fluid.options,
-                options.gravity, dt);
+            pm_fluid_integrate<<<blocks, block_size, 0, stream>>>(
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.velocities),
+                reinterpret_cast<const PMPackedVec3_0 *>(fluid.forces),
+                fluid.foam, fluid.count, fluid_constants,
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.previous),
+                fluid.foam_source);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
             for (const auto &owner : impl_->fluid_rope_couplings) {

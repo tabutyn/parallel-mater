@@ -21,14 +21,16 @@ piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
 CUDA and Metal rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
-Its numerical core compiles directly on CPU, CUDA and Metal. There is no
+Its production numerical core is generated from one Slang module for both
+backends and checked against the portable CPU reference. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
 
-A new [Slang AVBD implementation](docs/SLANG.md) expresses that numerical core
-once for CUDA, Metal, and D3D12-compatible HLSL. This first migration slice has
-cross-target ABI checks and executes generated PTX against the existing C++
-fixtures; production collision and scheduling adapters are not switched yet.
+The [Slang AVBD implementation](docs/SLANG.md) expresses that numerical core
+once for CUDA, Metal, and D3D12-compatible HLSL. CUDA and Metal production
+adapters consume its generated functions; cross-target ABI checks and PTX
+fixtures guard the same source. Collision geometry and scheduling remain
+backend-specific.
 
 The newly integrated D3D12 backend retains its existing solver; it has not yet
 been migrated to AVBD.
@@ -73,6 +75,15 @@ ctest --test-dir build --output-on-failure
 The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
+
+CUDA and Metal compile the standalone fluid solver and AVBD numerical core
+from `src/slang/fluid_shared.slang` and `src/slang/avbd.slang`. CMake resolves one
+exact Slang 2026.18 compiler from `PATH` or downloads the matching
+checksum-pinned official package. Set
+`PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.
+The native Apple Metal compiler and NVCC still validate and compile Slang's
+generated source; no Slang runtime is shipped. See the [Slang toolchain and
+source layout](docs/SLANG.md).
 
 ### Windows D3D12 rigid-body gate
 
@@ -122,7 +133,8 @@ ctest --test-dir build-metal --output-on-failure
 
 The installed target is `ParallelMater::metal`, with its public API in
 `<parallel_mater/metal.hpp>`. The current correctness milestone implements the
-Metal 4 queue/frame lifecycle, embedded MSL 4 shaders, rigid bodies and all
+Metal 4 queue/frame lifecycle, embedded MSL 4 shaders (including the shared
+Slang fluid solver), rigid bodies and all
 eight constraint types, fluid, cloth, soft bodies, ropes, particle/grid smoke,
 fluid sources/outflow, rigid contact for every particle family, and the exposed
 pairwise coupling handles. The native Metal gallery loads the shared 29-entry

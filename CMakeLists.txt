@@ -72,6 +72,12 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_METAL OR
+   PARALLEL_MATER_BUILD_SLANG_AVBD)
+    include(cmake/Slang.cmake)
+    parallel_mater_require_slang()
+endif()
+
 # The conformance case registry intentionally has no CUDA or engine dependency.
 # Every backend byte-checks and executes the same canonical inputs.
 add_library(parallel-mater-conformance-registry STATIC
@@ -125,6 +131,41 @@ if(NOT TARGET CUDA::nvToolsExt)
     add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
 endif()
 find_package(CUDAToolkit REQUIRED)
+
+set(PARALLEL_MATER_SLANG_GENERATED_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/slang)
+set(PARALLEL_MATER_FLUID_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid.cu)
+set(PARALLEL_MATER_AVBD_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_avbd_runtime.cu)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
+            -DPM_TARGET_METAL=0 -DPM_TARGET_CUDA=1
+            -entry pm_fluid_cell_keys
+            -entry pm_fluid_forces
+            -entry pm_fluid_integrate
+            -target cuda
+            -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
+    DEPENDS src/slang/fluid_shared.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/avbd.slang
+            -entry avbdConformanceMain -stage compute
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
+    DEPENDS src/slang/avbd.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared AVBD core from Slang to CUDA"
+    VERBATIM)
 add_library(
     parallel-mater STATIC
     src/world.cu
@@ -152,6 +193,12 @@ add_library(
     src/fluid_source.cpp
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
+set_source_files_properties(
+    ${PARALLEL_MATER_FLUID_CUDA_SOURCE} ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
+    PROPERTIES GENERATED TRUE HEADER_FILE_ONLY TRUE)
+target_sources(parallel-mater PRIVATE
+    ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
+    ${PARALLEL_MATER_AVBD_CUDA_SOURCE})
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
@@ -170,7 +217,8 @@ target_include_directories(
     parallel-mater
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE ${PARALLEL_MATER_SLANG_GENERATED_DIR})
 target_link_libraries(parallel-mater PUBLIC CUDA::cudart)
 if(MSVC)
     target_compile_options(
@@ -1427,6 +1475,12 @@ if(PARALLEL_MATER_BUILD_METAL)
         ${CMAKE_CURRENT_BINARY_DIR}/generated/metal)
     set(PARALLEL_MATER_METAL_AIR
         ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater.air)
+    set(PARALLEL_MATER_FLUID_MSL
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/fluid.metal)
+    set(PARALLEL_MATER_AVBD_MSL
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_avbd_runtime.metal)
+    set(PARALLEL_MATER_FLUID_AIR
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/fluid.air)
     set(PARALLEL_MATER_METALLIB
         ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater.metallib)
     set(PARALLEL_MATER_METALLIB_INCLUDE
@@ -1436,24 +1490,59 @@ if(PARALLEL_MATER_BUILD_METAL)
         OUTPUT ${PARALLEL_MATER_METALLIB_INCLUDE}
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 ${PARALLEL_MATER_METAL_GENERATED_DIR}
+        COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
+                -DPM_TARGET_METAL=1 -DPM_TARGET_CUDA=0
+                -entry pm_fluid_cell_keys
+                -entry pm_fluid_forces
+                -entry pm_fluid_integrate
+                -target metal
+                -capability metallib_3_2
+                -fp-mode precise -O2 -line-directive-mode none
+                -o ${PARALLEL_MATER_FLUID_MSL}
+        COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/avbd.slang
+                -entry avbdConformanceMain -stage compute
+                -target metal -capability metallib_3_2
+                -fp-mode precise -O2 -line-directive-mode none
+                -o ${PARALLEL_MATER_AVBD_MSL}
         COMMAND ${CMAKE_COMMAND} -E env
                 CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
                 -std=metal4.0 -mmacosx-version-min=26.0
                 -fno-fast-math -ffp-contract=fast
                 -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${PARALLEL_MATER_METAL_GENERATED_DIR}
                 -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 -c ${CMAKE_CURRENT_SOURCE_DIR}/src/metal/kernels.metal
                 -o ${PARALLEL_MATER_METAL_AIR}
+        COMMAND ${CMAKE_COMMAND} -E env
+                CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
+                -std=metal4.0 -mmacosx-version-min=26.0
+                -fno-fast-math -ffp-contract=fast -Wno-unused-variable
+                -fmodules-cache-path=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
+                -c ${PARALLEL_MATER_FLUID_MSL}
+                -o ${PARALLEL_MATER_FLUID_AIR}
         COMMAND ${PARALLEL_MATER_METALLIB_COMPILER}
-                ${PARALLEL_MATER_METAL_AIR} -o ${PARALLEL_MATER_METALLIB}
+                ${PARALLEL_MATER_METAL_AIR}
+                ${PARALLEL_MATER_FLUID_AIR}
+                -o ${PARALLEL_MATER_METALLIB}
         COMMAND ${PARALLEL_MATER_XXD_EXECUTABLE} -i
                 -n parallel_mater_metallib_data
                 ${PARALLEL_MATER_METALLIB}
                 ${PARALLEL_MATER_METALLIB_INCLUDE}
         DEPENDS src/metal/kernels.metal src/metal/avbd.metal
+                src/slang/fluid_shared.slang src/slang/avbd.slang
                 include/parallel_mater/solver/avbd.hpp
                 include/parallel_mater/solver/contact_friction.hpp
+                ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+        BYPRODUCTS
+                ${PARALLEL_MATER_FLUID_MSL}
+                ${PARALLEL_MATER_AVBD_MSL}
+                ${PARALLEL_MATER_METAL_AIR}
+                ${PARALLEL_MATER_FLUID_AIR}
+                ${PARALLEL_MATER_METALLIB}
         VERBATIM)
     set_source_files_properties(
         src/metal/world.mm
