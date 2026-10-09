@@ -126,6 +126,20 @@ struct TriangleMeshResource
     Vec3* shell_normals;
 };
 
+struct WorldAabb
+{
+    Vec3 minimum;
+    Vec3 maximum;
+};
+
+struct BoundsTransform
+{
+    Vec3 position;
+    Vec3 axis_x;
+    Vec3 axis_y;
+    Vec3 axis_z;
+};
+
 struct FluidParticle
 {
     Vec3 position;
@@ -275,6 +289,72 @@ struct FluidBodyImpulse
     Vec3 linear;
     Vec3 angular;
     uint body;
+};
+
+struct FluidMovingContact
+{
+    Vec3 normal;
+    Vec3 point;
+    float penetration;
+    uint body;
+};
+
+struct FluidSoftContact
+{
+    uint nodes[12];
+    float weights[12];
+    uint count;
+    Vec3 normal;
+    Vec3 relative_velocity;
+    float penetration;
+};
+
+struct PaintFieldId
+{
+    uint index;
+    uint generation;
+};
+
+struct DeviceVec2Span
+{
+    Vec2* data;
+    uint64_t size;
+};
+
+struct PaintFieldOptions
+{
+    RigidBodyId body;
+    TriangleMeshId mesh;
+    ClothId cloth;
+    DeviceVec2Span vertex_uvs;
+    uint width;
+    uint height;
+};
+
+struct PaintRuleOptions
+{
+    FluidId source;
+    RigidBodyId rigid_source;
+    PaintFieldId target;
+    float reach;
+    float brush_radius;
+    bool enabled;
+};
+
+struct PaintFieldResource
+{
+    PaintFieldOptions options;
+    Vec2* uvs;
+    uint* pixels;
+    uint generation;
+    bool alive;
+};
+
+struct PaintRuleResource
+{
+    PaintRuleOptions options;
+    uint generation;
+    bool alive;
 };
 
 struct DeformableNeighbor
@@ -492,6 +572,74 @@ Vec3 transform_point(RigidBodyState state, Vec3 point)
     return add(state.position, rotate(state.orientation, point));
 }
 
+BoundsTransform bounds_transform(RigidBodyState state)
+{
+    BoundsTransform result;
+    result.position = state.position;
+    result.axis_x = rotate(state.orientation, {1.0f, 0.0f, 0.0f});
+    result.axis_y = rotate(state.orientation, {0.0f, 1.0f, 0.0f});
+    result.axis_z = rotate(state.orientation, {0.0f, 0.0f, 1.0f});
+    return result;
+}
+
+void transformed_bounds(
+    Vec3 local_minimum, Vec3 local_maximum, BoundsTransform transform,
+    float margin, out Vec3 minimum, out Vec3 maximum)
+{
+    Vec3 localCenter = multiply(add(local_minimum, local_maximum), 0.5f);
+    Vec3 localHalf = multiply(subtract(local_maximum, local_minimum), 0.5f);
+    Vec3 worldCenter = add(transform.position,
+        add(multiply(transform.axis_x, localCenter.x),
+            add(multiply(transform.axis_y, localCenter.y),
+                multiply(transform.axis_z, localCenter.z))));
+    Vec3 worldHalf = {
+        abs(transform.axis_x.x) * localHalf.x +
+            abs(transform.axis_y.x) * localHalf.y +
+            abs(transform.axis_z.x) * localHalf.z,
+        abs(transform.axis_x.y) * localHalf.x +
+            abs(transform.axis_y.y) * localHalf.y +
+            abs(transform.axis_z.y) * localHalf.z,
+        abs(transform.axis_x.z) * localHalf.x +
+            abs(transform.axis_y.z) * localHalf.y +
+            abs(transform.axis_z.z) * localHalf.z};
+    Vec3 expansion = {margin, margin, margin};
+    minimum = subtract(subtract(worldCenter, worldHalf), expansion);
+    maximum = add(add(worldCenter, worldHalf), expansion);
+}
+
+void transformed_motion_bounds(
+    Vec3 local_minimum, Vec3 local_maximum,
+    BoundsTransform previous_transform, BoundsTransform current_transform,
+    bool swept, float margin, out Vec3 minimum, out Vec3 maximum)
+{
+    transformed_bounds(local_minimum, local_maximum, current_transform,
+        margin, minimum, maximum);
+    if (!swept) return;
+    Vec3 previousMinimum = {}, previousMaximum = {};
+    transformed_bounds(local_minimum, local_maximum, previous_transform,
+        margin, previousMinimum, previousMaximum);
+    minimum = component_min(minimum, previousMinimum);
+    maximum = component_max(maximum, previousMaximum);
+}
+
+float rotational_motion_bound(
+    RigidBodyState previous, RigidBodyState current,
+    TriangleMeshResource mesh)
+{
+    float orientationDot = clamp_scalar(abs(
+        previous.orientation.x * current.orientation.x +
+        previous.orientation.y * current.orientation.y +
+        previous.orientation.z * current.orientation.z +
+        previous.orientation.w * current.orientation.w), 0.0f, 1.0f);
+    float sineHalfAngle = sqrt(max(
+        0.0f, 1.0f - orientationDot * orientationDot));
+    Vec3 maximumAbsolute = {
+        max(abs(mesh.minimum.x), abs(mesh.maximum.x)),
+        max(abs(mesh.minimum.y), abs(mesh.maximum.y)),
+        max(abs(mesh.minimum.z), abs(mesh.maximum.z))};
+    return 2.0f * vector_length(maximumAbsolute) * sineHalfAngle;
+}
+
 Vec3 inverse_inertia_world(
     BodyParameters parameters, RigidBodyState state, Vec3 world_vector)
 {
@@ -525,6 +673,9 @@ __target_intrinsic(cuda, "atomicAdd") uint64_t pmAtomicAdd(
 __target_intrinsic(cuda, "atomicAdd") float pmAtomicAdd(float* value, float addend);
 __target_intrinsic(cuda, "atomicMax") uint pmAtomicMax(uint* value, uint candidate);
 __target_intrinsic(cuda, "atomicMin") uint pmAtomicMin(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicOr") uint pmAtomicOr(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicOr") uint64_t pmAtomicOr(
+    uint64_t* value, uint64_t candidate);
 __target_intrinsic(cuda, "atomicExch") uint pmAtomicExchange(uint* value, uint replacement);
 __target_intrinsic(cuda, "__syncwarp") void pmSyncWarp(uint mask);
 
