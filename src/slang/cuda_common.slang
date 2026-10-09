@@ -674,6 +674,25 @@ Vec3 inverse_inertia_world(
     return rotate(state.orientation, transformed);
 }
 
+Vec3 quaternion_delta_velocity(Quaternion from, Quaternion to, float timestep)
+{
+    Quaternion delta = quaternion_multiply(to, conjugate(from));
+    if (delta.w < 0.0f)
+        delta = {-delta.x, -delta.y, -delta.z, -delta.w};
+    delta = normalized_quaternion(delta);
+    float vectorSize = sqrt(
+        delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+    if (timestep <= 0.0f) return {};
+    if (vectorSize <= kEpsilon)
+        return {delta.x * (2.0f / timestep),
+                delta.y * (2.0f / timestep),
+                delta.z * (2.0f / timestep)};
+    float angle = 2.0f * atan2(vectorSize,
+        clamp_scalar(delta.w, -1.0f, 1.0f));
+    float scale = angle / (vectorSize * timestep);
+    return {delta.x * scale, delta.y * scale, delta.z * scale};
+}
+
 Vec3 clamp_length(Vec3 value, float maximum)
 {
     float squared = length_squared(value);

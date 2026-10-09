@@ -84,8 +84,13 @@ uint64_t pmFluidCellKey(int x, int y, int z)
            uint64_t(z + kFluidCellBias);
 }
 
+#if PM_TARGET_CUDA
+uint pmFluidLowerBound(Ptr<uint64_t, Access.Read> keys,
+                       uint size, uint64_t key)
+#else
 uint pmFluidLowerBound(RWStructuredBuffer<uint64_t> keys,
                        uint size, uint64_t key)
+#endif
 {
     uint lower = 0u;
     uint upper = size;
@@ -105,12 +110,12 @@ uint pmFluidLowerBound(RWStructuredBuffer<uint64_t> keys,
 void pm_fluid_cell_keys(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
-    , uniform StructuredBuffer<PMPackedVec3> positions
-    , uniform StructuredBuffer<uint> countBuffer
+    , uniform Ptr<PMPackedVec3, Access.Read> positions
+    , uniform Ptr<uint, Access.Read> countBuffer
     , uniform uint capacity
     , uniform float inverseRadius
-    , uniform RWStructuredBuffer<uint64_t> cellKeys
-    , uniform RWStructuredBuffer<uint> sortedIndices
+    , uniform uint64_t* cellKeys
+    , uniform uint* sortedIndices
 #endif
 )
 {
@@ -145,18 +150,18 @@ void pm_fluid_cell_keys(
 void pm_fluid_forces(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
-    , uniform StructuredBuffer<PMPackedVec3> positions
-    , uniform StructuredBuffer<PMPackedVec3> velocities
-    , uniform RWStructuredBuffer<PMPackedVec3> accelerations
-    , uniform StructuredBuffer<float> foam
-    , uniform StructuredBuffer<uint> countBuffer
+    , uniform Ptr<PMPackedVec3, Access.Read> positions
+    , uniform Ptr<PMPackedVec3, Access.Read> velocities
+    , uniform PMPackedVec3* accelerations
+    , uniform Ptr<float, Access.Read> foam
+    , uniform Ptr<uint, Access.Read> countBuffer
     , uniform PMFluidConstants constants
     , uniform PMPackedVec3 upValue
-    , uniform RWStructuredBuffer<float> foamSources
-    , uniform RWStructuredBuffer<uint64_t> cellKeys
-    , uniform StructuredBuffer<uint> sortedIndices
-    , uniform RWStructuredBuffer<uint> neighborOverflow
-    , uniform RWStructuredBuffer<uint> maximumNeighborCount
+    , uniform float* foamSources
+    , uniform Ptr<uint64_t, Access.Read> cellKeys
+    , uniform Ptr<uint, Access.Read> sortedIndices
+    , uniform uint* neighborOverflow
+    , uniform uint* maximumNeighborCount
 #endif
 )
 {
@@ -261,14 +266,14 @@ void pm_fluid_forces(
 void pm_fluid_integrate(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
-    , uniform RWStructuredBuffer<PMPackedVec3> positions
-    , uniform RWStructuredBuffer<PMPackedVec3> velocities
-    , uniform StructuredBuffer<PMPackedVec3> accelerations
-    , uniform RWStructuredBuffer<float> foam
-    , uniform StructuredBuffer<uint> countBuffer
+    , uniform PMPackedVec3* positions
+    , uniform PMPackedVec3* velocities
+    , uniform Ptr<PMPackedVec3, Access.Read> accelerations
+    , uniform float* foam
+    , uniform Ptr<uint, Access.Read> countBuffer
     , uniform PMFluidConstants constants
-    , uniform RWStructuredBuffer<PMPackedVec3> previous
-    , uniform StructuredBuffer<float> foamSources
+    , uniform PMPackedVec3* previous
+    , uniform Ptr<float, Access.Read> foamSources
 #endif
 )
 {

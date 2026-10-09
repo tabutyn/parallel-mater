@@ -16,6 +16,15 @@ target_compile_features(parallel-mater-avbd-core-tests PRIVATE cxx_std_17)
 target_include_directories(parallel-mater-avbd-core-tests PRIVATE ../../include)
 add_test(NAME parallel-mater-avbd-core-tests COMMAND parallel-mater-avbd-core-tests)
 
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_EXECUTABLE)
+    add_test(NAME parallel-mater-slang-kernel-mirror-coverage
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/check_slang_kernel_mirrors.py)
+    set_tests_properties(parallel-mater-slang-kernel-mirror-coverage
+        PROPERTIES LABELS "slang;coverage")
+endif()
+
 get_property(contact_test_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
 if("CUDA" IN_LIST contact_test_languages)
     add_executable(parallel-mater-contact-core-cuda-tests contact_cuda_tests.cu)
