@@ -38,6 +38,35 @@ struct RigidBodyId
     uint generation;
 };
 
+struct TriangleMeshId
+{
+    uint index;
+    uint generation;
+};
+
+enum MotionType : uint8_t
+{
+    static_body,
+    kinematic,
+    dynamic,
+};
+
+struct BodyParameters
+{
+    MotionType motion;
+    TriangleMeshId mesh;
+    float inverse_mass;
+    Vec3 inverse_inertia_local;
+    float friction;
+    float restitution;
+    float linear_damping;
+    float angular_damping;
+    float maximum_linear_speed;
+    float maximum_angular_speed;
+    float collision_margin;
+    uint64_t user_data;
+};
+
 struct FluidParticle
 {
     Vec3 position;
@@ -144,6 +173,33 @@ struct DeformableNeighbor
     uint bond;
 };
 
+struct SoftBodyNeighbor
+{
+    uint index;
+    float rest_length;
+};
+
+struct ShapeMatrix
+{
+    Vec3 columns[3];
+};
+
+struct SoftBodySurfaceBinding
+{
+    uint nodes[4];
+    float weights[4];
+};
+
+struct SoftClothContact
+{
+    uint vertices[3];
+    float weights[3];
+    Vec3 position_impulse;
+    Vec3 velocity_impulse;
+    float soft_inverse_mass_fraction;
+    bool active;
+};
+
 struct RopeAttachment
 {
     RigidBodyId body;
@@ -232,6 +288,24 @@ Vec3 cross(Vec3 a, Vec3 b)
             a.x * b.y - a.y * b.x};
 }
 
+Vec3 component_min(Vec3 a, Vec3 b)
+{
+    return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
+}
+
+Vec3 component_max(Vec3 a, Vec3 b)
+{
+    return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
+}
+
+bool bounds_overlap(Vec3 minimumA, Vec3 maximumA,
+                    Vec3 minimumB, Vec3 maximumB)
+{
+    return minimumA.x <= maximumB.x && maximumA.x >= minimumB.x &&
+           minimumA.y <= maximumB.y && maximumA.y >= minimumB.y &&
+           minimumA.z <= maximumB.z && maximumA.z >= minimumB.z;
+}
+
 float length_squared(Vec3 value) { return dot(value, value); }
 float vector_length(Vec3 value) { return sqrt(length_squared(value)); }
 
@@ -250,6 +324,25 @@ Vec3 normalized_or(Vec3 value, Vec3 fallback)
 Quaternion conjugate(Quaternion value)
 {
     return {-value.x, -value.y, -value.z, value.w};
+}
+
+Quaternion quaternion_multiply(Quaternion a, Quaternion b)
+{
+    return {
+        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z};
+}
+
+Quaternion normalized_quaternion(Quaternion value)
+{
+    float squared = value.x * value.x + value.y * value.y +
+        value.z * value.z + value.w * value.w;
+    if (squared <= kEpsilon * kEpsilon) return {};
+    float inverse = rsqrt(squared);
+    return {value.x * inverse, value.y * inverse, value.z * inverse,
+            value.w * inverse};
 }
 
 Vec3 rotate(Quaternion orientation, Vec3 value)
@@ -285,5 +378,6 @@ __target_intrinsic(cuda, "atomicAdd") uint pmAtomicAdd(uint* value, uint addend)
 __target_intrinsic(cuda, "atomicAdd") float pmAtomicAdd(float* value, float addend);
 __target_intrinsic(cuda, "atomicMax") uint pmAtomicMax(uint* value, uint candidate);
 __target_intrinsic(cuda, "atomicExch") uint pmAtomicExchange(uint* value, uint replacement);
+__target_intrinsic(cuda, "__syncwarp") void pmSyncWarp(uint mask);
 
 void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
