@@ -80,6 +80,52 @@ struct BodyParameters
     uint64_t user_data;
 };
 
+struct RigidBodyState
+{
+    Vec3 position;
+    Quaternion orientation;
+    Vec3 linear_velocity;
+    Vec3 angular_velocity;
+};
+
+struct BvhNode
+{
+    Vec3 minimum;
+    Vec3 maximum;
+    uint left;
+    uint right;
+    uint first_triangle;
+    uint triangle_count;
+};
+
+struct CollisionPlane
+{
+    Vec3 normal;
+    float offset;
+};
+
+struct TriangleMeshResource
+{
+    Vec3* vertices;
+    uint* indices;
+    uint vertex_count;
+    uint index_count;
+    uint generation;
+    bool alive;
+    Vec3 minimum;
+    Vec3 maximum;
+    Vec3 bounding_center;
+    float bounding_radius;
+    Vec3 unit_inertia;
+    BvhNode* bvh_nodes;
+    uint bvh_node_count;
+    uint* bvh_leaves;
+    uint bvh_leaf_count;
+    CollisionPlane* solid_planes;
+    uint solid_unique_plane_count;
+    Vec3* shell_normals;
+};
+
 struct FluidParticle
 {
     Vec3 position;
@@ -441,6 +487,22 @@ Vec3 inverse_rotate(Quaternion orientation, Vec3 value)
     return rotate(conjugate(orientation), value);
 }
 
+Vec3 transform_point(RigidBodyState state, Vec3 point)
+{
+    return add(state.position, rotate(state.orientation, point));
+}
+
+Vec3 inverse_inertia_world(
+    BodyParameters parameters, RigidBodyState state, Vec3 world_vector)
+{
+    Vec3 local = inverse_rotate(state.orientation, world_vector);
+    Vec3 transformed = {
+        local.x * parameters.inverse_inertia_local.x,
+        local.y * parameters.inverse_inertia_local.y,
+        local.z * parameters.inverse_inertia_local.z};
+    return rotate(state.orientation, transformed);
+}
+
 Vec3 clamp_length(Vec3 value, float maximum)
 {
     float squared = length_squared(value);
@@ -458,8 +520,11 @@ __target_intrinsic(cuda, "make_uint3(gridDim.x, gridDim.y, gridDim.z)")
 uint3 pmGridDim();
 
 __target_intrinsic(cuda, "atomicAdd") uint pmAtomicAdd(uint* value, uint addend);
+__target_intrinsic(cuda, "atomicAdd") uint64_t pmAtomicAdd(
+    uint64_t* value, uint64_t addend);
 __target_intrinsic(cuda, "atomicAdd") float pmAtomicAdd(float* value, float addend);
 __target_intrinsic(cuda, "atomicMax") uint pmAtomicMax(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicMin") uint pmAtomicMin(uint* value, uint candidate);
 __target_intrinsic(cuda, "atomicExch") uint pmAtomicExchange(uint* value, uint replacement);
 __target_intrinsic(cuda, "__syncwarp") void pmSyncWarp(uint mask);
 

@@ -4,6 +4,35 @@
 
 import cuda_common;
 
+public bool fluid_segment_bounds(
+    Vec3 a, Vec3 b, BvhNode node, float radius)
+{
+    float lower = 0.0f, upper = 1.0f;
+    float starts[3] = {a.x, a.y, a.z};
+    float ends[3] = {b.x, b.y, b.z};
+    float minima[3] = {node.minimum.x, node.minimum.y, node.minimum.z};
+    float maxima[3] = {node.maximum.x, node.maximum.y, node.maximum.z};
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        float delta = ends[axis] - starts[axis];
+        float minimum = minima[axis] - radius;
+        float maximum = maxima[axis] + radius;
+        if (abs(delta) < 1.0e-9f)
+        {
+            if (starts[axis] < minimum || starts[axis] > maximum) return false;
+        }
+        else
+        {
+            float first = (minimum - starts[axis]) / delta;
+            float second = (maximum - starts[axis]) / delta;
+            lower = max(lower, min(first, second));
+            upper = min(upper, max(first, second));
+            if (lower > upper) return false;
+        }
+    }
+    return true;
+}
+
 public Vec3 fluid_closest_triangle(Vec3 p, Vec3 a, Vec3 b, Vec3 c)
 {
     Vec3 ab = subtract(b, a);

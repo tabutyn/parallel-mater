@@ -4,7 +4,11 @@
 
 import cuda_common;
 import fluid;
+import geometry_fluid;
 import smoke_grid;
+
+groupshared Vec3 smoke_impulse_linear[128];
+groupshared Vec3 smoke_impulse_angular[128];
 
 uint smoke_hash(uint value)
 {
@@ -325,4 +329,190 @@ void smoke_deformable_bounds(
     }
     *minimum = low;
     *maximum = high;
+}
+
+[shader("compute")]
+[numthreads(256, 1, 1)]
+void smoke_rigid_contact(
+    uniform Vec3* positions, uniform Vec3* previous_positions,
+    uniform Vec3* velocities, uniform float* ages, uniform float* pressures,
+    uniform uint count, uniform float lifetime,
+    uniform TriangleMeshResource mesh, uniform RigidBodyState* states,
+    uniform RigidBodyState* previous_states, uniform uint body,
+    uniform float clearance, uniform float particle_mass,
+    uniform float wall_drag, uniform float pressure_stiffness,
+    uniform float dt, uniform float maximum_speed,
+    uniform SmokeGridField grid, uniform FluidBodyImpulse* impulses)
+{
+    uint particle = pmThreadIndex();
+    if (particle >= count) return;
+    impulses[particle] = {};
+    if (ages[particle] >= lifetime) return;
+    float boundary = 3.0f * clearance;
+    RigidBodyState state = states[body];
+    RigidBodyState previousState = previous_states[body];
+    Vec3 before = inverse_rotate(previousState.orientation,
+        subtract(previous_positions[particle], previousState.position));
+    Vec3 point = inverse_rotate(state.orientation,
+        subtract(positions[particle], state.position));
+    if (max(point.x, before.x) < mesh.minimum.x - boundary ||
+        min(point.x, before.x) > mesh.maximum.x + boundary ||
+        max(point.y, before.y) < mesh.minimum.y - boundary ||
+        min(point.y, before.y) > mesh.maximum.y + boundary ||
+        max(point.z, before.z) < mesh.minimum.z - boundary ||
+        min(point.z, before.z) > mesh.maximum.z + boundary) return;
+    float nearestSquared = boundary * boundary;
+    float earliest = 2.0f;
+    bool found = false, swept = false;
+    Vec3 nearest = {}, faceNormal = {};
+    Vec3 path = subtract(point, before);
+    uint stack[64] = {};
+    int pending = mesh.bvh_node_count == 0u ? 0 : 1;
+    while (pending != 0)
+    {
+        BvhNode node = mesh.bvh_nodes[stack[--pending]];
+        if (!fluid_segment_bounds(before, point, node, boundary)) continue;
+        if (node.triangle_count == 0u)
+        {
+            if (pending + 2 > 64) continue;
+            stack[pending++] = node.right;
+            stack[pending++] = node.left;
+            continue;
+        }
+        for (uint item = 0u; item < node.triangle_count; ++item)
+        {
+            uint base = (node.first_triangle + item) * 3u;
+            Vec3 a = mesh.vertices[mesh.indices[base]];
+            Vec3 b = mesh.vertices[mesh.indices[base + 1u]];
+            Vec3 c = mesh.vertices[mesh.indices[base + 2u]];
+            Vec3 rawNormal = cross(subtract(b, a), subtract(c, a));
+            if (length_squared(rawNormal) < 1.0e-12f) continue;
+            float sideBefore = dot(subtract(before, a), rawNormal);
+            float sideAfter = dot(subtract(point, a), rawNormal);
+            if (sideBefore * sideAfter < 0.0f)
+            {
+                float fraction = sideBefore / (sideBefore - sideAfter);
+                if (fraction < earliest)
+                {
+                    Vec3 hit = add(before, multiply(path, fraction));
+                    Vec3 weights = {};
+                    Vec3 onFace = fluid_closest_triangle_barycentric(
+                        hit, a, b, c, weights);
+                    if (length_squared(subtract(hit, onFace)) < 1.0e-8f)
+                    {
+                        earliest = fraction;
+                        nearest = onFace;
+                        faceNormal = normalized_or(
+                            rawNormal, {1.0f, 0.0f, 0.0f});
+                        swept = true;
+                        found = true;
+                    }
+                }
+            }
+            if (swept) continue;
+            Vec3 weights = {};
+            Vec3 candidate = fluid_closest_triangle_barycentric(
+                point, a, b, c, weights);
+            float distanceSquared = length_squared(subtract(point, candidate));
+            if (distanceSquared < nearestSquared)
+            {
+                nearestSquared = distanceSquared;
+                nearest = candidate;
+                faceNormal = normalized_or(rawNormal, {1.0f, 0.0f, 0.0f});
+                found = true;
+            }
+        }
+    }
+    if (!found) return;
+    float side = dot(subtract(before, nearest), faceNormal);
+    if (abs(side) < 1.0e-5f)
+        side = dot(subtract(point, nearest), faceNormal);
+    Vec3 localNormal = side >= 0.0f ? faceNormal : multiply(faceNormal, -1.0f);
+    Vec3 normal = rotate(state.orientation, localNormal);
+    Vec3 arm = rotate(state.orientation, nearest);
+    bool touching = swept || nearestSquared < clearance * clearance;
+    Vec3 surfacePoint = add(state.position, arm);
+    Vec3 tracePosition = add(surfacePoint, multiply(normal,
+        grid.n != 0u ? 1.5f * grid.spacing : clearance));
+    if (touching) positions[particle] = tracePosition;
+    Vec3 surfaceVelocity = add(state.linear_velocity,
+        cross(state.angular_velocity, arm));
+    Vec3 oldVelocity = velocities[particle];
+    Vec3 tracerVelocity = grid.n != 0u && touching &&
+        smoke_grid_contains(tracePosition, grid)
+        ? smoke_grid_sample_velocity(tracePosition, grid) : oldVelocity;
+    Vec3 relative = subtract(tracerVelocity, surfaceVelocity);
+    float normalInflow = max(0.0f, -dot(relative, normal));
+    if (touching)
+        relative = subtract(relative,
+            multiply(normal, min(0.0f, dot(relative, normal))));
+    if (grid.n != 0u && touching)
+    {
+        float sourceSpeed = max(vector_length(subtract(
+            tracerVelocity, surfaceVelocity)), vector_length(subtract(
+            oldVelocity, surfaceVelocity)));
+        float tangentSpeed = vector_length(relative);
+        if (tangentSpeed > 1.0e-6f && tangentSpeed < sourceSpeed)
+            relative = multiply(relative, sourceSpeed / tangentSpeed);
+    }
+    float distance = touching ? clearance : sqrt(nearestSquared);
+    float q = max(0.0f, 1.0f - distance / boundary);
+    if (grid.n == 0u)
+    {
+        float response = 1.0f - exp(-wall_drag * q * q * dt);
+        relative = multiply(relative, 1.0f - response);
+    }
+    if (touching && grid.n == 0u)
+        pressures[particle] = max(pressures[particle],
+            10.0f * pressure_stiffness * normalInflow * normalInflow);
+    Vec3 newVelocity = clamp_length(
+        add(surfaceVelocity, relative), maximum_speed);
+    velocities[particle] = newVelocity;
+    Vec3 reaction = multiply(subtract(oldVelocity, newVelocity), particle_mass);
+    impulses[particle] = {reaction, cross(arm, reaction), body};
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void smoke_apply_rigid_impulses(
+    uniform FluidBodyImpulse* impulses, uniform uint count,
+    uniform uint body, uniform BodyParameters* parameters,
+    uniform RigidBodyState* states)
+{
+    if (cudaBlockIdx().x != 0u ||
+        parameters[body].motion != MotionType.dynamic) return;
+    uint lane = cudaThreadIdx().x;
+    Vec3 localLinear = {}, localAngular = {};
+    for (uint particle = lane; particle < count;
+         particle += cudaBlockDim().x)
+    {
+        FluidBodyImpulse item = impulses[particle];
+        if (item.body != body) continue;
+        localLinear = add(localLinear, item.linear);
+        localAngular = add(localAngular, item.angular);
+    }
+    smoke_impulse_linear[lane] = localLinear;
+    smoke_impulse_angular[lane] = localAngular;
+    pmGroupBarrier();
+    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    {
+        if (lane < stride)
+        {
+            smoke_impulse_linear[lane] = add(smoke_impulse_linear[lane],
+                smoke_impulse_linear[lane + stride]);
+            smoke_impulse_angular[lane] = add(smoke_impulse_angular[lane],
+                smoke_impulse_angular[lane + stride]);
+        }
+        pmGroupBarrier();
+    }
+    if (lane != 0u) return;
+    RigidBodyState state = states[body];
+    BodyParameters settings = parameters[body];
+    state.linear_velocity = clamp_length(add(state.linear_velocity,
+        multiply(smoke_impulse_linear[0], settings.inverse_mass)),
+        settings.maximum_linear_speed);
+    state.angular_velocity = clamp_length(add(state.angular_velocity,
+        inverse_inertia_world(settings, state, smoke_impulse_angular[0])),
+        settings.maximum_angular_speed);
+    states[body] = state;
 }
