@@ -2,10 +2,15 @@
 #pragma once
 
 // Scalar normal/tangent block shared by CUDA, Metal, and CPU fixtures.
-#if defined(__CUDACC__)
+#if defined(__METAL_VERSION__)
+#define PM_CONTACT_FRICTION_INLINE inline
+#define PM_CONTACT_FRICTION_NOEXCEPT
+#elif defined(__CUDACC__)
 #define PM_CONTACT_FRICTION_INLINE __host__ __device__ __forceinline__
+#define PM_CONTACT_FRICTION_NOEXCEPT noexcept
 #else
 #define PM_CONTACT_FRICTION_INLINE inline
+#define PM_CONTACT_FRICTION_NOEXCEPT noexcept
 #endif
 
 namespace parallel_mater::solver {
@@ -22,7 +27,8 @@ struct CoupledContactFriction {
 // it does not assert a fully converged two-dimensional sliding direction.
 PM_CONTACT_FRICTION_INLINE CoupledContactFriction coupled_contact_friction(
     float normal_impulse, float normal_mass, float cross_mass,
-    float tangent_mass, float tangent_residual, float friction) noexcept {
+    float tangent_mass, float tangent_residual, float friction)
+    PM_CONTACT_FRICTION_NOEXCEPT {
     CoupledContactFriction result{normal_impulse, 0.0F};
     if (!(normal_impulse > 0.0F) || !(normal_mass > 1.0e-12F) ||
         !(tangent_residual > 0.0F) || !(friction > 0.0F)) return result;
@@ -42,3 +48,4 @@ PM_CONTACT_FRICTION_INLINE CoupledContactFriction coupled_contact_friction(
 } // namespace parallel_mater::solver
 
 #undef PM_CONTACT_FRICTION_INLINE
+#undef PM_CONTACT_FRICTION_NOEXCEPT

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include <metal_stdlib>
+#include "parallel_mater_avbd_runtime.metal"
+#define PM_AVBD_SLANG_RUNTIME 1
 #include <parallel_mater/solver/avbd.hpp>
+#undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/contact_friction.hpp>
 
 using namespace metal;
@@ -3828,49 +3831,9 @@ static_assert(sizeof(PMRopeAttachmentConstants) == 72);
 static_assert(sizeof(PMRopeAnchorState) == 40);
 static_assert(sizeof(PMPaintConstants) == 60);
 
-static ulong pm_fluid_cell_key(int x, int y, int z) {
-    constexpr int bias = 1 << 20;
-    x = clamp(x, -bias, bias - 1);
-    y = clamp(y, -bias, bias - 1);
-    z = clamp(z, -bias, bias - 1);
-    return (ulong(x + bias) << 42u) |
-           (ulong(y + bias) << 21u) |
-           ulong(z + bias);
-}
-
-static uint pm_fluid_lower_bound(device const ulong *keys, uint size,
-                                 ulong key) {
-    uint lower = 0u;
-    uint upper = size;
-    while (lower < upper) {
-        const uint middle = lower + (upper - lower) / 2u;
-        if (keys[middle] < key)
-            lower = middle + 1u;
-        else
-            upper = middle;
-    }
-    return lower;
-}
-
+// Core fluid cell indexing, force evaluation, and integration are generated
+// from src/slang/fluid.slang. Metal keeps its native radix sort below.
 constant constexpr uint pm_fluid_radix_block_size = 256u;
-
-kernel void pm_fluid_cell_keys(
-    device const PMPackedVec3 *positions [[buffer(0)]],
-    constant PMFluidConstants &constants [[buffer(6)]],
-    device const PMParticleMetadata &metadata [[buffer(7)]],
-    device ulong *keys_a [[buffer(10)]],
-    device uint *indices_a [[buffer(12)]],
-    uint index [[thread_position_in_grid]]) {
-    if (index >= metadata.count) return;
-    const float inverse_radius = 1.0f / constants.support_radius;
-    constexpr float minimum_cell = float(-(1 << 20));
-    constexpr float maximum_cell = float((1 << 20) - 1);
-    const float3 scaled = floor(pm_load(positions[index]) * inverse_radius);
-    const int3 cell = int3(clamp(
-        scaled, float3(minimum_cell), float3(maximum_cell)));
-    keys_a[index] = pm_fluid_cell_key(cell.x, cell.y, cell.z);
-    indices_a[index] = index;
-}
 
 static void pm_fluid_radix_histogram(
     device const ulong *input_keys,
@@ -3996,149 +3959,6 @@ PM_FLUID_RADIX_SCATTER_KERNEL(pm_fluid_radix_scatter_6, 10, 12, 11, 13, 48u)
 PM_FLUID_RADIX_SCATTER_KERNEL(pm_fluid_radix_scatter_7, 11, 13, 10, 12, 56u)
 
 #undef PM_FLUID_RADIX_SCATTER_KERNEL
-
-kernel void pm_fluid_forces(
-    device const PMPackedVec3 *positions [[buffer(0)]],
-    device const PMPackedVec3 *velocities [[buffer(1)]],
-    device PMPackedVec3 *accelerations [[buffer(2)]],
-    device const uint *stable_ids [[buffer(3)]],
-    device float *foam [[buffer(4)]],
-    device const float *temperatures [[buffer(5)]],
-    constant PMFluidConstants &constants [[buffer(6)]],
-    device const PMParticleMetadata &metadata [[buffer(7)]],
-    device const PMPackedVec3 *previous [[buffer(8)]],
-    device float *foam_sources [[buffer(9)]],
-    device const ulong *cell_keys [[buffer(10)]],
-    device const uint *sorted_indices [[buffer(12)]],
-    device atomic_uint *neighbor_overflow [[buffer(14)]],
-    device atomic_uint *maximum_neighbor_count [[buffer(15)]],
-    uint index [[thread_position_in_grid]]) {
-    (void)stable_ids;
-    (void)temperatures;
-    (void)previous;
-    if (index >= metadata.count) return;
-    const float3 position = pm_load(positions[index]);
-    const float3 velocity = pm_load(velocities[index]);
-    float3 acceleration = 0.0f;
-    float3 outward = 0.0f;
-    float weight = 0.0f;
-    float relative_speed_squared = 0.0f;
-    float neighboring_foam = 0.0f;
-    uint neighbors = 0u;
-    const float support = constants.support_radius;
-    const float support_squared = support * support;
-    constexpr int bias = 1 << 20;
-    const float inverse_radius = 1.0f / support;
-    const int3 center = int3(clamp(
-        floor(position * inverse_radius), float3(float(-bias)),
-        float3(float(bias - 1))));
-    for (int dz = -1; dz <= 1; ++dz) {
-        for (int dy = -1; dy <= 1; ++dy) {
-            for (int dx = -1; dx <= 1; ++dx) {
-                const int3 cell = center + int3(dx, dy, dz);
-                if (any(cell < int3(-bias)) ||
-                    any(cell >= int3(bias)))
-                    continue;
-                const ulong key = pm_fluid_cell_key(
-                    cell.x, cell.y, cell.z);
-                for (uint item = pm_fluid_lower_bound(
-                         cell_keys, metadata.count, key);
-                     item < metadata.count && cell_keys[item] == key;
-                     ++item) {
-                    const uint other = sorted_indices[item];
-                    if (other == index) continue;
-                    const float3 delta =
-                        position - pm_load(positions[other]);
-                    const float distance_squared = dot(delta, delta);
-                    if (distance_squared >= support_squared) continue;
-                    ++neighbors;
-                    const float distance =
-                        sqrt(max(distance_squared, 1.0e-12f));
-                    const float3 normal = distance_squared > 1.0e-12f
-                        ? delta / distance
-                        : (index < other
-                               ? float3(-1.0f, 0.0f, 0.0f)
-                               : float3(1.0f, 0.0f, 0.0f));
-                    const float neighbor_weight =
-                        1.0f - distance / support;
-                    outward += normal * neighbor_weight;
-                    weight += neighbor_weight;
-                    const float3 relative_velocity =
-                        pm_load(velocities[other]) - velocity;
-                    relative_speed_squared +=
-                        dot(relative_velocity, relative_velocity) *
-                        neighbor_weight;
-                    neighboring_foam = max(
-                        neighboring_foam,
-                        foam[other] * neighbor_weight);
-                    const float normal_speed =
-                        dot(relative_velocity, normal);
-                    const float pair_acceleration =
-                        constants.repulsion *
-                            (1000.0f / constants.rest_density) *
-                            neighbor_weight * neighbor_weight +
-                        constants.normal_damping * normal_speed;
-                    acceleration += normal * pair_acceleration;
-                    acceleration += relative_velocity *
-                        (constants.viscosity * neighbor_weight);
-                }
-            }
-        }
-    }
-    atomic_fetch_max_explicit(maximum_neighbor_count, neighbors,
-                              memory_order_relaxed);
-    if (neighbors > constants.maximum_neighbors)
-        atomic_fetch_add_explicit(neighbor_overflow, 1u,
-                                  memory_order_relaxed);
-    if (constants.maximum_pair_acceleration > 0.0f)
-        acceleration = pm_limit(acceleration,
-                                constants.maximum_pair_acceleration);
-    accelerations[index] = pm_store(acceleration);
-    const float3 gravity = pm_load(constants.gravity);
-    const float3 up = dot(gravity, gravity) > 1.0e-12f
-                          ? -normalize(gravity)
-                          : float3(0.0f, 1.0f, 0.0f);
-    const float exposure = length(outward) / max(weight, 1.0e-6f);
-    const float upward = max(0.0f, dot(length(outward) > 1.0e-12f
-                                          ? normalize(outward)
-                                          : up,
-                                      up));
-    const float agitation = sqrt(relative_speed_squared /
-                                  max(weight, 1.0e-6f));
-    foam_sources[index] = max(
-        clamp((exposure - 0.12f) * 2.0f, 0.0f, 1.0f) * upward *
-            clamp((agitation - 0.15f) * 1.5f, 0.0f, 1.0f),
-        neighboring_foam * upward * 0.9f);
-}
-
-kernel void pm_fluid_integrate(
-    device PMPackedVec3 *positions [[buffer(0)]],
-    device PMPackedVec3 *velocities [[buffer(1)]],
-    device const PMPackedVec3 *accelerations [[buffer(2)]],
-    device const uint *stable_ids [[buffer(3)]],
-    device float *foam [[buffer(4)]],
-    device const float *temperatures [[buffer(5)]],
-    constant PMFluidConstants &constants [[buffer(6)]],
-    device const PMParticleMetadata &metadata [[buffer(7)]],
-    device PMPackedVec3 *previous [[buffer(8)]],
-    device const float *foam_sources [[buffer(9)]],
-    uint index [[thread_position_in_grid]]) {
-    (void)stable_ids;
-    (void)foam;
-    (void)temperatures;
-    if (index >= metadata.count) return;
-    previous[index] = positions[index];
-    float3 velocity = pm_load(velocities[index]) +
-                      (pm_load(constants.gravity) +
-                       pm_load(accelerations[index])) * constants.timestep;
-    velocity *= exp(-constants.velocity_damping * constants.timestep);
-    velocity = pm_limit(velocity, constants.maximum_speed);
-    velocities[index] = pm_store(velocity);
-    positions[index] = pm_store(pm_load(positions[index]) +
-                                velocity * constants.timestep);
-    foam[index] = max(max(0.0f, foam[index] - constants.timestep * 0.7f),
-                      foam_sources[index]);
-}
 
 kernel void pm_fluid_source(
     device PMPackedVec3 *positions [[buffer(0)]],
