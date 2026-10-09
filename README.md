@@ -67,6 +67,14 @@ The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
+CUDA and Metal compile the standalone fluid solver from the shared
+`src/slang/fluid.slang` source. CMake uses an exact Slang 2026.18 compiler from
+`PATH` or downloads the matching checksum-pinned official package. Set
+`PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.
+The native Apple Metal compiler and NVCC still validate and compile Slang's
+generated source; no Slang runtime is shipped. See the [Slang toolchain and
+source layout](docs/SLANG.md).
+
 ### Windows D3D12 rigid-body gate
 
 Windows defaults to the D3D12 backend and does not require CUDA, NVIDIA
@@ -115,7 +123,8 @@ ctest --test-dir build-metal --output-on-failure
 
 The installed target is `ParallelMater::metal`, with its public API in
 `<parallel_mater/metal.hpp>`. The current correctness milestone implements the
-Metal 4 queue/frame lifecycle, embedded MSL 4 shaders, rigid bodies and all
+Metal 4 queue/frame lifecycle, embedded MSL 4 shaders (including the shared
+Slang fluid solver), rigid bodies and all
 eight constraint types, fluid, cloth, soft bodies, ropes, particle/grid smoke,
 fluid sources/outflow, rigid contact for every particle family, and the exposed
 pairwise coupling handles. The native Metal gallery loads the shared 29-entry

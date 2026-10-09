@@ -75,7 +75,10 @@ is still a runtime/lifecycle gate rather than image or CUDA physics parity.
   host geometry/debug values. `<parallel_mater/metal.hpp>` aliases those exact
   types and compiles without CUDA headers.
 - `ParallelMater::metal` embeds its MSL 4 metallib into the static archive, so
-  installed consumers have no runtime shader path.
+  installed consumers have no runtime shader path. Standalone fluid indexing,
+  neighbor forces, foam, and integration are authored once in Slang, emitted
+  as MSL at build time, and compiled into that same metallib; see
+  [the shared shader toolchain](SLANG.md).
 - `World` owns a Metal 4 queue, reusable command allocator and command buffer,
   argument table, residency set, shared completion event, and commit feedback.
 - `FrameToken` provides asynchronous completion and propagates Metal command
@@ -109,7 +112,7 @@ is still a runtime/lifecycle gate rather than image or CUDA physics parity.
   Baumgarte, limit, spring, damping, bounded-motor, accumulated-breakage, and
   per-constraint iteration equations in stable order. Their Metal resource
   contract also includes runtime updates and collision suppression.
-- Correctness-first Metal kernels now cover deterministic particle-fluid
+- Shared Slang kernels now cover deterministic particle-fluid
   density/neighbor forces and foam state through a stable eight-pass 64-bit
   cell-key sort and 27-cell traversal. The sort generates keys in parallel and
   uses fixed 256-element blocks, per-block histograms, parallel per-bucket
