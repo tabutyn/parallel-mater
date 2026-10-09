@@ -3978,6 +3978,7 @@ static void pm_stabilize_motor_collider_normals(
     }
 }
 
+[[max_total_threads_per_threadgroup(64)]]
 kernel void pm_rigid_contact_generate(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -4244,6 +4245,7 @@ static float pm_bounds_coordinate_scale(
 // Preserve CUDA's lane-grouped leaf order exactly: each lane evaluates one
 // leaf pair independently, then lane zero merges the bounded manifolds in
 // that same order. No atomically selected contact order or new CCD tolerance.
+[[max_total_threads_per_threadgroup(32)]]
 kernel void pm_rigid_contact_generate_cooperative(
     device PMRigidBodyState *states [[buffer(0)]],
     device const PMRigidParameters *parameters [[buffer(1)]],
@@ -4821,6 +4823,7 @@ static void pm_resolve_rigid_contact_pair(
     }
 }
 
+[[max_total_threads_per_threadgroup(64)]]
 kernel void pm_rigid_contact_match_cache(
     device const PMRigidBodyState *states [[buffer(0)]],
     constant PMStepConstants &step [[buffer(4)]],
@@ -4842,6 +4845,7 @@ kernel void pm_rigid_contact_match_cache(
         cache[slot], epoch_base + ulong(substep_index), step.timestep);
 }
 
+[[max_total_threads_per_threadgroup(256)]]
 kernel void pm_rigid_contact_reduce(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -5278,6 +5282,7 @@ static float pm_resolve_ordinary_contact_pair(
                max(dot(dl_b, dl_b), dot(da_b, da_b)));
 }
 
+[[max_total_threads_per_threadgroup(256)]]
 kernel void pm_rigid_stack_solve(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -5304,9 +5309,11 @@ kernel void pm_rigid_stack_solve(
     threadgroup atomic_uint maximum_change_bits;
     threadgroup uint converged;
     for (uint pass = 0u; pass <= iterations; ++pass) {
+        const bool check_convergence = pass >= 16u && !has_overflow;
         if (lane == 0u) {
-            atomic_store_explicit(
-                &maximum_change_bits, 0u, memory_order_relaxed);
+            if (check_convergence)
+                atomic_store_explicit(
+                    &maximum_change_bits, 0u, memory_order_relaxed);
             converged = 0u;
         }
         threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -5326,9 +5333,10 @@ kernel void pm_rigid_stack_solve(
                 const float change = pm_resolve_ordinary_contact_pair(
                     states, parameters, step, manifolds[active_index], events,
                     body, collider, pass);
-                atomic_fetch_max_explicit(
-                    &maximum_change_bits, as_type<uint>(change),
-                    memory_order_relaxed);
+                if (check_convergence)
+                    atomic_fetch_max_explicit(
+                        &maximum_change_bits, as_type<uint>(change),
+                        memory_order_relaxed);
             }
             threadgroup_barrier(mem_flags::mem_device);
         }
@@ -5348,7 +5356,7 @@ kernel void pm_rigid_stack_solve(
         }
         threadgroup_barrier(
             mem_flags::mem_device | mem_flags::mem_threadgroup);
-        if (lane == 0u && pass >= 16u && !has_overflow)
+        if (lane == 0u && check_convergence)
             converged = as_type<float>(atomic_load_explicit(
                 &maximum_change_bits, memory_order_relaxed)) < 1.0e-10f
                 ? 1u : 0u;
