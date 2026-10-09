@@ -3113,7 +3113,8 @@ void save_local_calibration(const CalibrationResult &result) {
            << "  \"height\": " << brick_render_height << ",\n"
            << "  \"scene_version\": "
            << parallel_mater::gallery::brick_scene_version << ",\n"
-           << "  \"solver_version\": \"metal-rigid-v1\",\n"
+           << "  \"solver_version\": \""
+           << parallel_mater::gallery::metal_rigid_solver_version << "\",\n"
            << "  \"build_revision\": \"" << build_label() << "\",\n"
            << "  \"brick_count\": " << result.config.brick_count << ",\n"
            << "  \"brick_scale\": " << result.config.brick_scale << ",\n"
@@ -3184,7 +3185,7 @@ bool verify_and_save_profile(const Options &options,
         parallel_mater::gallery::VerifiedBrickProfile profile;
         profile.hardware = result.hardware;
         profile.scene = result.config;
-        profile.solver_version = "metal-rigid-v1";
+        profile.solver_version = parallel_mater::gallery::metal_rigid_solver_version;
         profile.build_revision = build_label();
         profile.metrics = result.metrics;
         NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
@@ -3891,7 +3892,7 @@ int main(int argc, char **argv) {
                 if (const auto *profile =
                         parallel_mater::gallery::find_matching_profile(
                             catalog, hardware, brick_render_width,
-                            brick_render_height, "metal-rigid-v1")) {
+                            brick_render_height, parallel_mater::gallery::metal_rigid_solver_version)) {
                     options.bricks = profile->scene;
                     std::cout << "Using verified brick profile: "
                               << options.bricks.brick_count << " bricks, "

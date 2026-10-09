@@ -20,15 +20,17 @@ Generation-checked rigid constraints provide fixed, point, hinge, slider,
 piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
-Rigid contacts share one solve loop and a CUDA-independent C++17
-[contact-equation core](docs/CONTACT_SOLVER.md), with host/device fixtures for
-other backends to reuse. Joints no longer disable a separate stack fast path.
+CUDA and Metal rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
+Its numerical core compiles directly on CPU, CUDA and Metal. There is no
+stack-only or joint-triggered fallback solver. Impact velocity correction uses
+the same body blocks and is included in the reported iteration count.
 
-The current rigid pipeline reduced the measured five-body Blender scene from
-24.10 ms to 1.81 ms median GPU time on the local RTX 3050 Ti. The retained and
-rejected experiments, sparse-world result, and high-speed fixture are recorded
-in [the rigid performance report](docs/PERFORMANCE.md); these are project
-measurements, not general hardware claims.
+The newly integrated D3D12 backend retains its existing solver; it has not yet
+been migrated to AVBD.
+
+Measured performance, validation limits and earlier solver experiments are
+recorded in [the rigid performance report](docs/PERFORMANCE.md). Historical
+timings in that report are not measurements of the current AVBD implementation.
 
 ## Design goals
 
@@ -156,7 +158,7 @@ The application bundle carries its gallery GLBs in `Contents/Resources`, so a
 deployed build does not read scene assets from the source checkout or request
 access to its external drive.
 
-Measure the opening brick scene with sleeping disabled and enabled using:
+Measure the opening brick scene using:
 
 ```bash
 cmake --build build-metal-gallery \
@@ -165,6 +167,10 @@ cmake --build build-metal-gallery \
 ./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
 ./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
 ```
+
+The sleeping flags remain accepted, but AVBD currently keeps rigid bodies
+awake. Native Metal results from before this migration do not validate the new
+solver; see [the current solver contract](docs/CONTACT_SOLVER.md).
 
 Use `--list-scenes` to list every scene selector. In the interactive gallery,
 Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
@@ -196,6 +202,16 @@ cmake --build build-gallery
 ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
+
+For AVBD-budget experiments, use `--contact-passes 1` in the CUDA gallery,
+or `--passes 1` with `parallel-mater-rigid-scene-benchmark examples/assets/RigidBody.glb`.
+The shared CUDA/Metal API is `StepOptions::rigid_contact_pass_limit`: zero keeps
+the automatic budget, 1–64 selects iterations per pose/impact phase for both
+contacts and joints. Impacted islands may therefore report twice that value;
+integration substeps are unchanged. Low budgets can destabilize stacks. Check
+quality with `parallel-mater-rigid-wall-tests --passes 1`, not only timing.
+The overlay labels `X` as GPU launches and reports total AVBD iterations in
+the last substep separately.
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, six Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,

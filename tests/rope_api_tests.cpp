@@ -100,5 +100,17 @@ int main(){try{
   check(std::sqrt(velocity[i].x*velocity[i].x+velocity[i].y*velocity[i].y+velocity[i].z*velocity[i].z)<0.005F,
         "floor friction stops resting rope");
  }
+ // A supported rope must release the unilateral floor contact when lifted.
+ // Support-reduced positional masses must not turn into a permanent anchor.
+ const auto before_lift=p;
+ for(unsigned frame=0;frame<30;++frame)
+  check(world.step({.timestep=1.0F/60,.substeps=4,.gravity={0,2,0}}),"rope upward lift step");
+ check(world.rope_view(other,view),"lifted rope view");
+ check(cudaMemcpy(p.data(),view.positions.data,p.size()*sizeof(Vec3),cudaMemcpyDeviceToHost)==cudaSuccess,"read lifted rope");
+ check(cudaMemcpy(velocity.data(),view.velocities.data,velocity.size()*sizeof(Vec3),cudaMemcpyDeviceToHost)==cudaSuccess,"read lift velocity");
+ for(unsigned i=0;i<p.size();++i) {
+  check(p[i].y>before_lift[i].y+0.1F,"floor support releases lifted rope");
+  check(velocity[i].y>0.4F,"floor support preserves outward rope velocity");
+ }
  return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

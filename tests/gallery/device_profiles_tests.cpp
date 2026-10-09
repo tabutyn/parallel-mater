@@ -360,6 +360,23 @@ int main() {
                                 brick_render_width, brick_render_height,
                                 "different-solver") == nullptr,
           "profile matching must reject incompatible solver versions");
+    auto legacy_profiles = saved;
+    legacy_profiles.verified_profiles.front().solver_version = "cuda-rigid-v1";
+    check(find_matching_profile(legacy_profiles, profile.hardware,
+              brick_render_width, brick_render_height, cuda_rigid_solver_version) == nullptr,
+          "AVBD must reject pre-migration CUDA calibration");
+    legacy_profiles.verified_profiles.front().solver_version = cuda_rigid_solver_version;
+    check(find_matching_profile(legacy_profiles, profile.hardware,
+              brick_render_width, brick_render_height, cuda_rigid_solver_version) != nullptr,
+          "AVBD must accept matching CUDA calibration");
+    legacy_profiles.verified_profiles.front().solver_version = "metal-rigid-v1";
+    check(find_matching_profile(legacy_profiles, profile.hardware,
+              brick_render_width, brick_render_height, metal_rigid_solver_version) == nullptr,
+          "AVBD must reject pre-migration Metal calibration");
+    legacy_profiles.verified_profiles.front().solver_version = metal_rigid_solver_version;
+    check(find_matching_profile(legacy_profiles, profile.hardware,
+              brick_render_width, brick_render_height, metal_rigid_solver_version) != nullptr,
+          "AVBD must accept matching Metal calibration");
     auto mismatched_hardware = profile.hardware;
     mismatched_hardware.power_mode = "low-power";
     check(find_matching_profile(saved, mismatched_hardware) == nullptr,

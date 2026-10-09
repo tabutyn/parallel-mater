@@ -208,6 +208,21 @@ __global__ void deformable_collide(
     }
 }
 
+struct SoftTriangleHalfspaceSource {
+    const CollisionPlane *planes{};
+    Quaternion orientation{};
+    Vec3 local_corners[3]{};
+    float margin{};
+    __host__ __device__ solver::TriangleHalfspace<Vec3> operator[](unsigned face) const {
+        const auto plane = planes[face];
+        solver::TriangleHalfspace<Vec3> result{};
+        result.normal = rotate(orientation,plane.normal);
+        for (unsigned corner = 0; corner < 3; ++corner)
+            result.depths[corner] = margin + plane.offset - dot(plane.normal,local_corners[corner]);
+        return result;
+    }
+};
+
 __global__ void soft_body_surface_contacts(
     const Vec3 *surface, const std::uint32_t *indices,
     std::uint32_t triangle_count, const BodyParameters *parameters,
@@ -220,7 +235,11 @@ __global__ void soft_body_surface_contacts(
                         surface[indices[base + 2U]]};
     for (std::uint32_t corner = 0U; corner < 3U; ++corner)
         corrections[base + corner] = {};
-    float deepest = 0.0F;
+    float depths[2]{};
+    Vec3 normals[2]{};
+    float corner_depths[2][3]{};
+    unsigned contact_bodies[2]{};
+    unsigned contact_count = 0U;
     for (std::uint32_t body = 0U; body < body_count; ++body) {
         const TriangleMeshResource mesh = meshes[parameters[body].mesh.index];
         if (mesh.solid_planes == nullptr) continue;
@@ -247,7 +266,8 @@ __global__ void soft_body_surface_contacts(
             }
             if (separation >= margin) break;
         }
-        if (separation >= margin || margin - separation <= deepest) continue;
+        if (separation >= margin ||
+            (contact_count == 2U && margin - separation <= depths[1])) continue;
         // Face planes alone are conservative near edges. Require actual
         // triangle proximity, or a vertex inside the closed solid.
         bool contact = false;
@@ -272,11 +292,51 @@ __global__ void soft_body_surface_contacts(
             contact = length_squared(subtract(on_soft, on_rigid)) < margin * margin;
         }
         if (!contact) continue;
-        deepest = margin - separation;
-        const Vec3 normal = rotate(state.orientation, support.normal);
+        const unsigned slot = contact_count == 0U ||
+            margin - separation > depths[0] ? 0U : 1U;
+        if (slot == 0U && contact_count != 0U) {
+            depths[1] = depths[0]; normals[1] = normals[0];
+            contact_bodies[1] = contact_bodies[0];
+            for (unsigned corner = 0U; corner < 3U; ++corner)
+                corner_depths[1][corner] = corner_depths[0][corner];
+        }
+        depths[slot] = margin - separation;
+        contact_bodies[slot] = body;
+        normals[slot] = rotate(state.orientation, support.normal);
         for (std::uint32_t corner = 0U; corner < 3U; ++corner)
-            corrections[base + corner] = multiply(normal, fmaxf(0.0F,
-                margin + support.offset - dot(support.normal, p[corner])));
+            corner_depths[slot][corner] =
+                margin + support.offset - dot(support.normal, p[corner]);
+        contact_count = contact_count == 0U ? 1U : 2U;
+    }
+    for (unsigned corner = 0U; corner < 3U && contact_count != 0U; ++corner) {
+        corrections[base + corner] = multiply(normals[0],fmaxf(0.0F,corner_depths[0][corner]));
+    }
+    if (contact_count == 2U) {
+        SoftTriangleHalfspaceSource sources[2]{};
+        solver::TriangleHalfspace<Vec3> seeds[2]{};
+        unsigned faces[2]{};
+        for (unsigned side = 0; side < 2; ++side) {
+            const unsigned body = contact_bodies[side];
+            const auto mesh = meshes[parameters[body].mesh.index];
+            const auto state = states[body];
+            sources[side].planes = mesh.solid_planes + mesh.index_count/3U;
+            sources[side].orientation = state.orientation;
+            sources[side].margin = parameters[body].collision_margin;
+            faces[side] = mesh.solid_unique_plane_count;
+            seeds[side].normal = normals[side];
+            for (unsigned corner = 0; corner < 3; ++corner) {
+                sources[side].local_corners[corner] = inverse_rotate(state.orientation,subtract(world[corner],state.position));
+                seeds[side].depths[corner] = corner_depths[side][corner];
+            }
+        }
+        Vec3 paired[3]{};
+        // A fixed nearly-opposing pair can extrapolate a tiny overlap into a
+        // very large correction. Search the actual convex faces, retaining
+        // ONE separating pair for the whole triangle; no displacement cap or
+        // extra cleanup pass is needed. Invalid geometry keeps the existing
+        // deepest-contact fallback.
+        if (solver::project_convex_pair_triangle(sources[0],faces[0],sources[1],faces[1],seeds[0],seeds[1],paired))
+            for (unsigned corner = 0; corner < 3; ++corner) corrections[base + corner] = paired[corner];
     }
 }
 

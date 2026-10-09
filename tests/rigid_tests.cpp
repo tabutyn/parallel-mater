@@ -334,9 +334,9 @@ void test_floor_contact_and_async_contract() {
               // candidate-order reduction, and solver initialization.
               timings.rigid_contact_evaluation.launch_count == 16U &&
               timings.rigid_contact_generation.launch_count == 32U &&
-              // Cache/event/color preparation, island scheduling, one resident
-              // contact kernel, clamping and publication: eight per substep.
-              timings.rigid_contact_solve.launch_count == 4U * 8U &&
+              // Event/cache load, AVBD graph preparation and coupled solve,
+              // speed limits and cache publication: six per substep.
+              timings.rigid_contact_solve.launch_count == 4U * 6U &&
               timings.rigid_input_clear.launch_count == 1U &&
               timings.total_gpu_milliseconds > 0.0F,
           "requested timings must report every rigid kernel launch");
@@ -491,6 +491,9 @@ void test_rotation_dynamic_coupling_and_determinism() {
     check(left_state.linear_velocity.x < 1.0F &&
               right_state.linear_velocity.x > -1.0F,
           "dynamic triangle bodies must exchange collision impulse");
+    if (!near(left_state.linear_velocity.x + right_state.linear_velocity.x, 0.0F, 1.0e-4F))
+        std::cerr << "pair momentum: vx=" << left_state.linear_velocity.x << ','
+                  << right_state.linear_velocity.x << '\n';
     check(near(left_state.linear_velocity.x + right_state.linear_velocity.x,
                0.0F, 1.0e-4F),
           "dynamic triangle collision must preserve linear momentum");
@@ -1271,6 +1274,8 @@ void test_rigid_constraint_types() {
     const float limited_angle = 2.0F * std::atan2(
         std::fabs(limited_spring.orientation.z),
         std::fabs(limited_spring.orientation.w));
+    if (!(limited_angle < outside_limit_angle - 0.05F))
+        std::cerr << "angular limit: angle=" << limited_angle << '\n';
     check(limited_angle < outside_limit_angle - 0.05F,
           "generic angular spring must also enforce its angular limit");
 
@@ -1434,10 +1439,14 @@ void test_static_axial_guide_lifecycle() {
             if (type == RigidConstraintType::piston)
                 check(state.angular_velocity.x > 0.2F,
                       "guide projection must retain off-axis gravitational torque");
-            else
+            else {
+                if (!(std::fabs(state.angular_velocity.x) < 1.e-5F && std::fabs(state.position.z) < 1.e-5F))
+                    std::cerr << "slider reaction: reverse=" << reverse << " omega="
+                              << state.angular_velocity.x << " z=" << state.position.z << '\n';
                 check(std::fabs(state.angular_velocity.x) < 1.e-5F &&
                       std::fabs(state.position.z) < 1.e-5F,
                       "slider must react forbidden gravitational torque");
+            }
             options.enabled = false;
             check_status(world.update_rigid_constraint(joint, options), "disable guide");
             const float old_speed = state.linear_velocity.z;
@@ -1531,6 +1540,9 @@ void test_piston_thin_rotational_stop() {
         RigidBodyState state{};
         check_status(world.read_rigid_body_state(rotor, state), "read stopped rotor");
         const float angle = 2.0F * std::atan2(state.orientation.x, state.orientation.w);
+        if (!(angle >= -0.001F && angle < 0.031F))
+            std::cerr << "rotational stop: frame=" << frame << " angle=" << angle
+                      << " omega=" << state.angular_velocity.x << '\n';
         check(angle >= -0.001F && angle < 0.031F,
               "swept entry contact must stop rotation before crossing a thin face");
         check(std::fabs(state.angular_velocity.x) < 0.01F &&
@@ -1588,6 +1600,45 @@ void test_contact_world_composition() {
     }
 }
 
+void test_contact_pass_limits() {
+    using namespace parallel_mater;
+    for (const unsigned count : {2U, 257U}) {
+        World world;
+        check_status(World::create({.rigid_body_capacity = count}, world), "create pass-limit world");
+        const auto plane = add_plane(world);
+        const auto cube = add_box(world, {0.5F, 0.5F, 0.5F});
+        RigidBodyId floor{}, box{};
+        check_status(world.add_rigid_body({.motion = MotionType::static_body, .mesh = plane}, floor),
+                     "add pass-limit floor");
+        check_status(world.add_rigid_body({.mesh = cube,
+            .initial_state = {.position = {0, 0.5F, 0}}, .restitution = 0}, box), "add pass-limit box");
+        for (unsigned i = 2; i < count; ++i) {
+            RigidBodyId padding{};
+            check_status(world.add_rigid_body({.motion = MotionType::static_body, .mesh = cube,
+                .initial_state = {.position = {2.0F * i, 100, 0}}}, padding), "pad pass-limit world");
+        }
+        check(world.step({.rigid_contact_pass_limit = 65U}).code == StatusCode::invalid_argument,
+              "reject out-of-range contact pass limit");
+        for (const unsigned passes : {1U, 2U, 4U, 8U}) {
+            check_status(world.step({.gravity = {}, .collect_kernel_timings = true,
+                .rigid_contact_pass_limit = passes}), "step capped contacts");
+            WorldStatistics statistics{};
+            check_status(world.collect_statistics(statistics), "read capped pass count");
+            check(statistics.rigid_contact_maximum_passes == passes &&
+                  statistics.rigid_contact_early_exit_count == 0U,
+                  "hard caps must finalize islands and count actual passes, excluding warm start");
+            WorldStepTimings timing{};
+            check_status(world.collect_step_timings(timing), "read capped launch count");
+            check(timing.rigid_contact_solve.launch_count == 24U,
+                  "launch count must not depend on world size or pass cap");
+            RigidBodyState state{};
+            check_status(world.read_rigid_body_state(box, state), "read capped support");
+            check(near(state.position.y, 0.5F, 0.002F) && std::fabs(state.linear_velocity.y) < 0.001F,
+                  "one-pass isolated support must remain finite and stationary without gravity");
+        }
+    }
+}
+
 void test_contact_island_convergence_and_diagnostics() {
     using namespace parallel_mater;
     World world;
@@ -1624,8 +1675,10 @@ void test_contact_island_convergence_and_diagnostics() {
     check(statistics.rigid_contact_candidate_pairs > 4096 && statistics.rigid_contact_live_pairs == 2,
           "sparse broad-phase candidates must not consume live contact cache slots");
     check(statistics.rigid_contact_island_count == 2, "shared static ground must not merge contact islands");
-    check(statistics.rigid_contact_early_exit_count == 2 && statistics.rigid_contact_maximum_passes >= 8 &&
-          statistics.rigid_contact_maximum_passes < 32, "settled islands must stop after measured convergence");
+    // AVBD uses a bounded primal/dual budget, not the removed velocity-row
+    // convergence policy. Island membership and support remain checked below.
+    check(statistics.rigid_contact_early_exit_count == 0 && statistics.rigid_contact_maximum_passes == 10,
+          "settled AVBD islands must report the ten-iteration pose phase without a spurious impact phase");
     const auto contacts = world.rigid_contacts();
     std::vector<RigidContactEvent> events(contacts.event_count);
     check(cudaMemcpy(events.data(), contacts.events.data, events.size() * sizeof(RigidContactEvent),
@@ -1645,6 +1698,8 @@ void test_contact_island_convergence_and_diagnostics() {
     check_status(world.step({.substeps = 4}), "step reactivated island");
     RigidBodyState state{};
     check_status(world.read_rigid_body_state(a, state), "read reactivated box");
+    if (!(state.linear_velocity.x > 0.5F))
+        std::cerr << "reactivated body: vx=" << state.linear_velocity.x << '\n';
     check(state.linear_velocity.x > 0.5F, "early stopping must not sleep or freeze an impacted body");
 }
 
@@ -1682,6 +1737,7 @@ int main() {
     test_guided_edge_clearance();
     test_piston_thin_rotational_stop();
     test_contact_world_composition();
+    test_contact_pass_limits();
     test_contact_island_convergence_and_diagnostics();
     if (failures != 0) {
         std::cerr << failures << " rigid test(s) failed\n";

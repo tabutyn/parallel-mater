@@ -48,5 +48,7 @@ static_assert(std::is_trivially_copyable_v<ContactEvent>);
 static_assert(std::is_trivially_copyable_v<RigidContactEvent>);
 static_assert(std::is_trivially_copyable_v<WorldStatistics>);
 static_assert(std::is_trivially_copyable_v<WorldStepTimings>);
+static_assert(std::is_trivially_copyable_v<StepOptions>);
+static_assert(StepOptions{}.rigid_contact_pass_limit == 0U);
 
 int main() { return 0; }

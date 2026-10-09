@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
     using namespace parallel_mater::benchmark;
-    unsigned spheres = 100, frames = 180, warmup = 180, substeps = 8;
+    unsigned spheres = 100, frames = 180, warmup = 180, substeps = 8, pass_limit = 0;
     bool render = true, capture = true, profile = false, trace = false;
     std::string mode = "rest", csv_path;
     const auto number = [](const char *text, unsigned &value) {
@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
         else if (option == "--frames" && i+1 < argc && number(argv[++i],frames) && frames && frames <= 10000) {}
         else if (option == "--warmup" && i+1 < argc && number(argv[++i],warmup) && warmup <= 10000) {}
         else if (option == "--substeps" && i+1 < argc && number(argv[++i],substeps) && substeps && substeps <= 32) {}
+        else if (option == "--passes" && i+1 < argc && number(argv[++i],pass_limit) && pass_limit <= 64) {}
         else if (option == "--mode" && i+1 < argc) mode = argv[++i];
         else if (option == "--csv" && i+1 < argc) csv_path = argv[++i];
         else if (option == "--no-render") render = false;
@@ -43,6 +44,10 @@ int main(int argc, char **argv) {
         std::cerr << error << '\n'; return 1;
     }
     std::size_t triangles{};
+    unsigned authored_max_iterations{};
+    for (const auto &joint : scene.rigid_constraints)
+        if (joint.options.enabled)
+            authored_max_iterations = std::max(authored_max_iterations,joint.options.solver_iterations);
     for (const auto &body : scene.rigid_bodies)
         for (const auto mesh : body.mesh_indices) triangles += scene.meshes[mesh].indices.size()/3;
     cudaDeviceProp gpu{};
@@ -51,6 +56,7 @@ int main(int argc, char **argv) {
               << " constraints=" << scene.rigid_constraints.size() << " instanced_triangles=" << triangles
               << " mode=" << mode << " frames=" << frames << " warmup=" << warmup
               << " substeps=" << substeps << " capture=" << capture << " render=" << render
+              << " pass_limit=" << pass_limit << " authored_max_iterations=" << authored_max_iterations
               << " kernel_profile=" << profile << std::endl;
     World world;
     SceneInstance instance;
@@ -72,6 +78,7 @@ int main(int argc, char **argv) {
     if (!bed.initialize(scene)) return 1;
     auto options = standard_step_options(false);
     options.substeps = substeps;
+    options.rigid_contact_pass_limit = pass_limit;
     for (unsigned frame = 0; frame < warmup; ++frame)
         if (!require(world.step(options),"warmup") || !draw()) return 1;
     if (!draw()) return 1;
@@ -140,6 +147,7 @@ int main(int argc, char **argv) {
     }
     std::cout << "finite_states=1 contacts=" << stats.contact_count
               << " contact_overflows=" << stats.contact_overflow_count
+              << " max_passes=" << stats.rigid_contact_maximum_passes
               << " allocated_MiB=" << stats.allocated_bytes/(1024.0*1024) << '\n';
     return csv_path.empty() || csv.good() ? 0 : 1;
 }

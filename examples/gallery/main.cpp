@@ -133,6 +133,7 @@ struct Options {
     std::filesystem::path profiles_file{PARALLEL_MATER_DEVICE_PROFILES_PATH};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
+    std::uint32_t contact_pass_limit{};
     std::uint32_t headless_cloth_tilt_degrees{};
     std::uint32_t headless_cloth_tilt_after_frames{};
     std::uint32_t headless_constraint_action_after_frames{};
@@ -520,6 +521,8 @@ struct FluidEscapeTrace {
             if (!parse_positive(argv[++index], output.frames)) {
                 return false;
             }
+        } else if (argument == "--contact-passes" && index + 1 < argc) {
+            if (!parse_count(argv[++index], 0U, 64U, output.contact_pass_limit)) return false;
         } else if (argument == "--dump-spheres" && index + 1 < argc) {
             const GalleryEntry &entry = gallery_entry(GalleryContext::dump);
             if (!parse_count(argv[++index], entry.minimum_count,
@@ -602,7 +605,7 @@ struct FluidEscapeTrace {
                 std::cout << (first ? "" : "|") << entry.command_line_option;
                 first = false;
             }
-            std::cout << "] [--fluid-particles N] "
+            std::cout << "] [--fluid-particles N] [--contact-passes 0..64] "
                          "[--gravity-tilt-degrees 1..80 (headless)] "
                          "[--cloth-tilt-after-frames N (headless)] "
                          "[--cloth-tilt-left (headless)] "
@@ -1382,7 +1385,8 @@ void save_local_calibration(const CalibrationResult &result) {
            << "  \"height\": " << brick_render_height << ",\n"
            << "  \"scene_version\": "
            << parallel_mater::gallery::brick_scene_version << ",\n"
-           << "  \"solver_version\": \"cuda-rigid-v1\",\n"
+           << "  \"solver_version\": \""
+           << parallel_mater::gallery::cuda_rigid_solver_version << "\",\n"
            << "  \"build_revision\": \""
            << PARALLEL_MATER_GALLERY_GIT_COMMIT << "\",\n"
            << "  \"brick_count\": " << result.config.brick_count << ",\n"
@@ -1416,7 +1420,7 @@ bool verify_and_save_profile(const Options &options,
     parallel_mater::gallery::VerifiedBrickProfile profile;
     profile.hardware = result.hardware;
     profile.scene = result.config;
-    profile.solver_version = "cuda-rigid-v1";
+    profile.solver_version = parallel_mater::gallery::cuda_rigid_solver_version;
     profile.build_revision = PARALLEL_MATER_GALLERY_GIT_COMMIT;
     profile.metrics = result.metrics;
     const std::time_t now = std::time(nullptr);
@@ -1467,7 +1471,7 @@ int main(int argc, char **argv) {
             const HardwareIdentity hardware = cuda_hardware_identity();
             if (const auto *profile = find_matching_profile(
                     catalog, hardware, brick_render_width,
-                    brick_render_height, "cuda-rigid-v1")) {
+                    brick_render_height, parallel_mater::gallery::cuda_rigid_solver_version)) {
                 options.bricks = profile->scene;
                 std::cout << "Using verified brick profile: "
                           << options.bricks.brick_count << " bricks, "
@@ -1499,7 +1503,8 @@ int main(int argc, char **argv) {
                                    .substeps = scene_substeps(runtime.context),
                                    .gravity = initial_scene_gravity(
                                        runtime.context,
-                                       runtime.scene.gravity_scale)};
+                                       runtime.scene.gravity_scale),
+                                   .rigid_contact_pass_limit = options.contact_pass_limit};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera.set_preset(camera_preset_for(runtime.context, options.bricks));
@@ -2248,9 +2253,8 @@ int main(int argc, char **argv) {
                 break;
             }
             if (physics_steps != 0U && timing_visible &&
-                is_fluid_context(runtime.context) &&
                 !require(runtime.world.collect_statistics(statistics),
-                         "collect fluid statistics")) break;
+                         "collect physics statistics")) break;
         }
 
         const Camera current_camera = input_state.camera.camera();
@@ -2372,7 +2376,7 @@ int main(int argc, char **argv) {
                                           runtime.renderer.height(), timings);
             else
                 draw_timing_overlay(pixels, runtime.renderer.width(),
-                                    runtime.renderer.height(), timings);
+                                    runtime.renderer.height(), timings, statistics);
         }
         if (context_visible) {
             draw_context_overlay(pixels, runtime.renderer.width(),

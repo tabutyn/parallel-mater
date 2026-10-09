@@ -4,8 +4,9 @@
 #include <iostream>
 
 __global__ void evaluate_contacts(contact_cases::Result *results) {
-    if (threadIdx.x < contact_cases::count)
-        results[threadIdx.x] = contact_cases::evaluate(threadIdx.x);
+    const unsigned index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < contact_cases::count)
+        results[index] = contact_cases::evaluate(index);
 }
 
 int main() {
@@ -13,7 +14,7 @@ int main() {
     if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0) return 77;
     contact_cases::Result *results = nullptr;
     if (cudaMallocManaged(&results, contact_cases::count * sizeof(*results)) != cudaSuccess) return 1;
-    evaluate_contacts<<<1, 32>>>(results);
+    evaluate_contacts<<<(contact_cases::count + 127U) / 128U, 128>>>(results);
     bool passed = cudaGetLastError() == cudaSuccess && cudaDeviceSynchronize() == cudaSuccess;
     for (unsigned index = 0; passed && index < contact_cases::count; ++index) {
         passed = contact_cases::close(results[index], contact_cases::expected(index)) &&
