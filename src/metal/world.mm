@@ -1802,7 +1802,9 @@ Status World::create(WorldOptions options, NativeContext context,
                 impl->rigid_contact_epoch_buffer,
                 impl->rigid_avbd_schedule,
                 impl->rigid_sleep_states};
-            [impl->residency_set addAllocations:allocations count:32];
+            [impl->residency_set
+                addAllocations:allocations
+                          count:sizeof(allocations) / sizeof(allocations[0])];
             [impl->residency_set commit];
 
             const Status system_status = detail::MetalSystems::create(

@@ -7,9 +7,11 @@
 #ifdef __METAL_VERSION__
 #define PM_AVBD_INLINE inline
 #define PM_AVBD_THREAD thread
+#define PM_AVBD_CONSTANT constant constexpr
 #else
 #include <cmath>
 #define PM_AVBD_THREAD
+#define PM_AVBD_CONSTANT constexpr
 #ifdef __CUDACC__
 #define PM_AVBD_INLINE __host__ __device__ inline
 #else
@@ -18,13 +20,13 @@
 #endif
 
 namespace parallel_mater { namespace avbd {
-constexpr float alpha = 0.99f;
-constexpr float gamma = 0.999f;
-constexpr float minimum_penalty = 1.0f;
-constexpr float maximum_penalty = 1.0e10f;
-constexpr float linear_beta = 10000.0f;
-constexpr float angular_beta = 100.0f;
-constexpr unsigned default_iterations = 10;
+PM_AVBD_CONSTANT float alpha = 0.99f;
+PM_AVBD_CONSTANT float gamma = 0.999f;
+PM_AVBD_CONSTANT float minimum_penalty = 1.0f;
+PM_AVBD_CONSTANT float maximum_penalty = 1.0e10f;
+PM_AVBD_CONSTANT float linear_beta = 10000.0f;
+PM_AVBD_CONSTANT float angular_beta = 100.0f;
+PM_AVBD_CONSTANT unsigned default_iterations = 10;
 
 PM_AVBD_INLINE float min_value(float a, float b) { return a < b ? a : b; }
 PM_AVBD_INLINE float max_value(float a, float b) { return a > b ? a : b; }
@@ -234,3 +236,5 @@ PM_AVBD_INLINE Row advance(Row row, Vector6 a, Vector6 b) {
 } }
 #undef PM_AVBD_INLINE
 #undef PM_AVBD_THREAD
+
+#undef PM_AVBD_CONSTANT
