@@ -324,7 +324,8 @@ struct StepOptions {
     // Retains the strongest contact per surviving fluid particle in stable
     // particle order; moving-body contacts take priority over static ones.
     bool collect_fluid_contacts{};
-    // AVBD primal/dual iterations per phase (contacts AND joints). The pose
+    // CUDA/Metal AVBD primal/dual iterations per phase (contacts AND joints).
+    // The D3D12 backend does not yet implement this override. The pose
     // phase always runs; impacted islands also run a velocity-impact phase.
     // Statistics report the sum, so an impact can report twice this value.
     // Zero uses at least 10, raised by active joint solver_iterations.

@@ -2,8 +2,11 @@
 #pragma once
 
 #include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/device_profiles.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -122,8 +125,34 @@ struct AxleSteeringAngles {
     return policy == GalleryControlPolicy::constraint_toggle_gravity;
 }
 
+[[nodiscard]] inline CameraPreset brick_camera_preset(
+    BrickSceneConfig config) noexcept {
+    const std::uint32_t per_wall =
+        (config.brick_count + config.wall_planes - 1U) / config.wall_planes;
+    const std::uint32_t columns = std::max(1U, static_cast<std::uint32_t>(
+        std::ceil(std::sqrt(static_cast<double>(per_wall) * 2.0 / 3.0))));
+    std::uint32_t rows = 0U;
+    std::uint32_t remaining = per_wall;
+    while (remaining != 0U) {
+        const std::uint32_t capacity = rows % 2U == 0U || columns == 1U
+            ? columns : columns - 1U;
+        remaining -= std::min(remaining, capacity);
+        ++rows;
+    }
+    const float wall_width = columns * 0.8F * config.brick_scale;
+    const float wall_height = rows * 0.4F * config.brick_scale;
+    const float depth_span = (config.wall_planes - 1U) *
+        (0.4F * config.brick_scale + 2.0F);
+    return {.target = {0.0F, std::max(1.0F, wall_height * 0.42F),
+                       5.5F - depth_span * 0.5F},
+            .distance_scale = std::max({1.7F, wall_width / 5.0F,
+                                        wall_height / 3.2F,
+                                        (depth_span + 7.0F) / 6.0F})};
+}
+
 enum class GalleryCountKind : std::uint8_t {
     none,
+    brick_scene,
     dump_spheres,
     fluid_particles,
 };
@@ -156,11 +185,11 @@ struct GalleryEntry {
 
 inline constexpr std::array gallery_entries{
     GalleryEntry{GalleryContext::rigid_body, GallerySceneSource::default_scene,
-        GalleryControlPolicy::rigid_gravity, GalleryCountKind::none, {},
-        "RIGID BODY", "ARROWS ROLL BALL  384-BRICK WALL", {48, 55, 63, 235},
+        GalleryControlPolicy::rigid_gravity, GalleryCountKind::brick_scene, {},
+        "RIGID BODY", "ARROWS ROLL BALL  P WALL SETTINGS  R RESET", {48, 55, 63, 235},
         {170, 176, 184},
         {.target = {0.0F, 1.0F, 5.5F}, .distance_scale = 1.7F},
-        false, false, 0U, 0U},
+        false, false, brick_minimum_count, brick_maximum_count},
     GalleryEntry{GalleryContext::constraint_fixed,
         GallerySceneSource::constraint_fixed,
         GalleryControlPolicy::collector_gravity, GalleryCountKind::none,

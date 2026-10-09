@@ -3,6 +3,8 @@
 
 #include <parallel_mater_gallery/gallery_context.hpp>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -98,5 +100,10 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
                         bool invalid);
+
+void draw_brick_settings_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const std::array<std::string, 3> &values,
+    std::size_t selected, bool invalid);
 
 } // namespace parallel_mater::gallery

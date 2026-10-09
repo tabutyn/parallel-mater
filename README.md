@@ -1,7 +1,8 @@
 # ParallelMater
 
 ParallelMater is an MIT-licensed GPU physics library. CUDA is the complete
-reference backend; an Apple Metal 4 backend is under active development. The
+reference backend; Apple Metal 4 and Windows D3D12 backends are under active
+development. The
 first complete milestone couples particle fluid with triangle rigid bodies; later solvers
 will be added only after the small public API is proven by gallery examples.
 
@@ -19,10 +20,13 @@ Generation-checked rigid constraints provide fixed, point, hinge, slider,
 piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
-Rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
+CUDA and Metal rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
 Its numerical core compiles directly on CPU, CUDA and Metal. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
+
+The newly integrated D3D12 backend retains its existing solver; it has not yet
+been migrated to AVBD.
 
 Measured performance, validation limits and earlier solver experiments are
 recorded in [the rigid performance report](docs/PERFORMANCE.md). Historical
@@ -64,6 +68,38 @@ ctest --test-dir build --output-on-failure
 The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
+
+### Windows D3D12 rigid-body gate
+
+Windows defaults to the D3D12 backend and does not require CUDA, NVIDIA
+drivers, OptiX, DXR, or the CUDA toolkit. It requires the Windows 10 SDK's FXC,
+Shader Model 5.1, and 64 UAV slots. Resource Binding Tier 2+ qualifies at any
+D3D12 feature level; Tier 1 qualifies at feature level 11_1 or newer. The
+installed target is `ParallelMater::d3d12`, with its public API in
+`<parallel_mater/d3d12.hpp>`.
+
+```powershell
+cmake -S . -B build-d3d12 -A x64 `
+  -DPARALLEL_MATER_BUILD_CUDA=OFF `
+  -DPARALLEL_MATER_BUILD_D3D12=ON `
+  -DPARALLEL_MATER_BUILD_D3D12_GALLERY=ON `
+  -DBUILD_TESTING=ON
+cmake --build build-d3d12 --config Release
+ctest --test-dir build-d3d12 -C Release --output-on-failure
+.\build-d3d12\Release\parallel-mater-d3d12-gallery.exe `
+  --all-rigid-scenes --headless --validate `
+  --output build-d3d12\captures
+```
+
+The first gate covers rigid integration, contacts, all eight constraint types,
+the eight current rigid gallery entries, adapter diagnostics, headless PPM
+capture, and repeated deterministic validation. Non-rigid entry points already
+exist and return transactional `not_supported` until their staged solver gate.
+The backend remains experimental: full CUDA conformance and WARP validation
+are not complete. In the native viewer, press `F` for FPS and GPU physics
+timings, `Tab` for the scene catalog, and arrows/Enter or click to select a
+supported scene. Gray catalog entries require unimplemented subsystems.
+See [the D3D12 backend guide](docs/D3D12.md).
 
 ### Metal 4 foundation
 

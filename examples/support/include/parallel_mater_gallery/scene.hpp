@@ -3,9 +3,13 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 #include <parallel_mater/metal.hpp>
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+#include <parallel_mater/d3d12.hpp>
 #else
 #include <parallel_mater/parallel_mater.hpp>
 #endif
+
+#include <parallel_mater_gallery/device_profiles.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -14,6 +18,8 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 namespace parallel_mater::metal::gallery {
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+namespace parallel_mater::d3d12::gallery {
 #else
 namespace parallel_mater::gallery {
 #endif
@@ -198,6 +204,14 @@ struct SceneInstance {
 // SceneDefinition. The gallery's DUMP entry now loads DumpTruck.glb instead.
 [[nodiscard]] SceneDefinition make_dump_scene(std::uint32_t sphere_count);
 
+// Replaces the authored wall bodies with a deterministic collection of
+// independent triangle-mesh bricks. The authored scene remains the source for
+// the floor, ball, materials, and physical properties.
+[[nodiscard]] bool make_brick_scene(const SceneDefinition &authored,
+                                    const ::parallel_mater::gallery::BrickSceneConfig &config,
+                                    SceneDefinition &output,
+                                    std::string &error);
+
 // Derives the capacities needed by the shared scene instantiator. Gallery
 // clients, tests, and benchmarks should use this instead of mirroring its
 // mesh/paint/cloth accounting.
@@ -215,6 +229,8 @@ struct SceneInstance {
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+} // namespace parallel_mater::d3d12::gallery
 #else
 } // namespace parallel_mater::gallery
 #endif

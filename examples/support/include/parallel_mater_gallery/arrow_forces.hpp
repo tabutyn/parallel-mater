@@ -9,7 +9,13 @@
 #include <utility>
 #include <vector>
 
+#if defined(PARALLEL_MATER_GALLERY_D3D12)
+namespace parallel_mater::d3d12::gallery {
+using ::parallel_mater::gallery::Camera;
+using ::parallel_mater::gallery::screen_space_force;
+#else
 namespace parallel_mater::gallery {
+#endif
 
 // Scene-authored force controls. Equal force/mass ratios share one GPU update;
 // no per-body position readback is needed to apply force at the center of mass.
@@ -19,7 +25,7 @@ class ArrowForces {
                                     const SceneInstance &instance) noexcept {
         groups_.clear();
         if (scene.rigid_bodies.size() != instance.rigid_bodies.size())
-            return {StatusCode::invalid_argument, cudaSuccess, "arrow force bindings do not match scene"};
+            return {StatusCode::invalid_argument, {}, "arrow force bindings do not match scene"};
         try {
             std::vector<Group> groups;
             for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
@@ -30,7 +36,7 @@ class ArrowForces {
                     !std::isfinite(body.arrow_force) || body.arrow_force < 0.0F ||
                     !std::isfinite(body.options.mass) || body.options.mass <= 0.0F ||
                     !std::isfinite(acceleration))
-                    return {StatusCode::invalid_argument, cudaSuccess, "invalid arrow force or body mass"};
+                    return {StatusCode::invalid_argument, {}, "invalid arrow force or body mass"};
                 auto group = std::find_if(groups.begin(), groups.end(), [&](const auto &item) {
                     return item.acceleration == acceleration;
                 });
@@ -42,7 +48,7 @@ class ArrowForces {
             }
             groups_ = std::move(groups);
         } catch (...) {
-            return {StatusCode::out_of_memory, cudaSuccess, "arrow force allocation failed"};
+            return {StatusCode::out_of_memory, {}, "arrow force allocation failed"};
         }
         return {};
     }

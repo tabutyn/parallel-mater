@@ -2719,6 +2719,7 @@ static void pm_stabilize_motor_collider_normals(
     }
 }
 
+[[max_total_threads_per_threadgroup(64)]]
 kernel void pm_rigid_contact_generate(
     device PMRigidBodyState *states [[buffer(0)]],
     device PMRigidParameters *parameters [[buffer(1)]],
@@ -2976,6 +2977,7 @@ static float pm_bounds_coordinate_scale(
 // Preserve CUDA's lane-grouped leaf order exactly: each lane evaluates one
 // leaf pair independently, then lane zero merges the bounded manifolds in
 // that same order. No atomically selected contact order or new CCD tolerance.
+[[max_total_threads_per_threadgroup(32)]]
 kernel void pm_rigid_contact_generate_cooperative(
     device PMRigidBodyState *states [[buffer(0)]],
     device const PMRigidParameters *parameters [[buffer(1)]],
@@ -3157,17 +3159,9 @@ kernel void pm_rigid_contact_generate_cooperative(
     }
 }
 
-// CUDA deliberately resolves an ordinary persistent patch with both body
-// states in local storage.  Besides avoiding global-memory traffic, that
-// prevents contact-record pointers from aliasing body-state pointers and
-// changing the compiler's dependent reloads between rows.  Keep the same
-// two-body path for large worlds here. Small analytic/articulated scenes,
-// guided contacts, fixed compounds, and kinematic colliders retain the
-// established device-backed path until their tighter trajectories are
-// independently cross-validated.
-
 #include "avbd.metal"
 
+[[max_total_threads_per_threadgroup(64)]]
 kernel void pm_rigid_contact_match_cache(
     device const PMRigidBodyState *states [[buffer(0)]],
     constant PMStepConstants &step [[buffer(4)]],

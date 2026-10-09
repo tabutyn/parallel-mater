@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/overlay.hpp>
+#include <parallel_mater_gallery/bitmap_font.hpp>
 
 #include "vector_math.hpp"
 
@@ -102,53 +103,6 @@ void line(std::vector<std::uint32_t> &rgba, std::uint32_t width,
             error += dx;
             y0 += sy;
         }
-    }
-}
-
-[[nodiscard]] std::array<std::uint8_t, 7> glyph(char character) {
-    switch (character) {
-    case 'A': return {14, 17, 17, 31, 17, 17, 17};
-    case 'B': return {30, 17, 17, 30, 17, 17, 30};
-    case 'C': return {14, 17, 16, 16, 16, 17, 14};
-    case 'D': return {30, 17, 17, 17, 17, 17, 30};
-    case 'E': return {31, 16, 16, 30, 16, 16, 31};
-    case 'F': return {31, 16, 16, 30, 16, 16, 16};
-    case 'G': return {14, 17, 16, 23, 17, 17, 14};
-    case 'H': return {17, 17, 17, 31, 17, 17, 17};
-    case 'I': return {14, 4, 4, 4, 4, 4, 14};
-    case 'J': return {7, 2, 2, 2, 18, 18, 12};
-    case 'K': return {17, 18, 20, 24, 20, 18, 17};
-    case 'L': return {16, 16, 16, 16, 16, 16, 31};
-    case 'M': return {17, 27, 21, 21, 17, 17, 17};
-    case 'N': return {17, 25, 21, 19, 17, 17, 17};
-    case 'O': return {14, 17, 17, 17, 17, 17, 14};
-    case 'P': return {30, 17, 17, 30, 16, 16, 16};
-    case 'Q': return {14, 17, 17, 17, 21, 18, 13};
-    case 'R': return {30, 17, 17, 30, 20, 18, 17};
-    case 'S': return {15, 16, 16, 14, 1, 1, 30};
-    case 'T': return {31, 4, 4, 4, 4, 4, 4};
-    case 'U': return {17, 17, 17, 17, 17, 17, 14};
-    case 'V': return {17, 17, 17, 17, 17, 10, 4};
-    case 'W': return {17, 17, 17, 21, 21, 21, 10};
-    case 'X': return {17, 17, 10, 4, 10, 17, 17};
-    case 'Y': return {17, 17, 10, 4, 4, 4, 4};
-    case 'Z': return {31, 1, 2, 4, 8, 16, 31};
-    case '0': return {14, 17, 19, 21, 25, 17, 14};
-    case '1': return {4, 12, 4, 4, 4, 4, 14};
-    case '2': return {14, 17, 1, 2, 4, 8, 31};
-    case '3': return {30, 1, 1, 14, 1, 1, 30};
-    case '4': return {2, 6, 10, 18, 31, 2, 2};
-    case '5': return {31, 16, 16, 30, 1, 1, 30};
-    case '6': return {14, 16, 16, 30, 17, 17, 14};
-    case '7': return {31, 1, 2, 4, 8, 8, 8};
-    case '8': return {14, 17, 17, 14, 17, 17, 14};
-    case '9': return {14, 17, 17, 15, 1, 1, 14};
-    case '.': return {0, 0, 0, 0, 0, 12, 12};
-    case ':': return {0, 12, 12, 0, 12, 12, 0};
-    case '-': return {0, 0, 0, 31, 0, 0, 0};
-    case '+': return {0, 4, 4, 31, 4, 4, 0};
-    case '/': return {1, 2, 2, 4, 8, 8, 16};
-    default: return {};
     }
 }
 
@@ -1324,6 +1278,38 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
          invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
     text(rgba, width, height, center_x - 220, center_y + 72,
          "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);
+}
+
+void draw_brick_settings_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const std::array<std::string, 3> &values,
+    std::size_t selected, bool invalid) {
+    const int center_x = static_cast<int>(width) / 2;
+    const int center_y = static_cast<int>(height) / 2;
+    rectangle(rgba, width, height, center_x - 300, center_y - 180,
+              center_x + 300, center_y + 180, {4, 10, 16, 242});
+    text(rgba, width, height, center_x - 260, center_y - 145,
+         "BRICK WALL SETTINGS", {105, 255, 155, 255}, 2);
+    constexpr std::array labels{"COUNT  ", "SCALE  ", "WALLS  "};
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        const int y = center_y - 82 + static_cast<int>(index) * 58;
+        rectangle(rgba, width, height, center_x - 260, y,
+                  center_x + 260, y + 42,
+                  index == selected
+                      ? (invalid ? Color{105, 20, 20, 255}
+                                 : Color{45, 72, 88, 255})
+                      : Color{27, 38, 48, 255});
+        text(rgba, width, height, center_x - 238, y + 12,
+             std::string(labels[index]) + values[index],
+             {245, 247, 250, 255}, 2);
+    }
+    text(rgba, width, height, center_x - 260, center_y + 106,
+         invalid ? "COUNT 1-4096  SCALE .5-2  WALLS 1-16"
+                 : "TAB FIELD  ENTER APPLY AND RESTART",
+         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
+    text(rgba, width, height, center_x - 260, center_y + 138,
+         "C AUTO-CALIBRATE  V VERIFY AND SAVE  ESC CANCEL",
+         {160, 190, 210, 255}, 1);
 }
 
 } // namespace parallel_mater::gallery

@@ -1,11 +1,15 @@
 # Unified rigid AVBD solver
 
-Rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
+On CUDA and Metal, rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
 There is no stack-only solver, joint-triggered fallback, welded-compound
 velocity solve, or guided-body projection in the production stepping path.
 Collision filtering still groups welded siblings; that does not merge their
 physical mass or replace their joints.
+
+The D3D12 backend merged from `main` is preserved separately and has not been
+ported to AVBD. The equations, iteration semantics and validation below describe
+CUDA/Metal, not D3D12 solver parity.
 
 ## Shared numerical core
 

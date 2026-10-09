@@ -11,8 +11,8 @@ iteration counts between the two methods as equivalent units of work.
 
 ## AVBD migration (2026-10-09)
 
-Rigid contacts and joints now use shared six-degree-of-freedom AVBD blocks,
-with ten iterations per phase by default. Active authored joint budgets can
+CUDA and Metal rigid contacts and joints now use shared six-degree-of-freedom
+AVBD blocks, with ten iterations per phase by default. Active authored joint budgets can
 raise that default; an explicit pass limit overrides it. Impacts use a second
 phase of the same solver. CUDA and Metal compile the same numerical header;
 native Metal compilation/runtime validation remains outstanding.
@@ -120,6 +120,25 @@ equations are shared.
 Local measurements and diagnostic logs: `/tmp/parallel-mater-avbd-Z7wVqZ`.
 Historical sections below retain their original validation scopes and numbers.
 
+### Integration with latest main
+
+Merged `cb8ab23`, retaining upstream device-adaptive bricks, Windows portability
+changes and the new D3D12 backend. D3D12 retains its existing solver; the AVBD
+migration above covers CUDA and Metal only. The authored-asset measurements
+above are not benchmarks of the newly generated, device-adaptive brick scene.
+
+CUDA/Metal calibration matching and output now use `cuda-avbd-v1` and
+`metal-avbd-v1`. Old profiles are preserved on disk but rejected for this solver;
+the profile regression checks both rejection and matching-version acceptance.
+
+The merged Release gallery build succeeds. **20/20 focused CTest entries pass**
+in 188.94 seconds: original/new rigid suites, complete truck cycle and payload,
+point and piston scenes, three soft/rigid contact cases, rope API, device
+profiles, CUDA/Metal gallery registries, type/comparator contracts and CPU/CUDA
+numerical fixtures. The standalone CPU build also passes 2/2 CTest entries.
+These post-merge checks do not supersede the broader known failures above;
+native Metal and Windows/D3D12 execution remain unverified here.
+
 ## Historical contact pass-budget experiment (2026-10-09)
 
 The brick scene's `316 X` was the solve group's **GPU launch count**, not
@@ -163,6 +182,164 @@ including rigid pass-cap/launch-count checks, truck unloading and payload,
 long rope regressions, registry/type contracts and CPU/CUDA equation fixtures.
 The standalone C++-only build passes all 26 equation/convergence fixtures.
 These focused passes do not override the wall-stability failures above.
+
+## Historical Metal integration with main (2026-10-09; pre-AVBD)
+
+Merged upstream `85384f0` (PR #39) into the Metal optimization branch. The
+shared CPU/CUDA contact core, diagnostics, scene updates, and backend-specific
+gallery registries are retained. The documentation conflict preserved both
+performance audits. Metal's retained compiler limits and convergence-bookkeeping
+optimization remain unchanged; no procedural brick generation was added.
+
+The native Release Metal build and authored-wall regression pass. The opening
+scene still has 384 triangle-mesh bricks plus the sphere and ground. Its upstream
+GLB node changes only remove `pm_checkerboard` metadata.
+
+Post-merge CTest result: **26/27 pass**, including all 29 Metal gallery scenes,
+the shared CPU contact fixtures, gallery registry, API, rigid/CCD, wall energy,
+and subsystem tests. The previously known CUDA-golden comparison remains
+excluded; the additional failure below was run and reported, not skipped.
+
+The merged `parallel-mater-metal-conformance-inputs` test reports checksum
+mismatches for all 27 pinned GLBs. Direct SHA-256 comparison of the assets and
+manifest on `origin/main` reproduces every mismatch, independently of the Metal
+branch. This is an inherited input-provenance failure after upstream scene
+re-exports. Pinned hashes, cases, tolerances, and CUDA goldens remain unchanged;
+updating the reference corpus requires a reviewed CUDA capture on NVIDIA hardware.
+
+## Metal solver redesign experiments (Apple M4, 2026-10-09)
+
+No solver prototype from this round is retained. The production contact solver,
+64/32 fresh/cached sweep budgets, convergence criterion, triangle geometry,
+CCD, timestep, and four substeps are restored exactly to `927369b`.
+
+The coupled prototype solved pairs of normal rows as a two-variable linear
+complementarity problem. It included both bodies' off-diagonal angular response,
+enumerated the four active sets, projected accumulated impulses to nonnegative
+values, and fell back to sequential rows for ill-conditioned blocks. Friction
+remained sequential. This avoids the stale-state impulse summation that caused
+the previous explosion, but it did not provide a performance win. It is a
+contact-block experiment, not a completed multi-threadgroup solver.
+
+Exploratory results below use the public-API impact replay: 120 settling frames,
+120 measured frames, sleeping enabled, 1/60 s, four substeps, and the authored
+386-body triangle-mesh scene. The interactive gallery was closed. These are
+individual exploratory runs, not an interleaved statistical A/B; none justifies
+a retained speedup claim.
+
+| Prototype | Impact median | Rejection reason |
+| --- | ---: | --- |
+| Stable control, initial run | 61.34 ms | Reference |
+| Coupled two-row normal blocks, 64/32 sweeps | 99.97 ms | Quiet support passed, substantially slower |
+| Coupled blocks, 32/16 sweeps | 62.39 ms | Quiet wall dropped 132 mm |
+| Per-pair relative convergence | 65.84 ms | Required support/energy gates passed, slower |
+| Sequential solver, 48/32 sweeps | 53.59 ms | 2.10 mm drop exceeded existing 2 mm limit |
+| Normal over-relaxation 1.3, 32/32 sweeps | 42.93 ms | 6.81 mm displacement and 0.0292 rad rotation exceeded limits |
+| Normal over-relaxation 1.15, 48/32 sweeps | 54.48 ms | Passed original gates, increased 30-second displacement to 6.44 mm versus control's 5.03 mm |
+| Over-relaxation 1.15 on fresh patches only | Not timed | Extended support check failed before timing; displacement 5.51 mm |
+| Over-relaxation 1.3 for first 16 fresh-patch sweeps, then ordinary rows | 54.44 ms | Original support gate failed: 0.0280 rad rotation; p95 also regressed to 119.84 ms |
+| Island-relative convergence, squared relative scale `1e-9` | 66.40 ms | Required support/energy gates passed, slower |
+| Island-relative convergence, 0.1% motion tolerance above 0.5 m/s or rad/s | 64.56 ms | Required support/energy gates passed, no speed gain |
+
+The last two prototypes retained the original maximum sweep budgets and
+minimum 16 passes, and disabled early exit on color overflow. They measured
+each connected island's initial motion once and scaled its existing maximum
+velocity-correction criterion. Their quiet-wall summary matched the control,
+but changing convergence changed impact trajectories and did not reduce total
+step time. Contact evaluation and later collision work can offset a cheaper
+individual solve; lower sweep counts alone do not prove a faster simulation.
+
+Retained validation improvements:
+
+- The six-second impact regression now includes rotational kinetic energy,
+  using each body's explicit or mesh-derived principal inertia and angular
+  velocity rotated into its local inertia frame. The same 110% total-energy
+  ceiling remains; signed potential still accounts for bodies falling off the
+  finite floor. Both sleeping and awake worlds are checked. The benchmark's
+  separate translation-only guard remains a lower-bound check.
+- `parallel-mater-metal-rigid-wall-tests --long-quiet` extends quiet simulation
+  with sleeping disabled from 10 to 30 seconds while keeping the original
+  acceptance limits. Test output is flushed as each phase completes.
+
+The extended diagnostic exposed a baseline limitation: `927369b` also fails
+the original 2 mm drop limit over 30 seconds, reaching 2.49 mm drop, 5.03 mm
+displacement, and 0.000977 rad rotation with sleeping disabled. The optional
+stress mode reports failure honestly; it is not registered as a passing CTest
+and its thresholds have not been relaxed. The original ten-second support,
+wake, and impact gates remain mandatory. This slow baseline drift is distinct
+from the previously fixed impact-energy explosion.
+
+These attempts do not establish a hardware limit. They show that this two-row
+block implementation did not amortize its added work, while fixed sweep cuts
+and over-relaxation traded away support accuracy. A larger coupled solver or a
+stable decomposition across threadgroups remains unimplemented.
+
+After restoring the shader, two repeat impact medians were 61.76 and 62.34 ms
+(p95 75.84 and 76.33 ms). Both displaced 384 bricks and reproduced the control's
+10.1393 m/s peak speed. No production runtime optimization from these probes
+remains in the source. The API contract, rigid/CCD, and wall CTests pass with
+the stronger energy check; peak full mechanical-energy ratios are 0.999506
+and 0.999507 for sleeping and awake impact respectively.
+
+## Metal post-regression solver audit (Apple M4, 2026-10-08)
+
+The opening scene continues to use its authored indexed triangle meshes. No
+box primitive, simplified collision shape, welded brick, reduced substep, or
+reduced solver budget is used in this follow-up.
+
+An exact rebuild A/B closed the interactive gallery, ran the public-API impact
+replay twice on `0fac9c4`, rebuilt the candidate, then ran the same replay
+twice. Each replay settles for 120 frames and measures 120 frames at 1/60 s
+with four substeps and sleeping enabled:
+
+| Build | Wall median | Wall p95 | GPU median |
+| --- | ---: | ---: | ---: |
+| `0fac9c4` control, average of two | 61.66 ms | 76.21 ms | 61.27 ms |
+| Retained candidate, average of two | 61.33 ms | 75.95 ms | 60.90 ms |
+
+The retained change is deliberately small: about 0.5% wall time and 0.6% GPU
+time in this final paired sample. Both candidate runs improved their paired
+control run, but the difference is near normal run-to-run variation and should
+not be extrapolated. The impact trajectory remains unchanged at 384 displaced
+bricks, peak speed 10.1393 m/s, and peak mechanical-energy ratio 1.0.
+
+Retained implementation changes:
+
+- Declare the actual maximum threadgroup sizes used by contact generation,
+  cooperative triangle contact collection, cache matching, contact reduction,
+  and stack solving. This gives the Metal compiler a tighter register-allocation
+  bound without changing dispatch sizes.
+- Do not initialize or update the convergence maximum during passes 0–15,
+  because the existing solver cannot exit before pass 16. Pass 16 onward keeps
+  the same residual, threshold, overflow rule, contact order, and iteration
+  budget.
+
+Measured and rejected experiments:
+
+| Experiment | Result | Decision |
+| --- | --- | --- |
+| Exact 128-thread compiler cap | 62.19–62.83 ms median | Reject; slower than 256-thread cap |
+| 64-thread solver group | 72.89–74.91 ms median | Reject; 128 threads remains faster |
+| SIMD convergence reduction | 61.29 ms average median | Reject; whole step regressed despite cheaper solve |
+| Two local pair sweeps per color visit | 63.94 ms median, 91.73 ms p95 | Reject; slower and changed trajectory |
+| Algebraic friction normalization removal | 60.76 ms average median, 382 displaced bricks | Reject; marginal gain changed trajectory |
+| Cached friction coefficient | 61.98 ms average median | Reject; added manifold bandwidth cost more |
+| Explicit residual-result gating | 60.98 ms average median | Reject; no gain over compiler optimization |
+
+The two-sweep experiment remained within the energy bound over six seconds,
+but moving dependent work inside each pair reduced propagation through the
+connected wall. Earlier prepared-Jacobian, cross-threadgroup block, transformed
+leaf-cache, and permissive cached-anchor experiments remain rejected for the
+stability or performance reasons recorded below. A CPU/GPU hybrid was not
+implemented: the current step encodes all four substeps in one GPU command
+buffer, so inserting a CPU solve requires four execution/read/write boundaries
+and a different step architecture rather than a local solver optimization.
+
+These results still do not establish a hardware limit. They show that local
+shader tuning is now yielding sub-millisecond changes while the connected
+Gauss-Seidel solve remains serial across contact colors inside one GPU
+threadgroup. A material improvement requires a stable solver that exposes
+more independent work or converges in fewer dependent sweeps.
 
 ## Main integration (2026-10-08)
 
