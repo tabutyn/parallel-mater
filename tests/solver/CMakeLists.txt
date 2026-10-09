@@ -29,4 +29,32 @@ if("CUDA" IN_LIST contact_test_languages)
     set_target_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES CUDA_STANDARD 17)
     add_test(NAME parallel-mater-avbd-core-cuda-tests COMMAND parallel-mater-avbd-core-cuda-tests)
     set_tests_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    if(TARGET parallel-mater-slang-avbd AND PARALLEL_MATER_SLANG_AVBD_PTX)
+        add_executable(parallel-mater-avbd-slang-cuda-tests avbd_slang_cuda_tests.cu)
+        add_dependencies(parallel-mater-avbd-slang-cuda-tests parallel-mater-slang-avbd)
+        target_include_directories(parallel-mater-avbd-slang-cuda-tests PRIVATE ../../include)
+        target_link_libraries(parallel-mater-avbd-slang-cuda-tests
+                              PRIVATE CUDA::cuda_driver CUDA::cudart)
+        set_target_properties(parallel-mater-avbd-slang-cuda-tests
+                              PROPERTIES CUDA_STANDARD 17)
+        file(TO_CMAKE_PATH "${PARALLEL_MATER_SLANG_AVBD_PTX}" slang_avbd_ptx_path)
+        target_compile_definitions(parallel-mater-avbd-slang-cuda-tests PRIVATE
+            PARALLEL_MATER_SLANG_AVBD_PTX="${slang_avbd_ptx_path}")
+        add_test(NAME parallel-mater-avbd-slang-cuda-tests
+                 COMMAND parallel-mater-avbd-slang-cuda-tests)
+        set_tests_properties(parallel-mater-avbd-slang-cuda-tests
+                             PROPERTIES SKIP_RETURN_CODE 77 LABELS "cuda;slang;avbd")
+    endif()
+endif()
+
+if(TARGET parallel-mater-slang-avbd AND Python3_EXECUTABLE)
+    add_test(NAME parallel-mater-avbd-slang-reflection-tests
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/check_slang_reflection.py
+            ${PARALLEL_MATER_SLANG_AVBD_CUDA_REFLECTION}
+            ${PARALLEL_MATER_SLANG_AVBD_METAL_REFLECTION}
+            ${PARALLEL_MATER_SLANG_AVBD_HLSL_REFLECTION})
+    set_tests_properties(parallel-mater-avbd-slang-reflection-tests
+                         PROPERTIES LABELS "slang;avbd")
 endif()

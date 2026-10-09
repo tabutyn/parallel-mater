@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include <metal_stdlib>
+#include "parallel_mater_avbd_runtime.metal"
+#define PM_AVBD_SLANG_RUNTIME 1
 #include <parallel_mater/solver/avbd.hpp>
+#undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/contact_friction.hpp>
 
 using namespace metal;

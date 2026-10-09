@@ -1,5 +1,10 @@
 # Unified rigid AVBD solver
 
+The production CUDA/Metal adapters described here consume the numerical core
+generated from [one Slang implementation](SLANG.md). The portable C++ header is
+the host reference used by equation fixtures. Collision geometry, graph
+construction, storage, synchronization, and dispatch remain backend adapters.
+
 On CUDA and Metal, rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
 There is no stack-only solver, joint-triggered fallback, welded-compound
@@ -13,8 +18,10 @@ CUDA/Metal, not D3D12 solver parity.
 
 ## Shared numerical core
 
-[avbd.hpp](../include/parallel_mater/solver/avbd.hpp) compiles unchanged as
-C++17, CUDA and Metal shader code. It owns:
+[avbd.slang](../src/slang/avbd.slang) is compiled into the production CUDA and
+Metal kernels. [avbd.hpp](../include/parallel_mater/solver/avbd.hpp) preserves
+the matching C++17 reference contract and thin generated-code adapters. The
+shared numerical core owns:
 
 - Coupled six-degree-of-freedom body blocks and an SPD LDLᵀ solve.
 - Augmented-Lagrangian forces, penalty growth and temporal warm starting.
@@ -26,8 +33,8 @@ C++17, CUDA and Metal shader code. It owns:
 The CUDA and Metal adapters own geometry, persistent state, adjacency, vertex
 coloring and GPU synchronization. Static/kinematic endpoints are read-only.
 Dynamic contact and joint edges connect islands; sharing a floor does not.
-CPU/CUDA equation fixtures use the actual production numerical header, not a
-separate reference implementation.
+CPU fixtures exercise the portable reference, while Slang reflection and PTX
+fixtures exercise generated code from the production source.
 
 Well-conditioned blocks use ordinary LDLᵀ. If floating-point cancellation
 destroys an inertial pivot, the same block is equilibrated and retried with a

@@ -21,9 +21,16 @@ piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
 CUDA and Metal rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
-Its numerical core compiles directly on CPU, CUDA and Metal. There is no
+Its production numerical core is generated from one Slang module for both
+backends and checked against the portable CPU reference. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
+
+The [Slang AVBD implementation](docs/SLANG.md) expresses that numerical core
+once for CUDA, Metal, and D3D12-compatible HLSL. CUDA and Metal production
+adapters consume its generated functions; cross-target ABI checks and PTX
+fixtures guard the same source. Collision geometry and scheduling remain
+backend-specific.
 
 The newly integrated D3D12 backend retains its existing solver; it has not yet
 been migrated to AVBD.
@@ -69,9 +76,10 @@ The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
-CUDA and Metal compile the standalone fluid solver from the shared
-`src/slang/fluid.slang` source. CMake uses an exact Slang 2026.18 compiler from
-`PATH` or downloads the matching checksum-pinned official package. Set
+CUDA and Metal compile the standalone fluid solver and AVBD numerical core
+from `src/slang/fluid.slang` and `src/slang/avbd.slang`. CMake resolves one
+exact Slang 2026.18 compiler from `PATH` or downloads the matching
+checksum-pinned official package. Set
 `PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.
 The native Apple Metal compiler and NVCC still validate and compile Slang's
 generated source; no Slang runtime is shipped. See the [Slang toolchain and
