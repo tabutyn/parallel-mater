@@ -32,6 +32,8 @@ option(PARALLEL_MATER_BUILD_METAL
        "Build the Apple Metal 4 physics backend" ${PARALLEL_MATER_METAL_DEFAULT})
 option(PARALLEL_MATER_BUILD_D3D12
        "Build the Windows D3D12 physics backend" ${PARALLEL_MATER_D3D12_DEFAULT})
+option(PARALLEL_MATER_BUILD_VULKAN
+       "Build the standalone Vulkan 1.2 compute backend" OFF)
 option(PARALLEL_MATER_BUILD_METAL_GALLERY
        "Build the native Metal gallery" OFF)
 option(PARALLEL_MATER_BUILD_D3D12_GALLERY
@@ -115,6 +117,204 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
         GIT_TAG 85cd62382dfea638278962690cf515023f33ed00
         GIT_SHALLOW TRUE)
     FetchContent_MakeAvailable(parallel_mater_cgltf)
+endif()
+
+if(PARALLEL_MATER_BUILD_VULKAN)
+    find_package(Vulkan 1.2 REQUIRED)
+
+    set(PARALLEL_MATER_SLANGC_EXECUTABLE "" CACHE FILEPATH
+        "Host slangc executable (Slang 2026.19 or newer)")
+    if(NOT PARALLEL_MATER_SLANGC_EXECUTABLE)
+        find_program(PARALLEL_MATER_SLANGC_EXECUTABLE
+                     NAMES slangc
+                     NO_CMAKE_FIND_ROOT_PATH)
+    endif()
+    if(NOT PARALLEL_MATER_SLANGC_EXECUTABLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_VULKAN requires host slangc 2026.19+")
+    endif()
+    execute_process(
+        COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE} -version
+        OUTPUT_VARIABLE PARALLEL_MATER_SLANG_VERSION_TEXT
+        ERROR_VARIABLE PARALLEL_MATER_SLANG_VERSION_ERROR
+        RESULT_VARIABLE PARALLEL_MATER_SLANG_VERSION_RESULT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+    string(CONCAT PARALLEL_MATER_SLANG_VERSION_TEXT
+           "${PARALLEL_MATER_SLANG_VERSION_TEXT} "
+           "${PARALLEL_MATER_SLANG_VERSION_ERROR}")
+    if(NOT PARALLEL_MATER_SLANG_VERSION_RESULT EQUAL 0 OR
+       NOT PARALLEL_MATER_SLANG_VERSION_TEXT MATCHES
+           "([0-9][0-9][0-9][0-9])\\.([0-9]+)")
+        message(FATAL_ERROR
+            "Could not determine slangc version: ${PARALLEL_MATER_SLANG_VERSION_TEXT}")
+    endif()
+    set(PARALLEL_MATER_SLANG_YEAR ${CMAKE_MATCH_1})
+    set(PARALLEL_MATER_SLANG_RELEASE ${CMAKE_MATCH_2})
+    if(PARALLEL_MATER_SLANG_YEAR LESS 2026 OR
+       (PARALLEL_MATER_SLANG_YEAR EQUAL 2026 AND
+        PARALLEL_MATER_SLANG_RELEASE LESS 19))
+        message(FATAL_ERROR
+            "slangc ${CMAKE_MATCH_0} is too old; ParallelMater requires 2026.19+")
+    endif()
+
+    set(PARALLEL_MATER_SPIRV_VAL_EXECUTABLE "" CACHE FILEPATH
+        "Host spirv-val executable (SPIRV-Tools 2026 or newer)")
+    if(NOT PARALLEL_MATER_SPIRV_VAL_EXECUTABLE)
+        find_program(PARALLEL_MATER_SPIRV_VAL_EXECUTABLE
+                     NAMES spirv-val
+                     NO_CMAKE_FIND_ROOT_PATH)
+    endif()
+    if(NOT PARALLEL_MATER_SPIRV_VAL_EXECUTABLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_VULKAN requires host spirv-val 2026+")
+    endif()
+    execute_process(
+        COMMAND ${PARALLEL_MATER_SPIRV_VAL_EXECUTABLE} --version
+        OUTPUT_VARIABLE PARALLEL_MATER_SPIRV_TOOLS_VERSION_TEXT
+        ERROR_VARIABLE PARALLEL_MATER_SPIRV_TOOLS_VERSION_ERROR
+        RESULT_VARIABLE PARALLEL_MATER_SPIRV_TOOLS_VERSION_RESULT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+    string(CONCAT PARALLEL_MATER_SPIRV_TOOLS_VERSION_TEXT
+           "${PARALLEL_MATER_SPIRV_TOOLS_VERSION_TEXT} "
+           "${PARALLEL_MATER_SPIRV_TOOLS_VERSION_ERROR}")
+    if(NOT PARALLEL_MATER_SPIRV_TOOLS_VERSION_RESULT EQUAL 0 OR
+       NOT PARALLEL_MATER_SPIRV_TOOLS_VERSION_TEXT MATCHES
+           "SPIRV-Tools v([0-9][0-9][0-9][0-9])\\.([0-9]+)")
+        message(FATAL_ERROR
+            "Could not determine spirv-val version: ${PARALLEL_MATER_SPIRV_TOOLS_VERSION_TEXT}")
+    endif()
+    if(CMAKE_MATCH_1 LESS 2026)
+        message(FATAL_ERROR
+            "spirv-val is too old to parse Slang OpSource; use SPIRV-Tools 2026+")
+    endif()
+    set(PARALLEL_MATER_SPIRV_OPT_EXECUTABLE "" CACHE FILEPATH
+        "Host spirv-opt executable (SPIRV-Tools 2026 or newer)")
+    if(NOT PARALLEL_MATER_SPIRV_OPT_EXECUTABLE)
+        find_program(PARALLEL_MATER_SPIRV_OPT_EXECUTABLE
+                     NAMES spirv-opt
+                     NO_CMAKE_FIND_ROOT_PATH)
+    endif()
+    if(NOT PARALLEL_MATER_SPIRV_OPT_EXECUTABLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_VULKAN requires host spirv-opt 2026+")
+    endif()
+    execute_process(
+        COMMAND ${PARALLEL_MATER_SPIRV_OPT_EXECUTABLE} --version
+        OUTPUT_VARIABLE PARALLEL_MATER_SPIRV_OPT_VERSION_TEXT
+        ERROR_VARIABLE PARALLEL_MATER_SPIRV_OPT_VERSION_ERROR
+        RESULT_VARIABLE PARALLEL_MATER_SPIRV_OPT_VERSION_RESULT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+    string(CONCAT PARALLEL_MATER_SPIRV_OPT_VERSION_TEXT
+           "${PARALLEL_MATER_SPIRV_OPT_VERSION_TEXT} "
+           "${PARALLEL_MATER_SPIRV_OPT_VERSION_ERROR}")
+    if(NOT PARALLEL_MATER_SPIRV_OPT_VERSION_RESULT EQUAL 0 OR
+       NOT PARALLEL_MATER_SPIRV_OPT_VERSION_TEXT MATCHES
+           "SPIRV-Tools v([0-9][0-9][0-9][0-9])\\.([0-9]+)" OR
+       CMAKE_MATCH_1 LESS 2026)
+        message(FATAL_ERROR
+            "spirv-opt 2026+ is required: ${PARALLEL_MATER_SPIRV_OPT_VERSION_TEXT}")
+    endif()
+    set(PARALLEL_MATER_VULKAN_GENERATED_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/vulkan)
+    set(PARALLEL_MATER_VULKAN_INTEGRATE_SPV
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/rigid_integrate.spv)
+    set(PARALLEL_MATER_VULKAN_INTEGRATE_RAW_SPV
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/rigid_integrate.raw.spv)
+    set(PARALLEL_MATER_VULKAN_CLEAR_SPV
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/rigid_clear.spv)
+    set(PARALLEL_MATER_VULKAN_CLEAR_RAW_SPV
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/rigid_clear.raw.spv)
+    set(PARALLEL_MATER_VULKAN_INTEGRATE_HEADER
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/parallel_mater_vulkan_integrate_spv.hpp)
+    set(PARALLEL_MATER_VULKAN_CLEAR_HEADER
+        ${PARALLEL_MATER_VULKAN_GENERATED_DIR}/parallel_mater_vulkan_clear_spv.hpp)
+
+    set(PARALLEL_MATER_SLANG_COMMON_ARGS
+        -target spirv
+        -profile spirv_1_5
+        -emit-spirv-directly
+        -fvk-use-entrypoint-name
+        -fp-mode precise)
+    set(PARALLEL_MATER_SPIRV_VALIDATE_INTEGRATE_COMMAND
+        COMMAND ${PARALLEL_MATER_SPIRV_VAL_EXECUTABLE}
+                --target-env vulkan1.2
+                ${PARALLEL_MATER_VULKAN_INTEGRATE_SPV})
+    set(PARALLEL_MATER_SPIRV_VALIDATE_CLEAR_COMMAND
+        COMMAND ${PARALLEL_MATER_SPIRV_VAL_EXECUTABLE}
+                --target-env vulkan1.2
+                ${PARALLEL_MATER_VULKAN_CLEAR_SPV})
+
+    add_custom_command(
+        OUTPUT ${PARALLEL_MATER_VULKAN_INTEGRATE_SPV}
+               ${PARALLEL_MATER_VULKAN_INTEGRATE_HEADER}
+        BYPRODUCTS ${PARALLEL_MATER_VULKAN_INTEGRATE_RAW_SPV}
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                ${PARALLEL_MATER_VULKAN_GENERATED_DIR}
+        COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/kernels.slang
+                -entry pm_rigid_integrate -stage compute
+                ${PARALLEL_MATER_SLANG_COMMON_ARGS}
+                -o ${PARALLEL_MATER_VULKAN_INTEGRATE_RAW_SPV}
+        COMMAND ${PARALLEL_MATER_SPIRV_OPT_EXECUTABLE}
+                --strip-debug
+                ${PARALLEL_MATER_VULKAN_INTEGRATE_RAW_SPV}
+                -o ${PARALLEL_MATER_VULKAN_INTEGRATE_SPV}
+        ${PARALLEL_MATER_SPIRV_VALIDATE_INTEGRATE_COMMAND}
+        COMMAND ${CMAKE_COMMAND}
+                -DINPUT=${PARALLEL_MATER_VULKAN_INTEGRATE_SPV}
+                -DOUTPUT=${PARALLEL_MATER_VULKAN_INTEGRATE_HEADER}
+                -DSYMBOL=parallel_mater_vulkan_integrate_spv
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedBinary.cmake
+        DEPENDS src/vulkan/kernels.slang cmake/EmbedBinary.cmake
+        VERBATIM)
+    add_custom_command(
+        OUTPUT ${PARALLEL_MATER_VULKAN_CLEAR_SPV}
+               ${PARALLEL_MATER_VULKAN_CLEAR_HEADER}
+        BYPRODUCTS ${PARALLEL_MATER_VULKAN_CLEAR_RAW_SPV}
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                ${PARALLEL_MATER_VULKAN_GENERATED_DIR}
+        COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/kernels.slang
+                -entry pm_rigid_clear_inputs -stage compute
+                ${PARALLEL_MATER_SLANG_COMMON_ARGS}
+                -o ${PARALLEL_MATER_VULKAN_CLEAR_RAW_SPV}
+        COMMAND ${PARALLEL_MATER_SPIRV_OPT_EXECUTABLE}
+                --strip-debug
+                ${PARALLEL_MATER_VULKAN_CLEAR_RAW_SPV}
+                -o ${PARALLEL_MATER_VULKAN_CLEAR_SPV}
+        ${PARALLEL_MATER_SPIRV_VALIDATE_CLEAR_COMMAND}
+        COMMAND ${CMAKE_COMMAND}
+                -DINPUT=${PARALLEL_MATER_VULKAN_CLEAR_SPV}
+                -DOUTPUT=${PARALLEL_MATER_VULKAN_CLEAR_HEADER}
+                -DSYMBOL=parallel_mater_vulkan_clear_spv
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedBinary.cmake
+        DEPENDS src/vulkan/kernels.slang cmake/EmbedBinary.cmake
+        VERBATIM)
+
+    add_library(parallel-mater-vulkan STATIC
+        src/vulkan/world.cpp
+        ${PARALLEL_MATER_VULKAN_INTEGRATE_HEADER}
+        ${PARALLEL_MATER_VULKAN_CLEAR_HEADER})
+    add_library(ParallelMater::vulkan ALIAS parallel-mater-vulkan)
+    set_target_properties(parallel-mater-vulkan PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        EXPORT_NAME vulkan
+        POSITION_INDEPENDENT_CODE ON)
+    target_compile_features(parallel-mater-vulkan PUBLIC cxx_std_20)
+    target_compile_options(parallel-mater-vulkan PRIVATE
+                           -Wall -Wextra -Wpedantic
+                           -Wno-missing-field-initializers)
+    target_include_directories(parallel-mater-vulkan
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE ${PARALLEL_MATER_VULKAN_GENERATED_DIR})
+    target_link_libraries(parallel-mater-vulkan PUBLIC Vulkan::Vulkan)
+    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-vulkan)
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA)
@@ -2015,6 +2215,10 @@ if(BUILD_TESTING)
     target_compile_features(parallel-mater-parity-compare PRIVATE cxx_std_20)
     add_test(NAME parallel-mater-parity-compare-self-test
              COMMAND parallel-mater-parity-compare --self-test)
+
+    if(PARALLEL_MATER_BUILD_VULKAN)
+        add_subdirectory(tests/vulkan)
+    endif()
 endif()
 
 if(NOT PARALLEL_MATER_INSTALL_TARGETS)
@@ -2022,6 +2226,7 @@ if(NOT PARALLEL_MATER_INSTALL_TARGETS)
 endif()
 
 set(PARALLEL_MATER_PACKAGE_NEEDS_CUDA ${PARALLEL_MATER_BUILD_CUDA})
+set(PARALLEL_MATER_PACKAGE_NEEDS_VULKAN ${PARALLEL_MATER_BUILD_VULKAN})
 configure_package_config_file(
     cmake/ParallelMaterConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake

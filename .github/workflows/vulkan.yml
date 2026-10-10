@@ -1,0 +1,76 @@
+name: Vulkan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  linux-and-android-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.1.0"
+      - name: Install Linux Vulkan and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;4.1.2"
+      - name: Install pinned Slang
+        run: |
+          chmod +x tools/bootstrap-slang.sh
+          tools/bootstrap-slang.sh "$RUNNER_TEMP/slang"
+      - name: Build pinned SPIRV-Tools validator
+        run: |
+          git clone --depth 1 --branch v2026.4 https://github.com/KhronosGroup/SPIRV-Tools.git "$RUNNER_TEMP/spirv-tools"
+          git clone https://github.com/KhronosGroup/SPIRV-Headers.git "$RUNNER_TEMP/spirv-tools/external/spirv-headers"
+          git -C "$RUNNER_TEMP/spirv-tools/external/spirv-headers" checkout 496543121ce6419f23d6fa5d7194ba66c36212d2
+          cmake -S "$RUNNER_TEMP/spirv-tools" -B "$RUNNER_TEMP/spirv-tools-build" -G Ninja -DSPIRV_SKIP_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/spirv-tools-build" --target spirv-val spirv-opt
+      - name: Configure and build Linux backend
+        run: |
+          cmake -S . -B build-vulkan -G Ninja \
+            -DPARALLEL_MATER_BUILD_CUDA=OFF \
+            -DPARALLEL_MATER_BUILD_METAL=OFF \
+            -DPARALLEL_MATER_BUILD_VULKAN=ON \
+            -DPARALLEL_MATER_SLANGC_EXECUTABLE="$RUNNER_TEMP/slang/bin/slangc" \
+            -DPARALLEL_MATER_SPIRV_VAL_EXECUTABLE="$RUNNER_TEMP/spirv-tools-build/tools/spirv-val" \
+            -DPARALLEL_MATER_SPIRV_OPT_EXECUTABLE="$RUNNER_TEMP/spirv-tools-build/tools/spirv-opt" \
+            -DBUILD_TESTING=ON
+          cmake --build build-vulkan
+      - name: Test on lavapipe with validation
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+        run: ctest --test-dir build-vulkan --output-on-failure
+      - name: Cross-compile Android instrumentation APK
+        run: |
+          gradle -p tests/android-smoke assembleDebugAndroidTest \
+            -PparallelMaterSlangc="$RUNNER_TEMP/slang/bin/slangc" \
+            -PparallelMaterSpirvVal="$RUNNER_TEMP/spirv-tools-build/tools/spirv-val" \
+            -PparallelMaterSpirvOpt="$RUNNER_TEMP/spirv-tools-build/tools/spirv-opt"
+
+  real-gpu-validation:
+    if: vars.PARALLEL_MATER_VULKAN_GPU_RUNNER == 'true'
+    runs-on: [self-hosted, linux, vulkan]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test on hardware Vulkan
+        run: |
+          cmake -S . -B build-vulkan \
+            -DPARALLEL_MATER_BUILD_CUDA=OFF \
+            -DPARALLEL_MATER_BUILD_METAL=OFF \
+            -DPARALLEL_MATER_BUILD_VULKAN=ON \
+            -DPARALLEL_MATER_SLANGC_EXECUTABLE="$PARALLEL_MATER_SLANGC_EXECUTABLE" \
+            -DPARALLEL_MATER_SPIRV_VAL_EXECUTABLE="$PARALLEL_MATER_SPIRV_VAL_EXECUTABLE" \
+            -DPARALLEL_MATER_SPIRV_OPT_EXECUTABLE="$PARALLEL_MATER_SPIRV_OPT_EXECUTABLE" \
+            -DBUILD_TESTING=ON
+          cmake --build build-vulkan
+          ctest --test-dir build-vulkan -R parallel-mater-vulkan --output-on-failure
