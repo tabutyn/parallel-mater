@@ -46,9 +46,11 @@ its earlier Point/Motor/Generic Spring/procedural dump controllers; see the
    restores their authored poses and velocities before re-enabling the joints,
    avoiding a violent snap from distant release positions. `R` reloads the GLB.
    Hinge + Slider contains a three-gear train with an integrated panel and a
-   slider rod, without a loose ball. Piston uses alternating gravity to slide
-   a toothed sleeve along its shaft and index its rotation; eight complete
-   right–left cycles should produce one revolution. Generic's authored
+   slider rod, without a loose ball. It runs at the standard four physics
+   substeps; increasing it to eight changes the constraint/contact timestep
+   balance and destabilizes the gear train. Piston uses alternating gravity to
+   slide a toothed sleeve along its shaft and index its rotation; eight
+   complete right–left cycles should produce one revolution. Generic's authored
    `GenericBlockA` uses `pm_arrow = 100.0` for screen-space force controls;
    Motor + Spring connects four powered wheels through separate dynamically
    suspended hubs.

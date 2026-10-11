@@ -534,7 +534,7 @@ body, with each constraint frame's Z axis copied from its gear's local Z axis.
 Tooth contact propagates through both interfaces, so adjacent gears rotate in
 opposite directions and the first and third rotate in the same direction. The
 authored center distances, starting phases, collision search margins,
-64-iteration hinges, and eight gallery substeps retain closing tooth flanks at
+64-iteration hinges, and four gallery substeps retain closing tooth flanks at
 the solver's small rest offset throughout a full mesh cycle. All three gears
 use `0.08` tooth friction and zero restitution so they roll without binding or
 rebounding; both followers use mass `1.0` and angular damping `0.01` so they

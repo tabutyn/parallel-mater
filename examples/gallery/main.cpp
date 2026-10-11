@@ -117,7 +117,7 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
 
 [[nodiscard]] constexpr std::uint32_t scene_substeps(
     GalleryContext context) noexcept {
-    return context == GalleryContext::constraint_hinge || context == GalleryContext::dump ? 8U : 4U;
+    return context == GalleryContext::dump ? 8U : 4U;
 }
 
 struct Options {
@@ -1482,6 +1482,10 @@ int main(int argc, char **argv) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
     }
+#ifdef PARALLEL_MATER_SLANG_TEST_BUILD
+    std::cout << "Physics shaders: production Slang AVBD + fluid; "
+                 "120 mirrors compile-validated only\n";
+#endif
     if (options.calibrate && !options.headless_output.empty()) {
         std::cerr << "--calibrate requires the interactive gallery path\n";
         return 2;
@@ -1854,10 +1858,15 @@ int main(int argc, char **argv) {
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     GLFWwindow *window = glfwCreateWindow(
-        960, 540,
-        "ParallelMater Gallery", nullptr, nullptr);
+        1280, 720,
+#ifdef PARALLEL_MATER_SLANG_TEST_BUILD
+        "ParallelMater Gallery - Slang Production Test",
+#else
+        "ParallelMater Gallery",
+#endif
+        nullptr, nullptr);
     if (window == nullptr) {
         std::cerr << "GLFW window creation failed\n";
         glfwTerminate();

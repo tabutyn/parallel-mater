@@ -181,9 +181,9 @@ int main(int argc, char **argv) {
                          motor_spring_scene, motor_spring_error),
           motor_spring_error.empty() ? "load motor spring scene"
                                      : motor_spring_error.c_str());
-    check(motor_spring_scene.rigid_bodies.size() == 10U &&
+    check(motor_spring_scene.rigid_bodies.size() == 11U &&
               motor_spring_scene.rigid_constraints.size() == 8U,
-          "motor spring scene must contain ten bodies and eight constraints");
+          "motor spring scene must contain eleven bodies and eight constraints");
     std::size_t motor_count = 0U;
     std::size_t spring_count = 0U;
     for (const auto &constraint : motor_spring_scene.rigid_constraints) {
@@ -210,8 +210,8 @@ int main(int argc, char **argv) {
                       constraint.options.linear_limits.upper.x == 0.0F &&
                       constraint.options.linear_limits.lower.y == 0.0F &&
                       constraint.options.linear_limits.upper.y == 0.0F &&
-                      constraint.options.linear_limits.lower.z == -0.10F &&
-                      constraint.options.linear_limits.upper.z == 0.10F &&
+                      constraint.options.linear_limits.lower.z == -0.20F &&
+                      constraint.options.linear_limits.upper.z == 0.20F &&
                       constraint.options.angular_limits.lower.x == 0.0F &&
                       constraint.options.angular_limits.upper.x == 0.0F &&
                       constraint.options.angular_limits.lower.y == 0.0F &&
@@ -600,7 +600,7 @@ int main(int argc, char **argv) {
                                  collector_gravity),
                              "apply loose fixed-scene test gravity");
             check_status(world.step({.timestep = 1.0F / 60.0F,
-                                     .substeps = scene_index == 2U && !hinge_four_substeps ? 8U : 4U,
+                                     .substeps = 4U,
                                      .gravity = scene_index == 0U
                                          ? collector_gravity
                                          : Vec3{0.0F, -9.81F, 0.0F},

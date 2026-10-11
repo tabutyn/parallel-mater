@@ -1336,7 +1336,7 @@ int main(int argc,char **argv) {
     if(!options.headless) {
         if(!glfwInit()) { std::cerr << "GLFW initialization failed\n";return 1; }
         glfwWindowHint(GLFW_CLIENT_API,GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE,GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE,GLFW_TRUE);
         window=glfwCreateWindow(static_cast<int>(options.width),
             static_cast<int>(options.height),"Parallel Mater D3D12 Gallery",nullptr,nullptr);
         if(!window) { glfwTerminate();std::cerr << "Window creation failed\n";return 1; }
