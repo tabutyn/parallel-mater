@@ -18,8 +18,11 @@ CUDA/Metal, not D3D12 solver parity.
 
 ## Shared numerical core
 
-[avbd.slang](../src/slang/avbd.slang) is compiled into the production CUDA and
-Metal kernels. [avbd.hpp](../include/parallel_mater/solver/avbd.hpp) preserves
+[geometry_constraints.slang](../src/slang/geometry_constraints.slang) is
+compiled into the production CUDA and Metal kernels. It owns both the shared
+AVBD numerical core and the migrating rigid contact/joint solver entry points.
+[geometry_constraints.hpp](../include/parallel_mater/solver/geometry_constraints.hpp)
+preserves
 the matching C++17 reference contract and thin generated-code adapters. The
 shared numerical core owns:
 

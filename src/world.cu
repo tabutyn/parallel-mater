@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.hpp>
 #include <parallel_mater/solver/contact_friction.hpp>
-#include "parallel_mater_avbd_runtime.cu"
+#include "parallel_mater_geometry_constraints_runtime.cu"
 #define PM_AVBD_SLANG_RUNTIME 1
-#include <parallel_mater/solver/avbd.hpp>
+#include <parallel_mater/solver/geometry_constraints.hpp>
 #undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/halfspace.hpp>
 #include "convex_plane_dedup.hpp"
@@ -139,7 +139,7 @@ __host__ __device__ Vec3 clamp_length(Vec3 value, float maximum) noexcept {
 }
 
 #include "geometry_constraints.cuh"
-#include "avbd_cuda.cuh"
+#include "geometry_constraints_cuda.cuh"
 
 __device__ bool hit_box_separates_triangle(
     Vec3 axis, Vec3 first, Vec3 second, Vec3 third,

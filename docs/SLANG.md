@@ -7,27 +7,32 @@ has two complementary layers:
   force/foam evaluation, and integration.
 - `src/slang/fluid.slang` is the 1:1 CUDA-reference mirror, including the
   lifecycle kernels that are not yet shared by production backends.
-- `src/slang/avbd.slang` owns the numerical core used by the production CUDA
-  and Metal rigid-body/brick solvers: dual updates, force projection, friction,
-  six-degree-of-freedom block assembly and solve, and constraint-row updates.
-- Every CUDA physics source has a same-basename mirror under `src/slang/`.
-  Those files preserve all 120 CUDA entry-point names across rigid bodies,
-  fluid, cloth, soft bodies, ropes, smoke, and every coupling. The rigid
-  adapter is split between `geometry_constraints.slang` and
-  `avbd_cuda.slang`, while the portable numerical core remains
-  `avbd.slang`.
+- `src/slang/geometry.slang` owns rigid triangle geometry, contact generation,
+  and contact-cache kernels.
+- `src/slang/geometry_constraints.slang` owns the unified rigid contact/joint
+  AVBD implementation: solver entry points, dual updates, force projection,
+  friction, six-degree-of-freedom block assembly and solve, and constraint-row
+  updates.
+- CUDA physics has a corresponding Slang module under `src/slang/`. Those
+  files preserve all 120 CUDA entry-point names across rigid bodies, fluid,
+  cloth, soft bodies, ropes, smoke, and every coupling. Rigid code uses the
+  semantic geometry/constraint boundary rather than backend-specific source
+  names.
 
-The production CUDA and Metal adapters still own backend dispatch, allocation,
-sorting, and resource lifetime. D3D12 still uses its existing rigid solver.
+The transitional CUDA and Metal adapters still own backend dispatch,
+allocation, sorting, and resource lifetime until the Slang geometry modules
+pass the complete runtime trajectory gates. They are migration scaffolding,
+not alternate simulation APIs. D3D12 still uses its existing rigid solver.
 The full mirror gate targets CUDA and PTX; the smaller portable AVBD core also
 emits Metal and HLSL for cross-backend conformance.
 
 ## Source layout
 
-The source tree follows the CUDA subsystem boundary exactly. For example,
-`src/fluid_soft_body.cuh` maps to `src/slang/fluid_soft_body.slang`, and
-`src/world.cu` maps to `src/slang/world.slang`. Entry-point names do not change;
-only the folder and extension do. Shared ABI and CUDA-target intrinsics live in
+Most of the source tree follows the CUDA subsystem boundary directly. Rigid
+physics deliberately maps native collision generation to `geometry.slang` and
+native solver adapters to `geometry_constraints.slang`; these names describe
+the portable API boundary rather than a temporary backend. Entry-point names
+do not change. Shared ABI and CUDA-target intrinsics live in
 `cuda_common.slang`. `fluid_shared.slang` is intentionally separate because it
 is the compact cross-backend production pilot rather than the 1:1 reference
 mirror.
@@ -62,14 +67,15 @@ final compiler. No Slang runtime library is linked or shipped.
 
 ## AVBD conformance
 
-`PARALLEL_MATER_BUILD_SLANG_AVBD` follows `BUILD_TESTING` by default. The
+`PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS` follows `BUILD_TESTING` by
+default. The
 conformance entry emits precise-float CUDA, Metal, and Shader Model 5.1 HLSL.
 Reflection tests lock its structured-buffer ABI at 260-byte inputs, 36-byte
 outputs, and 64 threads per group. CUDA builds also generate PTX with NVRTC and
 execute 38 fixtures against the portable host reference.
 
 ```sh
-cmake --build build --target parallel-mater-slang-avbd
+cmake --build build --target parallel-mater-slang-geometry-constraints
 ctest --test-dir build --output-on-failure \
   -R 'parallel-mater-avbd-(core|slang)'
 ```
@@ -93,7 +99,7 @@ ctest --test-dir build -R slang-kernel-mirror-coverage --output-on-failure
 ```
 
 The full mirrors are compile-validation ports, not production dispatch
-replacements. In particular, `geometry_constraints.slang` does not yet contain
+replacements. In particular, `geometry.slang` does not yet contain
 the native triangle/BVH rigid-contact implementation. Routing its coarse
 bounding-sphere contact into the production solver produces invalid rigid-body
 trajectories. Keep runtime dispatch on the native geometry adapters until a

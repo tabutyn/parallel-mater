@@ -15,6 +15,10 @@ SLANG_ENTRY = re.compile(
 
 native_sources = [ROOT / "src" / "world.cu"]
 native_sources.extend(sorted((ROOT / "src").glob("*.cuh")))
+mirror_names = {
+    "geometry_constraints": "geometry",
+    "geometry_constraints_cuda": "geometry_constraints",
+}
 failures: list[str] = []
 kernel_count = 0
 
@@ -22,7 +26,8 @@ for native in native_sources:
     kernels = set(CUDA_KERNEL.findall(native.read_text()))
     if not kernels:
         continue
-    mirror = ROOT / "src" / "slang" / f"{native.stem}.slang"
+    mirror_name = mirror_names.get(native.stem, native.stem)
+    mirror = ROOT / "src" / "slang" / f"{mirror_name}.slang"
     if not mirror.exists():
         failures.append(f"{native.relative_to(ROOT)}: missing {mirror.relative_to(ROOT)}")
         continue

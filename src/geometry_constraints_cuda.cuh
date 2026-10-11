@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-// CUDA geometry/scheduling adapter for the shared AVBD numerical core.
-// Included after geometry_constraints.cuh, inside parallel_mater's internals.
+// Transitional CUDA geometry/scheduling adapter for geometry_constraints.slang.
+// Included after geometry_constraints.cuh, inside parallel_mater's internals;
+// runtime dispatch remains here only until the Slang adapter reaches parity.
 
 struct AvbdBody {
     RigidBodyState target{};

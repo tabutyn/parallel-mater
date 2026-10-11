@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include "avbd_cases.hpp"
+#include "geometry_constraint_cases.hpp"
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <algorithm>
@@ -8,8 +8,8 @@
 #include <cstdio>
 #include <vector>
 
-#ifndef PARALLEL_MATER_SLANG_AVBD_PTX
-#error "PARALLEL_MATER_SLANG_AVBD_PTX must name the generated PTX file"
+#ifndef PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX
+#error "PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX must name the generated PTX file"
 #endif
 
 namespace {
@@ -236,7 +236,8 @@ int main() {
     CUfunction function{};
     CUdeviceptr global_params{};
     std::size_t global_size{};
-    if (cuModuleLoad(&module, PARALLEL_MATER_SLANG_AVBD_PTX) != CUDA_SUCCESS
+    if (cuModuleLoad(&module,
+                     PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX) != CUDA_SUCCESS
         || cuModuleGetGlobal(&global_params, &global_size, module,
                              "SLANG_globalParams") != CUDA_SUCCESS
         || global_size != sizeof(params)
