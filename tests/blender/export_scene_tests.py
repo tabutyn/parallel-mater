@@ -466,7 +466,7 @@ class ExportSceneTests(unittest.TestCase):
     def test_motor_spring_constraint_settings(self):
         bpy.ops.wm.open_mainfile(
             filepath=str(ASSETS / "ConstraintMotorSpring.blend"))
-        document = self.check_export(Counter(rigid_body=10,
+        document = self.check_export(Counter(rigid_body=11,
                                              rigid_constraint=8))
         constraints = [node["extras"] for node in document["nodes"]
                        if node.get("extras", {}).get("pm_system") ==
@@ -488,8 +488,8 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertEqual(spring[f"pm_limit_lin_{axis}_upper"], 0.0)
                 self.assertFalse(spring[f"pm_use_spring_{axis}"])
             self.assertTrue(spring["pm_use_limit_lin_z"])
-            self.assertAlmostEqual(spring["pm_limit_lin_z_lower"], -0.10)
-            self.assertAlmostEqual(spring["pm_limit_lin_z_upper"], 0.10)
+            self.assertAlmostEqual(spring["pm_limit_lin_z_lower"], -0.20)
+            self.assertAlmostEqual(spring["pm_limit_lin_z_upper"], 0.20)
             self.assertTrue(spring["pm_use_spring_z"])
             self.assertEqual(spring["pm_spring_stiffness_z"], 500.0)
             self.assertEqual(spring["pm_spring_damping_z"], 8.0)

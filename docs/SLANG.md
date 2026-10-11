@@ -91,3 +91,15 @@ same-basename files and exact entry names.
 cmake --build build --target parallel-mater-slang-kernel-mirrors
 ctest --test-dir build -R slang-kernel-mirror-coverage --output-on-failure
 ```
+
+The full mirrors are compile-validation ports, not production dispatch
+replacements. In particular, `geometry_constraints.slang` does not yet contain
+the native triangle/BVH rigid-contact implementation. Routing its coarse
+bounding-sphere contact into the production solver produces invalid rigid-body
+trajectories. Keep runtime dispatch on the native geometry adapters until a
+mirror passes the scene-wide trajectory gates.
+
+For an explicitly labelled gallery that runs the production Slang AVBD and
+fluid kernels while also compiling all mirrors, configure with
+`-DPARALLEL_MATER_SLANG_TEST_BUILD=ON`. The title and startup banner distinguish
+that safe test build and state that the 120 mirrors are compile-validated only.

@@ -44,6 +44,16 @@ option(PARALLEL_MATER_BUILD_SLANG_AVBD
        "Build and validate the portable Slang AVBD core" ${BUILD_TESTING})
 option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
        "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
+option(PARALLEL_MATER_SLANG_TEST_BUILD
+       "Label the gallery as a production Slang runtime test build" OFF)
+
+if(PARALLEL_MATER_SLANG_TEST_BUILD)
+    set(PARALLEL_MATER_BUILD_SLANG_AVBD ON CACHE BOOL
+        "Build and validate the portable Slang AVBD core" FORCE)
+    set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL
+        "Build and validate every CUDA physics kernel mirror" FORCE)
+    add_compile_definitions(PARALLEL_MATER_SLANG_TEST_BUILD=1)
+endif()
 
 # Ship prebuilt icons so ordinary builds need no image conversion tools.
 if(WIN32 AND (PARALLEL_MATER_BUILD_D3D12_GALLERY OR
@@ -1982,6 +1992,10 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/SlangKernelMirrors.cmake)
     parallel_mater_add_slang_kernel_mirrors()
+    if(PARALLEL_MATER_SLANG_TEST_BUILD AND TARGET parallel-mater-gallery)
+        add_dependencies(parallel-mater-gallery
+                         parallel-mater-slang-kernel-mirrors)
+    endif()
 endif()
 
 if(BUILD_TESTING)
