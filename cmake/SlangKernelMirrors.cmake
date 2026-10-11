@@ -15,6 +15,11 @@ function(parallel_mater_add_slang_kernel_mirrors)
     function(add_mirror module)
         set(entries ${ARGN})
         set(entry_arguments)
+        set(module_definitions)
+        if(module STREQUAL "geometry_constraints")
+            list(APPEND module_definitions
+                 -DPM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
+        endif()
         foreach(entry IN LISTS entries)
             list(APPEND entry_arguments -entry "${entry}" -stage compute)
         endforeach()
@@ -26,7 +31,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
             COMMAND "${slangc}" "${source}"
                 -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                 -target cuda -fp-mode precise -warnings-as-errors all
-                ${entry_arguments} -o "${cuda_output}"
+                ${module_definitions} ${entry_arguments} -o "${cuda_output}"
             DEPENDS ${slang_dependencies} "${slangc}"
             COMMENT "Validating ${module}.slang as CUDA"
             COMMAND_EXPAND_LISTS VERBATIM)
@@ -40,7 +45,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
                     -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                     -target ptx -fp-mode precise -warnings-as-errors all
                     -nvrtc-path "$<TARGET_FILE_DIR:CUDA::nvrtc>/nvrtc"
-                    ${entry_arguments} -o "${ptx_output}"
+                    ${module_definitions} ${entry_arguments} -o "${ptx_output}"
                 DEPENDS ${slang_dependencies} "${slangc}" CUDA::nvrtc
                 COMMENT "Validating ${module}.slang as PTX"
                 COMMAND_EXPAND_LISTS VERBATIM)
@@ -67,7 +72,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
         fluid_soft_solve fluid_soft_apply fluid_soft_recover)
     add_mirror(geometry_cloth cloth_constrain_bodies
         cloth_apply_body_corrections)
-    add_mirror(geometry_constraints integrate_rigid_bodies_kernel
+    add_mirror(geometry integrate_rigid_bodies_kernel
         compute_rigid_world_bounds_kernel broad_phase_rigid_pairs_kernel
         generate_rigid_leaf_pairs_kernel evaluate_rigid_leaf_pairs_kernel
         reduce_rigid_leaf_manifolds_kernel
@@ -114,7 +119,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
         rope_soft_scatter_anchor rope_soft_apply)
     add_mirror(soft_body_smoke smoke_soft_body_wind smoke_soft_body_contact)
     add_mirror(world query_rigid_hit_box_kernel query_particle_hit_box_kernel)
-    add_mirror(avbd_cuda prepare_avbd_kernel solve_avbd_kernel)
+    add_mirror(geometry_constraints prepare_avbd_kernel solve_avbd_kernel)
 
     add_custom_target(parallel-mater-slang-kernel-mirrors ALL
         DEPENDS ${outputs})

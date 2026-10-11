@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <metal_stdlib>
-#include "parallel_mater_avbd_runtime.metal"
+#include "parallel_mater_geometry_constraints_runtime.metal"
 #define PM_AVBD_SLANG_RUNTIME 1
-#include <parallel_mater/solver/avbd.hpp>
+#include <parallel_mater/solver/geometry_constraints.hpp>
 #undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/contact_friction.hpp>
 
@@ -3162,7 +3162,7 @@ kernel void pm_rigid_contact_generate_cooperative(
     }
 }
 
-#include "avbd.metal"
+#include "geometry_constraints.metal"
 
 [[max_total_threads_per_threadgroup(64)]]
 kernel void pm_rigid_contact_match_cache(

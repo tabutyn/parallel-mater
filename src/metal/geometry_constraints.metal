@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Metal geometry/storage adapter for the shared AVBD numerical contract.
-// Included after kernels.metal's packed ABI types and collision helpers.
+// Transitional Metal geometry/storage adapter for geometry_constraints.slang.
+// Included after kernels.metal's packed ABI types and collision helpers;
+// runtime dispatch remains here only until the Slang adapter reaches parity.
 namespace avbd = parallel_mater::avbd;
 
 // Cache only graph metadata, not solver state. This preserves the serial

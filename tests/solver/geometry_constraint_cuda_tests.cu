@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include "avbd_cases.hpp"
+#include "geometry_constraint_cases.hpp"
 #include <cuda_runtime.h>
 #include <cstdio>
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include "avbd_cases.hpp"
+#include "geometry_constraint_cases.hpp"
 #include "../../src/convex_plane_dedup.hpp"
 #include <cmath>
 #include <cstdio>

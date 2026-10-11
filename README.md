@@ -76,8 +76,9 @@ The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
-CUDA and Metal compile the standalone fluid solver and AVBD numerical core
-from `src/slang/fluid_shared.slang` and `src/slang/avbd.slang`. The complete
+CUDA and Metal compile the standalone fluid solver and rigid constraint core
+from `src/slang/fluid_shared.slang` and
+`src/slang/geometry_constraints.slang`. The complete
 CUDA-reference mirror lives beside them under `src/slang/`; build target
 `parallel-mater-slang-kernel-mirrors` validates every entry. CMake resolves one
 exact Slang 2026.18 compiler from `PATH` or downloads the matching
