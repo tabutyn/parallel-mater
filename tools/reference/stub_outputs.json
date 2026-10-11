@@ -1,0 +1,130 @@
+{
+  "pmEnumerateInstanceVersion": {
+    "pApiVersion": "uint32_t*"
+  },
+  "pmCreateInstance": {
+    "pInstance": "PmInstance*"
+  },
+  "pmEnumeratePhysicalDevices": {
+    "pCount": "uint32_t*",
+    "pDevices": "PmPhysicalDevice*"
+  },
+  "pmGetPhysicalDeviceProperties": {
+    "pProperties": "PmPhysicalDeviceProperties*"
+  },
+  "pmGetPhysicalDeviceQueueFamilies": {
+    "pCount": "uint32_t*",
+    "pProperties": "PmQueueFamilyProperties*"
+  },
+  "pmGetPhysicalDeviceFeatures": {
+    "pFeatures": "PmPhysicalDeviceFeatures*"
+  },
+  "pmCreateDevice": {
+    "pDevice": "PmDevice*"
+  },
+  "pmGetDeviceQueue": {
+    "pQueue": "PmQueue*"
+  },
+  "pmGetPhysicalDeviceMemoryProperties": {
+    "pProperties": "PmMemoryProperties*"
+  },
+  "pmAllocateMemory": {
+    "pMemory": "PmDeviceMemory*"
+  },
+  "pmMapMemory": {
+    "ppData": "void**"
+  },
+  "pmCreateBuffer": {
+    "pBuffer": "PmBuffer*"
+  },
+  "pmGetBufferMemoryRequirements": {
+    "pRequirements": "PmMemoryRequirements*"
+  },
+  "pmCreateGeometry": {
+    "pGeometry": "PmGeometry*"
+  },
+  "pmGetGeometryMemoryRequirements": {
+    "pRequirements": "PmMemoryRequirements*"
+  },
+  "pmCreateSimulation": {
+    "pSimulation": "PmSimulation*"
+  },
+  "pmGetSimulationMemoryRequirements": {
+    "pInfo": "PmSimulationMemoryRequirements*"
+  },
+  "pmCreatePhysicsPipeline": {
+    "pPipeline": "PmPhysicsPipeline*"
+  },
+  "pmCreateCommandPool": {
+    "pPool": "PmCommandPool*"
+  },
+  "pmAllocateCommandBuffers": {
+    "pBuffers": "PmCommandBuffer*"
+  },
+  "pmCreateSemaphore": {
+    "pSemaphore": "PmSemaphore*"
+  },
+  "pmGetSemaphoreCounterValue": {
+    "pValue": "uint64_t*"
+  },
+  "pmCreateFence": {
+    "pFence": "PmFence*"
+  },
+  "pmGetPhysicalDeviceInteropProperties": {
+    "pProperties": "PmNativeInteropProperties*"
+  },
+  "pmImportNativeDevice": {
+    "pDevice": "PmDevice*"
+  },
+  "pmGetNativeDevice": {
+    "pNativeDevice": "PmNativeDeviceInfo*"
+  },
+  "pmImportNativeBuffer": {
+    "pBuffer": "PmBuffer*"
+  },
+  "pmGetNativeBuffer": {
+    "pNativeBuffer": "PmNativeBufferInfo*"
+  },
+  "pmImportNativeSemaphore": {
+    "pSemaphore": "PmSemaphore*"
+  },
+  "pmGetNativeSemaphore": {
+    "pNativeSemaphore": "PmNativeHandle*"
+  },
+  "pmImportVulkanDeviceEXT": {
+    "pDevice": "PmDevice*"
+  },
+  "pmGetVulkanDeviceEXT": {
+    "pNativeDevice": "PmVulkanDeviceInfo*"
+  },
+  "pmImportVulkanBufferEXT": {
+    "pBuffer": "PmBuffer*"
+  },
+  "pmGetVulkanBufferEXT": {
+    "pNativeBuffer": "VkBuffer*"
+  },
+  "pmImportVulkanSemaphoreEXT": {
+    "pSemaphore": "PmSemaphore*"
+  },
+  "pmGetVulkanSemaphoreEXT": {
+    "pNativeSemaphore": "VkSemaphore*"
+  },
+  "pmCreateQueryPool": {
+    "pPool": "PmQueryPool*"
+  },
+  "pmGetSimulationStatus": {
+    "pExecutionResult": "PmResult*"
+  },
+  "pmGetQueryPoolResults": {
+    "pData": "void*"
+  },
+  "pmGetDeviceMemoryBudget": {
+    "pBudget": "PmMemoryBudget*"
+  },
+  "pmGetPhysicalDeviceLimits": {
+    "pLimits": "PmPhysicalDeviceLimits*"
+  },
+  "pmGetPhysicalDeviceFormatProperties": {
+    "pProperties": "PmFormatProperties*"
+  }
+}

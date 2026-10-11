@@ -61,6 +61,19 @@ Start with [the proposed API](docs/API.md), then review
 [the gallery boundary](docs/GALLERY.md) and [the staged implementation
 plan](docs/ROADMAP.md).
 
+The [command API reference PDF](docs/reference/parallel-mater-reference.pdf)
+and [API specification](docs/reference/parallel-mater-specification.pdf)
+describe the next, Vulkan-style API: explicit devices, allocation, physics
+pipelines, command buffers and synchronization. It is a **0.2 design draft**,
+not an implemented replacement for `World`. The reference lists declarations;
+its purple section markers point to explanations and rules in the specification.
+An opt-in `parallel-mater-command-stubs` target provides unsupported placeholders
+for every declaration without changing the running backends. The
+[coverage audit](docs/reference/API-AUDIT.md) distinguishes these stubs from
+working physics and lists the remaining legacy-domain gaps.
+Its [C contract, Python generator
+and migration gates](docs/reference/README.md) are kept together for review.
+
 ## Build and test
 
 ```bash

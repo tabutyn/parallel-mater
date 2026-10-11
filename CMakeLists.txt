@@ -40,6 +40,13 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
+option(PARALLEL_MATER_BUILD_COMMAND_STUBS
+       "Build the unsupported C command API placeholders (no physics execution)" OFF)
+option(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS
+       "Include typed Vulkan placeholders (requires Vulkan headers only)" OFF)
+if(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS AND NOT PARALLEL_MATER_BUILD_COMMAND_STUBS)
+    message(FATAL_ERROR "Vulkan command stubs require PARALLEL_MATER_BUILD_COMMAND_STUBS")
+endif()
 if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
    NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
@@ -124,6 +131,33 @@ else()
 endif()
 
 set(PARALLEL_MATER_INSTALL_TARGETS)
+
+# Separate opt-in target: never linked into the gallery or production World.
+if(PARALLEL_MATER_BUILD_COMMAND_STUBS)
+    add_library(parallel-mater-command-stubs STATIC src/command/stubs.cpp)
+    add_library(ParallelMater::parallel-mater-command-stubs ALIAS parallel-mater-command-stubs)
+    target_compile_features(parallel-mater-command-stubs PUBLIC cxx_std_17)
+    target_include_directories(parallel-mater-command-stubs PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+    if(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS)
+        find_path(PARALLEL_MATER_VULKAN_INCLUDE_DIR vulkan/vulkan.h REQUIRED)
+        target_sources(parallel-mater-command-stubs PRIVATE src/command/vulkan_stubs.cpp)
+        target_include_directories(parallel-mater-command-stubs PRIVATE
+            ${PARALLEL_MATER_VULKAN_INCLUDE_DIR})
+    endif()
+    if(MSVC)
+        target_compile_options(parallel-mater-command-stubs PRIVATE /W4 /WX)
+    else()
+        target_compile_options(parallel-mater-command-stubs PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-command-stubs)
+    if(BUILD_TESTING)
+        add_executable(parallel-mater-command-stubs-test tests/command_stubs.cpp)
+        target_link_libraries(parallel-mater-command-stubs-test PRIVATE parallel-mater-command-stubs)
+        add_test(NAME command-api-unsupported-stubs COMMAND parallel-mater-command-stubs-test)
+    endif()
+endif()
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
    PARALLEL_MATER_BUILD_METAL_GALLERY OR
