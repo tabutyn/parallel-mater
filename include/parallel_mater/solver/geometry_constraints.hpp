@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Augmented Vertex Block Descent (Giles, Diaz, Yuksel, SIGGRAPH 2025).
-// Shared numerical contract: host, CUDA and Metal compile this same source.
-// Backend adapters own geometry, graph coloring, storage and synchronization.
+// Host reference and generated-code bridge for geometry_constraints.slang.
+// The implementation uses Augmented Vertex Block Descent (Giles, Diaz,
+// Yuksel, SIGGRAPH 2025); it is one rigid constraint implementation, not a
+// separately selectable simulation API.
 #ifdef __METAL_VERSION__
 #define PM_AVBD_INLINE inline
 #define PM_AVBD_THREAD thread

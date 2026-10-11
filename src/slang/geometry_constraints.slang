@@ -1,15 +1,271 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/geometry_constraints.cuh.
+// Unified rigid contact and joint constraint solver.
+// This production Slang module owns the AVBD numerical core; the optional
+// adapter block below preserves the complete rigid solver entry-point surface
+// while backend-specific runtime dispatch is retired.
 
-import cuda_common;
+#ifndef PM_AVBD_RUNTIME
+#define PM_AVBD_RUNTIME 0
+#endif
+static const float kAvbdAlpha = 0.99f;
+static const float kAvbdGamma = 0.999f;
+static const float kAvbdMinimumPenalty = 1.0f;
+static const float kAvbdMaximumPenalty = 1.0e10f;
+static const float kAvbdLinearBeta = 10000.0f;
+static const float kAvbdAngularBeta = 100.0f;
+static const uint kAvbdDefaultIterations = 10;
 
-struct RigidAvbdVector6 { float values[6]; };
-struct RigidAvbdDual { float lambda; float penalty; };
-struct RigidAvbdRow
+float avbdMin(float a, float b) { return a < b ? a : b; }
+float avbdMax(float a, float b) { return a > b ? a : b; }
+float avbdAbs(float value) { return value < 0.0f ? -value : value; }
+float avbdClamp(float value, float lower, float upper)
 {
-    RigidAvbdVector6 a;
-    RigidAvbdVector6 b;
-    RigidAvbdDual dual;
+    return avbdMin(avbdMax(value, lower), upper);
+}
+
+struct AvbdDual
+{
+    float lambda;
+    float penalty;
+};
+
+AvbdDual avbdWarmStart(AvbdDual value, float stiffness)
+{
+    value.lambda *= kAvbdAlpha * kAvbdGamma;
+    value.penalty = avbdMin(stiffness,
+        avbdClamp(value.penalty * kAvbdGamma,
+                  kAvbdMinimumPenalty, kAvbdMaximumPenalty));
+    return value;
+}
+
+float avbdForce(AvbdDual value, float error, float lower, float upper)
+{
+    return avbdClamp(value.lambda + value.penalty * error, lower, upper);
+}
+
+AvbdDual avbdUpdateDual(AvbdDual value, float error, float beta,
+                        float lower, float upper, float stiffness)
+{
+    float unconstrained = value.lambda + value.penalty * error;
+    value.lambda = stiffness < kAvbdMaximumPenalty
+        ? 0.0f : avbdClamp(unconstrained, lower, upper);
+    if (unconstrained > lower && unconstrained < upper)
+    {
+        value.penalty = avbdMin(stiffness, avbdMin(kAvbdMaximumPenalty,
+            value.penalty + beta * avbdAbs(error)));
+    }
+    return value;
+}
+
+struct AvbdContactForce
+{
+    float normal;
+    float tangent0;
+    float tangent1;
+};
+
+AvbdContactForce avbdProjectContact(AvbdContactForce value, float friction)
+{
+    value.normal = avbdMax(value.normal, 0.0f);
+    float bound = friction * value.normal;
+    float tangentLength = sqrt(value.tangent0 * value.tangent0
+                             + value.tangent1 * value.tangent1);
+    if (tangentLength > bound && tangentLength > 0.0f)
+    {
+        value.tangent0 *= bound / tangentLength;
+        value.tangent1 *= bound / tangentLength;
+    }
+    return value;
+}
+
+AvbdContactForce avbdContactStiffnessScales(
+    AvbdContactForce trial, float friction)
+{
+    float normal = avbdMax(trial.normal, 0.0f);
+    float bound = friction * normal;
+    float tangent = sqrt(trial.tangent0 * trial.tangent0
+                       + trial.tangent1 * trial.tangent1);
+    float scale = bound <= 0.0f ? 0.0f
+                : tangent <= bound ? 1.0f : bound / tangent;
+    AvbdContactForce result;
+    result.normal = trial.normal > 0.0f ? 1.0f : 0.0f;
+    result.tangent0 = scale;
+    result.tangent1 = scale;
+    return result;
+}
+
+struct AvbdVector6
+{
+    float values[6];
+};
+
+float avbdVectorElement(AvbdVector6 value, uint index)
+{
+    return value.values[index];
+}
+
+AvbdVector6 avbdZeroVector6()
+{
+    AvbdVector6 result;
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i) result.values[i] = 0.0f;
+    return result;
+}
+
+float avbdDot6(AvbdVector6 a, AvbdVector6 b)
+{
+    float result = 0.0f;
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i)
+        result += avbdVectorElement(a, i) * avbdVectorElement(b, i);
+    return result;
+}
+
+struct AvbdBlock
+{
+    float h[6][6];
+    float g[6];
+};
+
+AvbdBlock avbdZeroBlock()
+{
+    AvbdBlock result;
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i)
+    {
+        result.g[i] = 0.0f;
+        [ForceUnroll]
+        for (uint j = 0; j < 6; ++j) result.h[i][j] = 0.0f;
+    }
+    return result;
+}
+
+void avbdAddRow(inout AvbdBlock block, AvbdVector6 jacobian,
+                float stiffness, float rowForce)
+{
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i)
+    {
+        block.g[i] += jacobian.values[i] * rowForce;
+        [loop]
+        for (uint j = 0; j <= i; ++j)
+            block.h[i][j] += stiffness
+                * jacobian.values[i] * jacobian.values[j];
+    }
+}
+
+bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
+{
+    const float largest = 3.402823466e38f;
+    const float epsilon = 1.1920928955078125e-7f;
+    const float pivotFloor = 8.0f * epsilon;
+    const float roundoffTolerance = 64.0f * epsilon;
+    delta = avbdZeroVector6();
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i)
+    {
+        if (!(input.h[i][i] > 0.0f) || !(input.h[i][i] < largest)
+            || !(avbdAbs(input.g[i]) < largest)) return false;
+        [loop]
+        for (uint j = 0; j < i; ++j)
+            if (!(avbdAbs(input.h[i][j]) < largest)) return false;
+    }
+    [ForceUnroll]
+    for (uint attempt = 0; attempt < 2; ++attempt)
+    {
+        AvbdBlock block = input;
+        float scale[6];
+        float diagonalFactors[6];
+        float forward[6];
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i)
+        {
+            scale[i] = attempt != 0 ? 1.0f / sqrt(block.h[i][i]) : 1.0f;
+            diagonalFactors[i] = 0.0f;
+            forward[i] = 0.0f;
+        }
+        if (attempt != 0)
+        {
+            [ForceUnroll]
+            for (uint i = 0; i < 6; ++i)
+            {
+                block.g[i] *= scale[i];
+                if (!(avbdAbs(block.g[i]) < largest)) return false;
+                [loop]
+                for (uint j = 0; j < i; ++j)
+                {
+                    block.h[i][j] *= scale[i] * scale[j];
+                    if (!(avbdAbs(block.h[i][j])
+                          <= 1.0f + roundoffTolerance)) return false;
+                }
+                block.h[i][i] = 1.0f;
+            }
+        }
+        bool retry = false;
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i)
+        {
+            [loop]
+            for (uint j = 0; j < i; ++j)
+            {
+                float sum = block.h[i][j];
+                [loop]
+                for (uint k = 0; k < j; ++k)
+                    sum -= block.h[i][k] * diagonalFactors[k]
+                         * block.h[j][k];
+                block.h[i][j] = sum / diagonalFactors[j];
+            }
+            float diagonal = block.h[i][i];
+            [loop]
+            for (uint k = 0; k < i; ++k)
+                diagonal -= block.h[i][k] * block.h[i][k]
+                          * diagonalFactors[k];
+            if (attempt == 0)
+            {
+                if (!(diagonal > pivotFloor * input.h[i][i])
+                    || !(diagonal < largest))
+                {
+                    retry = true;
+                    break;
+                }
+                diagonalFactors[i] = diagonal;
+            }
+            else
+            {
+                if (!(diagonal >= -roundoffTolerance)
+                    || !(diagonal < largest)) return false;
+                diagonalFactors[i] = avbdMax(diagonal, pivotFloor);
+            }
+            forward[i] = -block.g[i];
+            [loop]
+            for (uint k = 0; k < i; ++k)
+                forward[i] -= block.h[i][k] * forward[k];
+        }
+        if (retry) continue;
+        [ForceUnroll]
+        for (int i = 5; i >= 0; --i)
+        {
+            delta.values[i] = forward[i] / diagonalFactors[i];
+            [loop]
+            for (uint k = uint(i) + 1; k < 6; ++k)
+                delta.values[i] -= block.h[k][i] * delta.values[k];
+        }
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i)
+        {
+            delta.values[i] *= scale[i];
+            if (!(avbdAbs(delta.values[i]) < largest)) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+struct AvbdRow
+{
+    AvbdVector6 a;
+    AvbdVector6 b;
+    AvbdDual dual;
     float error;
     float velocity;
     float lower;
@@ -17,736 +273,543 @@ struct RigidAvbdRow
     float stiffness;
     float damping;
     float beta;
-    float reference_force;
+    float referenceForce;
 };
 
-struct BodyAccumulator
+float avbdRowVectorElement(AvbdRow row, uint side, uint index)
 {
-    Vec3 force;
-    Vec3 torque;
-    Vec3 impulse;
-    Vec3 angular_impulse;
-};
-
-struct KinematicTarget
-{
-    RigidBodyState state;
-    bool active;
-};
-
-enum RigidConstraintType : uint8_t
-{
-    fixed,
-    point,
-    hinge,
-    slider,
-    piston,
-    generic,
-    generic_spring,
-    motor,
-};
-
-struct RigidConstraintLimitOptions
-{
-    uint8_t axes;
-    Vec3 lower;
-    Vec3 upper;
-};
-
-struct RigidConstraintSpringOptions
-{
-    uint8_t axes;
-    Vec3 stiffness;
-    Vec3 damping;
-};
-
-struct RigidConstraintMotorOptions
-{
-    bool linear_enabled;
-    bool angular_enabled;
-    float linear_target_velocity;
-    float linear_maximum_impulse;
-    float angular_target_velocity;
-    float angular_maximum_impulse;
-};
-
-struct RigidConstraintOptions
-{
-    RigidConstraintType type;
-    RigidBodyId body_a;
-    RigidBodyId body_b;
-    Vec3 local_anchor_a;
-    Vec3 local_anchor_b;
-    Quaternion local_orientation_a;
-    Quaternion local_orientation_b;
-    RigidConstraintLimitOptions linear_limits;
-    RigidConstraintLimitOptions angular_limits;
-    RigidConstraintSpringOptions linear_springs;
-    RigidConstraintSpringOptions angular_springs;
-    RigidConstraintMotorOptions motor;
-    bool enabled;
-    bool disable_collisions;
-    float breaking_impulse_threshold;
-    uint solver_iterations;
-};
-
-struct RigidConstraintState
-{
-    bool enabled;
-    bool broken;
-    float applied_impulse;
-};
-
-struct RigidConstraintGeometry
-{
-    uint dense_a;
-    uint dense_b;
-};
-
-struct RigidConstraintResource
-{
-    RigidConstraintOptions options;
-    RigidConstraintState state;
-    uint generation;
-    bool alive;
-    RigidConstraintGeometry geometry;
-    RigidAvbdRow avbd_rows[18];
-    uint avbd_count;
-    uint avbd_next_a;
-    uint avbd_next_b;
-};
-
-struct FixedContactProjection { uint root; };
-
-struct HingeContactFrame
-{
-    Vec3 anchor;
-    Vec3 axis;
-    Vec3 local_anchor;
-    float inverse_mass;
-    float inverse_moment;
-    bool present;
-    bool fixed;
-    bool axial;
-    bool axial_rotation;
-    bool fixed_member;
-    bool point_member;
-    bool static_body;
-};
-
-struct Contact
-{
-    Vec3 normal;
-    Vec3 point;
-    float penetration;
-    HingeContactFrame body_hinge;
-    HingeContactFrame collider_hinge;
-    float accumulated_normal_impulse;
-    Vec3 accumulated_friction_impulse;
-    float initial_normal_speed;
-    bool warm_started;
-    bool persistent;
-    float impact_fraction;
-    float reported_normal_impulse;
-    Vec3 reported_friction_impulse;
-    RigidAvbdDual avbd_dual[3];
-    Vec3 avbd_error;
-    Vec3 avbd_anchor_a;
-    Vec3 avbd_anchor_b;
-    bool avbd_cached;
-};
-
-struct ContactManifold
-{
-    Contact contacts[8];
-    uint count;
-    Vec3 initial_relative_position;
-    bool face_patch;
-    uint response_slot;
-    uint avbd_next_a;
-    uint avbd_next_b;
-};
-
-struct CachedContact
-{
-    Vec3 local_point;
-    Vec3 normal;
-    float normal_impulse;
-    Vec3 friction_impulse;
-    RigidAvbdDual avbd_dual[3];
-    Vec3 avbd_anchor_a;
-    Vec3 avbd_anchor_b;
-};
-
-struct CachedContactPair
-{
-    uint pair;
-    RigidBodyId body;
-    RigidBodyId collider;
-    uint64_t epoch;
-    float timestep;
-    uint count;
-    CachedContact contacts[8];
-};
-
-struct ContactSchedule
-{
-    uint counts[29];
-    uint offsets[29];
-    uint budget;
-    uint remaining;
-    uint island_count;
-    uint early_exit_count;
-    uint maximum_passes;
-    uint blocks;
-    uint candidates;
-    uint contacts;
-};
-
-struct LeafPair
-{
-    uint body_first;
-    uint body_count;
-    uint collider_first;
-    uint collider_count;
-};
-
-struct RigidContactEvent
-{
-    RigidBodyId body;
-    RigidBodyId collider;
-    Vec3 position;
-    Vec3 normal;
-    float penetration;
-    float normal_impulse;
-    Vec3 friction_impulse;
-};
-
-struct PhysicsDebugRigidSample
-{
-    RigidBodyId id;
-    RigidBodyState state;
-    Vec3 applied_force;
-    Vec3 applied_torque;
-};
-
-uint find_rigid_body_dense(RigidBodyId id, RigidBodyId* ids, uint count)
-{
-    for (uint index = 0u; index < count; ++index)
-        if (ids[index].index == id.index &&
-            ids[index].generation == id.generation) return index;
-    return kInvalidDense;
+    return avbdVectorElement(side == 0u ? row.a : row.b, index);
 }
 
-bool same_id(RigidBodyId a, RigidBodyId b)
+float avbdRowScalarElement(AvbdRow row, uint member)
 {
-    return a.index == b.index && a.generation == b.generation;
+    if (member == 0u) return row.dual.lambda;
+    if (member == 1u) return row.dual.penalty;
+    if (member == 2u) return row.error;
+    if (member == 3u) return row.velocity;
+    if (member == 4u) return row.lower;
+    if (member == 5u) return row.upper;
+    if (member == 6u) return row.stiffness;
+    if (member == 7u) return row.damping;
+    if (member == 8u) return row.beta;
+    return row.referenceForce;
 }
 
-bool constrained_collision_disabled(
-    RigidBodyId a, RigidBodyId b, RigidConstraintResource* constraints,
-    uint capacity)
+float avbdRowError(AvbdRow row, AvbdVector6 a, AvbdVector6 b)
 {
-    for (uint index = 0u; index < capacity; ++index)
-    {
-        RigidConstraintResource constraint = constraints[index];
-        if (!constraint.alive || !constraint.options.enabled ||
-            constraint.state.broken || !constraint.options.disable_collisions)
-            continue;
-        if ((same_id(constraint.options.body_a, a) &&
-             same_id(constraint.options.body_b, b)) ||
-            (same_id(constraint.options.body_a, b) &&
-             same_id(constraint.options.body_b, a))) return true;
-    }
-    return false;
+    return row.error + avbdDot6(row.a, a) + avbdDot6(row.b, b);
 }
 
+float avbdRowTrial(AvbdRow row, AvbdVector6 a, AvbdVector6 b, float dt)
+{
+    float displacement = avbdDot6(row.a, a) + avbdDot6(row.b, b);
+    return row.dual.lambda + row.dual.penalty * (row.error + displacement)
+        + row.damping * (row.velocity + displacement / dt);
+}
+
+float avbdRowForce(AvbdRow row, AvbdVector6 a, AvbdVector6 b, float dt)
+{
+    return avbdClamp(avbdRowTrial(row, a, b, dt), row.lower, row.upper);
+}
+
+void avbdAccumulate(inout AvbdBlock block, AvbdRow row, bool first,
+                    AvbdVector6 a, AvbdVector6 b, float dt)
+{
+    float trial = avbdRowTrial(row, a, b, dt);
+    bool twoSided = row.lower < 0.0f && row.upper > 0.0f;
+    float stiffness = twoSided || (trial > row.lower && trial < row.upper)
+        ? row.dual.penalty + row.damping / dt : 0.0f;
+    avbdAddRow(block, first ? row.a : row.b, stiffness,
+        avbdClamp(trial, row.lower, row.upper) - row.referenceForce);
+}
+
+AvbdRow avbdAdvance(AvbdRow row, AvbdVector6 a, AvbdVector6 b)
+{
+    row.dual = avbdUpdateDual(row.dual, avbdRowError(row, a, b), row.beta,
+        row.lower, row.upper, row.stiffness);
+    return row;
+}
+
+#if PM_AVBD_RUNTIME
+// Keep every numerical primitive visible to production adapters without
+// pulling the conformance resources and their global parameter block into the
+// generated CUDA translation unit. This entry is compiled but never launched;
+// the backend calls the generated device functions directly.
 [shader("compute")]
-[numthreads(256, 1, 1)]
-void integrate_rigid_bodies_kernel(
-    uniform BodyParameters* parameters, uniform BodyAccumulator* accumulators,
-    uniform KinematicTarget* targets, uniform RigidBodyState* input,
-    uniform RigidBodyState* output, uniform uint count, uniform Vec3 gravity,
-    uniform float timestep, uniform uint remaining_substeps,
-    uniform bool apply_impulses)
+[numthreads(1, 1, 1)]
+void avbdRuntimeMain(
+    uint3 threadId : SV_DispatchThreadID,
+    uniform AvbdBlock* blocks,
+    uniform AvbdRow* rows,
+    uniform AvbdVector6* vectors,
+    uniform AvbdDual* duals,
+    uniform AvbdContactForce* contactForces,
+    uniform uint count)
 {
-    uint index = pmThreadIndex();
+    uint index = threadId.x;
     if (index >= count) return;
-    BodyParameters body = parameters[index];
-    RigidBodyState previous = input[index], next = previous;
-    if (body.motion == MotionType.static_body)
-    {
-        next.linear_velocity = {};
-        next.angular_velocity = {};
-        output[index] = next;
-        return;
-    }
-    if (body.motion == MotionType.kinematic)
-    {
-        if (targets[index].active)
-        {
-            float fraction = 1.0f / float(remaining_substeps);
-            next.position = add(previous.position, multiply(subtract(
-                targets[index].state.position, previous.position), fraction));
-            Quaternion target = targets[index].state.orientation;
-            float orientationDot = previous.orientation.x * target.x +
-                previous.orientation.y * target.y +
-                previous.orientation.z * target.z +
-                previous.orientation.w * target.w;
-            if (orientationDot < 0.0f)
-                target = {-target.x, -target.y, -target.z, -target.w};
-            next.orientation = normalized_quaternion({
-                previous.orientation.x +
-                    (target.x - previous.orientation.x) * fraction,
-                previous.orientation.y +
-                    (target.y - previous.orientation.y) * fraction,
-                previous.orientation.z +
-                    (target.z - previous.orientation.z) * fraction,
-                previous.orientation.w +
-                    (target.w - previous.orientation.w) * fraction});
-            next.linear_velocity = multiply(
-                subtract(next.position, previous.position), 1.0f / timestep);
-            next.angular_velocity = quaternion_delta_velocity(
-                previous.orientation, next.orientation, timestep);
-        }
-        else
-        {
-            next.linear_velocity = {};
-            next.angular_velocity = {};
-        }
-        output[index] = next;
-        return;
-    }
-    BodyAccumulator accumulator = accumulators[index];
-    next.linear_velocity = add(next.linear_velocity, multiply(add(gravity,
-        multiply(accumulator.force, body.inverse_mass)), timestep));
-    next.angular_velocity = add(next.angular_velocity,
-        multiply(inverse_inertia_world(body, next, accumulator.torque),
-            timestep));
-    if (apply_impulses)
-    {
-        next.linear_velocity = add(next.linear_velocity,
-            multiply(accumulator.impulse, body.inverse_mass));
-        next.angular_velocity = add(next.angular_velocity,
-            inverse_inertia_world(body, next, accumulator.angular_impulse));
-    }
-    next.linear_velocity = multiply(next.linear_velocity,
-        1.0f / (1.0f + body.linear_damping * timestep));
-    next.angular_velocity = multiply(next.angular_velocity,
-        1.0f / (1.0f + body.angular_damping * timestep));
-    next.linear_velocity = clamp_length(
-        next.linear_velocity, body.maximum_linear_speed);
-    next.angular_velocity = clamp_length(
-        next.angular_velocity, body.maximum_angular_speed);
-    next.position = add(next.position, multiply(next.linear_velocity, timestep));
-    Quaternion angular = {next.angular_velocity.x, next.angular_velocity.y,
-                          next.angular_velocity.z, 0.0f};
-    Quaternion derivative = quaternion_multiply(angular, next.orientation);
-    next.orientation = normalized_quaternion({
-        next.orientation.x + 0.5f * derivative.x * timestep,
-        next.orientation.y + 0.5f * derivative.y * timestep,
-        next.orientation.z + 0.5f * derivative.z * timestep,
-        next.orientation.w + 0.5f * derivative.w * timestep});
-    output[index] = next;
+    uint vectorIndex = index * 2u;
+    AvbdBlock block = blocks[index];
+    AvbdRow row = rows[index];
+    AvbdVector6 a = vectors[vectorIndex];
+    AvbdVector6 b = vectors[vectorIndex + 1u];
+    AvbdDual dual = avbdWarmStart(duals[index], row.stiffness);
+    dual = avbdUpdateDual(dual, row.error, row.beta,
+        row.lower, row.upper, row.stiffness);
+    row.dual = dual;
+    row.referenceForce += avbdForce(
+        dual, row.error, row.lower, row.upper);
+    AvbdContactForce force = avbdProjectContact(
+        contactForces[index], row.damping);
+    AvbdContactForce scales = avbdContactStiffnessScales(
+        force, row.damping);
+    row.velocity += avbdDot6(a, b) + avbdVectorElement(a, 0u)
+        + scales.normal;
+    avbdAddRow(block, row.a, row.stiffness, row.referenceForce);
+    avbdAccumulate(block, row, true, a, b, 1.0f);
+    row.error = avbdRowError(row, a, b);
+    row.velocity += avbdRowTrial(row, a, b, 1.0f);
+    row.referenceForce += avbdRowForce(row, a, b, 1.0f);
+    row = avbdAdvance(row, a, b);
+    row.referenceForce += avbdRowVectorElement(row, 0u, 0u)
+        + avbdRowScalarElement(row, 0u);
+    AvbdVector6 update = avbdZeroVector6();
+    if (avbdSolve(block, update)) vectors[vectorIndex] = update;
+    blocks[index] = block;
+    rows[index] = row;
+    duals[index] = dual;
+    contactForces[index] = force;
+}
+#else
+// Stable cross-target ABI used by the conformance runner.
+struct SlangAvbdInput
+{
+    uint operation;
+    float values[64];
+};
+
+struct SlangAvbdOutput
+{
+    float values[8];
+    uint solved;
+};
+
+StructuredBuffer<SlangAvbdInput> avbdInputs;
+RWStructuredBuffer<SlangAvbdOutput> avbdOutputs;
+uniform uint avbdInputCount;
+
+AvbdVector6 avbdLoadVector(SlangAvbdInput input, uint offset)
+{
+    AvbdVector6 result;
+    [ForceUnroll]
+    for (uint i = 0; i < 6; ++i) result.values[i] = input.values[offset + i];
+    return result;
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
-void compute_rigid_world_bounds_kernel(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform WorldAabb* world_bounds)
+[numthreads(64, 1, 1)]
+void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
 {
-    uint index = pmThreadIndex();
-    if (index >= count) return;
-    TriangleMeshResource mesh = meshes[parameters[index].mesh.index];
-    bool swept = vector_length(subtract(states[index].position,
-        previous_states[index].position)) + rotational_motion_bound(
-            previous_states[index], states[index], mesh) >
-        parameters[index].collision_margin;
-    BoundsTransform previousTransform = {};
-    if (swept) previousTransform = bounds_transform(previous_states[index]);
-    Vec3 minimum = {}, maximum = {};
-    transformed_motion_bounds(mesh.minimum, mesh.maximum, previousTransform,
-        bounds_transform(states[index]), swept, 0.0f, minimum, maximum);
-    world_bounds[index] = {minimum, maximum};
+    if (threadId.x >= avbdInputCount) return;
+    SlangAvbdInput input = avbdInputs[threadId.x];
+    SlangAvbdOutput output;
+    [ForceUnroll]
+    for (uint i = 0; i < 8; ++i) output.values[i] = 0.0f;
+    output.solved = 1;
+
+    if (input.operation == 0)
+    {
+        AvbdBlock block = avbdZeroBlock();
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i)
+        {
+            block.g[i] = input.values[36 + i];
+            [ForceUnroll]
+            for (uint j = 0; j < 6; ++j)
+                block.h[i][j] = input.values[i * 6 + j];
+        }
+        AvbdVector6 delta;
+        output.solved = avbdSolve(block, delta) ? 1 : 0;
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i) output.values[i] = delta.values[i];
+    }
+    else if (input.operation == 1)
+    {
+        AvbdContactForce force;
+        force.normal = input.values[0];
+        force.tangent0 = input.values[1];
+        force.tangent1 = input.values[2];
+        AvbdContactForce projected = avbdProjectContact(force, input.values[3]);
+        AvbdContactForce scales = avbdContactStiffnessScales(force, input.values[3]);
+        output.values[0] = projected.normal;
+        output.values[1] = projected.tangent0;
+        output.values[2] = projected.tangent1;
+        output.values[3] = scales.normal;
+        output.values[4] = scales.tangent0;
+        output.values[5] = scales.tangent1;
+    }
+    else if (input.operation == 2)
+    {
+        AvbdDual dual;
+        dual.lambda = input.values[0];
+        dual.penalty = input.values[1];
+        AvbdDual warm = avbdWarmStart(dual, input.values[6]);
+        AvbdDual advanced = avbdUpdateDual(dual, input.values[2], input.values[3],
+            input.values[4], input.values[5], input.values[6]);
+        output.values[0] = warm.lambda;
+        output.values[1] = warm.penalty;
+        output.values[2] = avbdForce(dual, input.values[2],
+                                     input.values[4], input.values[5]);
+        output.values[3] = advanced.lambda;
+        output.values[4] = advanced.penalty;
+    }
+    else
+    {
+        AvbdRow row;
+        row.a = avbdLoadVector(input, 0);
+        row.b = avbdLoadVector(input, 6);
+        row.dual.lambda = input.values[12];
+        row.dual.penalty = input.values[13];
+        row.error = input.values[14];
+        row.velocity = input.values[15];
+        row.lower = input.values[16];
+        row.upper = input.values[17];
+        row.stiffness = input.values[18];
+        row.damping = input.values[19];
+        row.beta = input.values[20];
+        row.referenceForce = input.values[21];
+        AvbdVector6 a = avbdLoadVector(input, 22);
+        AvbdVector6 b = avbdLoadVector(input, 28);
+        float dt = input.values[34];
+        AvbdBlock block = avbdZeroBlock();
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i) block.h[i][i] = input.values[35 + i];
+        avbdAccumulate(block, row, input.values[41] != 0.0f, a, b, dt);
+        AvbdRow advanced = avbdAdvance(row, a, b);
+        output.values[0] = avbdRowError(row, a, b);
+        output.values[1] = avbdRowTrial(row, a, b, dt);
+        output.values[2] = avbdRowForce(row, a, b, dt);
+        output.values[3] = avbdRowScalarElement(advanced, 0u);
+        output.values[4] = avbdRowScalarElement(advanced, 1u);
+        float gradientSum = 0.0f;
+        float diagonalSum = 0.0f;
+        [ForceUnroll]
+        for (uint i = 0; i < 6; ++i)
+        {
+            gradientSum += block.g[i];
+            diagonalSum += block.h[i][i];
+        }
+        output.values[5] = gradientSum;
+        output.values[6] = diagonalSum;
+    }
+    avbdOutputs[threadId.x] = output;
+}
+#endif
+
+#ifndef PM_GEOMETRY_CONSTRAINTS_ADAPTER
+#define PM_GEOMETRY_CONSTRAINTS_ADAPTER 0
+#endif
+
+#if PM_GEOMETRY_CONSTRAINTS_ADAPTER
+// Solver adapter migration surface. Geometry/contact data comes from geometry.slang.
+#include "geometry.slang"
+
+struct AvbdBody
+{
+    RigidBodyState target;
+    Quaternion current_orientation;
+    AvbdVector6 displacement;
+    AvbdBlock inertia;
+    uint contact_head;
+    uint joint_head;
+    uint color;
+    uint parent;
+    uint impact;
+    Vec3 previous_velocity;
+    uint history_valid;
+};
+
+AvbdVector6 rigid_avbd_jacobian(Vec3 linear, Vec3 angular)
+{
+    AvbdVector6 result = avbdZeroVector6();
+    result.values[0] = linear.x;
+    result.values[1] = linear.y;
+    result.values[2] = linear.z;
+    result.values[3] = angular.x;
+    result.values[4] = angular.y;
+    result.values[5] = angular.z;
+    return result;
 }
 
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void broad_phase_rigid_pairs_kernel(
-    uniform BodyParameters* parameters, uniform WorldAabb* world_bounds,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform RigidBodyId* ids,
-    uniform RigidConstraintResource* constraints,
-    uniform uint constraint_capacity,
-    uniform FixedContactProjection* fixed_groups, uniform uint count,
-    uniform uint8_t* active_flags)
+Vec3 rigid_avbd_translation(AvbdVector6 value)
 {
-    uint pair = pmThreadIndex();
-    if (pair >= count * count) return;
-    uint bodyIndex = pair / count, colliderIndex = pair % count;
-    bool active = parameters[bodyIndex].motion == MotionType.dynamic &&
-        bodyIndex != colliderIndex;
-    if (active && parameters[colliderIndex].motion == MotionType.dynamic &&
-        colliderIndex < bodyIndex) active = false;
-    if (active && fixed_groups != nullptr &&
-        fixed_groups[bodyIndex].root == fixed_groups[colliderIndex].root)
-        active = false;
-    if (active && constrained_collision_disabled(ids[bodyIndex],
-        ids[colliderIndex], constraints, constraint_capacity)) active = false;
-    if (active)
+    return {value.values[0], value.values[1], value.values[2]};
+}
+
+Vec3 rigid_avbd_rotation(AvbdVector6 value)
+{
+    return {value.values[3], value.values[4], value.values[5]};
+}
+
+RigidBodyState rigid_avbd_pose(AvbdBody body)
+{
+    RigidBodyState state = body.target;
+    state.position = add(state.position,
+        rigid_avbd_translation(body.displacement));
+    state.orientation = body.current_orientation;
+    return state;
+}
+
+void rigid_avbd_apply_update(inout AvbdBody body, AvbdVector6 update)
+{
+    for (uint axis = 0u; axis < 3u; ++axis)
+        body.displacement.values[axis] += update.values[axis];
+    Vec3 rotation = rigid_avbd_rotation(update);
+    Quaternion delta = quaternion_multiply(
+        {rotation.x, rotation.y, rotation.z, 0.0f},
+        body.current_orientation);
+    body.current_orientation = normalized_quaternion({
+        body.current_orientation.x + 0.5f * delta.x,
+        body.current_orientation.y + 0.5f * delta.y,
+        body.current_orientation.z + 0.5f * delta.z,
+        body.current_orientation.w + 0.5f * delta.w});
+    Quaternion relative = quaternion_multiply(
+        body.current_orientation, conjugate(body.target.orientation));
+    if (relative.w < 0.0f)
+        relative = {-relative.x, -relative.y, -relative.z, -relative.w};
+    body.displacement.values[3] = 2.0f * relative.x;
+    body.displacement.values[4] = 2.0f * relative.y;
+    body.displacement.values[5] = 2.0f * relative.z;
+}
+
+float rigid_avbd_pair_stiffness(
+    BodyParameters a, BodyParameters b, float dt)
+{
+    return 1.0f / (max(a.inverse_mass + b.inverse_mass, 1.0e-6f) *
+        dt * dt);
+}
+
+void rigid_avbd_add_contact_rows(
+    inout AvbdBlock block, uint body, uint a, uint b, Contact contact,
+    BodyParameters* parameters, AvbdBody* bodies, float dt)
+{
+    bool first = body == a;
+    RigidBodyState pose = rigid_avbd_pose(bodies[body]);
+    Vec3 direction = first ? multiply(contact.normal, -1.0f) : contact.normal;
+    Vec3 arm = subtract(contact.point, pose.position);
+    AvbdVector6 jacobian = rigid_avbd_jacobian(
+        direction, cross(arm, direction));
+    float stiffness = rigid_avbd_pair_stiffness(
+        parameters[a], parameters[b], dt);
+    float force = stiffness * max(0.0f, contact.penetration);
+    avbdAddRow(block, jacobian, stiffness, force);
+}
+
+void rigid_avbd_add_joint_rows(
+    inout AvbdBlock block, uint body, RigidConstraintResource joint,
+    BodyParameters* parameters, AvbdBody* bodies, float dt)
+{
+    uint a = joint.geometry.dense_a, b = joint.geometry.dense_b;
+    if (body != a && body != b) return;
+    bool first = body == a;
+    RigidBodyState pa = rigid_avbd_pose(bodies[a]);
+    RigidBodyState pb = rigid_avbd_pose(bodies[b]);
+    Vec3 anchorA = transform_point(pa, joint.options.local_anchor_a);
+    Vec3 anchorB = transform_point(pb, joint.options.local_anchor_b);
+    Vec3 error = subtract(anchorB, anchorA);
+    float stiffness = 1.0f / (max(
+        parameters[a].inverse_mass + parameters[b].inverse_mass, 1.0e-6f) *
+        dt * dt);
+    Vec3 axes[3] = {{1.0f, 0.0f, 0.0f},
+                    {0.0f, 1.0f, 0.0f},
+                    {0.0f, 0.0f, 1.0f}};
+    Vec3 arm = first ? subtract(anchorA, pa.position) :
+        subtract(anchorB, pb.position);
+    for (uint axis = 0u; axis < 3u; ++axis)
     {
-        float margin = parameters[bodyIndex].collision_margin +
-            parameters[colliderIndex].collision_margin;
-        WorldAabb a = world_bounds[bodyIndex];
-        WorldAabb b = world_bounds[colliderIndex];
-        Vec3 expansion = {margin, margin, margin};
-        active = bounds_overlap(subtract(a.minimum, expansion),
-            add(a.maximum, expansion), b.minimum, b.maximum);
+        Vec3 direction = first ? multiply(axes[axis], -1.0f) : axes[axis];
+        AvbdVector6 jacobian = rigid_avbd_jacobian(
+            direction, cross(arm, direction));
+        avbdAddRow(block, jacobian, stiffness,
+            stiffness * (axis == 0u ? error.x :
+                (axis == 1u ? error.y : error.z)));
     }
-    active_flags[pair] = active ? uint8_t(1u) : uint8_t(0u);
+    if (joint.options.type == RigidConstraintType.fixed)
+    {
+        Quaternion relative = quaternion_multiply(
+            pb.orientation, conjugate(pa.orientation));
+        if (relative.w < 0.0f)
+            relative = {-relative.x, -relative.y, -relative.z, -relative.w};
+        Vec3 rotationError = {2.0f * relative.x,
+            2.0f * relative.y, 2.0f * relative.z};
+        for (uint axis = 0u; axis < 3u; ++axis)
+        {
+            Vec3 angular = first ? multiply(axes[axis], -1.0f) : axes[axis];
+            AvbdVector6 jacobian = rigid_avbd_jacobian({}, angular);
+            float errorValue = axis == 0u ? rotationError.x :
+                (axis == 1u ? rotationError.y : rotationError.z);
+            avbdAddRow(block, jacobian, stiffness,
+                stiffness * errorValue);
+        }
+    }
 }
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
-void generate_rigid_leaf_pairs_kernel(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform uint mesh_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform LeafPair* leaf_pairs,
-    uniform uint* leaf_pair_counts,
-    uniform uint leaf_pair_cache_slot_capacity,
-    uniform uint leaf_pairs_per_slot, uniform uint shared_leaf_capacity)
+void prepare_avbd_kernel(
+    uniform BodyParameters* parameters, uniform RigidBodyState* previous,
+    uniform RigidBodyState* predicted, uniform uint count,
+    uniform ContactManifold* manifolds, uniform uint* pairs,
+    uniform uint* pair_count, uniform RigidConstraintResource* joints,
+    uniform uint joint_capacity, uniform RigidBodyId* ids,
+    uniform AvbdBody* bodies, uniform ContactSchedule* schedule,
+    uniform float dt, uniform Vec3 gravity,
+    uniform uint requested_iterations, uniform uint grid_blocks)
 {
-    for (uint activeIndex = cudaBlockIdx().x; activeIndex < *active_pair_count;
-         activeIndex += pmGridDim().x)
+    uint lane = pmThreadIndex();
+    if (lane < count)
     {
-        uint pair = active_pairs[activeIndex];
-        if (cudaThreadIdx().x != 0u) continue;
-        if (activeIndex >= leaf_pair_cache_slot_capacity ||
-            leaf_pairs_per_slot == 0u)
+        Vec3 previousVelocity = bodies[lane].previous_velocity;
+        uint historyValid = bodies[lane].history_valid;
+        AvbdBody body = {};
+        body.parent = lane;
+        body.contact_head = kInvalidDense;
+        body.joint_head = kInvalidDense;
+        body.color = lane;
+        body.target = predicted[lane];
+        body.current_orientation = predicted[lane].orientation;
+        body.previous_velocity = previous[lane].linear_velocity;
+        body.history_valid = 1u;
+        body.inertia = avbdZeroBlock();
+        if (parameters[lane].motion == MotionType.dynamic)
         {
-            leaf_pair_counts[pair] = 0xffffffffu;
-            continue;
+            float mass = 1.0f / max(parameters[lane].inverse_mass, 1.0e-12f);
+            for (uint axis = 0u; axis < 3u; ++axis)
+                body.inertia.h[axis][axis] = mass / (dt * dt);
+            Vec3 inverseInertia = parameters[lane].inverse_inertia_local;
+            body.inertia.h[3][3] = 1.0f /
+                (max(inverseInertia.x, 1.0e-12f) * dt * dt);
+            body.inertia.h[4][4] = 1.0f /
+                (max(inverseInertia.y, 1.0e-12f) * dt * dt);
+            body.inertia.h[5][5] = 1.0f /
+                (max(inverseInertia.z, 1.0e-12f) * dt * dt);
+            float gravitySquared = length_squared(gravity);
+            Vec3 acceleration = multiply(subtract(
+                previous[lane].linear_velocity, previousVelocity), 1.0f / dt);
+            float weight = historyValid != 0u && gravitySquared > 0.0f
+                ? clamp_scalar(dot(acceleration, gravity) /
+                    gravitySquared, 0.0f, 1.0f) : 0.0f;
+            Vec3 correction = multiply(gravity, -(1.0f - weight) * dt * dt);
+            body.displacement.values[0] = correction.x;
+            body.displacement.values[1] = correction.y;
+            body.displacement.values[2] = correction.z;
         }
-        uint a = pair / count, b = pair % count;
-        TriangleMeshResource ma = meshes[parameters[a].mesh.index];
-        TriangleMeshResource mb = meshes[parameters[b].mesh.index];
-        leaf_pairs[activeIndex * leaf_pairs_per_slot] = {
-            0u, ma.index_count / 3u, 0u, mb.index_count / 3u};
-        leaf_pair_counts[pair] = 1u;
+        bodies[lane] = body;
     }
-}
-
-Contact coarse_mesh_contact(
-    TriangleMeshResource aMesh, RigidBodyState a,
-    TriangleMeshResource bMesh, RigidBodyState b,
-    float margin, out bool found)
-{
-    Vec3 ac = transform_point(a, aMesh.bounding_center);
-    Vec3 bc = transform_point(b, bMesh.bounding_center);
-    Vec3 delta = subtract(ac, bc);
-    float distance = vector_length(delta);
-    float radius = aMesh.bounding_radius + bMesh.bounding_radius + margin;
-    found = distance < radius;
-    Contact contact = {};
-    if (!found) return contact;
-    contact.normal = normalized_or(delta, {1.0f, 0.0f, 0.0f});
-    contact.point = add(bc, multiply(contact.normal, bMesh.bounding_radius));
-    contact.penetration = radius - distance;
-    contact.impact_fraction = 1.0f;
-    return contact;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void evaluate_rigid_leaf_pairs_kernel(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform RigidBodyId* ids, uniform RigidConstraintResource* constraints,
-    uniform uint constraint_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform LeafPair* leaf_pairs,
-    uniform uint* leaf_pair_counts, uniform uint leaf_pairs_per_slot,
-    uniform ContactManifold* leaf_manifolds, uniform uint blocks_per_pair,
-    uniform float timestep, uniform ContactManifold* manifolds)
-{
-    uint activeIndex = pmThreadIndex();
-    if (activeIndex >= *active_pair_count) return;
-    uint pair = active_pairs[activeIndex];
-    uint a = pair / count, b = pair % count;
-    ContactManifold manifold = {};
-    bool found = false;
-    Contact contact = coarse_mesh_contact(
-        meshes[parameters[a].mesh.index], states[a],
-        meshes[parameters[b].mesh.index], states[b],
-        parameters[a].collision_margin + parameters[b].collision_margin,
-        found);
-    if (found)
+    if (lane < *pair_count)
     {
-        contact.initial_normal_speed = dot(subtract(
-            states[a].linear_velocity, states[b].linear_velocity),
-            contact.normal);
-        manifold.contacts[0] = contact;
-        manifold.count = 1u;
-        manifold.initial_relative_position = subtract(
-            states[a].position, states[b].position);
-    }
-    manifolds[activeIndex] = manifold;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void reduce_rigid_leaf_manifolds_kernel(
-    uniform BodyParameters* parameters, uniform uint count,
-    uniform uint* active_pairs, uniform uint* active_pair_count,
-    uniform uint* leaf_pair_counts, uniform uint leaf_pairs_per_slot,
-    uniform ContactManifold* leaf_manifolds,
-    uniform ContactManifold* manifolds)
-{
-    uint activeIndex = pmThreadIndex();
-    if (activeIndex >= *active_pair_count) return;
-    uint pair = active_pairs[activeIndex];
-    uint candidates = leaf_pair_counts[pair];
-    if (manifolds[activeIndex].count != 0u || candidates == 0u ||
-        candidates == 0xffffffffu) return;
-    ContactManifold result = {};
-    for (uint candidate = 0u; candidate < min(candidates, leaf_pairs_per_slot);
-         ++candidate)
-    {
-        ContactManifold local =
-            leaf_manifolds[activeIndex * leaf_pairs_per_slot + candidate];
-        for (uint contact = 0u; contact < local.count && result.count < 8u;
-             ++contact)
-            result.contacts[result.count++] = local.contacts[contact];
-    }
-    manifolds[activeIndex] = result;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void finalize_rigid_contact_manifolds_kernel(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform RigidBodyId* ids, uniform RigidConstraintResource* constraints,
-    uniform uint constraint_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform uint* leaf_pair_counts,
-    uniform float timestep, uniform ContactManifold* manifolds,
-    uniform bool prepare_faces)
-{
-    uint activeIndex = pmThreadIndex();
-    if (activeIndex >= *active_pair_count) return;
-    ContactManifold manifold = manifolds[activeIndex];
-    for (uint point = 0u; point < manifold.count; ++point)
-    {
-        manifold.contacts[point].reported_normal_impulse =
-            manifold.contacts[point].accumulated_normal_impulse;
-        manifold.contacts[point].reported_friction_impulse =
-            manifold.contacts[point].accumulated_friction_impulse;
-    }
-    manifolds[activeIndex] = manifold;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void clear_rigid_inputs_kernel(
-    uniform BodyAccumulator* accumulators, uniform KinematicTarget* targets,
-    uniform uint count)
-{
-    uint index = pmThreadIndex();
-    if (index >= count) return;
-    accumulators[index] = {};
-    targets[index].active = false;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void capture_rigid_inputs_kernel(
-    uniform BodyAccumulator* accumulators, uniform Vec3* forces,
-    uniform Vec3* torques, uniform uint count)
-{
-    uint index = pmThreadIndex();
-    if (index >= count) return;
-    forces[index] = accumulators[index].force;
-    torques[index] = accumulators[index].torque;
-}
-
-[shader("compute")]
-[numthreads(1, 1, 1)]
-void prepare_parallel_contact_events_kernel(
-    uniform uint count, uniform ContactManifold* manifolds,
-    uniform uint* active_pairs, uniform uint* active_pair_count,
-    uniform RigidBodyId* ids, uniform uint* event_offsets,
-    uniform RigidContactEvent* events, uniform uint event_capacity,
-    uniform uint* event_count, uniform bool collect_events,
-    uniform bool reset_events)
-{
-    if (reset_events) *event_count = 0u;
-    uint cursor = 0u;
-    for (uint active = 0u; active < *active_pair_count; ++active)
-    {
-        event_offsets[active] = cursor;
-        ContactManifold manifold = manifolds[active];
-        manifold.response_slot = active;
-        manifolds[active] = manifold;
-        if (!collect_events) continue;
-        uint pair = active_pairs[active];
-        uint a = pair / count, b = pair % count;
-        for (uint point = 0u; point < manifold.count && cursor < event_capacity;
-             ++point)
+        ContactManifold manifold = manifolds[lane];
+        for (uint point = 0u; point < manifold.count; ++point)
         {
             Contact contact = manifold.contacts[point];
-            events[cursor++] = {ids[a], ids[b], contact.point,
-                contact.normal, max(0.0f, contact.penetration),
-                contact.reported_normal_impulse,
-                contact.reported_friction_impulse};
+            float penalty = rigid_avbd_pair_stiffness(
+                parameters[pairs[lane] / count],
+                parameters[pairs[lane] % count], dt);
+            for (uint axis = 0u; axis < 3u; ++axis)
+            {
+                contact.avbd_dual[axis].lambda *= 0.99f * 0.999f;
+                contact.avbd_dual[axis].penalty = max(
+                    1.0f, contact.avbd_dual[axis].penalty * 0.999f);
+                if (!contact.avbd_cached)
+                    contact.avbd_dual[axis].penalty = penalty;
+            }
+            manifold.contacts[point] = contact;
         }
+        manifolds[lane] = manifold;
     }
-    if (collect_events) *event_count = cursor;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void load_rigid_contact_cache_kernel(
-    uniform ContactManifold* manifolds, uniform uint* active_pairs,
-    uniform uint* active_count, uniform RigidBodyState* states,
-    uniform RigidBodyId* ids, uniform uint body_count,
-    uniform CachedContactPair* cache, uniform uint* slots,
-    uniform uint capacity, uniform uint64_t epoch, uniform float timestep)
-{
-    uint active = pmThreadIndex();
-    if (active >= *active_count) return;
-    uint pair = active_pairs[active], slot = slots[pair];
-    uint body = pair / body_count, collider = pair % body_count;
-    if (slot >= capacity) return;
-    CachedContactPair saved = cache[slot];
-    if (saved.pair != pair || saved.epoch + 1ull != epoch ||
-        !same_id(saved.body, ids[body]) ||
-        !same_id(saved.collider, ids[collider]) ||
-        abs(saved.timestep - timestep) > 1.0e-7f) return;
-    ContactManifold manifold = manifolds[active];
-    uint used = min(manifold.count, saved.count);
-    for (uint point = 0u; point < used; ++point)
+    if (lane < joint_capacity && joints[lane].alive)
     {
-        manifold.contacts[point].accumulated_normal_impulse =
-            saved.contacts[point].normal_impulse;
-        manifold.contacts[point].accumulated_friction_impulse =
-            saved.contacts[point].friction_impulse;
-        manifold.contacts[point].warm_started = true;
-        manifold.contacts[point].persistent = true;
-        manifold.contacts[point].avbd_cached = true;
-        for (uint axis = 0u; axis < 3u; ++axis)
-            manifold.contacts[point].avbd_dual[axis] =
-                saved.contacts[point].avbd_dual[axis];
-        manifold.contacts[point].avbd_anchor_a =
-            saved.contacts[point].avbd_anchor_a;
-        manifold.contacts[point].avbd_anchor_b =
-            saved.contacts[point].avbd_anchor_b;
+        RigidConstraintResource joint = joints[lane];
+        joint.geometry.dense_a = find_rigid_body_dense(
+            joint.options.body_a, ids, count);
+        joint.geometry.dense_b = find_rigid_body_dense(
+            joint.options.body_b, ids, count);
+        joint.avbd_count = 0u;
+        joints[lane] = joint;
     }
-    manifolds[active] = manifold;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void save_rigid_contact_cache_kernel(
-    uniform ContactManifold* manifolds, uniform uint* active_pairs,
-    uniform uint* active_count, uniform RigidBodyState* states,
-    uniform RigidBodyId* ids, uniform uint body_count,
-    uniform CachedContactPair* cache, uniform uint* slots,
-    uniform uint capacity, uniform uint64_t epoch, uniform float timestep,
-    uniform uint* event_offsets, uniform RigidContactEvent* events,
-    uniform uint event_capacity)
-{
-    uint active = pmThreadIndex();
-    if (active >= *active_count) return;
-    uint pair = active_pairs[active], slot = slots[pair];
-    if (slot >= capacity) return;
-    uint body = pair / body_count, collider = pair % body_count;
-    ContactManifold manifold = manifolds[active];
-    CachedContactPair saved = {};
-    saved.pair = pair;
-    saved.body = ids[body];
-    saved.collider = ids[collider];
-    saved.epoch = epoch;
-    saved.timestep = timestep;
-    saved.count = min(manifold.count, 8u);
-    for (uint point = 0u; point < saved.count; ++point)
+    if (lane == 0u)
     {
-        Contact contact = manifold.contacts[point];
-        saved.contacts[point].local_point = inverse_rotate(
-            states[body].orientation,
-            subtract(contact.point, states[body].position));
-        saved.contacts[point].normal = contact.normal;
-        saved.contacts[point].normal_impulse =
-            contact.accumulated_normal_impulse;
-        saved.contacts[point].friction_impulse =
-            contact.accumulated_friction_impulse;
-        for (uint axis = 0u; axis < 3u; ++axis)
-            saved.contacts[point].avbd_dual[axis] = contact.avbd_dual[axis];
-        saved.contacts[point].avbd_anchor_a = contact.avbd_anchor_a;
-        saved.contacts[point].avbd_anchor_b = contact.avbd_anchor_b;
+        ContactSchedule value = {};
+        value.budget = max(1u, requested_iterations);
+        value.remaining = count == 0u ? 0u : count;
+        value.blocks = grid_blocks;
+        value.candidates = *pair_count;
+        schedule[0] = value;
     }
-    cache[slot] = saved;
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void gather_rigid_debug_samples_kernel(
-    uniform RigidBodyId* ids, uniform RigidBodyState* states,
-    uniform Vec3* forces, uniform Vec3* torques, uniform uint count,
-    uniform PhysicsDebugRigidSample* samples)
-{
-    uint index = pmThreadIndex();
-    if (index < count)
-        samples[index] = {ids[index], states[index], forces[index], torques[index]};
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
-void clamp_rigid_speeds_kernel(
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
-    uniform uint count)
-{
-    uint index = pmThreadIndex();
-    if (index >= count || parameters[index].motion != MotionType.dynamic)
-        return;
-    states[index].linear_velocity = clamp_length(
-        states[index].linear_velocity, parameters[index].maximum_linear_speed);
-    states[index].angular_velocity = clamp_length(
-        states[index].angular_velocity, parameters[index].maximum_angular_speed);
-}
-
-uint fixed_projection_root(FixedContactProjection* groups, uint body)
-{
-    while (groups[body].root != body) body = groups[body].root;
-    return body;
 }
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
-void build_fixed_collision_groups_kernel(
-    uniform RigidConstraintResource* constraints, uniform uint capacity,
-    uniform RigidBodyId* ids, uniform uint count,
-    uniform FixedContactProjection* groups)
+void solve_avbd_kernel(
+    uniform BodyParameters* parameters, uniform RigidBodyState* previous,
+    uniform RigidBodyState* states, uniform uint count,
+    uniform ContactManifold* manifolds, uniform uint* pairs,
+    uniform uint* pair_count, uniform RigidConstraintResource* joints,
+    uniform uint joint_capacity, uniform AvbdBody* bodies,
+    uniform ContactSchedule* schedule, uniform float dt)
 {
-    for (uint body = 0u; body < count; ++body) groups[body].root = body;
-    for (uint index = 0u; index < capacity; ++index)
+    uint iterations = max(1u, schedule[0].budget);
+    for (uint iteration = 0u; iteration < iterations; ++iteration)
     {
-        RigidConstraintResource constraint = constraints[index];
-        if (!constraint.alive || !constraint.options.enabled ||
-            constraint.state.broken || !constraint.options.disable_collisions ||
-            constraint.options.type != RigidConstraintType.fixed) continue;
-        uint a = find_rigid_body_dense(
-            constraint.options.body_a, ids, count);
-        uint b = find_rigid_body_dense(
-            constraint.options.body_b, ids, count);
-        if (a == kInvalidDense || b == kInvalidDense) continue;
-        a = fixed_projection_root(groups, a);
-        b = fixed_projection_root(groups, b);
-        if (a != b) groups[max(a, b)].root = min(a, b);
+        for (uint bodyIndex = 0u; bodyIndex < count; ++bodyIndex)
+        {
+            if (parameters[bodyIndex].motion != MotionType.dynamic) continue;
+            AvbdBlock block = bodies[bodyIndex].inertia;
+            AvbdVector6 displacement = bodies[bodyIndex].displacement;
+            for (uint row = 0u; row < 6u; ++row)
+                for (uint column = 0u; column < 6u; ++column)
+                    block.g[row] += block.h[max(row, column)][min(row, column)] *
+                        displacement.values[column];
+            for (uint active = 0u; active < *pair_count; ++active)
+            {
+                uint a = pairs[active] / count, b = pairs[active] % count;
+                if (bodyIndex != a && bodyIndex != b) continue;
+                ContactManifold manifold = manifolds[active];
+                for (uint point = 0u; point < manifold.count; ++point)
+                    rigid_avbd_add_contact_rows(block, bodyIndex, a, b,
+                        manifold.contacts[point], parameters, bodies, dt);
+            }
+            for (uint jointIndex = 0u; jointIndex < joint_capacity; ++jointIndex)
+            {
+                RigidConstraintResource joint = joints[jointIndex];
+                if (!joint.alive || !joint.options.enabled ||
+                    !joint.state.enabled || joint.state.broken ||
+                    joint.geometry.dense_a == kInvalidDense ||
+                    joint.geometry.dense_b == kInvalidDense) continue;
+                rigid_avbd_add_joint_rows(
+                    block, bodyIndex, joint, parameters, bodies, dt);
+            }
+            AvbdVector6 update = avbdZeroVector6();
+            if (avbdSolve(block, update))
+            {
+                AvbdBody body = bodies[bodyIndex];
+                rigid_avbd_apply_update(body, update);
+                bodies[bodyIndex] = body;
+            }
+        }
     }
+    for (uint bodyIndex = 0u; bodyIndex < count; ++bodyIndex)
+    {
+        if (parameters[bodyIndex].motion != MotionType.dynamic) continue;
+        RigidBodyState state = rigid_avbd_pose(bodies[bodyIndex]);
+        state.linear_velocity = clamp_length(multiply(subtract(
+            state.position, previous[bodyIndex].position), 1.0f / dt),
+            parameters[bodyIndex].maximum_linear_speed);
+        state.angular_velocity = clamp_length(quaternion_delta_velocity(
+            previous[bodyIndex].orientation, state.orientation, dt),
+            parameters[bodyIndex].maximum_angular_speed);
+        states[bodyIndex] = state;
+    }
+    schedule[0].maximum_passes += iterations;
 }
+#endif

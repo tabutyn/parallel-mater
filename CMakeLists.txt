@@ -40,16 +40,23 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
-option(PARALLEL_MATER_BUILD_SLANG_AVBD
-       "Build and validate the portable Slang AVBD core" ${BUILD_TESTING})
+if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
+   NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
+    set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
+        ${PARALLEL_MATER_BUILD_SLANG_AVBD} CACHE BOOL
+        "Build and validate the portable Slang rigid constraint core")
+endif()
+option(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
+       "Build and validate the portable Slang rigid constraint core"
+       ${BUILD_TESTING})
 option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
        "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
 if(PARALLEL_MATER_SLANG_TEST_BUILD)
-    set(PARALLEL_MATER_BUILD_SLANG_AVBD ON CACHE BOOL
-        "Build and validate the portable Slang AVBD core" FORCE)
+    set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
+        "Build and validate the portable Slang rigid constraint core" FORCE)
     set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL
         "Build and validate every CUDA physics kernel mirror" FORCE)
     add_compile_definitions(PARALLEL_MATER_SLANG_TEST_BUILD=1)
@@ -85,7 +92,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_METAL OR
-   PARALLEL_MATER_BUILD_SLANG_AVBD OR
+   PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/Slang.cmake)
     parallel_mater_require_slang()
@@ -149,8 +156,8 @@ set(PARALLEL_MATER_SLANG_GENERATED_DIR
     ${CMAKE_CURRENT_BINARY_DIR}/generated/slang)
 set(PARALLEL_MATER_FLUID_CUDA_SOURCE
     ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid.cu)
-set(PARALLEL_MATER_AVBD_CUDA_SOURCE
-    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_avbd_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_constraints_runtime.cu)
 add_custom_command(
     OUTPUT ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -168,17 +175,17 @@ add_custom_command(
     COMMENT "Compiling shared fluid kernels from Slang to CUDA"
     VERBATIM)
 add_custom_command(
-    OUTPUT ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
     COMMAND ${CMAKE_COMMAND} -E make_directory
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/avbd.slang
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_constraints.slang
             -DPM_AVBD_RUNTIME=1
             -entry avbdRuntimeMain -stage compute
             -target cuda -fp-mode precise -O2 -line-directive-mode none
-            -o ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
-    DEPENDS src/slang/avbd.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-    COMMENT "Compiling shared AVBD core from Slang to CUDA"
+            -o ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
+    DEPENDS src/slang/geometry_constraints.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared rigid constraint solver from Slang to CUDA"
     VERBATIM)
 add_library(
     parallel-mater STATIC
@@ -208,11 +215,12 @@ add_library(
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
 set_source_files_properties(
-    ${PARALLEL_MATER_FLUID_CUDA_SOURCE} ${PARALLEL_MATER_AVBD_CUDA_SOURCE}
+    ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
     PROPERTIES GENERATED TRUE HEADER_FILE_ONLY TRUE)
 target_sources(parallel-mater PRIVATE
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
-    ${PARALLEL_MATER_AVBD_CUDA_SOURCE})
+    ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE})
 add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
 add_library(ParallelMater::api ALIAS parallel-mater)
 list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
@@ -497,7 +505,8 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-rigid-tests COMMAND parallel-mater-rigid-tests)
     set_tests_properties(parallel-mater-rigid-tests PROPERTIES SKIP_RETURN_CODE 77)
 
-    add_executable(parallel-mater-avbd-rigid-tests tests/avbd_rigid_tests.cpp)
+    add_executable(parallel-mater-avbd-rigid-tests
+                   tests/rigid_constraint_tests.cpp)
     target_link_libraries(parallel-mater-avbd-rigid-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-avbd-rigid-tests COMMAND parallel-mater-avbd-rigid-tests)
     set_tests_properties(parallel-mater-avbd-rigid-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
@@ -1491,8 +1500,8 @@ if(PARALLEL_MATER_BUILD_METAL)
         ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater.air)
     set(PARALLEL_MATER_FLUID_MSL
         ${PARALLEL_MATER_METAL_GENERATED_DIR}/fluid.metal)
-    set(PARALLEL_MATER_AVBD_MSL
-        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_avbd_runtime.metal)
+    set(PARALLEL_MATER_GEOMETRY_CONSTRAINTS_MSL
+        ${PARALLEL_MATER_METAL_GENERATED_DIR}/parallel_mater_geometry_constraints_runtime.metal)
     set(PARALLEL_MATER_FLUID_AIR
         ${PARALLEL_MATER_METAL_GENERATED_DIR}/fluid.air)
     set(PARALLEL_MATER_METALLIB
@@ -1515,11 +1524,11 @@ if(PARALLEL_MATER_BUILD_METAL)
                 -fp-mode precise -O2 -line-directive-mode none
                 -o ${PARALLEL_MATER_FLUID_MSL}
         COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/avbd.slang
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_constraints.slang
                 -entry avbdConformanceMain -stage compute
                 -target metal -capability metallib_3_2
                 -fp-mode precise -O2 -line-directive-mode none
-                -o ${PARALLEL_MATER_AVBD_MSL}
+                -o ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_MSL}
         COMMAND ${CMAKE_COMMAND} -E env
                 CLANG_MODULE_CACHE_PATH=${PARALLEL_MATER_METAL_GENERATED_DIR}/module-cache
                 ${PARALLEL_MATER_XCRUN_EXECUTABLE} -sdk macosx metal
@@ -1546,14 +1555,16 @@ if(PARALLEL_MATER_BUILD_METAL)
                 -n parallel_mater_metallib_data
                 ${PARALLEL_MATER_METALLIB}
                 ${PARALLEL_MATER_METALLIB_INCLUDE}
-        DEPENDS src/metal/kernels.metal src/metal/avbd.metal
-                src/slang/fluid_shared.slang src/slang/avbd.slang
-                include/parallel_mater/solver/avbd.hpp
+        DEPENDS src/metal/kernels.metal
+                src/metal/geometry_constraints.metal
+                src/slang/fluid_shared.slang
+                src/slang/geometry_constraints.slang
+                include/parallel_mater/solver/geometry_constraints.hpp
                 include/parallel_mater/solver/contact_friction.hpp
                 ${PARALLEL_MATER_SLANGC_EXECUTABLE}
         BYPRODUCTS
                 ${PARALLEL_MATER_FLUID_MSL}
-                ${PARALLEL_MATER_AVBD_MSL}
+                ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_MSL}
                 ${PARALLEL_MATER_METAL_AIR}
                 ${PARALLEL_MATER_FLUID_AIR}
                 ${PARALLEL_MATER_METALLIB}
@@ -1984,9 +1995,9 @@ if(PARALLEL_MATER_BUILD_METAL)
     endif()
 endif()
 
-if(PARALLEL_MATER_BUILD_SLANG_AVBD)
-    include(cmake/SlangAvbd.cmake)
-    parallel_mater_add_slang_avbd()
+if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
+    include(cmake/SlangGeometryConstraints.cmake)
+    parallel_mater_add_slang_geometry_constraints()
 endif()
 
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)

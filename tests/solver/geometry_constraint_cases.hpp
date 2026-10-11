@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
-#include <parallel_mater/solver/avbd.hpp>
+// Canonical numerical fixtures for the rigid constraint implementation.
+#include <parallel_mater/solver/geometry_constraints.hpp>
 #include <parallel_mater/solver/halfspace.hpp>
 #include <cmath>
 
