@@ -1,0 +1,8035 @@
+{
+  "version": "0.2",
+  "page_size": [
+    595.2755905511812,
+    841.8897637795277
+  ],
+  "columns": 3,
+  "min_code_pt": 6.4,
+  "min_body_pt": 8.0,
+  "page_map": {
+    "overview": 1,
+    "intent": 1,
+    "legend": 1,
+    "return_codes": 1,
+    "results": 1,
+    "instancing": 1,
+    "function_pointers": 1,
+    "instance": 1,
+    "allocator": 1,
+    "discovery": 1,
+    "physical_devices": 1,
+    "properties": 1,
+    "queues": 1,
+    "features": 1,
+    "device": 1,
+    "memory": 1,
+    "memory_types": 1,
+    "requirements": 1,
+    "allocation": 1,
+    "mapping": 1,
+    "resources": 2,
+    "buffer": 2,
+    "buffer_binding": 2,
+    "format_enum": 2,
+    "geometry": 2,
+    "geometry_build": 2,
+    "simulation": 2,
+    "simulation_create": 2,
+    "simulation_memory": 2,
+    "rigid_state": 2,
+    "bodies": 2,
+    "body_inputs": 2,
+    "constraints": 2,
+    "constraint_types": 2,
+    "axis_control": 2,
+    "constraint_info": 2,
+    "constraint_dofs": 2,
+    "pipelines": 2,
+    "rigid_solver": 2,
+    "liquid_material": 2,
+    "coupling": 3,
+    "pipeline_create": 3,
+    "commands": 3,
+    "command_pool": 3,
+    "command_buffers": 3,
+    "lifecycle": 3,
+    "simulation_init": 3,
+    "step": 3,
+    "transfer": 3,
+    "buffer_copy": 3,
+    "outputs": 3,
+    "sync": 3,
+    "stage_access": 3,
+    "barriers": 3,
+    "semaphores": 3,
+    "submission": 3,
+    "fences": 4,
+    "interop": 4,
+    "native_support": 4,
+    "native_device": 4,
+    "native_buffer": 4,
+    "native_timeline": 4,
+    "native_mapping": 4,
+    "vulkan_device": 4,
+    "vulkan_buffer": 4,
+    "vulkan_semaphore": 4,
+    "stage_mapping": 4,
+    "queries": 4,
+    "query_pool": 4,
+    "timestamps": 4,
+    "step_stats": 4,
+    "query_results": 4,
+    "memory_budget": 4,
+    "capabilities": 5,
+    "limits": 5,
+    "formats": 5,
+    "format_layouts": 5,
+    "feature_matrix": 5,
+    "fundamentals": 5,
+    "base_types": 5,
+    "structure_types": 5,
+    "index": 5
+  },
+  "symbols": {
+    "PFN_pmVoidFunction": "function_pointers",
+    "PmAccessFlags": "base_types",
+    "pmAllocateCommandBuffers": "command_buffers",
+    "PmAllocateFn": "allocator",
+    "pmAllocateMemory": "allocation",
+    "PmAllocationCallbacks": "allocator",
+    "PmAxisLimit": "axis_control",
+    "PmAxisMotor": "axis_control",
+    "PmAxisSpring": "axis_control",
+    "pmBeginCommandBuffer": "command_buffers",
+    "pmBindBufferMemory": "buffer_binding",
+    "pmBindGeometryMemory": "geometry",
+    "pmBindSimulationMemory": "simulation_memory",
+    "PmBool32": "base_types",
+    "PmBuffer": "base_types",
+    "PmBufferCopy": "buffer_copy",
+    "PmBufferCreateInfo": "buffer",
+    "PmBufferMemoryBarrier": "barriers",
+    "PmBufferRange": "buffer_binding",
+    "PmBufferView": "format_enum",
+    "pmCmdApplyRigidInputs": "body_inputs",
+    "pmCmdBeginStatisticsQuery": "step_stats",
+    "pmCmdBindPhysicsPipeline": "step",
+    "pmCmdBuildGeometry": "geometry_build",
+    "pmCmdCopyBuffer": "buffer_copy",
+    "pmCmdCopyFluidParticles": "outputs",
+    "pmCmdCopyRigidStates": "outputs",
+    "pmCmdEndStatisticsQuery": "step_stats",
+    "pmCmdPipelineBarrier": "barriers",
+    "pmCmdResetQueryPool": "query_pool",
+    "pmCmdResetSimulation": "simulation_init",
+    "pmCmdSetFluidParticles": "simulation_init",
+    "pmCmdSetRigidStates": "body_inputs",
+    "pmCmdStepSimulation": "step",
+    "pmCmdWriteRigidBodies": "bodies",
+    "pmCmdWriteRigidConstraints": "constraint_info",
+    "pmCmdWriteTimestamp": "timestamps",
+    "PmCommandBuffer": "base_types",
+    "PmCommandBufferBeginInfo": "command_buffers",
+    "PmCommandPool": "base_types",
+    "PmCommandPoolCreateInfo": "command_pool",
+    "PmConstraintFrame": "constraint_types",
+    "PmConstraintType": "constraint_types",
+    "PmCouplingState": "coupling",
+    "PmCouplingType": "coupling",
+    "pmCreateBuffer": "buffer",
+    "pmCreateCommandPool": "command_pool",
+    "pmCreateDevice": "device",
+    "pmCreateFence": "fences",
+    "pmCreateGeometry": "geometry",
+    "pmCreateInstance": "instance",
+    "pmCreatePhysicsPipeline": "pipeline_create",
+    "pmCreateQueryPool": "query_pool",
+    "pmCreateSemaphore": "semaphores",
+    "pmCreateSimulation": "simulation_create",
+    "pmDestroyBuffer": "buffer",
+    "pmDestroyCommandPool": "command_pool",
+    "pmDestroyDevice": "device",
+    "pmDestroyFence": "fences",
+    "pmDestroyGeometry": "geometry",
+    "pmDestroyInstance": "instance",
+    "pmDestroyPhysicsPipeline": "pipeline_create",
+    "pmDestroyQueryPool": "query_pool",
+    "pmDestroySemaphore": "semaphores",
+    "pmDestroySimulation": "simulation_create",
+    "PmDevice": "base_types",
+    "PmDeviceCreateInfo": "device",
+    "PmDeviceMemory": "base_types",
+    "PmDeviceQueueCreateInfo": "device",
+    "PmDeviceSize": "base_types",
+    "pmDeviceWaitIdle": "submission",
+    "pmEndCommandBuffer": "command_buffers",
+    "pmEnumerateInstanceVersion": "instance",
+    "pmEnumeratePhysicalDevices": "physical_devices",
+    "PmFence": "base_types",
+    "PmFlags": "base_types",
+    "PmFluidCapacity": "simulation_create",
+    "pmFlushMappedMemoryRanges": "mapping",
+    "PmFormat": "format_enum",
+    "PmFormatProperties": "formats",
+    "pmFreeCommandBuffers": "command_buffers",
+    "PmFreeFn": "allocator",
+    "pmFreeMemory": "allocation",
+    "PmGeometry": "base_types",
+    "PmGeometryCreateInfo": "geometry",
+    "pmGetBufferMemoryRequirements": "buffer_binding",
+    "pmGetDeviceMemoryBudget": "memory_budget",
+    "pmGetDeviceProcAddr": "function_pointers",
+    "pmGetDeviceQueue": "device",
+    "pmGetFenceStatus": "fences",
+    "pmGetGeometryMemoryRequirements": "geometry",
+    "pmGetInstanceProcAddr": "function_pointers",
+    "pmGetNativeBuffer": "native_buffer",
+    "pmGetNativeDevice": "native_device",
+    "pmGetNativeSemaphore": "native_timeline",
+    "pmGetPhysicalDeviceFeatures": "features",
+    "pmGetPhysicalDeviceFormatProperties": "formats",
+    "pmGetPhysicalDeviceInteropProperties": "native_support",
+    "pmGetPhysicalDeviceLimits": "limits",
+    "pmGetPhysicalDeviceMemoryProperties": "memory_types",
+    "pmGetPhysicalDeviceProperties": "properties",
+    "pmGetPhysicalDeviceQueueFamilies": "queues",
+    "pmGetQueryPoolResults": "query_results",
+    "pmGetSemaphoreCounterValue": "semaphores",
+    "pmGetSimulationMemoryRequirements": "simulation_memory",
+    "pmGetSimulationStatus": "step_stats",
+    "pmGetVulkanBufferEXT": "vulkan_buffer",
+    "pmGetVulkanDeviceEXT": "vulkan_device",
+    "pmGetVulkanSemaphoreEXT": "vulkan_semaphore",
+    "pmImportNativeBuffer": "native_buffer",
+    "pmImportNativeDevice": "native_device",
+    "pmImportNativeSemaphore": "native_timeline",
+    "pmImportVulkanBufferEXT": "vulkan_buffer",
+    "pmImportVulkanDeviceEXT": "vulkan_device",
+    "pmImportVulkanSemaphoreEXT": "vulkan_semaphore",
+    "PmInstance": "base_types",
+    "PmInstanceCreateInfo": "instance",
+    "pmInvalidateMappedMemoryRanges": "mapping",
+    "PmLiquidMaterialState": "liquid_material",
+    "pmMapMemory": "mapping",
+    "PmMappedMemoryRange": "mapping",
+    "PmMemoryAllocateInfo": "allocation",
+    "PmMemoryBarrier": "barriers",
+    "PmMemoryBudget": "memory_budget",
+    "PmMemoryHeap": "memory_types",
+    "PmMemoryProperties": "memory_types",
+    "PmMemoryRequirements": "requirements",
+    "PmMemoryType": "memory_types",
+    "PmMotionType": "rigid_state",
+    "PmNativeBackend": "native_support",
+    "PmNativeBufferInfo": "native_buffer",
+    "PmNativeDeviceImportInfo": "native_device",
+    "PmNativeDeviceInfo": "native_device",
+    "PmNativeHandle": "native_support",
+    "PmNativeInteropProperties": "native_support",
+    "PmNativeQueueInfo": "native_device",
+    "PmParticleState": "simulation_init",
+    "PmPhysicalDevice": "base_types",
+    "PmPhysicalDeviceFeatures": "features",
+    "PmPhysicalDeviceLimits": "limits",
+    "PmPhysicalDeviceProperties": "properties",
+    "PmPhysicsPipeline": "base_types",
+    "PmPhysicsPipelineCreateInfo": "pipeline_create",
+    "PmQueryPool": "base_types",
+    "PmQueryPoolCreateInfo": "query_pool",
+    "PmQueryType": "query_pool",
+    "PmQueue": "base_types",
+    "PmQueueFamilyProperties": "queues",
+    "pmQueueSubmit": "submission",
+    "pmQueueWaitIdle": "submission",
+    "pmResetCommandBuffer": "command_buffers",
+    "pmResetCommandPool": "command_pool",
+    "pmResetFences": "fences",
+    "PmResult": "results",
+    "PmRigidBodyInfo": "bodies",
+    "PmRigidConstraintInfo": "constraint_info",
+    "PmRigidInput": "body_inputs",
+    "PmRigidSolverState": "rigid_solver",
+    "PmRigidState": "rigid_state",
+    "PmSemaphore": "base_types",
+    "PmSemaphoreCreateInfo": "semaphores",
+    "PmSemaphoreSubmitInfo": "semaphores",
+    "PmSimulation": "base_types",
+    "PmSimulationCreateInfo": "simulation_create",
+    "PmSimulationMemoryBinding": "simulation_memory",
+    "PmSimulationMemoryRequirements": "simulation_memory",
+    "PmStageFlags": "base_types",
+    "PmStepInfo": "step",
+    "PmStepStatistics": "step_stats",
+    "PmStructureType": "structure_types",
+    "PmSubmitInfo": "submission",
+    "pmUnmapMemory": "mapping",
+    "PmVulkanBufferImportInfo": "vulkan_buffer",
+    "PmVulkanDeviceImportInfo": "vulkan_device",
+    "PmVulkanDeviceInfo": "vulkan_device",
+    "PmVulkanQueueInfo": "vulkan_device",
+    "pmWaitForFences": "fences",
+    "pmWaitSemaphore": "semaphores"
+  },
+  "panels": [
+    {
+      "key": "intent",
+      "page": 1,
+      "rect": [
+        13.5,
+        787.5897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "legend",
+      "page": 1,
+      "rect": [
+        402.35039370078744,
+        754.8897637795277,
+        581.7755905511812,
+        797.3897637795277
+      ]
+    },
+    {
+      "key": "results",
+      "page": 1,
+      "rect": [
+        13.5,
+        570.0897637795277,
+        192.92519685039372,
+        725.8897637795277
+      ]
+    },
+    {
+      "key": "function_pointers",
+      "page": 1,
+      "rect": [
+        13.5,
+        465.08976377952774,
+        192.92519685039372,
+        537.0897637795277
+      ]
+    },
+    {
+      "key": "instance",
+      "page": 1,
+      "rect": [
+        13.5,
+        333.08976377952774,
+        192.92519685039372,
+        461.08976377952774
+      ]
+    },
+    {
+      "key": "allocator",
+      "page": 1,
+      "rect": [
+        13.5,
+        235.08976377952774,
+        192.92519685039372,
+        329.08976377952774
+      ]
+    },
+    {
+      "key": "physical_devices",
+      "page": 1,
+      "rect": [
+        13.5,
+        164.08976377952774,
+        192.92519685039372,
+        202.08976377952774
+      ]
+    },
+    {
+      "key": "properties",
+      "page": 1,
+      "rect": [
+        13.5,
+        48.08976377952774,
+        192.92519685039372,
+        160.08976377952774
+      ]
+    },
+    {
+      "key": "queues",
+      "page": 1,
+      "rect": [
+        207.92519685039372,
+        611.8897637795277,
+        387.35039370078744,
+        739.8897637795277
+      ]
+    },
+    {
+      "key": "features",
+      "page": 1,
+      "rect": [
+        207.92519685039372,
+        302.8897637795277,
+        387.35039370078744,
+        438.8897637795277
+      ]
+    },
+    {
+      "key": "device",
+      "page": 1,
+      "rect": [
+        207.92519685039372,
+        106.8897637795277,
+        387.35039370078744,
+        298.8897637795277
+      ]
+    },
+    {
+      "key": "memory_types",
+      "page": 1,
+      "rect": [
+        207.92519685039372,
+        19.889763779527698,
+        387.35039370078744,
+        73.8897637795277
+      ]
+    },
+    {
+      "key": "memory_types",
+      "page": 1,
+      "rect": [
+        402.35039370078744,
+        579.8897637795277,
+        581.7755905511812,
+        739.8897637795277
+      ]
+    },
+    {
+      "key": "requirements",
+      "page": 1,
+      "rect": [
+        402.35039370078744,
+        321.8897637795277,
+        581.7755905511812,
+        383.8897637795277
+      ]
+    },
+    {
+      "key": "allocation",
+      "page": 1,
+      "rect": [
+        402.35039370078744,
+        213.8897637795277,
+        581.7755905511812,
+        317.8897637795277
+      ]
+    },
+    {
+      "key": "mapping",
+      "page": 1,
+      "rect": [
+        402.35039370078744,
+        57.8897637795277,
+        581.7755905511812,
+        209.8897637795277
+      ]
+    },
+    {
+      "key": "buffer",
+      "page": 2,
+      "rect": [
+        13.5,
+        646.3897637795277,
+        192.92519685039372,
+        814.3897637795277
+      ]
+    },
+    {
+      "key": "buffer_binding",
+      "page": 2,
+      "rect": [
+        13.5,
+        538.3897637795277,
+        192.92519685039372,
+        642.3897637795277
+      ]
+    },
+    {
+      "key": "format_enum",
+      "page": 2,
+      "rect": [
+        13.5,
+        400.3897637795277,
+        192.92519685039372,
+        534.3897637795277
+      ]
+    },
+    {
+      "key": "geometry",
+      "page": 2,
+      "rect": [
+        13.5,
+        228.3897637795277,
+        192.92519685039372,
+        396.3897637795277
+      ]
+    },
+    {
+      "key": "geometry_build",
+      "page": 2,
+      "rect": [
+        13.5,
+        186.3897637795277,
+        192.92519685039372,
+        224.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_create",
+      "page": 2,
+      "rect": [
+        13.5,
+        27.389763779527698,
+        192.92519685039372,
+        153.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_create",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        774.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_memory",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        594.3897637795277,
+        387.35039370078744,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "rigid_state",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        464.3897637795277,
+        387.35039370078744,
+        590.3897637795277
+      ]
+    },
+    {
+      "key": "bodies",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        300.3897637795277,
+        387.35039370078744,
+        460.3897637795277
+      ]
+    },
+    {
+      "key": "body_inputs",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        144.3897637795277,
+        387.35039370078744,
+        296.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_types",
+      "page": 2,
+      "rect": [
+        207.92519685039372,
+        25.389763779527698,
+        387.35039370078744,
+        111.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_types",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        774.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "axis_control",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        628.3897637795277,
+        581.7755905511812,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_info",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        432.3897637795277,
+        581.7755905511812,
+        624.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_dofs",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        250.88976377952764,
+        581.7755905511812,
+        428.3897637795277
+      ]
+    },
+    {
+      "key": "rigid_solver",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        147.88976377952764,
+        581.7755905511812,
+        217.88976377952764
+      ]
+    },
+    {
+      "key": "liquid_material",
+      "page": 2,
+      "rect": [
+        402.35039370078744,
+        41.88976377952764,
+        581.7755905511812,
+        143.88976377952764
+      ]
+    },
+    {
+      "key": "coupling",
+      "page": 3,
+      "rect": [
+        13.5,
+        694.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "pipeline_create",
+      "page": 3,
+      "rect": [
+        13.5,
+        291.3897637795277,
+        192.92519685039372,
+        451.3897637795277
+      ]
+    },
+    {
+      "key": "command_pool",
+      "page": 3,
+      "rect": [
+        13.5,
+        98.3897637795277,
+        192.92519685039372,
+        258.3897637795277
+      ]
+    },
+    {
+      "key": "command_buffers",
+      "page": 3,
+      "rect": [
+        13.5,
+        40.3897637795277,
+        192.92519685039372,
+        94.3897637795277
+      ]
+    },
+    {
+      "key": "command_buffers",
+      "page": 3,
+      "rect": [
+        207.92519685039372,
+        702.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "lifecycle",
+      "page": 3,
+      "rect": [
+        207.92519685039372,
+        357.48976377952766,
+        387.35039370078744,
+        491.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_init",
+      "page": 3,
+      "rect": [
+        207.92519685039372,
+        225.48976377952766,
+        387.35039370078744,
+        353.48976377952766
+      ]
+    },
+    {
+      "key": "step",
+      "page": 3,
+      "rect": [
+        207.92519685039372,
+        109.48976377952766,
+        387.35039370078744,
+        221.48976377952766
+      ]
+    },
+    {
+      "key": "buffer_copy",
+      "page": 3,
+      "rect": [
+        207.92519685039372,
+        22.489763779527664,
+        387.35039370078744,
+        76.48976377952766
+      ]
+    },
+    {
+      "key": "buffer_copy",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        774.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "outputs",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        676.3897637795277,
+        581.7755905511812,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "stage_access",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        517.3897637795277,
+        581.7755905511812,
+        643.3897637795277
+      ]
+    },
+    {
+      "key": "barriers",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        345.3897637795277,
+        581.7755905511812,
+        513.3897637795277
+      ]
+    },
+    {
+      "key": "semaphores",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        157.3897637795277,
+        581.7755905511812,
+        341.3897637795277
+      ]
+    },
+    {
+      "key": "submission",
+      "page": 3,
+      "rect": [
+        402.35039370078744,
+        33.3897637795277,
+        581.7755905511812,
+        153.3897637795277
+      ]
+    },
+    {
+      "key": "submission",
+      "page": 4,
+      "rect": [
+        13.5,
+        798.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "fences",
+      "page": 4,
+      "rect": [
+        13.5,
+        674.3897637795277,
+        192.92519685039372,
+        794.3897637795277
+      ]
+    },
+    {
+      "key": "native_support",
+      "page": 4,
+      "rect": [
+        13.5,
+        278.3897637795277,
+        192.92519685039372,
+        430.3897637795277
+      ]
+    },
+    {
+      "key": "native_device",
+      "page": 4,
+      "rect": [
+        13.5,
+        26.389763779527698,
+        192.92519685039372,
+        274.3897637795277
+      ]
+    },
+    {
+      "key": "native_device",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        798.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "native_buffer",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        658.3897637795277,
+        387.35039370078744,
+        794.3897637795277
+      ]
+    },
+    {
+      "key": "native_timeline",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        576.3897637795277,
+        387.35039370078744,
+        654.3897637795277
+      ]
+    },
+    {
+      "key": "native_mapping",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        437.5897637795277,
+        387.35039370078744,
+        572.3897637795277
+      ]
+    },
+    {
+      "key": "vulkan_device",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        193.5897637795277,
+        387.35039370078744,
+        433.5897637795277
+      ]
+    },
+    {
+      "key": "vulkan_buffer",
+      "page": 4,
+      "rect": [
+        207.92519685039372,
+        53.589763779527686,
+        387.35039370078744,
+        189.5897637795277
+      ]
+    },
+    {
+      "key": "vulkan_semaphore",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        766.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "stage_mapping",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        663.1897637795279,
+        581.7755905511812,
+        762.3897637795277
+      ]
+    },
+    {
+      "key": "query_pool",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        462.1897637795279,
+        581.7755905511812,
+        630.1897637795279
+      ]
+    },
+    {
+      "key": "timestamps",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        412.1897637795279,
+        581.7755905511812,
+        458.1897637795279
+      ]
+    },
+    {
+      "key": "step_stats",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        200.18976377952788,
+        581.7755905511812,
+        408.1897637795279
+      ]
+    },
+    {
+      "key": "query_results",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        92.18976377952788,
+        581.7755905511812,
+        196.18976377952788
+      ]
+    },
+    {
+      "key": "memory_budget",
+      "page": 4,
+      "rect": [
+        402.35039370078744,
+        18.18976377952788,
+        581.7755905511812,
+        88.18976377952788
+      ]
+    },
+    {
+      "key": "memory_budget",
+      "page": 5,
+      "rect": [
+        13.5,
+        762.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "limits",
+      "page": 5,
+      "rect": [
+        13.5,
+        553.3897637795277,
+        192.92519685039372,
+        729.3897637795277
+      ]
+    },
+    {
+      "key": "formats",
+      "page": 5,
+      "rect": [
+        13.5,
+        413.3897637795277,
+        192.92519685039372,
+        549.3897637795277
+      ]
+    },
+    {
+      "key": "format_layouts",
+      "page": 5,
+      "rect": [
+        13.5,
+        266.58976377952763,
+        192.92519685039372,
+        409.3897637795277
+      ]
+    },
+    {
+      "key": "feature_matrix",
+      "page": 5,
+      "rect": [
+        13.5,
+        89.98976377952758,
+        192.92519685039372,
+        262.58976377952763
+      ]
+    },
+    {
+      "key": "base_types",
+      "page": 5,
+      "rect": [
+        207.92519685039372,
+        528.3897637795277,
+        387.35039370078744,
+        814.3897637795277
+      ]
+    },
+    {
+      "key": "structure_types",
+      "page": 5,
+      "rect": [
+        207.92519685039372,
+        286.3897637795277,
+        387.35039370078744,
+        524.3897637795277
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "section": "overview",
+      "color": "#EAF0EF",
+      "rects": [
+        [
+          8.0,
+          749.3897637795277,
+          587.2755905511812,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            749.3898
+          ],
+          [
+            587.2756,
+            749.3898
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 1
+    },
+    {
+      "section": "return_codes",
+      "color": "#F6EAC1",
+      "rects": [
+        [
+          8.0,
+          560.5897637795277,
+          198.42519685039372,
+          745.3897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            560.5898
+          ],
+          [
+            198.4252,
+            560.5898
+          ],
+          [
+            198.4252,
+            745.3898
+          ],
+          [
+            8.0,
+            745.3898
+          ]
+        ]
+      ],
+      "page": 1
+    },
+    {
+      "section": "instancing",
+      "color": "#E9E1F1",
+      "rects": [
+        [
+          8.0,
+          225.58976377952774,
+          198.42519685039372,
+          556.5897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            225.5898
+          ],
+          [
+            198.4252,
+            225.5898
+          ],
+          [
+            198.4252,
+            556.5898
+          ],
+          [
+            8.0,
+            556.5898
+          ]
+        ]
+      ],
+      "page": 1
+    },
+    {
+      "section": "discovery",
+      "color": "#DDEBF4",
+      "rects": [
+        [
+          8.0,
+          12.0,
+          198.42519685039372,
+          221.58976377952774
+        ],
+        [
+          202.42519685039372,
+          97.3897637795277,
+          392.85039370078744,
+          745.3897637795277
+        ],
+        [
+          198.42519685039372,
+          97.3897637795277,
+          202.42519685039372,
+          221.58976377952774
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            12.0
+          ],
+          [
+            198.4252,
+            12.0
+          ],
+          [
+            198.4252,
+            97.3898
+          ],
+          [
+            392.8504,
+            97.3898
+          ],
+          [
+            392.8504,
+            745.3898
+          ],
+          [
+            202.4252,
+            745.3898
+          ],
+          [
+            202.4252,
+            221.5898
+          ],
+          [
+            8.0,
+            221.5898
+          ]
+        ]
+      ],
+      "page": 1
+    },
+    {
+      "section": "memory",
+      "color": "#F4E3AC",
+      "rects": [
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          93.3897637795277
+        ],
+        [
+          396.85039370078744,
+          48.3897637795277,
+          587.2755905511812,
+          745.3897637795277
+        ],
+        [
+          392.85039370078744,
+          48.3897637795277,
+          396.85039370078744,
+          93.3897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            202.4252,
+            12.0
+          ],
+          [
+            392.8504,
+            12.0
+          ],
+          [
+            392.8504,
+            48.3898
+          ],
+          [
+            587.2756,
+            48.3898
+          ],
+          [
+            587.2756,
+            745.3898
+          ],
+          [
+            396.8504,
+            745.3898
+          ],
+          [
+            396.8504,
+            93.3898
+          ],
+          [
+            202.4252,
+            93.3898
+          ]
+        ]
+      ],
+      "page": 1
+    },
+    {
+      "section": "resources",
+      "color": "#DCEBCF",
+      "rects": [
+        [
+          8.0,
+          176.8897637795277,
+          198.42519685039372,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            176.8898
+          ],
+          [
+            198.4252,
+            176.8898
+          ],
+          [
+            198.4252,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 2
+    },
+    {
+      "section": "simulation",
+      "color": "#F2D9C4",
+      "rects": [
+        [
+          8.0,
+          12.0,
+          198.42519685039372,
+          172.8897637795277
+        ],
+        [
+          202.42519685039372,
+          134.8897637795277,
+          392.85039370078744,
+          833.8897637795277
+        ],
+        [
+          198.42519685039372,
+          134.8897637795277,
+          202.42519685039372,
+          172.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            12.0
+          ],
+          [
+            198.4252,
+            12.0
+          ],
+          [
+            198.4252,
+            134.8898
+          ],
+          [
+            392.8504,
+            134.8898
+          ],
+          [
+            392.8504,
+            833.8898
+          ],
+          [
+            202.4252,
+            833.8898
+          ],
+          [
+            202.4252,
+            172.8898
+          ],
+          [
+            8.0,
+            172.8898
+          ]
+        ]
+      ],
+      "page": 2
+    },
+    {
+      "section": "constraints",
+      "color": "#E6D8ED",
+      "rects": [
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          130.8897637795277
+        ],
+        [
+          396.85039370078744,
+          241.38976377952764,
+          587.2755905511812,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            202.4252,
+            12.0
+          ],
+          [
+            392.8504,
+            12.0
+          ],
+          [
+            392.8504,
+            130.8898
+          ],
+          [
+            202.4252,
+            130.8898
+          ]
+        ],
+        [
+          [
+            396.8504,
+            241.3898
+          ],
+          [
+            587.2756,
+            241.3898
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            396.8504,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 2
+    },
+    {
+      "section": "pipelines",
+      "color": "#F2E69F",
+      "rects": [
+        [
+          396.85039370078744,
+          12.0,
+          587.2755905511812,
+          237.38976377952764
+        ]
+      ],
+      "contours": [
+        [
+          [
+            396.8504,
+            12.0
+          ],
+          [
+            587.2756,
+            12.0
+          ],
+          [
+            587.2756,
+            237.3898
+          ],
+          [
+            396.8504,
+            237.3898
+          ]
+        ]
+      ],
+      "page": 2
+    },
+    {
+      "section": "pipelines",
+      "color": "#F2E69F",
+      "rects": [
+        [
+          8.0,
+          281.8897637795277,
+          198.42519685039372,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            281.8898
+          ],
+          [
+            198.4252,
+            281.8898
+          ],
+          [
+            198.4252,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 3
+    },
+    {
+      "section": "commands",
+      "color": "#DCE1F4",
+      "rects": [
+        [
+          8.0,
+          12.0,
+          198.42519685039372,
+          277.8897637795277
+        ],
+        [
+          202.42519685039372,
+          99.98976377952766,
+          392.85039370078744,
+          833.8897637795277
+        ],
+        [
+          198.42519685039372,
+          99.98976377952766,
+          202.42519685039372,
+          277.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            12.0
+          ],
+          [
+            198.4252,
+            12.0
+          ],
+          [
+            198.4252,
+            99.9898
+          ],
+          [
+            392.8504,
+            99.9898
+          ],
+          [
+            392.8504,
+            833.8898
+          ],
+          [
+            202.4252,
+            833.8898
+          ],
+          [
+            202.4252,
+            277.8898
+          ],
+          [
+            8.0,
+            277.8898
+          ]
+        ]
+      ],
+      "page": 3
+    },
+    {
+      "section": "transfer",
+      "color": "#CEE7E3",
+      "rects": [
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          95.98976377952766
+        ],
+        [
+          396.85039370078744,
+          666.8897637795277,
+          587.2755905511812,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            202.4252,
+            12.0
+          ],
+          [
+            392.8504,
+            12.0
+          ],
+          [
+            392.8504,
+            95.9898
+          ],
+          [
+            202.4252,
+            95.9898
+          ]
+        ],
+        [
+          [
+            396.8504,
+            666.8898
+          ],
+          [
+            587.2756,
+            666.8898
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            396.8504,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 3
+    },
+    {
+      "section": "sync",
+      "color": "#F0D1D4",
+      "rects": [
+        [
+          396.85039370078744,
+          12.0,
+          587.2755905511812,
+          662.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            396.8504,
+            12.0
+          ],
+          [
+            587.2756,
+            12.0
+          ],
+          [
+            587.2756,
+            662.8898
+          ],
+          [
+            396.8504,
+            662.8898
+          ]
+        ]
+      ],
+      "page": 3
+    },
+    {
+      "section": "sync",
+      "color": "#F0D1D4",
+      "rects": [
+        [
+          8.0,
+          664.8897637795277,
+          198.42519685039372,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            664.8898
+          ],
+          [
+            198.4252,
+            664.8898
+          ],
+          [
+            198.4252,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 4
+    },
+    {
+      "section": "interop",
+      "color": "#E1DCF0",
+      "rects": [
+        [
+          8.0,
+          12.0,
+          198.42519685039372,
+          660.8897637795277
+        ],
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          833.8897637795277
+        ],
+        [
+          396.85039370078744,
+          653.6897637795279,
+          587.2755905511812,
+          833.8897637795277
+        ],
+        [
+          198.42519685039372,
+          12.0,
+          202.42519685039372,
+          660.8897637795277
+        ],
+        [
+          392.85039370078744,
+          653.6897637795279,
+          396.85039370078744,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            12.0
+          ],
+          [
+            392.8504,
+            12.0
+          ],
+          [
+            392.8504,
+            653.6898
+          ],
+          [
+            587.2756,
+            653.6898
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            202.4252,
+            833.8898
+          ],
+          [
+            202.4252,
+            660.8898
+          ],
+          [
+            8.0,
+            660.8898
+          ]
+        ]
+      ],
+      "page": 4
+    },
+    {
+      "section": "queries",
+      "color": "#D4E8D5",
+      "rects": [
+        [
+          396.85039370078744,
+          12.0,
+          587.2755905511812,
+          649.6897637795279
+        ]
+      ],
+      "contours": [
+        [
+          [
+            396.8504,
+            12.0
+          ],
+          [
+            587.2756,
+            12.0
+          ],
+          [
+            587.2756,
+            649.6898
+          ],
+          [
+            396.8504,
+            649.6898
+          ]
+        ]
+      ],
+      "page": 4
+    },
+    {
+      "section": "queries",
+      "color": "#D4E8D5",
+      "rects": [
+        [
+          8.0,
+          752.8897637795277,
+          198.42519685039372,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            752.8898
+          ],
+          [
+            198.4252,
+            752.8898
+          ],
+          [
+            198.4252,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 5
+    },
+    {
+      "section": "capabilities",
+      "color": "#EDE0B8",
+      "rects": [
+        [
+          8.0,
+          80.48976377952758,
+          198.42519685039372,
+          748.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            80.4898
+          ],
+          [
+            198.4252,
+            80.4898
+          ],
+          [
+            198.4252,
+            748.8898
+          ],
+          [
+            8.0,
+            748.8898
+          ]
+        ]
+      ],
+      "page": 5
+    },
+    {
+      "section": "fundamentals",
+      "color": "#DDE7ED",
+      "rects": [
+        [
+          202.42519685039372,
+          276.8897637795277,
+          392.85039370078744,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            202.4252,
+            276.8898
+          ],
+          [
+            392.8504,
+            276.8898
+          ],
+          [
+            392.8504,
+            833.8898
+          ],
+          [
+            202.4252,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 5
+    },
+    {
+      "section": "index",
+      "color": "#E8E4D9",
+      "rects": [
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          272.8897637795277
+        ],
+        [
+          396.85039370078744,
+          12.0,
+          587.2755905511812,
+          833.8897637795277
+        ],
+        [
+          392.85039370078744,
+          12.0,
+          396.85039370078744,
+          272.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            202.4252,
+            12.0
+          ],
+          [
+            587.2756,
+            12.0
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            396.8504,
+            833.8898
+          ],
+          [
+            396.8504,
+            272.8898
+          ],
+          [
+            202.4252,
+            272.8898
+          ]
+        ]
+      ],
+      "page": 5
+    },
+    {
+      "section": "index",
+      "color": "#E8E4D9",
+      "rects": [
+        [
+          8.0,
+          12.0,
+          198.42519685039372,
+          833.8897637795277
+        ],
+        [
+          202.42519685039372,
+          12.0,
+          392.85039370078744,
+          833.8897637795277
+        ],
+        [
+          396.85039370078744,
+          50.61383827573229,
+          587.2755905511812,
+          833.8897637795277
+        ],
+        [
+          198.42519685039372,
+          12.0,
+          202.42519685039372,
+          833.8897637795277
+        ],
+        [
+          392.85039370078744,
+          50.61383827573229,
+          396.85039370078744,
+          833.8897637795277
+        ]
+      ],
+      "contours": [
+        [
+          [
+            8.0,
+            12.0
+          ],
+          [
+            392.8504,
+            12.0
+          ],
+          [
+            392.8504,
+            50.6138
+          ],
+          [
+            587.2756,
+            50.6138
+          ],
+          [
+            587.2756,
+            833.8898
+          ],
+          [
+            8.0,
+            833.8898
+          ]
+        ]
+      ],
+      "page": 6
+    }
+  ],
+  "items": [
+    {
+      "page": 1,
+      "kind": "text",
+      "card": "intent",
+      "section": "overview",
+      "rect": [
+        13.5,
+        787.5897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "wordmark",
+      "card": null,
+      "section": "overview",
+      "rect": [
+        402.35039370078744,
+        799.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "text",
+      "card": "legend",
+      "section": "overview",
+      "rect": [
+        402.35039370078744,
+        754.8897637795277,
+        581.7755905511812,
+        797.3897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "section",
+      "card": null,
+      "section": "return_codes",
+      "rect": [
+        13.5,
+        725.8897637795277,
+        192.92519685039372,
+        739.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "results",
+      "section": "return_codes",
+      "rect": [
+        13.5,
+        713.8897637795277,
+        192.92519685039372,
+        725.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "text",
+      "card": "results",
+      "section": "return_codes",
+      "rect": [
+        13.5,
+        692.0897637795277,
+        192.92519685039372,
+        713.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "results",
+      "section": "return_codes",
+      "rect": [
+        13.5,
+        570.0897637795277,
+        192.92519685039372,
+        692.0897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "section",
+      "card": null,
+      "section": "instancing",
+      "rect": [
+        13.5,
+        537.0897637795277,
+        192.92519685039372,
+        551.0897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "function_pointers",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        525.0897637795277,
+        192.92519685039372,
+        537.0897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "function_pointers",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        499.08976377952774,
+        192.92519685039372,
+        525.0897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "function_pointers",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        465.08976377952774,
+        192.92519685039372,
+        499.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "instance",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        449.08976377952774,
+        192.92519685039372,
+        461.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "instance",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        391.08976377952774,
+        192.92519685039372,
+        449.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "instance",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        333.08976377952774,
+        192.92519685039372,
+        391.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "allocator",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        317.08976377952774,
+        192.92519685039372,
+        329.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "allocator",
+      "section": "instancing",
+      "rect": [
+        13.5,
+        235.08976377952774,
+        192.92519685039372,
+        317.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "section",
+      "card": null,
+      "section": "discovery",
+      "rect": [
+        13.5,
+        202.08976377952774,
+        192.92519685039372,
+        216.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "physical_devices",
+      "section": "discovery",
+      "rect": [
+        13.5,
+        190.08976377952774,
+        192.92519685039372,
+        202.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "physical_devices",
+      "section": "discovery",
+      "rect": [
+        13.5,
+        164.08976377952774,
+        192.92519685039372,
+        190.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "properties",
+      "section": "discovery",
+      "rect": [
+        13.5,
+        148.08976377952774,
+        192.92519685039372,
+        160.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "properties",
+      "section": "discovery",
+      "rect": [
+        13.5,
+        82.08976377952774,
+        192.92519685039372,
+        148.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "properties",
+      "section": "discovery",
+      "rect": [
+        13.5,
+        48.08976377952774,
+        192.92519685039372,
+        82.08976377952774
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "queues",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        727.8897637795277,
+        387.35039370078744,
+        739.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "queues",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        645.8897637795277,
+        387.35039370078744,
+        727.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "queues",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        611.8897637795277,
+        387.35039370078744,
+        645.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "diagram",
+      "card": null,
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        438.8897637795277,
+        387.35039370078744,
+        607.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "features",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        426.8897637795277,
+        387.35039370078744,
+        438.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "features",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        328.8897637795277,
+        387.35039370078744,
+        426.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "features",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        302.8897637795277,
+        387.35039370078744,
+        328.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "device",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        286.8897637795277,
+        387.35039370078744,
+        298.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "device",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        172.8897637795277,
+        387.35039370078744,
+        286.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "device",
+      "section": "discovery",
+      "rect": [
+        207.92519685039372,
+        106.8897637795277,
+        387.35039370078744,
+        172.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "section",
+      "card": null,
+      "section": "memory",
+      "rect": [
+        207.92519685039372,
+        73.8897637795277,
+        387.35039370078744,
+        87.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "memory_types",
+      "section": "memory",
+      "rect": [
+        207.92519685039372,
+        61.8897637795277,
+        387.35039370078744,
+        73.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "memory_types",
+      "section": "memory",
+      "rect": [
+        207.92519685039372,
+        19.889763779527698,
+        387.35039370078744,
+        61.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "memory_types",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        727.8897637795277,
+        581.7755905511812,
+        739.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "memory_types",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        605.8897637795277,
+        581.7755905511812,
+        727.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "memory_types",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        579.8897637795277,
+        581.7755905511812,
+        605.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "diagram",
+      "card": null,
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        383.8897637795277,
+        581.7755905511812,
+        575.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "requirements",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        371.8897637795277,
+        581.7755905511812,
+        383.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "requirements",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        321.8897637795277,
+        581.7755905511812,
+        371.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "allocation",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        305.8897637795277,
+        581.7755905511812,
+        317.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "allocation",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        255.8897637795277,
+        581.7755905511812,
+        305.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "allocation",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        213.8897637795277,
+        581.7755905511812,
+        255.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "heading",
+      "card": "mapping",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        197.8897637795277,
+        581.7755905511812,
+        209.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "mapping",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        155.8897637795277,
+        581.7755905511812,
+        197.8897637795277
+      ]
+    },
+    {
+      "page": 1,
+      "kind": "code",
+      "card": "mapping",
+      "section": "memory",
+      "rect": [
+        402.35039370078744,
+        57.8897637795277,
+        581.7755905511812,
+        155.8897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "section",
+      "card": null,
+      "section": "resources",
+      "rect": [
+        13.5,
+        814.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "buffer",
+      "section": "resources",
+      "rect": [
+        13.5,
+        802.3897637795277,
+        192.92519685039372,
+        814.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "buffer",
+      "section": "resources",
+      "rect": [
+        13.5,
+        688.3897637795277,
+        192.92519685039372,
+        802.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "buffer",
+      "section": "resources",
+      "rect": [
+        13.5,
+        646.3897637795277,
+        192.92519685039372,
+        688.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "buffer_binding",
+      "section": "resources",
+      "rect": [
+        13.5,
+        630.3897637795277,
+        192.92519685039372,
+        642.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "buffer_binding",
+      "section": "resources",
+      "rect": [
+        13.5,
+        588.3897637795277,
+        192.92519685039372,
+        630.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "buffer_binding",
+      "section": "resources",
+      "rect": [
+        13.5,
+        538.3897637795277,
+        192.92519685039372,
+        588.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "format_enum",
+      "section": "resources",
+      "rect": [
+        13.5,
+        522.3897637795277,
+        192.92519685039372,
+        534.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "format_enum",
+      "section": "resources",
+      "rect": [
+        13.5,
+        400.3897637795277,
+        192.92519685039372,
+        522.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "geometry",
+      "section": "resources",
+      "rect": [
+        13.5,
+        384.3897637795277,
+        192.92519685039372,
+        396.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "geometry",
+      "section": "resources",
+      "rect": [
+        13.5,
+        326.3897637795277,
+        192.92519685039372,
+        384.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "geometry",
+      "section": "resources",
+      "rect": [
+        13.5,
+        228.3897637795277,
+        192.92519685039372,
+        326.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "geometry_build",
+      "section": "resources",
+      "rect": [
+        13.5,
+        212.3897637795277,
+        192.92519685039372,
+        224.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "geometry_build",
+      "section": "resources",
+      "rect": [
+        13.5,
+        186.3897637795277,
+        192.92519685039372,
+        212.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "section",
+      "card": null,
+      "section": "simulation",
+      "rect": [
+        13.5,
+        153.3897637795277,
+        192.92519685039372,
+        167.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "simulation_create",
+      "section": "simulation",
+      "rect": [
+        13.5,
+        141.3897637795277,
+        192.92519685039372,
+        153.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "simulation_create",
+      "section": "simulation",
+      "rect": [
+        13.5,
+        27.389763779527698,
+        192.92519685039372,
+        141.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "simulation_create",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        816.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "simulation_create",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        774.3897637795277,
+        387.35039370078744,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "simulation_memory",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        758.3897637795277,
+        387.35039370078744,
+        770.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "simulation_memory",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        668.3897637795277,
+        387.35039370078744,
+        758.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "simulation_memory",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        594.3897637795277,
+        387.35039370078744,
+        668.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "rigid_state",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        578.3897637795277,
+        387.35039370078744,
+        590.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "rigid_state",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        464.3897637795277,
+        387.35039370078744,
+        578.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "bodies",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        448.3897637795277,
+        387.35039370078744,
+        460.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "bodies",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        342.3897637795277,
+        387.35039370078744,
+        448.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "bodies",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        300.3897637795277,
+        387.35039370078744,
+        342.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "body_inputs",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        284.3897637795277,
+        387.35039370078744,
+        296.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "body_inputs",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        226.3897637795277,
+        387.35039370078744,
+        284.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "body_inputs",
+      "section": "simulation",
+      "rect": [
+        207.92519685039372,
+        144.3897637795277,
+        387.35039370078744,
+        226.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "section",
+      "card": null,
+      "section": "constraints",
+      "rect": [
+        207.92519685039372,
+        111.3897637795277,
+        387.35039370078744,
+        125.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "constraint_types",
+      "section": "constraints",
+      "rect": [
+        207.92519685039372,
+        99.3897637795277,
+        387.35039370078744,
+        111.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "constraint_types",
+      "section": "constraints",
+      "rect": [
+        207.92519685039372,
+        25.389763779527698,
+        387.35039370078744,
+        99.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "constraint_types",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        816.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "constraint_types",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        774.3897637795277,
+        581.7755905511812,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "axis_control",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        758.3897637795277,
+        581.7755905511812,
+        770.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "axis_control",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        628.3897637795277,
+        581.7755905511812,
+        758.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "constraint_info",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        612.3897637795277,
+        581.7755905511812,
+        624.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "constraint_info",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        490.3897637795277,
+        581.7755905511812,
+        612.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "constraint_info",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        432.3897637795277,
+        581.7755905511812,
+        490.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        416.3897637795277,
+        581.7755905511812,
+        428.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        394.5897637795277,
+        581.7755905511812,
+        416.3897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        372.7897637795277,
+        581.7755905511812,
+        394.5897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        359.8897637795277,
+        581.7755905511812,
+        372.7897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        338.0897637795277,
+        581.7755905511812,
+        359.8897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        316.2897637795277,
+        581.7755905511812,
+        338.0897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        294.48976377952766,
+        581.7755905511812,
+        316.2897637795277
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        272.68976377952765,
+        581.7755905511812,
+        294.48976377952766
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "row",
+      "card": "constraint_dofs",
+      "section": "constraints",
+      "rect": [
+        402.35039370078744,
+        250.88976377952764,
+        581.7755905511812,
+        272.68976377952765
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "section",
+      "card": null,
+      "section": "pipelines",
+      "rect": [
+        402.35039370078744,
+        217.88976377952764,
+        581.7755905511812,
+        231.88976377952764
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "rigid_solver",
+      "section": "pipelines",
+      "rect": [
+        402.35039370078744,
+        205.88976377952764,
+        581.7755905511812,
+        217.88976377952764
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "rigid_solver",
+      "section": "pipelines",
+      "rect": [
+        402.35039370078744,
+        147.88976377952764,
+        581.7755905511812,
+        205.88976377952764
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "heading",
+      "card": "liquid_material",
+      "section": "pipelines",
+      "rect": [
+        402.35039370078744,
+        131.88976377952764,
+        581.7755905511812,
+        143.88976377952764
+      ]
+    },
+    {
+      "page": 2,
+      "kind": "code",
+      "card": "liquid_material",
+      "section": "pipelines",
+      "rect": [
+        402.35039370078744,
+        41.88976377952764,
+        581.7755905511812,
+        131.88976377952764
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "coupling",
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        816.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "coupling",
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        694.3897637795277,
+        192.92519685039372,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "diagram",
+      "card": null,
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        451.3897637795277,
+        192.92519685039372,
+        690.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "pipeline_create",
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        439.3897637795277,
+        192.92519685039372,
+        451.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "pipeline_create",
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        357.3897637795277,
+        192.92519685039372,
+        439.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "pipeline_create",
+      "section": "pipelines",
+      "rect": [
+        13.5,
+        291.3897637795277,
+        192.92519685039372,
+        357.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "section",
+      "card": null,
+      "section": "commands",
+      "rect": [
+        13.5,
+        258.3897637795277,
+        192.92519685039372,
+        272.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "command_pool",
+      "section": "commands",
+      "rect": [
+        13.5,
+        246.3897637795277,
+        192.92519685039372,
+        258.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "command_pool",
+      "section": "commands",
+      "rect": [
+        13.5,
+        164.3897637795277,
+        192.92519685039372,
+        246.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "command_pool",
+      "section": "commands",
+      "rect": [
+        13.5,
+        98.3897637795277,
+        192.92519685039372,
+        164.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "command_buffers",
+      "section": "commands",
+      "rect": [
+        13.5,
+        82.3897637795277,
+        192.92519685039372,
+        94.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "command_buffers",
+      "section": "commands",
+      "rect": [
+        13.5,
+        40.3897637795277,
+        192.92519685039372,
+        82.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "command_buffers",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        816.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "command_buffers",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        702.3897637795277,
+        387.35039370078744,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "diagram",
+      "card": null,
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        491.3897637795277,
+        387.35039370078744,
+        698.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        479.3897637795277,
+        387.35039370078744,
+        491.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        457.5897637795277,
+        387.35039370078744,
+        479.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        435.7897637795277,
+        387.35039370078744,
+        457.5897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        413.98976377952766,
+        387.35039370078744,
+        435.7897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        392.18976377952765,
+        387.35039370078744,
+        413.98976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        370.38976377952764,
+        387.35039370078744,
+        392.18976377952765
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "row",
+      "card": "lifecycle",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        357.48976377952766,
+        387.35039370078744,
+        370.38976377952764
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "simulation_init",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        341.48976377952766,
+        387.35039370078744,
+        353.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "simulation_init",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        291.48976377952766,
+        387.35039370078744,
+        341.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "simulation_init",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        225.48976377952766,
+        387.35039370078744,
+        291.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "step",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        209.48976377952766,
+        387.35039370078744,
+        221.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "step",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        167.48976377952766,
+        387.35039370078744,
+        209.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "step",
+      "section": "commands",
+      "rect": [
+        207.92519685039372,
+        109.48976377952766,
+        387.35039370078744,
+        167.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "section",
+      "card": null,
+      "section": "transfer",
+      "rect": [
+        207.92519685039372,
+        76.48976377952766,
+        387.35039370078744,
+        90.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "buffer_copy",
+      "section": "transfer",
+      "rect": [
+        207.92519685039372,
+        64.48976377952766,
+        387.35039370078744,
+        76.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "buffer_copy",
+      "section": "transfer",
+      "rect": [
+        207.92519685039372,
+        22.489763779527664,
+        387.35039370078744,
+        64.48976377952766
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "buffer_copy",
+      "section": "transfer",
+      "rect": [
+        402.35039370078744,
+        816.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "buffer_copy",
+      "section": "transfer",
+      "rect": [
+        402.35039370078744,
+        774.3897637795277,
+        581.7755905511812,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "outputs",
+      "section": "transfer",
+      "rect": [
+        402.35039370078744,
+        758.3897637795277,
+        581.7755905511812,
+        770.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "outputs",
+      "section": "transfer",
+      "rect": [
+        402.35039370078744,
+        676.3897637795277,
+        581.7755905511812,
+        758.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "section",
+      "card": null,
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        643.3897637795277,
+        581.7755905511812,
+        657.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "stage_access",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        631.3897637795277,
+        581.7755905511812,
+        643.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "stage_access",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        517.3897637795277,
+        581.7755905511812,
+        631.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "barriers",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        501.3897637795277,
+        581.7755905511812,
+        513.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "barriers",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        403.3897637795277,
+        581.7755905511812,
+        501.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "barriers",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        345.3897637795277,
+        581.7755905511812,
+        403.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "semaphores",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        329.3897637795277,
+        581.7755905511812,
+        341.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "semaphores",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        247.3897637795277,
+        581.7755905511812,
+        329.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "semaphores",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        157.3897637795277,
+        581.7755905511812,
+        247.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "heading",
+      "card": "submission",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        141.3897637795277,
+        581.7755905511812,
+        153.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "submission",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        59.3897637795277,
+        581.7755905511812,
+        141.3897637795277
+      ]
+    },
+    {
+      "page": 3,
+      "kind": "code",
+      "card": "submission",
+      "section": "sync",
+      "rect": [
+        402.35039370078744,
+        33.3897637795277,
+        581.7755905511812,
+        59.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "submission",
+      "section": "sync",
+      "rect": [
+        13.5,
+        816.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "submission",
+      "section": "sync",
+      "rect": [
+        13.5,
+        798.3897637795277,
+        192.92519685039372,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "fences",
+      "section": "sync",
+      "rect": [
+        13.5,
+        782.3897637795277,
+        192.92519685039372,
+        794.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "fences",
+      "section": "sync",
+      "rect": [
+        13.5,
+        772.3897637795277,
+        192.92519685039372,
+        782.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "fences",
+      "section": "sync",
+      "rect": [
+        13.5,
+        674.3897637795277,
+        192.92519685039372,
+        772.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "section",
+      "card": null,
+      "section": "interop",
+      "rect": [
+        13.5,
+        641.3897637795277,
+        192.92519685039372,
+        655.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "diagram",
+      "card": null,
+      "section": "interop",
+      "rect": [
+        13.5,
+        430.3897637795277,
+        192.92519685039372,
+        641.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_support",
+      "section": "interop",
+      "rect": [
+        13.5,
+        418.3897637795277,
+        192.92519685039372,
+        430.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_support",
+      "section": "interop",
+      "rect": [
+        13.5,
+        320.3897637795277,
+        192.92519685039372,
+        418.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_support",
+      "section": "interop",
+      "rect": [
+        13.5,
+        278.3897637795277,
+        192.92519685039372,
+        320.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_device",
+      "section": "interop",
+      "rect": [
+        13.5,
+        262.3897637795277,
+        192.92519685039372,
+        274.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_device",
+      "section": "interop",
+      "rect": [
+        13.5,
+        60.3897637795277,
+        192.92519685039372,
+        262.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_device",
+      "section": "interop",
+      "rect": [
+        13.5,
+        26.389763779527698,
+        192.92519685039372,
+        60.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_device",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        816.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_device",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        798.3897637795277,
+        387.35039370078744,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        782.3897637795277,
+        387.35039370078744,
+        794.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        716.3897637795277,
+        387.35039370078744,
+        782.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        658.3897637795277,
+        387.35039370078744,
+        716.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_timeline",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        642.3897637795277,
+        387.35039370078744,
+        654.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "native_timeline",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        576.3897637795277,
+        387.35039370078744,
+        642.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "native_mapping",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        560.3897637795277,
+        387.35039370078744,
+        572.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "native_mapping",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        529.6897637795277,
+        387.35039370078744,
+        560.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "native_mapping",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        498.98976377952766,
+        387.35039370078744,
+        529.6897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "native_mapping",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        468.2897637795277,
+        387.35039370078744,
+        498.98976377952766
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "native_mapping",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        437.5897637795277,
+        387.35039370078744,
+        468.2897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "vulkan_device",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        421.5897637795277,
+        387.35039370078744,
+        433.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "vulkan_device",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        251.5897637795277,
+        387.35039370078744,
+        421.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "vulkan_device",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        193.5897637795277,
+        387.35039370078744,
+        251.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "vulkan_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        177.5897637795277,
+        387.35039370078744,
+        189.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "vulkan_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        119.58976377952769,
+        387.35039370078744,
+        177.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "vulkan_buffer",
+      "section": "interop",
+      "rect": [
+        207.92519685039372,
+        53.589763779527686,
+        387.35039370078744,
+        119.58976377952769
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "vulkan_semaphore",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        816.3897637795277,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "vulkan_semaphore",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        766.3897637795277,
+        581.7755905511812,
+        816.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "stage_mapping",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        750.3897637795277,
+        581.7755905511812,
+        762.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "stage_mapping",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        728.5897637795277,
+        581.7755905511812,
+        750.3897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "stage_mapping",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        706.7897637795278,
+        581.7755905511812,
+        728.5897637795277
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "stage_mapping",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        684.9897637795278,
+        581.7755905511812,
+        706.7897637795278
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "row",
+      "card": "stage_mapping",
+      "section": "interop",
+      "rect": [
+        402.35039370078744,
+        663.1897637795279,
+        581.7755905511812,
+        684.9897637795278
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "section",
+      "card": null,
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        630.1897637795279,
+        581.7755905511812,
+        644.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "query_pool",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        618.1897637795279,
+        581.7755905511812,
+        630.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "query_pool",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        536.1897637795279,
+        581.7755905511812,
+        618.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "query_pool",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        462.1897637795279,
+        581.7755905511812,
+        536.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "timestamps",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        446.1897637795279,
+        581.7755905511812,
+        458.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "timestamps",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        412.1897637795279,
+        581.7755905511812,
+        446.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "step_stats",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        396.1897637795279,
+        581.7755905511812,
+        408.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "step_stats",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        282.1897637795279,
+        581.7755905511812,
+        396.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "step_stats",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        200.18976377952788,
+        581.7755905511812,
+        282.1897637795279
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "query_results",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        184.18976377952788,
+        581.7755905511812,
+        196.18976377952788
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "query_results",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        142.18976377952788,
+        581.7755905511812,
+        184.18976377952788
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "query_results",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        92.18976377952788,
+        581.7755905511812,
+        142.18976377952788
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "heading",
+      "card": "memory_budget",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        76.18976377952788,
+        581.7755905511812,
+        88.18976377952788
+      ]
+    },
+    {
+      "page": 4,
+      "kind": "code",
+      "card": "memory_budget",
+      "section": "queries",
+      "rect": [
+        402.35039370078744,
+        18.18976377952788,
+        581.7755905511812,
+        76.18976377952788
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "memory_budget",
+      "section": "queries",
+      "rect": [
+        13.5,
+        806.3897637795277,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "memory_budget",
+      "section": "queries",
+      "rect": [
+        13.5,
+        788.3897637795277,
+        192.92519685039372,
+        806.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "memory_budget",
+      "section": "queries",
+      "rect": [
+        13.5,
+        762.3897637795277,
+        192.92519685039372,
+        788.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "section",
+      "card": null,
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        729.3897637795277,
+        192.92519685039372,
+        743.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "limits",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        717.3897637795277,
+        192.92519685039372,
+        729.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "limits",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        579.3897637795277,
+        192.92519685039372,
+        717.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "limits",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        553.3897637795277,
+        192.92519685039372,
+        579.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "formats",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        537.3897637795277,
+        192.92519685039372,
+        549.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "formats",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        447.3897637795277,
+        192.92519685039372,
+        537.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "formats",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        413.3897637795277,
+        192.92519685039372,
+        447.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        397.3897637795277,
+        192.92519685039372,
+        409.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        375.5897637795277,
+        192.92519685039372,
+        397.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        353.7897637795277,
+        192.92519685039372,
+        375.5897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        331.98976377952766,
+        192.92519685039372,
+        353.7897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        310.18976377952765,
+        192.92519685039372,
+        331.98976377952766
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        288.38976377952764,
+        192.92519685039372,
+        310.18976377952765
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "format_layouts",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        266.58976377952763,
+        192.92519685039372,
+        288.38976377952764
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        250.58976377952763,
+        192.92519685039372,
+        262.58976377952763
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        237.68976377952762,
+        192.92519685039372,
+        250.58976377952763
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        224.78976377952762,
+        192.92519685039372,
+        237.68976377952762
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        211.8897637795276,
+        192.92519685039372,
+        224.78976377952762
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        190.0897637795276,
+        192.92519685039372,
+        211.8897637795276
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        168.2897637795276,
+        192.92519685039372,
+        190.0897637795276
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        146.48976377952758,
+        192.92519685039372,
+        168.2897637795276
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        133.58976377952757,
+        192.92519685039372,
+        146.48976377952758
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        111.78976377952758,
+        192.92519685039372,
+        133.58976377952757
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "row",
+      "card": "feature_matrix",
+      "section": "capabilities",
+      "rect": [
+        13.5,
+        89.98976377952758,
+        192.92519685039372,
+        111.78976377952758
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "section",
+      "card": null,
+      "section": "fundamentals",
+      "rect": [
+        207.92519685039372,
+        814.3897637795277,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "base_types",
+      "section": "fundamentals",
+      "rect": [
+        207.92519685039372,
+        802.3897637795277,
+        387.35039370078744,
+        814.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "base_types",
+      "section": "fundamentals",
+      "rect": [
+        207.92519685039372,
+        528.3897637795277,
+        387.35039370078744,
+        802.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "heading",
+      "card": "structure_types",
+      "section": "fundamentals",
+      "rect": [
+        207.92519685039372,
+        512.3897637795277,
+        387.35039370078744,
+        524.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "code",
+      "card": "structure_types",
+      "section": "fundamentals",
+      "rect": [
+        207.92519685039372,
+        286.3897637795277,
+        387.35039370078744,
+        512.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "section",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        253.3897637795277,
+        387.35039370078744,
+        267.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        234.0828656419328,
+        387.35039370078744,
+        253.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        214.77596750433793,
+        387.35039370078744,
+        234.0828656419328
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        195.46906936674304,
+        387.35039370078744,
+        214.77596750433793
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        176.16217122914816,
+        387.35039370078744,
+        195.46906936674304
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        156.85527309155327,
+        387.35039370078744,
+        176.16217122914816
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        137.5483749539584,
+        387.35039370078744,
+        156.85527309155327
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        118.2414768163635,
+        387.35039370078744,
+        137.5483749539584
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        98.93457867876862,
+        387.35039370078744,
+        118.2414768163635
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        79.62768054117373,
+        387.35039370078744,
+        98.93457867876862
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        60.320782403578846,
+        387.35039370078744,
+        79.62768054117373
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        41.01388426598396,
+        387.35039370078744,
+        60.320782403578846
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        21.70698612838908,
+        387.35039370078744,
+        41.01388426598396
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        809.0828656419328,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        789.7759675043379,
+        581.7755905511812,
+        809.0828656419328
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        770.469069366743,
+        581.7755905511812,
+        789.7759675043379
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        751.1621712291482,
+        581.7755905511812,
+        770.469069366743
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        731.8552730915533,
+        581.7755905511812,
+        751.1621712291482
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        712.5483749539584,
+        581.7755905511812,
+        731.8552730915533
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        693.2414768163635,
+        581.7755905511812,
+        712.5483749539584
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        673.9345786787686,
+        581.7755905511812,
+        693.2414768163635
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        654.6276805411737,
+        581.7755905511812,
+        673.9345786787686
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        635.3207824035788,
+        581.7755905511812,
+        654.6276805411737
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        616.013884265984,
+        581.7755905511812,
+        635.3207824035788
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        596.7069861283891,
+        581.7755905511812,
+        616.013884265984
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        577.4000879907942,
+        581.7755905511812,
+        596.7069861283891
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        558.0931898531993,
+        581.7755905511812,
+        577.4000879907942
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        538.7862917156044,
+        581.7755905511812,
+        558.0931898531993
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        519.4793935780095,
+        581.7755905511812,
+        538.7862917156044
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        500.17249544041465,
+        581.7755905511812,
+        519.4793935780095
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        480.86559730281976,
+        581.7755905511812,
+        500.17249544041465
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        461.5586991652249,
+        581.7755905511812,
+        480.86559730281976
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        442.25180102763,
+        581.7755905511812,
+        461.5586991652249
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        422.9449028900351,
+        581.7755905511812,
+        442.25180102763
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        403.6380047524402,
+        581.7755905511812,
+        422.9449028900351
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        384.33110661484534,
+        581.7755905511812,
+        403.6380047524402
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        365.02420847725045,
+        581.7755905511812,
+        384.33110661484534
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        345.71731033965557,
+        581.7755905511812,
+        365.02420847725045
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        326.4104122020607,
+        581.7755905511812,
+        345.71731033965557
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        307.1035140644658,
+        581.7755905511812,
+        326.4104122020607
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        287.7966159268709,
+        581.7755905511812,
+        307.1035140644658
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        268.489717789276,
+        581.7755905511812,
+        287.7966159268709
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        249.18281965168114,
+        581.7755905511812,
+        268.489717789276
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        229.87592151408626,
+        581.7755905511812,
+        249.18281965168114
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        210.56902337649137,
+        581.7755905511812,
+        229.87592151408626
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        191.2621252388965,
+        581.7755905511812,
+        210.56902337649137
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        171.9552271013016,
+        581.7755905511812,
+        191.2621252388965
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        152.64832896370672,
+        581.7755905511812,
+        171.9552271013016
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        133.34143082611183,
+        581.7755905511812,
+        152.64832896370672
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        114.03453268851695,
+        581.7755905511812,
+        133.34143082611183
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        94.72763455092206,
+        581.7755905511812,
+        114.03453268851695
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        75.42073641332718,
+        581.7755905511812,
+        94.72763455092206
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        56.11383827573229,
+        581.7755905511812,
+        75.42073641332718
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        36.806940138137406,
+        581.7755905511812,
+        56.11383827573229
+      ]
+    },
+    {
+      "page": 5,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        17.500042000542525,
+        581.7755905511812,
+        36.806940138137406
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        809.0828656419328,
+        192.92519685039372,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        789.7759675043379,
+        192.92519685039372,
+        809.0828656419328
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        770.469069366743,
+        192.92519685039372,
+        789.7759675043379
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        751.1621712291482,
+        192.92519685039372,
+        770.469069366743
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        731.8552730915533,
+        192.92519685039372,
+        751.1621712291482
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        712.5483749539584,
+        192.92519685039372,
+        731.8552730915533
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        693.2414768163635,
+        192.92519685039372,
+        712.5483749539584
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        673.9345786787686,
+        192.92519685039372,
+        693.2414768163635
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        654.6276805411737,
+        192.92519685039372,
+        673.9345786787686
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        635.3207824035788,
+        192.92519685039372,
+        654.6276805411737
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        616.013884265984,
+        192.92519685039372,
+        635.3207824035788
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        596.7069861283891,
+        192.92519685039372,
+        616.013884265984
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        577.4000879907942,
+        192.92519685039372,
+        596.7069861283891
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        558.0931898531993,
+        192.92519685039372,
+        577.4000879907942
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        538.7862917156044,
+        192.92519685039372,
+        558.0931898531993
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        519.4793935780095,
+        192.92519685039372,
+        538.7862917156044
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        500.17249544041465,
+        192.92519685039372,
+        519.4793935780095
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        480.86559730281976,
+        192.92519685039372,
+        500.17249544041465
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        461.5586991652249,
+        192.92519685039372,
+        480.86559730281976
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        442.25180102763,
+        192.92519685039372,
+        461.5586991652249
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        422.9449028900351,
+        192.92519685039372,
+        442.25180102763
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        403.6380047524402,
+        192.92519685039372,
+        422.9449028900351
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        384.33110661484534,
+        192.92519685039372,
+        403.6380047524402
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        365.02420847725045,
+        192.92519685039372,
+        384.33110661484534
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        345.71731033965557,
+        192.92519685039372,
+        365.02420847725045
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        326.4104122020607,
+        192.92519685039372,
+        345.71731033965557
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        307.1035140644658,
+        192.92519685039372,
+        326.4104122020607
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        287.7966159268709,
+        192.92519685039372,
+        307.1035140644658
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        268.489717789276,
+        192.92519685039372,
+        287.7966159268709
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        249.18281965168114,
+        192.92519685039372,
+        268.489717789276
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        229.87592151408626,
+        192.92519685039372,
+        249.18281965168114
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        210.56902337649137,
+        192.92519685039372,
+        229.87592151408626
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        191.2621252388965,
+        192.92519685039372,
+        210.56902337649137
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        171.9552271013016,
+        192.92519685039372,
+        191.2621252388965
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        152.64832896370672,
+        192.92519685039372,
+        171.9552271013016
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        133.34143082611183,
+        192.92519685039372,
+        152.64832896370672
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        114.03453268851695,
+        192.92519685039372,
+        133.34143082611183
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        94.72763455092206,
+        192.92519685039372,
+        114.03453268851695
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        75.42073641332718,
+        192.92519685039372,
+        94.72763455092206
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        56.11383827573229,
+        192.92519685039372,
+        75.42073641332718
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        36.806940138137406,
+        192.92519685039372,
+        56.11383827573229
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        13.5,
+        17.500042000542525,
+        192.92519685039372,
+        36.806940138137406
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        809.0828656419328,
+        387.35039370078744,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        789.7759675043379,
+        387.35039370078744,
+        809.0828656419328
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        770.469069366743,
+        387.35039370078744,
+        789.7759675043379
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        751.1621712291482,
+        387.35039370078744,
+        770.469069366743
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        731.8552730915533,
+        387.35039370078744,
+        751.1621712291482
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        712.5483749539584,
+        387.35039370078744,
+        731.8552730915533
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        693.2414768163635,
+        387.35039370078744,
+        712.5483749539584
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        673.9345786787686,
+        387.35039370078744,
+        693.2414768163635
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        654.6276805411737,
+        387.35039370078744,
+        673.9345786787686
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        635.3207824035788,
+        387.35039370078744,
+        654.6276805411737
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        616.013884265984,
+        387.35039370078744,
+        635.3207824035788
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        596.7069861283891,
+        387.35039370078744,
+        616.013884265984
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        577.4000879907942,
+        387.35039370078744,
+        596.7069861283891
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        558.0931898531993,
+        387.35039370078744,
+        577.4000879907942
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        538.7862917156044,
+        387.35039370078744,
+        558.0931898531993
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        519.4793935780095,
+        387.35039370078744,
+        538.7862917156044
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        500.17249544041465,
+        387.35039370078744,
+        519.4793935780095
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        480.86559730281976,
+        387.35039370078744,
+        500.17249544041465
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        461.5586991652249,
+        387.35039370078744,
+        480.86559730281976
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        442.25180102763,
+        387.35039370078744,
+        461.5586991652249
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        422.9449028900351,
+        387.35039370078744,
+        442.25180102763
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        403.6380047524402,
+        387.35039370078744,
+        422.9449028900351
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        384.33110661484534,
+        387.35039370078744,
+        403.6380047524402
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        365.02420847725045,
+        387.35039370078744,
+        384.33110661484534
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        345.71731033965557,
+        387.35039370078744,
+        365.02420847725045
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        326.4104122020607,
+        387.35039370078744,
+        345.71731033965557
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        307.1035140644658,
+        387.35039370078744,
+        326.4104122020607
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        287.7966159268709,
+        387.35039370078744,
+        307.1035140644658
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        268.489717789276,
+        387.35039370078744,
+        287.7966159268709
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        249.18281965168114,
+        387.35039370078744,
+        268.489717789276
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        229.87592151408626,
+        387.35039370078744,
+        249.18281965168114
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        210.56902337649137,
+        387.35039370078744,
+        229.87592151408626
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        191.2621252388965,
+        387.35039370078744,
+        210.56902337649137
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        171.9552271013016,
+        387.35039370078744,
+        191.2621252388965
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        152.64832896370672,
+        387.35039370078744,
+        171.9552271013016
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        133.34143082611183,
+        387.35039370078744,
+        152.64832896370672
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        114.03453268851695,
+        387.35039370078744,
+        133.34143082611183
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        94.72763455092206,
+        387.35039370078744,
+        114.03453268851695
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        75.42073641332718,
+        387.35039370078744,
+        94.72763455092206
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        56.11383827573229,
+        387.35039370078744,
+        75.42073641332718
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        36.806940138137406,
+        387.35039370078744,
+        56.11383827573229
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        207.92519685039372,
+        17.500042000542525,
+        387.35039370078744,
+        36.806940138137406
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        809.0828656419328,
+        581.7755905511812,
+        828.3897637795277
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        789.7759675043379,
+        581.7755905511812,
+        809.0828656419328
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        770.469069366743,
+        581.7755905511812,
+        789.7759675043379
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        751.1621712291482,
+        581.7755905511812,
+        770.469069366743
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        731.8552730915533,
+        581.7755905511812,
+        751.1621712291482
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        712.5483749539584,
+        581.7755905511812,
+        731.8552730915533
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        693.2414768163635,
+        581.7755905511812,
+        712.5483749539584
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        673.9345786787686,
+        581.7755905511812,
+        693.2414768163635
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        654.6276805411737,
+        581.7755905511812,
+        673.9345786787686
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        635.3207824035788,
+        581.7755905511812,
+        654.6276805411737
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        616.013884265984,
+        581.7755905511812,
+        635.3207824035788
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        596.7069861283891,
+        581.7755905511812,
+        616.013884265984
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        577.4000879907942,
+        581.7755905511812,
+        596.7069861283891
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        558.0931898531993,
+        581.7755905511812,
+        577.4000879907942
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        538.7862917156044,
+        581.7755905511812,
+        558.0931898531993
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        519.4793935780095,
+        581.7755905511812,
+        538.7862917156044
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        500.17249544041465,
+        581.7755905511812,
+        519.4793935780095
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        480.86559730281976,
+        581.7755905511812,
+        500.17249544041465
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        461.5586991652249,
+        581.7755905511812,
+        480.86559730281976
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        442.25180102763,
+        581.7755905511812,
+        461.5586991652249
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        422.9449028900351,
+        581.7755905511812,
+        442.25180102763
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        403.6380047524402,
+        581.7755905511812,
+        422.9449028900351
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        384.33110661484534,
+        581.7755905511812,
+        403.6380047524402
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        365.02420847725045,
+        581.7755905511812,
+        384.33110661484534
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        345.71731033965557,
+        581.7755905511812,
+        365.02420847725045
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        326.4104122020607,
+        581.7755905511812,
+        345.71731033965557
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        307.1035140644658,
+        581.7755905511812,
+        326.4104122020607
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        287.7966159268709,
+        581.7755905511812,
+        307.1035140644658
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        268.489717789276,
+        581.7755905511812,
+        287.7966159268709
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        249.18281965168114,
+        581.7755905511812,
+        268.489717789276
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        229.87592151408626,
+        581.7755905511812,
+        249.18281965168114
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        210.56902337649137,
+        581.7755905511812,
+        229.87592151408626
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        191.2621252388965,
+        581.7755905511812,
+        210.56902337649137
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        171.9552271013016,
+        581.7755905511812,
+        191.2621252388965
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        152.64832896370672,
+        581.7755905511812,
+        171.9552271013016
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        133.34143082611183,
+        581.7755905511812,
+        152.64832896370672
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        114.03453268851695,
+        581.7755905511812,
+        133.34143082611183
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        94.72763455092206,
+        581.7755905511812,
+        114.03453268851695
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        75.42073641332718,
+        581.7755905511812,
+        94.72763455092206
+      ]
+    },
+    {
+      "page": 6,
+      "kind": "index",
+      "card": null,
+      "section": "index",
+      "rect": [
+        402.35039370078744,
+        56.11383827573229,
+        581.7755905511812,
+        75.42073641332718
+      ]
+    }
+  ],
+  "page_fill": [
+    0.8766,
+    0.9269,
+    0.9311,
+    0.9332,
+    0.9336,
+    0.971
+  ],
+  "spec_links": [
+    {
+      "key": "return_codes",
+      "number": "2",
+      "page": 1,
+      "target_page": 2,
+      "rect": [
+        74.83500000000001,
+        728.8897637795277,
+        86.905,
+        739.8897637795277
+      ]
+    },
+    {
+      "key": "results",
+      "number": "2.1",
+      "page": 1,
+      "target_page": 2,
+      "rect": [
+        99.58599999999998,
+        715.8897637795277,
+        116.99669999999998,
+        725.8897637795277
+      ]
+    },
+    {
+      "key": "instancing",
+      "number": "3",
+      "page": 1,
+      "target_page": 3,
+      "rect": [
+        162.03000000000003,
+        540.0897637795277,
+        174.10000000000002,
+        551.0897637795277
+      ]
+    },
+    {
+      "key": "function_pointers",
+      "number": "3.1",
+      "page": 1,
+      "target_page": 3,
+      "rect": [
+        83.2073,
+        527.0897637795277,
+        100.618,
+        537.0897637795277
+      ]
+    },
+    {
+      "key": "instance",
+      "number": "3.2",
+      "page": 1,
+      "target_page": 3,
+      "rect": [
+        81.4959,
+        451.08976377952774,
+        98.9066,
+        461.08976377952774
+      ]
+    },
+    {
+      "key": "allocator",
+      "number": "3.3",
+      "page": 1,
+      "target_page": 4,
+      "rect": [
+        110.12960000000001,
+        319.08976377952774,
+        127.5403,
+        329.08976377952774
+      ]
+    },
+    {
+      "key": "discovery",
+      "number": "4",
+      "page": 1,
+      "target_page": 4,
+      "rect": [
+        95.375,
+        205.08976377952774,
+        107.445,
+        216.08976377952774
+      ]
+    },
+    {
+      "key": "physical_devices",
+      "number": "4.1",
+      "page": 1,
+      "target_page": 4,
+      "rect": [
+        77.71620000000001,
+        192.08976377952774,
+        95.1269,
+        202.08976377952774
+      ]
+    },
+    {
+      "key": "properties",
+      "number": "4.2",
+      "page": 1,
+      "target_page": 4,
+      "rect": [
+        106.7713,
+        150.08976377952774,
+        124.18199999999999,
+        160.08976377952774
+      ]
+    },
+    {
+      "key": "queues",
+      "number": "4.3",
+      "page": 1,
+      "target_page": 5,
+      "rect": [
+        267.4672968503937,
+        729.8897637795277,
+        284.87799685039374,
+        739.8897637795277
+      ]
+    },
+    {
+      "key": "features",
+      "number": "4.4",
+      "page": 1,
+      "target_page": 5,
+      "rect": [
+        326.7298968503937,
+        428.8897637795277,
+        344.1405968503937,
+        438.8897637795277
+      ]
+    },
+    {
+      "key": "device",
+      "number": "4.5",
+      "page": 1,
+      "target_page": 5,
+      "rect": [
+        263.8208968503937,
+        288.8897637795277,
+        281.2315968503937,
+        298.8897637795277
+      ]
+    },
+    {
+      "key": "memory",
+      "number": "5",
+      "page": 1,
+      "target_page": 6,
+      "rect": [
+        313.80519685039377,
+        76.8897637795277,
+        325.87519685039376,
+        87.8897637795277
+      ]
+    },
+    {
+      "key": "memory_types",
+      "number": "5.1",
+      "page": 1,
+      "target_page": 6,
+      "rect": [
+        265.6569968503937,
+        63.8897637795277,
+        283.0676968503937,
+        73.8897637795277
+      ]
+    },
+    {
+      "key": "memory_types",
+      "number": "5.1",
+      "page": 1,
+      "target_page": 6,
+      "rect": [
+        505.38699370078746,
+        729.8897637795277,
+        522.7976937007875,
+        739.8897637795277
+      ]
+    },
+    {
+      "key": "requirements",
+      "number": "5.2",
+      "page": 1,
+      "target_page": 6,
+      "rect": [
+        519.0781937007874,
+        373.8897637795277,
+        536.4888937007875,
+        383.8897637795277
+      ]
+    },
+    {
+      "key": "allocation",
+      "number": "5.3",
+      "page": 1,
+      "target_page": 7,
+      "rect": [
+        461.8064937007874,
+        307.8897637795277,
+        479.21719370078745,
+        317.8897637795277
+      ]
+    },
+    {
+      "key": "mapping",
+      "number": "5.4",
+      "page": 1,
+      "target_page": 7,
+      "rect": [
+        482.8893937007874,
+        199.8897637795277,
+        500.30009370078744,
+        209.8897637795277
+      ]
+    },
+    {
+      "key": "resources",
+      "number": "6",
+      "page": 2,
+      "target_page": 7,
+      "rect": [
+        139.93,
+        817.3897637795277,
+        152.0,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "buffer",
+      "number": "6.1",
+      "page": 2,
+      "target_page": 8,
+      "rect": [
+        73.64410000000001,
+        804.3897637795277,
+        91.0548,
+        814.3897637795277
+      ]
+    },
+    {
+      "key": "buffer_binding",
+      "number": "6.2",
+      "page": 2,
+      "target_page": 8,
+      "rect": [
+        132.0725,
+        632.3897637795277,
+        149.48319999999998,
+        642.3897637795277
+      ]
+    },
+    {
+      "key": "format_enum",
+      "number": "6.3",
+      "page": 2,
+      "target_page": 8,
+      "rect": [
+        78.9761,
+        524.3897637795277,
+        96.3868,
+        534.3897637795277
+      ]
+    },
+    {
+      "key": "geometry",
+      "number": "6.4",
+      "page": 2,
+      "target_page": 9,
+      "rect": [
+        85.5293,
+        386.3897637795277,
+        102.94,
+        396.3897637795277
+      ]
+    },
+    {
+      "key": "geometry_build",
+      "number": "6.5",
+      "page": 2,
+      "target_page": 9,
+      "rect": [
+        112.28390000000002,
+        214.3897637795277,
+        129.6946,
+        224.3897637795277
+      ]
+    },
+    {
+      "key": "simulation",
+      "number": "7",
+      "page": 2,
+      "target_page": 9,
+      "rect": [
+        151.51500000000001,
+        156.3897637795277,
+        163.585,
+        167.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_create",
+      "number": "7.1",
+      "page": 2,
+      "target_page": 10,
+      "rect": [
+        116.44630000000001,
+        143.3897637795277,
+        133.857,
+        153.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_create",
+      "number": "7.1",
+      "page": 2,
+      "target_page": 10,
+      "rect": [
+        356.17629685039367,
+        818.3897637795277,
+        373.5869968503937,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_memory",
+      "number": "7.2",
+      "page": 2,
+      "target_page": 10,
+      "rect": [
+        321.05819685039364,
+        760.3897637795277,
+        338.46889685039366,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "rigid_state",
+      "number": "7.3",
+      "page": 2,
+      "target_page": 11,
+      "rect": [
+        310.03729685039366,
+        580.3897637795277,
+        327.4479968503937,
+        590.3897637795277
+      ]
+    },
+    {
+      "key": "bodies",
+      "number": "7.4",
+      "page": 2,
+      "target_page": 11,
+      "rect": [
+        278.7547968503937,
+        450.3897637795277,
+        296.1654968503937,
+        460.3897637795277
+      ]
+    },
+    {
+      "key": "body_inputs",
+      "number": "7.5",
+      "page": 2,
+      "target_page": 11,
+      "rect": [
+        310.3468968503937,
+        286.3897637795277,
+        327.7575968503937,
+        296.3897637795277
+      ]
+    },
+    {
+      "key": "constraints",
+      "number": "8",
+      "page": 2,
+      "target_page": 12,
+      "rect": [
+        284.6701968503937,
+        114.3897637795277,
+        296.7401968503937,
+        125.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_types",
+      "number": "8.1",
+      "page": 2,
+      "target_page": 12,
+      "rect": [
+        260.5012968503937,
+        101.3897637795277,
+        277.91199685039373,
+        111.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_types",
+      "number": "8.1",
+      "page": 2,
+      "target_page": 12,
+      "rect": [
+        500.23129370078743,
+        818.3897637795277,
+        517.6419937007875,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "axis_control",
+      "number": "8.2",
+      "page": 2,
+      "target_page": 12,
+      "rect": [
+        468.8799937007874,
+        760.3897637795277,
+        486.2906937007874,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_info",
+      "number": "8.3",
+      "page": 2,
+      "target_page": 13,
+      "rect": [
+        489.6446937007874,
+        614.3897637795277,
+        507.0553937007874,
+        624.3897637795277
+      ]
+    },
+    {
+      "key": "constraint_dofs",
+      "number": "8.4",
+      "page": 2,
+      "target_page": 13,
+      "rect": [
+        480.98879370078737,
+        418.3897637795277,
+        498.3994937007874,
+        428.3897637795277
+      ]
+    },
+    {
+      "key": "pipelines",
+      "number": "9",
+      "page": 2,
+      "target_page": 14,
+      "rect": [
+        532.9353937007874,
+        220.88976377952764,
+        545.0053937007874,
+        231.88976377952764
+      ]
+    },
+    {
+      "key": "rigid_solver",
+      "number": "9.1",
+      "page": 2,
+      "target_page": 14,
+      "rect": [
+        470.2731937007874,
+        207.88976377952764,
+        487.6838937007874,
+        217.88976377952764
+      ]
+    },
+    {
+      "key": "liquid_material",
+      "number": "9.2",
+      "page": 2,
+      "target_page": 15,
+      "rect": [
+        491.2614937007874,
+        133.88976377952764,
+        508.67219370078743,
+        143.88976377952764
+      ]
+    },
+    {
+      "key": "coupling",
+      "number": "9.3",
+      "page": 3,
+      "target_page": 15,
+      "rect": [
+        70.8921,
+        818.3897637795277,
+        88.30279999999999,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "pipeline_create",
+      "number": "9.4",
+      "page": 3,
+      "target_page": 15,
+      "rect": [
+        79.9135,
+        441.3897637795277,
+        97.32419999999999,
+        451.3897637795277
+      ]
+    },
+    {
+      "key": "commands",
+      "number": "10",
+      "page": 3,
+      "target_page": 16,
+      "rect": [
+        155.14500000000004,
+        261.3897637795277,
+        173.01500000000004,
+        272.3897637795277
+      ]
+    },
+    {
+      "key": "command_pool",
+      "number": "10.1",
+      "page": 3,
+      "target_page": 16,
+      "rect": [
+        77.4926,
+        248.3897637795277,
+        99.8913,
+        258.3897637795277
+      ]
+    },
+    {
+      "key": "command_buffers",
+      "number": "10.2",
+      "page": 3,
+      "target_page": 17,
+      "rect": [
+        105.9285,
+        84.3897637795277,
+        128.3272,
+        94.3897637795277
+      ]
+    },
+    {
+      "key": "command_buffers",
+      "number": "10.2",
+      "page": 3,
+      "target_page": 17,
+      "rect": [
+        345.65849685039365,
+        818.3897637795277,
+        368.05719685039367,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "lifecycle",
+      "number": "10.3",
+      "page": 3,
+      "target_page": 17,
+      "rect": [
+        330.1053968503937,
+        481.3897637795277,
+        352.5040968503937,
+        491.3897637795277
+      ]
+    },
+    {
+      "key": "simulation_init",
+      "number": "10.4",
+      "page": 3,
+      "target_page": 18,
+      "rect": [
+        319.69509685039367,
+        343.48976377952766,
+        342.0937968503937,
+        353.48976377952766
+      ]
+    },
+    {
+      "key": "step",
+      "number": "10.5",
+      "page": 3,
+      "target_page": 18,
+      "rect": [
+        254.45119685039376,
+        211.48976377952766,
+        276.84989685039375,
+        221.48976377952766
+      ]
+    },
+    {
+      "key": "transfer",
+      "number": "11",
+      "page": 3,
+      "target_page": 18,
+      "rect": [
+        324.3151968503937,
+        79.48976377952766,
+        342.1851968503937,
+        90.48976377952766
+      ]
+    },
+    {
+      "key": "buffer_copy",
+      "number": "11.1",
+      "page": 3,
+      "target_page": 18,
+      "rect": [
+        270.6492968503937,
+        66.48976377952766,
+        293.0479968503937,
+        76.48976377952766
+      ]
+    },
+    {
+      "key": "buffer_copy",
+      "number": "11.1",
+      "page": 3,
+      "target_page": 18,
+      "rect": [
+        510.3792937007874,
+        818.3897637795277,
+        532.7779937007874,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "outputs",
+      "number": "11.2",
+      "page": 3,
+      "target_page": 19,
+      "rect": [
+        494.2886937007874,
+        760.3897637795277,
+        516.6873937007874,
+        770.3897637795277
+      ]
+    },
+    {
+      "key": "sync",
+      "number": "12",
+      "page": 3,
+      "target_page": 20,
+      "rect": [
+        538.0453937007875,
+        646.3897637795277,
+        555.9153937007875,
+        657.3897637795277
+      ]
+    },
+    {
+      "key": "stage_access",
+      "number": "12.1",
+      "page": 3,
+      "target_page": 20,
+      "rect": [
+        497.14819370078743,
+        633.3897637795277,
+        519.5468937007875,
+        643.3897637795277
+      ]
+    },
+    {
+      "key": "barriers",
+      "number": "12.2",
+      "page": 3,
+      "target_page": 20,
+      "rect": [
+        502.66079370078745,
+        503.3897637795277,
+        525.0594937007875,
+        513.3897637795277
+      ]
+    },
+    {
+      "key": "semaphores",
+      "number": "12.3",
+      "page": 3,
+      "target_page": 20,
+      "rect": [
+        485.62849370078743,
+        331.3897637795277,
+        508.02719370078745,
+        341.3897637795277
+      ]
+    },
+    {
+      "key": "submission",
+      "number": "12.4",
+      "page": 3,
+      "target_page": 21,
+      "rect": [
+        474.7967937007874,
+        143.3897637795277,
+        497.19549370078744,
+        153.3897637795277
+      ]
+    },
+    {
+      "key": "submission",
+      "number": "12.4",
+      "page": 4,
+      "target_page": 21,
+      "rect": [
+        131.2512,
+        818.3897637795277,
+        153.6499,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "fences",
+      "number": "12.5",
+      "page": 4,
+      "target_page": 21,
+      "rect": [
+        106.43589999999999,
+        784.3897637795277,
+        128.8346,
+        794.3897637795277
+      ]
+    },
+    {
+      "key": "interop",
+      "number": "13",
+      "page": 4,
+      "target_page": 21,
+      "rect": [
+        135.32500000000002,
+        644.3897637795277,
+        153.19500000000002,
+        655.3897637795277
+      ]
+    },
+    {
+      "key": "native_support",
+      "number": "13.1",
+      "page": 4,
+      "target_page": 22,
+      "rect": [
+        93.67349999999999,
+        420.3897637795277,
+        116.0722,
+        430.3897637795277
+      ]
+    },
+    {
+      "key": "native_device",
+      "number": "13.2",
+      "page": 4,
+      "target_page": 23,
+      "rect": [
+        111.93559999999998,
+        264.3897637795277,
+        134.33429999999998,
+        274.3897637795277
+      ]
+    },
+    {
+      "key": "native_device",
+      "number": "13.2",
+      "page": 4,
+      "target_page": 23,
+      "rect": [
+        351.6655968503937,
+        818.3897637795277,
+        374.0642968503937,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "native_buffer",
+      "number": "13.3",
+      "page": 4,
+      "target_page": 23,
+      "rect": [
+        262.2040968503937,
+        784.3897637795277,
+        284.6027968503937,
+        794.3897637795277
+      ]
+    },
+    {
+      "key": "native_timeline",
+      "number": "13.4",
+      "page": 4,
+      "target_page": 24,
+      "rect": [
+        270.6277968503937,
+        644.3897637795277,
+        293.0264968503937,
+        654.3897637795277
+      ]
+    },
+    {
+      "key": "native_mapping",
+      "number": "13.5",
+      "page": 4,
+      "target_page": 24,
+      "rect": [
+        296.5567968503937,
+        562.3897637795277,
+        318.95549685039373,
+        572.3897637795277
+      ]
+    },
+    {
+      "key": "vulkan_device",
+      "number": "13.6",
+      "page": 4,
+      "target_page": 25,
+      "rect": [
+        321.53979685039366,
+        423.5897637795277,
+        343.9384968503937,
+        433.5897637795277
+      ]
+    },
+    {
+      "key": "vulkan_buffer",
+      "number": "13.7",
+      "page": 4,
+      "target_page": 25,
+      "rect": [
+        320.3013968503937,
+        179.5897637795277,
+        342.7000968503937,
+        189.5897637795277
+      ]
+    },
+    {
+      "key": "vulkan_semaphore",
+      "number": "13.8",
+      "page": 4,
+      "target_page": 25,
+      "rect": [
+        521.9720937007875,
+        818.3897637795277,
+        544.3707937007874,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "stage_mapping",
+      "number": "13.10",
+      "page": 4,
+      "target_page": 26,
+      "rect": [
+        492.8739937007874,
+        752.3897637795277,
+        520.2606937007874,
+        762.3897637795277
+      ]
+    },
+    {
+      "key": "queries",
+      "number": "14",
+      "page": 4,
+      "target_page": 26,
+      "rect": [
+        546.7953937007875,
+        633.1897637795279,
+        564.6653937007875,
+        644.1897637795279
+      ]
+    },
+    {
+      "key": "query_pool",
+      "number": "14.1",
+      "page": 4,
+      "target_page": 27,
+      "rect": [
+        451.3488937007874,
+        620.1897637795279,
+        473.74759370078743,
+        630.1897637795279
+      ]
+    },
+    {
+      "key": "timestamps",
+      "number": "14.2",
+      "page": 4,
+      "target_page": 27,
+      "rect": [
+        468.87139370078745,
+        448.1897637795279,
+        491.27009370078747,
+        458.1897637795279
+      ]
+    },
+    {
+      "key": "step_stats",
+      "number": "14.3",
+      "page": 4,
+      "target_page": 27,
+      "rect": [
+        531.2471937007874,
+        398.1897637795279,
+        553.6458937007874,
+        408.1897637795279
+      ]
+    },
+    {
+      "key": "query_results",
+      "number": "14.4",
+      "page": 4,
+      "target_page": 28,
+      "rect": [
+        493.27389370078737,
+        186.18976377952788,
+        515.6725937007874,
+        196.18976377952788
+      ]
+    },
+    {
+      "key": "memory_budget",
+      "number": "14.5",
+      "page": 4,
+      "target_page": 28,
+      "rect": [
+        539.1505937007875,
+        78.18976377952788,
+        561.5492937007874,
+        88.18976377952788
+      ]
+    },
+    {
+      "key": "memory_budget",
+      "number": "14.5",
+      "page": 5,
+      "target_page": 28,
+      "rect": [
+        58.8048,
+        808.3897637795277,
+        81.2035,
+        818.3897637795277
+      ]
+    },
+    {
+      "key": "capabilities",
+      "number": "15",
+      "page": 5,
+      "target_page": 28,
+      "rect": [
+        130.375,
+        732.3897637795277,
+        148.245,
+        743.3897637795277
+      ]
+    },
+    {
+      "key": "limits",
+      "number": "15.1",
+      "page": 5,
+      "target_page": 29,
+      "rect": [
+        97.8316,
+        719.3897637795277,
+        120.2303,
+        729.3897637795277
+      ]
+    },
+    {
+      "key": "formats",
+      "number": "15.2",
+      "page": 5,
+      "target_page": 29,
+      "rect": [
+        99.3667,
+        539.3897637795277,
+        121.7654,
+        549.3897637795277
+      ]
+    },
+    {
+      "key": "format_layouts",
+      "number": "15.3",
+      "page": 5,
+      "target_page": 29,
+      "rect": [
+        103.92039999999999,
+        399.3897637795277,
+        126.31909999999999,
+        409.3897637795277
+      ]
+    },
+    {
+      "key": "feature_matrix",
+      "number": "15.4",
+      "page": 5,
+      "target_page": 30,
+      "rect": [
+        99.77519999999998,
+        252.58976377952763,
+        122.17389999999999,
+        262.58976377952763
+      ]
+    },
+    {
+      "key": "fundamentals",
+      "number": "17",
+      "page": 5,
+      "target_page": 32,
+      "rect": [
+        325.35019685039373,
+        817.3897637795277,
+        343.22019685039373,
+        828.3897637795277
+      ]
+    },
+    {
+      "key": "base_types",
+      "number": "17.1",
+      "page": 5,
+      "target_page": 33,
+      "rect": [
+        314.0362968503937,
+        804.3897637795277,
+        336.4349968503937,
+        814.3897637795277
+      ]
+    },
+    {
+      "key": "structure_types",
+      "number": "17.2",
+      "page": 5,
+      "target_page": 33,
+      "rect": [
+        269.0668968503937,
+        514.3897637795277,
+        291.4655968503937,
+        524.3897637795277
+      ]
+    }
+  ],
+  "spec_numbers": {
+    "overview": "1",
+    "intent": "1.1",
+    "legend": "1.2",
+    "conventions": "1.3",
+    "validity": "1.4",
+    "units": "1.5",
+    "return_codes": "2",
+    "results": "2.1",
+    "instancing": "3",
+    "function_pointers": "3.1",
+    "instance": "3.2",
+    "allocator": "3.3",
+    "discovery": "4",
+    "physical_devices": "4.1",
+    "properties": "4.2",
+    "queues": "4.3",
+    "features": "4.4",
+    "device": "4.5",
+    "memory": "5",
+    "memory_types": "5.1",
+    "requirements": "5.2",
+    "allocation": "5.3",
+    "mapping": "5.4",
+    "resources": "6",
+    "buffer": "6.1",
+    "buffer_binding": "6.2",
+    "format_enum": "6.3",
+    "geometry": "6.4",
+    "geometry_build": "6.5",
+    "resource_recipe": "6.6",
+    "simulation": "7",
+    "simulation_create": "7.1",
+    "simulation_memory": "7.2",
+    "rigid_state": "7.3",
+    "bodies": "7.4",
+    "body_inputs": "7.5",
+    "constraints": "8",
+    "constraint_types": "8.1",
+    "axis_control": "8.2",
+    "constraint_info": "8.3",
+    "constraint_dofs": "8.4",
+    "constraint_example": "8.5",
+    "single_solve": "8.6",
+    "pipelines": "9",
+    "rigid_solver": "9.1",
+    "liquid_material": "9.2",
+    "coupling": "9.3",
+    "pipeline_create": "9.4",
+    "pipeline_flow": "9.5",
+    "pipeline_validity": "9.6",
+    "commands": "10",
+    "command_pool": "10.1",
+    "command_buffers": "10.2",
+    "lifecycle": "10.3",
+    "simulation_init": "10.4",
+    "step": "10.5",
+    "transfer": "11",
+    "buffer_copy": "11.1",
+    "outputs": "11.2",
+    "frame_recipe": "11.3",
+    "reusable_work": "11.4",
+    "no_hidden_work": "11.5",
+    "sync": "12",
+    "stage_access": "12.1",
+    "barriers": "12.2",
+    "semaphores": "12.3",
+    "submission": "12.4",
+    "fences": "12.5",
+    "interop": "13",
+    "native_support": "13.1",
+    "native_device": "13.2",
+    "native_buffer": "13.3",
+    "native_timeline": "13.4",
+    "native_mapping": "13.5",
+    "vulkan_device": "13.6",
+    "vulkan_buffer": "13.7",
+    "vulkan_semaphore": "13.8",
+    "handoff": "13.9",
+    "stage_mapping": "13.10",
+    "interop_boundary": "13.11",
+    "queries": "14",
+    "query_pool": "14.1",
+    "timestamps": "14.2",
+    "step_stats": "14.3",
+    "query_results": "14.4",
+    "memory_budget": "14.5",
+    "capabilities": "15",
+    "limits": "15.1",
+    "formats": "15.2",
+    "format_layouts": "15.3",
+    "feature_matrix": "15.4",
+    "threading": "15.5",
+    "not_capabilities": "15.6",
+    "example": "16",
+    "example_record": "16.1",
+    "example_submit": "16.2",
+    "example_prepare": "16.3",
+    "example_after": "16.4",
+    "fundamentals": "17",
+    "base_types": "17.1",
+    "structure_types": "17.2"
+  },
+  "specification": "parallel-mater-specification.pdf",
+  "page_count": 6,
+  "pdf_sha256": "b6779855cd3abc3a3bb7a1dc5eb5793246bcfe0463c66295a32c95764df8cdca"
+}
