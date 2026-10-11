@@ -7613,7 +7613,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (fluid.next_id > UINT32_MAX - (fluid.options.capacity - live))
                 return failure(StatusCode::capacity_exceeded, "stable fluid particle ID range exhausted");
             pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
                 fluid.count, fluid.options.capacity, 1.0F / source_cell_size,
                 reinterpret_cast<ulonglong *>(fluid.keys[0]),
                 fluid.indices[0]);
@@ -7697,7 +7697,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         for (std::uint32_t iteration = 0U; iteration < iterations;
              ++iteration) {
             pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
                 fluid.count, fluid.options.capacity,
                 1.0F / fluid.options.support_radius,
                 reinterpret_cast<ulonglong *>(fluid.keys[0]),
@@ -7713,8 +7713,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             status = record_timing_stage(TimingStage::fluid_neighbor_sort);
             if (!status) return status;
             pm_fluid_forces<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<const PMPackedVec3_0 *>(fluid.positions),
-                reinterpret_cast<const PMPackedVec3_0 *>(fluid.velocities),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.velocities),
                 reinterpret_cast<PMPackedVec3_0 *>(fluid.forces), fluid.foam,
                 fluid.count, fluid_constants, fluid_up, fluid.foam_source,
                 reinterpret_cast<ulonglong *>(fluid.keys[1]),
@@ -7782,7 +7782,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             pm_fluid_integrate<<<blocks, block_size, 0, stream>>>(
                 reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
                 reinterpret_cast<PMPackedVec3_0 *>(fluid.velocities),
-                reinterpret_cast<const PMPackedVec3_0 *>(fluid.forces),
+                reinterpret_cast<PMPackedVec3_0 *>(fluid.forces),
                 fluid.foam, fluid.count, fluid_constants,
                 reinterpret_cast<PMPackedVec3_0 *>(fluid.previous),
                 fluid.foam_source);

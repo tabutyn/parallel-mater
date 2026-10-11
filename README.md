@@ -26,11 +26,11 @@ backends and checked against the portable CPU reference. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
 
-The [Slang AVBD implementation](docs/SLANG.md) expresses that numerical core
-once for CUDA, Metal, and D3D12-compatible HLSL. CUDA and Metal production
-adapters consume its generated functions; cross-target ABI checks and PTX
-fixtures guard the same source. Collision geometry and scheduling remain
-backend-specific.
+The [Slang implementation](docs/SLANG.md) also contains a same-basename,
+same-entry-point mirror for every CUDA physics kernel: rigid AVBD and contact
+geometry, fluid, cloth, soft bodies, ropes, smoke, and every coupling. A CMake
+gate compiles all 120 mirrors to CUDA and PTX and a coverage test prevents a
+native CUDA entry point from being added without its Slang counterpart.
 
 The newly integrated D3D12 backend retains its existing solver; it has not yet
 been migrated to AVBD.
@@ -77,7 +77,9 @@ capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
 CUDA and Metal compile the standalone fluid solver and AVBD numerical core
-from `src/slang/fluid.slang` and `src/slang/avbd.slang`. CMake resolves one
+from `src/slang/fluid_shared.slang` and `src/slang/avbd.slang`. The complete
+CUDA-reference mirror lives beside them under `src/slang/`; build target
+`parallel-mater-slang-kernel-mirrors` validates every entry. CMake resolves one
 exact Slang 2026.18 compiler from `PATH` or downloads the matching
 checksum-pinned official package. Set
 `PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.

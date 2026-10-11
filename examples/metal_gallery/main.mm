@@ -2676,7 +2676,8 @@ bool validate_runtime(Runtime &runtime,
 }
 
 std::uint32_t scene_substeps(GalleryContext context) {
-    return context == GalleryContext::constraint_hinge ? 8U : 4U;
+    (void)context;
+    return 4U;
 }
 
 bool step_runtime(Runtime &runtime, Vec3 gravity, std::string &error) {
@@ -3203,9 +3204,9 @@ bool run_interactive(const Options &options, std::string &error) {
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     GLFWwindow *window = glfwCreateWindow(
-        960, 540,
+        1280, 720,
         "ParallelMater Metal Gallery", nullptr, nullptr);
     if (window == nullptr) {
         glfwTerminate();

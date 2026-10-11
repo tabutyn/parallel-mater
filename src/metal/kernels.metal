@@ -3832,7 +3832,7 @@ static_assert(sizeof(PMRopeAnchorState) == 40);
 static_assert(sizeof(PMPaintConstants) == 60);
 
 // Core fluid cell indexing, force evaluation, and integration are generated
-// from src/slang/fluid.slang. Metal keeps its native radix sort below.
+// from src/slang/fluid_shared.slang. Metal keeps its native radix sort below.
 constant constexpr uint pm_fluid_radix_block_size = 256u;
 
 static void pm_fluid_radix_histogram(

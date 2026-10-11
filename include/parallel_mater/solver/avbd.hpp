@@ -333,18 +333,30 @@ PM_AVBD_INLINE Row advance(Row row, Vector6 a, Vector6 b) {
         PM_AVBD_SLANG_CONST(AvbdVector6_0, a),
         PM_AVBD_SLANG_CONST(AvbdVector6_0, b));
     for (unsigned i = 0; i < 6; ++i) {
-        row.a.v[i] = result.a_3.values_0[i];
-        row.b.v[i] = result.b_3.values_0[i];
+        row.a.v[i] = avbdRowVectorElement_0(
+            PM_AVBD_SLANG_CONST(AvbdRow_0, result), 0, i);
+        row.b.v[i] = avbdRowVectorElement_0(
+            PM_AVBD_SLANG_CONST(AvbdRow_0, result), 1, i);
     }
-    row.dual = {result.dual_0.lambda_0, result.dual_0.penalty_0};
-    row.error = result.error_2;
-    row.velocity = result.velocity_0;
-    row.lower = result.lower_3;
-    row.upper = result.upper_3;
-    row.stiffness = result.stiffness_2;
-    row.damping = result.damping_0;
-    row.beta = result.beta_1;
-    row.reference_force = result.referenceForce_0;
+    row.dual = {
+        avbdRowScalarElement_0(PM_AVBD_SLANG_CONST(AvbdRow_0, result), 0),
+        avbdRowScalarElement_0(PM_AVBD_SLANG_CONST(AvbdRow_0, result), 1)};
+    row.error = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 2);
+    row.velocity = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 3);
+    row.lower = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 4);
+    row.upper = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 5);
+    row.stiffness = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 6);
+    row.damping = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 7);
+    row.beta = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 8);
+    row.reference_force = avbdRowScalarElement_0(
+        PM_AVBD_SLANG_CONST(AvbdRow_0, result), 9);
     return row;
 #else
     row.dual = update_dual(row.dual, row_error(row, a, b), row.beta,
