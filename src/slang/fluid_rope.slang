@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/fluid_rope.cuh.
+// Shared fluid and rope coupling kernels.
 
-import cuda_common;
-import geometry_rope;
+import types;
+import math;
+import device_intrinsics;
 
 public void atomic_add(Vec3* destination, Vec3 value)
 {
@@ -16,7 +17,8 @@ public void atomic_add(Vec3* destination, Vec3 value)
 void fluid_rope_contacts(
     uniform Vec3* positions, uniform Vec3* velocities,
     uniform uint* particle_count, uniform float particle_mass,
-    uniform RopeData rope, uniform float distance, uniform float friction,
+    uniform Vec3* rope_positions, uniform Vec3* rope_velocities,
+    uniform uint rope_count, uniform float distance, uniform float friction,
     uniform Vec3* node_impulses, uniform uint* contact_count,
     uniform float* maximum_penetration, uniform bool transfer_impulse)
 {
@@ -24,13 +26,13 @@ void fluid_rope_contacts(
     if (particle >= *particle_count) return;
     Vec3 position = positions[particle];
     float nearest = distance * distance;
-    uint segment = rope.count;
+    uint segment = rope_count;
     float fraction = 0.0f;
     Vec3 closest = {};
-    for (uint i = 0u; i + 1u < rope.count; ++i)
+    for (uint i = 0u; i + 1u < rope_count; ++i)
     {
-        Vec3 a = rope.positions[i];
-        Vec3 b = rope.positions[i + 1u];
+        Vec3 a = rope_positions[i];
+        Vec3 b = rope_positions[i + 1u];
         if (position.x < min(a.x, b.x) - distance ||
             position.x > max(a.x, b.x) + distance ||
             position.y < min(a.y, b.y) - distance ||
@@ -48,11 +50,11 @@ void fluid_rope_contacts(
         fraction = t;
         closest = point;
     }
-    if (segment == rope.count) return;
+    if (segment == rope_count) return;
     float separation = sqrt(nearest);
     Vec3 ropeVelocity = add(
-        multiply(rope.velocities[segment], 1.0f - fraction),
-        multiply(rope.velocities[segment + 1u], fraction));
+        multiply(rope_velocities[segment], 1.0f - fraction),
+        multiply(rope_velocities[segment + 1u], fraction));
     Vec3 relative = subtract(velocities[particle], ropeVelocity);
     Vec3 up = {0.0f, 1.0f, 0.0f};
     Vec3 normal = separation > 1.0e-6f
@@ -79,21 +81,24 @@ void fluid_rope_contacts(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_rope_apply(
-    uniform RopeData rope, uniform int first, uniform int last,
+    uniform Vec3* rope_velocities, uniform Vec3* fluid_contact_forces,
+    uniform uint rope_count, uniform float rope_mass,
+    uniform float rope_maximum_speed, uniform bool first_attached,
+    uniform bool last_attached,
     uniform Vec3* node_impulses, uniform float maximum_acceleration,
     uniform float dt, uniform float frame_inverse_dt)
 {
     uint node = pmThreadIndex();
-    if (node >= rope.count || rope_anchor_body(rope, node, first, last) >= 0)
+    if (node >= rope_count || (node == 0u && first_attached) ||
+        (node + 1u == rope_count && last_attached))
         return;
-    float mass = rope.options.mass / float(rope.count);
+    float mass = rope_mass / float(rope_count);
     Vec3 velocityChange = clamp_length(
         multiply(node_impulses[node], 1.0f / mass),
         maximum_acceleration * dt);
-    rope.velocities[node] = clamp_length(
-        add(rope.velocities[node], velocityChange),
-        rope.options.maximum_speed);
-    rope.fluid_contact_forces[node] = add(
-        rope.fluid_contact_forces[node],
+    rope_velocities[node] = clamp_length(
+        add(rope_velocities[node], velocityChange), rope_maximum_speed);
+    fluid_contact_forces[node] = add(
+        fluid_contact_forces[node],
         multiply(velocityChange, mass * frame_inverse_dt));
 }

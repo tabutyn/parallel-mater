@@ -2,6 +2,7 @@
 #pragma once
 
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/renderer.hpp>
 
 namespace parallel_mater::gallery {
 

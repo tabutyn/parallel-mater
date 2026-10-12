@@ -1,0 +1,553 @@
+// SPDX-License-Identifier: MIT
+// Shared physics resource and value layouts.
+// Keep aggregate fields scalar so their layouts match host-visible API records.
+
+static const float kEpsilon = 1.0e-6f;
+static const uint kInvalidDense = 0xffffffffu;
+
+struct Vec2
+{
+    float x;
+    float y;
+};
+
+struct Vec3
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct Quaternion
+{
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
+struct FluidId
+{
+    uint index;
+    uint generation;
+};
+
+struct SmokeId
+{
+    uint index;
+    uint generation;
+};
+
+struct RigidBodyId
+{
+    uint index;
+    uint generation;
+};
+
+struct TriangleMeshId
+{
+    uint index;
+    uint generation;
+};
+
+struct HitBox
+{
+    Vec3 center;
+    Quaternion orientation;
+    Vec3 half_extents;
+};
+
+enum MotionType : uint8_t
+{
+    static_body,
+    kinematic,
+    dynamic,
+};
+
+struct BodyParameters
+{
+    MotionType motion;
+    TriangleMeshId mesh;
+    float inverse_mass;
+    Vec3 inverse_inertia_local;
+    float friction;
+    float restitution;
+    float linear_damping;
+    float angular_damping;
+    float maximum_linear_speed;
+    float maximum_angular_speed;
+    float collision_margin;
+    uint64_t user_data;
+};
+
+struct RigidBodyState
+{
+    Vec3 position;
+    Quaternion orientation;
+    Vec3 linear_velocity;
+    Vec3 angular_velocity;
+};
+
+// Portable command-API output layout. Keep scalar arrays tightly packed so
+// the same record is consumed by C, CUDA, Metal, D3D12, and Vulkan clients.
+struct PortableParticleState
+{
+    Vec3 position;
+    Vec3 velocity;
+    Vec3 acceleration;
+    float temperature_celsius;
+    float foam;
+    uint stable_id;
+};
+
+struct PortableDomainOutputHeader
+{
+    uint active_count;
+    uint capacity;
+    uint64_t revision;
+};
+
+struct PortableClothVertexState
+{
+    Vec3 position;
+    Vec3 velocity;
+    Vec3 rigid_contact_force;
+    Vec3 liquid_contact_force;
+    Vec3 soft_body_contact_force;
+    Vec3 rope_contact_force;
+};
+
+struct PortableRopeNodeState
+{
+    Vec3 position;
+    Vec3 velocity;
+    Vec3 constraint_force;
+    Vec3 contact_force;
+    Vec3 liquid_contact_force;
+    Vec3 soft_body_contact_force;
+};
+
+struct PortableSoftBodyNodeState
+{
+    Vec3 position;
+    Vec3 velocity;
+    Vec3 rigid_contact_force;
+    Vec3 cloth_contact_force;
+    Vec3 liquid_contact_force;
+    Vec3 rope_contact_force;
+};
+
+struct PortableSmokeParticleState
+{
+    Vec3 position;
+    Vec3 velocity;
+    float age;
+    float number_density;
+    float pressure;
+    Vec3 vorticity;
+};
+
+struct BvhNode
+{
+    Vec3 minimum;
+    Vec3 maximum;
+    uint left;
+    uint right;
+    uint first_triangle;
+    uint triangle_count;
+};
+
+struct CollisionPlane
+{
+    Vec3 normal;
+    float offset;
+};
+
+struct TriangleMeshResource
+{
+    Vec3* vertices;
+    uint* indices;
+    uint vertex_count;
+    uint index_count;
+    uint generation;
+    bool alive;
+    Vec3 minimum;
+    Vec3 maximum;
+    Vec3 bounding_center;
+    float bounding_radius;
+    Vec3 unit_inertia;
+    BvhNode* bvh_nodes;
+    uint bvh_node_count;
+    uint* bvh_leaves;
+    uint bvh_leaf_count;
+    CollisionPlane* solid_planes;
+    uint solid_unique_plane_count;
+    Vec3* shell_normals;
+};
+
+struct WorldAabb
+{
+    Vec3 minimum;
+    Vec3 maximum;
+};
+
+struct BoundsTransform
+{
+    Vec3 position;
+    Vec3 axis_x;
+    Vec3 axis_y;
+    Vec3 axis_z;
+};
+
+struct FluidParticle
+{
+    Vec3 position;
+    Vec3 velocity;
+    float temperature;
+};
+
+struct FluidOptions
+{
+    uint capacity;
+    float particle_radius;
+    float rest_density;
+    float support_radius;
+    uint solver_iterations;
+    uint maximum_neighbors;
+    float repulsion;
+    float viscosity;
+    float velocity_damping;
+    float maximum_speed;
+    float normal_damping;
+    float rest_particle_volume;
+    float maximum_pair_acceleration;
+};
+
+struct ClothId
+{
+    uint index;
+    uint generation;
+};
+
+struct SmokeOptions
+{
+    uint capacity;
+    Vec3 emitter_center;
+    Vec2 emitter_half_extents;
+    Vec3 initial_velocity;
+    Vec3 wind;
+    float particles_per_second;
+    float lifetime;
+    float particle_radius;
+    float buoyancy;
+    float response;
+    float rest_number_density;
+    float pressure_stiffness;
+    float viscosity;
+    float vorticity_confinement;
+    float maximum_speed;
+    uint grid_resolution;
+    uint grid_vertical_resolution;
+    uint grid_pressure_iterations;
+    float grid_kinematic_viscosity;
+    float grid_les_coefficient;
+    float grid_pressure_tolerance;
+    Vec3 grid_minimum;
+    float grid_edge_length;
+};
+
+struct SmokeGridField
+{
+    uint n;
+    uint height;
+    Vec3 minimum;
+    float spacing;
+    Vec3* velocity;
+    float* density;
+    float* pressure;
+    float* face[3];
+    Vec3* vorticity;
+    float* strain;
+};
+
+struct FluidClothCouplingOptions
+{
+    FluidId fluid;
+    ClothId cloth;
+    float contact_distance;
+    float interaction_radius;
+    float stiffness;
+    float damping;
+    float tangential_drag;
+    float maximum_force;
+    bool enabled;
+};
+
+struct ParticlePlane
+{
+    Vec3 center;
+    Quaternion orientation;
+    Vec2 half_extents;
+};
+
+struct FluidSmokeCouplingOptions
+{
+    FluidId fluid;
+    SmokeId smoke;
+    ParticlePlane heater;
+    float heater_temperature;
+    float boiling_temperature;
+    float heat_transfer_rate;
+    float wind_drag;
+    float steam_rise_speed;
+};
+
+enum CrossingDirection : uint8_t
+{
+    along_normal,
+    against_normal,
+    either,
+};
+
+struct ParticleDestroyPlaneOptions
+{
+    FluidId fluid;
+    ParticlePlane plane;
+    CrossingDirection crossing;
+    bool enabled;
+};
+
+struct FluidContactSample
+{
+    Vec3 position;
+    Vec3 normal;
+    float normal_impulse;
+    uint body;
+};
+
+struct ContactEvent
+{
+    FluidId fluid;
+    uint stable_particle_id;
+    RigidBodyId rigid_body;
+    Vec3 position;
+    Vec3 normal;
+    float normal_impulse;
+};
+
+struct ClothBond
+{
+    uint first;
+    uint second;
+    float rest_length;
+    bool bending;
+};
+
+struct FluidBodyImpulse
+{
+    Vec3 linear;
+    Vec3 angular;
+    uint body;
+};
+
+struct FluidMovingContact
+{
+    Vec3 normal;
+    Vec3 point;
+    float penetration;
+    uint body;
+};
+
+struct FluidSoftContact
+{
+    uint nodes[12];
+    float weights[12];
+    uint count;
+    Vec3 normal;
+    Vec3 relative_velocity;
+    float penetration;
+};
+
+struct PaintFieldId
+{
+    uint index;
+    uint generation;
+};
+
+struct DeviceVec2Span
+{
+    Vec2* data;
+    uint64_t size;
+};
+
+struct PaintFieldOptions
+{
+    RigidBodyId body;
+    TriangleMeshId mesh;
+    ClothId cloth;
+    DeviceVec2Span vertex_uvs;
+    uint width;
+    uint height;
+};
+
+struct PaintRuleOptions
+{
+    FluidId source;
+    RigidBodyId rigid_source;
+    PaintFieldId target;
+    float reach;
+    float brush_radius;
+    bool enabled;
+};
+
+struct PaintFieldResource
+{
+    PaintFieldOptions options;
+    Vec2* uvs;
+    uint* pixels;
+    uint generation;
+    bool alive;
+};
+
+struct PaintRuleResource
+{
+    PaintRuleOptions options;
+    uint generation;
+    bool alive;
+};
+
+struct DeformableNeighbor
+{
+    uint index;
+    float rest_length;
+    float compliance;
+    uint bond;
+};
+
+struct SoftBodyNeighbor
+{
+    uint index;
+    float rest_length;
+};
+
+struct ShapeMatrix
+{
+    Vec3 columns[3];
+};
+
+struct SoftBodySurfaceBinding
+{
+    uint nodes[4];
+    float weights[4];
+};
+
+struct SoftClothContact
+{
+    uint vertices[3];
+    float weights[3];
+    Vec3 position_impulse;
+    Vec3 velocity_impulse;
+    float soft_inverse_mass_fraction;
+    bool active;
+};
+
+struct SoftSurfaceInfluence
+{
+    uint corner;
+    float factor;
+};
+
+struct ClothBodyCorrection
+{
+    Vec3 offset;
+    Vec3 impulse;
+    Vec3 contact;
+    float support_radius;
+    float weight_sum;
+    uint vertices[3];
+    bool active;
+};
+
+struct RopeAttachment
+{
+    RigidBodyId body;
+    Vec3 local_anchor;
+    bool enabled;
+};
+
+struct HostVec3Span
+{
+    Vec3* data;
+    uint64_t size;
+};
+
+struct RopeOptions
+{
+    HostVec3Span centerline;
+    float node_spacing;
+    float radius;
+    float mass;
+    float stretch_compliance;
+    float velocity_damping;
+    float maximum_substep_timestep;
+    float friction;
+    float maximum_speed;
+    uint solver_iterations;
+    bool self_collision;
+    RopeAttachment first;
+    RopeAttachment last;
+};
+
+struct RopeData
+{
+    RopeOptions options;
+    uint count;
+    Vec3* positions;
+    Vec3* previous;
+    Vec3* velocities;
+    Vec3* constraint_forces;
+    Vec3* contact_forces;
+    Vec3* fluid_contact_forces;
+    Vec3* soft_body_contact_forces;
+    Vec3* soft_anchor_positions;
+    Vec3* soft_anchor_velocities;
+    Vec3* soft_anchor_impulses;
+    float* soft_anchor_inverse_masses;
+    bool soft_first;
+    bool soft_last;
+    Vec3* directions;
+    Vec3* scratch;
+    Vec3* body_translation;
+    Vec3* body_rotation;
+    Vec3* normals;
+    Vec3* normals2;
+    float* rest;
+    float* lambda;
+    uint* solid_hint;
+    uint body_capacity;
+    uint first_attachment_contact_skip;
+    uint last_attachment_contact_skip;
+};
+
+struct RopeSoftTarget
+{
+    Vec3* surface;
+    Vec3* previous_surface;
+    Vec3* velocities;
+    Vec3* bounds;
+    BvhNode* tree;
+    uint* order;
+    uint* indices;
+    SoftBodySurfaceBinding* bindings;
+    float* inverse_masses;
+    Vec3* node_impulses;
+    uint* contact_count;
+    float* maximum_penetration;
+    uint triangle_count;
+    uint surface_vertex_count;
+    float distance;
+    float friction;
+    float orientation;
+    bool first_anchor;
+    bool last_anchor;
+};

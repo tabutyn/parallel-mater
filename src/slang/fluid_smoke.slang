@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of the device kernels in src/fluid_smoke.cuh.
+// Shared fluid/smoke coupling kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_smoke;
 import smoke_grid;
 

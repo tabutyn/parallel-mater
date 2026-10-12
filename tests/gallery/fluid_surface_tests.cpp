@@ -46,7 +46,8 @@ int main() {
         if (cudaMemcpy(device, positions.data(), positions.size() * sizeof(Vec3),
                        cudaMemcpyHostToDevice) != cudaSuccess)
             throw 1;
-        (void)surface.update(view, positions);
+        (void)surface.update(device, view.particle_count, view.particle_radius,
+                             view.support_radius, positions);
         if (surface.excluded_particle_count() != 0U)
             throw 2;
         const auto baseline_grid = surface.view().grid;
@@ -86,7 +87,9 @@ int main() {
                            positions.size() * sizeof(Vec3),
                            cudaMemcpyHostToDevice) != cudaSuccess)
                 throw 3;
-            (void)surface.update(view, positions);
+            (void)surface.update(device, view.particle_count,
+                                 view.particle_radius, view.support_radius,
+                                 positions);
             const auto grid = surface.view().grid;
             const float maximum_x = grid.minimum.x + grid.cell_size.x *
                 static_cast<float>(grid.dimensions.x - 1U);
@@ -114,7 +117,8 @@ int main() {
             positions[i] = {0.0F, -1.0F, 7.0F};
         if (cudaMemcpy(device, positions.data(), positions.size() * sizeof(Vec3),
                        cudaMemcpyHostToDevice) != cudaSuccess) throw 18;
-        (void)surface.update(view, positions);
+        (void)surface.update(device, view.particle_count, view.particle_radius,
+                             view.support_radius, positions);
         const auto sheet_grid = surface.view().grid;
         const std::size_t sheet_samples =
             static_cast<std::size_t>(sheet_grid.dimensions.x) *
@@ -182,7 +186,10 @@ int main() {
                        scene_positions.size() * sizeof(Vec3),
                        cudaMemcpyDeviceToHost) != cudaSuccess) throw 15;
         FluidSurface scene_surface(scene.fluid_options.capacity);
-        (void)scene_surface.update(scene_view, scene_positions);
+        (void)scene_surface.update(
+            scene_view.positions.data, scene_view.particle_count,
+            scene_view.particle_radius, scene_view.support_radius,
+            scene_positions);
         const auto grid = scene_surface.view().grid;
         const std::size_t samples = static_cast<std::size_t>(grid.dimensions.x) *
             grid.dimensions.y * grid.dimensions.z;

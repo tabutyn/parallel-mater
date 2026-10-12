@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/camera.hpp>
 
 #include <algorithm>
 #include <cmath>

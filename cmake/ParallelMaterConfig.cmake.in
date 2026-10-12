@@ -1,11 +1,3 @@
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-if(@PARALLEL_MATER_PACKAGE_NEEDS_CUDA@)
-    if(NOT TARGET CUDA::nvToolsExt)
-        add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
-    endif()
-    find_dependency(CUDAToolkit)
-endif()
-
 include("${CMAKE_CURRENT_LIST_DIR}/ParallelMaterTargets.cmake")

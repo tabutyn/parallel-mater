@@ -1,0 +1,29 @@
+/* SPDX-License-Identifier: MIT
+ * Private loader-to-layer ABI. Applications include parallel_mater.h. */
+#ifndef PARALLEL_MATER_LAYER_H
+#define PARALLEL_MATER_LAYER_H
+
+#include "parallel_mater.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define PM_LAYER_INTERFACE_VERSION 1u
+
+typedef struct PmLayerCallInfo {
+    const char* pCommandName;
+    const void* primaryHandle;
+} PmLayerCallInfo;
+
+typedef PmResult (PMAPI_CALL *PFN_pmLayerNegotiateLoaderInterfaceVersion)(
+    uint32_t* pVersion);
+typedef PmResult (PMAPI_CALL *PFN_pmLayerPreCall)(
+    const PmLayerCallInfo* pCall);
+typedef void (PMAPI_CALL *PFN_pmLayerPostCall)(
+    const PmLayerCallInfo* pCall, PmResult result);
+
+#ifdef __cplusplus
+}
+#endif
+#endif

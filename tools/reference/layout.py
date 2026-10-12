@@ -48,6 +48,7 @@ PALETTE = {
     "overview": "#EAF0EF", "return_codes": "#F6EAC1", "instancing": "#E9E1F1",
     "discovery": "#DDEBF4", "memory": "#F4E3AC", "resources": "#DCEBCF",
     "simulation": "#F2D9C4", "constraints": "#E6D8ED", "pipelines": "#F2E69F",
+    "domains": "#D8E9D1",
     "commands": "#DCE1F4", "transfer": "#CEE7E3", "sync": "#F0D1D4",
     "interop": "#E1DCF0", "queries": "#D4E8D5", "capabilities": "#EDE0B8",
     "example": "#DAE5EC", "fundamentals": "#DDE7ED", "index": "#E8E4D9",

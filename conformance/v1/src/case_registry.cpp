@@ -181,63 +181,63 @@ const std::vector<CaseDefinition> &case_registry() {
         result.push_back(analytic_breaking());
         result.push_back(integrated(
             "passive-active", "Static, kinematic, and dynamic authored bodies",
-            "PassiveActive", "38082fc757cd767eedb079f2256440199e4a41457d25e944bda3fedfa9427051",
+            "PassiveActive", "fafa0682fdf58d083d60e7eec30991341c11bc5515247835d0396f14b20f57f0",
             {"rigid_integration", "static_body", "kinematic_body", "contact"}, 48U,
             "constraint_contact",
             {{16U, "set_first_kinematic_target", "scene", {0.5, 1.0, 0.0, 0.0}, 3U}}));
         result.push_back(integrated(
             "constraint-fixed", "Authored fixed collector and welded assembly",
-            "ConstraintFixed", "0c9e0bfc4f2629808e3c458967039776d64459b08fdccd9a1c234e9ba8c6e1ad",
+            "ConstraintFixed", "c4aa05878338908ac420a059f4de25b767c4a1f3b573c5f41aee6841e5852bdc",
             {"fixed_joint", "compound_weld", "contact"}));
         result.push_back(integrated(
             "constraint-point", "Four authored point constraints",
-            "ConstraintPoint", "9cb2893d41defed5def2ae97448f1a5db33172333beb6bf4bcc3e3faeb504f08",
+            "ConstraintPoint", "f307d291cf451a20cf9c65e88a7dad2afb2cf31275dfc4ec925671695c3e5d0c",
             {"point_joint", "enabled_state"}, 60U, "constraint_contact",
             {{20U, "set_constraints_enabled", "scene", {0.0, 0.0, 0.0, 0.0}, 1U},
              {40U, "set_constraints_enabled", "scene", {1.0, 0.0, 0.0, 0.0}, 1U}}));
         result.push_back(integrated(
             "constraint-hinge", "Three-gear authored hinge train",
-            "ConstraintHinge", "9ec3cb5f5a82c83ae9e3532823ef2ec3865f3a0cc3541169ed46a698270393c6",
+            "ConstraintHinge", "a118ee8433e7d59f126b06fd99bfc9c513b4aa496a5b69de7a46ad967298dfea",
             {"hinge_joint", "contact", "alternating_rotation", "energy"}, 90U));
         result.push_back(integrated(
             "constraint-slider", "Authored slider constraint",
-            "ConstraintSlider", "d5a550dda612db759de680db480ada6c40a00f71e0621165f285671453c3a0a1",
+            "ConstraintSlider", "79b6e4f4073c803bd3cf38d33b0ebf72d1924375af54810465458283ac5edb9a",
             {"slider_joint", "limits", "contact"}));
         result.push_back(integrated(
             "constraint-piston", "Authored piston constraint",
-            "ConstraintPiston", "d5228ddac1ed86ca947342653ce2fba9bc15cba4d1d602dd6b00ec607e1ec201",
+            "ConstraintPiston", "48dcc6b5e0241592f0cc8ba46aaf34314d083047b41025525c3897ffd279f50a",
             {"piston_joint", "limits", "contact"}));
         result.push_back(integrated(
             "constraint-generic", "Authored generic constraint",
-            "ConstraintGeneric", "373331fb7022047a29d2e5031d0fcd0625e1b0337ce23758ce4822ff27f8dab1",
+            "ConstraintGeneric", "1f66ea70d80db6febdde1b3265842d6ccae1d07e88741b2db3d750f1434069be",
             {"generic_joint", "linear_limits", "angular_limits"}));
         result.push_back(integrated(
             "constraint-generic-spring", "Authored generic spring constraint",
-            "ConstraintGenericSpring", "79d2ee43e3d2e879a1190328d2e93d8493c1747465079c61efcafae69362404d",
+            "ConstraintGenericSpring", "4e476ca6c8070e9d60b3995ca1f458afcd8c174a77327c9c9dd2b2540fc2df0a",
             {"generic_spring_joint", "springs", "damping"}));
         result.push_back(integrated(
             "constraint-motor", "Authored motor constraint",
-            "ConstraintMotor", "1e2a313ab4d3e31a689b99a68fa62462d6d4bc65e13f77b9097380d13538b5b7",
+            "ConstraintMotor", "92bc99edca04b7c16890d2a0938d1b0ba9d727c3170498f0fd5e1bd7114136df",
             {"motor_joint", "linear_motor", "angular_motor"}));
         result.push_back(integrated(
             "fluid-lifecycle", "Fluid source, outflow, foam, and stable IDs",
-            "Fluid", "d638064df8f044d65c0579eb006138c048480a8bc4fdaa5ddf6ce49107ee74d7",
+            "Fluid", "740af8ab070eccb8117bfc2a51d00ee0a8227b27c7801e44bcf38a166d72e817",
             {"fluid", "particle_source", "outflow", "foam", "stable_particle_ids"},
             48U, "deformable", {}, true));
         result.push_back(integrated(
             "fluid-rigid", "Fluid and rigid two-way contact",
-            "FluidRigid", "1bc734ad306a7e604af076e2f2b4ebc4110f95f130cc31a823f5ae4a63e08f57",
+            "FluidRigid", "a73e2b800569ffc038329d4f57624d766dd2ecf9eaea02bf3f58e268f2c224a0",
             {"fluid", "rigid_body", "fluid_rigid_coupling", "equal_opposite_transfer"},
             48U, "deformable", {}, true));
         result.push_back(integrated(
             "cloth-core", "Cloth pinning, pressure, and rigid contact",
-            "Cloth", "52f904972c0757833e672004aa130a648d8a8b1d05b7625306b1df7267ebec29",
+            "Cloth", "44ab33e01e3c1693a351642de7a75ad788f8517e86207a525f3150ab4593aa60",
             {"cloth", "pinning", "pressure", "rigid_cloth_contact", "topology"},
             48U, "deformable"));
         {
             auto tear = integrated(
                 "cloth-tear", "Cloth tearing and topology",
-                "ClothTear", "f173a1982f08b99179dabf65e71c870193763dfa290167caa02bf70d9ab6ef3a",
+                "ClothTear", "70d83b88395001ff074174cdc9247889796c6a21d4a1a9f552f71cb591828405",
                 {"cloth", "tearing", "topology", "contact"}, 420U,
                 "deformable",
                 {{120U, "set_gravity", "world",
@@ -247,74 +247,74 @@ const std::vector<CaseDefinition> &case_registry() {
         }
         result.push_back(integrated(
             "cloth-water", "Fluid-cloth containment and reaction",
-            "ClothWater", "6267ffeddeaebff558025e75593172fef1f6045a253d999e5a43e98959bda33e",
+            "ClothWater", "2d27f380ef01c8a20998d4a4f0e05574d111a14faaf0e199780be415a02c6782",
             {"fluid", "cloth", "fluid_cloth_coupling", "equal_opposite_transfer",
              "pressure", "topology"}, 48U, "deformable", {}, true));
         result.push_back(integrated(
             "soft-body-core", "Soft-body springs, shape matching, and skinning",
-            "Softbody", "65ff2ed4d0981c005ccd891ec6a809b2a93076337c0a36aada9d08260bb44c6e",
+            "Softbody", "c13ae5df9651d687f1233481dd094e2e06ad3b51fe4cd58be851400a63b954af",
             {"soft_body", "springs", "shape_matching", "surface_skinning"},
             48U, "deformable"));
         result.push_back(integrated(
             "soft-body-rigid", "Soft-body and rigid contact",
-            "SoftbodyRigidBody", "3e75b4224a740bf182407369839717cb6ebd723a730e09a821e2f2d650786219",
+            "SoftbodyRigidBody", "5d40b70591f6ef771a78d238571571b8d1c09ab8af953d447d80361e90d2c5b9",
             {"soft_body", "rigid_body", "soft_body_rigid_contact",
              "equal_opposite_transfer"}, 48U, "deformable"));
         result.push_back(integrated(
             "soft-body-fluid", "Fluid-soft-body two-way contact",
-            "SoftbodyFluid", "6e832ba1ab91d170a14c307b152ed1655a012179eebe364e18df60325ad77cfb",
+            "SoftbodyFluid", "d2e3738810af12d7075e8ae45040bd981dad49abd8daf5ff39e23f8be7b1f2ee",
             {"soft_body", "fluid", "fluid_soft_body_coupling",
              "equal_opposite_transfer"}, 24U, "deformable", {}, true));
         result.push_back(integrated(
             "soft-body-cloth", "Soft-body-cloth two-way contact",
-            "SoftbodyCloth", "13644a3e690ad204db5d529c955138b5b3d5e3dd2a6a99f7521e3d375c592b7a",
+            "SoftbodyCloth", "e773f33595f17a2940d5e920a14c5e4914cb8704ee3cb2a53d23663b173ea110",
             {"soft_body", "cloth", "soft_body_cloth_coupling",
              "equal_opposite_transfer", "topology"}, 48U, "deformable"));
         result.push_back(integrated(
             "rope-core", "Rope settling, winding drive, release, and contact",
-            "Rope", "58bddccc7510e3203cfa6e931eb23bc7c7c12dee44eeea81a33760ef8d95241b",
+            "Rope", "7e081c0e0b8606dda1edd10e3fb6e1c143209f86204d1d48af34298146cbf6ba",
             {"rope", "settling", "winding", "release", "rigid_rope_contact"},
             72U, "deformable",
             {{20U, "set_gravity", "world", {6.9367, -6.9367, 0.0, 0.0}, 3U},
              {48U, "set_gravity", "world", {0.0, -9.81, 0.0, 0.0}, 3U}}));
         result.push_back(integrated(
             "rope-fluid", "Fluid-rope two-way contact",
-            "RopeFluid", "d4b175c1b9a1d1386b448a7896cc814adfce4a0916defa9cf7af65169915cb16",
+            "RopeFluid", "b4ee8129d9a660ba004075cc0edaf03f1f2ceec79f07ebcf98037b9da90a476d",
             {"rope", "fluid", "fluid_rope_coupling", "equal_opposite_transfer"},
             48U, "deformable", {}, true));
         result.push_back(integrated(
             "rope-soft-body", "Rope-soft-body attachment and contact",
-            "RopeSoftbody", "ef65a94c6a6d259bd5588959274deb499dc69cb01d24ebc6e62c108c45f68dd6",
+            "RopeSoftbody", "9d625cd29ae031f9e62d149db1f3aea9d274ae0d5ec4d1a3c96f5d1a39e0d0fe",
             {"rope", "soft_body", "rope_soft_body_coupling",
              "equal_opposite_transfer", "winding"}, 48U, "deformable"));
         result.push_back(integrated(
             "rope-cloth", "Rope-cloth attachment and contact",
-            "RopeCloth", "055057d00a4c38f689a8eb4327c3eb24f827b85de49c96ef9d427c9bacdb25ab",
+            "RopeCloth", "2f4218e89236187421fd8c35c6d53088ee0d0e0ecbd83cb8afde6350dfeae645",
             {"rope", "cloth", "rope_cloth_coupling", "equal_opposite_transfer",
              "topology"}, 48U, "deformable"));
         result.push_back(integrated(
             "smoke-grid", "Smoke tracers, projected Eulerian grid, emission, and transport",
-            "Smoke", "ce42aa5c06ed28758fc19b5fb854791aba984b6b18dbcde0feb69913d095820a",
+            "Smoke", "0b2d2a482c2c34f219e9656fea907fd522821b37feb1960a49f670a285aa8ad8",
             {"smoke", "tracers", "eulerian_grid", "projection", "emission",
              "transport", "smoke_rigid_coupling"}, 36U, "deformable", {}, true));
         result.push_back(integrated(
             "smoke-water", "Fluid-smoke heat and momentum exchange",
-            "SmokeWater", "f5aa6a6dd96b90d971adb70b2cd469f47dea1e2c86254ccce444b31328f1d3dd",
+            "SmokeWater", "cf1cddb0a7f6e73f767125f6e15f80bb35c32a9d696ffcb9cd987035d1102bdd",
             {"smoke", "fluid", "fluid_smoke_coupling", "equal_opposite_transfer",
              "emission", "transport"}, 36U, "deformable", {}, true));
         result.push_back(integrated(
             "smoke-soft-body", "Smoke-soft-body interaction",
-            "SmokeSoftbody", "04b46169a52d8e993b07537efcc1841121cb7ce4763e0509828497a426179c0b",
+            "SmokeSoftbody", "b89f07fb4381c4e9c59eb03911402bd6ae71268f0697a52927815ed1a9738516",
             {"smoke", "soft_body", "smoke_soft_body_coupling",
              "equal_opposite_transfer"}, 36U, "deformable", {}, true));
         result.push_back(integrated(
             "smoke-cloth", "Smoke-cloth interaction",
-            "SmokeCloth", "228aa2074b63cbd8403c5debfa31ac70f0a0b3379c805d3fe9d527bdfa5ee636",
+            "SmokeCloth", "6256953f47d53504bc3c90dcef2f63447439e989b9eb23a0259f7c35dee8c79d",
             {"smoke", "cloth", "smoke_cloth_coupling", "equal_opposite_transfer",
              "topology"}, 36U, "deformable", {}, true));
         result.push_back(integrated(
             "smoke-rope", "Smoke-rope interaction",
-            "SmokeRope", "faa8a9dce23dd99b1bb2ac39782ad0407056691e78c7e017843aff0ac5e254b1",
+            "SmokeRope", "09687092f7e5abf234f4c041fd2f5e02a452f4db7ce531c590f7ff7c539d750e",
             {"smoke", "rope", "smoke_rope_coupling", "equal_opposite_transfer"},
             36U, "deformable", {}, true));
         return result;

@@ -1,1 +1,48 @@
-{"backend":"cuda","case_count":30,"deterministic_settings":{"contact_order":"canonical","enabled":true,"timings_gate_correctness":false},"device_and_toolchain":{"compute_capability":"8.6","cuda_driver_version":13010,"cuda_runtime_version":13010,"device_name":"NVIDIA GeForce RTX 3050 Ti Laptop GPU","host_compiler":"12.2.0"},"glb_sha256":{"examples/assets/Cloth.glb":"52f904972c0757833e672004aa130a648d8a8b1d05b7625306b1df7267ebec29","examples/assets/ClothTear.glb":"f173a1982f08b99179dabf65e71c870193763dfa290167caa02bf70d9ab6ef3a","examples/assets/ClothWater.glb":"6267ffeddeaebff558025e75593172fef1f6045a253d999e5a43e98959bda33e","examples/assets/ConstraintFixed.glb":"0c9e0bfc4f2629808e3c458967039776d64459b08fdccd9a1c234e9ba8c6e1ad","examples/assets/ConstraintGeneric.glb":"373331fb7022047a29d2e5031d0fcd0625e1b0337ce23758ce4822ff27f8dab1","examples/assets/ConstraintGenericSpring.glb":"79d2ee43e3d2e879a1190328d2e93d8493c1747465079c61efcafae69362404d","examples/assets/ConstraintHinge.glb":"9ec3cb5f5a82c83ae9e3532823ef2ec3865f3a0cc3541169ed46a698270393c6","examples/assets/ConstraintMotor.glb":"1e2a313ab4d3e31a689b99a68fa62462d6d4bc65e13f77b9097380d13538b5b7","examples/assets/ConstraintPiston.glb":"d5228ddac1ed86ca947342653ce2fba9bc15cba4d1d602dd6b00ec607e1ec201","examples/assets/ConstraintPoint.glb":"9cb2893d41defed5def2ae97448f1a5db33172333beb6bf4bcc3e3faeb504f08","examples/assets/ConstraintSlider.glb":"d5a550dda612db759de680db480ada6c40a00f71e0621165f285671453c3a0a1","examples/assets/Fluid.glb":"d638064df8f044d65c0579eb006138c048480a8bc4fdaa5ddf6ce49107ee74d7","examples/assets/FluidRigid.glb":"1bc734ad306a7e604af076e2f2b4ebc4110f95f130cc31a823f5ae4a63e08f57","examples/assets/PassiveActive.glb":"38082fc757cd767eedb079f2256440199e4a41457d25e944bda3fedfa9427051","examples/assets/Rope.glb":"58bddccc7510e3203cfa6e931eb23bc7c7c12dee44eeea81a33760ef8d95241b","examples/assets/RopeCloth.glb":"055057d00a4c38f689a8eb4327c3eb24f827b85de49c96ef9d427c9bacdb25ab","examples/assets/RopeFluid.glb":"d4b175c1b9a1d1386b448a7896cc814adfce4a0916defa9cf7af65169915cb16","examples/assets/RopeSoftbody.glb":"ef65a94c6a6d259bd5588959274deb499dc69cb01d24ebc6e62c108c45f68dd6","examples/assets/Smoke.glb":"ce42aa5c06ed28758fc19b5fb854791aba984b6b18dbcde0feb69913d095820a","examples/assets/SmokeCloth.glb":"228aa2074b63cbd8403c5debfa31ac70f0a0b3379c805d3fe9d527bdfa5ee636","examples/assets/SmokeRope.glb":"faa8a9dce23dd99b1bb2ac39782ad0407056691e78c7e017843aff0ac5e254b1","examples/assets/SmokeSoftbody.glb":"04b46169a52d8e993b07537efcc1841121cb7ce4763e0509828497a426179c0b","examples/assets/SmokeWater.glb":"f5aa6a6dd96b90d971adb70b2cd469f47dea1e2c86254ccce444b31328f1d3dd","examples/assets/Softbody.glb":"65ff2ed4d0981c005ccd891ec6a809b2a93076337c0a36aada9d08260bb44c6e","examples/assets/SoftbodyCloth.glb":"13644a3e690ad204db5d529c955138b5b3d5e3dd2a6a99f7521e3d375c592b7a","examples/assets/SoftbodyFluid.glb":"6e832ba1ab91d170a14c307b152ed1655a012179eebe364e18df60325ad77cfb","examples/assets/SoftbodyRigidBody.glb":"3e75b4224a740bf182407369839717cb6ebd723a730e09a821e2f2d650786219"},"result_schema":"parallel-mater-conformance-result/v1","schema":"parallel-mater-conformance-manifest/v1","source_commit":"4fa2b7ee838f604c802af157d59fadac75146256"}
+{
+  "backend": "cuda",
+  "case_count": 30,
+  "deterministic_settings": {
+    "contact_order": "canonical",
+    "enabled": true,
+    "timings_gate_correctness": false
+  },
+  "device_and_toolchain": {
+    "compute_capability": "8.6",
+    "cuda_driver_version": 13010,
+    "cuda_runtime_version": 13010,
+    "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "host_compiler": "12.2.0"
+  },
+  "glb_sha256": {
+    "examples/assets/Cloth.glb": "44ab33e01e3c1693a351642de7a75ad788f8517e86207a525f3150ab4593aa60",
+    "examples/assets/ClothTear.glb": "70d83b88395001ff074174cdc9247889796c6a21d4a1a9f552f71cb591828405",
+    "examples/assets/ClothWater.glb": "2d27f380ef01c8a20998d4a4f0e05574d111a14faaf0e199780be415a02c6782",
+    "examples/assets/ConstraintFixed.glb": "c4aa05878338908ac420a059f4de25b767c4a1f3b573c5f41aee6841e5852bdc",
+    "examples/assets/ConstraintGeneric.glb": "1f66ea70d80db6febdde1b3265842d6ccae1d07e88741b2db3d750f1434069be",
+    "examples/assets/ConstraintGenericSpring.glb": "4e476ca6c8070e9d60b3995ca1f458afcd8c174a77327c9c9dd2b2540fc2df0a",
+    "examples/assets/ConstraintHinge.glb": "a118ee8433e7d59f126b06fd99bfc9c513b4aa496a5b69de7a46ad967298dfea",
+    "examples/assets/ConstraintMotor.glb": "92bc99edca04b7c16890d2a0938d1b0ba9d727c3170498f0fd5e1bd7114136df",
+    "examples/assets/ConstraintPiston.glb": "48dcc6b5e0241592f0cc8ba46aaf34314d083047b41025525c3897ffd279f50a",
+    "examples/assets/ConstraintPoint.glb": "f307d291cf451a20cf9c65e88a7dad2afb2cf31275dfc4ec925671695c3e5d0c",
+    "examples/assets/ConstraintSlider.glb": "79b6e4f4073c803bd3cf38d33b0ebf72d1924375af54810465458283ac5edb9a",
+    "examples/assets/Fluid.glb": "740af8ab070eccb8117bfc2a51d00ee0a8227b27c7801e44bcf38a166d72e817",
+    "examples/assets/FluidRigid.glb": "a73e2b800569ffc038329d4f57624d766dd2ecf9eaea02bf3f58e268f2c224a0",
+    "examples/assets/PassiveActive.glb": "fafa0682fdf58d083d60e7eec30991341c11bc5515247835d0396f14b20f57f0",
+    "examples/assets/Rope.glb": "7e081c0e0b8606dda1edd10e3fb6e1c143209f86204d1d48af34298146cbf6ba",
+    "examples/assets/RopeCloth.glb": "2f4218e89236187421fd8c35c6d53088ee0d0e0ecbd83cb8afde6350dfeae645",
+    "examples/assets/RopeFluid.glb": "b4ee8129d9a660ba004075cc0edaf03f1f2ceec79f07ebcf98037b9da90a476d",
+    "examples/assets/RopeSoftbody.glb": "9d625cd29ae031f9e62d149db1f3aea9d274ae0d5ec4d1a3c96f5d1a39e0d0fe",
+    "examples/assets/Smoke.glb": "0b2d2a482c2c34f219e9656fea907fd522821b37feb1960a49f670a285aa8ad8",
+    "examples/assets/SmokeCloth.glb": "6256953f47d53504bc3c90dcef2f63447439e989b9eb23a0259f7c35dee8c79d",
+    "examples/assets/SmokeRope.glb": "09687092f7e5abf234f4c041fd2f5e02a452f4db7ce531c590f7ff7c539d750e",
+    "examples/assets/SmokeSoftbody.glb": "b89f07fb4381c4e9c59eb03911402bd6ae71268f0697a52927815ed1a9738516",
+    "examples/assets/SmokeWater.glb": "cf1cddb0a7f6e73f767125f6e15f80bb35c32a9d696ffcb9cd987035d1102bdd",
+    "examples/assets/Softbody.glb": "c13ae5df9651d687f1233481dd094e2e06ad3b51fe4cd58be851400a63b954af",
+    "examples/assets/SoftbodyCloth.glb": "e773f33595f17a2940d5e920a14c5e4914cb8704ee3cb2a53d23663b173ea110",
+    "examples/assets/SoftbodyFluid.glb": "d2e3738810af12d7075e8ae45040bd981dad49abd8daf5ff39e23f8be7b1f2ee",
+    "examples/assets/SoftbodyRigidBody.glb": "5d40b70591f6ef771a78d238571571b8d1c09ab8af953d447d80361e90d2c5b9"
+  },
+  "result_schema": "parallel-mater-conformance-result/v1",
+  "schema": "parallel-mater-conformance-manifest/v1",
+  "source_commit": "b3cb3d0fac068890771c5effe29dc30f916c298d"
+}

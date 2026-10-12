@@ -1,20 +1,26 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/soft_body_rope.cuh. Contact traversal is shared with
-// geometry_rope.slang; the three CUDA entry points live here 1:1.
+// Shared soft-body and rope endpoint coupling kernels. Contact traversal is
+// shared with rope.slang.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 
 groupshared float ropeSoftSums[256];
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void rope_soft_sample_anchor(
-    uniform RopeData rope, uniform uint end, uniform Vec3* surface,
+    uniform Vec3* soft_anchor_positions,
+    uniform Vec3* soft_anchor_velocities,
+    uniform Vec3* soft_anchor_impulses,
+    uniform float* soft_anchor_inverse_masses, uniform uint end,
+    uniform Vec3* surface,
     uniform Vec3* velocities, uniform uint* indices,
     uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
     uniform Vec3 weights, uniform Vec3 offset)
 {
-    if (cudaThreadIdx().x != 0u || cudaBlockIdx().x != 0u) return;
+    if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
     uint base = 3u * triangle;
     float w[3];
     w[0] = weights.x;
@@ -32,31 +38,32 @@ void rope_soft_sample_anchor(
                 velocities[binding.nodes[slot]],
                 w[corner] * binding.weights[slot]));
     }
-    rope.soft_anchor_positions[end] = position;
-    rope.soft_anchor_velocities[end] = velocity;
-    rope.soft_anchor_impulses[end] = {};
-    rope.soft_anchor_inverse_masses[end] = 0.0f;
+    soft_anchor_positions[end] = position;
+    soft_anchor_velocities[end] = velocity;
+    soft_anchor_impulses[end] = {};
+    soft_anchor_inverse_masses[end] = 0.0f;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void rope_soft_scatter_anchor(
-    uniform RopeData rope, uniform uint end,
+    uniform Vec3* soft_anchor_positions,
+    uniform Vec3* soft_anchor_impulses, uniform uint end,
     uniform Vec3* node_positions, uniform uint node_count,
     uniform float support_radius, uniform float contact_support_radius,
     uniform uint* contact_count, uniform uint* indices,
     uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
     uniform Vec3 weights, uniform Vec3* node_impulses)
 {
-    if (cudaBlockIdx().x != 0u) return;
-    uint thread = cudaThreadIdx().x;
-    Vec3 anchor = rope.soft_anchor_positions[end];
+    if (pmBlockIndex().x != 0u) return;
+    uint thread = pmGroupThreadIndex().x;
+    Vec3 anchor = soft_anchor_positions[end];
     support_radius = contact_support_radius +
         (support_radius - contact_support_radius) /
         (1.0f + float(*contact_count) / 2.0f);
     float radiusSquared = support_radius * support_radius;
     float localSum = 0.0f;
-    for (uint node = thread; node < node_count; node += cudaBlockDim().x)
+    for (uint node = thread; node < node_count; node += pmGroupSize().x)
     {
         float squared = length_squared(subtract(node_positions[node], anchor));
         if (squared < radiusSquared)
@@ -67,7 +74,7 @@ void rope_soft_scatter_anchor(
     }
     ropeSoftSums[thread] = localSum;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (thread < stride)
             ropeSoftSums[thread] += ropeSoftSums[thread + stride];
@@ -76,8 +83,8 @@ void rope_soft_scatter_anchor(
     if (ropeSoftSums[0] > 1.0e-8f)
     {
         Vec3 impulse = multiply(
-            rope.soft_anchor_impulses[end], 1.0f / ropeSoftSums[0]);
-        for (uint node = thread; node < node_count; node += cudaBlockDim().x)
+            soft_anchor_impulses[end], 1.0f / ropeSoftSums[0]);
+        for (uint node = thread; node < node_count; node += pmGroupSize().x)
         {
             float squared = length_squared(
                 subtract(node_positions[node], anchor));
@@ -103,7 +110,7 @@ void rope_soft_scatter_anchor(
             if (weight > 0.0f)
                 node_impulses[binding.nodes[slot]] = add(
                     node_impulses[binding.nodes[slot]], multiply(
-                        rope.soft_anchor_impulses[end], weight));
+                        soft_anchor_impulses[end], weight));
         }
     }
 }

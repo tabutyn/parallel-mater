@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <parallel_mater_gallery/camera.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <cstdint>
@@ -11,12 +12,8 @@
 
 namespace parallel_mater::gallery {
 
-struct Camera {
-    Vec3 eye{7.5F, 5.0F, 9.0F};
-    Vec3 target{0.0F, 1.5F, 0.0F};
-    Vec3 up{0.0F, 1.0F, 0.0F};
-    float vertical_field_of_view_degrees{48.0F};
-};
+struct CommandSceneInstance;
+struct RenderSceneFrame;
 
 struct RendererTimings {
     float surface_gpu_milliseconds{};
@@ -58,16 +55,14 @@ class OptixRenderer {
     OptixRenderer &operator=(const OptixRenderer &) = delete;
 
     [[nodiscard]] static bool create(const SceneDefinition &scene,
-                                     const World &world,
-                                     const SceneInstance &instance,
+                                     const CommandSceneInstance &instance,
                                      const std::filesystem::path &ptx_path,
                                      std::uint32_t width,
                                      std::uint32_t height,
                                      OptixRenderer &output,
                                      std::string &error);
 
-    [[nodiscard]] bool render(const World &world,
-                              const SceneInstance &instance,
+    [[nodiscard]] bool render(const RenderSceneFrame &frame,
                               Camera camera,
                               std::vector<std::uint32_t> &rgba,
                               std::string &error,
@@ -78,8 +73,7 @@ class OptixRenderer {
                               float rigid_interpolation_alpha = 1.0F);
 
     // Advance render-only foam during unrendered headless steps.
-    [[nodiscard]] bool advance_visuals(const World &world,
-                                       const SceneInstance &instance,
+    [[nodiscard]] bool advance_visuals(const RenderSceneFrame &frame,
                                        std::string &error);
     [[nodiscard]] bool paint_coverage(std::uint64_t &painted_texels,
                                       std::string &error) const;
