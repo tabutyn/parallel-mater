@@ -5,574 +5,581 @@
       {
         "method": "add_cloth",
         "definition_candidates": [
-          "src/world.cu:3550"
+          "src/world.cu:3493"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid",
         "definition_candidates": [
-          "src/world.cu:1918"
+          "src/world.cu:1868"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5244"
+          "src/world.cu:5187"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid_geometry",
         "definition_candidates": [
-          "src/world.cu:2027"
+          "src/world.cu:1971"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid_rope_coupling",
         "definition_candidates": [
-          "src/world.cu:4466"
+          "src/world.cu:4409"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid_smoke_coupling",
         "definition_candidates": [
-          "src/world.cu:2411"
+          "src/world.cu:2354"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_fluid_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:4987"
+          "src/world.cu:4930"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_paint_field",
         "definition_candidates": [
-          "src/world.cu:3349"
+          "src/world.cu:3292"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_paint_rule",
         "definition_candidates": [
-          "src/world.cu:3482"
+          "src/world.cu:3425"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_particle_destroy_plane",
         "definition_candidates": [
-          "src/world.cu:2855"
+          "src/world.cu:2798"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_particle_source",
         "definition_candidates": [
-          "src/world.cu:2787"
+          "src/world.cu:2730"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_rigid_body",
         "definition_candidates": [
-          "src/world.cu:5348"
+          "src/world.cu:5291"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_rigid_constraint",
         "definition_candidates": [
-          "src/world.cu:5810"
+          "src/world.cu:5777"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_rope",
         "definition_candidates": [
-          "src/world.cu:4343"
+          "src/world.cu:4286"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_rope_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:4787"
+          "src/world.cu:4730"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_rope_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:4558"
+          "src/world.cu:4501"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_smoke",
         "definition_candidates": [
-          "src/world.cu:2133"
+          "src/world.cu:2077"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_smoke_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:2558"
+          "src/world.cu:2501"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_smoke_rigid_coupling",
         "definition_candidates": [
-          "src/world.cu:2705"
+          "src/world.cu:2648"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_smoke_rope_coupling",
         "definition_candidates": [
-          "src/world.cu:2633"
+          "src/world.cu:2576"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_smoke_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:2481"
+          "src/world.cu:2424"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_soft_body",
         "definition_candidates": [
-          "src/world.cu:3961"
+          "src/world.cu:3904"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_soft_body_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5159"
+          "src/world.cu:5102"
         ],
         "unsupported_stub": false
       },
       {
         "method": "add_triangle_mesh",
         "definition_candidates": [
-          "src/world.cu:3010"
+          "src/world.cu:2953"
         ],
         "unsupported_stub": false
       },
       {
         "method": "apply_central_acceleration",
         "definition_candidates": [
-          "src/world.cu:5589"
+          "src/world.cu:5561"
         ],
         "unsupported_stub": false
       },
       {
         "method": "apply_force",
         "definition_candidates": [
-          "src/world.cu:5559"
+          "src/world.cu:5502"
         ],
         "unsupported_stub": false
       },
       {
         "method": "apply_impulse",
         "definition_candidates": [
-          "src/world.cu:5625"
+          "src/world.cu:5597"
+        ],
+        "unsupported_stub": false
+      },
+      {
+        "method": "apply_rigid_input",
+        "definition_candidates": [
+          "src/world.cu:5532"
         ],
         "unsupported_stub": false
       },
       {
         "method": "clear_paint_field",
         "definition_candidates": [
-          "src/world.cu:3448"
+          "src/world.cu:3391"
         ],
         "unsupported_stub": false
       },
       {
         "method": "cloth_view",
         "definition_candidates": [
-          "src/world.cu:3926"
+          "src/world.cu:3869"
         ],
         "unsupported_stub": false
       },
       {
         "method": "collect_statistics",
         "definition_candidates": [
-          "src/world.cu:8678"
+          "src/world.cu:8742"
         ],
         "unsupported_stub": false
       },
       {
         "method": "collect_step_timings",
         "definition_candidates": [
-          "src/world.cu:8512"
+          "src/world.cu:8576"
         ],
         "unsupported_stub": false
       },
       {
         "method": "contacts",
         "definition_candidates": [
-          "src/world.cu:8418"
+          "src/world.cu:8482"
         ],
         "unsupported_stub": false
       },
       {
         "method": "copy_physics_debug_capture",
         "definition_candidates": [
-          "src/world.cu:8478"
+          "src/world.cu:8542"
         ],
         "unsupported_stub": false
       },
       {
         "method": "create",
         "definition_candidates": [
-          "src/world.cu:1569"
+          "src/world.cu:1526"
         ],
         "unsupported_stub": false
       },
       {
         "method": "device_ordinal",
         "definition_candidates": [
-          "src/world.cu:8920"
+          "src/world.cu:8987"
         ],
         "unsupported_stub": false
       },
       {
         "method": "fluid_view",
         "definition_candidates": [
-          "src/world.cu:2116"
+          "src/world.cu:2060"
         ],
         "unsupported_stub": false
       },
       {
         "method": "paint_field_view",
         "definition_candidates": [
-          "src/world.cu:3466"
+          "src/world.cu:3409"
         ],
         "unsupported_stub": false
       },
       {
         "method": "physics_debug_frame",
         "definition_candidates": [
-          "src/world.cu:8433"
+          "src/world.cu:8497"
         ],
         "unsupported_stub": false
       },
       {
         "method": "query_hit_box",
         "definition_candidates": [
-          "src/world.cu:5715"
+          "src/world.cu:5687"
         ],
         "unsupported_stub": false
       },
       {
         "method": "read_rigid_body_state",
         "definition_candidates": [
-          "src/world.cu:5680"
+          "src/world.cu:5652"
         ],
         "unsupported_stub": false
       },
       {
         "method": "read_rigid_constraint_state",
         "definition_candidates": [
-          "src/world.cu:5912"
+          "src/world.cu:5879"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_cloth",
         "definition_candidates": [
-          "src/world.cu:3886"
+          "src/world.cu:3829"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_fluid",
         "definition_candidates": [
-          "src/world.cu:2065"
+          "src/world.cu:2009"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_fluid_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5328"
+          "src/world.cu:5271"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_fluid_rope_coupling",
         "definition_candidates": [
-          "src/world.cu:4528"
+          "src/world.cu:4471"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_fluid_smoke_coupling",
         "definition_candidates": [
-          "src/world.cu:2462"
+          "src/world.cu:2405"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_fluid_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:5137"
+          "src/world.cu:5080"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_paint_field",
         "definition_candidates": [
-          "src/world.cu:3425"
+          "src/world.cu:3368"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_paint_rule",
         "definition_candidates": [
-          "src/world.cu:3533"
+          "src/world.cu:3476"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_particle_destroy_plane",
         "definition_candidates": [
-          "src/world.cu:2892"
+          "src/world.cu:2835"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_particle_source",
         "definition_candidates": [
-          "src/world.cu:2841"
+          "src/world.cu:2784"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_rigid_body",
         "definition_candidates": [
-          "src/world.cu:5410"
+          "src/world.cu:5353"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_rigid_constraint",
         "definition_candidates": [
-          "src/world.cu:5895"
+          "src/world.cu:5862"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_rope",
         "definition_candidates": [
-          "src/world.cu:4419"
+          "src/world.cu:4362"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_rope_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:4890"
+          "src/world.cu:4833"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_rope_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:4758"
+          "src/world.cu:4701"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_smoke",
         "definition_candidates": [
-          "src/world.cu:2340"
+          "src/world.cu:2283"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_smoke_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:2610"
+          "src/world.cu:2553"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_smoke_rigid_coupling",
         "definition_candidates": [
-          "src/world.cu:2751"
+          "src/world.cu:2694"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_smoke_rope_coupling",
         "definition_candidates": [
-          "src/world.cu:2684"
+          "src/world.cu:2627"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_smoke_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:2534"
+          "src/world.cu:2477"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_soft_body",
         "definition_candidates": [
-          "src/world.cu:4918"
+          "src/world.cu:4861"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_soft_body_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5226"
+          "src/world.cu:5169"
         ],
         "unsupported_stub": false
       },
       {
         "method": "remove_triangle_mesh",
         "definition_candidates": [
-          "src/world.cu:3304"
+          "src/world.cu:3247"
         ],
         "unsupported_stub": false
       },
       {
         "method": "rigid_body_view",
         "definition_candidates": [
-          "src/world.cu:5656"
+          "src/world.cu:5628"
         ],
         "unsupported_stub": false
       },
       {
         "method": "rigid_contacts",
         "definition_candidates": [
-          "src/world.cu:8425"
+          "src/world.cu:8489"
         ],
         "unsupported_stub": false
       },
       {
         "method": "rope_view",
         "definition_candidates": [
-          "src/world.cu:4445"
+          "src/world.cu:4388"
         ],
         "unsupported_stub": false
       },
       {
         "method": "set_kinematic_target",
         "definition_candidates": [
-          "src/world.cu:5524"
+          "src/world.cu:5467"
         ],
         "unsupported_stub": false
       },
       {
         "method": "set_rigid_body_state",
         "definition_candidates": [
-          "src/world.cu:5479"
+          "src/world.cu:5422"
         ],
         "unsupported_stub": false
       },
       {
         "method": "smoke_view",
         "definition_candidates": [
-          "src/world.cu:2378"
+          "src/world.cu:2321"
         ],
         "unsupported_stub": false
       },
       {
         "method": "soft_body_view",
         "definition_candidates": [
-          "src/world.cu:4952"
+          "src/world.cu:4895"
         ],
         "unsupported_stub": false
       },
       {
         "method": "step",
         "definition_candidates": [
-          "src/world.cu:8409"
+          "src/world.cu:8473"
         ],
         "unsupported_stub": false
       },
       {
         "method": "step_async",
         "definition_candidates": [
-          "src/world.cu:5937"
+          "src/world.cu:5904"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_fluid_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5293"
+          "src/world.cu:5236"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_fluid_rope_coupling",
         "definition_candidates": [
-          "src/world.cu:4509"
+          "src/world.cu:4452"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_fluid_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:5119"
+          "src/world.cu:5062"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_particle_destroy_plane",
         "definition_candidates": [
-          "src/world.cu:2875"
+          "src/world.cu:2818"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_particle_source",
         "definition_candidates": [
-          "src/world.cu:2822"
+          "src/world.cu:2765"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_rigid_constraint",
         "definition_candidates": [
-          "src/world.cu:5856"
+          "src/world.cu:5823"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_rope_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:4853"
+          "src/world.cu:4796"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_rope_soft_body_coupling",
         "definition_candidates": [
-          "src/world.cu:4725"
+          "src/world.cu:4668"
         ],
         "unsupported_stub": false
       },
       {
         "method": "update_soft_body_cloth_coupling",
         "definition_candidates": [
-          "src/world.cu:5204"
+          "src/world.cu:5147"
         ],
         "unsupported_stub": false
       }
@@ -597,19 +604,19 @@
       {
         "method": "pending",
         "definition_candidates": [
-          "src/world.cu:1546"
+          "src/world.cu:1503"
         ]
       },
       {
         "method": "ready",
         "definition_candidates": [
-          "src/world.cu:1550"
+          "src/world.cu:1507"
         ]
       },
       {
         "method": "wait",
         "definition_candidates": [
-          "src/world.cu:1557"
+          "src/world.cu:1514"
         ]
       }
     ],

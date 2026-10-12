@@ -51,7 +51,7 @@ its earlier Point/Motor/Generic Spring/procedural dump controllers; see the
    balance and destabilizes the gear train. Piston uses alternating gravity to
    slide a toothed sleeve along its shaft and index its rotation; eight
    complete right–left cycles should produce one revolution. Generic's authored
-   `GenericBlockA` uses `pm_arrow = 100.0` for screen-space force controls;
+   `GenericBlockA` uses `pm_arrow = 1000.0` for screen-space force controls;
    Motor + Spring connects four powered wheels through separate dynamically
    suspended hubs.
 
@@ -178,7 +178,7 @@ Spring, and Motor entries and their CLI options have been removed; their
 `.blend` and `.glb` files remain test/conformance fixtures, not gallery entries.
 Arrow keys tilt gravity relative to the current camera in Constraint scenes
 except Motor + Spring and scenes with positive `pm_arrow` properties. On Generic,
-arrows apply 100 N at `GenericBlockA`'s center of mass along the current
+arrows apply 1000 N at `GenericBlockA`'s center of mass along the current
 camera-relative screen direction projected onto the floor, while gravity stays
 vertical. Diagonals retain the same total force; release stops adding force,
 not momentum. Positive

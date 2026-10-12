@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/cloth.cuh.
+// Shared cloth simulation kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 
 static const uint kClothVolumeThreads = 128u;
 groupshared float clothScalarTerms[kClothVolumeThreads];

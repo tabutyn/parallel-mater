@@ -2,7 +2,9 @@
 // Slang mirror of src/smoke_grid.cuh. Grid entry points follow these shared
 // sampling helpers.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_fluid;
 
 groupshared Vec3 smoke_grid_rigid_linear[128];

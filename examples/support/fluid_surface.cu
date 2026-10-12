@@ -179,14 +179,15 @@ FluidSurface::~FluidSurface() = default;
 FluidSurface::FluidSurface(FluidSurface &&) noexcept = default;
 FluidSurface &FluidSurface::operator=(FluidSurface &&) noexcept = default;
 
-float FluidSurface::update(FluidDeviceView particles,
+float FluidSurface::update(const Vec3 *device_positions,
+                           std::uint32_t particle_count,
+                           float particle_radius, float support_radius,
                            const std::vector<Vec3> &host_positions) {
     impl_->grid = {};
     impl_->excluded_particle_count = 0U;
-    if (particles.particle_count == 0U) return 0.0F;
-    if (host_positions.size() != particles.particle_count ||
-        !(particles.support_radius > 0.0F) ||
-        !(particles.particle_radius > 0.0F))
+    if (particle_count == 0U) return 0.0F;
+    if (device_positions == nullptr || host_positions.size() != particle_count ||
+        !(support_radius > 0.0F) || !(particle_radius > 0.0F))
         throw std::invalid_argument("invalid fluid surface input");
     Vec3 low = host_positions.front();
     Vec3 high = low;
@@ -200,7 +201,7 @@ float FluidSurface::update(FluidDeviceView particles,
     }
     // Reconstruct with the solver's neighbor reach; widening it bridges
     // separate streams and extrudes the surface beneath the passive mesh.
-    const float radius = particles.support_radius;
+    const float radius = support_radius;
     // A few escaped particles can travel dozens of meters below the stream.
     // Using their absolute extrema spends almost the entire fixed voxel budget
     // on empty space, erasing the water where the bulk of particles lives.
@@ -236,7 +237,7 @@ float FluidSurface::update(FluidDeviceView particles,
     auto &grid = impl_->grid;
     grid.minimum = make_float3(low.x - radius, low.y - radius, low.z - radius);
     grid.support_radius = radius;
-    grid.particle_radius = particles.particle_radius;
+    grid.particle_radius = particle_radius;
     for (Vec3 p : host_positions) {
         impl_->excluded_particle_count +=
             p.x < grid.minimum.x || p.x > high.x + radius ||
@@ -246,7 +247,7 @@ float FluidSurface::update(FluidDeviceView particles,
     // A thin sheet vanishes when its field is narrower than half a grid cell.
     // Use only the samples needed to resolve a physical particle, up to the
     // fixed budget; empty space should not make early frames expensive.
-    float pitch = std::max(particles.particle_radius * 1.5F,
+    float pitch = std::max(particle_radius * 1.5F,
         std::cbrt(extent.x * extent.y * extent.z / static_cast<float>(k_samples)));
     for (;;) {
         const auto dimension = [pitch](float length) {
@@ -267,17 +268,17 @@ float FluidSurface::update(FluidDeviceView particles,
         grid.dimensions.x * grid.dimensions.y * grid.dimensions.z;
     check(cudaEventRecord(impl_->begin), "begin fluid surface timing");
     constexpr std::uint32_t block = 128U;
-    index_particles<<<(particles.particle_count + block - 1U) / block, block>>>(
-        particles.positions.data, particles.particle_count, 1.0F / radius,
+    index_particles<<<(particle_count + block - 1U) / block, block>>>(
+        device_positions, particle_count, 1.0F / radius,
         impl_->keys[0], impl_->indices[0]);
     check(cudaGetLastError(), "index fluid surface particles");
     check(cub::DeviceRadixSort::SortPairs(
               impl_->sort_workspace, impl_->sort_workspace_size,
               impl_->keys[0], impl_->keys[1], impl_->indices[0],
-              impl_->indices[1], particles.particle_count, 0, 64),
+              impl_->indices[1], particle_count, 0, 64),
           "sort fluid surface particles");
     build_field<<<(samples + block - 1U) / block, block>>>(
-        particles.positions.data, particles.particle_count, impl_->keys[1],
+        device_positions, particle_count, impl_->keys[1],
         impl_->indices[1], grid, samples, impl_->values);
     check(cudaGetLastError(), "build fluid surface field");
     check(cudaEventRecord(impl_->end), "end fluid surface timing");

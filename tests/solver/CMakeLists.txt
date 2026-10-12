@@ -18,11 +18,11 @@ add_test(NAME parallel-mater-avbd-core-tests COMMAND parallel-mater-avbd-core-te
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_EXECUTABLE)
-    add_test(NAME parallel-mater-slang-kernel-mirror-coverage
+    add_test(NAME parallel-mater-slang-architecture
         COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/check_slang_kernel_mirrors.py)
-    set_tests_properties(parallel-mater-slang-kernel-mirror-coverage
-        PROPERTIES LABELS "slang;coverage")
+            ${CMAKE_CURRENT_SOURCE_DIR}/check_slang_architecture.py)
+    set_tests_properties(parallel-mater-slang-architecture
+        PROPERTIES LABELS "slang;architecture")
 endif()
 
 get_property(contact_test_languages GLOBAL PROPERTY ENABLED_LANGUAGES)

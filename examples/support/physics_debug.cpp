@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/physics_debug.hpp>
+#include <scene_builder.hpp>
 
 #include <chrono>
 #include <fstream>
@@ -180,6 +181,83 @@ bool save_physics_debug_capture(World &world, std::filesystem::path &output,
     }
     if (!default_capture_path(frame.frame_index, output, error)) return false;
     return write_physics_debug_capture(world, output, error);
+}
+
+bool write_physics_debug_capture(const CommandSceneFrame &frame,
+                                 const std::filesystem::path &output,
+                                 std::string &error) {
+    error.clear();
+    std::ofstream stream(output, std::ios::out | std::ios::trunc);
+    if (!stream) {
+        error = "could not open physics capture log";
+        return false;
+    }
+    stream << std::setprecision(9)
+           << "parallel_mater_physics_capture 2\n"
+           << "frame " << frame.revision
+           << " rigid " << frame.rigid_states.size()
+           << " fluid " << frame.fluid_particles.size()
+           << " cloth " << frame.cloth_vertices.size()
+           << " soft_body " << frame.soft_body_nodes.size()
+           << " rope " << frame.rope_nodes.size()
+           << " smoke " << frame.smoke_particles.size()
+           << " contacts " << frame.contacts.size() << '\n';
+    for (std::size_t index = 0; index < frame.rigid_states.size(); ++index) {
+        const PmRigidState &state = frame.rigid_states[index];
+        stream << "rigid " << index << " position "
+               << state.position[0] << ' ' << state.position[1] << ' '
+               << state.position[2] << " orientation "
+               << state.orientation[0] << ' ' << state.orientation[1] << ' '
+               << state.orientation[2] << ' ' << state.orientation[3]
+               << " linear_velocity " << state.linearVelocity[0] << ' '
+               << state.linearVelocity[1] << ' ' << state.linearVelocity[2]
+               << " angular_velocity " << state.angularVelocity[0] << ' '
+               << state.angularVelocity[1] << ' ' << state.angularVelocity[2]
+               << '\n';
+    }
+    for (const PmFluidParticleOutput &particle : frame.fluid_particles) {
+        stream << "fluid " << particle.stableId << " position "
+               << particle.position[0] << ' ' << particle.position[1] << ' '
+               << particle.position[2] << " velocity "
+               << particle.velocity[0] << ' ' << particle.velocity[1] << ' '
+               << particle.velocity[2] << " acceleration "
+               << particle.acceleration[0] << ' ' << particle.acceleration[1]
+               << ' ' << particle.acceleration[2] << " foam "
+               << particle.foam << '\n';
+    }
+    for (const PmContactEvent &contact : frame.contacts) {
+        stream << "contact " << static_cast<unsigned>(contact.type) << ' '
+               << contact.first << ' ' << contact.second << " position "
+               << contact.position.x << ' ' << contact.position.y << ' '
+               << contact.position.z << " normal " << contact.normal.x << ' '
+               << contact.normal.y << ' ' << contact.normal.z
+               << " penetration " << contact.penetration
+               << " normal_impulse " << contact.normalImpulse << '\n';
+    }
+    for (const PmDebugRecord &record : frame.debug_records) {
+        stream << "debug " << static_cast<unsigned>(record.type) << ' '
+               << record.objectIndex << ' ' << record.elementIndex
+               << " position " << record.position.x << ' '
+               << record.position.y << ' ' << record.position.z
+               << " velocity " << record.velocity.x << ' '
+               << record.velocity.y << ' ' << record.velocity.z
+               << " force " << record.force.x << ' ' << record.force.y << ' '
+               << record.force.z << '\n';
+    }
+    stream << "end_frame\n";
+    if (!stream) {
+        error = "could not finish physics capture log";
+        return false;
+    }
+    return true;
+}
+
+bool save_physics_debug_capture(const CommandSceneFrame &frame,
+                                std::filesystem::path &output,
+                                std::string &error) {
+    output.clear();
+    if (!default_capture_path(frame.revision, output, error)) return false;
+    return write_physics_debug_capture(frame, output, error);
 }
 
 } // namespace parallel_mater::gallery

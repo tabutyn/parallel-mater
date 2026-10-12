@@ -55,7 +55,8 @@ using Microsoft::WRL::ComPtr;
 
 namespace {
 
-constexpr auto rigid_scene_count = pm::viewer::rigid_scene_count;
+constexpr auto supported_scene_count = catalog::gallery_context_index(
+    catalog::GalleryContext::fluid);
 using pm::viewer::InputState;
 using pm::viewer::Key;
 using pm::viewer::ArrowKey;
@@ -82,7 +83,7 @@ void install_input(GLFWwindow *window,InputState &input) {
         case GLFW_KEY_UP: state.key(Key::previous); break;
         case GLFW_KEY_ENTER: case GLFW_KEY_KP_ENTER: state.key(Key::enter); break;
         case GLFW_KEY_R: state.key(Key::reset); break;
-        case GLFW_KEY_P: state.key(Key::pause); break;
+        case GLFW_KEY_P: state.key(Key::parameters); break;
         case GLFW_KEY_SPACE: state.key(Key::action); break;
         }
     });
@@ -229,7 +230,7 @@ void usage() {
             result.output = argv[++i];
         } else {
             bool found = false;
-            for (std::size_t entry = 0; entry < rigid_scene_count; ++entry) {
+            for (std::size_t entry = 0; entry < supported_scene_count; ++entry) {
                 const auto &candidate = catalog::gallery_entries[entry];
                 if (!candidate.command_line_option.empty() &&
                     argument == candidate.command_line_option) {
@@ -825,12 +826,12 @@ class Renderer {
         };
         rectangle(8,8,static_cast<int>(width_)-16,scale*10+12,background);
         text(16,14,std::string(entry.name)+"   "+std::string(entry.help)+
-             "   F: FPS   TAB: SCENES   R: RESET   P: PAUSE",white);
+             "   F: FPS   TAB: SCENES   R: RESET   P: PARAMETERS",white);
         if(input.show_fps) {
             std::ostringstream label;
             label<<std::fixed<<std::setprecision(1)<<input.fps<<" FPS  "
                  <<input.frame_ms<<" MS/FRAME  GPU PHYSICS "<<input.gpu_ms<<" MS";
-            if(input.paused || input.catalog_visible) label<<"  PAUSED";
+            if(input.parameters_visible || input.catalog_visible) label<<"  PAUSED";
             rectangle(8,scale*10+24,static_cast<int>(width_)-16,scale*10+12,background);
             text(16,scale*10+30,label.str(),white);
         }
@@ -844,8 +845,8 @@ class Renderer {
             const int y=top+scale*12+10+static_cast<int>(i%rows)*spacing;
             if(i==input.selected) rectangle(x,y-4,column_width-8,spacing,selected);
             std::string label(catalog::gallery_entries[i].name);
-            if(i>=rigid_scene_count) label+=" - UNAVAILABLE";
-            text(x+6,y,label,i<rigid_scene_count?white:muted);
+            if(i>=supported_scene_count) label+=" - UNAVAILABLE: DEVICE CAPABILITY";
+            text(x+6,y,label,i<supported_scene_count?white:muted);
         }
         text(20,top+scale*12+10+rows*spacing,
             "GRAY ENTRIES NEED UNIMPLEMENTED DIRECTCOMPUTE SUBSYSTEMS",muted);
@@ -1139,7 +1140,8 @@ class Renderer {
         last=started;
         if(window) glfwPollEvents();
         if(window && (glfwWindowShouldClose(window) || input.close_requested || input.requested_scene)) break;
-        const bool frozen=window && (input.catalog_visible || input.paused);
+        const bool frozen=window &&
+            (input.catalog_visible || input.parameters_visible);
         if(frozen) accumulator=0;
         if(!frozen && (options.headless || options.frames_set || accumulator>=1.0/60.0)) {
         accumulator=std::max(0.0,accumulator-1.0/60.0);
@@ -1289,7 +1291,7 @@ int main(int argc,char **argv) {
     }
     if(options.list_scenes) {
         for(std::size_t i=0;i<catalog::gallery_entries.size();++i)
-            std::cout << i << (i<rigid_scene_count?" [D3D12 rigid] ":" [later gate] ")
+            std::cout << i << (i<supported_scene_count?" [D3D12 rigid] ":" [unavailable] ")
                       << catalog::gallery_entries[i].name << '\n';
         if(!options.list_adapters) return 0;
     }
@@ -1372,7 +1374,7 @@ int main(int argc,char **argv) {
     if(options.all_rigid_scenes) {
         const std::filesystem::path directory=options.output.empty()
             ? std::filesystem::path("d3d12-gallery-captures") : options.output;
-        for(std::size_t index=0;index<rigid_scene_count && success;++index) {
+        for(std::size_t index=0;index<supported_scene_count && success;++index) {
             const auto output=directory/(file_stem(catalog::gallery_entries[index])+".ppm");
             success=repeat_scene(index,output);
         }

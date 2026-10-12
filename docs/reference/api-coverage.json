@@ -1,726 +1,894 @@
 {
-  "contract": "Parallel Mater command API 0.2 design draft",
-  "implementation": "unsupported stubs; no physics execution",
+  "contract": "Parallel Mater command API 0.2",
+  "implementation": "src/api runtime entry points; no generated runtime stubs",
   "functions": [
     {
       "name": "pmGetInstanceProcAddr",
       "section": "3.1",
       "card": "function_pointers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "bootstrap lookup"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:162",
+      "status": "implemented"
     },
     {
       "name": "pmGetDeviceProcAddr",
       "section": "3.1",
       "card": "function_pointers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "bootstrap lookup"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:174",
+      "status": "implemented"
     },
     {
       "name": "pmEnumerateInstanceVersion",
       "section": "3.2",
       "card": "instance",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:180",
+      "status": "implemented"
     },
     {
       "name": "pmCreateInstance",
       "section": "3.2",
       "card": "instance",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:187",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyInstance",
       "section": "3.2",
       "card": "instance",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:237",
+      "status": "implemented"
     },
     {
       "name": "pmEnumeratePhysicalDevices",
       "section": "4.1",
       "card": "physical_devices",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:241",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceProperties",
       "section": "4.2",
       "card": "properties",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:257",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceQueueFamilies",
       "section": "4.3",
       "card": "queues",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:272",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceFeatures",
       "section": "4.4",
       "card": "features",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/instance.cpp:287",
+      "status": "implemented"
     },
     {
       "name": "pmCreateDevice",
       "section": "4.5",
       "card": "device",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:23",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyDevice",
       "section": "4.5",
       "card": "device",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:52",
+      "status": "implemented"
     },
     {
       "name": "pmGetDeviceQueue",
       "section": "4.5",
       "card": "device",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:58",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceMemoryProperties",
       "section": "5.1",
       "card": "memory_types",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:65",
+      "status": "implemented"
     },
     {
       "name": "pmAllocateMemory",
       "section": "5.3",
       "card": "allocation",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:6",
+      "status": "implemented"
     },
     {
       "name": "pmFreeMemory",
       "section": "5.3",
       "card": "allocation",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:31",
+      "status": "implemented"
     },
     {
       "name": "pmMapMemory",
       "section": "5.4",
       "card": "mapping",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:39",
+      "status": "implemented"
     },
     {
       "name": "pmUnmapMemory",
       "section": "5.4",
       "card": "mapping",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:55",
+      "status": "implemented"
     },
     {
       "name": "pmFlushMappedMemoryRanges",
       "section": "5.4",
       "card": "mapping",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:61",
+      "status": "implemented"
     },
     {
       "name": "pmInvalidateMappedMemoryRanges",
       "section": "5.4",
       "card": "mapping",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:77",
+      "status": "implemented"
     },
     {
       "name": "pmCreateBuffer",
       "section": "6.1",
       "card": "buffer",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:82",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyBuffer",
       "section": "6.1",
       "card": "buffer",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:101",
+      "status": "implemented"
     },
     {
       "name": "pmGetBufferMemoryRequirements",
       "section": "6.2",
       "card": "buffer_binding",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:107",
+      "status": "implemented"
     },
     {
       "name": "pmBindBufferMemory",
       "section": "6.2",
       "card": "buffer_binding",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/memory.cpp:117",
+      "status": "implemented"
     },
     {
       "name": "pmCreateGeometry",
       "section": "6.4",
       "card": "geometry",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:268",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyGeometry",
       "section": "6.4",
       "card": "geometry",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:287",
+      "status": "implemented"
     },
     {
       "name": "pmGetGeometryMemoryRequirements",
       "section": "6.4",
       "card": "geometry",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:293",
+      "status": "implemented"
     },
     {
       "name": "pmBindGeometryMemory",
       "section": "6.4",
       "card": "geometry",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:314",
+      "status": "implemented"
     },
     {
       "name": "pmCmdBuildGeometry",
       "section": "6.5",
       "card": "geometry_build",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:339",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCreateSimulation",
       "section": "7.1",
       "card": "simulation_create",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:351",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmDestroySimulation",
       "section": "7.1",
       "card": "simulation_create",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:507",
+      "status": "implemented"
     },
     {
       "name": "pmGetSimulationMemoryRequirements",
       "section": "7.2",
       "card": "simulation_memory",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:519",
+      "status": "implemented"
     },
     {
       "name": "pmBindSimulationMemory",
       "section": "7.2",
       "card": "simulation_memory",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:529",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdWriteRigidBodies",
       "section": "7.4",
       "card": "bodies",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:599",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdApplyRigidInputs",
       "section": "7.5",
       "card": "body_inputs",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:663",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdSetRigidStates",
       "section": "7.5",
       "card": "body_inputs",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:695",
+      "status": "capability-gated until the Slang simulation schedule is wired"
+    },
+    {
+      "name": "pmCmdSetKinematicTargets",
+      "section": "7.5",
+      "card": "body_inputs",
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:722",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdQueryHitBox",
+      "section": "7.6",
+      "card": "hit_boxes",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1137",
+      "status": "implemented"
     },
     {
       "name": "pmCmdWriteRigidConstraints",
       "section": "8.3",
       "card": "constraint_info",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:753",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCreatePhysicsPipeline",
-      "section": "9.4",
+      "section": "9.5",
       "card": "pipeline_create",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/pipeline.cpp:6",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmDestroyPhysicsPipeline",
-      "section": "9.4",
+      "section": "9.5",
       "card": "pipeline_create",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/pipeline.cpp:69",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteCloths",
+      "section": "10.2",
+      "card": "cloth_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:189",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyClothState",
+      "section": "10.2",
+      "card": "cloth_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:831",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyClothSurface",
+      "section": "10.2",
+      "card": "cloth_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:871",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteRopes",
+      "section": "10.3",
+      "card": "rope_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:272",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyRopeState",
+      "section": "10.3",
+      "card": "rope_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:912",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteSoftBodies",
+      "section": "10.4",
+      "card": "soft_body_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:354",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopySoftBodyState",
+      "section": "10.4",
+      "card": "soft_body_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:953",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopySoftBodySurface",
+      "section": "10.4",
+      "card": "soft_body_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:992",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteSmoke",
+      "section": "10.5",
+      "card": "smoke_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:468",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopySmokeState",
+      "section": "10.5",
+      "card": "smoke_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1030",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteParticleEmitters",
+      "section": "10.6",
+      "card": "emitters",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:547",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWriteParticleDestroyers",
+      "section": "10.6",
+      "card": "emitters",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:606",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWritePaintFields",
+      "section": "10.7",
+      "card": "paint_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:665",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdWritePaintRules",
+      "section": "10.7",
+      "card": "paint_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:759",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdClearPaintFields",
+      "section": "10.7",
+      "card": "paint_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:809",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyPaintField",
+      "section": "10.7",
+      "card": "paint_resources",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1069",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyConstraintStates",
+      "section": "10.8",
+      "card": "event_outputs",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1099",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyContactEvents",
+      "section": "10.8",
+      "card": "event_outputs",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1206",
+      "status": "implemented"
+    },
+    {
+      "name": "pmCmdCopyDebugData",
+      "section": "10.8",
+      "card": "event_outputs",
+      "header": "parallel_mater.h",
+      "source": "src/api/domains.cpp:1261",
+      "status": "implemented"
     },
     {
       "name": "pmCreateCommandPool",
-      "section": "10.1",
+      "section": "11.1",
       "card": "command_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:6",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyCommandPool",
-      "section": "10.1",
+      "section": "11.1",
       "card": "command_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:24",
+      "status": "implemented"
     },
     {
       "name": "pmResetCommandPool",
-      "section": "10.1",
+      "section": "11.1",
       "card": "command_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:36",
+      "status": "implemented"
     },
     {
       "name": "pmAllocateCommandBuffers",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:58",
+      "status": "implemented"
     },
     {
       "name": "pmFreeCommandBuffers",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:101",
+      "status": "implemented"
     },
     {
       "name": "pmBeginCommandBuffer",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:121",
+      "status": "implemented"
     },
     {
       "name": "pmEndCommandBuffer",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:141",
+      "status": "implemented"
     },
     {
       "name": "pmResetCommandBuffer",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:151",
+      "status": "implemented"
     },
     {
       "name": "pmCmdResetSimulation",
-      "section": "10.4",
+      "section": "11.4",
       "card": "simulation_init",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:823",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdSetFluidParticles",
-      "section": "10.4",
+      "section": "11.4",
       "card": "simulation_init",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:879",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdBindPhysicsPipeline",
-      "section": "10.5",
+      "section": "11.5",
       "card": "step",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/pipeline.cpp:75",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdStepSimulation",
-      "section": "10.5",
+      "section": "11.5",
       "card": "step",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:946",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdCopyBuffer",
-      "section": "11.1",
+      "section": "12.1",
       "card": "buffer_copy",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:168",
+      "status": "implemented"
     },
     {
       "name": "pmCmdCopyRigidStates",
-      "section": "11.2",
+      "section": "12.2",
       "card": "outputs",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:987",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdCopyFluidParticles",
-      "section": "11.2",
+      "section": "12.2",
       "card": "outputs",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:1071",
+      "status": "capability-gated until the Slang simulation schedule is wired"
     },
     {
       "name": "pmCmdPipelineBarrier",
-      "section": "12.2",
+      "section": "13.2",
       "card": "barriers",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/commands.cpp:206",
+      "status": "implemented"
     },
     {
       "name": "pmCreateSemaphore",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:124",
+      "status": "implemented"
     },
     {
       "name": "pmDestroySemaphore",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:140",
+      "status": "implemented"
     },
     {
       "name": "pmGetSemaphoreCounterValue",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:151",
+      "status": "implemented"
     },
     {
       "name": "pmWaitSemaphore",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:162",
+      "status": "implemented"
     },
     {
       "name": "pmQueueSubmit",
-      "section": "12.4",
+      "section": "13.4",
       "card": "submission",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:170",
+      "status": "implemented"
     },
     {
       "name": "pmQueueWaitIdle",
-      "section": "12.4",
+      "section": "13.4",
       "card": "submission",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:315",
+      "status": "implemented"
     },
     {
       "name": "pmDeviceWaitIdle",
-      "section": "12.4",
+      "section": "13.4",
       "card": "submission",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:320",
+      "status": "implemented"
     },
     {
       "name": "pmCreateFence",
-      "section": "12.5",
+      "section": "13.5",
       "card": "fences",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:325",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyFence",
-      "section": "12.5",
+      "section": "13.5",
       "card": "fences",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:345",
+      "status": "implemented"
     },
     {
       "name": "pmGetFenceStatus",
-      "section": "12.5",
+      "section": "13.5",
       "card": "fences",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:353",
+      "status": "implemented"
     },
     {
       "name": "pmResetFences",
-      "section": "12.5",
+      "section": "13.5",
       "card": "fences",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:365",
+      "status": "implemented"
     },
     {
       "name": "pmWaitForFences",
-      "section": "12.5",
+      "section": "13.5",
       "card": "fences",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/synchronization.cpp:381",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceInteropProperties",
-      "section": "13.1",
+      "section": "14.1",
       "card": "native_support",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:4",
+      "status": "implemented"
     },
     {
       "name": "pmImportNativeDevice",
-      "section": "13.2",
+      "section": "14.2",
       "card": "native_device",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:15",
+      "status": "implemented"
     },
     {
       "name": "pmGetNativeDevice",
-      "section": "13.2",
+      "section": "14.2",
       "card": "native_device",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:26",
+      "status": "implemented"
     },
     {
       "name": "pmImportNativeBuffer",
-      "section": "13.3",
+      "section": "14.3",
       "card": "native_buffer",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:39",
+      "status": "implemented"
     },
     {
       "name": "pmGetNativeBuffer",
-      "section": "13.3",
+      "section": "14.3",
       "card": "native_buffer",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:59",
+      "status": "implemented"
     },
     {
       "name": "pmImportNativeSemaphore",
-      "section": "13.4",
+      "section": "14.4",
       "card": "native_timeline",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:73",
+      "status": "implemented"
     },
     {
       "name": "pmGetNativeSemaphore",
-      "section": "13.4",
+      "section": "14.4",
       "card": "native_timeline",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/interop.cpp:81",
+      "status": "implemented"
     },
     {
       "name": "pmImportVulkanDeviceEXT",
-      "section": "13.6",
+      "section": "14.6",
       "card": "vulkan_device",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:4",
+      "status": "implemented"
     },
     {
       "name": "pmGetVulkanDeviceEXT",
-      "section": "13.6",
+      "section": "14.6",
       "card": "vulkan_device",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:16",
+      "status": "implemented"
     },
     {
       "name": "pmImportVulkanBufferEXT",
-      "section": "13.7",
+      "section": "14.7",
       "card": "vulkan_buffer",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:24",
+      "status": "implemented"
     },
     {
       "name": "pmGetVulkanBufferEXT",
-      "section": "13.7",
+      "section": "14.7",
       "card": "vulkan_buffer",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:34",
+      "status": "implemented"
     },
     {
       "name": "pmImportVulkanSemaphoreEXT",
-      "section": "13.8",
+      "section": "14.8",
       "card": "vulkan_semaphore",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:42",
+      "status": "implemented"
     },
     {
       "name": "pmGetVulkanSemaphoreEXT",
-      "section": "13.8",
+      "section": "14.8",
       "card": "vulkan_semaphore",
-      "header": "command_vulkan.h",
-      "source": "src/command/vulkan_stubs.cpp",
-      "status": "unsupported stub"
+      "header": "interop_vulkan.h",
+      "source": "src/api/interop_vulkan.cpp:51",
+      "status": "implemented"
     },
     {
       "name": "pmCreateQueryPool",
-      "section": "14.1",
+      "section": "15.1",
       "card": "query_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:6",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyQueryPool",
-      "section": "14.1",
+      "section": "15.1",
       "card": "query_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:43",
+      "status": "implemented"
     },
     {
       "name": "pmCmdResetQueryPool",
-      "section": "14.1",
+      "section": "15.1",
       "card": "query_pool",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:52",
+      "status": "implemented"
     },
     {
       "name": "pmCmdWriteTimestamp",
-      "section": "14.2",
+      "section": "15.2",
       "card": "timestamps",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:70",
+      "status": "implemented"
     },
     {
       "name": "pmCmdBeginStatisticsQuery",
-      "section": "14.3",
+      "section": "15.3",
       "card": "step_stats",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:88",
+      "status": "implemented"
     },
     {
       "name": "pmCmdEndStatisticsQuery",
-      "section": "14.3",
+      "section": "15.3",
       "card": "step_stats",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:108",
+      "status": "implemented"
     },
     {
       "name": "pmGetSimulationStatus",
-      "section": "14.3",
+      "section": "15.3",
       "card": "step_stats",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/resources.cpp:1109",
+      "status": "implemented"
     },
     {
       "name": "pmGetQueryPoolResults",
-      "section": "14.4",
+      "section": "15.4",
       "card": "query_results",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:151",
+      "status": "implemented"
     },
     {
       "name": "pmGetDeviceMemoryBudget",
-      "section": "14.5",
+      "section": "15.5",
       "card": "memory_budget",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/queries.cpp:200",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceLimits",
-      "section": "15.1",
+      "section": "16.1",
       "card": "limits",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:80",
+      "status": "implemented"
     },
     {
       "name": "pmGetPhysicalDeviceFormatProperties",
-      "section": "15.2",
+      "section": "16.2",
       "card": "formats",
-      "header": "command.h",
-      "source": "src/command/stubs.cpp",
-      "status": "unsupported stub"
+      "header": "parallel_mater.h",
+      "source": "src/api/device.cpp:102",
+      "status": "implemented"
     }
   ],
   "types": [
@@ -835,12 +1003,37 @@
       "card": "geometry"
     },
     {
+      "name": "PmClothCapacity",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
       "name": "PmFluidCapacity",
       "section": "7.1",
       "card": "simulation_create"
     },
     {
+      "name": "PmPaintFieldCapacity",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
+      "name": "PmRopeCapacity",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
       "name": "PmSimulationCreateInfo",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
+      "name": "PmSmokeCapacity",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
+      "name": "PmSoftBodyCapacity",
       "section": "7.1",
       "card": "simulation_create"
     },
@@ -873,6 +1066,21 @@
       "name": "PmRigidInput",
       "section": "7.5",
       "card": "body_inputs"
+    },
+    {
+      "name": "PmHitBox",
+      "section": "7.6",
+      "card": "hit_boxes"
+    },
+    {
+      "name": "PmHitBoxOutputHeader",
+      "section": "7.6",
+      "card": "hit_boxes"
+    },
+    {
+      "name": "PmHitBoxParticle",
+      "section": "7.6",
+      "card": "hit_boxes"
     },
     {
       "name": "PmConstraintFrame",
@@ -915,6 +1123,16 @@
       "card": "liquid_material"
     },
     {
+      "name": "PmAttachmentCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmCouplingParameters",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
       "name": "PmCouplingState",
       "section": "9.3",
       "card": "coupling"
@@ -925,243 +1143,413 @@
       "card": "coupling"
     },
     {
-      "name": "PmPhysicsPipelineCreateInfo",
+      "name": "PmMechanicalCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmSmokeCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmThermalCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmClothMaterialState",
       "section": "9.4",
+      "card": "domain_materials"
+    },
+    {
+      "name": "PmRopeMaterialState",
+      "section": "9.4",
+      "card": "domain_materials"
+    },
+    {
+      "name": "PmSmokeMaterialState",
+      "section": "9.4",
+      "card": "domain_materials"
+    },
+    {
+      "name": "PmSoftBodyMaterialState",
+      "section": "9.4",
+      "card": "domain_materials"
+    },
+    {
+      "name": "PmPhysicsPipelineCreateInfo",
+      "section": "9.5",
       "card": "pipeline_create"
     },
     {
-      "name": "PmCommandPoolCreateInfo",
+      "name": "PmDomainOutputHeader",
       "section": "10.1",
+      "card": "domain_records"
+    },
+    {
+      "name": "PmFloat2",
+      "section": "10.1",
+      "card": "domain_records"
+    },
+    {
+      "name": "PmFloat3",
+      "section": "10.1",
+      "card": "domain_records"
+    },
+    {
+      "name": "PmSoftBodyBond",
+      "section": "10.1",
+      "card": "domain_records"
+    },
+    {
+      "name": "PmSoftBodySurfaceBinding",
+      "section": "10.1",
+      "card": "domain_records"
+    },
+    {
+      "name": "PmClothInfo",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
+      "name": "PmClothVertexState",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
+      "name": "PmRopeAttachment",
+      "section": "10.3",
+      "card": "rope_resources"
+    },
+    {
+      "name": "PmRopeInfo",
+      "section": "10.3",
+      "card": "rope_resources"
+    },
+    {
+      "name": "PmRopeNodeState",
+      "section": "10.3",
+      "card": "rope_resources"
+    },
+    {
+      "name": "PmSoftBodyInfo",
+      "section": "10.4",
+      "card": "soft_body_resources"
+    },
+    {
+      "name": "PmSoftBodyNodeState",
+      "section": "10.4",
+      "card": "soft_body_resources"
+    },
+    {
+      "name": "PmSmokeInfo",
+      "section": "10.5",
+      "card": "smoke_resources"
+    },
+    {
+      "name": "PmSmokeParticleState",
+      "section": "10.5",
+      "card": "smoke_resources"
+    },
+    {
+      "name": "PmCrossingDirection",
+      "section": "10.6",
+      "card": "emitters"
+    },
+    {
+      "name": "PmParticleDestroyerInfo",
+      "section": "10.6",
+      "card": "emitters"
+    },
+    {
+      "name": "PmParticleEmitterInfo",
+      "section": "10.6",
+      "card": "emitters"
+    },
+    {
+      "name": "PmPaintFieldInfo",
+      "section": "10.7",
+      "card": "paint_resources"
+    },
+    {
+      "name": "PmPaintRuleInfo",
+      "section": "10.7",
+      "card": "paint_resources"
+    },
+    {
+      "name": "PmPaintSourceType",
+      "section": "10.7",
+      "card": "paint_resources"
+    },
+    {
+      "name": "PmPaintTargetType",
+      "section": "10.7",
+      "card": "paint_resources"
+    },
+    {
+      "name": "PmConstraintState",
+      "section": "10.8",
+      "card": "event_outputs"
+    },
+    {
+      "name": "PmContactEvent",
+      "section": "10.8",
+      "card": "event_outputs"
+    },
+    {
+      "name": "PmContactEventType",
+      "section": "10.8",
+      "card": "event_outputs"
+    },
+    {
+      "name": "PmDebugRecord",
+      "section": "10.8",
+      "card": "event_outputs"
+    },
+    {
+      "name": "PmDebugRecordType",
+      "section": "10.8",
+      "card": "event_outputs"
+    },
+    {
+      "name": "PmCommandPoolCreateInfo",
+      "section": "11.1",
       "card": "command_pool"
     },
     {
       "name": "PmCommandBufferBeginInfo",
-      "section": "10.2",
+      "section": "11.2",
       "card": "command_buffers"
     },
     {
+      "name": "PmFluidParticleOutput",
+      "section": "11.4",
+      "card": "simulation_init"
+    },
+    {
       "name": "PmParticleState",
-      "section": "10.4",
+      "section": "11.4",
       "card": "simulation_init"
     },
     {
       "name": "PmStepInfo",
-      "section": "10.5",
+      "section": "11.5",
       "card": "step"
     },
     {
       "name": "PmBufferCopy",
-      "section": "11.1",
+      "section": "12.1",
       "card": "buffer_copy"
     },
     {
       "name": "PmBufferMemoryBarrier",
-      "section": "12.2",
+      "section": "13.2",
       "card": "barriers"
     },
     {
       "name": "PmMemoryBarrier",
-      "section": "12.2",
+      "section": "13.2",
       "card": "barriers"
     },
     {
       "name": "PmSemaphoreCreateInfo",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores"
     },
     {
       "name": "PmSemaphoreSubmitInfo",
-      "section": "12.3",
+      "section": "13.3",
       "card": "semaphores"
     },
     {
       "name": "PmSubmitInfo",
-      "section": "12.4",
+      "section": "13.4",
       "card": "submission"
     },
     {
       "name": "PmNativeBackend",
-      "section": "13.1",
+      "section": "14.1",
       "card": "native_support"
     },
     {
       "name": "PmNativeHandle",
-      "section": "13.1",
+      "section": "14.1",
       "card": "native_support"
     },
     {
       "name": "PmNativeInteropProperties",
-      "section": "13.1",
+      "section": "14.1",
       "card": "native_support"
     },
     {
       "name": "PmNativeDeviceImportInfo",
-      "section": "13.2",
+      "section": "14.2",
       "card": "native_device"
     },
     {
       "name": "PmNativeDeviceInfo",
-      "section": "13.2",
+      "section": "14.2",
       "card": "native_device"
     },
     {
       "name": "PmNativeQueueInfo",
-      "section": "13.2",
+      "section": "14.2",
       "card": "native_device"
     },
     {
       "name": "PmNativeBufferInfo",
-      "section": "13.3",
+      "section": "14.3",
       "card": "native_buffer"
     },
     {
       "name": "PmVulkanDeviceImportInfo",
-      "section": "13.6",
+      "section": "14.6",
       "card": "vulkan_device"
     },
     {
       "name": "PmVulkanDeviceInfo",
-      "section": "13.6",
+      "section": "14.6",
       "card": "vulkan_device"
     },
     {
       "name": "PmVulkanQueueInfo",
-      "section": "13.6",
+      "section": "14.6",
       "card": "vulkan_device"
     },
     {
       "name": "PmVulkanBufferImportInfo",
-      "section": "13.7",
+      "section": "14.7",
       "card": "vulkan_buffer"
     },
     {
       "name": "PmQueryPoolCreateInfo",
-      "section": "14.1",
+      "section": "15.1",
       "card": "query_pool"
     },
     {
       "name": "PmQueryType",
-      "section": "14.1",
+      "section": "15.1",
       "card": "query_pool"
     },
     {
       "name": "PmStepStatistics",
-      "section": "14.3",
+      "section": "15.3",
       "card": "step_stats"
     },
     {
       "name": "PmMemoryBudget",
-      "section": "14.5",
+      "section": "15.5",
       "card": "memory_budget"
     },
     {
       "name": "PmPhysicalDeviceLimits",
-      "section": "15.1",
+      "section": "16.1",
       "card": "limits"
     },
     {
       "name": "PmFormatProperties",
-      "section": "15.2",
+      "section": "16.2",
       "card": "formats"
     },
     {
       "name": "PmAccessFlags",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmBool32",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmBuffer",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmCommandBuffer",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmCommandPool",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmDevice",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmDeviceMemory",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmDeviceSize",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmFence",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmFlags",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmGeometry",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmInstance",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmPhysicalDevice",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmPhysicsPipeline",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmQueryPool",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmQueue",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmSemaphore",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmSimulation",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmStageFlags",
-      "section": "17.1",
+      "section": "18.1",
       "card": "base_types"
     },
     {
       "name": "PmStructureType",
-      "section": "17.2",
+      "section": "18.2",
       "card": "structure_types"
     }
   ],
@@ -1201,9 +1589,30 @@
     "PFN_pmCmdWriteRigidBodies",
     "PFN_pmCmdApplyRigidInputs",
     "PFN_pmCmdSetRigidStates",
+    "PFN_pmCmdSetKinematicTargets",
+    "PFN_pmCmdQueryHitBox",
     "PFN_pmCmdWriteRigidConstraints",
     "PFN_pmCreatePhysicsPipeline",
     "PFN_pmDestroyPhysicsPipeline",
+    "PFN_pmCmdWriteCloths",
+    "PFN_pmCmdCopyClothState",
+    "PFN_pmCmdCopyClothSurface",
+    "PFN_pmCmdWriteRopes",
+    "PFN_pmCmdCopyRopeState",
+    "PFN_pmCmdWriteSoftBodies",
+    "PFN_pmCmdCopySoftBodyState",
+    "PFN_pmCmdCopySoftBodySurface",
+    "PFN_pmCmdWriteSmoke",
+    "PFN_pmCmdCopySmokeState",
+    "PFN_pmCmdWriteParticleEmitters",
+    "PFN_pmCmdWriteParticleDestroyers",
+    "PFN_pmCmdWritePaintFields",
+    "PFN_pmCmdWritePaintRules",
+    "PFN_pmCmdClearPaintFields",
+    "PFN_pmCmdCopyPaintField",
+    "PFN_pmCmdCopyConstraintStates",
+    "PFN_pmCmdCopyContactEvents",
+    "PFN_pmCmdCopyDebugData",
     "PFN_pmCreateCommandPool",
     "PFN_pmDestroyCommandPool",
     "PFN_pmResetCommandPool",
@@ -1257,5 +1666,5 @@
     "PFN_pmGetPhysicalDeviceLimits",
     "PFN_pmGetPhysicalDeviceFormatProperties"
   ],
-  "derived_type_rule": "Each PFN_pmName has pmName's exact signature and PMAPI_CALL convention; section 17.1."
+  "derived_type_rule": "Each PFN_pmName has pmName's exact signature and PMAPI_CALL convention; section 18.1."
 }

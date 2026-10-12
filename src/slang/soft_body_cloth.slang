@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/soft_body_cloth.cuh.
+// Shared soft-body and cloth coupling kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_fluid;
 
 [shader("compute")]

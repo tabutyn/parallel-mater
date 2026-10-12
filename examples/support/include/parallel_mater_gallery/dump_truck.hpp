@@ -2,11 +2,14 @@
 #pragma once
 
 #include <parallel_mater_gallery/scene.hpp>
+#include <scene_builder.hpp>
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-#if defined(PARALLEL_MATER_GALLERY_D3D12)
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+namespace parallel_mater::metal::gallery {
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
 namespace parallel_mater::d3d12::gallery {
 #else
 namespace parallel_mater::gallery {
@@ -52,6 +55,33 @@ class DumpTruckBed {
         const auto status = world.update_rigid_constraint(instance.rigid_constraints[index_], options);
         if (status) { joint.options = options; angle_ = next; }
         return status;
+    }
+
+    [[nodiscard]] bool advance(CommandScene &simulation,
+                               SceneDefinition &scene,
+                               const CommandSceneInstance &instance,
+                               float timestep, std::string &error) noexcept {
+        if (index_ >= scene.rigid_constraints.size() ||
+            index_ >= instance.rigid_constraints.size()) {
+            error = "dump lift bindings are missing";
+            return false;
+        }
+        const float next = angle_ + std::clamp(
+            (raised_ ? maximum_angle : 0.0F) - angle_,
+            -angular_speed * timestep, angular_speed * timestep);
+        if (next == angle_) return true;
+        auto &joint = scene.rigid_constraints[index_];
+        auto updated = joint;
+        const float s = std::sin(next * 0.5F), c = std::cos(next * 0.5F);
+        const auto q = authored_orientation_;
+        updated.options.local_orientation_a = {
+            q.x*c+q.y*s, q.y*c-q.x*s, q.z*c+q.w*s, q.w*c-q.z*s};
+        if (!simulation.write_constraint(
+                instance.rigid_constraints[index_], updated, error))
+            return false;
+        joint.options = updated.options;
+        angle_ = next;
+        return true;
     }
 
   private:
@@ -135,4 +165,10 @@ inline constexpr std::uint32_t default_dump_payload_count = 100U;
     scene.rigid_constraints = std::move(joints);
     return true;
 }
+#if defined(PARALLEL_MATER_GALLERY_METAL)
+} // namespace parallel_mater::metal::gallery
+#elif defined(PARALLEL_MATER_GALLERY_D3D12)
+} // namespace parallel_mater::d3d12::gallery
+#else
 } // namespace parallel_mater::gallery
+#endif

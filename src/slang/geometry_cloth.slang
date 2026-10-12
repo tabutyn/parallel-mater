@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/geometry_cloth.cuh. The correction gather is independent
-// of the rigid-mesh/paint query used by cloth_constrain_bodies.
+// Shared cloth/rigid geometry contacts and paint transfer.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_fluid;
 
 void stamp_rigid_cloth_paint(
@@ -82,11 +83,13 @@ void cloth_constrain_bodies(
     uniform BodyParameters* parameters,
     uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
     uniform TriangleMeshResource* meshes, uniform RigidBodyId* body_ids,
-    uniform uint body_count, uniform ClothId cloth_id,
+    uniform uint body_count, uniform uint cloth_index,
+    uniform uint cloth_generation,
     uniform PaintFieldResource* paint_fields, uniform uint field_capacity,
     uniform PaintRuleResource* paint_rules, uniform uint rule_capacity,
     uniform ClothBodyCorrection* corrections)
 {
+    ClothId cloth_id = {cloth_index, cloth_generation};
     uint bodyIndex = pmThreadIndex();
     if (bodyIndex >= body_count) return;
     corrections[bodyIndex] = {};

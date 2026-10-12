@@ -1,0 +1,499 @@
+// SPDX-License-Identifier: MIT
+// Included by geometry_constraints.slang after the shared AVBD data and
+// joint/contact helpers are defined.
+
+void rigid_avbd_barrier()
+{
+    if (pmGridDim().x == 1u) pmGroupBarrier();
+    else pmGridBarrier();
+}
+
+float rigid_avbd_update_magnitude(AvbdVector6 update)
+{
+    float magnitude = 0.0f;
+    for (uint axis = 0u; axis < 6u; ++axis)
+        magnitude = max(magnitude, abs(update.values[axis]));
+    return magnitude;
+}
+
+void rigid_avbd_minimize_free_translation(BodyParameters* parameters,
+    uint count, ContactManifold* manifolds, uint* pairs,
+    RigidConstraintResource* joints, AvbdBody* bodies, bool velocityPhase)
+{
+    uint lane = pmThreadIndex();
+    uint stride = cudaBlockDim().x * pmGridDim().x;
+    for (uint root = lane; root < count; root += stride)
+    {
+        if (parameters[root].motion != MotionType.dynamic ||
+            bodies[root].parent != root) continue;
+        for (uint axis = 0u; axis < 3u; ++axis)
+            bodies[root].inertia.g[axis] = 0.0f;
+        if ((velocityPhase && bodies[root].impact == 0u) ||
+            (bodies[root].contact_head == kInvalidDense &&
+             bodies[root].joint_head == kInvalidDense)) continue;
+        Vec3 weighted = {};
+        float totalMass = 0.0f;
+        bool anchored = false;
+        for (uint bodyIndex = 0u; bodyIndex < count && !anchored; ++bodyIndex)
+        {
+            if (parameters[bodyIndex].motion != MotionType.dynamic ||
+                bodies[bodyIndex].parent != root) continue;
+            float mass = 1.0f /
+                max(parameters[bodyIndex].inverse_mass, 1.0e-12f);
+            weighted = add(weighted, multiply(rigid_avbd_translation(
+                bodies[bodyIndex].displacement), mass));
+            totalMass += mass;
+            for (uint active = bodies[bodyIndex].contact_head;
+                 active != kInvalidDense;)
+            {
+                uint a = pairs[active] / count;
+                uint b = pairs[active] % count;
+                bool first = bodyIndex == a;
+                anchored = anchored || parameters[first ? b : a].motion !=
+                    MotionType.dynamic;
+                active = first ? manifolds[active].avbd_next_a
+                    : manifolds[active].avbd_next_b;
+            }
+            for (uint jointIndex = bodies[bodyIndex].joint_head;
+                 jointIndex != kInvalidDense;)
+            {
+                bool first = bodyIndex == joints[jointIndex].geometry.dense_a;
+                anchored = anchored || parameters[first
+                    ? joints[jointIndex].geometry.dense_b
+                    : joints[jointIndex].geometry.dense_a].motion
+                    != MotionType.dynamic;
+                jointIndex = first ? joints[jointIndex].avbd_next_a
+                    : joints[jointIndex].avbd_next_b;
+            }
+        }
+        if (!anchored && totalMass > 0.0f)
+        {
+            weighted = multiply(weighted, 1.0f / totalMass);
+            bodies[root].inertia.g[0] = weighted.x;
+            bodies[root].inertia.g[1] = weighted.y;
+            bodies[root].inertia.g[2] = weighted.z;
+        }
+    }
+    rigid_avbd_barrier();
+    for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+    {
+        if (parameters[bodyIndex].motion != MotionType.dynamic ||
+            (velocityPhase && bodies[bodyIndex].impact == 0u)) continue;
+        AvbdBlock mean = bodies[bodies[bodyIndex].parent].inertia;
+        for (uint axis = 0u; axis < 3u; ++axis)
+            bodies[bodyIndex].displacement.values[axis] -= mean.g[axis];
+    }
+    rigid_avbd_barrier();
+    for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+        for (uint axis = 0u; axis < 3u; ++axis)
+            bodies[bodyIndex].inertia.g[axis] = 0.0f;
+    rigid_avbd_barrier();
+}
+
+[shader("compute")]
+[numthreads(32, 1, 1)]
+void solve_avbd_kernel(
+    uniform BodyParameters* parameters, uniform RigidBodyState* previous,
+    uniform RigidBodyState* states, uniform uint count,
+    uniform ContactManifold* manifolds, uniform uint* pairs,
+    uniform uint* pair_count, uniform RigidConstraintResource* joints,
+    uniform uint joint_capacity, uniform AvbdBody* bodies,
+    uniform ContactSchedule* schedule, uniform float dt)
+{
+    uint lane = pmThreadIndex();
+    uint stride = cudaBlockDim().x * pmGridDim().x;
+    for (uint phase = 0u; phase < 2u; ++phase)
+    {
+        if (phase != 0u)
+        {
+            if (schedule[0].counts[0] == 0u) break;
+            for (uint active = lane; active < *pair_count; active += stride)
+            {
+                uint a = pairs[active] / count;
+                uint b = pairs[active] % count;
+                if (bodies[a].impact == 0u && bodies[b].impact == 0u)
+                    continue;
+                for (uint point = 0u;
+                     point < manifolds[active].count; ++point)
+                {
+                    Contact contact = manifolds[active].contacts[point];
+                    AvbdVector6 jacobianA;
+                    AvbdVector6 jacobianB;
+                    rigid_avbd_contact_normal_row(contact, a, b, bodies,
+                        jacobianA, jacobianB);
+                    float gap = max(0.0f, -(contact.penetration +
+                        avbdDot6(jacobianA, bodies[a].displacement) +
+                        avbdDot6(jacobianB, bodies[b].displacement)));
+                    contact.avbd_error.x = gap;
+                    manifolds[active].contacts[point] = contact;
+                }
+            }
+            rigid_avbd_barrier();
+            for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+            {
+                if (bodies[bodyIndex].impact != 0u ||
+                    parameters[bodyIndex].motion != MotionType.dynamic)
+                {
+                    bodies[bodyIndex].target = states[bodyIndex];
+                    bodies[bodyIndex].displacement = avbdZeroVector6();
+                    bodies[bodyIndex].current_orientation =
+                        states[bodyIndex].orientation;
+                }
+            }
+            rigid_avbd_barrier();
+            for (uint jointIndex = lane; jointIndex < joint_capacity;
+                 jointIndex += stride)
+            {
+                if (joints[jointIndex].avbd_count == 0u ||
+                    !joints[jointIndex].state.enabled) continue;
+                uint a = joints[jointIndex].geometry.dense_a;
+                uint b = joints[jointIndex].geometry.dense_b;
+                if (bodies[a].impact == 0u && bodies[b].impact == 0u)
+                    continue;
+                AvbdBlock scratch = avbdZeroBlock();
+                rigid_avbd_visit_joint(joints[jointIndex], parameters,
+                    previous, bodies, dt, scratch, true, kAvbdImpactJoint);
+            }
+            for (uint active = lane; active < *pair_count; active += stride)
+            {
+                uint a = pairs[active] / count;
+                uint b = pairs[active] % count;
+                if (bodies[a].impact == 0u && bodies[b].impact == 0u)
+                    continue;
+                AvbdVector6 velocityA = rigid_avbd_jacobian(
+                    multiply(states[a].linear_velocity, dt),
+                    multiply(states[a].angular_velocity, dt));
+                AvbdVector6 velocityB = rigid_avbd_jacobian(
+                    multiply(states[b].linear_velocity, dt),
+                    multiply(states[b].angular_velocity, dt));
+                for (uint point = 0u;
+                     point < manifolds[active].count; ++point)
+                {
+                    Contact contact = manifolds[active].contacts[point];
+                    float gap = contact.avbd_error.x;
+                    AvbdVector6 jacobianA[3];
+                    AvbdVector6 jacobianB[3];
+                    float error[3];
+                    rigid_avbd_contact_rows(contact, a, b, bodies,
+                        jacobianA, jacobianB, error);
+                    float restitution = !contact.avbd_cached &&
+                        contact.initial_normal_speed < -1.0f
+                        ? min(parameters[a].restitution,
+                            parameters[b].restitution) : 0.0f;
+                    contact.avbd_error = {
+                        avbdDot6(jacobianA[0], velocityA) +
+                            avbdDot6(jacobianB[0], velocityB) - gap -
+                            restitution * contact.initial_normal_speed * dt,
+                        avbdDot6(jacobianA[1], velocityA) +
+                            avbdDot6(jacobianB[1], velocityB),
+                        avbdDot6(jacobianA[2], velocityA) +
+                            avbdDot6(jacobianB[2], velocityB)};
+                    manifolds[active].contacts[point] = contact;
+                }
+            }
+            rigid_avbd_barrier();
+        }
+        for (uint iteration = 0u; iteration < schedule[0].budget; ++iteration)
+        {
+            for (uint color = 0u; color < schedule[0].remaining; ++color)
+            {
+                for (uint bodyIndex = lane; bodyIndex < count;
+                    bodyIndex += stride)
+                {
+                    if (bodies[bodyIndex].color != color) continue;
+                    if (phase != 0u && bodies[bodyIndex].impact == 0u)
+                        continue;
+                    AvbdBlock block = bodies[bodyIndex].inertia;
+                    AvbdVector6 displacement = bodies[bodyIndex].displacement;
+                    for (uint row = 0u; row < 6u; ++row)
+                        for (uint column = 0u; column < 6u; ++column)
+                            block.g[row] += block.h[
+                                max(row, column)][min(row, column)] *
+                                displacement.values[column];
+                    for (uint active = bodies[bodyIndex].contact_head;
+                         active != kInvalidDense;)
+                    {
+                        uint a = pairs[active] / count;
+                        uint b = pairs[active] % count;
+                        bool first = bodyIndex == a;
+                        float friction = sqrt(
+                            parameters[a].friction * parameters[b].friction);
+                        for (uint point = 0u;
+                             point < manifolds[active].count; ++point)
+                        {
+                            Contact* contact =
+                                &manifolds[active].contacts[point];
+                            AvbdVector6 jacobianA[3];
+                            AvbdVector6 jacobianB[3];
+                            float error[3];
+                            rigid_avbd_contact_rows(*contact, a, b, bodies,
+                                jacobianA, jacobianB, error);
+                            AvbdContactForce trial =
+                                rigid_avbd_contact_trial(*contact, error);
+                            AvbdContactForce force =
+                                avbdProjectContact(trial, friction);
+                            AvbdContactForce scales =
+                                avbdContactStiffnessScales(trial, friction);
+                            float stiffness[3] = {scales.normal,
+                                scales.tangent0, scales.tangent1};
+                            Vec3 tangent0;
+                            Vec3 tangent1;
+                            rigid_avbd_basis(
+                                contact->normal, tangent0, tangent1);
+                            float forces[3] = {
+                                force.normal - (phase != 0u
+                                    ? contact->accumulated_normal_impulse / dt
+                                    : 0.0f),
+                                force.tangent0 - (phase != 0u
+                                    ? dot(contact->accumulated_friction_impulse,
+                                        tangent0) / dt : 0.0f),
+                                force.tangent1 - (phase != 0u
+                                    ? dot(contact->accumulated_friction_impulse,
+                                        tangent1) / dt : 0.0f)};
+                            for (uint axis = 0u; axis < 3u; ++axis)
+                                avbdAddRow(block, first ? jacobianA[axis]
+                                    : jacobianB[axis],
+                                    contact->avbd_dual[axis].penalty *
+                                        stiffness[axis], forces[axis]);
+                        }
+                        active = first ? manifolds[active].avbd_next_a
+                            : manifolds[active].avbd_next_b;
+                    }
+                    for (uint jointIndex = bodies[bodyIndex].joint_head;
+                         jointIndex != kInvalidDense;)
+                    {
+                        uint a = joints[jointIndex].geometry.dense_a;
+                        uint b = joints[jointIndex].geometry.dense_b;
+                        bool first = bodyIndex == a;
+                        if (joints[jointIndex].state.enabled)
+                        {
+                            if (phase == 0u)
+                                rigid_avbd_visit_joint(joints[jointIndex],
+                                    parameters, previous, bodies, dt, block,
+                                    first, kAvbdAccumulateJoint);
+                            else
+                                for (uint row = 0u;
+                                     row < joints[jointIndex].avbd_count;
+                                     ++row)
+                                {
+                                    AvbdRow stored = rigid_avbd_row(
+                                        joints[jointIndex].avbd_rows[row]);
+                                    if (stored.stiffness >=
+                                        kAvbdMaximumPenalty)
+                                        avbdAccumulate(block, stored, first,
+                                            bodies[a].displacement,
+                                            bodies[b].displacement, dt);
+                                }
+                        }
+                        jointIndex = first ? joints[jointIndex].avbd_next_a
+                            : joints[jointIndex].avbd_next_b;
+                    }
+                    AvbdVector6 update = avbdZeroVector6();
+                    if (avbdSolve(block, update))
+                    {
+                        bool crossing = false;
+                        for (uint active = bodies[bodyIndex].contact_head;
+                             active != kInvalidDense;)
+                        {
+                            uint a = pairs[active] / count;
+                            uint b = pairs[active] % count;
+                            bool first = bodyIndex == a;
+                            for (uint point = 0u;
+                                 point < manifolds[active].count; ++point)
+                            {
+                                Contact* contact =
+                                    &manifolds[active].contacts[point];
+                                AvbdVector6 jacobianA;
+                                AvbdVector6 jacobianB;
+                                float error = rigid_avbd_contact_normal_row(
+                                    *contact, a, b, bodies,
+                                    jacobianA, jacobianB);
+                                float trial = contact->avbd_dual[0].lambda +
+                                    contact->avbd_dual[0].penalty * error;
+                                AvbdVector6 normalRow = first
+                                    ? jacobianA : jacobianB;
+                                if (trial <= 0.0f && trial +
+                                    contact->avbd_dual[0].penalty *
+                                        avbdDot6(normalRow, update) >
+                                    contact->avbd_dual[0].penalty * 1.0e-6f)
+                                {
+                                    avbdAddRow(block, normalRow,
+                                        contact->avbd_dual[0].penalty, trial);
+                                    crossing = true;
+                                }
+                            }
+                            active = first ? manifolds[active].avbd_next_a
+                                : manifolds[active].avbd_next_b;
+                        }
+                        if (crossing)
+                        {
+                            AvbdVector6 safeguarded = avbdZeroVector6();
+                            if (avbdSolve(block, safeguarded))
+                                update = safeguarded;
+                        }
+                        if (phase == 0u)
+                        {
+                            rigid_avbd_apply_pose_update(
+                                bodies[bodyIndex], update);
+                        }
+                        else
+                            for (uint axis = 0u; axis < 6u; ++axis)
+                                bodies[bodyIndex].displacement.values[axis] +=
+                                    update.values[axis];
+                    }
+                }
+                rigid_avbd_barrier();
+            }
+            for (uint active = lane; active < *pair_count; active += stride)
+            {
+                uint a = pairs[active] / count;
+                uint b = pairs[active] % count;
+                if (phase != 0u && bodies[a].impact == 0u &&
+                    bodies[b].impact == 0u) continue;
+                float friction = sqrt(
+                    parameters[a].friction * parameters[b].friction);
+                float beta = rigid_avbd_pair_stiffness(
+                    parameters[a], parameters[b], dt) * 100.0f;
+                for (uint point = 0u;
+                     point < manifolds[active].count; ++point)
+                {
+                    Contact* contact = &manifolds[active].contacts[point];
+                    AvbdVector6 jacobianA[3];
+                    AvbdVector6 jacobianB[3];
+                    float error[3];
+                    rigid_avbd_contact_rows(*contact, a, b, bodies,
+                        jacobianA, jacobianB, error);
+                    AvbdContactForce force = rigid_avbd_contact_force(
+                        *contact, error, friction);
+                    float tangentX = contact->avbd_dual[1].lambda +
+                        contact->avbd_dual[1].penalty * error[1];
+                    float tangentY = contact->avbd_dual[2].lambda +
+                        contact->avbd_dual[2].penalty * error[2];
+                    float tangential = sqrt(
+                        tangentX * tangentX + tangentY * tangentY);
+                    bool stick = tangential <= friction * force.normal;
+                    contact->avbd_dual[0].lambda = force.normal;
+                    contact->avbd_dual[1].lambda = force.tangent0;
+                    contact->avbd_dual[2].lambda = force.tangent1;
+                    for (uint axis = 0u; axis < 3u; ++axis)
+                        if (axis == 0u ? force.normal > 0.0f : stick)
+                            contact->avbd_dual[axis].penalty = min(
+                                kAvbdMaximumPenalty,
+                                contact->avbd_dual[axis].penalty +
+                                    beta * abs(error[axis]));
+                    if (iteration + 1u == schedule[0].budget)
+                    {
+                        Vec3 tangent0;
+                        Vec3 tangent1;
+                        rigid_avbd_basis(
+                            contact->normal, tangent0, tangent1);
+                        contact->accumulated_normal_impulse =
+                            force.normal * dt;
+                        contact->reported_normal_impulse =
+                            contact->accumulated_normal_impulse;
+                        contact->accumulated_friction_impulse = multiply(add(
+                            multiply(tangent0, force.tangent0),
+                            multiply(tangent1, force.tangent1)), dt);
+                        contact->reported_friction_impulse =
+                            contact->accumulated_friction_impulse;
+                        if (!stick)
+                        {
+                            RigidBodyState poseA = phase != 0u
+                                ? bodies[a].target : rigid_avbd_pose(bodies[a]);
+                            RigidBodyState poseB = phase != 0u
+                                ? bodies[b].target : rigid_avbd_pose(bodies[b]);
+                            contact->avbd_anchor_a = inverse_rotate(
+                                poseA.orientation,
+                                subtract(contact->point, poseA.position));
+                            contact->avbd_anchor_b = inverse_rotate(
+                                poseB.orientation,
+                                subtract(contact->point, poseB.position));
+                        }
+                    }
+                }
+            }
+            for (uint jointIndex = lane; jointIndex < joint_capacity;
+                 jointIndex += stride)
+            {
+                if (joints[jointIndex].avbd_count == 0u ||
+                    !joints[jointIndex].state.enabled) continue;
+                uint a = joints[jointIndex].geometry.dense_a;
+                uint b = joints[jointIndex].geometry.dense_b;
+                if (phase != 0u && bodies[a].impact == 0u &&
+                    bodies[b].impact == 0u) continue;
+                float impulse = 0.0f;
+                if (phase == 0u)
+                {
+                    AvbdBlock scratch = avbdZeroBlock();
+                    impulse = rigid_avbd_visit_joint(joints[jointIndex],
+                        parameters, previous, bodies, dt, scratch, true,
+                        kAvbdAdvanceJoint);
+                }
+                else
+                {
+                    for (uint rowIndex = 0u;
+                         rowIndex < joints[jointIndex].avbd_count; ++rowIndex)
+                    {
+                        AvbdRow row = rigid_avbd_row(
+                            joints[jointIndex].avbd_rows[rowIndex]);
+                        impulse += abs(row.stiffness < kAvbdMaximumPenalty
+                            ? row.referenceForce
+                            : avbdRowForce(row, bodies[a].displacement,
+                                bodies[b].displacement, dt)) * dt;
+                        if (row.stiffness >= kAvbdMaximumPenalty)
+                        {
+                            row = avbdAdvance(row, bodies[a].displacement,
+                                bodies[b].displacement);
+                            joints[jointIndex].avbd_rows[rowIndex] =
+                                rigid_avbd_stored_row(row);
+                        }
+                    }
+                }
+                joints[jointIndex].state.applied_impulse = impulse;
+                if (joints[jointIndex].options.breaking_impulse_threshold >
+                        0.0f &&
+                    impulse >
+                        joints[jointIndex].options.breaking_impulse_threshold)
+                {
+                    joints[jointIndex].state.broken = true;
+                    joints[jointIndex].state.enabled = false;
+                }
+            }
+            rigid_avbd_barrier();
+        }
+        rigid_avbd_minimize_free_translation(parameters, count, manifolds,
+            pairs, joints, bodies, phase != 0u);
+        for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+        {
+            if (parameters[bodyIndex].motion != MotionType.dynamic) continue;
+            if (phase != 0u && bodies[bodyIndex].impact == 0u) continue;
+            RigidBodyState state = bodies[bodyIndex].target;
+            AvbdVector6 delta = bodies[bodyIndex].displacement;
+            if (phase != 0u)
+            {
+                state.linear_velocity = add(state.linear_velocity,
+                    multiply(rigid_avbd_translation(delta), 1.0f / dt));
+                state.angular_velocity = add(state.angular_velocity,
+                    multiply(rigid_avbd_rotation(delta), 1.0f / dt));
+                states[bodyIndex] = state;
+                continue;
+            }
+            state.position = add(state.position,
+                rigid_avbd_translation(delta));
+            state.orientation = bodies[bodyIndex].current_orientation;
+            state.linear_velocity = add(state.linear_velocity,
+                multiply(rigid_avbd_translation(delta), 1.0f / dt));
+            state.angular_velocity = add(state.angular_velocity,
+                quaternion_delta_velocity(bodies[bodyIndex].target.orientation,
+                    state.orientation, dt));
+            states[bodyIndex] = state;
+        }
+        if (lane == 0u)
+        {
+            schedule[0].counts[phase == 0u ? 6u : 7u] =
+                schedule[0].budget;
+            schedule[0].maximum_passes += schedule[0].budget;
+        }
+        rigid_avbd_barrier();
+    }
+}

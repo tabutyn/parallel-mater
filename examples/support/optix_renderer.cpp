@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/renderer.hpp>
+#include <render/render_scene.hpp>
+#include <scene_builder.hpp>
 
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
@@ -54,39 +56,6 @@ void check_cuda(cudaError_t result, const char *operation) {
     if (result != cudaSuccess) {
         fail(std::string(operation) + ": " + cudaGetErrorString(result));
     }
-}
-
-void read_fluid_visual_samples(const FluidDeviceView &view,
-                               std::vector<Vec3> &positions,
-                               std::vector<float> &foam,
-                               std::vector<std::uint32_t> &ids) {
-    positions.resize(view.particle_count);
-    foam.resize(view.particle_count);
-    ids.resize(view.particle_count);
-    if (view.particle_count == 0U) return;
-    check_cuda(cudaMemcpy(positions.data(), view.positions.data,
-                          positions.size() * sizeof(Vec3),
-                          cudaMemcpyDeviceToHost), "copy fluid positions");
-    check_cuda(cudaMemcpy(foam.data(), view.foam.data,
-                          foam.size() * sizeof(float),
-                          cudaMemcpyDeviceToHost), "copy foam signal");
-    check_cuda(cudaMemcpy(ids.data(), view.stable_particle_ids.data,
-                          ids.size() * sizeof(std::uint32_t),
-                          cudaMemcpyDeviceToHost), "copy fluid IDs");
-}
-
-void read_smoke_visual_samples(const SmokeDeviceView &view,
-                               std::vector<Vec3> &positions,
-                               std::vector<float> &ages) {
-    positions.resize(view.particle_count);
-    ages.resize(view.particle_count);
-    if (view.particle_count == 0U) return;
-    check_cuda(cudaMemcpy(positions.data(), view.positions.data,
-                          positions.size() * sizeof(Vec3), cudaMemcpyDeviceToHost),
-               "copy smoke positions");
-    check_cuda(cudaMemcpy(ages.data(), view.ages.data,
-                          ages.size() * sizeof(float), cudaMemcpyDeviceToHost),
-               "copy smoke ages");
 }
 
 void check_driver(CUresult result, const char *operation) {
@@ -206,6 +175,13 @@ struct Geometry {
     bool dynamic{};
     bool fracture_surface{};
     OptixTraversableHandle handle{};
+};
+
+struct RenderPaint {
+    DeviceBuffer pixels{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint32_t field{PM_INVALID_INDEX};
 };
 
 struct RenderBinding {
@@ -373,7 +349,7 @@ struct OptixRenderer::Impl {
     OptixShaderBindingTable shader_binding_table{};
     std::vector<Geometry> geometry{};
     std::vector<RenderBinding> bindings{};
-    std::vector<PaintFieldDeviceView> paint_views{};
+    std::vector<RenderPaint> paint_views{};
     DeviceBuffer raygen_record{};
     DeviceBuffer miss_record{};
     DeviceBuffer hit_records{};
@@ -384,6 +360,7 @@ struct OptixRenderer::Impl {
     DeviceBuffer image{};
     DeviceBuffer depth{};
     DeviceBuffer rigid_depth{};
+    DeviceBuffer fluid_positions{};
     std::vector<float> host_depth{};
     std::vector<float> host_rigid_depth{};
     std::unique_ptr<FluidSurface> fluid_surface{};
@@ -658,21 +635,50 @@ struct OptixRenderer::Impl {
         check_cuda(cudaDeviceSynchronize(), "synchronize instance build");
     }
 
-    void create_paint(const World &world, const SceneInstance &instance) {
+    void create_paint(const SceneDefinition &scene,
+                      const CommandSceneInstance &instance) {
         paint_views.resize(bindings.size());
         for (std::size_t index = 0; index < bindings.size(); ++index) {
             const RenderBinding binding = bindings[index];
-            for (const SceneInstance::PaintBinding &paint :
+            for (const CommandSceneInstance::PaintBinding &paint :
                  instance.paint_bindings) {
                 if (paint.body_index != binding.body_index ||
                     paint.mesh_index != binding.mesh_index) continue;
-                const Status status = world.paint_field_view(
-                    paint.field, paint_views[index]);
-                if (!status)
-                    fail(status.message != nullptr ? status.message :
-                         "cannot borrow paint field");
+                RenderPaint &target = paint_views[index];
+                target.field = paint.field_index;
+                if (paint.body_index != PM_INVALID_INDEX &&
+                    paint.body_index < scene.rigid_bodies.size()) {
+                    target.width = target.height =
+                        scene.rigid_bodies[paint.body_index].paint_resolution;
+                } else {
+                    const auto cloth = std::find_if(
+                        scene.cloths.begin(), scene.cloths.end(),
+                        [&](const ClothDefinition &candidate) {
+                            return candidate.paintable &&
+                                candidate.mesh_index == paint.mesh_index;
+                        });
+                    if (cloth == scene.cloths.end())
+                        fail("paint field has no renderer scene target");
+                    target.width = target.height = cloth->paint_resolution;
+                }
+                std::vector<std::uint32_t> empty(
+                    static_cast<std::size_t>(target.width) * target.height);
+                target.pixels.upload(empty);
                 break;
             }
+        }
+    }
+
+    void update_paint(const RenderSceneFrame &frame) {
+        for (RenderPaint &paint : paint_views) {
+            if (paint.field == PM_INVALID_INDEX) continue;
+            if (paint.field >= frame.paint_fields.size())
+                fail("paint frame binding is missing");
+            const auto &pixels = frame.paint_fields[paint.field];
+            if (pixels.size() !=
+                static_cast<std::size_t>(paint.width) * paint.height)
+                fail("paint frame dimensions changed");
+            paint.pixels.upload(pixels);
         }
     }
 
@@ -696,10 +702,10 @@ struct OptixRenderer::Impl {
                     geometry[mesh_index].vertices.device_pointer());
             hits[index].data.triangles = reinterpret_cast<const uint3 *>(
                 geometry[mesh_index].triangles.device_pointer());
-            if (paint_views[index].pixels.size != 0U) {
+            if (paint_views[index].field != PM_INVALID_INDEX) {
                 hits[index].data.paint_pixels =
                     reinterpret_cast<const std::uint32_t *>(
-                        paint_views[index].pixels.data);
+                        paint_views[index].pixels.device_pointer());
                 hits[index].data.paint_width = paint_views[index].width;
                 hits[index].data.paint_height = paint_views[index].height;
             }
@@ -721,49 +727,24 @@ struct OptixRenderer::Impl {
     }
 
     [[nodiscard]] std::vector<RigidBodyState>
-    read_states(const World &world, const SceneInstance &scene_instance,
+    read_states(const RenderSceneFrame &frame,
                 float interpolation_alpha) const {
-        RigidBodyDeviceView view{};
-        const Status status = world.rigid_body_view(view);
-        if (!status) {
-            fail(status.message != nullptr ? status.message
-                                           : "cannot borrow rigid-body view");
-        }
-        std::vector<RigidBodyId> ids(view.ids.size);
-        std::vector<RigidBodyState> dense_states(view.states.size);
-        std::vector<RigidBodyState> previous_states;
-        check_cuda(cudaMemcpy(ids.data(), view.ids.data,
-                              ids.size() * sizeof(RigidBodyId),
-                              cudaMemcpyDeviceToHost),
-                   "copy rigid IDs for rendering");
-        check_cuda(cudaMemcpy(dense_states.data(), view.states.data,
-                              dense_states.size() * sizeof(RigidBodyState),
-                              cudaMemcpyDeviceToHost),
-                   "copy rigid states for rendering");
         interpolation_alpha = std::clamp(interpolation_alpha, 0.0F, 1.0F);
-        if (interpolation_alpha < 1.0F &&
-            view.previous_states.size == view.states.size) {
-            previous_states.resize(view.previous_states.size);
-            check_cuda(cudaMemcpy(
-                           previous_states.data(), view.previous_states.data,
-                           previous_states.size() * sizeof(RigidBodyState),
-                           cudaMemcpyDeviceToHost),
-                       "copy previous rigid states for rendering");
+        if (frame.rigid_states.size() != scene.rigid_bodies.size()) {
+            std::vector<RigidBodyState> authored;
+            authored.reserve(scene.rigid_bodies.size());
+            for (const RigidBodyDefinition &body : scene.rigid_bodies)
+                authored.push_back(body.options.initial_state);
+            return authored;
         }
-        std::vector<RigidBodyState> result(scene_instance.rigid_bodies.size());
-        for (std::size_t body_index = 0;
-             body_index < scene_instance.rigid_bodies.size(); ++body_index) {
-            const RigidBodyId wanted = scene_instance.rigid_bodies[body_index];
-            const auto found = std::find(ids.begin(), ids.end(), wanted);
-            if (found == ids.end()) {
-                fail("rendered rigid-body handle is no longer alive");
-            }
-            const std::size_t dense = static_cast<std::size_t>(
-                std::distance(ids.begin(), found));
-            result[body_index] = previous_states.empty()
-                ? dense_states[dense]
-                : interpolate_state(previous_states[dense],
-                                    dense_states[dense],
+        std::vector<RigidBodyState> result = frame.rigid_states;
+        if (interpolation_alpha < 1.0F &&
+            frame.previous_rigid_states.size() == frame.rigid_states.size()) {
+            for (std::size_t body_index = 0U;
+                 body_index < result.size(); ++body_index)
+                result[body_index] = interpolate_state(
+                                    frame.previous_rigid_states[body_index],
+                                    frame.rigid_states[body_index],
                                     interpolation_alpha);
         }
         return result;
@@ -790,24 +771,20 @@ struct OptixRenderer::Impl {
     }
 
     void update_deformable_geometry(const SceneDefinition &scene,
-                                    const World &world,
-                                    const SceneInstance &instance) {
-        if (scene.cloths.size() != instance.cloths.size())
+                                    const RenderSceneFrame &frame) {
+        if (scene.cloths.size() != frame.cloth_surface_vertices.size())
             fail("cloth render bindings do not match the scene");
         for (std::size_t cloth_index = 0U; cloth_index < scene.cloths.size();
              ++cloth_index) {
             const ClothDefinition &cloth = scene.cloths[cloth_index];
             const TriangleMesh &mesh = scene.meshes[cloth.mesh_index];
             Geometry &gpu = geometry[cloth.mesh_index];
-            ClothDeviceView view{};
-            const Status status = world.cloth_view(instance.cloths[cloth_index], view);
-            if (!status) fail(status.message != nullptr ? status.message :
-                              "cannot borrow cloth view");
-            if (!gpu.fracture_surface && view.vertex_count != mesh.vertices.size())
+            const auto &positions = frame.cloth_surface_vertices[cloth_index];
+            if (!gpu.fracture_surface && positions.size() != mesh.vertices.size())
                 fail("cloth renderer vertex count changed");
             const bool fracture_surface = gpu.fracture_surface;
             if (fracture_surface &&
-                view.surface_positions.size != mesh.indices.size())
+                positions.size() != mesh.indices.size())
                 fail("cloth surface vertex count changed");
             std::vector<Vertex> vertices;
             if (fracture_surface) {
@@ -817,13 +794,6 @@ struct OptixRenderer::Impl {
             } else {
                 vertices = mesh.vertices;
             }
-            const auto &source_positions = fracture_surface
-                ? view.surface_positions : view.positions;
-            std::vector<Vec3> positions(source_positions.size);
-            check_cuda(cudaMemcpy(positions.data(), source_positions.data,
-                                  positions.size() * sizeof(Vec3),
-                                  cudaMemcpyDeviceToHost),
-                       "copy cloth positions");
             std::vector<std::uint32_t> surface_triangles;
             if (fracture_surface) {
                 surface_triangles.resize(mesh.indices.size());
@@ -878,7 +848,9 @@ struct OptixRenderer::Impl {
                 gpu.acceleration.device_pointer(), gpu.acceleration.size(),
                 &gpu.handle, nullptr, 0U), "update OptiX cloth geometry");
         }
-        if (scene.soft_bodies.size() != instance.soft_bodies.size() || scene.ropes.size()!=instance.ropes.size())
+        if (scene.soft_bodies.size() !=
+                frame.soft_body_surface_vertices.size() ||
+            scene.ropes.size() != frame.rope_nodes.size())
             fail("soft-body render bindings do not match the scene");
         for (std::size_t body_index = 0U;
              body_index < scene.soft_bodies.size()+scene.ropes.size(); ++body_index) {
@@ -889,25 +861,16 @@ struct OptixRenderer::Impl {
             Geometry &gpu = geometry[mesh_index];
             std::vector<Vertex> vertices = mesh.vertices;
             if(is_rope) {
-                RopeDeviceView view;const auto status=world.rope_view(instance.ropes[rope_index],view);
-                if(!status)fail(status.message);
-                std::vector<Vec3> nodes(view.positions.size);
-                check_cuda(cudaMemcpy(nodes.data(),view.positions.data,nodes.size()*sizeof(Vec3),cudaMemcpyDeviceToHost),"copy rope centerline");
-                TriangleMesh updated=mesh;update_rope_render_mesh(nodes,view.radius,updated);
+                const auto &nodes = frame.rope_nodes[rope_index];
+                TriangleMesh updated=mesh;
+                update_rope_render_mesh(
+                    nodes, scene.ropes[rope_index].options.radius, updated);
                 vertices=std::move(updated.vertices);
             } else {
-            SoftBodyDeviceView view{};
-            const Status status = world.soft_body_view(
-                instance.soft_bodies[body_index], view);
-            if (!status) fail(status.message != nullptr ? status.message :
-                              "cannot borrow soft-body view");
-            if (view.surface_vertex_count != mesh.vertices.size())
+            const auto &positions =
+                frame.soft_body_surface_vertices[body_index];
+            if (positions.size() != mesh.vertices.size())
                 fail("soft-body renderer vertex count changed");
-            std::vector<Vec3> positions(view.surface_positions.size);
-            check_cuda(cudaMemcpy(positions.data(), view.surface_positions.data,
-                                  positions.size() * sizeof(Vec3),
-                                  cudaMemcpyDeviceToHost),
-                       "copy soft-body surface positions");
             for (std::size_t index = 0U; index < vertices.size(); ++index) {
                 vertices[index].position = positions[index];
                 vertices[index].normal = {};
@@ -1156,8 +1119,7 @@ OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
 OptixRenderer &OptixRenderer::operator=(OptixRenderer &&) noexcept = default;
 
 bool OptixRenderer::create(const SceneDefinition &scene,
-                           const World &world,
-                           const SceneInstance &instance,
+                           const CommandSceneInstance &instance,
                            const std::filesystem::path &ptx_path,
                            std::uint32_t width, std::uint32_t height,
                            OptixRenderer &output, std::string &error) {
@@ -1176,7 +1138,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         implementation->create_pipeline(ptx_path);
         implementation->create_geometry(scene);
         implementation->create_instances(scene);
-        implementation->create_paint(world, instance);
+        implementation->create_paint(scene, instance);
         implementation->create_shader_binding_table(scene);
         implementation->image.resize(static_cast<std::size_t>(width) * height *
                                      sizeof(std::uint32_t));
@@ -1196,7 +1158,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
     }
 }
 
-bool OptixRenderer::render(const World &world, const SceneInstance &instance,
+bool OptixRenderer::render(const RenderSceneFrame &frame,
                            Camera camera, std::vector<std::uint32_t> &rgba,
                            std::string &error, RendererTimings *timings,
                            FluidRenderMode fluid_mode,
@@ -1212,28 +1174,45 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
         const auto total_begin = clock::now();
         RendererTimings sample{};
         sample.particle_view = fluid_mode != FluidRenderMode::surface;
+        const bool has_simulation_frame =
+            frame.rigid_states.size() == impl_->scene.rigid_bodies.size();
         const std::vector<RigidBodyState> states =
-            impl_->read_states(world, instance, rigid_interpolation_alpha);
-        impl_->update_deformable_geometry(impl_->scene, world, instance);
+            impl_->read_states(frame, rigid_interpolation_alpha);
+        // The interactive application can draw before its fixed-step clock has
+        // accumulated the first simulation tick. The renderer already owns the
+        // authored geometry and blank paint textures, so retain those until a
+        // complete command-API frame is available.
+        if (has_simulation_frame) {
+            impl_->update_deformable_geometry(impl_->scene, frame);
+            impl_->update_paint(frame);
+        }
         impl_->update_instances(states);
         std::vector<Vec3> positions;
         std::vector<float> foam;
         std::vector<std::uint32_t> ids;
-        FluidDeviceView fluid_view{};
         optix_shared::FluidSurfaceView surface{};
-        if (instance.has_fluid) {
-            FluidDeviceView view{};
-            const Status status = world.fluid_view(instance.fluid, view);
-            if (!status) fail(status.message != nullptr ? status.message
-                                                       : "cannot borrow fluid view");
-            fluid_view = view;
-            sample.particle_count = view.particle_count;
-            read_fluid_visual_samples(view, positions, foam, ids);
-            if (view.particle_count != 0U) {
+        if (impl_->scene.fluid_options.capacity != 0U) {
+            positions.reserve(frame.fluid_particles.size());
+            foam.reserve(frame.fluid_particles.size());
+            ids.reserve(frame.fluid_particles.size());
+            for (const auto &particle : frame.fluid_particles) {
+                positions.push_back(particle.position);
+                foam.push_back(particle.foam);
+                ids.push_back(particle.stable_id);
+            }
+            sample.particle_count =
+                static_cast<std::uint32_t>(positions.size());
+            impl_->fluid_positions.upload(positions);
+            if (!positions.empty()) {
                 if (impl_->fluid_surface &&
                     fluid_mode == FluidRenderMode::surface) {
                     sample.surface_gpu_milliseconds =
-                        impl_->fluid_surface->update(view, positions);
+                        impl_->fluid_surface->update(
+                            static_cast<const Vec3 *>(
+                                impl_->fluid_positions.pointer()),
+                            static_cast<std::uint32_t>(positions.size()),
+                            frame.fluid_particle_radius,
+                            frame.fluid_support_radius, positions);
                     sample.surface_excluded_particle_count =
                         impl_->fluid_surface->excluded_particle_count();
                     surface = impl_->fluid_surface->view();
@@ -1241,42 +1220,44 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
             }
         }
         const auto raytrace_begin = clock::now();
-        const bool read_fluid_depth =
-            instance.has_fluid && !positions.empty();
+        const bool read_fluid_depth = !positions.empty();
         const bool read_rigid_depth = read_fluid_depth ||
-            (instance.has_smoke && show_smoke_particles);
+            (!frame.smoke_particles.empty() && show_smoke_particles);
         impl_->render(camera, surface,
                       fluid_mode == FluidRenderMode::surface,
                       read_fluid_depth, read_rigid_depth, rgba);
         const auto foam_begin = clock::now();
-        if (instance.has_fluid && !positions.empty()) {
+        if (!positions.empty()) {
             if (fluid_mode != FluidRenderMode::surface) {
                 paint_fluid_particle_view(
-                    positions, foam, ids, fluid_view.particle_radius,
+                    positions, foam, ids, frame.fluid_particle_radius,
                     camera, impl_->width, impl_->height,
                     impl_->host_depth, impl_->host_rigid_depth, rgba);
             } else {
                 impl_->foam_visuals.advance(
-                    positions, foam, ids, fluid_view.particle_radius);
+                    positions, foam, ids, frame.fluid_particle_radius);
                 impl_->foam_visuals.paint(
-                    fluid_view.support_radius, camera, impl_->width,
+                    frame.fluid_support_radius, camera, impl_->width,
                     impl_->height, impl_->host_depth,
                     impl_->host_rigid_depth, rgba);
             }
         }
-        if (instance.has_smoke && show_smoke_particles) {
-            SmokeDeviceView smoke{};
-            const Status status = world.smoke_view(instance.smoke, smoke);
-            if (!status) fail(status.message != nullptr ? status.message
-                                                       : "cannot borrow smoke view");
+        if (!frame.smoke_particles.empty() && show_smoke_particles) {
             std::vector<Vec3> smoke_positions;
             std::vector<float> smoke_ages;
-            read_smoke_visual_samples(smoke, smoke_positions, smoke_ages);
+            smoke_positions.reserve(frame.smoke_particles.size());
+            smoke_ages.reserve(frame.smoke_particles.size());
+            for (const auto &particle : frame.smoke_particles) {
+                smoke_positions.push_back(particle.position);
+                smoke_ages.push_back(particle.age);
+            }
             paint_smoke_view(smoke_positions, smoke_ages,
-                smoke.lifetime, smoke.particle_radius, camera,
+                frame.smoke_lifetime, frame.smoke_particle_radius, camera,
                 impl_->width, impl_->height, impl_->host_rigid_depth, rgba);
-            sample.particle_count += smoke.particle_count;
-            sample.smoke_particle_count = smoke.particle_count;
+            sample.particle_count +=
+                static_cast<std::uint32_t>(smoke_positions.size());
+            sample.smoke_particle_count =
+                static_cast<std::uint32_t>(smoke_positions.size());
         }
         sample.foam_patch_count = static_cast<std::uint32_t>(
             impl_->foam_visuals.patch_count());
@@ -1295,8 +1276,7 @@ bool OptixRenderer::render(const World &world, const SceneInstance &instance,
     }
 }
 
-bool OptixRenderer::advance_visuals(const World &world,
-                                    const SceneInstance &instance,
+bool OptixRenderer::advance_visuals(const RenderSceneFrame &frame,
                                     std::string &error) {
     error.clear();
     if (!impl_) {
@@ -1304,19 +1284,20 @@ bool OptixRenderer::advance_visuals(const World &world,
         return false;
     }
     try {
-        FluidDeviceView fluid{};
-        if (instance.has_fluid) {
-            const Status status = world.fluid_view(instance.fluid, fluid);
-            if (!status) fail(status.message != nullptr ? status.message
-                                                       : "cannot borrow fluid view");
-            if (fluid.particle_count != 0U) {
-                std::vector<Vec3> positions;
-                std::vector<float> foam;
-                std::vector<std::uint32_t> ids;
-                read_fluid_visual_samples(fluid, positions, foam, ids);
-                impl_->foam_visuals.advance(
-                    positions, foam, ids, fluid.particle_radius);
+        if (!frame.fluid_particles.empty()) {
+            std::vector<Vec3> positions;
+            std::vector<float> foam;
+            std::vector<std::uint32_t> ids;
+            positions.reserve(frame.fluid_particles.size());
+            foam.reserve(frame.fluid_particles.size());
+            ids.reserve(frame.fluid_particles.size());
+            for (const auto &particle : frame.fluid_particles) {
+                positions.push_back(particle.position);
+                foam.push_back(particle.foam);
+                ids.push_back(particle.stable_id);
             }
+            impl_->foam_visuals.advance(
+                positions, foam, ids, frame.fluid_particle_radius);
         }
         return true;
     } catch (const std::exception &exception) {
@@ -1334,12 +1315,12 @@ bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
         return false;
     }
     try {
-        for (const PaintFieldDeviceView &mask : impl_->paint_views) {
-            if (mask.pixels.size == 0U) continue;
+        for (const RenderPaint &mask : impl_->paint_views) {
+            if (mask.field == PM_INVALID_INDEX) continue;
             std::vector<std::uint32_t> pixels(
-                mask.pixels.size);
-            check_cuda(cudaMemcpy(pixels.data(), mask.pixels.data,
-                                  mask.pixels.size * sizeof(std::uint32_t),
+                mask.pixels.size() / sizeof(std::uint32_t));
+            check_cuda(cudaMemcpy(pixels.data(), mask.pixels.pointer(),
+                                  mask.pixels.size(),
                                   cudaMemcpyDeviceToHost),
                        "read contact paint coverage");
             painted_texels += static_cast<std::uint64_t>(std::count_if(

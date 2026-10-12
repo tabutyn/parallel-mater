@@ -1,39 +1,31 @@
 # ParallelMater
 
-ParallelMater is an MIT-licensed GPU physics library. CUDA is the complete
-reference backend; Apple Metal 4 and Windows D3D12 backends are under active
-development. The
-first complete milestone couples particle fluid with triangle rigid bodies; later solvers
-will be added only after the small public API is proven by gallery examples.
+ParallelMater is an MIT-licensed GPU physics API. Applications create an
+instance, enumerate and create a device, bind memory, create resources and a
+physics pipeline, record commands, submit them to a queue, synchronize, and
+read timing or memory queries through `parallel_mater.h`.
 
-The current implementation provides the `World` lifecycle and GPU rigid-body
-integration for static, kinematic, and dynamic indexed triangle meshes. Every
-surface is two-sided; open and disconnected meshes are accepted. A
-deterministic private BVH accelerates mesh contact. Particle fluid, Blender
-Liquid Inflow/Outflow, moving and passive triangle collision, two-way dynamic
-momentum exchange, and agitation foam are also available through the same
-`World`.
-One-shot Blender Geometry flows use the public volume sampler. Opt-in
-fluid-to-rigid and rigid-to-cloth contact paint fields are owned by `World`; the gallery
-supplies UVs and chooses their display color and filtering.
+One set of Slang shaders implements rigid bodies, particle fluid, cloth, rope,
+soft bodies, smoke, and their couplings. CUDA is the first runtime device
+adapter; it owns allocation, transfer, dispatch, synchronization, and native
+interop, but no physics equations or alternate simulation schedule. Unsupported
+targets are reported explicitly and never fall back to an older solver.
 Generation-checked rigid constraints provide fixed, point, hinge, slider,
 piston, generic, generic-spring, and motor joints with runtime updates,
 breaking thresholds, limits, springs, and collision suppression.
 
-CUDA and Metal rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
-Its production numerical core is generated from one Slang module for both
-backends and checked against the portable CPU reference. There is no
+Rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
+Its production numerical core and runtime schedule are generated from
+`geometry_constraints.slang` and checked against the portable CPU reference. There is no
 stack-only or joint-triggered fallback solver. Impact velocity correction uses
 the same body blocks and is included in the reported iteration count.
 
-The [Slang implementation](docs/SLANG.md) also contains a same-basename,
-same-entry-point mirror for every CUDA physics kernel: rigid AVBD and contact
-geometry, fluid, cloth, soft bodies, ropes, smoke, and every coupling. A CMake
-gate compiles all 120 mirrors to CUDA and PTX and a coverage test prevents a
-native CUDA entry point from being added without its Slang counterpart.
-
-The newly integrated D3D12 backend retains its existing solver; it has not yet
-been migrated to AVBD.
+The [Slang implementation](docs/SLANG.md) is the production source for rigid
+AVBD and triangle/BVH contact geometry, fluid, cloth, soft bodies, ropes,
+smoke, and every coupling. A CMake gate compiles the shared entries to CUDA and
+PTX; an architecture test rejects native physics kernels and direct launches.
+Current qualification evidence and target acceptance are recorded in the
+[Slang unification validation report](docs/slang-unification-validation.md).
 
 Measured performance, validation limits and earlier solver experiments are
 recorded in [the rigid performance report](docs/PERFORMANCE.md). Historical
@@ -41,38 +33,31 @@ timings in that report are not measurements of the current AVBD implementation.
 
 ## Design goals
 
-- One owning `World` coordinates simulation and cross-system coupling.
-- Fluid, cloth, soft-body, rigid-body, and rigid-constraint resources use
-  stable, generation-checked handles.
-- One `step` call advances a complete fixed frame; applications do not invoke
-  solver-internal phases.
-- CUDA allocations remain owned by the library while renderers borrow explicit
-  device views.
-- Fluids accept device-resident initial particles or one-shot host geometry
-  volumes, and can own deterministic, capacity-bounded inflow/outflow planes.
-- Synchronous convenience calls and stream-ordered asynchronous calls share the
-  same semantics.
-- The gallery is simultaneously the example suite, visual regression surface,
-  and basis of a small progression game.
-- Rendering, OptiX, scene objectives, authored controls, and campaign state are
-  application code—not physics API concepts.
+- One public C command API and one Slang implementation serve every physics
+  domain.
+- Explicit devices, queues, memory bindings, pipelines, command buffers,
+  barriers, semaphores, fences, and queries compose with a larger GPU pipeline.
+- Resource capacity and ownership are explicit; command submission remains
+  asynchronous.
+- Device adapters provide platform services only. Renderers draw common frame
+  data and cannot step physics or select scenes.
+- One gallery catalog, input handler, scene builder, and controller path drives
+  interactive, headless, benchmark, and replay execution.
 
-Start with [the proposed API](docs/API.md), then review
-[the gallery boundary](docs/GALLERY.md) and [the staged implementation
-plan](docs/ROADMAP.md).
+Start with [the API](docs/API.md), then review [the gallery
+boundary](docs/GALLERY.md) and [the migration plan](docs/ROADMAP.md).
 
 The [command API reference PDF](docs/reference/parallel-mater-reference.pdf)
 and [API specification](docs/reference/parallel-mater-specification.pdf)
-describe the next, Vulkan-style API: explicit devices, allocation, physics
-pipelines, command buffers and synchronization. It is a **0.2 design draft**,
-not an implemented replacement for `World`. The reference lists declarations;
+describe the Vulkan-style API: explicit devices, allocation, physics pipelines,
+command buffers and synchronization. The reference lists declarations;
 its purple section markers point to explanations and rules in the specification.
-An opt-in `parallel-mater-command-stubs` target provides unsupported placeholders
-for every declaration without changing the running backends. The
-[coverage audit](docs/reference/API-AUDIT.md) distinguishes these stubs from
-working physics and lists the remaining legacy-domain gaps.
-Its [C contract, Python generator
-and migration gates](docs/reference/README.md) are kept together for review.
+The `parallel-mater` library exposes the public C command API in
+`parallel_mater/parallel_mater.h`. Its CUDA runtime implements device, memory,
+command, synchronization, query, native-buffer, and physics services. Features
+are advertised only when their shared Slang schedule is present.
+The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
+runtime definition.
 
 ## Build and test
 
@@ -89,128 +74,22 @@ The runtime test skips with code 77 when no CUDA device is available. Compute
 capability `86` is the local RTX 3050 Ti setting; consumers should select the
 architectures they ship.
 
-CUDA and Metal compile the standalone fluid solver and rigid constraint core
-from `src/slang/fluid_shared.slang` and
-`src/slang/geometry_constraints.slang`. The complete
-CUDA-reference mirror lives beside them under `src/slang/`; build target
+CUDA compiles the shared physics modules under `src/slang/`; build target
 `parallel-mater-slang-kernel-mirrors` validates every entry. CMake resolves one
 exact Slang 2026.18 compiler from `PATH` or downloads the matching
 checksum-pinned official package. Set
 `PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.
-The native Apple Metal compiler and NVCC still validate and compile Slang's
-generated source; no Slang runtime is shipped. See the [Slang toolchain and
-source layout](docs/SLANG.md).
+NVCC compiles Slang's generated CUDA source; no Slang runtime is shipped. See
+the [Slang toolchain and source layout](docs/SLANG.md).
 
-### Windows D3D12 rigid-body gate
+### Target support
 
-Windows defaults to the D3D12 backend and does not require CUDA, NVIDIA
-drivers, OptiX, DXR, or the CUDA toolkit. It requires the Windows 10 SDK's FXC,
-Shader Model 5.1, and 64 UAV slots. Resource Binding Tier 2+ qualifies at any
-D3D12 feature level; Tier 1 qualifies at feature level 11_1 or newer. The
-installed target is `ParallelMater::d3d12`, with its public API in
-`<parallel_mater/d3d12.hpp>`.
-
-```powershell
-cmake -S . -B build-d3d12 -A x64 `
-  -DPARALLEL_MATER_BUILD_CUDA=OFF `
-  -DPARALLEL_MATER_BUILD_D3D12=ON `
-  -DPARALLEL_MATER_BUILD_D3D12_GALLERY=ON `
-  -DBUILD_TESTING=ON
-cmake --build build-d3d12 --config Release
-ctest --test-dir build-d3d12 -C Release --output-on-failure
-.\build-d3d12\Release\parallel-mater-d3d12-gallery.exe `
-  --all-rigid-scenes --headless --validate `
-  --output build-d3d12\captures
-```
-
-The first gate covers rigid integration, contacts, all eight constraint types,
-the eight current rigid gallery entries, adapter diagnostics, headless PPM
-capture, and repeated deterministic validation. Non-rigid entry points already
-exist and return transactional `not_supported` until their staged solver gate.
-The backend remains experimental: full CUDA conformance and WARP validation
-are not complete. In the native viewer, press `F` for FPS and GPU physics
-timings, `Tab` for the scene catalog, and arrows/Enter or click to select a
-supported scene. Gray catalog entries require unimplemented subsystems.
-See [the D3D12 backend guide](docs/D3D12.md).
-
-### Metal 4 foundation
-
-On Apple Silicon with macOS 26 and Xcode 26, CMake defaults to the Metal target
-and does not require a CUDA toolkit:
-
-```bash
-cmake -S . -B build-metal \
-  -DPARALLEL_MATER_BUILD_CUDA=OFF \
-  -DPARALLEL_MATER_BUILD_METAL=ON \
-  -DBUILD_TESTING=ON
-cmake --build build-metal
-ctest --test-dir build-metal --output-on-failure
-```
-
-The installed target is `ParallelMater::metal`, with its public API in
-`<parallel_mater/metal.hpp>`. The current correctness milestone implements the
-Metal 4 queue/frame lifecycle, embedded MSL 4 shaders (including the shared
-Slang fluid solver), rigid bodies and all
-eight constraint types, fluid, cloth, soft bodies, ropes, particle/grid smoke,
-fluid sources/outflow, rigid contact for every particle family, and the exposed
-pairwise coupling handles. The native Metal gallery loads the shared 29-entry
-registry and renders rigid bodies, live cloth/soft-body surfaces, rebuilt rope
-tubes, fluid particles, and smoke through embedded MSL shaders. CUDA/Metal
-numerical parity, production parallel kernels, and ray-traced visual parity
-remain gated; see [Metal port status](docs/METAL.md), the [gallery parity
-audit](docs/METAL_GALLERY_PARITY.md), and the [CUDA reference package needed
-for engine parity](docs/CUDA_REFERENCE_REQUIREMENTS.md).
-
-Run the gallery on Apple Silicon with:
-
-```bash
-cmake -S . -B build-metal-gallery \
-  -DPARALLEL_MATER_BUILD_CUDA=OFF \
-  -DPARALLEL_MATER_BUILD_METAL=ON \
-  -DPARALLEL_MATER_BUILD_METAL_GALLERY=ON \
-  -DBUILD_TESTING=ON
-cmake --build build-metal-gallery
-./build-metal-gallery/parallel-mater-metal-gallery
-./build-metal-gallery/parallel-mater-metal-gallery \
-  --cloth-tear
-./build-metal-gallery/parallel-mater-metal-gallery \
-  --all-scenes --frames 1 --headless --validate \
-  --output build-metal-gallery/captures
-```
-
-Build and atomically replace the Dock-pinned development app with:
-
-```bash
-cmake --build build-metal-gallery --target deploy-metal-gallery
-```
-
-The deployed window title and `--version` identify the exact Git commit,
-working-tree state, and build time. Quit and reopen an already-running gallery
-after deployment because macOS keeps its current executable mapped in memory.
-The application bundle carries its gallery GLBs in `Contents/Resources`, so a
-deployed build does not read scene assets from the source checkout or request
-access to its external drive.
-
-Measure the opening brick scene using:
-
-```bash
-cmake --build build-metal-gallery \
-  --target parallel-mater-metal-rigid-scene-benchmark
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
-```
-
-The sleeping flags remain accepted, but AVBD currently keeps rigid bodies
-awake. Native Metal results from before this migration do not validate the new
-solver; see [the current solver contract](docs/CONTACT_SOLVER.md).
-
-Use `--list-scenes` to list every scene selector. In the interactive gallery,
-Tab opens the CUDA-style scene page, Up/Down changes its selection, Enter loads
-the highlighted scene, the mouse orbits/pans/zooms, arrows run the scene's
-control policy, Space performs its scene action, `R` reloads, and Escape closes
-the scene page or exits. Headless rendering writes PPM captures and uses the
-same embedded Metal pipelines as the windowed path.
+The CUDA device adapter is the first implementation of the command runtime.
+Metal, DirectX 12, Vulkan, and WebGPU physics targets are unavailable until
+they implement and independently qualify the same Slang schedule. CMake rejects
+the retired backend-specific physics builds instead of selecting them as a
+fallback. Native API names remain in interoperability enums because applications
+may query support and receive `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
 
 ## Blender and OptiX gallery
 
@@ -236,11 +115,11 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
-For AVBD-budget experiments, use `--contact-passes 1` in the CUDA gallery,
+For AVBD-budget experiments, use `--contact-passes 1` in the gallery,
 or `--passes 1` with `parallel-mater-rigid-scene-benchmark examples/assets/RigidBody.glb`.
-The shared CUDA/Metal API is `StepOptions::rigid_contact_pass_limit`: zero keeps
-the automatic budget, 1–64 selects iterations per pose/impact phase for both
-contacts and joints. Impacted islands may therefore report twice that value;
+The command API field is `PmRigidSolverState::rigidIterations`; 1–64 selects
+iterations per pose/impact phase for both contacts and joints. Impacted islands
+may therefore report twice that value;
 integration substeps are unchanged. Low budgets can destabilize stacks. Check
 quality with `parallel-mater-rigid-wall-tests --passes 1`, not only timing.
 The overlay labels `X` as GPU launches and reports total AVBD iterations in
@@ -308,7 +187,7 @@ normals, `X` rigid and deformable contact forces, `C` fluid acceleration/reactio
 forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.
 `V` exposes particles, cloth structure, or every soft-body spring where those
 systems exist; `B` shows cloth bonds or the soft-body surface wireframe. The
-gallery opts into capture when it creates each `World`;
+gallery opts into debug-data output when it creates the simulation;
 ordinary library consumers pay no capture/readback cost unless they do the
 same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 

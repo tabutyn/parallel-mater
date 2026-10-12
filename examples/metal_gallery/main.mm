@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include "parallel_mater_gallery_build_info.hpp"
 
@@ -98,9 +99,6 @@ constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
 constexpr float k_collector_gravity_tilt_degrees =
     parallel_mater::gallery::collector_gravity_tilt_degrees;
 constexpr float k_pi = 3.14159265358979323846F;
-constexpr float k_dump_initial_angle = k_pi * 0.25F;
-constexpr float k_dump_final_angle = -k_pi * 0.25F;
-constexpr float k_dump_rotation_speed = k_pi * 0.25F;
 constexpr float k_motor_speed = 8.0F;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
@@ -911,6 +909,7 @@ struct Runtime {
     std::size_t kinematic_index{std::numeric_limits<std::size_t>::max()};
     RigidBodyState kinematic_target{};
     FixedContactCollector fixed_collector{};
+    parallel_mater::metal::gallery::DumpTruckBed dump_bed{};
     std::vector<RigidBodyId> gravity_tilt_bodies{};
     bool collect_rigid_contacts{};
     bool collect_kernel_timings{};
@@ -1191,10 +1190,8 @@ std::filesystem::path scene_path(const Options &options,
         std::filesystem::path(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH),
-        std::filesystem::path(
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH),
-        std::filesystem::path{},
+        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH),
+        std::filesystem::path(PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH),
         std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH),
@@ -1229,12 +1226,8 @@ bool build_runtime(const Options &options, GalleryContext context,
     Runtime next;
     next.context = context;
     const GalleryEntry &entry = gallery_entry(context);
-    if (entry.source == GallerySceneSource::procedural_dump) {
-        next.scene =
-            parallel_mater::metal::gallery::make_dump_scene(
-                options.dump_spheres);
-    } else if (!parallel_mater::metal::gallery::load_glb_scene(
-                   scene_path(options, entry.source), next.scene, error)) {
+    if (!parallel_mater::metal::gallery::load_glb_scene(
+            scene_path(options, entry.source), next.scene, error)) {
         error = "scene load failed: " + error;
         return false;
     }
@@ -1263,6 +1256,11 @@ bool build_runtime(const Options &options, GalleryContext context,
     }
     if (entry.has_fluid)
         next.scene.fluid_options.capacity = options.fluid_particles;
+    if (context == GalleryContext::dump &&
+        !parallel_mater::metal::gallery::configure_dump_payload(
+            next.scene, options.dump_spheres, error)) {
+        return false;
+    }
 
     WorldOptions world_options{};
     if (!check(parallel_mater::metal::gallery::scene_world_options(
@@ -1284,6 +1282,11 @@ bool build_runtime(const Options &options, GalleryContext context,
     }
     if (entry.controls == GalleryControlPolicy::collector_gravity &&
         !next.fixed_collector.initialize(next.scene, next.instance, error)) {
+        return false;
+    }
+    if (context == GalleryContext::dump &&
+        !next.dump_bed.initialize(next.scene)) {
+        error = "dump truck needs its authored DumpLift joint";
         return false;
     }
     next.gravity_tilt_bodies.reserve(next.scene.rigid_bodies.size());
@@ -3292,7 +3295,6 @@ bool run_interactive(const Options &options, std::string &error) {
     bool down_latch = false;
     std::uint32_t completed_frames = 0U;
     std::uint32_t reported_completed_frames = 0U;
-    float dump_angle = k_dump_initial_angle;
     Vec3 peg_gravity = default_gravity(runtime);
     Vec3 cloth_gravity = peg_gravity;
     auto update_title = [&](std::optional<double> fps = std::nullopt,
@@ -3353,7 +3355,6 @@ bool run_interactive(const Options &options, std::string &error) {
             runtime.context, interactive_options.bricks));
         completed_frames = 0U;
         reported_completed_frames = 0U;
-        dump_angle = k_dump_initial_angle;
         peg_gravity = default_gravity(runtime);
         cloth_gravity = peg_gravity;
         physics_accumulator = 0.0;
@@ -3619,6 +3620,10 @@ bool run_interactive(const Options &options, std::string &error) {
                 return false;
             }
         }
+        if (!picker_visible && !input.count_dialog_visible &&
+            action && !action_latch && runtime.context == GalleryContext::dump) {
+            runtime.dump_bed.toggle();
+        }
         bool debug_changed = false;
         if (!input.count_dialog_visible) {
             if (timing && !timing_latch) timing_visible = !timing_visible;
@@ -3706,29 +3711,26 @@ bool run_interactive(const Options &options, std::string &error) {
         if (!physics_in_flight && physics_accumulator >= k_timestep &&
             (!options.frames_set || completed_frames < options.frames)) {
             const GalleryEntry &entry = gallery_entry(runtime.context);
-            if (entry.controls == GalleryControlPolicy::tank_motor &&
+            if (entry.controls == GalleryControlPolicy::motor_drive &&
                 !drive_motors(runtime, directional, error)) {
                 glfwDestroyWindow(window);
                 glfwTerminate();
                 return false;
             }
+            if (runtime.context == GalleryContext::dump &&
+                !check(runtime.dump_bed.advance(runtime.world, runtime.scene,
+                                                runtime.instance, k_timestep),
+                       "tilt dump bucket", error)) {
+                glfwDestroyWindow(window);
+                glfwTerminate();
+                return false;
+            }
             if (runtime.kinematic_index < runtime.instance.rigid_bodies.size() &&
-                (entry.controls == GalleryControlPolicy::dump_rotation ||
-                 directional.x != 0.0F || directional.z != 0.0F)) {
-                if (entry.controls == GalleryControlPolicy::dump_rotation) {
-                    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-                        dump_angle = std::max(
-                            k_dump_final_angle,
-                            dump_angle - k_dump_rotation_speed * k_timestep);
-                    }
-                    runtime.kinematic_target.orientation =
-                        rotation_z(dump_angle);
-                } else {
-                    runtime.kinematic_target.position.x +=
-                        directional.x * k_kinematic_speed * k_timestep;
-                    runtime.kinematic_target.position.z +=
-                        directional.z * k_kinematic_speed * k_timestep;
-                }
+                (directional.x != 0.0F || directional.z != 0.0F)) {
+                runtime.kinematic_target.position.x +=
+                    directional.x * k_kinematic_speed * k_timestep;
+                runtime.kinematic_target.position.z +=
+                    directional.z * k_kinematic_speed * k_timestep;
                 if (!check(runtime.world.set_kinematic_target(
                                runtime.instance.rigid_bodies[
                                    runtime.kinematic_index],

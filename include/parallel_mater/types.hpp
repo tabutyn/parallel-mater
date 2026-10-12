@@ -331,6 +331,9 @@ struct StepOptions {
     // Zero uses at least 10, raised by active joint solver_iterations.
     // 1..64 explicitly overrides that unified budget; substeps are unchanged.
     std::uint32_t rigid_contact_pass_limit{};
+    // Base AVBD coordinate budget for bodies without a higher local joint
+    // requirement. The command API supplies this from its bound pipeline.
+    std::uint32_t rigid_contact_iterations{10U};
 };
 
 struct FluidParticle {
@@ -959,8 +962,12 @@ struct WorldStatistics {
     std::uint32_t triangle_mesh_count{};
     // Last rigid substep; zero before solving or when not reported by a backend.
     std::uint32_t rigid_contact_island_count{};
-    // Reserved for AVBD convergence tracking; currently zero (no early exit).
+    // Number of contact islands skipped after the adaptive pose solve reached
+    // its convergence threshold. Explicit pass limits never early-exit.
     std::uint32_t rigid_contact_early_exit_count{};
+    // Actual pose and impact iterations from the last rigid substep.
+    std::uint32_t rigid_contact_pose_passes{};
+    std::uint32_t rigid_contact_impact_passes{};
     // Actual primal/dual iterations, summed over pose and impact phases.
     std::uint32_t rigid_contact_maximum_passes{};
     // Body-vertex colors, not the former contact-edge color count.

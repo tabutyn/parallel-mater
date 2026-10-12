@@ -1,9 +1,4 @@
-"""Single source for the proposed C API, quick reference, and specification.
-
-The optional command-stubs library is not a physics implementation. Keep that
-distinction visible in companion documentation and generated headers. The quick
-reference contains declarations; the specification contains required behavior.
-"""
+"""Single source for the C API, quick reference, and specification."""
 from dataclasses import dataclass, field
 from textwrap import dedent
 import re
@@ -39,8 +34,8 @@ def c(key, title, text="", *, types="", functions="", code="", rows=(), links=()
 
 
 PRELUDE = r"""
-#ifndef PARALLEL_MATER_COMMAND_API_DRAFT_H
-#define PARALLEL_MATER_COMMAND_API_DRAFT_H
+#ifndef PARALLEL_MATER_H
+#define PARALLEL_MATER_H
 #include <stddef.h>
 #include <stdint.h>
 #ifdef __cplusplus
@@ -191,6 +186,15 @@ SECTIONS = [
                 PmBool32 particleLiquids;
                 PmBool32 liquidRigidCoupling;
                 PmBool32 liquidLiquidCoupling;
+                PmBool32 cloth;
+                PmBool32 rope;
+                PmBool32 softBodies;
+                PmBool32 smoke;
+                PmBool32 domainCouplings;
+                PmBool32 particleEmitters;
+                PmBool32 paint;
+                PmBool32 contactEvents;
+                PmBool32 debugData;
                 PmBool32 timelineSemaphores;
                 PmBool32 timestampQueries;
                 PmBool32 statisticsQueries;
@@ -341,7 +345,8 @@ SECTIONS = [
                 PM_FORMAT_R32G32B32_SFLOAT = 3,
                 PM_FORMAT_R32G32B32A32_SFLOAT = 4,
                 PM_FORMAT_PARTICLE_STATE = 5,
-                PM_FORMAT_RIGID_STATE = 6
+                PM_FORMAT_RIGID_STATE = 6,
+                PM_FORMAT_FLUID_PARTICLE_OUTPUT = 7
             } PmFormat;
             typedef struct PmBufferView {
                 PmBufferRange range;
@@ -388,6 +393,29 @@ SECTIONS += [
                 uint32_t particleCapacity;
                 uint32_t neighborCapacityPerParticle;
             } PmFluidCapacity;
+            typedef struct PmClothCapacity {
+                uint32_t vertexCapacity;
+                uint32_t triangleIndexCapacity;
+                uint32_t bondCapacity;
+            } PmClothCapacity;
+            typedef struct PmRopeCapacity {
+                uint32_t nodeCapacity;
+            } PmRopeCapacity;
+            typedef struct PmSoftBodyCapacity {
+                uint32_t nodeCapacity;
+                uint32_t bondCapacity;
+                uint32_t surfaceVertexCapacity;
+                uint32_t surfaceTriangleIndexCapacity;
+            } PmSoftBodyCapacity;
+            typedef struct PmSmokeCapacity {
+                uint32_t particleCapacity;
+                uint32_t gridCellCapacity;
+            } PmSmokeCapacity;
+            typedef struct PmPaintFieldCapacity {
+                uint32_t vertexCapacity;
+                uint32_t width;
+                uint32_t height;
+            } PmPaintFieldCapacity;
             typedef struct PmSimulationCreateInfo {
                 PmStructureType sType;
                 const void* pNext;
@@ -397,6 +425,21 @@ SECTIONS += [
                 uint32_t contactCapacity;
                 uint32_t fluidCount;
                 const PmFluidCapacity* pFluidCapacities;
+                uint32_t clothCount;
+                const PmClothCapacity* pClothCapacities;
+                uint32_t ropeCount;
+                const PmRopeCapacity* pRopeCapacities;
+                uint32_t softBodyCount;
+                const PmSoftBodyCapacity* pSoftBodyCapacities;
+                uint32_t smokeCount;
+                const PmSmokeCapacity* pSmokeCapacities;
+                uint32_t couplingCapacity;
+                uint32_t emitterCapacity;
+                uint32_t destroyerCapacity;
+                uint32_t paintFieldCount;
+                const PmPaintFieldCapacity* pPaintFieldCapacities;
+                uint32_t paintRuleCapacity;
+                uint32_t debugFrameCapacity;
             } PmSimulationCreateInfo;
         """, functions="""
             PmResult pmCreateSimulation(PmDevice device,
@@ -427,19 +470,16 @@ SECTIONS += [
         c("rigid_state", "Portable rigid state record", types="""
             typedef struct PmRigidState {
                 float position[3];
-                float reserved0;
                 float orientation[4];
                 float linearVelocity[3];
-                float reserved1;
                 float angularVelocity[3];
-                float reserved2;
             } PmRigidState;
             typedef enum PmMotionType {
                 PM_MOTION_STATIC = 0,
                 PM_MOTION_KINEMATIC = 1,
                 PM_MOTION_DYNAMIC = 2
             } PmMotionType;
-        """, text="The portable buffer record is 64 bytes with four 16-byte lanes. Reserved floats are zero. Quaternion identity is (0,0,0,1). Angular velocity is radians/second in world space. Static bodies do not integrate; kinematic states are application-driven and do not respond to forces.", links=("formats",)),
+        """, text="Quaternion identity is (0,0,0,1). Angular velocity is radians/second in world space. Static bodies do not integrate; kinematic states are application-driven and do not respond to forces.", links=("formats",)),
         c("bodies", "Body descriptions", types="""
             typedef struct PmRigidBodyInfo {
                 PmBool32 active;
@@ -452,7 +492,10 @@ SECTIONS += [
                 float restitution;
                 float linearDamping;
                 float angularDamping;
+                float maximumLinearSpeed;
+                float maximumAngularSpeed;
                 float collisionMargin;
+                uint64_t userData;
             } PmRigidBodyInfo;
         """, functions="""
             PmResult pmCmdWriteRigidBodies(
@@ -479,7 +522,34 @@ SECTIONS += [
                 PmSimulation simulation,
                 uint32_t firstBody, uint32_t count,
                 const PmRigidState* pStates);
-        """, text="Inputs accumulate for the next step, then clear. Forces apply across that step's substeps; impulses apply once, not once per substep. Units: N, N·m, N·s, N·m·s. Dynamic state edits and inputs wake bodies. SetRigidStates replaces pose and velocity without changing material/geometry; use it for kinematic targets or explicit pose changes."),
+            PmResult pmCmdSetKinematicTargets(
+                PmCommandBuffer commandBuffer,
+                PmSimulation simulation,
+                uint32_t firstBody, uint32_t count,
+                const PmRigidState* pTargets);
+        """, text="Inputs accumulate for the next step, then clear. Forces apply across that step's substeps; impulses apply once, not once per substep. Units: N, N·m, N·s, N·m·s. Dynamic state edits and inputs wake bodies. SetRigidStates replaces pose and velocity without changing material or geometry. SetKinematicTargets drives kinematic bodies through the next step."),
+        c("hit_boxes", "Hit-box queries", types="""
+            typedef struct PmHitBox {
+                float center[3];
+                float orientation[4];
+                float halfExtents[3];
+            } PmHitBox;
+            typedef struct PmHitBoxParticle {
+                uint32_t fluidIndex;
+                uint32_t stableParticleId;
+            } PmHitBoxParticle;
+            typedef struct PmHitBoxOutputHeader {
+                uint32_t rigidBodyCount;
+                uint32_t particleCount;
+                uint64_t revision;
+            } PmHitBoxOutputHeader;
+        """, functions="""
+            PmResult pmCmdQueryHitBox(
+                PmCommandBuffer commandBuffer,
+                PmSimulation simulation,
+                const PmHitBox* pBox,
+                const PmBufferRange* pDestination);
+        """, text="Output begins with PmHitBoxOutputHeader, followed by rigidBodyCount uint32_t body slots and particleCount PmHitBoxParticle records. Results are sorted by slot and stable particle ID."),
     ]),
     Section("constraints", "Rigid constraints", "Contacts and joints enter the same AVBD solve", [
         c("constraint_types", "Joint families", types="""
@@ -531,6 +601,8 @@ SECTIONS += [
                 PmAxisMotor linearMotors[3];
                 PmAxisMotor angularMotors[3];
                 PmBool32 collideConnected;
+                float breakingImpulseThreshold;
+                uint32_t solverIterations;
             } PmRigidConstraintInfo;
         """, functions="""
             PmResult pmCmdWriteRigidConstraints(
@@ -553,7 +625,7 @@ SECTIONS += [
             PmResult result = pmCmdWriteRigidConstraints(
                 cmd, sim, 0, 1, &joint);
         """, text="A body-local anchor one meter above the body's origin is held at a world anchor three meters high. The body can rotate freely. Its geometry, body slot and simulation storage must already exist. Submit the write before the next solve with the required update-to-physics dependency.", links=("barriers",)),
-        c("single_solve", "Iteration accounting", text="Pipeline rigidIterations is the per-phase budget shared by contacts and joints. The pose phase runs for each substep; impacted islands can also run a velocity-impact phase. Statistics report actual pose and impact iterations separately and sum executed work across substeps. One iteration is a valid budget, but does not guarantee convergence.", links=("step_stats", "rigid_solver")),
+        c("single_solve", "Iteration accounting", text="Pipeline rigidIterations is the scene-wide AVBD budget. When no explicit runtime override is recorded, the greatest solverIterations value authored by any enabled constraint raises that single budget for the solve. The pose phase runs for each substep; impacted bodies can also run a velocity-impact phase. Statistics report the executed budget. One iteration is valid, but does not guarantee convergence.", links=("step_stats", "rigid_solver")),
     ]),
     Section("pipelines", "Physics pipelines & materials", "Immutable configuration • explicit inter-domain coupling", [
         c("rigid_solver", "Rigid solver state", types="""
@@ -564,7 +636,7 @@ SECTIONS += [
                 float sleepAngularThreshold;
                 float sleepTimeSeconds;
             } PmRigidSolverState;
-        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is nonzero and ≤ maxRigidIterations. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled."),
+        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled."),
         c("liquid_material", "Particle-liquid material", types="""
             typedef struct PmLiquidMaterialState {
                 float restDensity;
@@ -573,28 +645,138 @@ SECTIONS += [
                 float restParticleVolume;
                 float pressureStiffness;
                 float kinematicViscosity;
+                float normalDamping;
                 float velocityDamping;
                 float maximumSpeed;
+                float maximumPairAcceleration;
                 uint32_t densityIterations;
             } PmLiquidMaterialState;
         """, text="Density: kg/m³; radii: m; rest volume: m³; pressure stiffness: Pa; kinematic viscosity: m²/s; damping: s⁻¹; speed: m/s. Density, radii, volume, maximumSpeed and iterations are positive; supportRadius ≥ 2 × particleRadius. Pressure stiffness, viscosity and damping are nonnegative. Material index equals the simulation's fluid index.<br/><br/>Materials configure a particle-liquid domain. Smoke, gas grids and non-Newtonian rheology are outside this material model.", tone="warm"),
         c("coupling", "Coupling state", types="""
             typedef enum PmCouplingType {
                 PM_COUPLING_LIQUID_RIGID = 0,
-                PM_COUPLING_LIQUID_LIQUID = 1
+                PM_COUPLING_LIQUID_LIQUID = 1,
+                PM_COUPLING_LIQUID_CLOTH = 2,
+                PM_COUPLING_LIQUID_ROPE = 3,
+                PM_COUPLING_LIQUID_SOFT_BODY = 4,
+                PM_COUPLING_LIQUID_SMOKE = 5,
+                PM_COUPLING_SOFT_BODY_CLOTH = 6,
+                PM_COUPLING_ROPE_SOFT_BODY = 7,
+                PM_COUPLING_ROPE_CLOTH = 8,
+                PM_COUPLING_SMOKE_RIGID = 9,
+                PM_COUPLING_SMOKE_CLOTH = 10,
+                PM_COUPLING_SMOKE_ROPE = 11,
+                PM_COUPLING_SMOKE_SOFT_BODY = 12
             } PmCouplingType;
-            typedef struct PmCouplingState {
-                PmCouplingType type;
-                uint32_t fluidA;
-                uint32_t fluidB;
+            typedef struct PmMechanicalCouplingState {
                 float contactDistance;
-                float normalStiffness;
-                float normalDamping;
+                float stiffness;
+                float damping;
+                float friction;
                 float tangentialDrag;
                 float maximumForce;
+                float maximumAcceleration;
                 PmBool32 twoWay;
+            } PmMechanicalCouplingState;
+            typedef struct PmSmokeCouplingState {
+                float windDrag;
+                float maximumWindAcceleration;
+                float airDensity;
+                float dragCoefficient;
+                float contactDistance;
+                PmBool32 tracerContact;
+            } PmSmokeCouplingState;
+            typedef struct PmThermalCouplingState {
+                float heaterCenter[3];
+                float heaterOrientation[4];
+                float heaterHalfExtents[2];
+                float heaterTemperature;
+                float boilingTemperature;
+                float heatTransferRate;
+                float windDrag;
+                float steamRiseSpeed;
+            } PmThermalCouplingState;
+            typedef struct PmAttachmentCouplingState {
+                uint32_t firstVertex;
+                uint32_t lastVertex;
+                float effectiveMass;
+                float supportRadiusScale;
+                float contactSupportRadiusScale;
+                float maximumAcceleration;
+                PmBool32 attachFirst;
+                PmBool32 attachLast;
+            } PmAttachmentCouplingState;
+            typedef struct PmCouplingParameters {
+                PmMechanicalCouplingState mechanical;
+                PmSmokeCouplingState smoke;
+                PmAttachmentCouplingState attachment;
+                PmThermalCouplingState thermal;
+            } PmCouplingParameters;
+            typedef struct PmCouplingState {
+                PmCouplingType type;
+                uint32_t first;
+                uint32_t second;
+                PmCouplingParameters parameters;
             } PmCouplingState;
-        """, text="LIQUID_RIGID connects fluidA to all active rigid bodies; fluidB must be PM_INVALID_INDEX. LIQUID_LIQUID requires distinct fluid indices and twoWay = true. No entry means no cross-domain interaction for that pair. Duplicate pairs are invalid.<br/><br/>Coefficients use m, N/m, N·s/m, N·s/m and N. All are nonnegative; maximumForce is positive. Two-way coupling applies equal-and-opposite pair impulses, before fixed/kinematic response constraints. One-way liquid/rigid coupling treats bodies as nonreactive obstacles. This is mechanical coupling, not automatic mixing, buoyancy, chemistry or heat exchange."),
+        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid."),
+        c("domain_materials", "Deformable, rope & smoke materials", types="""
+            typedef struct PmClothMaterialState {
+                float vertexMass;
+                float thickness;
+                float stretchCompliance;
+                float bendingCompliance;
+                float velocityDamping;
+                float contactFriction;
+                uint32_t solverIterations;
+                float breakStrain;
+                uint32_t fracturePersistenceSubsteps;
+                float impactBreakImpulse;
+                PmBool32 preserveVolume;
+                float targetVolume;
+                float volumeCompliance;
+            } PmClothMaterialState;
+            typedef struct PmRopeMaterialState {
+                float nodeSpacing;
+                float radius;
+                float mass;
+                float stretchCompliance;
+                float velocityDamping;
+                float maximumSubstepTimestep;
+                float friction;
+                float maximumSpeed;
+                uint32_t solverIterations;
+                PmBool32 selfCollision;
+            } PmRopeMaterialState;
+            typedef struct PmSoftBodyMaterialState {
+                float nodeMass;
+                float nodeRadius;
+                float stretchCompliance;
+                float velocityDamping;
+                float springDamping;
+                float contactFriction;
+                float shapeMatchingStiffness;
+                float maximumProjectionFraction;
+                float constraintVelocityResponse;
+                float maximumSpeed;
+                uint32_t solverIterations;
+            } PmSoftBodyMaterialState;
+            typedef struct PmSmokeMaterialState {
+                float particleRadius;
+                float buoyancy;
+                float response;
+                float restNumberDensity;
+                float pressureStiffness;
+                float viscosity;
+                float vorticityConfinement;
+                float maximumSpeed;
+                uint32_t gridResolution;
+                uint32_t gridVerticalResolution;
+                uint32_t gridPressureIterations;
+                float gridKinematicViscosity;
+                float gridLesCoefficient;
+                float gridPressureTolerance;
+            } PmSmokeMaterialState;
+        """),
         c("pipeline_create", "Pipeline creation", types="""
             typedef struct PmPhysicsPipelineCreateInfo {
                 PmStructureType sType;
@@ -604,6 +786,14 @@ SECTIONS += [
                 const PmLiquidMaterialState* pFluidMaterials;
                 uint32_t couplingCount;
                 const PmCouplingState* pCouplings;
+                uint32_t clothMaterialCount;
+                const PmClothMaterialState* pClothMaterials;
+                uint32_t ropeMaterialCount;
+                const PmRopeMaterialState* pRopeMaterials;
+                uint32_t softBodyMaterialCount;
+                const PmSoftBodyMaterialState* pSoftBodyMaterials;
+                uint32_t smokeMaterialCount;
+                const PmSmokeMaterialState* pSmokeMaterials;
             } PmPhysicsPipelineCreateInfo;
         """, functions="""
             PmResult pmCreatePhysicsPipeline(
@@ -620,6 +810,267 @@ SECTIONS += [
 ]
 
 SECTIONS += [
+    Section("domains", "Simulation domains & events", "Recorded creation, updates, output and diagnostics", [
+        c("domain_records", "Shared records", types="""
+            typedef struct PmFloat2 { float x; float y; } PmFloat2;
+            typedef struct PmFloat3 { float x; float y; float z; } PmFloat3;
+            typedef struct PmSoftBodyBond {
+                uint32_t first;
+                uint32_t second;
+                float restLength;
+            } PmSoftBodyBond;
+            typedef struct PmSoftBodySurfaceBinding {
+                uint32_t nodes[4];
+                float weights[4];
+            } PmSoftBodySurfaceBinding;
+            typedef struct PmDomainOutputHeader {
+                uint32_t activeCount;
+                uint32_t capacity;
+                uint64_t revision;
+            } PmDomainOutputHeader;
+        """),
+        c("cloth_resources", "Cloth resources", types="""
+            typedef struct PmClothInfo {
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t vertexCount;
+                const PmFloat3* pVertices;
+                uint32_t triangleIndexCount;
+                const uint32_t* pTriangleIndices;
+                const float* pInverseMasses;
+            } PmClothInfo;
+            typedef struct PmClothVertexState {
+                PmFloat3 position;
+                PmFloat3 velocity;
+                PmFloat3 rigidContactForce;
+                PmFloat3 liquidContactForce;
+                PmFloat3 softBodyContactForce;
+                PmFloat3 ropeContactForce;
+            } PmClothVertexState;
+        """, functions="""
+            PmResult pmCmdWriteCloths(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstCloth,
+                uint32_t count, const PmClothInfo* pCloths);
+            PmResult pmCmdCopyClothState(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t clothIndex,
+                const PmBufferRange* pDestination);
+            PmResult pmCmdCopyClothSurface(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t clothIndex,
+                const PmBufferRange* pDestination);
+        """),
+        c("rope_resources", "Rope resources", types="""
+            typedef struct PmRopeAttachment {
+                uint32_t rigidBodyIndex;
+                PmFloat3 localAnchor;
+                PmBool32 enabled;
+            } PmRopeAttachment;
+            typedef struct PmRopeInfo {
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t pointCount;
+                const PmFloat3* pCenterline;
+                PmRopeAttachment first;
+                PmRopeAttachment last;
+            } PmRopeInfo;
+            typedef struct PmRopeNodeState {
+                PmFloat3 position;
+                PmFloat3 velocity;
+                PmFloat3 constraintForce;
+                PmFloat3 contactForce;
+                PmFloat3 liquidContactForce;
+                PmFloat3 softBodyContactForce;
+            } PmRopeNodeState;
+        """, functions="""
+            PmResult pmCmdWriteRopes(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstRope,
+                uint32_t count, const PmRopeInfo* pRopes);
+            PmResult pmCmdCopyRopeState(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t ropeIndex,
+                const PmBufferRange* pDestination);
+        """),
+        c("soft_body_resources", "Soft-body resources", types="""
+            typedef struct PmSoftBodyInfo {
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t nodeCount;
+                const PmFloat3* pNodes;
+                uint32_t bondCount;
+                const PmSoftBodyBond* pBonds;
+                const float* pInverseMasses;
+                uint32_t surfaceVertexCount;
+                const PmFloat3* pSurfaceVertices;
+                uint32_t surfaceTriangleIndexCount;
+                const uint32_t* pSurfaceTriangleIndices;
+                const PmSoftBodySurfaceBinding* pSurfaceBindings;
+            } PmSoftBodyInfo;
+            typedef struct PmSoftBodyNodeState {
+                PmFloat3 position;
+                PmFloat3 velocity;
+                PmFloat3 rigidContactForce;
+                PmFloat3 clothContactForce;
+                PmFloat3 liquidContactForce;
+                PmFloat3 ropeContactForce;
+            } PmSoftBodyNodeState;
+        """, functions="""
+            PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstSoftBody,
+                uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+            PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t softBodyIndex,
+                const PmBufferRange* pDestination);
+            PmResult pmCmdCopySoftBodySurface(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t softBodyIndex,
+                const PmBufferRange* pDestination);
+        """),
+        c("smoke_resources", "Smoke resources", types="""
+            typedef struct PmSmokeInfo {
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t particleCapacity;
+                PmFloat3 emitterCenter;
+                PmFloat2 emitterHalfExtents;
+                PmFloat3 initialVelocity;
+                PmFloat3 wind;
+                float particlesPerSecond;
+                float lifetime;
+                PmFloat3 gridMinimum;
+                float gridEdgeLength;
+            } PmSmokeInfo;
+            typedef struct PmSmokeParticleState {
+                PmFloat3 position;
+                PmFloat3 velocity;
+                float age;
+                float numberDensity;
+                float pressure;
+                PmFloat3 vorticity;
+            } PmSmokeParticleState;
+        """, functions="""
+            PmResult pmCmdWriteSmoke(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstSmoke,
+                uint32_t count, const PmSmokeInfo* pSmoke);
+            PmResult pmCmdCopySmokeState(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t smokeIndex,
+                const PmBufferRange* pDestination);
+        """),
+        c("emitters", "Emitters & destruction", types="""
+            typedef struct PmParticleEmitterInfo {
+                PmBool32 active;
+                uint32_t fluidIndex;
+                uint32_t vertexCount;
+                const PmFloat3* pVertices;
+                uint32_t triangleIndexCount;
+                const uint32_t* pTriangleIndices;
+                float spacing;
+                PmFloat3 initialVelocity;
+                float initialTemperatureCelsius;
+            } PmParticleEmitterInfo;
+            typedef enum PmCrossingDirection {
+                PM_CROSSING_ALONG_NORMAL = 0,
+                PM_CROSSING_AGAINST_NORMAL = 1,
+                PM_CROSSING_EITHER = 2
+            } PmCrossingDirection;
+            typedef struct PmParticleDestroyerInfo {
+                PmBool32 active;
+                uint32_t fluidIndex;
+                PmFloat3 center;
+                float orientation[4];
+                PmFloat2 halfExtents;
+                PmCrossingDirection crossing;
+            } PmParticleDestroyerInfo;
+        """, functions="""
+            PmResult pmCmdWriteParticleEmitters(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstEmitter,
+                uint32_t count, const PmParticleEmitterInfo* pEmitters);
+            PmResult pmCmdWriteParticleDestroyers(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstDestroyer,
+                uint32_t count, const PmParticleDestroyerInfo* pDestroyers);
+        """),
+        c("paint_resources", "Paint fields & rules", types="""
+            typedef enum PmPaintTargetType {
+                PM_PAINT_TARGET_RIGID = 0,
+                PM_PAINT_TARGET_CLOTH = 1
+            } PmPaintTargetType;
+            typedef struct PmPaintFieldInfo {
+                PmBool32 active;
+                PmPaintTargetType targetType;
+                uint32_t targetIndex;
+                PmGeometry geometry;
+                uint32_t vertexCount;
+                const PmFloat2* pVertexUvs;
+                uint32_t width;
+                uint32_t height;
+            } PmPaintFieldInfo;
+            typedef enum PmPaintSourceType {
+                PM_PAINT_SOURCE_LIQUID = 0,
+                PM_PAINT_SOURCE_RIGID = 1
+            } PmPaintSourceType;
+            typedef struct PmPaintRuleInfo {
+                PmBool32 active;
+                PmPaintSourceType sourceType;
+                uint32_t sourceIndex;
+                uint32_t targetFieldIndex;
+                float reach;
+                float brushRadius;
+            } PmPaintRuleInfo;
+        """, functions="""
+            PmResult pmCmdWritePaintFields(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstField,
+                uint32_t count, const PmPaintFieldInfo* pFields);
+            PmResult pmCmdWritePaintRules(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstRule,
+                uint32_t count, const PmPaintRuleInfo* pRules);
+            PmResult pmCmdClearPaintFields(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstField,
+                uint32_t count);
+            PmResult pmCmdCopyPaintField(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t fieldIndex,
+                const PmBufferRange* pDestination);
+        """),
+        c("event_outputs", "Constraint, contact & debug output", types="""
+            typedef struct PmConstraintState {
+                PmBool32 enabled;
+                PmBool32 broken;
+                float appliedImpulse;
+            } PmConstraintState;
+            typedef enum PmContactEventType {
+                PM_CONTACT_RIGID_RIGID = 0,
+                PM_CONTACT_LIQUID_RIGID = 1
+            } PmContactEventType;
+            typedef struct PmContactEvent {
+                PmContactEventType type;
+                uint32_t first;
+                uint32_t second;
+                PmFloat3 position;
+                PmFloat3 normal;
+                float penetration;
+                float normalImpulse;
+                PmFloat3 frictionImpulse;
+            } PmContactEvent;
+            typedef enum PmDebugRecordType {
+                PM_DEBUG_RIGID = 0,
+                PM_DEBUG_LIQUID = 1,
+                PM_DEBUG_CLOTH = 2,
+                PM_DEBUG_ROPE = 3,
+                PM_DEBUG_SOFT_BODY = 4
+            } PmDebugRecordType;
+            typedef struct PmDebugRecord {
+                PmDebugRecordType type;
+                uint32_t objectIndex;
+                uint32_t elementIndex;
+                PmFloat3 position;
+                PmFloat3 velocity;
+                PmFloat3 force;
+            } PmDebugRecord;
+        """, functions="""
+            PmResult pmCmdCopyConstraintStates(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstConstraint,
+                uint32_t count, const PmBufferRange* pDestination);
+            PmResult pmCmdCopyContactEvents(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, const PmBufferRange* pDestination);
+            PmResult pmCmdCopyDebugData(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, const PmBufferRange* pDestination);
+        """),
+    ]),
     Section("commands", "Command recording & lifecycle", "Record now; execute when a queue receives the buffer", [
         c("command_pool", "Command pools", types="""
             enum {
@@ -666,10 +1117,17 @@ SECTIONS += [
         c("simulation_init", "Reset & particle initialization", types="""
             typedef struct PmParticleState {
                 float position[3];
-                float temperatureKelvin;
                 float velocity[3];
-                float reserved;
+                float temperatureCelsius;
             } PmParticleState;
+            typedef struct PmFluidParticleOutput {
+                float position[3];
+                float velocity[3];
+                float acceleration[3];
+                float temperatureCelsius;
+                float foam;
+                uint32_t stableId;
+            } PmFluidParticleOutput;
         """, functions="""
             PmResult pmCmdResetSimulation(
                 PmCommandBuffer commandBuffer,
@@ -681,10 +1139,14 @@ SECTIONS += [
                 const PmBufferView* pParticles);
         """, text="Reset is required after binding memory. It clears active bodies, joints, particles, loads, sleep history and step status; it preserves capacities. SetFluidParticles replaces one fluid population from PARTICLE_STATE input. count ≤ capacity; count zero clears the population and ignores range/format/stride. Nonzero input requires PARTICLE_INPUT usage. Temperature is carried state; the liquid model does not solve heat transfer."),
         c("step", "Bind & step", types="""
+            enum {
+                PM_STEP_COLLECT_CONTACT_EVENTS_BIT = 0x1
+            };
             typedef struct PmStepInfo {
                 float timestep;
                 uint32_t substeps;
                 float gravity[3];
+                PmFlags flags;
             } PmStepInfo;
         """, functions="""
             PmResult pmCmdBindPhysicsPipeline(
@@ -694,7 +1156,7 @@ SECTIONS += [
                 PmCommandBuffer commandBuffer,
                 PmSimulation simulation,
                 const PmStepInfo* pStep);
-        """, text="timestep > 0 seconds; 1 ≤ substeps ≤ maxSubsteps. Each substep advances timestep/substeps. Time advances only by the supplied timestep. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.", links=("pipelines", "barriers")),
+        """, text="timestep > 0 seconds; 1 ≤ substeps ≤ maxSubsteps. Each substep advances timestep/substeps. Time advances only by the supplied timestep. PM_STEP_COLLECT_CONTACT_EVENTS_BIT records rigid and liquid contact events for later copy; without it the step avoids event-generation work and the copied event count is zero. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.", links=("pipelines", "barriers")),
     ], "lifecycle"),
     Section("transfer", "Data movement & output", "Renderer-visible buffers without exposing private solver layouts", [
         c("buffer_copy", "Buffer transfers", types="""
@@ -721,7 +1183,7 @@ SECTIONS += [
                 PmSimulation simulation,
                 uint32_t fluidIndex,
                 const PmBufferRange* pDestination);
-        """, text="Destination requires SIMULATION_OUTPUT and TRANSFER_DST usage. Rigid records are tightly packed 64-byte PmRigidState values in slot order; inactive slots produce zero position/velocities and identity orientation. Fluid records are tightly packed 32-byte PmParticleState values in population order. The destination must cover the addressed count, or the fluid's declared particle capacity. Bytes beyond active records are unchanged.<br/><br/>These commands execute in TRANSFER and read simulation state after a PHYSICS_WRITE → TRANSFER_READ dependency. A subsequent renderer needs a TRANSFER_WRITE dependency. Output copies make the portable contract independent of private SoA solver storage.", links=("formats", "barriers", "handoff")),
+        """, text="Destination requires SIMULATION_OUTPUT and TRANSFER_DST usage. Rigid records are tightly packed PmRigidState values in slot order; inactive slots produce zero position/velocities and identity orientation. Fluid output begins with PmDomainOutputHeader followed by active PmFluidParticleOutput records in population order. The destination must cover the addressed rigid count, or the fluid header plus declared particle capacity. Bytes beyond active records are unchanged.<br/><br/>These commands execute in TRANSFER and read simulation state after a PHYSICS_WRITE → TRANSFER_READ dependency. A subsequent renderer needs a TRANSFER_WRITE dependency. Output copies make the portable contract independent of private SoA solver storage.", links=("formats", "barriers", "handoff")),
         c("frame_recipe", "Frame sequence (pseudocode)", code="""
             begin(cmd);
               resetQueries();
@@ -946,7 +1408,7 @@ SECTIONS += [
                 PmDevice* pDevice);
             PmResult pmGetVulkanDeviceEXT(PmDevice device,
                 PmVulkanDeviceInfo* pNativeDevice);
-        """, text="Declared in parallel_mater_vulkan.h. Requires Vulkan 1.3, timelineSemaphore and synchronization2 actually enabled at native device creation. Caller must report enabled state truthfully. Match an enumerated physical-device UUID with vulkanInterop support. Imports borrow every native object; PM destroys only its wrappers and internal children. Get returns borrowed handles for either an imported or PM-owned native device; never destroy PM-owned handles through Vulkan. Queue family/index values retain their Vulkan meanings."),
+        """, text="Declared in interop_vulkan.h. Requires Vulkan 1.3, timelineSemaphore and synchronization2 actually enabled at native device creation. Caller must report enabled state truthfully. Match an enumerated physical-device UUID with vulkanInterop support. Imports borrow every native object; PM destroys only its wrappers and internal children. Get returns borrowed handles for either an imported or PM-owned native device; never destroy PM-owned handles through Vulkan. Queue family/index values retain their Vulkan meanings."),
         c("vulkan_buffer", "Typed Vulkan buffer adapter", extension=True, types="""
             typedef struct PmVulkanBufferImportInfo {
                 VkBuffer buffer;
@@ -1017,7 +1479,7 @@ SECTIONS += [
                 uint64_t scratchHighWaterBytes;
                 uint64_t overflowCount;
                 int32_t executionResult;
-                uint32_t reserved;
+                uint32_t earlyExitCount;
             } PmStepStatistics;
         """, functions="""
             PmResult pmCmdBeginStatisticsQuery(
@@ -1099,7 +1561,7 @@ SECTIONS += [
                 PmFormat format,
                 PmFormatProperties* pProperties);
         """, text="UNDEFINED or an unsupported format returns zero properties. Supported formats have the fixed layouts below; implementation-specific packed formats are not inferred. Query flags express usage support, not a separate simulation model."),
-        c("format_layouts", "Portable buffer layouts", rows=[("R32_UINT", "4 bytes / alignment 4 / unsigned index"), ("R32_SFLOAT", "4 bytes / alignment 4 / IEEE binary32"), ("R32G32B32_SFLOAT", "12 bytes / alignment 4 / x,y,z"), ("R32G32B32A32_SFLOAT", "16 bytes / alignment 4 / x,y,z,w"), ("PARTICLE_STATE", "32 bytes / alignment 4 / PmParticleState"), ("RIGID_STATE", "64 bytes / alignment 4 / PmRigidState")], text="Record arrays are little-endian. These buffer layouts have fixed offsets, regardless of a shader language's native vector packing. PmRigidBodyInfo and other handle-containing host descriptors are not GPU binary layouts. Do not memcpy them into storage buffers. Scalar fields are 32-bit unless explicitly declared otherwise."),
+        c("format_layouts", "Portable buffer layouts", rows=[("R32_UINT", "4 bytes / alignment 4 / unsigned index"), ("R32_SFLOAT", "4 bytes / alignment 4 / IEEE binary32"), ("R32G32B32_SFLOAT", "12 bytes / alignment 4 / x,y,z"), ("R32G32B32A32_SFLOAT", "16 bytes / alignment 4 / x,y,z,w"), ("PARTICLE_STATE", "28 bytes / alignment 4 / PmParticleState"), ("FLUID_PARTICLE_OUTPUT", "48 bytes / alignment 4 / PmFluidParticleOutput"), ("RIGID_STATE", "52 bytes / alignment 4 / PmRigidState")], text="Record arrays are little-endian. These buffer layouts have fixed offsets, regardless of a shader language's native vector packing. PmRigidBodyInfo and other handle-containing host descriptors are not GPU binary layouts. Do not memcpy them into storage buffers. Scalar fields are 32-bit unless explicitly declared otherwise."),
         c("feature_matrix", "Dependency checklist", rows=[("Rigid contacts", "rigidBodies"), ("Rigid joints", "rigidBodies + rigidConstraints"), ("One liquid", "particleLiquids"), ("Liquid ↔ bodies", "both domains + liquidRigidCoupling"), ("Liquid ↔ liquid", "particleLiquids + liquidLiquidCoupling"), ("GPU timing", "timestampQueries + queue timestamp bits"), ("Solver counters", "statisticsQueries"), ("Native object sharing", "Per-backend import capabilities"), ("Typed Vulkan adapters", "vulkanInterop + required native features")], text="Report a feature only when its required behavior is supported. Requesting unsupported features or coupling pairs fails with FEATURE_NOT_PRESENT.", links=("features", "native_support")),
         c("threading", "Threading & data races", text="Physical-device queries are safe to call concurrently. Distinct command pools can record independently. Host access to the same queue, pool, fence, mapped range or mutable resource must be externally synchronized. Destroying an object must also be synchronized against queries that use it.<br/><br/>GPU races are a separate concern. Serialize writes to a simulation, coordinate shared input/output buffers, and avoid changing CPU-mapped bytes while a pending command may read them. Callback implementations must support concurrency across independently accessed objects."),
         c("not_capabilities", "Core scope", text="Core 0.2 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.<br/><br/>Cloth, ropes, soft bodies, smoke, emitters and paint require domain-specific extensions. Unknown pNext structures are errors.", links=("features",), tone="warm"),

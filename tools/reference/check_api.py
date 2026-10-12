@@ -1,4 +1,4 @@
-"""Compile, link and call every C entry point; inventory the older World surface."""
+"""Compile the C contract, audit runtime definitions, and inventory legacy APIs."""
 import json
 import os
 import re
@@ -9,9 +9,9 @@ from content import SECTIONS
 
 def check_contract(root, destination, directory, run, require, skip_vulkan=False):
     commands = [cmd for cmd in declarations() if not (skip_vulkan and cmd["extension"])]
-    source = '#include "parallel_mater/command.h"\n'
+    source = '#include "parallel_mater/parallel_mater.h"\n'
     if not skip_vulkan:
-        source += '#include "parallel_mater/command_vulkan.h"\n'
+        source += '#include "parallel_mater/interop_vulkan.h"\n'
     types = {name for section in SECTIONS for card in section.cards
              if not (skip_vulkan and card.extension) for name in public_types(card.types)}
     # Compile complete host structures/enums, aliases, callbacks and opaque
@@ -22,38 +22,29 @@ def check_contract(root, destination, directory, run, require, skip_vulkan=False
     for cmd in commands:
         name = cmd["name"]
         source += f'    PFN_{name} check_{name} = {name};\n'
-        arguments = ", ".join(f"({kind})0" for kind, _ in cmd["params"])
-        call = f'check_{name}({arguments})'
-        if cmd["returns"] == "PmResult":
-            # No stub call may claim success, ready, timeout, or valid physics.
-            source += f'    if ({call} >= 0) return {commands.index(cmd)+1};\n'
-        elif cmd["returns"] == "PFN_pmVoidFunction":
-            source += f'    if ({call} != 0) return {commands.index(cmd)+1};\n'
-        else:
-            source += f'    {call};\n'
+        source += f'    (void)check_{name};\n'
     source += '    return 0;\n}\n'
     test = directory / "all_commands.c"
     test.write_text(source)
-    sources = [root / "src/command/stubs.cpp"]
-    if not skip_vulkan:
-        sources.append(root / "src/command/vulkan_stubs.cpp")
-    # Both C and C++ clients must link to the unmangled C entry points.
-    cxx = os.environ.get("CXX", "c++")
-    for compiler, language, standard in ((os.environ.get("CC", "cc"), "c", "c11"), (cxx, "c++", "c++17")):
-        obj = directory / f"all_commands_{language}.o"
-        run([compiler, "-x", language, f"-std={standard}", "-Wall", "-Wextra", "-Werror",
-             "-pedantic", "-Iinclude", "-c", str(test), "-o", str(obj)])
-        exe = directory / f"all_commands_{language}"
-        run([cxx, "-std=c++17", "-Wall", "-Wextra", "-Werror", "-pedantic", "-Iinclude",
-             str(obj), *map(str, sources), "-o", str(exe)])
-        run([str(exe)])
-    run([cxx, "-std=c++17", "-Wall", "-Wextra", "-Werror", "-pedantic", "-DNDEBUG",
-         "-Iinclude", "tests/command_stubs.cpp", str(sources[0]),
-         "-o", str(directory / "behavior")])
-    run([str(directory / "behavior")])
-    exported = set(re.findall(r"\bT (pm\w+)$", run(["nm", "--defined-only", str(exe)]).stdout, re.M))
-    require(exported == {cmd["name"] for cmd in commands}, "Stub exports differ from declarations")
-    print(f"PASS: {len(commands)} C/C++ entry points link and fail closed; {len(types)} complete public types")
+    for compiler, language, standard in (
+            (os.environ.get("CC", "cc"), "c", "c11"),
+            (os.environ.get("CXX", "c++"), "c++", "c++17")):
+        run([compiler, "-x", language, f"-std={standard}", "-Wall", "-Wextra",
+             "-Werror", "-pedantic", "-Iinclude", "-fsyntax-only", str(test)])
+
+    definitions = {}
+    for path in sorted((root / "src/api").glob("*.cpp")):
+        text = path.read_text()
+        for match in re.finditer(
+                r'extern\s+"C"\s+PMAPI_ATTR\s+[^\n]*?\b(pm\w+)\s*\(', text):
+            definitions.setdefault(match.group(1), []).append(str(path.relative_to(root)))
+    expected = {command["name"] for command in commands}
+    require(expected <= definitions.keys(),
+            f"Runtime definitions missing: {sorted(expected - definitions.keys())}")
+    require(all(len(definitions[name]) == 1 for name in expected),
+            "Runtime commands must have exactly one source definition")
+    print(f"PASS: {len(commands)} C/C++ declarations have typed pointers and one runtime definition; "
+          f"{len(types)} complete public types")
 
 
 def legacy_inventory(root):

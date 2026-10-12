@@ -2,7 +2,9 @@
 // Slang mirror of src/geometry_smoke.cuh. Rigid-contact entries follow the
 // standalone particle solver and shared wind sampler below.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import fluid;
 import geometry_fluid;
 import smoke_grid;

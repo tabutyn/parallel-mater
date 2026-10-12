@@ -8,7 +8,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
     endif()
 
     set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/slang/mirrors")
-    file(GLOB slang_dependencies CONFIGURE_DEPENDS
+    file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
     set(outputs)
 
@@ -72,19 +72,19 @@ function(parallel_mater_add_slang_kernel_mirrors)
         fluid_soft_solve fluid_soft_apply fluid_soft_recover)
     add_mirror(geometry_cloth cloth_constrain_bodies
         cloth_apply_body_corrections)
-    add_mirror(geometry integrate_rigid_bodies_kernel
-        compute_rigid_world_bounds_kernel broad_phase_rigid_pairs_kernel
-        generate_rigid_leaf_pairs_kernel evaluate_rigid_leaf_pairs_kernel
-        reduce_rigid_leaf_manifolds_kernel
-        finalize_rigid_contact_manifolds_kernel clear_rigid_inputs_kernel
-        capture_rigid_inputs_kernel prepare_parallel_contact_events_kernel
-        load_rigid_contact_cache_kernel save_rigid_contact_cache_kernel
-        gather_rigid_debug_samples_kernel clamp_rigid_speeds_kernel
-        build_fixed_collision_groups_kernel)
+    add_mirror(geometry pm_integrate_rigid_bodies
+        pm_compute_rigid_world_bounds pm_broad_phase_rigid_pairs
+        pm_generate_rigid_leaf_pairs pm_evaluate_rigid_leaf_pairs
+        pm_reduce_rigid_leaf_manifolds
+        pm_finalize_rigid_contact_manifolds pm_clear_rigid_inputs
+        pm_capture_rigid_inputs pm_prepare_parallel_contact_events
+        pm_load_rigid_contact_cache pm_save_rigid_contact_cache
+        pm_gather_rigid_debug_samples pm_clamp_rigid_speeds
+        pm_build_fixed_collision_groups)
     add_mirror(geometry_fluid fluid_static_contacts fluid_body_bounds_kernel
         fluid_index_body_cells fluid_detect_moving_contacts
         fluid_resolve_moving_contacts reduce_point_body_impulses)
-    add_mirror(geometry_rope rope_advance)
+    add_mirror(rope rope_advance)
     add_mirror(geometry_smoke smoke_emit_cells smoke_density_pressure
         smoke_pair_forces smoke_compute_vorticity smoke_advect smoke_emit
         smoke_deformable_bounds smoke_rigid_contact
@@ -118,7 +118,10 @@ function(parallel_mater_add_slang_kernel_mirrors)
     add_mirror(soft_body_rope rope_soft_sample_anchor
         rope_soft_scatter_anchor rope_soft_apply)
     add_mirror(soft_body_smoke smoke_soft_body_wind smoke_soft_body_contact)
-    add_mirror(world query_rigid_hit_box_kernel query_particle_hit_box_kernel)
+    add_mirror(queries query_rigid_hit_box_kernel query_particle_hit_box_kernel)
+    add_mirror(primitives pm_exclusive_scan_u32 pm_compact_count_blocks
+        pm_compact_scatter_indices pm_radix_histogram_u64
+        pm_radix_prefix_u32 pm_radix_scatter_u64_u32)
     add_mirror(geometry_constraints prepare_avbd_kernel solve_avbd_kernel)
 
     add_custom_target(parallel-mater-slang-kernel-mirrors ALL

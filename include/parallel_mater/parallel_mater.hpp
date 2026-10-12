@@ -373,6 +373,12 @@ class World {
                                               RigidBodyState target) noexcept;
     [[nodiscard]] Status apply_force(RigidBodyId body, Vec3 force,
                                      Vec3 world_point) noexcept;
+    // Applies center-of-mass linear and angular inputs without state readback.
+    // Force and torque persist for the next step; impulses are consumed by
+    // that step's first substep.
+    [[nodiscard]] Status apply_rigid_input(
+        RigidBodyId body, Vec3 force, Vec3 torque, Vec3 linear_impulse,
+        Vec3 angular_impulse) noexcept;
     // Applies one acceleration at each body's center of mass without state
     // readback. Validation is transactional: no body changes on failure.
     [[nodiscard]] Status apply_central_acceleration(

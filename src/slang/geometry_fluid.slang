@@ -2,7 +2,9 @@
 // Slang mirror of src/geometry_fluid.cuh. Geometry contact kernels follow the
 // shared closest-point helpers used by the coupling modules.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 
 groupshared Vec3 fluid_impulse_linear[128];
 groupshared Vec3 fluid_impulse_angular[128];
@@ -424,7 +426,9 @@ void fluid_detect_moving_contacts(
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
-    contacts[particle] = {};
+    FluidMovingContact emptyContact = {};
+    emptyContact.body = kInvalidDense;
+    contacts[particle] = emptyContact;
     Vec3 start = previous[particle], end = positions[particle];
     float bestPenetration = 0.0f;
     Vec3 bestNormal = {}, bestContact = {};
@@ -538,7 +542,9 @@ void fluid_resolve_moving_contacts(
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
-    impulses[particle] = {};
+    FluidBodyImpulse emptyImpulse = {};
+    emptyImpulse.body = kInvalidDense;
+    impulses[particle] = emptyImpulse;
     Vec3 end = positions[particle];
     FluidMovingContact contact = contacts[particle];
     Vec3 bestNormal = contact.normal;

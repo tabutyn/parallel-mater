@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/overlay.hpp>
+#include <parallel_mater_gallery/scene.hpp>
+#include <scene_builder.hpp>
 #include <parallel_mater_gallery/bitmap_font.hpp>
 
 #include "vector_math.hpp"
@@ -187,7 +189,7 @@ void arrow(std::vector<std::uint32_t> &rgba, std::uint32_t width,
 
 void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
                 std::uint32_t height, int y, const char *label,
-                KernelTiming timing) {
+                GalleryKernelTiming timing) {
     char value[96]{};
     std::snprintf(value, sizeof(value), "%-12s %7.3f MS  %u X", label,
                   timing.total_milliseconds, timing.launch_count);
@@ -196,7 +198,7 @@ void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
 
 struct TimingRow {
     const char *label{};
-    KernelTiming timing{};
+    GalleryKernelTiming timing{};
 };
 
 void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
@@ -226,8 +228,8 @@ void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
 
 void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
                          std::uint32_t width, std::uint32_t height,
-                         const WorldStepTimings &timings,
-                         const WorldStatistics &statistics) {
+                         const GalleryStepTimings &timings,
+                         const GalleryStatistics &statistics) {
     const std::array rows{
         TimingRow{"INTEGRATE", timings.rigid_integration},
         TimingRow{"BOUNDS", timings.rigid_world_bounds},
@@ -253,9 +255,9 @@ void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
-                               const WorldStepTimings &physics,
+                               const GalleryStepTimings &physics,
                                const RendererTimings &renderer,
-                               const WorldStatistics &statistics,
+                               const GalleryStatistics &statistics,
                                std::uint32_t capacity) {
     const std::array rows{
         TimingRow{"AIR GRID", physics.smoke_grid},
@@ -283,7 +285,7 @@ void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
-                               const WorldStepTimings &timings) {
+                               const GalleryStepTimings &timings) {
     const std::array rows{
         TimingRow{"RIGID STEP",
             {timings.rigid_integration.total_milliseconds +
@@ -302,7 +304,7 @@ void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
                                    std::uint32_t width, std::uint32_t height,
-                                   const WorldStepTimings &timings) {
+                                   const GalleryStepTimings &timings) {
     const std::array rows{
         TimingRow{"RIGID STEP",
             {timings.rigid_integration.total_milliseconds +
@@ -329,9 +331,9 @@ void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
-                               const WorldStepTimings &physics,
+                               const GalleryStepTimings &physics,
                                const RendererTimings &renderer,
-                               const WorldStatistics &statistics,
+                               const GalleryStatistics &statistics,
                                std::uint32_t capacity) {
     const std::array rows{
         TimingRow{"SPAWN", physics.fluid_spawn},
@@ -1310,6 +1312,318 @@ void draw_brick_settings_overlay(
     text(rgba, width, height, center_x - 260, center_y + 138,
          "C AUTO-CALIBRATE  V VERIFY AND SAVE  ESC CANCEL",
          {160, 190, 210, 255}, 1);
+}
+
+bool draw_rigid_contact_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const std::vector<PmContactEvent> &contacts,
+    Camera camera, std::string &error) {
+    error.clear();
+    for (const PmContactEvent &contact : contacts) {
+        if (contact.type != PM_CONTACT_RIGID_RIGID) continue;
+        const Vec3 position{contact.position.x, contact.position.y,
+                            contact.position.z};
+        const Vec3 normal{contact.normal.x, contact.normal.y,
+                          contact.normal.z};
+        const Vec3 friction{contact.frictionImpulse.x,
+                            contact.frictionImpulse.y,
+                            contact.frictionImpulse.z};
+        const ScreenPoint origin = project(position, camera, width, height);
+        if (!origin.visible) continue;
+        for (int offset = -3; offset <= 3; ++offset) {
+            pixel(rgba, width, height, origin.x + offset, origin.y,
+                  {255, 70, 70, 255});
+            pixel(rgba, width, height, origin.x, origin.y + offset,
+                  {255, 70, 70, 255});
+        }
+        arrow(rgba, width, height, origin,
+              project(add(position, multiply(normal, std::clamp(
+                  0.16F + contact.normalImpulse * 0.04F, 0.16F, 0.45F))),
+                  camera, width, height), {70, 255, 110, 255});
+        const float friction_size = length(friction);
+        if (friction_size > 1.0e-6F)
+            arrow(rgba, width, height, origin,
+                  project(add(position, multiply(
+                      friction, std::clamp(0.12F + friction_size * 0.08F,
+                                           0.12F, 0.4F) / friction_size)),
+                      camera, width, height), {255, 190, 45, 255});
+    }
+    return true;
+}
+
+namespace {
+
+[[nodiscard]] Vec3 host(PmFloat3 value) noexcept {
+    return {value.x, value.y, value.z};
+}
+
+template <typename State>
+[[nodiscard]] std::vector<Vec3> positions_of(
+    const std::vector<State> &states) {
+    std::vector<Vec3> output;
+    output.reserve(states.size());
+    for (const State &state : states) output.push_back(host(state.position));
+    return output;
+}
+
+void draw_indexed_edges(std::vector<std::uint32_t> &rgba,
+                        std::uint32_t width, std::uint32_t height,
+                        const std::vector<Vec3> &positions,
+                        const std::vector<std::uint32_t> &indices,
+                        Camera camera, Color value) {
+    for (std::size_t triangle = 0U; triangle + 2U < indices.size();
+         triangle += 3U) {
+        const std::uint32_t ids[3]{indices[triangle], indices[triangle + 1U],
+                                   indices[triangle + 2U]};
+        if (ids[0] >= positions.size() || ids[1] >= positions.size() ||
+            ids[2] >= positions.size()) continue;
+        for (std::size_t edge = 0U; edge < 3U; ++edge) {
+            const ScreenPoint first = project(
+                positions[ids[edge]], camera, width, height);
+            const ScreenPoint second = project(
+                positions[ids[(edge + 1U) % 3U]], camera, width, height);
+            if (first.visible && second.visible)
+                line(rgba, width, height, first.x, first.y,
+                     second.x, second.y, value);
+        }
+    }
+}
+
+void draw_normals(std::vector<std::uint32_t> &rgba,
+                  std::uint32_t width, std::uint32_t height,
+                  const std::vector<Vec3> &positions,
+                  const std::vector<std::uint32_t> &indices,
+                  Camera camera) {
+    std::vector<Vec3> normals(positions.size());
+    for (std::size_t triangle = 0U; triangle + 2U < indices.size();
+         triangle += 3U) {
+        const std::uint32_t a = indices[triangle];
+        const std::uint32_t b = indices[triangle + 1U];
+        const std::uint32_t c = indices[triangle + 2U];
+        if (a >= positions.size() || b >= positions.size() ||
+            c >= positions.size()) continue;
+        const Vec3 face = cross(subtract(positions[b], positions[a]),
+                                subtract(positions[c], positions[a]));
+        normals[a] = add(normals[a], face);
+        normals[b] = add(normals[b], face);
+        normals[c] = add(normals[c], face);
+    }
+    const std::size_t stride = std::max<std::size_t>(
+        1U, (positions.size() + 699U) / 700U);
+    for (std::size_t vertex = 0U; vertex < positions.size(); vertex += stride) {
+        const Vec3 normal = normalized(normals[vertex]);
+        if (length(normal) <= 1.0e-6F) continue;
+        arrow(rgba, width, height,
+              project(positions[vertex], camera, width, height),
+              project(add(positions[vertex], multiply(normal, 0.065F)),
+                      camera, width, height), {31, 255, 56, 242});
+    }
+}
+
+void draw_force(std::vector<std::uint32_t> &rgba,
+                std::uint32_t width, std::uint32_t height, Vec3 position,
+                Vec3 force, Camera camera, Color value) {
+    const float magnitude = length(force);
+    if (!(magnitude > 1.0e-5F) || !std::isfinite(magnitude)) return;
+    const float amount = std::clamp(0.003F * magnitude, 0.012F, 0.14F);
+    arrow(rgba, width, height, project(position, camera, width, height),
+          project(add(position, multiply(force, amount / magnitude)),
+                  camera, width, height), value);
+}
+
+[[nodiscard]] std::vector<std::uint32_t> surface_indices(
+    const TriangleMesh &mesh, std::size_t surface_size) {
+    if (surface_size == mesh.indices.size()) {
+        std::vector<std::uint32_t> sequential(surface_size);
+        for (std::size_t index = 0; index < surface_size; ++index)
+            sequential[index] = static_cast<std::uint32_t>(index);
+        return sequential;
+    }
+    return mesh.indices;
+}
+
+} // namespace
+
+bool draw_cloth_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const SceneDefinition &scene,
+    const CommandSceneFrame &frame, std::uint32_t cloth, Camera camera,
+    ClothDebugOptions options, std::string &error) {
+    error.clear();
+    if (cloth >= scene.cloths.size() || cloth >= frame.cloth_vertices.size() ||
+        scene.cloths[cloth].mesh_index >= scene.meshes.size()) {
+        error = "cloth debug output is unavailable";
+        return false;
+    }
+    const auto &states = frame.cloth_vertices[cloth];
+    const auto &mesh = scene.meshes[scene.cloths[cloth].mesh_index];
+    const std::vector<Vec3> nodes = positions_of(states);
+    std::vector<Vec3> surface;
+    if (cloth < frame.cloth_surface_vertices.size()) {
+        surface.reserve(frame.cloth_surface_vertices[cloth].size());
+        for (PmFloat3 value : frame.cloth_surface_vertices[cloth])
+            surface.push_back(host(value));
+    }
+    if (surface.empty()) surface = nodes;
+    const std::vector<std::uint32_t> indices =
+        surface_indices(mesh, surface.size());
+    if (options.wireframe)
+        draw_indexed_edges(rgba, width, height, surface, indices, camera,
+                           {26, 230, 255, 225});
+    if (options.normals)
+        draw_normals(rgba, width, height, surface, indices, camera);
+    if (options.bonds)
+        draw_indexed_edges(rgba, width, height, nodes, mesh.indices, camera,
+                           {255, 155, 25, 220});
+    for (std::size_t index = 0U; index < states.size(); ++index) {
+        if (options.rigid_contact_forces) {
+            draw_force(rgba, width, height, nodes[index],
+                       host(states[index].rigidContactForce), camera,
+                       {31, 122, 255, 242});
+            draw_force(rgba, width, height, nodes[index],
+                       host(states[index].softBodyContactForce), camera,
+                       {205, 110, 255, 242});
+        }
+        if (options.fluid_contact_forces)
+            draw_force(rgba, width, height, nodes[index],
+                       host(states[index].liquidContactForce), camera,
+                       {255, 219, 20, 242});
+    }
+    return true;
+}
+
+bool draw_soft_body_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const SceneDefinition &scene,
+    const CommandSceneFrame &frame, std::uint32_t body, Camera camera,
+    ClothDebugOptions options, std::string &error) {
+    error.clear();
+    if (body >= scene.soft_bodies.size() ||
+        body >= frame.soft_body_nodes.size() ||
+        body >= frame.soft_body_surface_vertices.size() ||
+        scene.soft_bodies[body].mesh_index >= scene.meshes.size()) {
+        error = "soft-body debug output is unavailable";
+        return false;
+    }
+    const auto &definition = scene.soft_bodies[body];
+    const auto &states = frame.soft_body_nodes[body];
+    const std::vector<Vec3> nodes = positions_of(states);
+    std::vector<Vec3> surface;
+    surface.reserve(frame.soft_body_surface_vertices[body].size());
+    for (PmFloat3 value : frame.soft_body_surface_vertices[body])
+        surface.push_back(host(value));
+    const auto &indices = scene.meshes[definition.mesh_index].indices;
+    if (options.wireframe)
+        draw_indexed_edges(rgba, width, height, surface, indices, camera,
+                           {186, 105, 255, 225});
+    if (options.normals)
+        draw_normals(rgba, width, height, surface, indices, camera);
+    if (options.bonds) {
+        for (const SoftBodyBond &bond : definition.bonds) {
+            if (bond.first >= nodes.size() || bond.second >= nodes.size())
+                continue;
+            const ScreenPoint first = project(
+                nodes[bond.first], camera, width, height);
+            const ScreenPoint second = project(
+                nodes[bond.second], camera, width, height);
+            if (first.visible && second.visible)
+                line(rgba, width, height, first.x, first.y,
+                     second.x, second.y, {255, 155, 25, 190});
+        }
+    }
+    if (options.rigid_contact_forces)
+        for (std::size_t index = 0; index < states.size(); ++index) {
+            draw_force(rgba, width, height, nodes[index],
+                       host(states[index].rigidContactForce), camera,
+                       {31, 122, 255, 242});
+            draw_force(rgba, width, height, nodes[index],
+                       host(states[index].clothContactForce), camera,
+                       {205, 110, 255, 242});
+        }
+    return true;
+}
+
+bool draw_rope_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const CommandSceneFrame &frame,
+    std::uint32_t rope, Camera camera, std::string &error) {
+    error.clear();
+    if (rope >= frame.rope_nodes.size()) {
+        error = "rope debug output is unavailable";
+        return false;
+    }
+    const std::vector<Vec3> nodes = positions_of(frame.rope_nodes[rope]);
+    for (std::size_t index = 1U; index < nodes.size(); ++index) {
+        const ScreenPoint first = project(nodes[index - 1U], camera,
+                                          width, height);
+        const ScreenPoint second = project(nodes[index], camera,
+                                           width, height);
+        if (first.visible && second.visible)
+            line(rgba, width, height, first.x, first.y,
+                 second.x, second.y, {60, 240, 255, 245});
+    }
+    return true;
+}
+
+void draw_physics_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const CommandSceneFrame &frame, Camera camera,
+    PhysicsDebugVisualizationOptions options) {
+    for (const PmDebugRecord &record : frame.debug_records) {
+        const Vec3 position = host(record.position);
+        const Vec3 velocity = host(record.velocity);
+        const Vec3 force = host(record.force);
+        if (options.velocities)
+            draw_force(rgba, width, height, position, velocity, camera,
+                       {80, 220, 255, 242});
+        if ((options.rigid_forces && record.type == PM_DEBUG_RIGID) ||
+            (options.fluid_forces && record.type != PM_DEBUG_RIGID))
+            draw_force(rgba, width, height, position, force, camera,
+                       {255, 219, 20, 242});
+    }
+    if (options.contact_normals) {
+        std::string ignored;
+        (void)draw_rigid_contact_overlay(rgba, width, height, frame.contacts,
+                                         camera, ignored);
+    }
+}
+
+bool draw_smoke_debug_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, const CommandSceneFrame &frame, Camera camera,
+    SmokeDebugMode mode, std::string &error) {
+    error.clear();
+    if (mode == SmokeDebugMode::none) return true;
+    for (const PmSmokeParticleState &particle : frame.smoke_particles) {
+        const Vec3 position = host(particle.position);
+        const ScreenPoint point = project(position, camera, width, height);
+        if (!point.visible) continue;
+        Color value{40, 220, 255, 220};
+        if (mode == SmokeDebugMode::pressure) {
+            const float amount = std::clamp(std::fabs(particle.pressure),
+                                            0.0F, 1.0F);
+            value = particle.pressure < 0.0F
+                ? Color{60, 130, 255, 220}
+                : Color{static_cast<std::uint8_t>(80 + 175 * amount),
+                        70, 45, 220};
+        } else if (mode == SmokeDebugMode::density_temperature) {
+            const float amount = std::clamp(particle.numberDensity,
+                                            0.0F, 1.0F);
+            value = {static_cast<std::uint8_t>(40 + 210 * amount), 120,
+                     static_cast<std::uint8_t>(255 - 180 * amount), 220};
+        }
+        rectangle(rgba, width, height, point.x - 2, point.y - 2,
+                  point.x + 3, point.y + 3, value);
+        if (mode == SmokeDebugMode::velocity)
+            draw_force(rgba, width, height, position,
+                       host(particle.velocity), camera,
+                       {255, 255, 255, 205});
+        else if (mode == SmokeDebugMode::vorticity)
+            draw_force(rgba, width, height, position,
+                       host(particle.vorticity), camera,
+                       {255, 125, 25, 205});
+    }
+    return true;
 }
 
 } // namespace parallel_mater::gallery

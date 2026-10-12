@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/soft_body.cuh.
+// Shared soft-body and deformable simulation kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 
 static const uint kSoftReductionThreads = 128u;
 groupshared Vec3 softValuesA[kSoftReductionThreads];

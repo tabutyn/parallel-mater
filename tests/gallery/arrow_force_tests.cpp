@@ -49,8 +49,8 @@ int main() try {
     check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH, authored, error), error.c_str());
     const auto driven = std::find_if(authored.rigid_bodies.begin(), authored.rigid_bodies.end(),
         [](const auto &body) { return body.source_name == "GenericBlockA"; });
-    check(driven != authored.rigid_bodies.end() && driven->arrow_force == 100.0F &&
-          driven->options.motion == MotionType::dynamic, "Authored GenericBlockA must load its 100 N force");
+    check(driven != authored.rigid_bodies.end() && driven->arrow_force == 1000.0F &&
+          driven->options.motion == MotionType::dynamic, "Authored GenericBlockA must load its 1000 N force");
     check(std::count_if(authored.rigid_bodies.begin(), authored.rigid_bodies.end(),
         [](const auto &body) { return body.arrow_force > 0.0F; }) == 1, "Only the tagged body must be controlled");
     int count = 0;
@@ -105,7 +105,7 @@ int main() try {
         require(world.step(step));
         RigidBodyState reversed;
         require(world.read_rigid_body_state(instance.rigid_bodies[0], reversed));
-        check(near(reversed.linear_velocity, screen_space_force(camera, 1, 1, 100.0F/12.0F)),
+        check(near(reversed.linear_velocity, screen_space_force(camera, 1, 1, 1000.0F/12.0F)),
               "Opposite keys must reverse the applied force");
         scene.rigid_bodies[0].arrow_force = -1;
         check(!controls.initialize(scene, instance) && !controls.active(), "Invalid controls must fail without partial bindings");
@@ -113,7 +113,7 @@ int main() try {
         require(controls.initialize(scene, instance));
         check(!controls.active(), "Absent/zero force must preserve ordinary gallery controls");
     }
-    std::cout << "Arrow force: 100 N, mass scaling, release, reversal, and 1/4/8 substeps passed\n";
+    std::cout << "Arrow force: authored 1000 N, mass scaling, release, reversal, and 1/4/8 substeps passed\n";
     return 0;
 } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';
