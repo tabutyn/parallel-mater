@@ -1,0 +1,1261 @@
+{
+  "contract": "Parallel Mater command API 0.2 design draft",
+  "implementation": "unsupported stubs; no physics execution",
+  "functions": [
+    {
+      "name": "pmGetInstanceProcAddr",
+      "section": "3.1",
+      "card": "function_pointers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "bootstrap lookup"
+    },
+    {
+      "name": "pmGetDeviceProcAddr",
+      "section": "3.1",
+      "card": "function_pointers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "bootstrap lookup"
+    },
+    {
+      "name": "pmEnumerateInstanceVersion",
+      "section": "3.2",
+      "card": "instance",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateInstance",
+      "section": "3.2",
+      "card": "instance",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyInstance",
+      "section": "3.2",
+      "card": "instance",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmEnumeratePhysicalDevices",
+      "section": "4.1",
+      "card": "physical_devices",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceProperties",
+      "section": "4.2",
+      "card": "properties",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceQueueFamilies",
+      "section": "4.3",
+      "card": "queues",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceFeatures",
+      "section": "4.4",
+      "card": "features",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateDevice",
+      "section": "4.5",
+      "card": "device",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyDevice",
+      "section": "4.5",
+      "card": "device",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetDeviceQueue",
+      "section": "4.5",
+      "card": "device",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceMemoryProperties",
+      "section": "5.1",
+      "card": "memory_types",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmAllocateMemory",
+      "section": "5.3",
+      "card": "allocation",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmFreeMemory",
+      "section": "5.3",
+      "card": "allocation",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmMapMemory",
+      "section": "5.4",
+      "card": "mapping",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmUnmapMemory",
+      "section": "5.4",
+      "card": "mapping",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmFlushMappedMemoryRanges",
+      "section": "5.4",
+      "card": "mapping",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmInvalidateMappedMemoryRanges",
+      "section": "5.4",
+      "card": "mapping",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateBuffer",
+      "section": "6.1",
+      "card": "buffer",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyBuffer",
+      "section": "6.1",
+      "card": "buffer",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetBufferMemoryRequirements",
+      "section": "6.2",
+      "card": "buffer_binding",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmBindBufferMemory",
+      "section": "6.2",
+      "card": "buffer_binding",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateGeometry",
+      "section": "6.4",
+      "card": "geometry",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyGeometry",
+      "section": "6.4",
+      "card": "geometry",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetGeometryMemoryRequirements",
+      "section": "6.4",
+      "card": "geometry",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmBindGeometryMemory",
+      "section": "6.4",
+      "card": "geometry",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdBuildGeometry",
+      "section": "6.5",
+      "card": "geometry_build",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateSimulation",
+      "section": "7.1",
+      "card": "simulation_create",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroySimulation",
+      "section": "7.1",
+      "card": "simulation_create",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetSimulationMemoryRequirements",
+      "section": "7.2",
+      "card": "simulation_memory",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmBindSimulationMemory",
+      "section": "7.2",
+      "card": "simulation_memory",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdWriteRigidBodies",
+      "section": "7.4",
+      "card": "bodies",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdApplyRigidInputs",
+      "section": "7.5",
+      "card": "body_inputs",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdSetRigidStates",
+      "section": "7.5",
+      "card": "body_inputs",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdWriteRigidConstraints",
+      "section": "8.3",
+      "card": "constraint_info",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreatePhysicsPipeline",
+      "section": "9.4",
+      "card": "pipeline_create",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyPhysicsPipeline",
+      "section": "9.4",
+      "card": "pipeline_create",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateCommandPool",
+      "section": "10.1",
+      "card": "command_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyCommandPool",
+      "section": "10.1",
+      "card": "command_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmResetCommandPool",
+      "section": "10.1",
+      "card": "command_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmAllocateCommandBuffers",
+      "section": "10.2",
+      "card": "command_buffers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmFreeCommandBuffers",
+      "section": "10.2",
+      "card": "command_buffers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmBeginCommandBuffer",
+      "section": "10.2",
+      "card": "command_buffers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmEndCommandBuffer",
+      "section": "10.2",
+      "card": "command_buffers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmResetCommandBuffer",
+      "section": "10.2",
+      "card": "command_buffers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdResetSimulation",
+      "section": "10.4",
+      "card": "simulation_init",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdSetFluidParticles",
+      "section": "10.4",
+      "card": "simulation_init",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdBindPhysicsPipeline",
+      "section": "10.5",
+      "card": "step",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdStepSimulation",
+      "section": "10.5",
+      "card": "step",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdCopyBuffer",
+      "section": "11.1",
+      "card": "buffer_copy",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdCopyRigidStates",
+      "section": "11.2",
+      "card": "outputs",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdCopyFluidParticles",
+      "section": "11.2",
+      "card": "outputs",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdPipelineBarrier",
+      "section": "12.2",
+      "card": "barriers",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateSemaphore",
+      "section": "12.3",
+      "card": "semaphores",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroySemaphore",
+      "section": "12.3",
+      "card": "semaphores",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetSemaphoreCounterValue",
+      "section": "12.3",
+      "card": "semaphores",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmWaitSemaphore",
+      "section": "12.3",
+      "card": "semaphores",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmQueueSubmit",
+      "section": "12.4",
+      "card": "submission",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmQueueWaitIdle",
+      "section": "12.4",
+      "card": "submission",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDeviceWaitIdle",
+      "section": "12.4",
+      "card": "submission",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateFence",
+      "section": "12.5",
+      "card": "fences",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyFence",
+      "section": "12.5",
+      "card": "fences",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetFenceStatus",
+      "section": "12.5",
+      "card": "fences",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmResetFences",
+      "section": "12.5",
+      "card": "fences",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmWaitForFences",
+      "section": "12.5",
+      "card": "fences",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceInteropProperties",
+      "section": "13.1",
+      "card": "native_support",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportNativeDevice",
+      "section": "13.2",
+      "card": "native_device",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetNativeDevice",
+      "section": "13.2",
+      "card": "native_device",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportNativeBuffer",
+      "section": "13.3",
+      "card": "native_buffer",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetNativeBuffer",
+      "section": "13.3",
+      "card": "native_buffer",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportNativeSemaphore",
+      "section": "13.4",
+      "card": "native_timeline",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetNativeSemaphore",
+      "section": "13.4",
+      "card": "native_timeline",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportVulkanDeviceEXT",
+      "section": "13.6",
+      "card": "vulkan_device",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetVulkanDeviceEXT",
+      "section": "13.6",
+      "card": "vulkan_device",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportVulkanBufferEXT",
+      "section": "13.7",
+      "card": "vulkan_buffer",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetVulkanBufferEXT",
+      "section": "13.7",
+      "card": "vulkan_buffer",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmImportVulkanSemaphoreEXT",
+      "section": "13.8",
+      "card": "vulkan_semaphore",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetVulkanSemaphoreEXT",
+      "section": "13.8",
+      "card": "vulkan_semaphore",
+      "header": "command_vulkan.h",
+      "source": "src/command/vulkan_stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCreateQueryPool",
+      "section": "14.1",
+      "card": "query_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmDestroyQueryPool",
+      "section": "14.1",
+      "card": "query_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdResetQueryPool",
+      "section": "14.1",
+      "card": "query_pool",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdWriteTimestamp",
+      "section": "14.2",
+      "card": "timestamps",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdBeginStatisticsQuery",
+      "section": "14.3",
+      "card": "step_stats",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmCmdEndStatisticsQuery",
+      "section": "14.3",
+      "card": "step_stats",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetSimulationStatus",
+      "section": "14.3",
+      "card": "step_stats",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetQueryPoolResults",
+      "section": "14.4",
+      "card": "query_results",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetDeviceMemoryBudget",
+      "section": "14.5",
+      "card": "memory_budget",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceLimits",
+      "section": "15.1",
+      "card": "limits",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    },
+    {
+      "name": "pmGetPhysicalDeviceFormatProperties",
+      "section": "15.2",
+      "card": "formats",
+      "header": "command.h",
+      "source": "src/command/stubs.cpp",
+      "status": "unsupported stub"
+    }
+  ],
+  "types": [
+    {
+      "name": "PmResult",
+      "section": "2.1",
+      "card": "results"
+    },
+    {
+      "name": "PFN_pmVoidFunction",
+      "section": "3.1",
+      "card": "function_pointers"
+    },
+    {
+      "name": "PmInstanceCreateInfo",
+      "section": "3.2",
+      "card": "instance"
+    },
+    {
+      "name": "PmAllocateFn",
+      "section": "3.3",
+      "card": "allocator"
+    },
+    {
+      "name": "PmAllocationCallbacks",
+      "section": "3.3",
+      "card": "allocator"
+    },
+    {
+      "name": "PmFreeFn",
+      "section": "3.3",
+      "card": "allocator"
+    },
+    {
+      "name": "PmPhysicalDeviceProperties",
+      "section": "4.2",
+      "card": "properties"
+    },
+    {
+      "name": "PmQueueFamilyProperties",
+      "section": "4.3",
+      "card": "queues"
+    },
+    {
+      "name": "PmPhysicalDeviceFeatures",
+      "section": "4.4",
+      "card": "features"
+    },
+    {
+      "name": "PmDeviceCreateInfo",
+      "section": "4.5",
+      "card": "device"
+    },
+    {
+      "name": "PmDeviceQueueCreateInfo",
+      "section": "4.5",
+      "card": "device"
+    },
+    {
+      "name": "PmMemoryHeap",
+      "section": "5.1",
+      "card": "memory_types"
+    },
+    {
+      "name": "PmMemoryProperties",
+      "section": "5.1",
+      "card": "memory_types"
+    },
+    {
+      "name": "PmMemoryType",
+      "section": "5.1",
+      "card": "memory_types"
+    },
+    {
+      "name": "PmMemoryRequirements",
+      "section": "5.2",
+      "card": "requirements"
+    },
+    {
+      "name": "PmMemoryAllocateInfo",
+      "section": "5.3",
+      "card": "allocation"
+    },
+    {
+      "name": "PmMappedMemoryRange",
+      "section": "5.4",
+      "card": "mapping"
+    },
+    {
+      "name": "PmBufferCreateInfo",
+      "section": "6.1",
+      "card": "buffer"
+    },
+    {
+      "name": "PmBufferRange",
+      "section": "6.2",
+      "card": "buffer_binding"
+    },
+    {
+      "name": "PmBufferView",
+      "section": "6.3",
+      "card": "format_enum"
+    },
+    {
+      "name": "PmFormat",
+      "section": "6.3",
+      "card": "format_enum"
+    },
+    {
+      "name": "PmGeometryCreateInfo",
+      "section": "6.4",
+      "card": "geometry"
+    },
+    {
+      "name": "PmFluidCapacity",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
+      "name": "PmSimulationCreateInfo",
+      "section": "7.1",
+      "card": "simulation_create"
+    },
+    {
+      "name": "PmSimulationMemoryBinding",
+      "section": "7.2",
+      "card": "simulation_memory"
+    },
+    {
+      "name": "PmSimulationMemoryRequirements",
+      "section": "7.2",
+      "card": "simulation_memory"
+    },
+    {
+      "name": "PmMotionType",
+      "section": "7.3",
+      "card": "rigid_state"
+    },
+    {
+      "name": "PmRigidState",
+      "section": "7.3",
+      "card": "rigid_state"
+    },
+    {
+      "name": "PmRigidBodyInfo",
+      "section": "7.4",
+      "card": "bodies"
+    },
+    {
+      "name": "PmRigidInput",
+      "section": "7.5",
+      "card": "body_inputs"
+    },
+    {
+      "name": "PmConstraintFrame",
+      "section": "8.1",
+      "card": "constraint_types"
+    },
+    {
+      "name": "PmConstraintType",
+      "section": "8.1",
+      "card": "constraint_types"
+    },
+    {
+      "name": "PmAxisLimit",
+      "section": "8.2",
+      "card": "axis_control"
+    },
+    {
+      "name": "PmAxisMotor",
+      "section": "8.2",
+      "card": "axis_control"
+    },
+    {
+      "name": "PmAxisSpring",
+      "section": "8.2",
+      "card": "axis_control"
+    },
+    {
+      "name": "PmRigidConstraintInfo",
+      "section": "8.3",
+      "card": "constraint_info"
+    },
+    {
+      "name": "PmRigidSolverState",
+      "section": "9.1",
+      "card": "rigid_solver"
+    },
+    {
+      "name": "PmLiquidMaterialState",
+      "section": "9.2",
+      "card": "liquid_material"
+    },
+    {
+      "name": "PmCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmCouplingType",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmPhysicsPipelineCreateInfo",
+      "section": "9.4",
+      "card": "pipeline_create"
+    },
+    {
+      "name": "PmCommandPoolCreateInfo",
+      "section": "10.1",
+      "card": "command_pool"
+    },
+    {
+      "name": "PmCommandBufferBeginInfo",
+      "section": "10.2",
+      "card": "command_buffers"
+    },
+    {
+      "name": "PmParticleState",
+      "section": "10.4",
+      "card": "simulation_init"
+    },
+    {
+      "name": "PmStepInfo",
+      "section": "10.5",
+      "card": "step"
+    },
+    {
+      "name": "PmBufferCopy",
+      "section": "11.1",
+      "card": "buffer_copy"
+    },
+    {
+      "name": "PmBufferMemoryBarrier",
+      "section": "12.2",
+      "card": "barriers"
+    },
+    {
+      "name": "PmMemoryBarrier",
+      "section": "12.2",
+      "card": "barriers"
+    },
+    {
+      "name": "PmSemaphoreCreateInfo",
+      "section": "12.3",
+      "card": "semaphores"
+    },
+    {
+      "name": "PmSemaphoreSubmitInfo",
+      "section": "12.3",
+      "card": "semaphores"
+    },
+    {
+      "name": "PmSubmitInfo",
+      "section": "12.4",
+      "card": "submission"
+    },
+    {
+      "name": "PmNativeBackend",
+      "section": "13.1",
+      "card": "native_support"
+    },
+    {
+      "name": "PmNativeHandle",
+      "section": "13.1",
+      "card": "native_support"
+    },
+    {
+      "name": "PmNativeInteropProperties",
+      "section": "13.1",
+      "card": "native_support"
+    },
+    {
+      "name": "PmNativeDeviceImportInfo",
+      "section": "13.2",
+      "card": "native_device"
+    },
+    {
+      "name": "PmNativeDeviceInfo",
+      "section": "13.2",
+      "card": "native_device"
+    },
+    {
+      "name": "PmNativeQueueInfo",
+      "section": "13.2",
+      "card": "native_device"
+    },
+    {
+      "name": "PmNativeBufferInfo",
+      "section": "13.3",
+      "card": "native_buffer"
+    },
+    {
+      "name": "PmVulkanDeviceImportInfo",
+      "section": "13.6",
+      "card": "vulkan_device"
+    },
+    {
+      "name": "PmVulkanDeviceInfo",
+      "section": "13.6",
+      "card": "vulkan_device"
+    },
+    {
+      "name": "PmVulkanQueueInfo",
+      "section": "13.6",
+      "card": "vulkan_device"
+    },
+    {
+      "name": "PmVulkanBufferImportInfo",
+      "section": "13.7",
+      "card": "vulkan_buffer"
+    },
+    {
+      "name": "PmQueryPoolCreateInfo",
+      "section": "14.1",
+      "card": "query_pool"
+    },
+    {
+      "name": "PmQueryType",
+      "section": "14.1",
+      "card": "query_pool"
+    },
+    {
+      "name": "PmStepStatistics",
+      "section": "14.3",
+      "card": "step_stats"
+    },
+    {
+      "name": "PmMemoryBudget",
+      "section": "14.5",
+      "card": "memory_budget"
+    },
+    {
+      "name": "PmPhysicalDeviceLimits",
+      "section": "15.1",
+      "card": "limits"
+    },
+    {
+      "name": "PmFormatProperties",
+      "section": "15.2",
+      "card": "formats"
+    },
+    {
+      "name": "PmAccessFlags",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmBool32",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmBuffer",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmCommandBuffer",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmCommandPool",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmDevice",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmDeviceMemory",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmDeviceSize",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmFence",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmFlags",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmGeometry",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmInstance",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmPhysicalDevice",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmPhysicsPipeline",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmQueryPool",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmQueue",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmSemaphore",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmSimulation",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmStageFlags",
+      "section": "17.1",
+      "card": "base_types"
+    },
+    {
+      "name": "PmStructureType",
+      "section": "17.2",
+      "card": "structure_types"
+    }
+  ],
+  "derived_function_pointer_types": [
+    "PFN_pmGetInstanceProcAddr",
+    "PFN_pmGetDeviceProcAddr",
+    "PFN_pmEnumerateInstanceVersion",
+    "PFN_pmCreateInstance",
+    "PFN_pmDestroyInstance",
+    "PFN_pmEnumeratePhysicalDevices",
+    "PFN_pmGetPhysicalDeviceProperties",
+    "PFN_pmGetPhysicalDeviceQueueFamilies",
+    "PFN_pmGetPhysicalDeviceFeatures",
+    "PFN_pmCreateDevice",
+    "PFN_pmDestroyDevice",
+    "PFN_pmGetDeviceQueue",
+    "PFN_pmGetPhysicalDeviceMemoryProperties",
+    "PFN_pmAllocateMemory",
+    "PFN_pmFreeMemory",
+    "PFN_pmMapMemory",
+    "PFN_pmUnmapMemory",
+    "PFN_pmFlushMappedMemoryRanges",
+    "PFN_pmInvalidateMappedMemoryRanges",
+    "PFN_pmCreateBuffer",
+    "PFN_pmDestroyBuffer",
+    "PFN_pmGetBufferMemoryRequirements",
+    "PFN_pmBindBufferMemory",
+    "PFN_pmCreateGeometry",
+    "PFN_pmDestroyGeometry",
+    "PFN_pmGetGeometryMemoryRequirements",
+    "PFN_pmBindGeometryMemory",
+    "PFN_pmCmdBuildGeometry",
+    "PFN_pmCreateSimulation",
+    "PFN_pmDestroySimulation",
+    "PFN_pmGetSimulationMemoryRequirements",
+    "PFN_pmBindSimulationMemory",
+    "PFN_pmCmdWriteRigidBodies",
+    "PFN_pmCmdApplyRigidInputs",
+    "PFN_pmCmdSetRigidStates",
+    "PFN_pmCmdWriteRigidConstraints",
+    "PFN_pmCreatePhysicsPipeline",
+    "PFN_pmDestroyPhysicsPipeline",
+    "PFN_pmCreateCommandPool",
+    "PFN_pmDestroyCommandPool",
+    "PFN_pmResetCommandPool",
+    "PFN_pmAllocateCommandBuffers",
+    "PFN_pmFreeCommandBuffers",
+    "PFN_pmBeginCommandBuffer",
+    "PFN_pmEndCommandBuffer",
+    "PFN_pmResetCommandBuffer",
+    "PFN_pmCmdResetSimulation",
+    "PFN_pmCmdSetFluidParticles",
+    "PFN_pmCmdBindPhysicsPipeline",
+    "PFN_pmCmdStepSimulation",
+    "PFN_pmCmdCopyBuffer",
+    "PFN_pmCmdCopyRigidStates",
+    "PFN_pmCmdCopyFluidParticles",
+    "PFN_pmCmdPipelineBarrier",
+    "PFN_pmCreateSemaphore",
+    "PFN_pmDestroySemaphore",
+    "PFN_pmGetSemaphoreCounterValue",
+    "PFN_pmWaitSemaphore",
+    "PFN_pmQueueSubmit",
+    "PFN_pmQueueWaitIdle",
+    "PFN_pmDeviceWaitIdle",
+    "PFN_pmCreateFence",
+    "PFN_pmDestroyFence",
+    "PFN_pmGetFenceStatus",
+    "PFN_pmResetFences",
+    "PFN_pmWaitForFences",
+    "PFN_pmGetPhysicalDeviceInteropProperties",
+    "PFN_pmImportNativeDevice",
+    "PFN_pmGetNativeDevice",
+    "PFN_pmImportNativeBuffer",
+    "PFN_pmGetNativeBuffer",
+    "PFN_pmImportNativeSemaphore",
+    "PFN_pmGetNativeSemaphore",
+    "PFN_pmImportVulkanDeviceEXT",
+    "PFN_pmGetVulkanDeviceEXT",
+    "PFN_pmImportVulkanBufferEXT",
+    "PFN_pmGetVulkanBufferEXT",
+    "PFN_pmImportVulkanSemaphoreEXT",
+    "PFN_pmGetVulkanSemaphoreEXT",
+    "PFN_pmCreateQueryPool",
+    "PFN_pmDestroyQueryPool",
+    "PFN_pmCmdResetQueryPool",
+    "PFN_pmCmdWriteTimestamp",
+    "PFN_pmCmdBeginStatisticsQuery",
+    "PFN_pmCmdEndStatisticsQuery",
+    "PFN_pmGetSimulationStatus",
+    "PFN_pmGetQueryPoolResults",
+    "PFN_pmGetDeviceMemoryBudget",
+    "PFN_pmGetPhysicalDeviceLimits",
+    "PFN_pmGetPhysicalDeviceFormatProperties"
+  ],
+  "derived_type_rule": "Each PFN_pmName has pmName's exact signature and PMAPI_CALL convention; section 17.1."
+}
