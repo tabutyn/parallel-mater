@@ -1,20 +1,36 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.hpp>
 #include <parallel_mater/solver/contact_friction.hpp>
-#include "parallel_mater_geometry_constraints_runtime.cu"
-#define PM_AVBD_SLANG_RUNTIME 1
 #include <parallel_mater/solver/geometry_constraints.hpp>
-#undef PM_AVBD_SLANG_RUNTIME
 #include <parallel_mater/solver/halfspace.hpp>
 #include "convex_plane_dedup.hpp"
+#include "simulation/geometry_dispatch.hpp"
+#include "simulation/geometry_constraints_dispatch.hpp"
+#include "simulation/geometry_storage.hpp"
+#include "simulation/cloth_dispatch.hpp"
+#include "simulation/soft_body_dispatch.hpp"
+#include "simulation/soft_body_cloth_dispatch.hpp"
+#include "simulation/rope_coupling_dispatch.hpp"
+#include "simulation/fluid_dispatch.hpp"
+#include "simulation/fluid_cloth_dispatch.hpp"
+#include "simulation/fluid_rope_dispatch.hpp"
+#include "simulation/fluid_smoke_dispatch.hpp"
+#include "simulation/smoke_coupling_dispatch.hpp"
+#include "simulation/fluid_soft_body_dispatch.hpp"
+#include "simulation/geometry_cloth_dispatch.hpp"
+#include "simulation/geometry_fluid_dispatch.hpp"
+#include "simulation/geometry_smoke_dispatch.hpp"
+#include "simulation/geometry_soft_body_dispatch.hpp"
+#include "simulation/smoke_grid_dispatch.hpp"
+#include "simulation/rope_dispatch.hpp"
+#include "simulation/exports.hpp"
+#include "simulation/memory_arena.hpp"
+#include "simulation/primitives.hpp"
 
 #include <cuda_runtime.h>
 #include <cuda/atomic>
 #include <cooperative_groups.h>
 
-#include <cub/device/device_select.cuh>
-#include <cub/device/device_radix_sort.cuh>
-#include <thrust/iterator/counting_iterator.h>
 
 #include <algorithm>
 #include <array>
@@ -35,6 +51,36 @@
 
 namespace parallel_mater {
 namespace {
+
+using simulation::BodyAccumulator;
+using simulation::BodyParameters;
+using simulation::BvhNode;
+using simulation::CachedContactPair;
+using simulation::CollisionPlane;
+using simulation::Contact;
+using simulation::ContactManifold;
+using simulation::ContactSchedule;
+using simulation::FixedContactProjection;
+using simulation::KinematicTarget;
+using simulation::LeafPair;
+using simulation::RigidConstraintResource;
+using simulation::TriangleMeshResource;
+using simulation::WorldAabb;
+using simulation::axis_enabled;
+using simulation::bounds_overlap;
+using simulation::closest_on_triangle;
+using simulation::component;
+using simulation::component_max;
+using simulation::component_min;
+using simulation::inverse_rotate;
+using simulation::k_leaf_pair_cache_slots_per_body;
+using simulation::k_max_leaf_pairs_per_body_pair;
+using simulation::k_minimum_leaf_pair_cache_slots;
+using simulation::k_rigid_leaf_blocks_per_pair;
+using simulation::k_shared_rigid_leaf_capacity;
+using simulation::k_small_rigid_leaf_body_capacity;
+using simulation::k_small_rigid_leaf_pair_capacity;
+using simulation::transform_point;
 
 constexpr float k_epsilon = 1.0e-6F;
 constexpr std::uint32_t k_invalid_dense = std::numeric_limits<std::uint32_t>::max();
@@ -80,31 +126,12 @@ __host__ __device__ float vector_length(Vec3 value) noexcept {
     return sqrtf(length_squared(value));
 }
 
-__host__ __device__ float clamp_scalar(float value, float minimum,
-                                       float maximum) noexcept {
-    return fminf(fmaxf(value, minimum), maximum);
-}
-
 __host__ __device__ Vec3 normalized_or(Vec3 value, Vec3 fallback) noexcept {
     const float squared = length_squared(value);
     if (squared <= k_epsilon * k_epsilon) {
         return fallback;
     }
     return multiply(value, rsqrtf(squared));
-}
-
-__host__ __device__ Quaternion conjugate(Quaternion value) noexcept {
-    return {-value.x, -value.y, -value.z, value.w};
-}
-
-__host__ __device__ Quaternion quaternion_multiply(Quaternion a,
-                                                   Quaternion b) noexcept {
-    return {
-        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
-        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
-        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
-        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
-    };
 }
 
 __host__ __device__ Quaternion normalized_quaternion(Quaternion value) noexcept {
@@ -116,128 +143,6 @@ __host__ __device__ Quaternion normalized_quaternion(Quaternion value) noexcept 
     const float inverse = rsqrtf(squared);
     return {value.x * inverse, value.y * inverse, value.z * inverse,
             value.w * inverse};
-}
-
-__host__ __device__ Vec3 rotate(Quaternion orientation, Vec3 value) noexcept {
-    const Vec3 q{orientation.x, orientation.y, orientation.z};
-    const Vec3 twice_cross = multiply(cross(q, value), 2.0F);
-    return add(value,
-               add(multiply(twice_cross, orientation.w), cross(q, twice_cross)));
-}
-
-__host__ __device__ Vec3 inverse_rotate(Quaternion orientation,
-                                       Vec3 value) noexcept {
-    return rotate(conjugate(orientation), value);
-}
-
-__host__ __device__ Vec3 clamp_length(Vec3 value, float maximum) noexcept {
-    const float squared = length_squared(value);
-    if (squared <= maximum * maximum || squared <= k_epsilon * k_epsilon) {
-        return value;
-    }
-    return multiply(value, maximum * rsqrtf(squared));
-}
-
-#include "geometry_constraints.cuh"
-#include "geometry_constraints_cuda.cuh"
-
-__device__ bool hit_box_separates_triangle(
-    Vec3 axis, Vec3 first, Vec3 second, Vec3 third,
-    Vec3 half_extents) noexcept {
-    if (length_squared(axis) <= k_epsilon * k_epsilon) return false;
-    const float first_projection = dot(axis, first);
-    const float second_projection = dot(axis, second);
-    const float third_projection = dot(axis, third);
-    const float minimum = fminf(first_projection,
-                                fminf(second_projection, third_projection));
-    const float maximum = fmaxf(first_projection,
-                                fmaxf(second_projection, third_projection));
-    const float radius = fabsf(axis.x) * half_extents.x +
-                         fabsf(axis.y) * half_extents.y +
-                         fabsf(axis.z) * half_extents.z;
-    return minimum > radius || maximum < -radius;
-}
-
-__device__ bool hit_box_overlaps_triangle(
-    Vec3 first, Vec3 second, Vec3 third, Vec3 half_extents) noexcept {
-    const Vec3 minimum = component_min(first, component_min(second, third));
-    const Vec3 maximum = component_max(first, component_max(second, third));
-    if (minimum.x > half_extents.x || maximum.x < -half_extents.x ||
-        minimum.y > half_extents.y || maximum.y < -half_extents.y ||
-        minimum.z > half_extents.z || maximum.z < -half_extents.z)
-        return false;
-    const Vec3 edges[3]{subtract(second, first), subtract(third, second),
-                        subtract(first, third)};
-    if (hit_box_separates_triangle(cross(edges[0], edges[1]), first,
-                                   second, third, half_extents))
-        return false;
-    for (const Vec3 edge : edges)
-        for (std::uint32_t axis = 0U; axis < 3U; ++axis)
-            if (hit_box_separates_triangle(
-                    cross(edge, basis_axis(axis)), first, second, third,
-                    half_extents))
-                return false;
-    return true;
-}
-
-__device__ Vec3 hit_box_local_point(HitBox box, Vec3 point) noexcept {
-    return inverse_rotate(box.orientation, subtract(point, box.center));
-}
-
-__device__ bool hit_box_contains_point(HitBox box, Vec3 point) noexcept {
-    const Vec3 local = hit_box_local_point(box, point);
-    return fabsf(local.x) <= box.half_extents.x &&
-           fabsf(local.y) <= box.half_extents.y &&
-           fabsf(local.z) <= box.half_extents.z;
-}
-
-__global__ void query_rigid_hit_box_kernel(
-    HitBox box, const BodyParameters *parameters,
-    const RigidBodyState *states, const TriangleMeshResource *meshes,
-    std::uint32_t body_count, std::uint8_t *matches) {
-    const std::uint32_t body = blockIdx.x * blockDim.x + threadIdx.x;
-    if (body >= body_count) return;
-    const TriangleMeshResource &mesh = meshes[parameters[body].mesh.index];
-    const RigidBodyState state = states[body];
-    bool overlap = false;
-    for (std::uint32_t index = 0U; index < mesh.index_count; index += 3U) {
-        const Vec3 first = hit_box_local_point(
-            box, transform_point(state, mesh.vertices[mesh.indices[index]]));
-        const Vec3 second = hit_box_local_point(
-            box, transform_point(state, mesh.vertices[mesh.indices[index + 1U]]));
-        const Vec3 third = hit_box_local_point(
-            box, transform_point(state, mesh.vertices[mesh.indices[index + 2U]]));
-        if (hit_box_overlaps_triangle(first, second, third,
-                                      box.half_extents)) {
-            overlap = true;
-            break;
-        }
-    }
-    // A closed convex body can fully contain a small hit box without either
-    // surface crossing. Convex-plane data is already built for such meshes.
-    if (!overlap && mesh.solid_planes != nullptr) {
-        const Vec3 center = inverse_rotate(
-            state.orientation, subtract(box.center, state.position));
-        overlap = true;
-        for (std::uint32_t triangle = 0U;
-             triangle < mesh.index_count / 3U; ++triangle) {
-            const CollisionPlane plane = mesh.solid_planes[triangle];
-            if (dot(plane.normal, center) > plane.offset + k_epsilon) {
-                overlap = false;
-                break;
-            }
-        }
-    }
-    matches[body] = overlap ? 1U : 0U;
-}
-
-__global__ void query_particle_hit_box_kernel(
-    HitBox box, const Vec3 *positions, std::uint32_t particle_count,
-    std::uint8_t *matches) {
-    const std::uint32_t particle = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle >= particle_count) return;
-    matches[particle] =
-        hit_box_contains_point(box, positions[particle]) ? 1U : 0U;
 }
 
 struct CompletionState {
@@ -482,6 +387,15 @@ template <typename T>
         pointer = nullptr;
         return success();
     }
+    if (simulation::has_active_arena()) {
+        pointer = static_cast<T *>(simulation::allocate_bound(
+            sizeof(T) * count, alignof(T),
+            simulation::MemoryClass::persistent));
+        return pointer != nullptr
+            ? success()
+            : failure(StatusCode::out_of_memory,
+                      "bound persistent simulation memory exhausted");
+    }
     const cudaError_t error = cudaMallocManaged(
         reinterpret_cast<void **>(&pointer), sizeof(T) * count,
         cudaMemAttachGlobal);
@@ -494,23 +408,30 @@ template <typename T>
 
 template <typename T> void release_managed(T *&pointer) noexcept {
     if (pointer != nullptr) {
-        cudaFree(pointer);
+        if (!simulation::is_bound_pointer(pointer)) cudaFree(pointer);
         pointer = nullptr;
     }
 }
 
-constexpr std::uint64_t k_fluid_empty_cell = ~std::uint64_t{0};
+template <typename T>
+[[nodiscard]] Status allocate_scratch(T *&pointer, std::size_t count) noexcept {
+    if (count == 0U) {
+        pointer = nullptr;
+        return success();
+    }
+    if (!simulation::has_active_arena()) return allocate_managed(pointer, count);
+    pointer = static_cast<T *>(simulation::allocate_bound(
+        sizeof(T) * count, alignof(T), simulation::MemoryClass::scratch));
+    return pointer != nullptr
+        ? success()
+        : failure(StatusCode::out_of_memory,
+                  "bound scratch simulation memory exhausted");
+}
+
 constexpr int k_fluid_cell_bias = 1 << 20;
 constexpr std::uint32_t k_fluid_body_buckets = 4096U;
 
-__host__ __device__ std::uint32_t fluid_body_bucket(
-    int x, int y, int z) noexcept {
-    const std::uint32_t hash =
-        static_cast<std::uint32_t>(x) * 73856093U ^
-        static_cast<std::uint32_t>(y) * 19349663U ^
-        static_cast<std::uint32_t>(z) * 83492791U;
-    return hash & (k_fluid_body_buckets - 1U);
-}
+#include "fluid_spatial.cuh"
 
 struct FluidBodyImpulse {
     Vec3 linear{};
@@ -1059,13 +980,7 @@ struct DestroyPlaneSlot {
     bool alive{};
 };
 
-#include "parallel_mater_fluid.cu"
-
-static_assert(sizeof(PMPackedVec3_0) == sizeof(Vec3));
-static_assert(alignof(PMPackedVec3_0) == alignof(Vec3));
-static_assert(sizeof(PMFluidConstants_0) == 60U);
-
-PMFluidConstants_0 slang_fluid_constants(
+simulation::FluidDispatchConstants slang_fluid_constants(
     const FluidOptions &options, Vec3 gravity, float timestep,
     std::uint32_t count) noexcept {
     return {timestep,
@@ -1083,40 +998,78 @@ PMFluidConstants_0 slang_fluid_constants(
             options.maximum_neighbors};
 }
 
-PMPackedVec3_0 slang_packed_vec3(Vec3 value) noexcept {
-    return {value.x, value.y, value.z};
-}
-
-#include "fluid.cuh"
-
-#include "geometry_fluid.cuh"
-
-#include "fluid_cloth.cuh"
-
-#include "soft_body.cuh"
-
-#include "cloth.cuh"
-
-#include "geometry_soft_body.cuh"
-
-#include "fluid_soft_body.cuh"
-
-#include "soft_body_cloth.cuh"
-
-#include "geometry_cloth.cuh"
-
-
 } // namespace
 
 namespace {
-#include "geometry_rope.cuh"
-#include "cloth_rope.cuh"
-#include "fluid_rope.cuh"
-#include "geometry_smoke.cuh"
-#include "soft_body_smoke.cuh"
-#include "cloth_smoke.cuh"
-#include "rope_smoke.cuh"
-#include "fluid_smoke.cuh"
+#include "simulation/rope_storage.hpp"
+#include "simulation/rope_cloth_storage.hpp"
+#include "simulation/fluid_rope_storage.hpp"
+#include "simulation/fluid_smoke_storage.hpp"
+#include "simulation/smoke_storage.hpp"
+[[nodiscard]] simulation::SmokeDispatchOptions smoke_dispatch_options(
+    const SmokeOptions &options) noexcept {
+    return {options.capacity, options.particle_radius, options.lifetime,
+            options.rest_number_density, options.pressure_stiffness,
+            options.maximum_speed};
+}
+
+[[nodiscard]] simulation::SmokeDomainDispatchOptions smoke_domain_options(
+    const SmokeOptions &options) noexcept {
+    simulation::SmokeDomainDispatchOptions result{};
+    result.capacity = options.capacity;
+    result.emitter_center[0] = options.emitter_center.x;
+    result.emitter_center[1] = options.emitter_center.y;
+    result.emitter_center[2] = options.emitter_center.z;
+    result.emitter_half_extents[0] = options.emitter_half_extents.x;
+    result.emitter_half_extents[1] = options.emitter_half_extents.y;
+    result.initial_velocity[0] = options.initial_velocity.x;
+    result.initial_velocity[1] = options.initial_velocity.y;
+    result.initial_velocity[2] = options.initial_velocity.z;
+    result.wind[0] = options.wind.x;
+    result.wind[1] = options.wind.y;
+    result.wind[2] = options.wind.z;
+    result.particles_per_second = options.particles_per_second;
+    result.lifetime = options.lifetime;
+    result.particle_radius = options.particle_radius;
+    result.buoyancy = options.buoyancy;
+    result.response = options.response;
+    result.rest_number_density = options.rest_number_density;
+    result.pressure_stiffness = options.pressure_stiffness;
+    result.viscosity = options.viscosity;
+    result.vorticity_confinement = options.vorticity_confinement;
+    result.maximum_speed = options.maximum_speed;
+    result.grid_resolution = options.grid_resolution;
+    result.grid_vertical_resolution = options.grid_vertical_resolution;
+    result.grid_pressure_iterations = options.grid_pressure_iterations;
+    result.grid_kinematic_viscosity = options.grid_kinematic_viscosity;
+    result.grid_les_coefficient = options.grid_les_coefficient;
+    result.grid_pressure_tolerance = options.grid_pressure_tolerance;
+    result.grid_minimum[0] = options.grid_minimum.x;
+    result.grid_minimum[1] = options.grid_minimum.y;
+    result.grid_minimum[2] = options.grid_minimum.z;
+    result.grid_edge_length = options.grid_edge_length;
+    return result;
+}
+
+[[nodiscard]] simulation::SmokeGridDispatchField smoke_dispatch_grid(
+    const SmokeGridStorage &grid) noexcept {
+    simulation::SmokeGridDispatchField result{};
+    result.resolution = grid.resolution;
+    result.height = grid.height;
+    result.minimum[0] = grid.minimum.x;
+    result.minimum[1] = grid.minimum.y;
+    result.minimum[2] = grid.minimum.z;
+    result.spacing = grid.spacing;
+    result.velocity = grid.velocity;
+    result.density = grid.density;
+    result.pressure = grid.pressure[0];
+    result.face_velocity[0] = grid.face_velocity[0][0];
+    result.face_velocity[1] = grid.face_velocity[1][0];
+    result.face_velocity[2] = grid.face_velocity[2][0];
+    result.vorticity = grid.vorticity;
+    result.strain = grid.strain;
+    return result;
+}
 } // namespace
 
 struct FrameToken::Impl {
@@ -1147,7 +1100,7 @@ struct World::Impl {
     std::vector<Slot> slots{};
     std::vector<std::unique_ptr<FluidStorage>> fluids{};
     std::vector<std::unique_ptr<SmokeStorage>> smokes{};
-    std::vector<std::unique_ptr<FluidSmokeCouplingSlot>> fluid_smoke_couplings{};
+    std::vector<std::unique_ptr<FluidSmokeCouplingStorage>> fluid_smoke_couplings{};
     std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
     std::vector<std::unique_ptr<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
     std::vector<std::unique_ptr<SmokeRopeCouplingSlot>> smoke_rope_couplings{};
@@ -1182,7 +1135,7 @@ struct World::Impl {
     PhysicsDebugRigidSample *debug_rigid_samples{};
     RigidBodyState *fluid_previous_states{};
     ContactManifold *rigid_manifolds{};
-    AvbdBody *avbd_bodies{};
+    simulation::GeometryConstraintBody *avbd_bodies{};
     CachedContactPair *rigid_contact_cache{};
     std::uint32_t *rigid_contact_cache_slots{};
     std::uint64_t rigid_contact_epoch{};
@@ -1253,9 +1206,13 @@ struct World::Impl {
             if (rigid_body_count != 0U) {
                 // Explicit readback leaves live simulation pages on the GPU;
                 // direct CPU dereferences migrate them back and forth each frame.
-                gather_rigid_debug_samples_kernel<<<(rigid_body_count + 127U) / 128U, 128U>>>(
+                const auto gather_error = simulation::gather_rigid_debug_samples(
+                    (rigid_body_count + 127U) / 128U, 128U, nullptr,
                     ids, states[current_state], debug_applied_forces,
                     debug_applied_torques, rigid_body_count, debug_rigid_samples);
+                if (gather_error != cudaSuccess)
+                    return cuda_failure(gather_error,
+                        "rigid debug sample gather launch failed");
                 const auto status = download(output.rigid_bodies.data(), debug_rigid_samples,
                     rigid_body_count * sizeof(PhysicsDebugRigidSample));
                 if (!status) return status;
@@ -1634,8 +1591,8 @@ Status World::create(WorldOptions options, World &output,
     if (error != cudaSuccess) return cuda_failure(error, "query cooperative contact launch support");
     int resident_blocks = 1;
     implementation->rigid_contact_block_size = 32U;
-    error = cudaOccupancyMaxActiveBlocksPerMultiprocessor(&resident_blocks,
-        solve_avbd_kernel, implementation->rigid_contact_block_size, 0);
+    error = simulation::geometry_constraints_occupancy(
+        &resident_blocks, implementation->rigid_contact_block_size);
     if (error != cudaSuccess) return cuda_failure(error, "query contact kernel occupancy");
     // One resident block per SM avoids over-subscribing grid barriers. Launch
     // geometry changes scheduling only; equations and budgets stay shared.
@@ -1752,7 +1709,8 @@ Status World::create(WorldOptions options, World &output,
     }
     status = allocate_managed(implementation->avbd_bodies, options.rigid_body_capacity);
     if (!status) return status;
-    std::fill_n(implementation->avbd_bodies, options.rigid_body_capacity, AvbdBody{});
+    std::fill_n(implementation->avbd_bodies, options.rigid_body_capacity,
+                simulation::GeometryConstraintBody{});
     status = allocate_managed(implementation->rigid_contact_cache, leaf_pair_slot_capacity);
     if (!status) return status;
     status = allocate_managed(implementation->rigid_contact_cache_slots, pair_capacity);
@@ -1822,18 +1780,10 @@ Status World::create(WorldOptions options, World &output,
         return failure(StatusCode::invalid_argument,
                        "rigid body capacity exceeds broad-phase range");
     }
-    const auto pair_indices = thrust::make_counting_iterator<std::uint32_t>(0U);
-    cudaError_t broad_phase_error = cub::DeviceSelect::Flagged(
-        nullptr, implementation->rigid_broad_phase_workspace_size,
-        pair_indices, implementation->rigid_active_pair_flags,
-        implementation->rigid_active_pairs,
-        implementation->rigid_active_pair_count,
-        static_cast<int>(pair_capacity));
-    if (broad_phase_error != cudaSuccess) {
-        return cuda_failure(broad_phase_error,
-                            "failed to size broad-phase workspace");
-    }
-    status = allocate_managed(implementation->rigid_broad_phase_workspace,
+    implementation->rigid_broad_phase_workspace_size =
+        simulation::compaction_scratch_bytes(
+            static_cast<std::uint32_t>(pair_capacity));
+    status = allocate_scratch(implementation->rigid_broad_phase_workspace,
                               implementation->rigid_broad_phase_workspace_size);
     if (!status) {
         return status;
@@ -1982,28 +1932,22 @@ Status World::add_fluid(FluidOptions options,
         !(status = allocate_managed(fluid->next_contact_flags, capacity)) ||
         !(status = allocate_managed(fluid->contact_count, 1U)) ||
         !(status = allocate_managed(fluid->contact_offset, 1U))) return status;
-    cudaError_t error = cub::DeviceRadixSort::SortPairs(
-        nullptr, fluid->sort_workspace_size, fluid->keys[0], fluid->keys[1],
-        fluid->indices[0], fluid->indices[1], options.capacity);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "fluid sort workspace query failed");
-    const auto sequence = thrust::make_counting_iterator<std::uint32_t>(0U);
-    error = cub::DeviceSelect::Flagged(
-        nullptr, fluid->select_workspace_size, sequence, fluid->keep,
-        fluid->selected, fluid->count, options.capacity);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "fluid compaction workspace query failed");
-    if (!(status = allocate_managed(fluid->sort_workspace,
+    fluid->sort_workspace_size =
+        simulation::radix_sort_scratch_bytes(options.capacity);
+    fluid->select_workspace_size =
+        simulation::compaction_scratch_bytes(options.capacity);
+    cudaError_t error = cudaSuccess;
+    if (!(status = allocate_scratch(fluid->sort_workspace,
                                     fluid->sort_workspace_size)) ||
-        !(status = allocate_managed(fluid->select_workspace,
+        !(status = allocate_scratch(fluid->select_workspace,
                                     fluid->select_workspace_size))) return status;
     *fluid->count = static_cast<std::uint32_t>(initial_particles.size);
     fluid->next_id = static_cast<std::uint32_t>(initial_particles.size);
     fluid->initial_count = initial_particles.size;
     if (!initial_particles.empty()) {
         *impl_->fluid_neighbor_overflow = 0U;
-        fluid_copy_initial<<<(initial_particles.size + 127U) / 128U,
-                             128U, 0, stream>>>(
+        simulation::copy_initial_fluid(
+            (initial_particles.size + 127U) / 128U, 128U, stream,
             initial_particles.data, static_cast<std::uint32_t>(initial_particles.size),
             fluid->positions, fluid->velocities, fluid->ids, fluid->foam,
             fluid->temperatures,
@@ -2267,10 +2211,12 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
                     return status;
         }
         const auto blocks = (grid.cell_count + 255U) / 256U;
-        smoke_grid_initialize_cells<<<blocks, 256U>>>(grid.velocity,
+        const float wind[3]{options.wind.x, options.wind.y, options.wind.z};
+        simulation::initialize_smoke_grid_cells(
+            blocks, 256U, nullptr, grid.velocity,
             grid.density, grid.temperature, grid.pressure[0],
             grid.divergence, grid.vorticity, grid.strain,
-            grid.subgrid_force, grid.solid, grid.cell_count, options.wind);
+            grid.subgrid_force, grid.solid, grid.cell_count, wind);
         cudaMemset(grid.pressure[1], 0, grid.cell_count * sizeof(float));
         cudaMemset(grid.residual, 0, grid.cell_count * sizeof(float));
         cudaMemset(grid.rhs_max, 0, sizeof(float));
@@ -2279,8 +2225,8 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
         for (int axis = 0; axis < 3; ++axis) {
             const float component = axis == 0 ? options.wind.x :
                                     axis == 1 ? options.wind.y : options.wind.z;
-            smoke_grid_initialize_faces<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U>>>(
+            simulation::initialize_smoke_grid_faces(
+                (grid.face_count[axis] + 255U) / 256U, 256U, nullptr,
                 grid.face_velocity[axis][0], grid.face_reverse[axis],
                 grid.face_open[axis], grid.face_wall_velocity[axis],
                 grid.face_normal[axis], grid.face_nearest_triangle[axis],
@@ -2323,12 +2269,9 @@ Status World::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
         !(status = allocate_managed(smoke->indices[1], options.capacity)) ||
         !(status = allocate_managed(smoke->rigid_impulses, options.capacity)))
         return status;
-    cudaError_t sort_error = cub::DeviceRadixSort::SortPairs(
-        nullptr, smoke->sort_workspace_size, smoke->keys[0], smoke->keys[1],
-        smoke->indices[0], smoke->indices[1], options.capacity);
-    if (sort_error != cudaSuccess)
-        return cuda_failure(sort_error, "smoke sort workspace query failed");
-    if (!(status = allocate_managed(smoke->sort_workspace,
+    smoke->sort_workspace_size =
+        simulation::radix_sort_scratch_bytes(options.capacity);
+    if (!(status = allocate_scratch(smoke->sort_workspace,
                                     smoke->sort_workspace_size))) return status;
     smoke->alive = true;
     output = {slot, smoke->generation};
@@ -2444,8 +2387,8 @@ Status World::add_fluid_smoke_coupling(
            impl_->fluid_smoke_couplings[slot]->alive) ++slot;
     if (slot == impl_->fluid_smoke_couplings.size())
         return failure(StatusCode::capacity_exceeded, "fluid smoke coupling capacity exhausted");
-    std::unique_ptr<FluidSmokeCouplingSlot> coupling;
-    try { coupling = std::make_unique<FluidSmokeCouplingSlot>(); }
+    std::unique_ptr<FluidSmokeCouplingStorage> coupling;
+    try { coupling = std::make_unique<FluidSmokeCouplingStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling allocation failed"); }
     coupling->generation = impl_->fluid_smoke_couplings[slot] ?
         impl_->fluid_smoke_couplings[slot]->generation : 1U;
@@ -2468,8 +2411,8 @@ Status World::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) noexcept {
         !impl_->fluid_smoke_couplings[id.index]->alive ||
         impl_->fluid_smoke_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid smoke coupling handle is stale");
-    std::unique_ptr<FluidSmokeCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<FluidSmokeCouplingSlot>(); }
+    std::unique_ptr<FluidSmokeCouplingStorage> tombstone;
+    try { tombstone = std::make_unique<FluidSmokeCouplingStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling removal failed"); }
     tombstone->generation = id.generation + 1U;
     if (tombstone->generation == 0U) tombstone->generation = 1U;
@@ -5586,6 +5529,35 @@ Status World::apply_force(RigidBodyId body, Vec3 force,
     return success();
 }
 
+Status World::apply_rigid_input(
+    RigidBodyId body, Vec3 force, Vec3 torque, Vec3 linear_impulse,
+    Vec3 angular_impulse) noexcept {
+    if (!impl_) {
+        return failure(StatusCode::invalid_argument, "world is not initialized");
+    }
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (!finite(force) || !finite(torque) || !finite(linear_impulse) ||
+        !finite(angular_impulse)) {
+        return failure(StatusCode::invalid_argument,
+                       "rigid inputs must be finite");
+    }
+    std::uint32_t dense = 0U;
+    status = impl_->validate_handle(body, dense);
+    if (!status) return status;
+    if (impl_->parameters[dense].motion != MotionType::dynamic) {
+        return failure(StatusCode::invalid_argument,
+                       "rigid inputs require a dynamic body");
+    }
+    BodyAccumulator &accumulator = impl_->accumulators[dense];
+    accumulator.force = add(accumulator.force, force);
+    accumulator.torque = add(accumulator.torque, torque);
+    accumulator.impulse = add(accumulator.impulse, linear_impulse);
+    accumulator.angular_impulse = add(accumulator.angular_impulse,
+                                      angular_impulse);
+    return success();
+}
+
 Status World::apply_central_acceleration(
     HostSpan<RigidBodyId> bodies, Vec3 acceleration) noexcept {
     if (!impl_)
@@ -5737,25 +5709,20 @@ Status World::query_hit_box(HitBox box, HitBoxResult &output,
     }
     box.orientation = normalized_quaternion(box.orientation);
 
-    constexpr std::uint32_t block_size = 128U;
     if (impl_->rigid_body_count != 0U) {
-        query_rigid_hit_box_kernel<<<
-            (impl_->rigid_body_count + block_size - 1U) / block_size,
-            block_size, 0, stream>>>(
+        const cudaError_t error = simulation::query_rigid_hit_box(
+            stream,
             box, impl_->parameters, impl_->states[impl_->current_state],
             impl_->meshes, impl_->rigid_body_count,
             impl_->hit_box_rigid_flags);
-        const cudaError_t error = cudaGetLastError();
         if (error != cudaSuccess)
             return cuda_failure(error, "rigid hit-box query launch failed");
     }
     for (const auto &owner : impl_->fluids) {
         if (!owner || !owner->alive || *owner->count == 0U) continue;
-        query_particle_hit_box_kernel<<<
-            (*owner->count + block_size - 1U) / block_size,
-            block_size, 0, stream>>>(
+        const cudaError_t error = simulation::query_particle_hit_box(
+            stream,
             box, owner->positions, *owner->count, owner->hit_box_flags);
-        const cudaError_t error = cudaGetLastError();
         if (error != cudaSuccess)
             return cuda_failure(error, "particle hit-box query launch failed");
     }
@@ -5949,7 +5916,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     }
     if (!finite(options.timestep) || options.timestep <= 0.0F ||
         options.substeps == 0U || options.substeps > 1'024U ||
-        !finite(options.gravity) || options.rigid_contact_pass_limit > 64U) {
+        !finite(options.gravity) || options.rigid_contact_pass_limit > 64U ||
+        options.rigid_contact_iterations == 0U ||
+        options.rigid_contact_iterations > 64U) {
         return failure(StatusCode::invalid_argument,
                        "step timestep, substeps, gravity, or contact pass limit is invalid");
     }
@@ -6102,13 +6071,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!owner || !owner->alive || owner->count == 0U ||
             owner->grid.resolution != 0U) continue;
         auto &smoke = *owner;
-        smoke_emit_cells<<<(smoke.options.capacity + block_size - 1U) /
-            block_size, block_size, 0, stream>>>(smoke.positions, smoke.ages,
-            smoke.count, smoke.options, smoke.keys[0], smoke.indices[0]);
-        error = cub::DeviceRadixSort::SortPairs(
-            smoke.sort_workspace, smoke.sort_workspace_size,
-            smoke.keys[0], smoke.keys[1], smoke.indices[0], smoke.indices[1],
-            smoke.options.capacity, 0, 64, stream);
+        simulation::index_smoke_particles(
+            (smoke.options.capacity + block_size - 1U) / block_size,
+            block_size, stream, smoke.positions, smoke.ages, smoke.count,
+            smoke_domain_options(smoke.options), smoke.keys[0],
+            smoke.indices[0]);
+        error = simulation::radix_sort_pairs_u64_u32(
+            stream, smoke.keys[0], smoke.keys[1], smoke.indices[0],
+            smoke.indices[1], smoke.options.capacity, smoke.sort_workspace,
+            smoke.sort_workspace_size);
         if (error != cudaSuccess)
             return cuda_failure(error, "smoke neighbor index failed");
         smoke.index_dirty = false;
@@ -6120,17 +6091,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         auto &smoke = *owner;
         auto &grid = smoke.grid;
         const auto blocks = (grid.cell_count + 255U) / 256U;
-        SmokeGridField field{grid.resolution, grid.height,
-            grid.minimum, grid.spacing, grid.velocity, grid.density,
-            grid.pressure[0]};
-        for (int axis = 0; axis < 3; ++axis)
-            field.face[axis] = grid.face_velocity[axis][0];
-        field.vorticity = grid.vorticity;
-        field.strain = grid.strain;
+        auto dispatch_field = smoke_dispatch_grid(grid);
+        const auto dispatch_options = smoke_domain_options(smoke.options);
+        const simulation::SmokeGridBoundaryDispatch dispatch_boundary{
+            grid.solid,
+            {grid.face_open[0], grid.face_open[1], grid.face_open[2]},
+            {grid.face_wall_velocity[0], grid.face_wall_velocity[1],
+             grid.face_wall_velocity[2]},
+            {grid.face_normal[0], grid.face_normal[1], grid.face_normal[2]},
+            {grid.face_nearest_triangle[0],
+             grid.face_nearest_triangle[1],
+             grid.face_nearest_triangle[2]}};
+        const float smoke_gravity[3]{
+            options.gravity.x, options.gravity.y, options.gravity.z};
         const auto largest = std::max({grid.cell_count, grid.face_count[0],
             grid.face_count[1], grid.face_count[2]});
-        smoke_grid_clear_obstacles<<<(largest + 255U) / 256U,
-            256U, 0, stream>>>(grid.solid, grid.cell_count,
+        simulation::clear_smoke_grid_obstacles(
+            (largest + 255U) / 256U, 256U, stream,
+            grid.solid, grid.cell_count,
             grid.face_open[0], grid.face_open[1], grid.face_open[2],
             grid.face_wall_velocity[0], grid.face_wall_velocity[1],
             grid.face_wall_velocity[2],
@@ -6141,13 +6119,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         cudaMemsetAsync(grid.temperature_accumulator,0,
             grid.cell_count*sizeof(unsigned long long),stream);
         if (smoke.count != 0U)
-            smoke_grid_splat_particles<<<
-                (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+            simulation::splat_smoke_grid_particles(
+                (smoke.count + 127U) / 128U, 128U, stream,
                 smoke.positions, smoke.ages, smoke.thermal_lift,
-                smoke.count, smoke.options, field,grid.density_accumulator,
-                grid.temperature_accumulator);
-        smoke_grid_resolve_particle_fields<<<blocks,256U,0,stream>>>(
-            grid.density_accumulator,grid.temperature_accumulator,
+                smoke.count, dispatch_options, dispatch_field,
+                reinterpret_cast<std::uint64_t *>(grid.density_accumulator),
+                reinterpret_cast<std::uint64_t *>(
+                    grid.temperature_accumulator));
+        simulation::resolve_smoke_grid_particle_fields(
+            blocks, 256U, stream,
+            reinterpret_cast<const std::uint64_t *>(grid.density_accumulator),
+            reinterpret_cast<const std::uint64_t *>(
+                grid.temperature_accumulator),
             grid.density,grid.temperature,grid.cell_count);
         bool moving_triangle_boundary = false;
         for (const auto &coupling : impl_->smoke_rigid_couplings) {
@@ -6184,16 +6167,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
             const auto triangles = mesh.index_count / 3U;
             for (int pass = 0; pass < raster_passes; ++pass)
-                smoke_grid_raster_rigid<<<(triangles + 127U) / 128U,
-                    128U, 0, stream>>>(mesh,
-                    impl_->states[impl_->current_state], body, field, grid.solid,
-                    grid.face_open[0], grid.face_open[1], grid.face_open[2],
-                    grid.face_wall_velocity[0], grid.face_wall_velocity[1],
-                    grid.face_wall_velocity[2], grid.face_normal[0],
-                    grid.face_normal[1], grid.face_normal[2],
-                    grid.face_nearest_triangle[0],
-                    grid.face_nearest_triangle[1],
-                    grid.face_nearest_triangle[2],pass!=0);
+                simulation::raster_smoke_grid_rigid_body(
+                    (triangles + 127U) / 128U, 128U, stream,
+                    &mesh, impl_->states[impl_->current_state], body,
+                    dispatch_field, dispatch_boundary, pass != 0);
         }
         for (const auto &coupling : impl_->smoke_soft_body_couplings) {
             if (!coupling || !coupling->alive || !coupling->options.enabled ||
@@ -6204,17 +6181,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 coupling->options.soft_body.index];
             const auto triangles = body.surface_index_count / 3U;
             for (int pass = 0; pass < raster_passes; ++pass)
-                smoke_grid_raster_soft<<<(triangles + 127U) / 128U,
-                    128U, 0, stream>>>(body.surface_positions,
+                simulation::raster_smoke_grid_soft_body(
+                    (triangles + 127U) / 128U, 128U, stream,
+                    body.surface_positions,
                     body.surface_bindings, body.velocities,
                     body.surface_indices, body.surface_index_count,
-                    field, grid.solid, grid.face_open[0], grid.face_open[1],
-                    grid.face_open[2], grid.face_wall_velocity[0],
-                    grid.face_wall_velocity[1], grid.face_wall_velocity[2],
-                    grid.face_normal[0], grid.face_normal[1],
-                    grid.face_normal[2], grid.face_nearest_triangle[0],
-                    grid.face_nearest_triangle[1],
-                    grid.face_nearest_triangle[2],pass!=0);
+                    dispatch_field, dispatch_boundary, pass != 0);
         }
         for (const auto &coupling : impl_->smoke_cloth_couplings) {
             if (!coupling || !coupling->alive || !coupling->options.enabled ||
@@ -6224,26 +6196,21 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             const auto &cloth = *impl_->cloths[coupling->options.cloth.index];
             const auto triangles = cloth.index_count / 3U;
             for (int pass = 0; pass < raster_passes; ++pass)
-                smoke_grid_raster_deformable<<<(triangles + 127U) / 128U,
-                    128U, 0, stream>>>(cloth.positions, cloth.velocities,
-                    cloth.indices, cloth.index_count, field, grid.solid,
-                    grid.face_open[0], grid.face_open[1], grid.face_open[2],
-                    grid.face_wall_velocity[0], grid.face_wall_velocity[1],
-                    grid.face_wall_velocity[2], grid.face_normal[0],
-                    grid.face_normal[1], grid.face_normal[2],
-                    grid.face_nearest_triangle[0],
-                    grid.face_nearest_triangle[1],
-                    grid.face_nearest_triangle[2],pass!=0);
+                simulation::raster_smoke_grid_deformable(
+                    (triangles + 127U) / 128U, 128U, stream,
+                    cloth.positions, cloth.velocities,
+                    cloth.indices, cloth.index_count, dispatch_field,
+                    dispatch_boundary, pass != 0);
         }
         grid.static_metadata_valid = !moving_triangle_boundary;
 
         // Fixed inlet and far-field normal velocities are zero-aperture
         // pressure boundaries. Downstream faces stay open with p=0 outside.
         for (int axis = 0; axis < 3; ++axis)
-            smoke_grid_mark_domain_boundaries<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, field, grid.face_open[axis],
-                grid.face_wall_velocity[axis], smoke.options);
+            simulation::mark_smoke_grid_domain_boundaries(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_field, grid.face_open[axis],
+                grid.face_wall_velocity[axis], dispatch_options);
 
         // Coarsen the cut-face apertures once; all pressure V-cycles reuse
         // the same geometry for this frame.
@@ -6254,8 +6221,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             for (int axis = 0; axis < 3; ++axis) {
                 const auto count = smoke_grid_face_count(axis,
                     int(level.n), int(level.height));
-                smoke_grid_restrict_open<<<(count + 255U) / 256U,
-                    256U, 0, stream>>>(axis, fine_open[axis], fine_n, fine_h,
+                simulation::restrict_smoke_grid_open_faces(
+                    (count + 255U) / 256U, 256U, stream,
+                    axis, fine_open[axis], fine_n, fine_h,
                     level.open[axis], int(level.n), int(level.height));
                 fine_open[axis] = level.open[axis];
             }
@@ -6264,52 +6232,57 @@ Status World::step_async(StepOptions options, FrameToken &completion,
 
         // RK2 MacCormack self-advection on the staggered faces.
         for (int axis = 0; axis < 3; ++axis)
-            smoke_grid_advect_face<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, field, grid.face_velocity[axis][0],
+            simulation::advect_smoke_grid_face(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_field, grid.face_velocity[axis][0],
                 grid.face_velocity[axis][1], options.timestep);
-        SmokeGridField predicted = field;
+        auto dispatch_predicted = dispatch_field;
         for (int axis = 0; axis < 3; ++axis)
-            predicted.face[axis] = grid.face_velocity[axis][1];
+            dispatch_predicted.face_velocity[axis] =
+                grid.face_velocity[axis][1];
         for (int axis = 0; axis < 3; ++axis)
-            smoke_grid_advect_face<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, predicted, grid.face_velocity[axis][1],
+            simulation::advect_smoke_grid_face(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_predicted, grid.face_velocity[axis][1],
                 grid.face_reverse[axis], -options.timestep);
         for (int axis = 0; axis < 3; ++axis)
-            smoke_grid_correct_face<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, field, grid.face_velocity[axis][0],
+            simulation::correct_smoke_grid_face(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_field, grid.face_velocity[axis][0],
                 grid.face_velocity[axis][1], grid.face_reverse[axis],
                 grid.face_velocity[axis][1], options.timestep);
 
-        smoke_grid_cell_diagnostics<<<blocks, 256U, 0, stream>>>(
-            predicted, nullptr, grid.vorticity, grid.strain, nullptr);
-        smoke_grid_subgrid_force<<<blocks, 256U, 0, stream>>>(predicted,
+        simulation::calculate_smoke_grid_cell_diagnostics(
+            blocks, 256U, stream, dispatch_predicted,
+            nullptr, grid.vorticity, grid.strain, nullptr);
+        simulation::calculate_smoke_grid_subgrid_force(
+            blocks, 256U, stream, dispatch_predicted,
             grid.vorticity, grid.subgrid_force,
             smoke.options.vorticity_confinement);
         for (int axis = 0; axis < 3; ++axis)
-            smoke_grid_apply_face_forces<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, predicted, grid.face_velocity[axis][1],
+            simulation::apply_smoke_grid_face_forces(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_predicted, grid.face_velocity[axis][1],
                 grid.face_velocity[axis][0], grid.face_open[axis],
                 grid.face_wall_velocity[axis], grid.strain,
-                grid.subgrid_force, grid.temperature, smoke.options,
-                options.timestep, options.gravity);
-        SmokeGridField forced = field;
+                grid.subgrid_force, grid.temperature, dispatch_options,
+                options.timestep, smoke_gravity);
+        auto dispatch_forced = dispatch_field;
         for (int axis = 0; axis < 3; ++axis) {
-            forced.face[axis] = grid.face_velocity[axis][0];
-            smoke_grid_apply_face_boundaries<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, forced, grid.face_velocity[axis][0],
+            dispatch_forced.face_velocity[axis] =
+                grid.face_velocity[axis][0];
+            simulation::apply_smoke_grid_face_boundaries(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_forced, grid.face_velocity[axis][0],
                 grid.face_open[axis], grid.face_wall_velocity[axis],
-                smoke.options);
+                dispatch_options);
         }
 
         cudaMemsetAsync(grid.rhs_max, 0, sizeof(float), stream);
         cudaMemsetAsync(grid.pressure_converged, 0,
             sizeof(unsigned int), stream);
-        smoke_grid_divergence<<<blocks, 256U, 0, stream>>>(forced,
+        simulation::calculate_smoke_grid_divergence(
+            blocks, 256U, stream, dispatch_forced,
             grid.divergence, grid.rhs_max, options.timestep);
 
         int level_n[4] = {int(grid.resolution), int(grid.coarse[0].n),
@@ -6336,8 +6309,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             const auto count = std::uint32_t(level_n[level] * level_h[level] *
                                              level_n[level]);
             for (int iteration = 0; iteration < iterations; ++iteration) {
-                smoke_grid_pressure_smooth<<<(count + 255U) / 256U,
-                    256U, 0, stream>>>(level_n[level], level_h[level],
+                simulation::smooth_smoke_grid_pressure(
+                    (count + 255U) / 256U, 256U, stream,
+                    level_n[level], level_h[level],
                     level_spacing[level], level_rhs[level],
                     level_pressure[level][0], level_pressure[level][1],
                     level_open[level][0], level_open[level][1],
@@ -6356,16 +6330,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 smooth(level, 2);
                 const auto count = std::uint32_t(level_n[level] *
                     level_h[level] * level_n[level]);
-                smoke_grid_pressure_residual<<<(count + 255U) / 256U,
-                    256U, 0, stream>>>(level_n[level], level_h[level],
+                simulation::calculate_smoke_grid_pressure_residual(
+                    (count + 255U) / 256U, 256U, stream,
+                    level_n[level], level_h[level],
                     level_spacing[level], level_rhs[level],
                     level_pressure[level][0], level_residual[level],
                     level_open[level][0], level_open[level][1],
                     level_open[level][2], nullptr, grid.pressure_converged);
                 const auto coarse_count = std::uint32_t(level_n[level+1] *
                     level_h[level+1] * level_n[level+1]);
-                smoke_grid_restrict_residual<<<
-                    (coarse_count + 255U) / 256U, 256U, 0, stream>>>(
+                simulation::restrict_smoke_grid_residual(
+                    (coarse_count + 255U) / 256U, 256U, stream,
                     level_residual[level], level_n[level], level_h[level],
                     level_rhs[level+1], level_n[level+1], level_h[level+1]);
                 cudaMemsetAsync(level_pressure[level+1][0], 0,
@@ -6377,20 +6352,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             for (int level = 2; level >= 0; --level) {
                 const auto fine_count = std::uint32_t(level_n[level] *
                     level_h[level] * level_n[level]);
-                smoke_grid_prolong_add<<<(fine_count + 255U) / 256U,
-                    256U, 0, stream>>>(level_pressure[level+1][0],
+                simulation::prolong_smoke_grid_pressure(
+                    (fine_count + 255U) / 256U, 256U, stream,
+                    level_pressure[level+1][0],
                     level_n[level+1], level_h[level+1],
                     level_pressure[level][0], level_n[level], level_h[level]);
                 smooth(level, 2);
             }
-            smoke_grid_reset_residual<<<1U,1U,0,stream>>>(
+            simulation::reset_smoke_grid_residual(
+                1U, 1U, stream,
                 grid.residual_max,grid.pressure_converged);
-            smoke_grid_pressure_residual<<<blocks, 256U, 0, stream>>>(
+            simulation::calculate_smoke_grid_pressure_residual(
+                blocks, 256U, stream,
                 level_n[0], level_h[0], level_spacing[0], level_rhs[0],
                 level_pressure[0][0], level_residual[0], level_open[0][0],
                 level_open[0][1], level_open[0][2], grid.residual_max,
                 grid.pressure_converged);
-            smoke_grid_compare_residual<<<1U,1U,0,stream>>>(grid.rhs_max,
+            simulation::compare_smoke_grid_residual(
+                1U, 1U, stream, grid.rhs_max,
                 grid.residual_max, smoke.options.grid_pressure_tolerance,
                 grid.pressure_converged);
         }
@@ -6401,16 +6380,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             grid.coarse[level].pressure[1] = level_pressure[level+1][1];
         }
         for (int axis = 0; axis < 3; ++axis) {
-            smoke_grid_project_face<<<
-                (grid.face_count[axis] + 255U) / 256U, 256U, 0, stream>>>(
-                axis, forced, grid.pressure[0], grid.face_velocity[axis][0],
+            simulation::project_smoke_grid_face(
+                (grid.face_count[axis] + 255U) / 256U, 256U, stream,
+                axis, dispatch_forced, grid.pressure[0],
+                grid.face_velocity[axis][0],
                 grid.face_open[axis], grid.face_wall_velocity[axis],
                 options.timestep);
         }
-        SmokeGridField projected = forced;
-        projected.pressure = grid.pressure[0];
-        projected.vorticity = grid.vorticity;
-        smoke_grid_cell_diagnostics<<<blocks, 256U, 0, stream>>>(projected,
+        auto dispatch_projected = dispatch_forced;
+        dispatch_projected.pressure = grid.pressure[0];
+        dispatch_projected.vorticity = grid.vorticity;
+        simulation::calculate_smoke_grid_cell_diagnostics(
+            blocks, 256U, stream, dispatch_projected,
             grid.velocity, grid.vorticity, grid.strain, grid.divergence);
         error = cudaPeekAtLastError();
         if (error != cudaSuccess)
@@ -6424,10 +6405,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (!status) return status;
     }
     if (debug_enabled && impl_->rigid_body_count != 0U) {
-        capture_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
+        error = simulation::capture_rigid_inputs(
+            block_count, block_size, stream,
             impl_->accumulators, impl_->debug_applied_forces,
             impl_->debug_applied_torques, impl_->rigid_body_count);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess)
             return cuda_failure(error,
                                 "rigid debug input capture launch failed");
@@ -6498,33 +6479,28 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         return cuda_failure(error,
                             "cloth smoke force clear failed");
                     const auto triangles = cloth.index_count / 3U;
-                    smoke_grid_cloth_force<<<
+                    simulation::accumulate_smoke_grid_force_on_cloth(
                         (triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions,
+                        block_size, stream, cloth.positions,
                         cloth.velocities, cloth.inverse_masses, cloth.indices,
-                        cloth.index_count,
-                        {smoke.grid.resolution, smoke.grid.height,
-                         smoke.grid.minimum, smoke.grid.spacing,
-                         smoke.grid.velocity, smoke.grid.density,
-                         smoke.grid.pressure[0],
-                         {smoke.grid.face_velocity[0][0],
-                          smoke.grid.face_velocity[1][0],
-                          smoke.grid.face_velocity[2][0]},
-                        smoke.grid.vorticity, smoke.grid.strain},
+                        cloth.index_count, smoke_dispatch_grid(smoke.grid),
                         owner->options.wind_drag,
                         smoke.options.rest_number_density,
                         smoke.options.grid_kinematic_viscosity,
                         smoke.options.grid_les_coefficient,
                         cloth.smoke_forces);
-                    smoke_grid_apply_cloth_force<<<blocks, block_size, 0,
-                        stream>>>(cloth.velocities, cloth.inverse_masses,
+                    simulation::apply_smoke_grid_force_to_cloth(
+                        blocks, block_size, stream,
+                        cloth.velocities, cloth.inverse_masses,
                         cloth.smoke_forces, cloth.vertex_count,
                         owner->options.maximum_wind_acceleration,
                         substep_timestep);
                 } else {
-                    smoke_cloth_wind<<<blocks, block_size, 0, stream>>>(
+                    simulation::apply_smoke_wind_to_cloth(
+                        blocks, block_size, stream,
                         cloth.positions, cloth.velocities, cloth.inverse_masses,
-                        cloth.vertex_count, smoke.options,
+                        cloth.vertex_count,
+                        smoke_dispatch_options(smoke.options),
                         smoke.positions, smoke.velocities,
                         smoke.keys[1], smoke.indices[1], {},
                         owner->options.wind_drag,
@@ -6532,22 +6508,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         substep_timestep);
                 }
             }
-            deformable_predict<<<blocks, block_size, 0, stream>>>(
+            simulation::predict_deformable(blocks, block_size, stream,
                 cloth.positions, cloth.previous, cloth.velocities,
-                cloth.inverse_masses, cloth.vertex_count, options.gravity,
+                cloth.inverse_masses, cloth.vertex_count, &options.gravity.x,
                 substep_timestep, cloth.velocity_damping);
             Status cloth_status = record_timing_stage(
                 TimingStage::cloth_prediction);
             if (!cloth_status) return cloth_status;
             for (std::uint32_t iteration = 0U;
                  iteration < cloth.solver_iterations; ++iteration) {
-                deformable_project_links<<<blocks, block_size, 0, stream>>>(
+                simulation::project_deformable_links(blocks, block_size, stream,
                     cloth.positions, cloth.scratch, cloth.inverse_masses,
                     cloth.offsets, cloth.neighbors, cloth.bond_active,
                     cloth.vertex_count, substep_timestep, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
-                    cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
+                    simulation::project_cloth_volume(stream,
                         cloth.positions, cloth.inverse_masses, cloth.indices,
                         cloth.vertex_count, cloth.index_count / 3U,
                         cloth.volume_corner_offsets, cloth.volume_corner_indices,
@@ -6567,7 +6543,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 if (clear_error != cudaSuccess)
                     return cuda_failure(clear_error,
                                         "cloth contact flags clear failed");
-                deformable_collide<false><<<blocks, block_size, 0, stream>>>(
+                simulation::collide_deformable_with_rigid_geometry(
+                    blocks, block_size, stream,
                     cloth.positions, cloth.velocities, cloth.previous,
                     cloth.inverse_masses, cloth.vertex_count,
                     cloth.thickness, substep_timestep,
@@ -6578,21 +6555,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     nullptr, nullptr, nullptr, nullptr, nullptr,
                     nullptr,
                     impl_->fluid_body_contact_flags,
-                    false, true, 20.0F);
-                reduce_point_body_impulses<<<impl_->rigid_body_count,
-                                             block_size, 0, stream>>>(
+                    false, false, false, true, 20.0F);
+                simulation::reduce_fluid_body_impulses(
+                    impl_->rigid_body_count, block_size, stream,
                     cloth.body_impulses, cloth.count, impl_->parameters,
                     impl_->states[impl_->current_state],
                     impl_->fluid_body_contact_flags, impl_->rigid_body_count);
                 if (cloth.surface_positions != nullptr) {
                     const std::uint32_t triangles = cloth.index_count / 3U;
-                    cloth_update_surface<<<
+                    simulation::update_cloth_surface(
                         (triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions,
+                        block_size, stream, cloth.positions,
                         cloth.indices,
                         cloth.surface_positions, triangles);
                 }
-                cloth_constrain_bodies<<<block_count, block_size, 0, stream>>>(
+                simulation::constrain_rigid_bodies_with_cloth(
+                    block_count, block_size, stream,
                     cloth.positions, cloth.velocities, cloth.indices, cloth.vertex_sources,
                     cloth.surface_positions,
                     cloth.inverse_masses,
@@ -6601,16 +6579,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.contact_friction, impl_->parameters,
                     previous_states, impl_->states[impl_->current_state],
                     impl_->meshes, impl_->ids, impl_->rigid_body_count,
-                    {cloth_index, cloth.generation}, impl_->paint_fields,
+                    cloth_index, cloth.generation, impl_->paint_fields,
                     impl_->options.paint_field_capacity, impl_->paint_rules,
                     impl_->options.paint_rule_capacity,
                     cloth.body_corrections);
-                cloth_apply_body_corrections<<<blocks, block_size, 0, stream>>>(
+                simulation::apply_cloth_body_corrections(
+                    blocks, block_size, stream,
                     cloth.positions, cloth.velocities, cloth.inverse_masses,
                     cloth.vertex_count,
                     cloth.body_corrections, impl_->rigid_body_count);
             } else {
-                deformable_collide<false><<<blocks, block_size, 0, stream>>>(
+                simulation::collide_deformable_with_rigid_geometry(
+                    blocks, block_size, stream,
                     cloth.positions, cloth.velocities, cloth.previous,
                     cloth.inverse_masses, cloth.vertex_count,
                     cloth.thickness, substep_timestep,
@@ -6619,25 +6599,26 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->meshes, 0U, cloth.body_impulses,
                     cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
                     nullptr, nullptr, nullptr,
-                    impl_->fluid_body_contact_flags, false, true, 20.0F);
+                    impl_->fluid_body_contact_flags,
+                    false, false, false, true, 20.0F);
             }
             if (cloth.free_triangle_nodes)
-                cloth_limit_strain<<<1U, 128U, 0, stream>>>(cloth.positions,
+                simulation::limit_cloth_strain(stream, cloth.positions,
                     cloth.scratch, cloth.inverse_masses, cloth.offsets,
                     cloth.neighbors, cloth.free_triangle_nodes, cloth.vertex_count);
             cloth_status = record_timing_stage(TimingStage::cloth_contacts);
             if (!cloth_status) return cloth_status;
             if (cloth.surface_positions != nullptr) {
                 const std::uint32_t triangles = cloth.index_count / 3U;
-                if (!coupled_cloth(cloth_index)) cloth_break_bonds<<<
+                if (!coupled_cloth(cloth_index)) simulation::break_cloth_bonds(
                     (cloth.bond_count + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(cloth.positions, cloth.bonds,
+                    block_size, stream, cloth.positions, cloth.bonds,
                     cloth.bond_active, cloth.bond_damage, cloth.bond_count,
                     cloth.break_strain, cloth.fracture_persistence_substeps,
                     cloth.body_impulses, cloth.impact_break_impulse);
-                cloth_update_surface<<<
+                simulation::update_cloth_surface(
                     (triangles + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(cloth.positions,
+                    block_size, stream, cloth.positions,
                     cloth.indices,
                     cloth.surface_positions, triangles);
             }
@@ -6676,21 +6657,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         grid_snapshot_ready = true;
                     }
                     const auto triangles = body.surface_index_count / 3U;
-                    smoke_grid_soft_body_force<<<
+                    simulation::apply_smoke_grid_force_to_soft_body(
                         (triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(body.surface_positions,
+                        block_size, stream, body.surface_positions,
                         body.surface_indices, body.surface_index_count,
                         body.surface_bindings, body.velocity_scratch,
                         body.velocities,
-                        body.inverse_masses,
-                        {smoke.grid.resolution, smoke.grid.height,
-                         smoke.grid.minimum,
-                         smoke.grid.spacing, smoke.grid.velocity,
-                         smoke.grid.density, smoke.grid.pressure[0],
-                         {smoke.grid.face_velocity[0][0],
-                          smoke.grid.face_velocity[1][0],
-                          smoke.grid.face_velocity[2][0]},
-                         smoke.grid.vorticity, smoke.grid.strain},
+                        body.inverse_masses, smoke_dispatch_grid(smoke.grid),
                         owner->options.wind_drag,
                         smoke.options.rest_number_density,
                         smoke.options.grid_kinematic_viscosity,
@@ -6698,9 +6671,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         owner->options.maximum_wind_acceleration,
                         substep_timestep);
                 } else {
-                    smoke_soft_body_wind<<<blocks, block_size, 0, stream>>>(
+                    simulation::apply_smoke_wind_to_soft_body(
+                        blocks, block_size, stream,
                         body.positions, body.velocities, body.inverse_masses,
-                        body.node_count, smoke.options,
+                        body.node_count,
+                        smoke_dispatch_options(smoke.options),
                         smoke.positions, smoke.velocities,
                         smoke.keys[1], smoke.indices[1], {},
                         owner->options.wind_drag,
@@ -6708,9 +6683,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         substep_timestep, body.maximum_speed);
                 }
             }
-            deformable_predict<<<blocks, block_size, 0, stream>>>(
+            simulation::predict_deformable(blocks, block_size, stream,
                 body.positions, body.previous, body.velocities,
-                body.inverse_masses, body.node_count, options.gravity,
+                body.inverse_masses, body.node_count, &options.gravity.x,
                 substep_timestep, body.velocity_damping);
             cudaError_t friction_clear_error = cudaMemsetAsync(
                 body.contact_momentum_delta, 0,
@@ -6736,7 +6711,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (friction_clear_error != cudaSuccess)
                 return cuda_failure(friction_clear_error,
                     "soft-body dynamic contact flag clear failed");
-            soft_body_measure_momentum<<<1U, block_size, 0, stream>>>(
+            simulation::measure_soft_body_momentum(block_size, stream,
                 body.velocities, body.inverse_masses, body.node_count,
                 body.predicted_momentum);
             Status body_status = record_timing_stage(
@@ -6757,7 +6732,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         return cuda_failure(clear_error,
                             "soft-body contact flags clear failed");
                 }
-                deformable_collide<true><<<blocks, block_size, 0, stream>>>(
+                simulation::collide_deformable_with_rigid_geometry(
+                    blocks, block_size, stream,
                     body.positions, body.velocities, body.previous,
                     body.inverse_masses, body.node_count, body.node_radius,
                     substep_timestep, impl_->parameters, previous_states,
@@ -6769,13 +6745,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.contact_normal_delta,
                     body.contact_count, body.dynamic_contact_flag,
                     impl_->fluid_body_contact_flags,
-                    false, false, body.maximum_speed,
+                    true, false, false, false, body.maximum_speed,
                     body.body_position_corrections);
                 return success();
             };
             const auto apply_contact_traction = [&]() noexcept {
-                soft_body_apply_contact_friction<<<
-                    blocks, block_size, 0, stream>>>(
+                simulation::apply_soft_body_contact_friction(
+                    blocks, block_size, stream,
                     body.positions, body.velocities, body.inverse_masses,
                     body.rigid_contact_forces, body.contact_normals,
                     body.contact_arms, body.body_impulses,
@@ -6784,14 +6760,14 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.contact_friction_delta,
                     body.contact_normal_delta,
                     body.contact_count, body.node_count, body.movable_mass,
-                    options.gravity, substep_timestep, body.contact_friction,
+                    &options.gravity.x, substep_timestep, body.contact_friction,
                     body.maximum_speed);
             };
             const auto finish_contact_pass = [&]() noexcept -> Status {
                 apply_contact_traction();
                 if (impl_->rigid_body_count != 0U)
-                    reduce_point_body_impulses<<<
-                        impl_->rigid_body_count, block_size, 0, stream>>>(
+                    simulation::reduce_fluid_body_impulses(
+                        impl_->rigid_body_count, block_size, stream,
                         body.body_impulses, body.count, impl_->parameters,
                         impl_->states[impl_->current_state],
                         impl_->fluid_body_contact_flags,
@@ -6814,15 +6790,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     const std::uint32_t group_blocks =
                         (body.node_count + groups_per_block - 1U) /
                         groups_per_block;
-                    deformable_project_links_warp<<<
-                        group_blocks, block_size, 0, stream>>>(
+                    simulation::project_deformable_links_warp(
+                        group_blocks, block_size, stream,
                         body.positions, body.scratch, body.inverse_masses,
                         body.offsets, body.warp_neighbors,
                         body.minimum_rest_lengths, body.node_count,
                         body.stretch_compliance, substep_timestep,
                         body.maximum_projection_fraction);
                 } else
-                    deformable_project_links<<<blocks, block_size, 0, stream>>>(
+                    simulation::project_deformable_links(
+                        blocks, block_size, stream,
                         body.positions, body.scratch, body.inverse_masses,
                         body.offsets, body.neighbors, body.bond_active,
                         body.node_count, substep_timestep,
@@ -6830,11 +6807,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 std::swap(body.positions, body.scratch);
                 if (iteration + 1U == body.solver_iterations &&
                     body.shape_matching_stiffness > 0.0F) {
-                    soft_body_project_rest_shape<<<1U, 128U, 0, stream>>>(
+                    simulation::project_soft_body_rest_shape(stream,
                         body.positions, body.scratch, body.rest_positions,
                         body.inverse_masses, body.node_count,
-                        body.movable_mass, body.shape_rest_center,
-                        body.shape_inverse_rest, body.shape_orientation,
+                        body.movable_mass, &body.shape_rest_center.x,
+                        &body.shape_inverse_rest, body.shape_orientation,
                         body.shape_matching_stiffness,
                         body.shape_maximum_projection,
                         body.dynamic_contact_flag);
@@ -6852,7 +6829,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     }
                 }
             }
-            soft_body_finalize_velocities<<<blocks, block_size, 0, stream>>>(
+            simulation::finalize_soft_body_velocities(
+                blocks, block_size, stream,
                 body.positions, body.previous, body.velocities,
                 body.inverse_masses, body.node_count,
                 1.0F / substep_timestep,
@@ -6862,14 +6840,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const std::uint32_t group_blocks =
                     (body.node_count + groups_per_block - 1U) /
                     groups_per_block;
-                soft_body_damp_springs_warp<<<
-                    group_blocks, block_size, 0, stream>>>(
+                simulation::damp_soft_body_springs_warp(
+                    group_blocks, block_size, stream,
                     body.positions, body.velocities, body.velocity_scratch,
                     body.inverse_masses, body.offsets, body.warp_neighbors,
                     body.node_count, body.spring_damping,
                     body.maximum_speed);
             } else {
-                soft_body_damp_springs<<<blocks, block_size, 0, stream>>>(
+                simulation::damp_soft_body_springs(
+                    blocks, block_size, stream,
                     body.positions, body.velocities, body.velocity_scratch,
                     body.inverse_masses, body.offsets, body.neighbors,
                     body.bond_active, body.node_count, body.spring_damping,
@@ -6878,7 +6857,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             std::swap(body.velocities, body.velocity_scratch);
             body_status = finish_contact_pass();
             if (!body_status) return body_status;
-            soft_body_restore_momentum<<<1U, block_size, 0, stream>>>(
+            simulation::restore_soft_body_momentum(block_size, stream,
                 body.velocities, body.inverse_masses,
                 body.contact_momentum_delta, body.node_count,
                 body.movable_mass, body.predicted_momentum,
@@ -6894,24 +6873,26 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                  impl_->rigid_body_count != 0U &&
                  pass < k_soft_contact_cleanup_passes; ++pass) {
                 if (pass % 2U == 0U) {
-                    soft_body_update_surface<<<
+                    simulation::update_soft_body_surface(
                         (body.surface_vertex_count + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(body.positions, body.rest_positions,
+                        block_size, stream, body.positions, body.rest_positions,
                         body.surface_rest_positions, body.surface_bindings,
                         body.surface_positions, body.surface_vertex_count);
                     const std::uint32_t triangles = body.surface_index_count / 3U;
-                    soft_body_surface_contacts<<<
+                    simulation::calculate_soft_body_surface_contacts(
                         (triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(body.surface_positions,
+                        block_size, stream, body.surface_positions,
                         body.surface_indices, triangles, impl_->parameters,
                         impl_->states[impl_->current_state], impl_->meshes,
                         impl_->rigid_body_count, body.surface_corner_corrections);
-                    soft_body_apply_surface_contacts<<<blocks, block_size, 0, stream>>>(
+                    simulation::apply_soft_body_surface_contacts(
+                        blocks, block_size, stream,
                         body.positions, body.surface_corner_corrections,
                         body.surface_node_offsets, body.surface_node_influences,
                         body.node_count);
                 }
-                deformable_collide<true, true><<<blocks, block_size, 0, stream>>>(
+                simulation::collide_deformable_with_rigid_geometry(
+                    blocks, block_size, stream,
                     body.positions, body.velocities, body.previous,
                     body.inverse_masses, body.node_count,
                     body.node_radius * 0.01F,
@@ -6922,12 +6903,14 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body.contact_arms, body.contact_momentum_delta,
                     body.contact_normal_delta, body.contact_count,
                     body.dynamic_contact_flag, impl_->fluid_body_contact_flags,
+                    true, true,
                     pass + 1U == k_soft_contact_cleanup_passes,
                     false, body.maximum_speed);
             }
             const std::uint32_t surface_blocks =
                 (body.surface_vertex_count + block_size - 1U) / block_size;
-            soft_body_update_surface<<<surface_blocks, block_size, 0, stream>>>(
+            simulation::update_soft_body_surface(
+                surface_blocks, block_size, stream,
                 body.positions, body.rest_positions,
                 body.surface_rest_positions, body.surface_bindings,
                 body.surface_positions, body.surface_vertex_count);
@@ -6973,25 +6956,28 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const auto blocks = (body.node_count + block_size - 1U) / block_size;
                 if (cloth.surface_positions != nullptr) {
                     const auto triangles = cloth.index_count / 3U;
-                    cloth_update_surface<<<(triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions,
+                    simulation::update_cloth_surface(
+                        (triangles + block_size - 1U) / block_size,
+                        block_size, stream, cloth.positions,
                         cloth.indices,
                         cloth.surface_positions, triangles);
                     ++impl_->soft_cloth_kernels_per_substep;
                 }
-                soft_cloth_detect<<<blocks, block_size, 0, stream>>>(
+                simulation::detect_soft_body_cloth_contacts(
+                    blocks, block_size, stream,
                     body.positions, body.previous, body.velocities, body.inverse_masses,
                     body.node_count, cloth.positions, cloth.previous, cloth.velocities,
                     cloth.inverse_masses, cloth.indices, cloth.surface_positions,
                     cloth.index_count / 3U, distance, coupling.options.friction,
                     coupling.contacts, coupling.cloth_contact_counts);
-                soft_cloth_apply_soft<<<blocks, block_size, 0, stream>>>(
+                simulation::apply_soft_body_cloth_contacts_to_soft_body(
+                    blocks, block_size, stream,
                     body.positions, body.velocities, body.cloth_forces, body.inverse_masses,
                     body.node_count, coupling.contacts, coupling.cloth_contact_counts,
                     substep_timestep, body.maximum_speed);
-                soft_cloth_apply_cloth<<<
+                simulation::apply_soft_body_cloth_contacts_to_cloth(
                     (cloth.vertex_count + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(cloth.positions, cloth.velocities,
+                    block_size, stream, cloth.positions, cloth.velocities,
                     cloth.soft_body_forces, cloth.inverse_masses, cloth.vertex_count,
                     coupling.contacts, body.node_count, coupling.cloth_contact_counts,
                     substep_timestep);
@@ -7002,23 +6988,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 auto &cloth = *impl_->cloths[index];
                 // Sample once per substep, before projection erases impact strain.
                 if (pass == 0U && cloth.surface_positions != nullptr) {
-                    cloth_break_bonds<<<(cloth.bond_count + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions, cloth.bonds,
+                    simulation::break_cloth_bonds(
+                        (cloth.bond_count + block_size - 1U) / block_size,
+                        block_size, stream, cloth.positions, cloth.bonds,
                         cloth.bond_active, cloth.bond_damage, cloth.bond_count,
                         cloth.break_strain, cloth.fracture_persistence_substeps,
                         cloth.body_impulses, cloth.impact_break_impulse);
                     ++impl_->soft_cloth_kernels_per_substep;
                 }
                 if (pass + 1U < iterations) {
-                    deformable_project_links<<<
+                    simulation::project_deformable_links(
                         (cloth.vertex_count + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions, cloth.scratch,
+                        block_size, stream, cloth.positions, cloth.scratch,
                         cloth.inverse_masses, cloth.offsets, cloth.neighbors,
                         cloth.bond_active, cloth.vertex_count, substep_timestep, 0.0F);
                     std::swap(cloth.positions, cloth.scratch);
                     ++impl_->soft_cloth_kernels_per_substep;
                     if (cloth.preserve_volume) {
-                        cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
+                        simulation::project_cloth_volume(stream,
                             cloth.positions, cloth.inverse_masses, cloth.indices,
                             cloth.vertex_count, cloth.index_count / 3U,
                             cloth.volume_corner_offsets, cloth.volume_corner_indices,
@@ -7030,12 +7017,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 }
                 if (cloth.surface_positions != nullptr) {
                     const auto triangles = cloth.index_count / 3U;
-                    cloth_limit_strain<<<1U, 128U, 0, stream>>>(cloth.positions,
+                    simulation::limit_cloth_strain(stream, cloth.positions,
                         cloth.scratch, cloth.inverse_masses, cloth.offsets,
                         cloth.neighbors, cloth.free_triangle_nodes, cloth.vertex_count);
                     ++impl_->soft_cloth_kernels_per_substep;
-                    cloth_update_surface<<<(triangles + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(cloth.positions,
+                    simulation::update_cloth_surface(
+                        (triangles + block_size - 1U) / block_size,
+                        block_size, stream, cloth.positions,
                         cloth.indices,
                         cloth.surface_positions, triangles);
                     ++impl_->soft_cloth_kernels_per_substep;
@@ -7045,9 +7033,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 for (std::uint32_t index = 0U; index < impl_->soft_bodies.size(); ++index) {
                     if (!coupled_soft(index)) continue;
                     auto &body = *impl_->soft_bodies[index];
-                    deformable_project_links<<<
+                    simulation::project_deformable_links(
                         (body.node_count + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(body.positions, body.scratch,
+                        block_size, stream, body.positions, body.scratch,
                         body.inverse_masses, body.offsets, body.neighbors,
                         body.bond_active, body.node_count, substep_timestep,
                         body.maximum_projection_fraction);
@@ -7058,18 +7046,21 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         for (std::uint32_t index = 0U; index < impl_->cloths.size(); ++index) {
             if (!coupled_cloth(index) || impl_->rigid_body_count == 0U) continue;
             auto &cloth = *impl_->cloths[index];
-            deformable_collide<false, true><<<
-                (cloth.vertex_count + block_size - 1U) / block_size, block_size, 0, stream>>>(
+            simulation::collide_deformable_with_rigid_geometry(
+                (cloth.vertex_count + block_size - 1U) / block_size,
+                block_size, stream,
                 cloth.positions, cloth.velocities, cloth.previous, cloth.inverse_masses,
                 cloth.vertex_count, cloth.thickness, substep_timestep,
                 impl_->parameters, previous_states, impl_->states[impl_->current_state],
                 impl_->meshes, impl_->rigid_body_count, nullptr, nullptr, nullptr,
-                nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, true, false, 20.0F);
+                nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                false, true, true, false, 20.0F);
             ++impl_->soft_cloth_kernels_per_substep;
             if (cloth.surface_positions != nullptr) {
                 const auto triangles = cloth.index_count / 3U;
-                cloth_update_surface<<<(triangles + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(cloth.positions,
+                simulation::update_cloth_surface(
+                    (triangles + block_size - 1U) / block_size,
+                    block_size, stream, cloth.positions,
                     cloth.indices,
                     cloth.surface_positions, triangles);
                 ++impl_->soft_cloth_kernels_per_substep;
@@ -7079,19 +7070,21 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             if (!coupled_soft(index)) continue;
             auto &body = *impl_->soft_bodies[index];
             if (impl_->rigid_body_count != 0U) {
-                deformable_collide<true, true><<<
-                    (body.node_count + block_size - 1U) / block_size, block_size, 0, stream>>>(
+                simulation::collide_deformable_with_rigid_geometry(
+                    (body.node_count + block_size - 1U) / block_size,
+                    block_size, stream,
                     body.positions, body.velocities, body.previous, body.inverse_masses,
                     body.node_count, body.node_radius * 0.01F, substep_timestep,
                     impl_->parameters, previous_states, impl_->states[impl_->current_state],
                     impl_->meshes, impl_->rigid_body_count, nullptr, nullptr, nullptr,
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, true, false,
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                    true, true, true, false,
                     body.maximum_speed);
                 ++impl_->soft_cloth_kernels_per_substep;
             }
-            soft_body_update_surface<<<
+            simulation::update_soft_body_surface(
                 (body.surface_vertex_count + block_size - 1U) / block_size,
-                block_size, 0, stream>>>(body.positions, body.rest_positions,
+                block_size, stream, body.positions, body.rest_positions,
                 body.surface_rest_positions, body.surface_bindings,
                 body.surface_positions, body.surface_vertex_count);
             ++impl_->soft_cloth_kernels_per_substep;
@@ -7140,15 +7133,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     item.tree_count*sizeof(std::uint32_t),stream);
                 if(refit_error!=cudaSuccess)
                     return cuda_failure(refit_error,"rope soft-body BVH clear failed");
-                fluid_soft_refit<<<(item.tree_count+block_size-1U)/block_size,
-                    block_size,0,stream>>>(body.surface_positions,
+                simulation::refit_fluid_soft_surface(
+                    (item.tree_count + block_size - 1U) / block_size,
+                    block_size, stream, body.surface_positions,
                     item.previous_surface,body.surface_indices,item.order,
                     item.tree,item.parents,item.ready,item.tree_count,item.bounds);
                 for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
-                    rope_soft_sample_anchor<<<1,1,0,stream>>>(rope->data,end,
+                    simulation::sample_rope_soft_body_anchor(stream,
+                        rope->data.soft_anchor_positions,
+                        rope->data.soft_anchor_velocities,
+                        rope->data.soft_anchor_impulses,
+                        rope->data.soft_anchor_inverse_masses,end,
                         body.surface_positions,body.velocities,body.surface_indices,
                         body.surface_bindings,item.anchor_triangle[end],
-                        item.anchor_weights[end],item.anchor_offset[end]);
+                        &item.anchor_weights[end].x,&item.anchor_offset[end].x);
                 soft_targets[coupled]={body.surface_positions,item.previous_surface,
                     body.velocities,item.bounds,
                     item.tree,item.order,
@@ -7168,7 +7166,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     const unsigned vertex=end?item.options.last_vertex:
                         item.options.first_vertex;
                     if(vertex==UINT32_MAX)continue;
-                    rope_cloth_sample_anchor<<<1,1,0,stream>>>(rope->data,end,
+                    simulation::sample_rope_cloth_anchor(stream,
+                        rope->data.soft_anchor_positions,
+                        rope->data.soft_anchor_velocities,
+                        rope->data.soft_anchor_impulses,
+                        rope->data.soft_anchor_inverse_masses,end,
                         cloth.positions,cloth.velocities,cloth.inverse_masses,
                         vertex,item.options.anchor_effective_mass);
                 }
@@ -7188,25 +7190,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     owner->options.wind_drag == 0.0F) continue;
                 const auto &smoke = *impl_->smokes[owner->options.smoke.index];
                 if (smoke.count == 0U) continue;
-                smoke_rope_wind<<<
+                simulation::apply_smoke_wind_to_rope(
                     (rope->data.count + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(rope->data, smoke.options,
+                    block_size, stream, rope->data.positions,
+                    rope->data.velocities, rope->data.count,
+                    rope->data.options.maximum_speed,
+                    first >= 0, last >= 0,
+                    rope->data.soft_first, rope->data.soft_last,
+                    smoke_dispatch_options(smoke.options),
                     smoke.positions, smoke.velocities,
                     smoke.keys[1], smoke.indices[1],
-                    {smoke.grid.resolution, smoke.grid.height,
-                     smoke.grid.minimum, smoke.grid.spacing,
-                     smoke.grid.velocity, smoke.grid.density,
-                     smoke.grid.pressure[0],
-                     {smoke.grid.face_velocity[0][0],
-                      smoke.grid.face_velocity[1][0],
-                      smoke.grid.face_velocity[2][0]},
-                     smoke.grid.vorticity, smoke.grid.strain},
+                    smoke_dispatch_grid(smoke.grid),
                     owner->options.wind_drag,
                     owner->options.maximum_wind_acceleration,
-                    substep_timestep, first, last);
+                    substep_timestep);
             }
-            rope_advance<<<1,128,0,stream>>>(rope->data,substep_timestep,options.gravity,first,last,
-                impl_->parameters,impl_->states[impl_->current_state],previous_states,
+            simulation::advance_rope(stream,rope->data,substep_timestep,
+                options.gravity,first,last,impl_->parameters,
+                impl_->states[impl_->current_state],previous_states,
                 impl_->meshes,impl_->rigid_body_count,first_substep,
                 soft_targets[0],soft_targets[1]);
             auto error=cudaPeekAtLastError();
@@ -7219,7 +7220,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     const unsigned vertex=end?item.options.last_vertex:
                         item.options.first_vertex;
                     if(vertex==UINT32_MAX)continue;
-                    rope_cloth_apply_anchor<<<1,1,0,stream>>>(rope->data,end,
+                    simulation::apply_rope_cloth_anchor(stream,
+                        rope->data.positions,rope->data.velocities,
+                        rope->data.count,rope->data.soft_anchor_positions,
+                        rope->data.soft_anchor_velocities,end,
                         cloth.positions,cloth.velocities,cloth.rope_forces,
                         cloth.inverse_masses,vertex,
                         item.options.maximum_cloth_acceleration,
@@ -7227,8 +7231,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 }
                 if(cloth.surface_positions) {
                     const unsigned triangles=cloth.index_count/3U;
-                    cloth_update_surface<<<(triangles+block_size-1U)/block_size,
-                        block_size,0,stream>>>(cloth.positions,cloth.indices,
+                    simulation::update_cloth_surface(
+                        (triangles+block_size-1U)/block_size,
+                        block_size,stream,cloth.positions,cloth.indices,
                         cloth.surface_positions,triangles);
                 }
             }
@@ -7238,21 +7243,25 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 auto &item=*couplings[index];
                 auto &body=*impl_->soft_bodies[item.options.soft_body.index];
                 for(unsigned end=0;end<2;++end)if(item.anchor_triangle[end]!=~0U)
-                    rope_soft_scatter_anchor<<<1,256,0,stream>>>(rope->data,end,
+                    simulation::scatter_rope_soft_body_anchor(1U,256U,stream,
+                        rope->data.soft_anchor_positions,
+                        rope->data.soft_anchor_impulses,end,
                         body.positions,body.node_count,
                         item.options.anchor_support_radius_scale*body.node_radius,
                         item.options.anchor_contact_support_radius_scale*
                             body.node_radius,item.contact_count,
                         body.surface_indices,body.surface_bindings,
-                        item.anchor_triangle[end],item.anchor_weights[end],
+                        item.anchor_triangle[end],&item.anchor_weights[end].x,
                         item.node_impulses);
-                rope_soft_apply<<<(body.node_count+block_size-1U)/block_size,
-                    block_size,0,stream>>>(body.positions,body.velocities,
+                simulation::apply_rope_soft_body_impulses(
+                    (body.node_count+block_size-1U)/block_size,
+                    block_size,stream,body.positions,body.velocities,
                     body.rope_forces,body.inverse_masses,item.node_impulses,
                     body.node_count,item.options.maximum_soft_body_acceleration,
                     body.maximum_speed,substep_timestep,1.0F/options.timestep);
-                soft_body_update_surface<<<(body.surface_vertex_count+block_size-1U)/block_size,
-                    block_size,0,stream>>>(body.positions,body.rest_positions,
+                simulation::update_soft_body_surface(
+                    (body.surface_vertex_count+block_size-1U)/block_size,
+                    block_size,stream,body.positions,body.rest_positions,
                     body.surface_rest_positions,body.surface_bindings,
                     body.surface_positions,body.surface_vertex_count);
                 error=cudaMemcpyAsync(item.previous_surface,body.surface_positions,
@@ -7274,12 +7283,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             break;
         }
         const std::uint32_t output_state = 1U - impl_->current_state;
-        integrate_rigid_bodies_kernel<<<block_count, block_size, 0, stream>>>(
+        error = simulation::integrate_rigid_bodies(
+            block_count, block_size, stream,
             impl_->parameters, impl_->accumulators, impl_->targets,
             impl_->states[impl_->current_state], impl_->states[output_state],
-            impl_->rigid_body_count, options.gravity, substep_timestep,
+            impl_->rigid_body_count, &options.gravity.x, substep_timestep,
             options.substeps - substep, substep == 0U);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid integration kernel launch failed");
@@ -7295,12 +7304,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             (pair_count + block_size - 1U) / block_size;
         const std::uint32_t contact_block_count =
             std::min(pair_count, 128U);
-        compute_rigid_world_bounds_kernel<<<block_count, block_size, 0, stream>>>(
+        error = simulation::compute_rigid_world_bounds(
+            block_count, block_size, stream,
             impl_->parameters, impl_->states[impl_->current_state],
             impl_->states[output_state],
             impl_->rigid_body_count, impl_->meshes,
             impl_->rigid_world_bounds);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
@@ -7312,13 +7321,17 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             return status;
         }
         if (impl_->rigid_constraint_count != 0U) {
-            build_fixed_collision_groups_kernel<<<1U, 1U, 0, stream>>>(
+            error = simulation::build_fixed_collision_groups(
+                1U, 1U, stream,
                 impl_->rigid_constraints, impl_->options.rigid_constraint_capacity,
                 impl_->ids, impl_->rigid_body_count,
                 impl_->fixed_contact_projection);
+            if (error != cudaSuccess)
+                return cuda_failure(error,
+                    "fixed collision group launch failed");
         }
-        broad_phase_rigid_pairs_kernel<<<pair_block_count, block_size, 0,
-                                         stream>>>(
+        error = simulation::broad_phase_rigid_pairs(
+            pair_block_count, block_size, stream,
             impl_->parameters, impl_->rigid_world_bounds,
             impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->meshes, impl_->ids, impl_->rigid_constraints,
@@ -7326,7 +7339,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_constraint_count != 0U
                 ? impl_->fixed_contact_projection : nullptr,
             impl_->rigid_body_count, impl_->rigid_active_pair_flags);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
@@ -7338,14 +7350,12 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        const auto pair_indices =
-            thrust::make_counting_iterator<std::uint32_t>(0U);
-        error = cub::DeviceSelect::Flagged(
+        error = simulation::compact_flagged_indices(
+            stream, impl_->rigid_active_pair_flags,
+            static_cast<std::uint32_t>(pair_count),
+            impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->rigid_broad_phase_workspace,
-            impl_->rigid_broad_phase_workspace_size, pair_indices,
-            impl_->rigid_active_pair_flags, impl_->rigid_active_pairs,
-            impl_->rigid_active_pair_count, static_cast<int>(pair_count),
-            stream);
+            impl_->rigid_broad_phase_workspace_size);
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
@@ -7358,9 +7368,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         const std::uint32_t shared_leaf_capacity =
             impl_->rigid_leaf_manifolds != nullptr ? k_shared_rigid_leaf_capacity : 0U;
-        generate_rigid_leaf_pairs_kernel<<<contact_block_count, block_size,
-                                           shared_leaf_capacity * sizeof(WorldAabb),
-                                           stream>>>(
+        constexpr std::uint32_t leaf_pair_generation_threads = 128U;
+        error = simulation::generate_rigid_leaf_pairs(
+            contact_block_count, leaf_pair_generation_threads,
+            0U, stream,
             impl_->parameters, impl_->states[impl_->current_state],
             impl_->states[output_state],
             impl_->rigid_body_count, impl_->meshes,
@@ -7370,7 +7381,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             impl_->rigid_leaf_pair_counts,
             impl_->rigid_leaf_pair_slot_capacity,
             impl_->rigid_leaf_pairs_per_slot, shared_leaf_capacity);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
@@ -7384,20 +7394,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         // Many-body worlds parallelize across pairs. Few-body worlds spread
         // each dense pair across blocks and reduce in the same candidate order.
         // One shared reduction manifold accompanies the per-thread scratch.
-        constexpr std::uint32_t contact_evaluation_threads =
-            33U * sizeof(ContactManifold) <= 48U * 1024U ? 32U : 16U;
+        constexpr std::uint32_t contact_evaluation_threads = 16U;
         const std::uint32_t blocks_per_pair =
-            impl_->rigid_leaf_manifolds != nullptr ? k_rigid_leaf_blocks_per_pair : 1U;
-        finalize_rigid_contact_manifolds_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            impl_->rigid_leaf_manifolds != nullptr
+                ? k_rigid_leaf_blocks_per_pair
+                : 1U;
+        error = simulation::finalize_rigid_contact_manifolds(
+            contact_block_count, block_size, stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->meshes, impl_->ids, impl_->rigid_constraints,
             impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
             impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->rigid_leaf_pair_counts, substep_timestep, impl_->rigid_manifolds, true);
-        evaluate_rigid_leaf_pairs_kernel<<<
-            contact_block_count * blocks_per_pair, contact_evaluation_threads,
-            contact_evaluation_threads * sizeof(ContactManifold),
-            stream>>>(impl_->parameters,
+        if (error != cudaSuccess) return cuda_failure(
+            error, "rigid face contact preparation failed");
+        error = simulation::evaluate_rigid_leaf_pairs(
+            contact_block_count * blocks_per_pair,
+            contact_evaluation_threads, 0U, stream,
+                      impl_->parameters,
                       impl_->states[impl_->current_state],
                       impl_->states[output_state],
                       impl_->rigid_body_count, impl_->meshes, impl_->ids,
@@ -7409,16 +7423,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                       impl_->rigid_leaf_pairs_per_slot,
                       impl_->rigid_leaf_manifolds, blocks_per_pair,
                       substep_timestep, impl_->rigid_manifolds);
+        if (error != cudaSuccess) return cuda_failure(
+            error, "rigid leaf contact evaluation failed");
         if (impl_->rigid_leaf_manifolds != nullptr) {
-            reduce_rigid_leaf_manifolds_kernel<<<contact_block_count, 32U, 0, stream>>>(
+            error = simulation::reduce_rigid_leaf_manifolds(
+                contact_block_count, block_size, stream,
                 impl_->parameters, impl_->rigid_body_count,
                 impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
-                impl_->rigid_leaf_pair_counts, impl_->rigid_leaf_pairs_per_slot,
+                impl_->rigid_leaf_pair_counts,
+                impl_->rigid_leaf_pairs_per_slot,
                 impl_->rigid_leaf_manifolds, impl_->rigid_manifolds);
+            if (error != cudaSuccess) return cuda_failure(
+                error, "rigid leaf contact reduction failed");
         }
-        finalize_rigid_contact_manifolds_kernel<<<
-            contact_block_count, block_size, 0, stream>>>(
-                impl_->parameters, impl_->states[impl_->current_state],
+        error = simulation::finalize_rigid_contact_manifolds(
+            contact_block_count, block_size, stream,
+            impl_->parameters, impl_->states[impl_->current_state],
                 impl_->states[output_state], impl_->rigid_body_count,
                 impl_->meshes, impl_->ids, impl_->rigid_constraints,
                 impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
@@ -7426,7 +7446,6 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts, substep_timestep,
                 impl_->rigid_manifolds, false);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
@@ -7437,62 +7456,80 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             cudaStreamSynchronize(stream);
             return status;
         }
-        if (impl_->rigid_contact_revision != impl_->revision)
+        if (impl_->rigid_contact_revision != impl_->revision) {
             impl_->rigid_contact_epoch += 2U;
+            error = cudaMemsetAsync(impl_->rigid_contact_cache_slots, 0xff,
+                pair_count * sizeof(*impl_->rigid_contact_cache_slots), stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error,
+                    "rigid contact cache invalidation failed");
+        }
         impl_->rigid_contact_revision = impl_->revision;
         ++impl_->rigid_contact_epoch;
-        prepare_parallel_contact_events_kernel<<<1U, 1U, 0, stream>>>(
+        error = simulation::prepare_parallel_contact_events(
+            1U, 1U, stream,
             impl_->rigid_body_count, impl_->rigid_manifolds,
             impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->ids, impl_->rigid_contact_event_offsets,
             impl_->rigid_contact_events, impl_->rigid_contact_capacity,
             impl_->rigid_contact_count,
-            collect_rigid_contacts, substep == 0U);
-        load_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
+            true, substep == 0U);
+        if (error != cudaSuccess)
+            return cuda_failure(error,
+                "rigid contact event preparation launch failed");
+        error = simulation::load_rigid_contact_cache(
+            contact_block_count, block_size, stream,
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
             impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
             impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "rigid contact cache load launch failed");
         const unsigned avbd_grid = std::min(impl_->rigid_contact_grid_limit,
             std::max(1U, (impl_->rigid_body_count + 31U) / 32U));
-        prepare_avbd_kernel<<<1U, 128U, 0, stream>>>(
+        error = simulation::prepare_geometry_constraints(stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
             impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
             impl_->ids, impl_->avbd_bodies, impl_->rigid_contact_schedule,
-            substep_timestep, options.gravity, options.rigid_contact_pass_limit, avbd_grid);
-        const auto launch_avbd = [&](auto... arguments) {
-            if (avbd_grid == 1U) {
-                solve_avbd_kernel<<<1U, 32U, 0, stream>>>(arguments...);
-                return cudaGetLastError();
-            }
-            void *kernel_arguments[]{static_cast<void *>(&arguments)...};
-            return cudaLaunchCooperativeKernel(reinterpret_cast<void *>(solve_avbd_kernel),
-                dim3(avbd_grid), dim3(32U), kernel_arguments, 0, stream);
-        };
-        error = launch_avbd(
+            substep_timestep, options.gravity, options.rigid_contact_iterations,
+            options.rigid_contact_pass_limit, avbd_grid);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "launch AVBD graph preparation");
+        error = simulation::solve_geometry_constraints(stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
             impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
-            impl_->avbd_bodies, impl_->rigid_contact_schedule, substep_timestep);
+            impl_->avbd_bodies, impl_->rigid_contact_schedule, substep_timestep,
+            avbd_grid);
         if (error != cudaSuccess) return cuda_failure(error, "launch AVBD vertex solve");
-        clamp_rigid_speeds_kernel<<<block_count, block_size, 0, stream>>>(
+        error = simulation::clamp_rigid_speeds(
+            block_count, block_size, stream,
             impl_->parameters, impl_->states[output_state],
             impl_->rigid_body_count);
-        save_rigid_contact_cache_kernel<<<contact_block_count, block_size, 0, stream>>>(
+        if (error != cudaSuccess)
+            return cuda_failure(error, "rigid speed clamp launch failed");
+        error = simulation::save_rigid_contact_cache(
+            contact_block_count, block_size, stream,
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
             impl_->states[output_state], impl_->ids, impl_->rigid_body_count,
             impl_->rigid_contact_cache, impl_->rigid_contact_cache_slots,
             impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep,
             impl_->rigid_contact_event_offsets, impl_->rigid_contact_events,
-            collect_rigid_contacts ? impl_->rigid_contact_capacity : 0U);
-        error = cudaPeekAtLastError();
+            impl_->rigid_contact_capacity);
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error,
                                 "rigid contact solve kernel launch failed");
+        }
+        if (!collect_rigid_contacts) {
+            error = cudaMemsetAsync(impl_->rigid_contact_count, 0,
+                                    sizeof(*impl_->rigid_contact_count), stream);
+            if (error != cudaSuccess)
+                return cuda_failure(error,
+                    "rigid contact event clear failed");
         }
         status = record_timing_stage(TimingStage::rigid_contact_solve);
         if (!status) {
@@ -7523,9 +7560,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     }
 
     if (impl_->rigid_body_count > 0U) {
-        clear_rigid_inputs_kernel<<<block_count, block_size, 0, stream>>>(
+        error = simulation::clear_rigid_inputs(
+            block_count, block_size, stream,
             impl_->accumulators, impl_->targets, impl_->rigid_body_count);
-        error = cudaPeekAtLastError();
         if (error != cudaSuccess) {
             cudaStreamSynchronize(stream);
             return cuda_failure(error, "rigid input-clear kernel launch failed");
@@ -7561,7 +7598,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
     }
 
     if (any_moving_body && impl_->fluid_count != 0U) {
-        fluid_body_bounds_kernel<<<block_count, block_size, 0, stream>>>(
+        simulation::calculate_fluid_body_bounds(
+            block_count, block_size, stream,
             impl_->parameters, impl_->fluid_previous_states,
             impl_->states[impl_->current_state], impl_->meshes,
             impl_->rigid_body_count, impl_->fluid_body_bounds);
@@ -7612,28 +7650,29 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (has_sources) {
             if (fluid.next_id > UINT32_MAX - (fluid.options.capacity - live))
                 return failure(StatusCode::capacity_exceeded, "stable fluid particle ID range exhausted");
-            pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
+            simulation::fluid_cell_keys(blocks, block_size, stream,
+                fluid.positions,
                 fluid.count, fluid.options.capacity, 1.0F / source_cell_size,
-                reinterpret_cast<ulonglong *>(fluid.keys[0]),
+                fluid.keys[0],
                 fluid.indices[0]);
-            error = cub::DeviceRadixSort::SortPairs(
-                fluid.sort_workspace, fluid.sort_workspace_size,
-                fluid.keys[0], fluid.keys[1], fluid.indices[0], fluid.indices[1],
-                fluid.options.capacity, 0, 64, stream);
+            error = simulation::radix_sort_pairs_u64_u32(
+                stream, fluid.keys[0], fluid.keys[1], fluid.indices[0],
+                fluid.indices[1], fluid.options.capacity,
+                fluid.sort_workspace, fluid.sort_workspace_size);
             if (error != cudaSuccess) return cuda_failure(error, "fluid source spatial index failed");
         }
         for (ParticleSourceSlot &slot : impl_->particle_sources) {
             if (!slot.alive || !slot.options.enabled ||
                 !(slot.options.fluid == fluid_id)) continue;
             const auto &data = *slot.data;
-            fluid_source_vacancies<<<(data.count+block_size-1U)/block_size,block_size,0,stream>>>(
+            simulation::find_fluid_source_vacancies(
+                (data.count+block_size-1U)/block_size,block_size,stream,
                 data.points, data.count, data.spacing, fluid.positions,
                 fluid.keys[1], fluid.indices[1], fluid.options.capacity,
                 1.0F/source_cell_size, data.vacant);
-            fluid_source_emit<<<1U,1U,0,stream>>>(
+            simulation::emit_fluid_source(stream,
                 data.points, data.vacant, data.count, data.spacing,
-                slot.options.initial_velocity, fluid.positions, fluid.velocities,
+                &slot.options.initial_velocity.x, fluid.positions, fluid.velocities,
                 fluid.ids, fluid.foam, fluid.temperatures,
                 slot.options.initial_temperature, fluid.count,
                 fluid.options.capacity,
@@ -7659,11 +7698,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         const std::uint32_t iterations =
             options.substeps * fluid.options.solver_iterations;
         const float dt = options.timestep / static_cast<float>(iterations);
-        const PMFluidConstants_0 fluid_constants = slang_fluid_constants(
+        const simulation::FluidDispatchConstants fluid_constants = slang_fluid_constants(
             fluid.options, options.gravity, dt, live);
-        const PMPackedVec3_0 fluid_up = slang_packed_vec3(
+        const Vec3 fluid_up =
             normalized_or(multiply(options.gravity, -1.0F),
-                          {0.0F, 1.0F, 0.0F}));
+                          {0.0F, 1.0F, 0.0F});
         const float diameter = 2.0F * fluid.options.particle_radius;
         const float particle_mass = fluid.options.rest_density *
             (fluid.options.rest_particle_volume > 0.0F
@@ -7680,7 +7719,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     body_words * sizeof(unsigned long long), stream);
             if (error != cudaSuccess)
                 return cuda_failure(error, "fluid body index clear failed");
-            fluid_index_body_cells<<<block_count, block_size, 0, stream>>>(
+            simulation::index_fluid_body_cells(
+                block_count, block_size, stream,
                 impl_->parameters, impl_->fluid_body_bounds,
                 impl_->rigid_body_count, body_words,
                 fluid.options.particle_radius + fluid.options.maximum_speed * dt,
@@ -7696,28 +7736,26 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         for (std::uint32_t iteration = 0U; iteration < iterations;
              ++iteration) {
-            pm_fluid_cell_keys<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
+            simulation::fluid_cell_keys(blocks, block_size, stream,
+                fluid.positions,
                 fluid.count, fluid.options.capacity,
                 1.0F / fluid.options.support_radius,
-                reinterpret_cast<ulonglong *>(fluid.keys[0]),
+                fluid.keys[0],
                 fluid.indices[0]);
-            error = cub::DeviceRadixSort::SortPairs(
-                fluid.sort_workspace, fluid.sort_workspace_size,
-                fluid.keys[0], fluid.keys[1], fluid.indices[0],
-                fluid.indices[1], fluid.options.capacity, 0, 64, stream);
+            error = simulation::radix_sort_pairs_u64_u32(
+                stream, fluid.keys[0], fluid.keys[1], fluid.indices[0],
+                fluid.indices[1], fluid.options.capacity,
+                fluid.sort_workspace, fluid.sort_workspace_size);
             if (error != cudaSuccess) {
                 cudaStreamSynchronize(stream);
                 return cuda_failure(error, "fluid neighbor cell sort failed");
             }
             status = record_timing_stage(TimingStage::fluid_neighbor_sort);
             if (!status) return status;
-            pm_fluid_forces<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.velocities),
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.forces), fluid.foam,
-                fluid.count, fluid_constants, fluid_up, fluid.foam_source,
-                reinterpret_cast<ulonglong *>(fluid.keys[1]),
+            simulation::fluid_forces(blocks, block_size, stream,
+                fluid.positions, fluid.velocities, fluid.forces, fluid.foam,
+                fluid.count, fluid_constants, &fluid_up.x, fluid.foam_source,
+                fluid.keys[1],
                 fluid.indices[1],
                 impl_->fluid_neighbor_overflow,
                 impl_->fluid_maximum_neighbor_count);
@@ -7747,27 +7785,35 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 if (error != cudaSuccess)
                     return cuda_failure(error,
                         "fluid-cloth reaction clear failed");
-                fluid_cloth_containment_forces<<<
-                    blocks, block_size, 0, stream>>>(
+                simulation::apply_fluid_cloth_forces(
+                        blocks, block_size, stream,
                         fluid.positions, fluid.velocities, fluid.count,
                         fluid.forces, fluid.foam_source, particle_mass,
                         cloth.positions, cloth.velocities, cloth.indices,
-                        cloth.index_count / 3U, cloth.orientation, resolved,
+                        cloth.index_count / 3U, cloth.orientation,
+                        simulation::FluidClothDispatchOptions{
+                            resolved.contact_distance,
+                            resolved.interaction_radius,
+                            resolved.stiffness,
+                            resolved.damping,
+                            resolved.tangential_drag,
+                            resolved.maximum_force},
                         cloth.fluid_forces);
                 const std::uint32_t cloth_blocks =
                     (cloth.vertex_count + block_size - 1U) / block_size;
-                cloth_apply_fluid_forces<<<
-                    cloth_blocks, block_size, 0, stream>>>(
+                simulation::apply_fluid_forces_to_cloth(
+                        cloth_blocks, block_size, stream,
                         cloth.positions, cloth.velocities,
                         cloth.inverse_masses, cloth.fluid_forces,
                         cloth.vertex_count, dt);
-                deformable_project_links<<<cloth_blocks, block_size, 0, stream>>>(
+                simulation::project_deformable_links(
+                    cloth_blocks, block_size, stream,
                     cloth.positions, cloth.scratch, cloth.inverse_masses,
                     cloth.offsets, cloth.neighbors, cloth.bond_active,
                     cloth.vertex_count, dt, 0.0F);
                 std::swap(cloth.positions, cloth.scratch);
                 if (cloth.preserve_volume) {
-                    cloth_project_volume<<<1U, k_cloth_volume_threads, 0, stream>>>(
+                    simulation::project_cloth_volume(stream,
                         cloth.positions, cloth.inverse_masses, cloth.indices,
                         cloth.vertex_count, cloth.index_count / 3U,
                         cloth.volume_corner_offsets, cloth.volume_corner_indices,
@@ -7779,12 +7825,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     TimingStage::fluid_cloth_contacts);
                 if (!status) return status;
             }
-            pm_fluid_integrate<<<blocks, block_size, 0, stream>>>(
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.positions),
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.velocities),
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.forces),
+            simulation::integrate_fluid(blocks, block_size, stream,
+                fluid.positions, fluid.velocities, fluid.forces,
                 fluid.foam, fluid.count, fluid_constants,
-                reinterpret_cast<PMPackedVec3_0 *>(fluid.previous),
+                fluid.previous,
                 fluid.foam_source);
             status = record_timing_stage(TimingStage::fluid_integration);
             if (!status) return status;
@@ -7798,14 +7842,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 error = cudaMemsetAsync(owner->node_impulses, 0,
                     rope.count * sizeof(Vec3), stream);
                 if (error != cudaSuccess) return cuda_failure(error, "fluid rope impulse clear failed");
-                fluid_rope_contacts<<<blocks, block_size, 0, stream>>>(
+                simulation::detect_fluid_rope_contacts(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.count, particle_mass,
-                    rope, distance, owner->options.friction, owner->node_impulses,
+                    rope.positions, rope.velocities, rope.count, distance,
+                    owner->options.friction, owner->node_impulses,
                     owner->contact_count, owner->maximum_penetration, true);
-                fluid_rope_apply<<<(rope.count + block_size - 1U) / block_size,
-                    block_size, 0, stream>>>(rope,
-                    rope.options.first.enabled ? 0 : -1,
-                    rope.options.last.enabled ? 0 : -1,
+                simulation::apply_fluid_rope_impulses(
+                    (rope.count + block_size - 1U) / block_size,
+                    block_size, stream, rope.velocities,
+                    rope.fluid_contact_forces, rope.count, rope.options.mass,
+                    rope.options.maximum_speed, rope.options.first.enabled,
+                    rope.options.last.enabled,
                     owner->node_impulses, owner->options.maximum_rope_acceleration,
                     dt, 1.0F / options.timestep);
                 status = record_timing_stage(TimingStage::fluid_rope_contacts, 2U);
@@ -7824,8 +7872,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     const auto clear = cudaMemsetAsync(coupling.ready, 0,
                         coupling.tree_count * sizeof(std::uint32_t), stream);
                     if (clear != cudaSuccess) return cuda_failure(clear, "soft surface BVH clear failed");
-                    fluid_soft_refit<<<(coupling.tree_count + block_size - 1U) / block_size,
-                        block_size, 0, stream>>>(body.surface_positions, coupling.previous_surface,
+                    simulation::refit_fluid_soft_surface(
+                        (coupling.tree_count + block_size - 1U) / block_size,
+                        block_size, stream, body.surface_positions,
+                        coupling.previous_surface,
                         body.surface_indices, coupling.triangle_order, coupling.tree, coupling.parents,
                         coupling.ready, coupling.tree_count, coupling.bounds);
                     return success();
@@ -7840,7 +7890,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     if (error != cudaSuccess) return cuda_failure(error, "fluid soft-body scratch clear failed");
                     status = refit_surface();
                     if (!status) return status;
-                    fluid_soft_detect<<<blocks, block_size, 0, stream>>>(
+                    simulation::detect_fluid_soft_contacts(
+                        blocks, block_size, stream,
                         fluid.positions, fluid.previous, fluid.velocities, fluid.count,
                         body.surface_positions, coupling.previous_surface, body.surface_indices,
                         body.surface_index_count, body.surface_bindings, body.velocities,
@@ -7848,17 +7899,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         coupling.tree, coupling.triangle_order,
                         coupling.contacts, coupling.counts, coupling.contact_count,
                         coupling.maximum_penetration);
-                    fluid_soft_solve<<<blocks, block_size, 0, stream>>>(
+                    simulation::solve_fluid_soft_contacts(
+                        blocks, block_size, stream,
                         fluid.positions, fluid.velocities, fluid.forces, fluid.foam, fluid.count,
                         coupling.contacts, coupling.counts, body.inverse_masses,
                         body.velocities, body.maximum_speed,
                         1.0F / particle_mass, coupling.options.friction,
                         0.2F * body.node_radius, dt, coupling.position_deltas, coupling.impulses);
-                    fluid_soft_apply<<<node_blocks, block_size, 0, stream>>>(
+                    simulation::apply_fluid_soft_contacts(
+                        node_blocks, block_size, stream,
                         body.positions, body.velocities, body.inverse_masses,
                         coupling.position_deltas, coupling.impulses, body.fluid_forces,
                         body.node_count, 1.0F / options.timestep);
-                    deformable_project_links<<<node_blocks, block_size, 0, stream>>>(
+                    simulation::project_deformable_links(
+                        node_blocks, block_size, stream,
                         body.positions, body.scratch, body.inverse_masses, body.offsets,
                         body.neighbors, body.bond_active, body.node_count, dt,
                         body.maximum_projection_fraction);
@@ -7866,21 +7920,25 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     // Keep fluid reaction corrections on the valid side of
                     // passive/dynamic rigid geometry before updating the skin.
                     if (impl_->rigid_body_count != 0U)
-                        deformable_collide<true, true><<<node_blocks, block_size, 0, stream>>>(
+                        simulation::collide_deformable_with_rigid_geometry(
+                            node_blocks, block_size, stream,
                             body.positions, body.velocities, body.previous, body.inverse_masses,
                             body.node_count, body.node_radius * 0.01F, dt, impl_->parameters,
                             nullptr, impl_->states[impl_->current_state], impl_->meshes,
                             impl_->rigid_body_count, body.body_impulses, body.rigid_contact_forces,
                             body.contact_normals, body.contact_arms, body.contact_momentum_delta,
                             body.contact_normal_delta, body.contact_count, body.dynamic_contact_flag,
-                            impl_->fluid_body_contact_flags, false, false, body.maximum_speed);
-                    soft_body_update_surface<<<skin_blocks, block_size, 0, stream>>>(
+                            impl_->fluid_body_contact_flags,
+                            true, true, false, false, body.maximum_speed);
+                    simulation::update_soft_body_surface(
+                        skin_blocks, block_size, stream,
                         body.positions, body.rest_positions, body.surface_rest_positions,
                         body.surface_bindings, body.surface_positions, body.surface_vertex_count);
                 }
                 status = refit_surface();
                 if (!status) return status;
-                fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
+                simulation::recover_fluid_soft_contacts(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.previous, fluid.count, body.surface_positions,
                     coupling.previous_surface, body.surface_indices, body.surface_index_count,
                     coupling.orientation, distance, coupling.bounds, true,
@@ -7910,7 +7968,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     coupling.options.contact_distance > 0.0F
                         ? coupling.options.contact_distance
                         : fluid.options.particle_radius + cloth.thickness;
-                fluid_project_inside_cloth<<<blocks, block_size, 0, stream>>>(
+                simulation::project_fluid_inside_cloth(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.count,
                     contact_distance, cloth.positions, cloth.velocities,
                     cloth.indices, cloth.index_count / 3U,
@@ -7921,7 +7980,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->rigid_body_count * sizeof(std::uint32_t), stream);
                 if (error != cudaSuccess)
                     return cuda_failure(error, "fluid contact flags clear failed");
-                fluid_detect_moving_contacts<<<blocks, block_size, 0, stream>>>(
+                simulation::detect_fluid_moving_contacts(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.previous, fluid.count,
                     fluid.options.particle_radius,
                     impl_->parameters,
@@ -7931,7 +7991,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->fluid_body_masks, impl_->fluid_global_body_masks,
                     body_words, iteration == 0U, fluid.moving_contacts,
                     impl_->fluid_body_contact_flags);
-                fluid_resolve_moving_contacts<<<blocks, block_size, 0, stream>>>(
+                simulation::resolve_fluid_moving_contacts(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.foam,
                     fluid.count, fluid.options.particle_radius,
                     particle_mass, dt, fluid.options.maximum_speed,
@@ -7939,12 +8000,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     impl_->meshes, fluid.moving_contacts,
                     impl_->fluid_body_contact_flags, fluid.body_impulses,
                     collect_fluid_contacts, fluid.contact_samples,
-                    fluid.contact_flags, fluid_id, impl_->ids,
+                    fluid.contact_flags, fluid_id.index, fluid_id.generation,
+                    impl_->ids,
                     impl_->paint_rule_count != 0U,
                     impl_->paint_fields, impl_->options.paint_field_capacity,
                     impl_->paint_rules, impl_->options.paint_rule_capacity);
-                reduce_point_body_impulses<<<impl_->rigid_body_count,
-                                             block_size, 0, stream>>>(
+                simulation::reduce_fluid_body_impulses(
+                    impl_->rigid_body_count, block_size, stream,
                     fluid.body_impulses, fluid.count, impl_->parameters,
                     impl_->states[impl_->current_state],
                     impl_->fluid_body_contact_flags,
@@ -7953,22 +8015,24 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 if (!status) return status;
             }
             bool any_static_body = false;
+            const Vec3 static_contact_up = normalized_or(
+                multiply(options.gravity, -1.0F), {0.0F, 1.0F, 0.0F});
             for (std::uint32_t body = 0U; body < impl_->rigid_body_count;
                  ++body) {
                 if (impl_->parameters[body].motion != MotionType::static_body)
                     continue;
                 any_static_body = true;
-                fluid_static_contacts<<<blocks, block_size, 0, stream>>>(
+                simulation::collide_fluid_with_static_body(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.previous,
                     fluid.foam, fluid.count, fluid.options.particle_radius,
                     fluid.options.support_radius, first_spawned,
-                    spawned && iteration == 0U,
-                    normalized_or(multiply(options.gravity, -1.0F),
-                                  {0.0F, 1.0F, 0.0F}),
+                    spawned && iteration == 0U, &static_contact_up,
                     impl_->parameters, impl_->states[impl_->current_state],
                     impl_->meshes, body, particle_mass,
                     collect_fluid_contacts, fluid.contact_samples,
-                    fluid.contact_flags, fluid_id, impl_->ids[body],
+                    fluid.contact_flags, fluid_id.index, fluid_id.generation,
+                    impl_->ids[body].index, impl_->ids[body].generation,
                     impl_->paint_rule_count != 0U,
                     impl_->paint_fields, impl_->options.paint_field_capacity,
                     impl_->paint_rules, impl_->options.paint_rule_capacity);
@@ -7987,7 +8051,8 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float distance = coupling->options.contact_distance > 0
                     ? coupling->options.contact_distance : fluid.options.particle_radius;
                 for (std::uint32_t recovery = 0; recovery < 3; ++recovery)
-                    fluid_soft_recover<<<blocks, block_size, 0, stream>>>(
+                    simulation::recover_fluid_soft_contacts(
+                        blocks, block_size, stream,
                         fluid.positions, fluid.positions, fluid.count, body.surface_positions,
                         body.surface_positions, body.surface_indices, body.surface_index_count,
                         coupling->orientation, distance, coupling->bounds, false,
@@ -7999,24 +8064,23 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             for (const DestroyPlaneSlot &slot : impl_->destroy_planes) {
                 if (!slot.alive || !slot.options.enabled ||
                     !(slot.options.fluid == fluid_id)) continue;
-                fluid_destroy_flags<<<blocks, block_size, 0, stream>>>(
+                simulation::mark_fluid_destroy_flags(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.previous, fluid.count,
-                    fluid.options.capacity, slot.options,
+                    fluid.options.capacity, &slot.options,
                     any_destroy_plane, fluid.keep);
                 any_destroy_plane = true;
             }
             if (any_destroy_plane) {
-                const auto sequence =
-                    thrust::make_counting_iterator<std::uint32_t>(0U);
-                error = cub::DeviceSelect::Flagged(
-                    fluid.select_workspace, fluid.select_workspace_size,
-                    sequence, fluid.keep, fluid.selected, fluid.count,
-                    fluid.options.capacity, stream);
+                error = simulation::compact_flagged_indices(
+                    stream, fluid.keep, fluid.options.capacity, fluid.selected,
+                    fluid.count, fluid.select_workspace,
+                    fluid.select_workspace_size);
                 if (error != cudaSuccess) {
                     cudaStreamSynchronize(stream);
                     return cuda_failure(error, "fluid particle compaction failed");
                 }
-                fluid_gather<<<blocks, block_size, 0, stream>>>(
+                simulation::gather_fluid(blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
                     fluid.temperatures,
                     fluid.contact_samples, fluid.contact_flags,
@@ -8039,21 +8103,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             }
         }
         if (collect_fluid_contacts) {
-            const auto sequence =
-                thrust::make_counting_iterator<std::uint32_t>(0U);
-            error = cub::DeviceSelect::Flagged(
-                fluid.select_workspace, fluid.select_workspace_size,
-                sequence, fluid.contact_flags, fluid.selected,
-                fluid.contact_count, fluid.options.capacity, stream);
+            error = simulation::compact_flagged_indices(
+                stream, fluid.contact_flags, fluid.options.capacity, fluid.selected,
+                fluid.contact_count, fluid.select_workspace,
+                fluid.select_workspace_size);
             if (error != cudaSuccess)
                 return cuda_failure(error, "fluid contact selection failed");
-            fluid_reserve_contact_events<<<1U, 1U, 0, stream>>>(
+            simulation::reserve_fluid_contact_events(stream,
                 fluid.contact_count, fluid.contact_offset,
                 impl_->fluid_contact_count, impl_->fluid_contact_overflow,
                 impl_->options.contact_capacity);
-            fluid_gather_contact_events<<<blocks, block_size, 0, stream>>>(
+            simulation::gather_fluid_contact_events(
+                blocks, block_size, stream,
                 fluid.selected, fluid.contact_count, fluid.contact_offset,
-                fluid.contact_samples, fluid.ids, impl_->ids, fluid_id,
+                fluid.contact_samples, fluid.ids, impl_->ids, &fluid_id,
                 impl_->fluid_contact_events, impl_->options.contact_capacity);
             status = record_timing_stage(TimingStage::fluid_contact_events);
             if (!status) return status;
@@ -8073,50 +8136,68 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (live == 0U) continue;
         if (smoke.grid.resolution == 0U && smoke.count != 0U &&
             smoke.index_dirty) {
-            smoke_emit_cells<<<(smoke.options.capacity + block_size - 1U) /
-                block_size, block_size, 0, stream>>>(
-                smoke.positions, smoke.ages, smoke.count, smoke.options,
+            simulation::index_smoke_particles(
+                (smoke.options.capacity + block_size - 1U) / block_size,
+                block_size, stream,
+                smoke.positions, smoke.ages, smoke.count,
+                smoke_domain_options(smoke.options),
                 smoke.keys[0], smoke.indices[0]);
-            error = cub::DeviceRadixSort::SortPairs(
-                smoke.sort_workspace, smoke.sort_workspace_size,
-                smoke.keys[0], smoke.keys[1], smoke.indices[0],
-                smoke.indices[1], smoke.options.capacity, 0, 64, stream);
+            error = simulation::radix_sort_pairs_u64_u32(
+                stream, smoke.keys[0], smoke.keys[1], smoke.indices[0],
+                smoke.indices[1], smoke.options.capacity,
+                smoke.sort_workspace, smoke.sort_workspace_size);
             if (error != cudaSuccess)
                 return cuda_failure(error, "smoke phase-transfer index failed");
             smoke.index_dirty = false;
         }
         *coupling.converted = 0U;
         const auto blocks = (fluid.options.capacity + block_size - 1U) / block_size;
+        simulation::FluidSmokeDispatchOptions dispatch{};
+        dispatch.smoke = smoke_dispatch_options(smoke.options);
+        dispatch.heater_center[0] = coupling.options.heater.center.x;
+        dispatch.heater_center[1] = coupling.options.heater.center.y;
+        dispatch.heater_center[2] = coupling.options.heater.center.z;
+        dispatch.heater_orientation[0] = coupling.options.heater.orientation.x;
+        dispatch.heater_orientation[1] = coupling.options.heater.orientation.y;
+        dispatch.heater_orientation[2] = coupling.options.heater.orientation.z;
+        dispatch.heater_orientation[3] = coupling.options.heater.orientation.w;
+        dispatch.heater_half_extents[0] =
+            coupling.options.heater.half_extents.x;
+        dispatch.heater_half_extents[1] =
+            coupling.options.heater.half_extents.y;
+        dispatch.heater_temperature = coupling.options.heater_temperature;
+        dispatch.boiling_temperature = coupling.options.boiling_temperature;
+        dispatch.heat_transfer_rate = coupling.options.heat_transfer_rate;
+        dispatch.wind_drag = coupling.options.wind_drag;
+        dispatch.steam_rise_speed = coupling.options.steam_rise_speed;
         if (smoke.count != 0U && coupling.options.wind_drag > 0.0F) {
-            if (smoke.grid.resolution != 0U)
-                fluid_smoke_grid_drag<<<blocks, block_size, 0, stream>>>(
+            if (smoke.grid.resolution != 0U) {
+                const auto grid = smoke_dispatch_grid(smoke.grid);
+                simulation::drag_fluid_with_smoke_grid(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.count,
-                    coupling.options, smoke.options,
-                    {smoke.grid.resolution, smoke.grid.height,
-                     smoke.grid.minimum, smoke.grid.spacing,
-                     smoke.grid.velocity, smoke.grid.density,
-                     smoke.grid.pressure[0],
-                     {smoke.grid.face_velocity[0][0],
-                      smoke.grid.face_velocity[1][0],
-                      smoke.grid.face_velocity[2][0]},
-                     smoke.grid.vorticity, smoke.grid.strain},
-                    options.timestep);
-            else
-                fluid_smoke_drag<<<blocks, block_size, 0, stream>>>(
+                    dispatch, grid, options.timestep);
+            } else {
+                simulation::drag_fluid_with_smoke_particles(
+                    blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.count,
-                    coupling.options, smoke.options, smoke.positions,
+                    dispatch, smoke.positions,
                     smoke.velocities, smoke.keys[1], smoke.indices[1],
                     options.timestep);
+            }
         }
-        fluid_smoke_exchange<<<blocks, block_size, 0, stream>>>(
+        const float gravity[3]{
+            options.gravity.x, options.gravity.y, options.gravity.z};
+        simulation::exchange_fluid_with_smoke(
+            blocks, block_size, stream,
             fluid.positions, fluid.velocities, fluid.temperatures,
-            fluid.count, fluid.options.particle_radius, coupling.options,
-            smoke.options, smoke.positions, smoke.velocities,
+            fluid.count, fluid.options.particle_radius, dispatch,
+            smoke.positions, smoke.velocities,
             smoke.ages, smoke.thermal_lift,
             smoke.number_densities, smoke.pressures, smoke.vorticities,
             smoke.next_slot,
             coupling.converted, fluid.keep, options.timestep,
-            options.gravity);
+            gravity);
         error = cudaGetLastError();
         if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
         if (error != cudaSuccess)
@@ -8132,16 +8213,15 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         smoke.emitted += converted;
         smoke.index_dirty = true;
         impl_->boiled_particle_count += converted;
-        fluid_clear_inactive_keep<<<blocks, block_size, 0, stream>>>(
+        simulation::clear_inactive_fluid_keep(
+            blocks, block_size, stream,
             fluid.keep, fluid.count, fluid.options.capacity);
-        const auto sequence = thrust::make_counting_iterator<std::uint32_t>(0U);
-        error = cub::DeviceSelect::Flagged(
-            fluid.select_workspace, fluid.select_workspace_size,
-            sequence, fluid.keep, fluid.selected, fluid.count,
-            fluid.options.capacity, stream);
+        error = simulation::compact_flagged_indices(
+            stream, fluid.keep, fluid.options.capacity, fluid.selected, fluid.count,
+            fluid.select_workspace, fluid.select_workspace_size);
         if (error != cudaSuccess)
             return cuda_failure(error, "boiled fluid compaction failed");
-        fluid_gather<<<blocks, block_size, 0, stream>>>(
+        simulation::gather_fluid(blocks, block_size, stream,
             fluid.positions, fluid.velocities, fluid.ids, fluid.foam,
             fluid.temperatures, fluid.contact_samples, fluid.contact_flags,
             false, fluid.selected, fluid.count, fluid.options.capacity,
@@ -8162,53 +8242,59 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         if (smoke.count != 0U) {
             const auto blocks = (smoke.count + 127U) / 128U;
             if (smoke.grid.resolution != 0U) {
-                smoke_grid_trace<<<blocks, 128U, 0, stream>>>(
+                const float smoke_gravity[3]{
+                    options.gravity.x, options.gravity.y, options.gravity.z};
+                simulation::trace_smoke_grid_particles(
+                    blocks, 128U, stream,
                     smoke.positions, smoke.previous_positions,
                     smoke.velocities, smoke.ages, smoke.thermal_lift,
                     smoke.number_densities, smoke.pressures,
-                    smoke.vorticities, smoke.count, smoke.options,
-                    {smoke.grid.resolution, smoke.grid.height,
-                     smoke.grid.minimum, smoke.grid.spacing,
-                     smoke.grid.velocity, smoke.grid.density,
-                     smoke.grid.pressure[0],
-                     {smoke.grid.face_velocity[0][0],
-                      smoke.grid.face_velocity[1][0],
-                      smoke.grid.face_velocity[2][0]},
-                     smoke.grid.vorticity, smoke.grid.strain},
-                    options.timestep, options.gravity);
+                    smoke.vorticities, smoke.count,
+                    smoke_domain_options(smoke.options),
+                    smoke_dispatch_grid(smoke.grid),
+                    options.timestep, smoke_gravity);
             } else {
-                smoke_emit_cells<<<(smoke.options.capacity + 127U) / 128U,
-                    128U, 0, stream>>>(smoke.positions, smoke.ages, smoke.count,
-                    smoke.options, smoke.keys[0], smoke.indices[0]);
-                error = cub::DeviceRadixSort::SortPairs(
-                    smoke.sort_workspace, smoke.sort_workspace_size,
-                    smoke.keys[0], smoke.keys[1], smoke.indices[0],
-                    smoke.indices[1], smoke.options.capacity, 0, 64, stream);
+                simulation::index_smoke_particles(
+                    (smoke.options.capacity + 127U) / 128U, 128U, stream,
+                    smoke.positions, smoke.ages, smoke.count,
+                    smoke_domain_options(smoke.options), smoke.keys[0],
+                    smoke.indices[0]);
+                error = simulation::radix_sort_pairs_u64_u32(
+                    stream, smoke.keys[0], smoke.keys[1], smoke.indices[0],
+                    smoke.indices[1], smoke.options.capacity,
+                    smoke.sort_workspace, smoke.sort_workspace_size);
                 if (error != cudaSuccess)
                     return cuda_failure(error,
                         "smoke pressure neighbor sort failed");
                 smoke.index_dirty = false;
-                smoke_density_pressure<<<blocks, 128U, 0, stream>>>(
-                    smoke.positions, smoke.ages, smoke.count, smoke.options,
+                simulation::calculate_smoke_density_pressure(
+                    blocks, 128U, stream,
+                    smoke.positions, smoke.ages, smoke.count,
+                    smoke_domain_options(smoke.options),
                     smoke.keys[1], smoke.indices[1], smoke.number_densities,
                     smoke.pressures, options.timestep);
-                smoke_compute_vorticity<<<blocks, 128U, 0, stream>>>(
+                simulation::calculate_smoke_vorticity(
+                    blocks, 128U, stream,
                     smoke.positions, smoke.velocities, smoke.ages, smoke.count,
-                    smoke.options, smoke.keys[1], smoke.indices[1],
+                    smoke_domain_options(smoke.options), smoke.keys[1],
+                    smoke.indices[1],
                     smoke.number_densities, smoke.vorticities,
                     smoke.vorticity_magnitudes);
-                smoke_pair_forces<<<blocks, 128U, 0, stream>>>(
+                simulation::calculate_smoke_pair_forces(
+                    blocks, 128U, stream,
                     smoke.positions, smoke.velocities, smoke.ages, smoke.count,
-                    smoke.options, smoke.keys[1], smoke.indices[1],
+                    smoke_domain_options(smoke.options), smoke.keys[1],
+                    smoke.indices[1],
                     smoke.number_densities, smoke.pressures,
                     smoke.vorticities, smoke.vorticity_magnitudes,
                     smoke.accelerations);
-                smoke_advect<<<blocks, 128U, 0, stream>>>(
+                simulation::advect_smoke_particles(
+                    blocks, 128U, stream,
                     smoke.positions, smoke.previous_positions,
                     smoke.velocities, smoke.ages,
                     smoke.thermal_lift, smoke.count,
-                    smoke.options, smoke.accelerations,
-                    options.timestep, options.gravity);
+                    smoke_domain_options(smoke.options), smoke.accelerations,
+                    options.timestep, &options.gravity.x);
             }
             for (const auto &coupling : impl_->smoke_soft_body_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
@@ -8220,26 +8306,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius + body.node_radius;
-                    smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                    simulation::calculate_smoke_deformable_bounds(
+                        1U, 1U, stream,
                         body.surface_positions, body.surface_vertex_count,
                         coupling->minimum, coupling->maximum);
-                    smoke_soft_body_contact<<<
-                        (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    simulation::collide_smoke_with_soft_body(
+                        (smoke.count + 127U) / 128U, 128U, stream,
                         smoke.positions, smoke.previous_positions,
                         smoke.velocities, smoke.ages,
-                        smoke.count, smoke.options.lifetime,
+                        smoke.count, smoke_dispatch_options(smoke.options),
                         body.surface_positions, body.surface_bindings,
                         body.surface_indices, body.surface_index_count,
                         body.velocities, coupling->minimum,
                         coupling->maximum, clearance,
-                        {smoke.grid.resolution, smoke.grid.height,
-                         smoke.grid.minimum, smoke.grid.spacing,
-                         smoke.grid.velocity, smoke.grid.density,
-                         smoke.grid.pressure[0],
-                         {smoke.grid.face_velocity[0][0],
-                          smoke.grid.face_velocity[1][0],
-                          smoke.grid.face_velocity[2][0]},
-                         smoke.grid.vorticity, smoke.grid.strain});
+                        smoke_dispatch_grid(smoke.grid));
             }
             for (const auto &coupling : impl_->smoke_cloth_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
@@ -8250,27 +8330,19 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius + cloth.thickness;
-                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                simulation::calculate_smoke_deformable_bounds(
+                    1U, 1U, stream,
                     cloth.positions, cloth.vertex_count,
                     coupling->minimum, coupling->maximum);
-                smoke_cloth_contact<<<
-                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                simulation::collide_smoke_with_cloth(
+                    (smoke.count + 127U) / 128U, 128U, stream,
                     smoke.positions, smoke.previous_positions,
                     smoke.velocities, smoke.ages, smoke.pressures,
-                    smoke.count, smoke.options.lifetime,
+                    smoke.count, smoke_dispatch_options(smoke.options),
                     cloth.positions, cloth.velocities,
                     cloth.indices, cloth.index_count,
                     coupling->minimum, coupling->maximum, clearance,
-                    smoke.options.pressure_stiffness,
-                    smoke.options.maximum_speed,
-                    {smoke.grid.resolution, smoke.grid.height,
-                     smoke.grid.minimum, smoke.grid.spacing,
-                     smoke.grid.velocity, smoke.grid.density,
-                     smoke.grid.pressure[0],
-                     {smoke.grid.face_velocity[0][0],
-                      smoke.grid.face_velocity[1][0],
-                      smoke.grid.face_velocity[2][0]},
-                     smoke.grid.vorticity, smoke.grid.strain});
+                    smoke_dispatch_grid(smoke.grid));
             }
             for (const auto &coupling : impl_->smoke_rigid_couplings) {
                 if (!coupling || !coupling->alive || !coupling->options.enabled ||
@@ -8286,17 +8358,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     : smoke.options.particle_radius;
                 if (smoke.grid.resolution != 0U &&
                     coupling->options.air_density > 0.0F)
-                    smoke_grid_rigid_force<<<1U, 128U, 0, stream>>>(mesh,
+                    simulation::apply_smoke_grid_force_to_rigid_body(
+                        1U, 128U, stream, &mesh,
                         body, impl_->parameters,
                         impl_->states[impl_->current_state],
-                        {smoke.grid.resolution, smoke.grid.height,
-                         smoke.grid.minimum, smoke.grid.spacing,
-                         smoke.grid.velocity, smoke.grid.density,
-                         smoke.grid.pressure[0],
-                         {smoke.grid.face_velocity[0][0],
-                          smoke.grid.face_velocity[1][0],
-                          smoke.grid.face_velocity[2][0]},
-                         smoke.grid.vorticity, smoke.grid.strain},
+                        smoke_dispatch_grid(smoke.grid),
                         coupling->options.air_density,
                         coupling->options.drag_coefficient,
                         smoke.options.rest_number_density,
@@ -8304,11 +8370,11 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         smoke.options.grid_les_coefficient,
                         options.timestep);
                 if (coupling->options.tracer_contact)
-                    smoke_rigid_contact<<<
-                        (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                    simulation::collide_smoke_with_rigid_body(
+                        (smoke.count + 127U) / 128U, 128U, stream,
                         smoke.positions, smoke.previous_positions,
                         smoke.velocities, smoke.ages, smoke.pressures, smoke.count,
-                        smoke.options.lifetime, mesh,
+                        smoke.options.lifetime, &mesh,
                         impl_->states[impl_->current_state],
                         any_moving_body ? impl_->fluid_previous_states
                                         : impl_->states[impl_->current_state],
@@ -8319,19 +8385,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         coupling->options.drag_coefficient,
                         smoke.options.pressure_stiffness, options.timestep,
                         smoke.options.maximum_speed,
-                        {smoke.grid.resolution, smoke.grid.height,
-                         smoke.grid.minimum,
-                         smoke.grid.spacing, smoke.grid.velocity,
-                         smoke.grid.density, smoke.grid.pressure[0],
-                         {smoke.grid.face_velocity[0][0],
-                          smoke.grid.face_velocity[1][0],
-                          smoke.grid.face_velocity[2][0]},
-                         smoke.grid.vorticity, smoke.grid.strain},
+                        smoke_dispatch_grid(smoke.grid),
                         smoke.rigid_impulses);
                 if (smoke.grid.resolution == 0U &&
                     coupling->options.air_density > 0.0F &&
                     coupling->options.tracer_contact)
-                    smoke_apply_rigid_impulses<<<1U, 128U, 0, stream>>>(
+                    simulation::apply_smoke_rigid_body_impulses(
+                        1U, 128U, stream,
                         smoke.rigid_impulses, smoke.count, body,
                         impl_->parameters,
                         impl_->states[impl_->current_state]);
@@ -8345,14 +8405,16 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius + rope.options.radius;
-                smoke_deformable_bounds<<<1U, 1U, 0, stream>>>(
+                simulation::calculate_smoke_deformable_bounds(
+                    1U, 1U, stream,
                     rope.positions, rope.count,
                     coupling->minimum, coupling->maximum);
-                smoke_rope_contact<<<
-                    (smoke.count + 127U) / 128U, 128U, 0, stream>>>(
+                simulation::collide_smoke_with_rope(
+                    (smoke.count + 127U) / 128U, 128U, stream,
                     smoke.positions, smoke.previous_positions,
                     smoke.velocities, smoke.ages,
-                    smoke.count, smoke.options.lifetime, rope,
+                    smoke.count, smoke_dispatch_options(smoke.options),
+                    rope.positions, rope.velocities, rope.count,
                     coupling->minimum, coupling->maximum, clearance);
             }
             status = record_timing_stage(TimingStage::smoke_advection, 1U);
@@ -8364,11 +8426,13 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             std::floor(exact), double(smoke.options.capacity)));
         smoke.emission_fraction = float(exact - std::floor(exact));
         if (requested != 0U) {
-            smoke_emit<<<(requested + 127U) / 128U, 128U, 0, stream>>>(
+            simulation::emit_smoke_particles(
+                (requested + 127U) / 128U, 128U, stream,
                 smoke.positions, smoke.previous_positions,
                 smoke.velocities, smoke.ages,
                 smoke.thermal_lift, smoke.number_densities,
-                smoke.pressures, smoke.vorticities, smoke.options,
+                smoke.pressures, smoke.vorticities,
+                smoke_domain_options(smoke.options),
                 smoke.next_slot, requested, smoke.emitted);
             smoke.next_slot = (smoke.next_slot + requested) % smoke.options.capacity;
             smoke.count = std::min(smoke.options.capacity, smoke.count + requested);
@@ -8836,6 +8900,8 @@ Status World::collect_statistics(WorldStatistics &output,
         const auto &schedule = *impl_->rigid_contact_schedule;
         output.rigid_contact_island_count = schedule.island_count;
         output.rigid_contact_early_exit_count = schedule.early_exit_count;
+        output.rigid_contact_pose_passes = schedule.counts[6];
+        output.rigid_contact_impact_passes = schedule.counts[7];
         output.rigid_contact_maximum_passes = schedule.maximum_passes;
         output.rigid_contact_color_count = schedule.remaining;
         output.rigid_contact_overflow_pairs = schedule.counts[28];
@@ -8844,7 +8910,8 @@ Status World::collect_statistics(WorldStatistics &output,
         output.rigid_contact_live_pairs = schedule.contacts;
     }
     output.allocated_bytes +=
-        capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) + sizeof(AvbdBody) +
+        capacity * (sizeof(BodyParameters) + sizeof(BodyAccumulator) +
+                    sizeof(simulation::GeometryConstraintBody) +
                     sizeof(KinematicTarget) + sizeof(RigidBodyId) +
                     4U * sizeof(RigidBodyState) +
                     (impl_->fixed_contact_projection != nullptr

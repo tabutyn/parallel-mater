@@ -1227,6 +1227,28 @@ bool matches_canonical_text(std::string actual, const std::string &expected) {
     return normalized == expected;
 }
 
+std::string compact_json_whitespace(std::string_view source) {
+    std::string result;
+    result.reserve(source.size());
+    bool quoted = false;
+    bool escaped = false;
+    for (const char character : source) {
+        if (quoted) {
+            result.push_back(character);
+            if (escaped) escaped = false;
+            else if (character == '\\') escaped = true;
+            else if (character == '"') quoted = false;
+        } else if (character == '"') {
+            quoted = true;
+            result.push_back(character);
+        } else if (character != ' ' && character != '\t' &&
+                   character != '\r' && character != '\n') {
+            result.push_back(character);
+        }
+    }
+    return result;
+}
+
 void write_file(const std::filesystem::path &path, const std::string &contents) {
     std::filesystem::create_directories(path.parent_path());
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
@@ -1269,7 +1291,8 @@ bool check_inputs(const std::filesystem::path &source_root) {
         std::cerr << "missing conformance manifest: " << manifest_path << '\n';
         valid = false;
     } else {
-        const std::string manifest = read_file(manifest_path);
+        const std::string manifest =
+            compact_json_whitespace(read_file(manifest_path));
         for (const auto &definition : case_registry()) {
             if (definition.glb_path.empty()) continue;
             const std::string entry = "\"" + definition.glb_path +

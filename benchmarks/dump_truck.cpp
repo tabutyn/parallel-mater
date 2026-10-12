@@ -2,6 +2,9 @@
 #include "support.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/renderer.hpp>
+#include <render/render_scene.hpp>
+#include <scene_builder.hpp>
 #include <cuda_profiler_api.h>
 #include <charconv>
 #include <fstream>
@@ -58,12 +61,17 @@ int main(int argc, char **argv) {
               << " substeps=" << substeps << " capture=" << capture << " render=" << render
               << " pass_limit=" << pass_limit << " authored_max_iterations=" << authored_max_iterations
               << " kernel_profile=" << profile << std::endl;
-    World world;
-    SceneInstance instance;
-    if (!require(create_scene_world(scene,world,instance,
-            {.frame_capacity = capture ? 30U : 0U, .frame_stride = 1U}),"create world")) return 1;
+    CommandScene simulation;
+    CommandSceneInstance instance;
+    CommandSceneFrame frame;
+    RenderSceneFrame render_frame;
+    if (!CommandScene::create(scene, capture ? 30U : 0U, simulation,
+                              instance, error)) {
+        std::cerr << "create simulation: " << error << '\n';
+        return 1;
+    }
     OptixRenderer renderer;
-    if (render && !OptixRenderer::create(scene,world,instance,PARALLEL_MATER_OPTIX_PTX_PATH,
+    if (render && !OptixRenderer::create(scene,instance,PARALLEL_MATER_OPTIX_PTX_PATH,
                                          960,720,renderer,error)) {
         std::cerr << error << '\n'; return 1;
     }
@@ -71,7 +79,11 @@ int main(int argc, char **argv) {
     camera.set_preset(gallery_entry(GalleryContext::dump).camera);
     std::vector<std::uint32_t> pixels;
     const auto draw = [&]() {
-        if (!render || renderer.render(world,instance,camera.camera(),pixels,error)) return true;
+        if (!render) return true;
+        if (!make_render_scene_frame(scene, frame, render_frame, error))
+            return false;
+        if (renderer.render(render_frame, camera.camera(), pixels, error))
+            return true;
         std::cerr << error << '\n'; return false;
     };
     DumpTruckBed bed;
@@ -79,19 +91,29 @@ int main(int argc, char **argv) {
     auto options = standard_step_options(false);
     options.substeps = substeps;
     options.rigid_contact_pass_limit = pass_limit;
+    const auto step = [&]() {
+        return simulation.step(options.timestep, options.substeps,
+                               options.gravity, frame, error);
+    };
     for (unsigned frame = 0; frame < warmup; ++frame)
-        if (!require(world.step(options),"warmup") || !draw()) return 1;
+        if (!step() || !draw()) {
+            if (!error.empty()) std::cerr << "warmup: " << error << '\n';
+            return 1;
+        }
     if (!draw()) return 1;
     if (mode == "tip") bed.toggle();
     if (mode == "drive") {
         for (std::size_t i = 0; i < scene.rigid_constraints.size(); ++i) {
             const auto &joint = scene.rigid_constraints[i];
             if (joint.options.type != RigidConstraintType::motor) continue;
-            auto motor = joint.options;
-            motor.body_a = instance.rigid_bodies[joint.body_a];
-            motor.body_b = instance.rigid_bodies[joint.body_b];
-            motor.motor.angular_target_velocity = -8;
-            if (!require(world.update_rigid_constraint(instance.rigid_constraints[i],motor),"drive")) return 1;
+            auto motor = joint;
+            motor.options.motor.angular_target_velocity = -8;
+            if (!simulation.write_constraint(instance.rigid_constraints[i],
+                                             motor, error)) {
+                std::cerr << "drive: " << error << '\n';
+                return 1;
+            }
+            scene.rigid_constraints[i].options = motor.options;
         }
     }
     std::ofstream csv;
@@ -101,16 +123,22 @@ int main(int argc, char **argv) {
         csv << "frame,controls_ms,physics_ms,render_ms,total_ms\n" << std::setprecision(9);
     }
     Samples controls, physics, rendering, total;
-    TimingSamples stages;
     options.collect_kernel_timings = profile;
     using Clock = std::chrono::steady_clock;
     const auto ms = [](auto a, auto b) { return std::chrono::duration<double,std::milli>(b-a).count(); };
     if (trace && cudaProfilerStart() != cudaSuccess) return 1;
     for (unsigned frame = 0; frame < frames; ++frame) {
         const auto start = Clock::now();
-        if (!require(bed.advance(world,scene,instance,options.timestep),"actuate")) return 1;
+        if (!bed.advance(simulation, scene, instance, options.timestep,
+                         error)) {
+            std::cerr << "actuate: " << error << '\n';
+            return 1;
+        }
         const auto controlled = Clock::now();
-        if (!require(world.step(options),"step")) return 1;
+        if (!step()) {
+            std::cerr << "step: " << error << '\n';
+            return 1;
+        }
         const auto stepped = Clock::now();
         if (!draw()) return 1;
         const auto drawn = Clock::now();
@@ -118,11 +146,6 @@ int main(int argc, char **argv) {
         rendering.add(ms(stepped,drawn)); total.add(ms(start,drawn));
         if (csv) csv << frame << ',' << ms(start,controlled) << ',' << ms(controlled,stepped)
                      << ',' << ms(stepped,drawn) << ',' << ms(start,drawn) << '\n';
-        if (profile) {
-            WorldStepTimings timing;
-            if (!require(world.collect_step_timings(timing),"timings") || !timing.available) return 1;
-            add_timing_samples(stages,timing,ms(controlled,stepped));
-        }
     }
     if (trace && cudaProfilerStop() != cudaSuccess) return 1;
     const auto print = [](const char *name, Samples &s) {
@@ -130,24 +153,20 @@ int main(int argc, char **argv) {
                   << " p99=" << s.percentile(.99) << " max=" << s.percentile(1) << " ms\n";
     };
     print("controls",controls); print("physics",physics); print("render",rendering); print("total",total);
-    if (profile) {
-        constexpr std::array names{"integration","bounds","pair_filter","pair_compaction",
-            "leaf_pairs","triangle_contacts","solve","clear","gpu_total","wall"};
-        for (std::size_t i = 0; i < stages.size(); ++i) print(names[i],stages[i]);
-    }
-    WorldStatistics stats;
-    if (!require(world.collect_statistics(stats),"statistics")) return 1;
-    for (const auto id : instance.rigid_bodies) {
-        RigidBodyState state;
-        if (!require(world.read_rigid_body_state(id,state),"validate state")) return 1;
-        for (const float value : {state.position.x,state.position.y,state.position.z,
-             state.linear_velocity.x,state.linear_velocity.y,state.linear_velocity.z,
-             state.orientation.x,state.orientation.y,state.orientation.z,state.orientation.w})
+    if (profile)
+        std::cout << "pose_iterations=" << frame.statistics.poseIterations
+                  << " impact_iterations=" << frame.statistics.impactIterations
+                  << " (public command statistics query)\n";
+    for (const PmRigidState &state : frame.rigid_states) {
+        for (const float value : {state.position[0],state.position[1],state.position[2],
+             state.linearVelocity[0],state.linearVelocity[1],state.linearVelocity[2],
+             state.orientation[0],state.orientation[1],state.orientation[2],state.orientation[3]})
             if (!std::isfinite(value)) return 1;
     }
-    std::cout << "finite_states=1 contacts=" << stats.contact_count
-              << " contact_overflows=" << stats.contact_overflow_count
-              << " max_passes=" << stats.rigid_contact_maximum_passes
-              << " allocated_MiB=" << stats.allocated_bytes/(1024.0*1024) << '\n';
+    std::cout << "finite_states=1 contacts=" << frame.contacts.size()
+              << " overflows=" << frame.statistics.overflowCount
+              << " iterations="
+              << frame.statistics.poseIterations +
+                     frame.statistics.impactIterations << '\n';
     return csv_path.empty() || csv.good() ? 0 : 1;
 }

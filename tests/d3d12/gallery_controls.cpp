@@ -19,14 +19,25 @@ int main() {
     input.key(Key::next); input.key(Key::enter);
     require(input.requested_scene==1U && !input.catalog_visible,"Enter must load selected scene");
     input.requested_scene.reset();
-    input.key(Key::catalog); input.selected=rigid_scene_count;
+    input.key(Key::catalog);
+    input.selected=::parallel_mater::gallery::gallery_entries.size()-1U;
     input.key(Key::enter);
-    require(!input.requested_scene && input.catalog_visible,"Unavailable scene must not load");
+    require(input.requested_scene==
+                ::parallel_mater::gallery::gallery_entries.size()-1U &&
+            !input.catalog_visible,
+            "Every canonical scene must be selectable");
+    input.requested_scene.reset(); input.key(Key::catalog);
     input.key(Key::escape);
     require(!input.catalog_visible && !input.close_requested,"Escape must close catalog first");
     input.current=3; input.key(Key::reset);
     require(input.requested_scene==3U,"R must reset current scene");
-    input.key(Key::pause); require(input.paused,"P must pause");
+    input.current=0; input.key(Key::parameters);
+    require(input.parameters_visible,"P must open parameters when the scene has them");
+    input.key(Key::catalog);
+    require(input.catalog_visible && !input.parameters_visible &&
+            input.parameters_discarded,
+            "Tab must discard parameter edits and open the complete catalog");
+    input.key(Key::catalog);
     input.arrow(ArrowKey::right,true);
     input.arrow(ArrowKey::up,true);
     require(input.right_input()==1.0F && input.up_input()==1.0F,

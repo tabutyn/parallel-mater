@@ -2,6 +2,9 @@
 #include "support.hpp"
 
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/renderer.hpp>
+#include <render/render_scene.hpp>
+#include <scene_builder.hpp>
 
 #include <charconv>
 #include <fstream>
@@ -42,17 +45,18 @@ int main(int argc, char **argv) {
         return 2;
     }
     SceneDefinition scene;
-    SceneInstance instance;
-    World world;
+    CommandSceneInstance instance;
+    CommandScene simulation;
+    CommandSceneFrame simulation_frame;
+    RenderSceneFrame render_frame;
     OptixRenderer renderer;
     std::string error;
     // Match the interactive gallery's capture ring, but keep kernel profiling
     // and overlays disabled. Time one fixed physics step plus a complete
     // 960x720 render/readback; window upload/presentation is excluded.
     if (!load_glb_scene(argv[1], scene, error) ||
-        !require(create_scene_world(scene, world, instance,
-            {.frame_capacity = 30U, .frame_stride = 1U}), "create world") ||
-        !OptixRenderer::create(scene, world, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
+        !CommandScene::create(scene, 30U, simulation, instance, error) ||
+        !OptixRenderer::create(scene, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
                               960U, 720U, renderer, error)) {
         std::cerr << error << '\n';
         return 1;
@@ -61,16 +65,28 @@ int main(int argc, char **argv) {
     camera.set_preset(gallery_entry(GalleryContext::rigid_body).camera);
     std::vector<std::uint32_t> pixels;
     auto options = standard_step_options(false);
-    std::vector<RigidBodyId> vertical_gravity_bodies;
+    std::vector<std::uint32_t> vertical_gravity_bodies;
     for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index)
         if (scene.rigid_bodies[index].options.motion == MotionType::dynamic &&
             !scene.rigid_bodies[index].follows_gravity_tilt)
             vertical_gravity_bodies.push_back(instance.rigid_bodies[index]);
-    RigidBodyId impact_body{};
+    std::uint32_t impact_body{PM_INVALID_INDEX};
     bool wall_hit = false;
+    const auto step = [&]() {
+        if (!simulation.step(options.timestep, options.substeps,
+                             options.gravity, simulation_frame, error,
+                             impact) ||
+            !make_render_scene_frame(scene, simulation_frame, render_frame,
+                                     error))
+            return false;
+        return true;
+    };
     for (unsigned frame = 0; frame < settle + 10U; ++frame) {
-        if (!require(world.step(options), "settle") ||
-            !renderer.render(world, instance, camera.camera(), pixels, error)) return 1;
+        if (!step() ||
+            !renderer.render(render_frame, camera.camera(), pixels, error)) {
+            std::cerr << "settle: " << error << '\n';
+            return 1;
+        }
     }
     if (impact) {
         const auto sphere = std::find_if(scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
@@ -81,10 +97,13 @@ int main(int argc, char **argv) {
         }
         const auto index = static_cast<std::size_t>(sphere - scene.rigid_bodies.begin());
         impact_body = instance.rigid_bodies[index];
-        RigidBodyState state;
-        if (!require(world.read_rigid_body_state(instance.rigid_bodies[index], state), "read sphere") ||
-            !require(world.apply_impulse(instance.rigid_bodies[index],
-                {0, 0, -sphere->options.mass * 10.0F}, state.position), "launch sphere")) return 1;
+        PmRigidInput input{};
+        input.bodyIndex = impact_body;
+        input.linearImpulse[2] = -sphere->options.mass * 10.0F;
+        if (!simulation.apply_rigid_inputs({input}, error)) {
+            std::cerr << "launch sphere: " << error << '\n';
+            return 1;
+        }
     }
     if (tilt) options.gravity = screen_space_gravity(camera.camera(), 0, 1, 9.81F, 20.0F);
     std::ofstream csv;
@@ -100,13 +119,29 @@ int main(int argc, char **argv) {
     };
     for (unsigned frame = 0; frame < frames; ++frame) {
         const auto start = Clock::now();
-        if (tilt && !require(world.apply_central_acceleration(
-                {vertical_gravity_bodies.data(), vertical_gravity_bodies.size()},
-                {-options.gravity.x, -9.81F - options.gravity.y,
-                 -options.gravity.z}), "preserve wall gravity")) return 1;
-        if (!require(world.step(options), "measure physics")) return 1;
+        if (tilt) {
+            std::vector<PmRigidInput> inputs;
+            inputs.reserve(vertical_gravity_bodies.size());
+            for (std::uint32_t body : vertical_gravity_bodies) {
+                PmRigidInput input{};
+                input.bodyIndex = body;
+                const float mass = scene.rigid_bodies[body].options.mass;
+                input.force[0] = -options.gravity.x * mass;
+                input.force[1] = (-9.81F - options.gravity.y) * mass;
+                input.force[2] = -options.gravity.z * mass;
+                inputs.push_back(input);
+            }
+            if (!simulation.apply_rigid_inputs(inputs, error)) {
+                std::cerr << "preserve wall gravity: " << error << '\n';
+                return 1;
+            }
+        }
+        if (!step()) {
+            std::cerr << "measure physics: " << error << '\n';
+            return 1;
+        }
         const auto simulated = Clock::now();
-        if (!renderer.render(world, instance, camera.camera(), pixels, error)) {
+        if (!renderer.render(render_frame, camera.camera(), pixels, error)) {
             std::cerr << error << '\n';
             return 1;
         }
@@ -118,27 +153,25 @@ int main(int argc, char **argv) {
         if (csv) csv << frame << ',' << physics_ms << ',' << render_ms << ',' << total_ms << '\n';
         // Validate the workload outside the timed interval. Capture data is
         // already on the host, so this does not migrate live simulation pages.
-        PhysicsDebugFrameView capture;
-        if (!require(world.physics_debug_frame(capture), "read capture")) return 1;
-        for (std::size_t i = 0; i < capture.rigid_bodies.size; ++i) {
-            const auto &body = capture.rigid_bodies.data[i];
-            const auto &s = body.state;
-            for (float value : {s.position.x, s.position.y, s.position.z,
-                                s.linear_velocity.x, s.linear_velocity.y, s.linear_velocity.z,
-                                s.angular_velocity.x, s.angular_velocity.y, s.angular_velocity.z,
-                                s.orientation.x, s.orientation.y, s.orientation.z, s.orientation.w})
+        for (const PmRigidState &state : simulation_frame.rigid_states) {
+            for (float value : {state.position[0], state.position[1], state.position[2],
+                                state.linearVelocity[0], state.linearVelocity[1], state.linearVelocity[2],
+                                state.angularVelocity[0], state.angularVelocity[1], state.angularVelocity[2],
+                                state.orientation[0], state.orientation[1], state.orientation[2], state.orientation[3]})
                 if (!std::isfinite(value)) return 1;
         }
         if (impact) {
-            for (std::size_t i = 0; i < capture.rigid_contacts.size; ++i) {
-                const auto &contact = capture.rigid_contacts.data[i];
-                if (contact.normal_impulse <= 0.0F) continue;
-                const auto other = contact.body == impact_body ? contact.collider : contact.body;
-                if (!(contact.body == impact_body) && !(contact.collider == impact_body)) continue;
-                for (std::size_t body = 0; body < scene.rigid_bodies.size(); ++body)
-                    if (instance.rigid_bodies[body] == other &&
-                        (scene.rigid_bodies[body].source_name == "Layer1" ||
-                         scene.rigid_bodies[body].source_name == "Layer2")) wall_hit = true;
+            for (const PmContactEvent &contact : simulation_frame.contacts) {
+                if (contact.type != PM_CONTACT_RIGID_RIGID ||
+                    contact.normalImpulse <= 0.0F) continue;
+                const auto other = contact.first == impact_body
+                    ? contact.second : contact.first;
+                if (contact.first != impact_body &&
+                    contact.second != impact_body) continue;
+                if (other < scene.rigid_bodies.size() &&
+                    (scene.rigid_bodies[other].source_name == "Layer1" ||
+                     scene.rigid_bodies[other].source_name == "Layer2"))
+                    wall_hit = true;
             }
         }
     }

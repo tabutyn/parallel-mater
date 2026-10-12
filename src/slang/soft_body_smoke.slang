@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/soft_body_smoke.cuh.
+// Shared soft-body/smoke coupling kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_fluid;
 import geometry_smoke;
 import smoke_grid;

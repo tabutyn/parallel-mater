@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
-// Slang mirror of src/fluid_soft_body.cuh.
+// Shared fluid/soft-body coupling kernels.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 import geometry_fluid;
 
-struct FluidSoftNearest
+public struct FluidSoftNearest
 {
-    uint triangle;
-    Vec3 point;
-    Vec3 normal;
-    Vec3 weights;
-    float penetration;
+    public uint triangle;
+    public Vec3 point;
+    public Vec3 normal;
+    public Vec3 weights;
+    public float penetration;
 };
 
 float fluid_soft_bounds_distance(Vec3 point, BvhNode node)
@@ -80,7 +82,7 @@ bool fluid_soft_inside(
     return abs(angle) > 6.2831853f;
 }
 
-FluidSoftNearest fluid_soft_nearest(
+public FluidSoftNearest fluid_soft_nearest(
     Vec3 point, Vec3 start, Vec3* surface, Vec3* previous,
     uint* indices, uint index_count, float orientation, float distance,
     Vec3* bounds, bool sweep, BvhNode* tree, uint* order)

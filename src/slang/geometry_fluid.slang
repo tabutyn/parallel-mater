@@ -2,7 +2,9 @@
 // Slang mirror of src/geometry_fluid.cuh. Geometry contact kernels follow the
 // shared closest-point helpers used by the coupling modules.
 
-import cuda_common;
+import types;
+import math;
+import device_intrinsics;
 
 groupshared Vec3 fluid_impulse_linear[128];
 groupshared Vec3 fluid_impulse_angular[128];
@@ -424,7 +426,9 @@ void fluid_detect_moving_contacts(
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
-    contacts[particle] = {};
+    FluidMovingContact emptyContact = {};
+    emptyContact.body = kInvalidDense;
+    contacts[particle] = emptyContact;
     Vec3 start = previous[particle], end = positions[particle];
     float bestPenetration = 0.0f;
     Vec3 bestNormal = {}, bestContact = {};
@@ -538,7 +542,9 @@ void fluid_resolve_moving_contacts(
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
-    impulses[particle] = {};
+    FluidBodyImpulse emptyImpulse = {};
+    emptyImpulse.body = kInvalidDense;
+    impulses[particle] = emptyImpulse;
     Vec3 end = positions[particle];
     FluidMovingContact contact = contacts[particle];
     Vec3 bestNormal = contact.normal;
@@ -621,13 +627,13 @@ void reduce_point_body_impulses(
     uniform uint* contact_flags, uniform uint body_count,
     uniform Vec3* position_corrections)
 {
-    uint body = cudaBlockIdx().x;
+    uint body = pmBlockIndex().x;
     if (body >= body_count || contact_flags[body] == 0u ||
         parameters[body].motion != MotionType.dynamic) return;
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {}, localAngular = {}, localPosition = {};
     for (uint particle = lane; particle < *particle_count;
-         particle += cudaBlockDim().x)
+         particle += pmGroupSize().x)
     {
         FluidBodyImpulse impulse = impulses[particle];
         if (impulse.body != body) continue;
@@ -640,7 +646,7 @@ void reduce_point_body_impulses(
     fluid_impulse_angular[lane] = localAngular;
     fluid_impulse_position[lane] = localPosition;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (lane < stride)
         {

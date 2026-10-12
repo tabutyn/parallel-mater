@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/renderer.hpp>
+#include <render/render_scene.hpp>
+#include <scene_builder.hpp>
 
 #include <cuda_runtime_api.h>
 
@@ -78,35 +80,39 @@ int main() {
                 .initial_state = {.position = {0.5F, 0.5F, 0.0F}}}, {2U}}};
         scene.fluid_options.capacity = 1U;
         scene.initial_particles = {{{-0.5F, 0.5F, 0.0F}, {}}};
-        World world;
-        SceneInstance instance;
-        require(create_scene_world(scene, world, instance));
-        for (int frame = 0; frame < 120; ++frame) require(world.step({}));
-        RigidBodyState rigid;
-        require(world.read_rigid_body_state(instance.rigid_bodies[2], rigid));
-        FluidDeviceView fluid;
-        require(world.fluid_view(instance.fluid, fluid));
-        Vec3 particle;
-        require(fluid.particle_count == 1U &&
-                    cudaMemcpy(&particle, fluid.positions.data, sizeof(particle),
-                               cudaMemcpyDeviceToHost) == cudaSuccess,
-                "read particle on invisible floor");
-        require(std::isfinite(rigid.position.y) && rigid.position.y > 0.08F &&
-                    rigid.position.y < 0.15F && std::isfinite(particle.y) &&
-                    particle.y > 0.0F && particle.y < 0.06F,
+        CommandScene simulation;
+        CommandSceneInstance instance;
+        CommandSceneFrame frame;
+        require(CommandScene::create(scene, 0U, simulation, instance, error),
+                error);
+        for (int step = 0; step < 120; ++step)
+            require(simulation.step(1.0F / 60.0F, 4U,
+                                    {0.0F, -9.81F, 0.0F}, frame, error),
+                    error);
+        require(frame.rigid_states.size() == scene.rigid_bodies.size() &&
+                    frame.fluid_particles.size() == 1U,
+                "read public simulation outputs");
+        const float rigid_y = frame.rigid_states[2].position[1];
+        const float particle_y = frame.fluid_particles[0].position[1];
+        require(std::isfinite(rigid_y) && rigid_y > 0.08F &&
+                    rigid_y < 0.15F && std::isfinite(particle_y) &&
+                    particle_y > 0.0F && particle_y < 0.06F,
                 "invisible floor must stop both rigid bodies and fluid");
 
         const Camera camera{.eye = {0.0F, 3.0F, 3.0F}, .target = {}};
         auto render = [&](const SceneDefinition &definition) {
             OptixRenderer renderer;
-            require(OptixRenderer::create(definition, world, instance,
+            require(OptixRenderer::create(definition, instance,
                                          PARALLEL_MATER_OPTIX_PTX_PATH,
                                          96U, 96U, renderer, error), error);
+            RenderSceneFrame render_frame;
+            require(make_render_scene_frame(definition, frame, render_frame,
+                                            error), error);
             // Repeated render also exercises instance updates: visibility must
             // not revert to opaque when rigid transforms are refreshed.
             std::array<std::vector<std::uint32_t>, 2> images;
-            require(renderer.render(world, instance, camera, images[0], error), error);
-            require(renderer.render(world, instance, camera, images[1], error,
+            require(renderer.render(render_frame, camera, images[0], error), error);
+            require(renderer.render(render_frame, camera, images[1], error,
                                     nullptr, FluidRenderMode::particles), error);
             return images;
         };
@@ -123,21 +129,27 @@ int main() {
         require(load_glb_scene(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH,
                                water_cloth, error),
                 "load ClothWater: " + error);
-        World water_world;
-        SceneInstance water_instance;
-        require(create_scene_world(water_cloth, water_world, water_instance));
-        for (int frame = 0; frame < 10; ++frame)
-            require(water_world.step({}));
+        CommandScene water_simulation;
+        CommandSceneInstance water_instance;
+        CommandSceneFrame water_frame;
+        require(CommandScene::create(water_cloth, 0U, water_simulation,
+                                     water_instance, error), error);
+        for (int step = 0; step < 10; ++step)
+            require(water_simulation.step(1.0F / 60.0F, 4U,
+                    {0.0F, -9.81F, 0.0F}, water_frame, error), error);
         const auto render_water = [&](SceneDefinition definition,
                                       FluidRenderMode mode) {
             OptixRenderer renderer;
             require(OptixRenderer::create(
-                definition, water_world, water_instance,
+                definition, water_instance,
                 PARALLEL_MATER_OPTIX_PTX_PATH, 96U, 96U, renderer, error),
                 error);
+            RenderSceneFrame render_frame;
+            require(make_render_scene_frame(definition, water_frame,
+                                            render_frame, error), error);
             std::vector<std::uint32_t> image;
-            require(renderer.render(water_world, water_instance, camera,
-                                    image, error, nullptr, mode), error);
+            require(renderer.render(render_frame, camera, image, error,
+                                    nullptr, mode), error);
             return image;
         };
         const auto transparent = render_water(

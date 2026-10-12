@@ -1,0 +1,216 @@
+// SPDX-License-Identifier: MIT
+#include "internal.hpp"
+
+#include <cstring>
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
+    PmDevice device, const PmQueryPoolCreateInfo *info, PmQueryPool *pool) {
+    if (pool == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *pool = nullptr;
+    if (device == nullptr || info == nullptr ||
+        !parallel_mater::api::valid_structure(
+            info->sType, PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, info->pNext) ||
+        info->queryCount == 0U || info->queryCount > 65536U)
+        return PM_ERROR_INVALID_ARGUMENT;
+    auto *created = parallel_mater::api::make_object<PmQueryPool_T>(device);
+    if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
+    created->device = device;
+    created->type = info->queryType;
+    try {
+        created->slots.resize(info->queryCount);
+    } catch (const std::bad_alloc &) {
+        parallel_mater::api::destroy_object(device, created);
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    if (info->queryType == PM_QUERY_TIMESTAMP) {
+        for (PmQuerySlot &slot : created->slots) {
+            const cudaError_t error = cudaEventCreate(&slot.event);
+            if (error != cudaSuccess) {
+                for (PmQuerySlot &rollback : created->slots)
+                    if (rollback.event != nullptr) (void)cudaEventDestroy(rollback.event);
+                parallel_mater::api::destroy_object(device, created);
+                return parallel_mater::device::from_cuda(error);
+            }
+        }
+    } else if (info->queryType != PM_QUERY_STEP_STATISTICS) {
+        parallel_mater::api::destroy_object(device, created);
+        return PM_ERROR_INVALID_ARGUMENT;
+    }
+    *pool = created;
+    return PM_SUCCESS;
+}
+
+extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyQueryPool(
+    PmDevice device, PmQueryPool pool) {
+    if (device == nullptr || pool == nullptr || pool->device != device) return;
+    (void)device->services->wait_idle();
+    for (PmQuerySlot &slot : pool->slots)
+        if (slot.event != nullptr) (void)cudaEventDestroy(slot.event);
+    parallel_mater::api::destroy_object(device, pool);
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetQueryPool(
+    PmCommandBuffer command_buffer, PmQueryPool pool, std::uint32_t first,
+    std::uint32_t count) {
+    const PmResult state = parallel_mater::api::require_recording(command_buffer);
+    if (state != PM_SUCCESS) return state;
+    if (pool == nullptr || pool->device != command_buffer->device || count == 0U ||
+        first > pool->slots.size() || count > pool->slots.size() - first)
+        return PM_ERROR_INVALID_ARGUMENT;
+    return parallel_mater::api::record(
+        command_buffer, [pool, first, count](cudaStream_t) noexcept {
+            for (std::uint32_t index = first; index < first + count; ++index) {
+                pool->slots[index].available = false;
+                pool->slots[index].statistics = {};
+            }
+            return PM_SUCCESS;
+        });
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteTimestamp(
+    PmCommandBuffer command_buffer, PmStageFlags stage, PmQueryPool pool,
+    std::uint32_t query) {
+    (void)stage;
+    const PmResult state = parallel_mater::api::require_recording(command_buffer);
+    if (state != PM_SUCCESS) return state;
+    if (pool == nullptr || pool->device != command_buffer->device ||
+        pool->type != PM_QUERY_TIMESTAMP || query >= pool->slots.size())
+        return PM_ERROR_INVALID_ARGUMENT;
+    return parallel_mater::api::record(
+        command_buffer, [pool, query](cudaStream_t stream) noexcept {
+            const cudaError_t error = cudaEventRecord(pool->slots[query].event, stream);
+            if (error != cudaSuccess) return parallel_mater::device::from_cuda(error);
+            pool->slots[query].available = true;
+            return PM_SUCCESS;
+        });
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
+    PmCommandBuffer command_buffer, PmQueryPool pool, std::uint32_t query) {
+    const PmResult state = parallel_mater::api::require_recording(command_buffer);
+    if (state != PM_SUCCESS) return state;
+    if (pool == nullptr || pool->device != command_buffer->device ||
+        pool->type != PM_QUERY_STEP_STATISTICS || query >= pool->slots.size() ||
+        command_buffer->statistics_open)
+        return PM_ERROR_INVALID_ARGUMENT;
+    command_buffer->statistics_open = true;
+    command_buffer->statistics_pool = pool;
+    command_buffer->statistics_query = query;
+    command_buffer->statistics_simulation = nullptr;
+    return parallel_mater::api::record(
+        command_buffer, [pool, query](cudaStream_t) noexcept {
+            pool->slots[query].statistics = {};
+            pool->slots[query].available = false;
+            return PM_SUCCESS;
+        });
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
+    PmCommandBuffer command_buffer, PmQueryPool pool, std::uint32_t query) {
+    const PmResult state = parallel_mater::api::require_recording(command_buffer);
+    if (state != PM_SUCCESS) return state;
+    if (pool == nullptr || pool->device != command_buffer->device ||
+        pool->type != PM_QUERY_STEP_STATISTICS || query >= pool->slots.size() ||
+        !command_buffer->statistics_open ||
+        command_buffer->statistics_pool != pool ||
+        command_buffer->statistics_query != query ||
+        command_buffer->statistics_simulation == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const PmSimulation simulation = command_buffer->statistics_simulation;
+    command_buffer->statistics_open = false;
+    command_buffer->statistics_pool = nullptr;
+    command_buffer->statistics_simulation = nullptr;
+    return parallel_mater::api::record(
+        command_buffer, [pool, query, simulation](cudaStream_t stream) noexcept {
+            parallel_mater::WorldStatistics source{};
+            const PmResult result = parallel_mater::api::from_status(
+                simulation->runtime->collect_statistics(source, stream));
+            if (result != PM_SUCCESS) return result;
+            PmStepStatistics &statistics = pool->slots[query].statistics;
+            statistics.stepCount = simulation->submitted_steps;
+            statistics.substepsExecuted = simulation->last_substeps;
+            statistics.poseIterations = source.rigid_contact_pose_passes;
+            statistics.impactIterations = source.rigid_contact_impact_passes;
+            statistics.peakContactCount = source.contact_count;
+            statistics.peakActiveBodies = source.rigid_body_count;
+            statistics.peakAwakeBodies = source.rigid_body_count -
+                source.sleeping_rigid_body_count;
+            statistics.peakParticleCount = source.particle_count;
+            statistics.scratchHighWaterBytes = simulation->arena != nullptr
+                ? simulation->arena->scratch_used() : 0U;
+            statistics.overflowCount = source.contact_overflow_count +
+                source.rigid_contact_overflow_pairs;
+            statistics.executionResult = simulation->execution_result;
+            statistics.earlyExitCount =
+                source.rigid_contact_early_exit_count;
+            pool->slots[query].available = true;
+            return PM_SUCCESS;
+        });
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
+    PmDevice device, PmQueryPool pool, std::uint32_t first,
+    std::uint32_t count, std::size_t data_size, void *data,
+    PmDeviceSize stride, PmFlags flags) {
+    if (device == nullptr || pool == nullptr || pool->device != device ||
+        count == 0U || data == nullptr || first > pool->slots.size() ||
+        count > pool->slots.size() - first)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const std::size_t value_size = pool->type == PM_QUERY_TIMESTAMP
+        ? sizeof(std::uint64_t) : sizeof(PmStepStatistics);
+    const std::size_t record_size = value_size +
+        ((flags & PM_QUERY_RESULT_WITH_AVAILABILITY_BIT) != 0U
+             ? sizeof(std::uint64_t) : 0U);
+    if (stride < record_size || data_size < record_size + (count - 1U) * stride)
+        return PM_ERROR_INVALID_ARGUMENT;
+    bool incomplete = false;
+    for (std::uint32_t offset = 0U; offset < count; ++offset) {
+        PmQuerySlot &slot = pool->slots[first + offset];
+        if (slot.available && pool->type == PM_QUERY_TIMESTAMP) {
+            const cudaError_t status = (flags & PM_QUERY_RESULT_WAIT_BIT) != 0U
+                ? cudaEventSynchronize(slot.event) : cudaEventQuery(slot.event);
+            if (status == cudaErrorNotReady) slot.available = false;
+            else if (status != cudaSuccess) return parallel_mater::device::from_cuda(status);
+        }
+        auto *destination = static_cast<std::byte *>(data) + offset * stride;
+        if (slot.available) {
+            if (pool->type == PM_QUERY_TIMESTAMP) {
+                float milliseconds = 0.0F;
+                const cudaError_t error = cudaEventElapsedTime(
+                    &milliseconds, device->services->epoch(), slot.event);
+                if (error != cudaSuccess) return parallel_mater::device::from_cuda(error);
+                const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
+                    milliseconds * 1'000'000.0F);
+                std::memcpy(destination, &nanoseconds, sizeof nanoseconds);
+            } else {
+                std::memcpy(destination, &slot.statistics, sizeof slot.statistics);
+            }
+        } else {
+            std::memset(destination, 0, value_size);
+            incomplete = true;
+        }
+        if ((flags & PM_QUERY_RESULT_WITH_AVAILABILITY_BIT) != 0U) {
+            const std::uint64_t available = slot.available ? 1U : 0U;
+            std::memcpy(destination + value_size, &available, sizeof available);
+        }
+    }
+    return incomplete ? PM_NOT_READY : PM_SUCCESS;
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetDeviceMemoryBudget(
+    PmDevice device, PmMemoryBudget *budget) {
+    if (device == nullptr || budget == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *budget = {};
+    PmDeviceSize available = 0U;
+    PmDeviceSize total = 0U;
+    const PmResult result = device->services->memory_budget(available, total);
+    if (result != PM_SUCCESS) return result;
+    budget->heapCount = 1U;
+    budget->budget[0] = total;
+    budget->usage[0] = total - available;
+    budget->applicationAllocationBytes =
+        device->application_bytes.load(std::memory_order_relaxed);
+    budget->libraryHostBytes =
+        device->library_host_bytes.load(std::memory_order_relaxed);
+    return PM_SUCCESS;
+}

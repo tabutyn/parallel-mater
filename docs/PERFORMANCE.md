@@ -595,9 +595,9 @@ identical CUDA fixtures pass (14 cases), as do all 11 comparator unit tests.
 The physics-focused CTest run passes **67/72** tests, including dump unload /
 lowering, Fixed collector, Generic contacts, all new body-count/joint isolation
 checks, and long rope winding/release/settling tests. The five remaining failures
-are the existing expanded wall, stale conformance asset hashes, MotorSpring
-metadata assertions (two test entries), and Generic's authored 1,000 N arrow
-force versus a 100 N expectation. No authored assets were edited by this
+are the existing expanded wall, stale conformance asset hashes, and
+MotorSpring metadata assertions (two test entries). Generic's authored
+1,000 N arrow metadata expectation was corrected. No authored assets were edited by this
 refactor; `DumpTruck.blend` retains its pre-refactor SHA-256.
 
 ```sh

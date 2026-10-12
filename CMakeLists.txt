@@ -8,30 +8,36 @@ include(FetchContent)
 include(CTest)
 include(CheckLanguage)
 
-if(BUILD_TESTING)
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(PARALLEL_MATER_LIBRARY_ARCH 64)
+else()
+    set(PARALLEL_MATER_LIBRARY_ARCH 32)
 endif()
 
-if(APPLE)
-    set(PARALLEL_MATER_CUDA_DEFAULT OFF)
-    set(PARALLEL_MATER_METAL_DEFAULT ON)
-    set(PARALLEL_MATER_D3D12_DEFAULT OFF)
-elseif(WIN32)
-    set(PARALLEL_MATER_CUDA_DEFAULT OFF)
-    set(PARALLEL_MATER_METAL_DEFAULT OFF)
-    set(PARALLEL_MATER_D3D12_DEFAULT ON)
-else()
+set(PARALLEL_MATER_API_GENERATED_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/api")
+file(MAKE_DIRECTORY "${PARALLEL_MATER_API_GENERATED_DIR}")
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/registry/generate.py"
+            --output "${PARALLEL_MATER_API_GENERATED_DIR}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMAND_ERROR_IS_FATAL ANY)
+
+if(NOT APPLE AND NOT WIN32)
     set(PARALLEL_MATER_CUDA_DEFAULT ON)
-    set(PARALLEL_MATER_METAL_DEFAULT OFF)
-    set(PARALLEL_MATER_D3D12_DEFAULT OFF)
+else()
+    set(PARALLEL_MATER_CUDA_DEFAULT OFF)
 endif()
 
 option(PARALLEL_MATER_BUILD_CUDA
-       "Build the CUDA physics backend" ${PARALLEL_MATER_CUDA_DEFAULT})
+       "Build the CUDA Slang device adapter" ${PARALLEL_MATER_CUDA_DEFAULT})
 option(PARALLEL_MATER_BUILD_METAL
-       "Build the Apple Metal 4 physics backend" ${PARALLEL_MATER_METAL_DEFAULT})
+       "Build the retired Apple Metal physics implementation" OFF)
 option(PARALLEL_MATER_BUILD_D3D12
-       "Build the Windows D3D12 physics backend" ${PARALLEL_MATER_D3D12_DEFAULT})
+       "Build the retired Windows DirectCompute physics implementation" OFF)
 option(PARALLEL_MATER_BUILD_METAL_GALLERY
        "Build the native Metal gallery" OFF)
 option(PARALLEL_MATER_BUILD_D3D12_GALLERY
@@ -40,13 +46,9 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
-option(PARALLEL_MATER_BUILD_COMMAND_STUBS
-       "Build the unsupported C command API placeholders (no physics execution)" OFF)
-option(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS
-       "Include typed Vulkan placeholders (requires Vulkan headers only)" OFF)
-if(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS AND NOT PARALLEL_MATER_BUILD_COMMAND_STUBS)
-    message(FATAL_ERROR "Vulkan command stubs require PARALLEL_MATER_BUILD_COMMAND_STUBS")
-endif()
+option(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS
+       "Build transitional tests of the private reference-driver World core" OFF)
+mark_as_advanced(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
 if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
    NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
@@ -60,6 +62,12 @@ option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
        "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
+
+if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_D3D12)
+    message(FATAL_ERROR
+        "Backend-specific physics implementations are retired. Configure the "
+        "shared command API with a validated Slang device adapter instead.")
+endif()
 
 if(PARALLEL_MATER_SLANG_TEST_BUILD)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
@@ -132,33 +140,6 @@ endif()
 
 set(PARALLEL_MATER_INSTALL_TARGETS)
 
-# Separate opt-in target: never linked into the gallery or production World.
-if(PARALLEL_MATER_BUILD_COMMAND_STUBS)
-    add_library(parallel-mater-command-stubs STATIC src/command/stubs.cpp)
-    add_library(ParallelMater::parallel-mater-command-stubs ALIAS parallel-mater-command-stubs)
-    target_compile_features(parallel-mater-command-stubs PUBLIC cxx_std_17)
-    target_include_directories(parallel-mater-command-stubs PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-    if(PARALLEL_MATER_BUILD_VULKAN_COMMAND_STUBS)
-        find_path(PARALLEL_MATER_VULKAN_INCLUDE_DIR vulkan/vulkan.h REQUIRED)
-        target_sources(parallel-mater-command-stubs PRIVATE src/command/vulkan_stubs.cpp)
-        target_include_directories(parallel-mater-command-stubs PRIVATE
-            ${PARALLEL_MATER_VULKAN_INCLUDE_DIR})
-    endif()
-    if(MSVC)
-        target_compile_options(parallel-mater-command-stubs PRIVATE /W4 /WX)
-    else()
-        target_compile_options(parallel-mater-command-stubs PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    endif()
-    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-command-stubs)
-    if(BUILD_TESTING)
-        add_executable(parallel-mater-command-stubs-test tests/command_stubs.cpp)
-        target_link_libraries(parallel-mater-command-stubs-test PRIVATE parallel-mater-command-stubs)
-        add_test(NAME command-api-unsupported-stubs COMMAND parallel-mater-command-stubs-test)
-    endif()
-endif()
-
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
    PARALLEL_MATER_BUILD_METAL_GALLERY OR
    PARALLEL_MATER_BUILD_D3D12_GALLERY OR
@@ -189,23 +170,89 @@ find_package(CUDAToolkit REQUIRED)
 set(PARALLEL_MATER_SLANG_GENERATED_DIR
     ${CMAKE_CURRENT_BINARY_DIR}/generated/slang)
 set(PARALLEL_MATER_FLUID_CUDA_SOURCE
-    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid.cu)
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid_runtime.cu)
 set(PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE
     ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_constraints_runtime.cu)
+set(PARALLEL_MATER_QUERIES_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_queries_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_runtime.cu)
+set(PARALLEL_MATER_PRIMITIVES_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_primitives_runtime.cu)
+set(PARALLEL_MATER_CLOTH_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_cloth_runtime.cu)
+set(PARALLEL_MATER_SOFT_BODY_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_soft_body_runtime.cu)
+set(PARALLEL_MATER_SOFT_BODY_CLOTH_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_soft_body_cloth_runtime.cu)
+set(PARALLEL_MATER_CLOTH_ROPE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_cloth_rope_runtime.cu)
+set(PARALLEL_MATER_SOFT_BODY_ROPE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_soft_body_rope_runtime.cu)
+set(PARALLEL_MATER_FLUID_CLOTH_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid_cloth_runtime.cu)
+set(PARALLEL_MATER_FLUID_ROPE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid_rope_runtime.cu)
+set(PARALLEL_MATER_FLUID_SMOKE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid_smoke_runtime.cu)
+set(PARALLEL_MATER_CLOTH_SMOKE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_cloth_smoke_runtime.cu)
+set(PARALLEL_MATER_SOFT_BODY_SMOKE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_soft_body_smoke_runtime.cu)
+set(PARALLEL_MATER_ROPE_SMOKE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_rope_smoke_runtime.cu)
+set(PARALLEL_MATER_FLUID_SOFT_BODY_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_fluid_soft_body_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_CLOTH_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_cloth_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_FLUID_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_fluid_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_SMOKE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_smoke_runtime.cu)
+set(PARALLEL_MATER_GEOMETRY_SOFT_BODY_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_geometry_soft_body_runtime.cu)
+set(PARALLEL_MATER_SMOKE_GRID_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_smoke_grid_runtime.cu)
+set(PARALLEL_MATER_ROPE_CUDA_SOURCE
+    ${PARALLEL_MATER_SLANG_GENERATED_DIR}/parallel_mater_rope_runtime.cu)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_ROPE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/rope.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry rope_advance
+            -target cuda -fp-mode precise -O3 -line-directive-mode none
+            -o ${PARALLEL_MATER_ROPE_CUDA_SOURCE}
+    DEPENDS src/slang/rope.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry.slang src/slang/geometry_fluid.slang
+            src/slang/fluid_soft_body.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared rope simulation kernels from Slang to CUDA"
+    VERBATIM)
 add_custom_command(
     OUTPUT ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     COMMAND ${CMAKE_COMMAND} -E make_directory
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid.slang
             -DPM_TARGET_METAL=0 -DPM_TARGET_CUDA=1
             -entry pm_fluid_cell_keys
             -entry pm_fluid_forces
             -entry pm_fluid_integrate
+            -entry fluid_reserve_contact_events
+            -entry fluid_gather_contact_events
+            -entry fluid_source_vacancies
+            -entry fluid_source_emit
+            -entry fluid_destroy_flags
+            -entry fluid_gather
+            -entry fluid_copy_initial
             -target cuda
             -fp-mode precise -O2 -line-directive-mode none
             -o ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
-    DEPENDS src/slang/fluid_shared.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    DEPENDS src/slang/fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
     COMMENT "Compiling shared fluid kernels from Slang to CUDA"
     VERBATIM)
 add_custom_command(
@@ -214,84 +261,735 @@ add_custom_command(
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_constraints.slang
-            -DPM_AVBD_RUNTIME=1
-            -entry avbdRuntimeMain -stage compute
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -DPM_GEOMETRY_CONSTRAINTS_ADAPTER=1
+            -entry prepare_avbd_kernel
+            -entry solve_avbd_kernel
             -target cuda -fp-mode precise -O2 -line-directive-mode none
             -o ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
-    DEPENDS src/slang/geometry_constraints.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    DEPENDS src/slang/geometry_constraints.slang
+            src/slang/geometry_constraints_solve.slang
+            src/slang/constraint_math.slang
+            src/slang/geometry.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
     COMMENT "Compiling shared rigid constraint solver from Slang to CUDA"
     VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_QUERIES_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/queries.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry export_fluid_particles
+            -entry export_cloth_vertices
+            -entry export_surface_positions
+            -entry export_rope_nodes
+            -entry export_soft_body_nodes
+            -entry export_smoke_particles
+            -entry query_rigid_hit_box_kernel
+            -entry query_particle_hit_box_kernel
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_QUERIES_CUDA_SOURCE}
+    DEPENDS src/slang/queries.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared query and export kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry pm_integrate_rigid_bodies
+            -entry pm_compute_rigid_world_bounds
+            -entry pm_broad_phase_rigid_pairs
+            -entry pm_generate_rigid_leaf_pairs
+            -entry pm_evaluate_rigid_leaf_pairs
+            -entry pm_reduce_rigid_leaf_manifolds
+            -entry pm_finalize_rigid_contact_manifolds
+            -entry pm_clear_rigid_inputs
+            -entry pm_capture_rigid_inputs
+            -entry pm_prepare_parallel_contact_events
+            -entry pm_load_rigid_contact_cache
+            -entry pm_save_rigid_contact_cache
+            -entry pm_gather_rigid_debug_samples
+            -entry pm_clamp_rigid_speeds
+            -entry pm_build_fixed_collision_groups
+            -target cuda -fp-mode precise -O3 -line-directive-mode none
+            -o ${PARALLEL_MATER_GEOMETRY_CUDA_SOURCE}
+    DEPENDS src/slang/geometry.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared rigid geometry kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_PRIMITIVES_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/primitives.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry pm_exclusive_scan_u32
+            -entry pm_compact_count_blocks
+            -entry pm_compact_scatter_indices
+            -entry pm_radix_histogram_u64
+            -entry pm_radix_prefix_u32
+            -entry pm_radix_scatter_u64_u32
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_PRIMITIVES_CUDA_SOURCE}
+    DEPENDS src/slang/primitives.slang
+            src/slang/primitives/scan.slang
+            src/slang/primitives/compaction.slang
+            src/slang/primitives/radix_sort.slang
+            src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared scheduling primitives from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_CLOTH_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/cloth.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry cloth_project_volume
+            -entry cloth_break_bonds
+            -entry cloth_limit_strain
+            -entry cloth_update_surface
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_CLOTH_CUDA_SOURCE}
+    DEPENDS src/slang/cloth.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared cloth kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_SOFT_BODY_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/soft_body.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry deformable_predict
+            -entry soft_body_measure_momentum
+            -entry soft_body_restore_momentum
+            -entry soft_body_project_rest_shape
+            -entry deformable_project_links
+            -entry deformable_project_links_warp
+            -entry soft_body_finalize_velocities
+            -entry soft_body_apply_contact_friction
+            -entry soft_body_damp_springs
+            -entry soft_body_damp_springs_warp
+            -entry soft_body_update_surface
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_SOFT_BODY_CUDA_SOURCE}
+    DEPENDS src/slang/soft_body.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared soft-body kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_SOFT_BODY_CLOTH_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/soft_body_cloth.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry soft_cloth_detect
+            -entry soft_cloth_apply_soft
+            -entry soft_cloth_apply_cloth
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_SOFT_BODY_CLOTH_CUDA_SOURCE}
+    DEPENDS src/slang/soft_body_cloth.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared soft-body/cloth coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_CLOTH_ROPE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/cloth_rope.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry rope_cloth_sample_anchor
+            -entry rope_cloth_apply_anchor
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_CLOTH_ROPE_CUDA_SOURCE}
+    DEPENDS src/slang/cloth_rope.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared cloth/rope coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_SOFT_BODY_ROPE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/soft_body_rope.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry rope_soft_sample_anchor
+            -entry rope_soft_scatter_anchor
+            -entry rope_soft_apply
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_SOFT_BODY_ROPE_CUDA_SOURCE}
+    DEPENDS src/slang/soft_body_rope.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared soft-body/rope coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_FLUID_CLOTH_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_cloth.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry fluid_cloth_containment_forces
+            -entry cloth_apply_fluid_forces
+            -entry fluid_project_inside_cloth
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_FLUID_CLOTH_CUDA_SOURCE}
+    DEPENDS src/slang/fluid_cloth.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid/cloth coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_FLUID_ROPE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_rope.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry fluid_rope_contacts
+            -entry fluid_rope_apply
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_FLUID_ROPE_CUDA_SOURCE}
+    DEPENDS src/slang/fluid_rope.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid/rope coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_FLUID_SMOKE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_smoke.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry fluid_smoke_drag
+            -entry fluid_smoke_grid_drag
+            -entry fluid_smoke_exchange
+            -entry fluid_clear_inactive_keep
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_FLUID_SMOKE_CUDA_SOURCE}
+    DEPENDS src/slang/fluid_smoke.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_smoke.slang src/slang/smoke_grid.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid/smoke coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_CLOTH_SMOKE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/cloth_smoke.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry smoke_cloth_wind
+            -entry smoke_cloth_contact
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_CLOTH_SMOKE_CUDA_SOURCE}
+    DEPENDS src/slang/cloth_smoke.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_smoke.slang src/slang/smoke_grid.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared cloth/smoke coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_SOFT_BODY_SMOKE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/soft_body_smoke.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry smoke_soft_body_wind
+            -entry smoke_soft_body_contact
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_SOFT_BODY_SMOKE_CUDA_SOURCE}
+    DEPENDS src/slang/soft_body_smoke.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_smoke.slang src/slang/smoke_grid.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared soft-body/smoke coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_ROPE_SMOKE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/rope_smoke.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry smoke_rope_wind
+            -entry smoke_rope_contact
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_ROPE_SMOKE_CUDA_SOURCE}
+    DEPENDS src/slang/rope_smoke.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/rope.slang src/slang/geometry_smoke.slang
+            src/slang/smoke_grid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared rope/smoke coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_FLUID_SOFT_BODY_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_soft_body.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry fluid_soft_refit
+            -entry fluid_soft_detect
+            -entry fluid_soft_solve
+            -entry fluid_soft_apply
+            -entry fluid_soft_recover
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_FLUID_SOFT_BODY_CUDA_SOURCE}
+    DEPENDS src/slang/fluid_soft_body.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid/soft-body coupling kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_CLOTH_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_cloth.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry cloth_constrain_bodies
+            -entry cloth_apply_body_corrections
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_GEOMETRY_CLOTH_CUDA_SOURCE}
+    DEPENDS src/slang/geometry_cloth.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared cloth/rigid geometry kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_FLUID_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_fluid.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry fluid_static_contacts
+            -entry fluid_body_bounds_kernel
+            -entry fluid_index_body_cells
+            -entry fluid_detect_moving_contacts
+            -entry fluid_resolve_moving_contacts
+            -entry reduce_point_body_impulses
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_GEOMETRY_FLUID_CUDA_SOURCE}
+    DEPENDS src/slang/geometry_fluid.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared fluid/rigid geometry kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_SMOKE_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_smoke.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry smoke_emit_cells
+            -entry smoke_density_pressure
+            -entry smoke_pair_forces
+            -entry smoke_compute_vorticity
+            -entry smoke_advect
+            -entry smoke_emit
+            -entry smoke_deformable_bounds
+            -entry smoke_rigid_contact
+            -entry smoke_apply_rigid_impulses
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_GEOMETRY_SMOKE_CUDA_SOURCE}
+    DEPENDS src/slang/geometry_smoke.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared smoke geometry kernels from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_GEOMETRY_SOFT_BODY_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/geometry_soft_body.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry deformable_collide
+            -entry soft_body_surface_contacts
+            -entry soft_body_apply_surface_contacts
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_GEOMETRY_SOFT_BODY_CUDA_SOURCE}
+    DEPENDS src/slang/geometry_soft_body.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang src/slang/geometry.slang
+            ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared deformable/rigid geometry kernel from Slang to CUDA"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${PARALLEL_MATER_SMOKE_GRID_CUDA_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+    COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/smoke_grid.slang
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src/slang
+            -entry smoke_grid_initialize_cells
+            -entry smoke_grid_initialize_faces
+            -entry smoke_grid_clear_obstacles
+            -entry smoke_grid_raster_rigid
+            -entry smoke_grid_raster_deformable
+            -entry smoke_grid_raster_soft
+            -entry smoke_grid_resolve_particle_fields
+            -entry smoke_grid_splat_particles
+            -entry smoke_grid_advect_face
+            -entry smoke_grid_correct_face
+            -entry smoke_grid_cell_diagnostics
+            -entry smoke_grid_subgrid_force
+            -entry smoke_grid_apply_face_forces
+            -entry smoke_grid_apply_face_boundaries
+            -entry smoke_grid_divergence
+            -entry smoke_grid_pressure_smooth
+            -entry smoke_grid_pressure_residual
+            -entry smoke_grid_restrict_residual
+            -entry smoke_grid_clear_scalar
+            -entry smoke_grid_restrict_open
+            -entry smoke_grid_mark_domain_boundaries
+            -entry smoke_grid_prolong_add
+            -entry smoke_grid_compare_residual
+            -entry smoke_grid_reset_residual
+            -entry smoke_grid_project_face
+            -entry smoke_grid_trace
+            -entry smoke_grid_soft_body_force
+            -entry smoke_grid_cloth_force
+            -entry smoke_grid_apply_cloth_force
+            -entry smoke_grid_rigid_force
+            -target cuda -fp-mode precise -O2 -line-directive-mode none
+            -o ${PARALLEL_MATER_SMOKE_GRID_CUDA_SOURCE}
+    DEPENDS src/slang/smoke_grid.slang src/slang/types.slang
+            src/slang/math.slang src/slang/device_intrinsics.slang
+            src/slang/geometry_fluid.slang ${PARALLEL_MATER_SLANGC_EXECUTABLE}
+    COMMENT "Compiling shared Eulerian smoke-grid kernels from Slang to CUDA"
+    VERBATIM)
 add_library(
-    parallel-mater STATIC
+    parallel-mater-driver-slang-cuda SHARED
+    src/api/instance.cpp
+    src/api/device.cpp
+    src/api/memory.cpp
+    src/api/resources.cpp
+    src/api/domains.cpp
+    src/api/pipeline.cpp
+    src/api/commands.cpp
+    src/api/synchronization.cpp
+    src/api/queries.cpp
+    src/api/interop.cpp
+    src/driver/slang/entry.cpp
+    src/device/cuda_device.cpp
+    src/simulation/exports.cu
+    src/simulation/geometry_dispatch.cu
+    src/simulation/geometry_constraints_dispatch.cu
+    src/simulation/cloth_dispatch.cu
+    src/simulation/soft_body_dispatch.cu
+    src/simulation/soft_body_cloth_dispatch.cu
+    src/simulation/cloth_rope_dispatch.cu
+    src/simulation/soft_body_rope_dispatch.cu
+    src/simulation/rope_dispatch.cu
+    src/simulation/fluid_dispatch.cu
+    src/simulation/fluid_cloth_dispatch.cu
+    src/simulation/fluid_rope_dispatch.cu
+    src/simulation/fluid_smoke_dispatch.cu
+    src/simulation/cloth_smoke_dispatch.cu
+    src/simulation/soft_body_smoke_dispatch.cu
+    src/simulation/rope_smoke_dispatch.cu
+    src/simulation/fluid_soft_body_dispatch.cu
+    src/simulation/geometry_cloth_dispatch.cu
+    src/simulation/geometry_fluid_dispatch.cu
+    src/simulation/geometry_smoke_dispatch.cu
+    src/simulation/geometry_soft_body_dispatch.cu
+    src/simulation/smoke_grid_dispatch.cu
+    src/simulation/memory_arena.cpp
+    src/simulation/primitives.cu
     src/world.cu
-    src/geometry_constraints.cuh
-    src/geometry_fluid.cuh
-    src/geometry_soft_body.cuh
-    src/geometry_cloth.cuh
-    src/geometry_rope.cuh
-    src/geometry_smoke.cuh
-    src/fluid.cuh
-    src/fluid_soft_body.cuh
-    src/fluid_cloth.cuh
-    src/fluid_rope.cuh
-    src/fluid_smoke.cuh
-    src/soft_body.cuh
-    src/soft_body_cloth.cuh
-    src/soft_body_rope.cuh
-    src/soft_body_smoke.cuh
-    src/cloth.cuh
-    src/cloth_rope.cuh
-    src/cloth_smoke.cuh
-    src/rope_smoke.cuh
-    src/smoke_grid.cuh
+    src/simulation/geometry_storage.hpp
+    src/simulation/rope_storage.hpp
+    src/simulation/fluid_smoke_storage.hpp
+    src/simulation/smoke_storage.hpp
     src/fluid_geometry.cpp
     src/fluid_source.cpp
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
+find_package(Vulkan QUIET)
+if(Vulkan_FOUND)
+    add_library(parallel-mater-vulkan-executor STATIC
+        src/device/vulkan_executor.cpp)
+    set_target_properties(parallel-mater-vulkan-executor PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES)
+    target_include_directories(parallel-mater-vulkan-executor
+        PUBLIC src include ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(parallel-mater-vulkan-executor PUBLIC Vulkan::Vulkan)
+    target_compile_options(parallel-mater-vulkan-executor
+        PRIVATE -Wall -Wextra -Wpedantic)
+    target_sources(parallel-mater-driver-slang-cuda PRIVATE
+        src/api/interop_vulkan.cpp)
+    target_include_directories(parallel-mater-driver-slang-cuda PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
+        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+    target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
+        parallel-mater-vulkan-executor)
+endif()
 set_source_files_properties(
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
+    ${PARALLEL_MATER_QUERIES_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_CUDA_SOURCE}
+    ${PARALLEL_MATER_PRIMITIVES_CUDA_SOURCE}
+    ${PARALLEL_MATER_CLOTH_CUDA_SOURCE}
+    ${PARALLEL_MATER_SOFT_BODY_CUDA_SOURCE}
+    ${PARALLEL_MATER_SOFT_BODY_CLOTH_CUDA_SOURCE}
+    ${PARALLEL_MATER_CLOTH_ROPE_CUDA_SOURCE}
+    ${PARALLEL_MATER_SOFT_BODY_ROPE_CUDA_SOURCE}
+    ${PARALLEL_MATER_FLUID_CLOTH_CUDA_SOURCE}
+    ${PARALLEL_MATER_FLUID_ROPE_CUDA_SOURCE}
+    ${PARALLEL_MATER_FLUID_SMOKE_CUDA_SOURCE}
+    ${PARALLEL_MATER_CLOTH_SMOKE_CUDA_SOURCE}
+    ${PARALLEL_MATER_SOFT_BODY_SMOKE_CUDA_SOURCE}
+    ${PARALLEL_MATER_ROPE_SMOKE_CUDA_SOURCE}
+    ${PARALLEL_MATER_FLUID_SOFT_BODY_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_CLOTH_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_FLUID_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_SMOKE_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_SOFT_BODY_CUDA_SOURCE}
+    ${PARALLEL_MATER_SMOKE_GRID_CUDA_SOURCE}
+    ${PARALLEL_MATER_ROPE_CUDA_SOURCE}
     PROPERTIES GENERATED TRUE HEADER_FILE_ONLY TRUE)
-target_sources(parallel-mater PRIVATE
+target_sources(parallel-mater-driver-slang-cuda PRIVATE
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
-    ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE})
-add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
-add_library(ParallelMater::api ALIAS parallel-mater)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
+    ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
+    ${PARALLEL_MATER_QUERIES_CUDA_SOURCE}
+    ${PARALLEL_MATER_GEOMETRY_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_PRIMITIVES_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_CLOTH_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_SOFT_BODY_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_SOFT_BODY_CLOTH_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_CLOTH_ROPE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_SOFT_BODY_ROPE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_FLUID_CLOTH_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_FLUID_ROPE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_FLUID_SMOKE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_CLOTH_SMOKE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_SOFT_BODY_SMOKE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_ROPE_SMOKE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_FLUID_SOFT_BODY_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_GEOMETRY_CLOTH_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_GEOMETRY_FLUID_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_GEOMETRY_SMOKE_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_GEOMETRY_SOFT_BODY_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_SMOKE_GRID_CUDA_SOURCE})
+target_sources(parallel-mater-driver-slang-cuda PRIVATE ${PARALLEL_MATER_ROPE_CUDA_SOURCE})
+
+list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-cuda)
 set_target_properties(
-    parallel-mater
+    parallel-mater-driver-slang-cuda
     PROPERTIES
         CUDA_STANDARD 17
         CUDA_STANDARD_REQUIRED YES
         CUDA_RUNTIME_LIBRARY Shared
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
-        EXPORT_NAME parallel_mater
+        OUTPUT_NAME parallel_mater_driver_slang_cuda
+        EXPORT_NAME slang_cuda_driver
+        CXX_VISIBILITY_PRESET hidden
+        CUDA_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES
         POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET parallel-mater PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_20)
+set_property(TARGET parallel-mater-driver-slang-cuda PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_20)
 target_include_directories(
-    parallel-mater
+    parallel-mater-driver-slang-cuda
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE ${PARALLEL_MATER_SLANG_GENERATED_DIR})
-target_link_libraries(parallel-mater PUBLIC CUDA::cudart)
+    PRIVATE
+        ${PARALLEL_MATER_SLANG_GENERATED_DIR}
+        ${PARALLEL_MATER_API_GENERATED_DIR})
+target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
+    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
+target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE CUDA::cudart)
 if(MSVC)
     target_compile_options(
-        parallel-mater
+        parallel-mater-driver-slang-cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:/W4>
             $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/W4>)
 else()
     target_compile_options(
-        parallel-mater
+        parallel-mater-driver-slang-cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>
             $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall,-Wextra>)
 endif()
 
+add_library(parallel-mater SHARED
+    src/loader/driver.cpp
+    src/loader/entry.cpp)
+add_library(parallel-mater-layer-validation SHARED
+    src/layers/validation.cpp)
+set_target_properties(parallel-mater-layer-validation PROPERTIES
+    OUTPUT_NAME parallel_mater_layer_validation
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED YES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
+target_include_directories(parallel-mater-layer-validation PRIVATE include)
+list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-layer-validation)
+
+add_dependencies(parallel-mater
+    parallel-mater-driver-slang-cuda
+    parallel-mater-layer-validation)
+add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
+add_library(ParallelMater::api ALIAS parallel-mater)
+add_library(ParallelMater::slang_cuda_driver ALIAS
+            parallel-mater-driver-slang-cuda)
+list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
+set_target_properties(parallel-mater PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED YES
+    EXPORT_NAME parallel_mater
+    POSITION_INDEPENDENT_CODE ON)
+target_include_directories(parallel-mater
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE ${PARALLEL_MATER_API_GENERATED_DIR})
+target_compile_definitions(parallel-mater PRIVATE
+    PARALLEL_MATER_SYSTEM_DRIVER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/drivers.d"
+    PARALLEL_MATER_SYSTEM_LAYER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/layers.d")
+if(Vulkan_FOUND)
+    target_include_directories(parallel-mater PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_compile_definitions(parallel-mater PRIVATE
+        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+endif()
+target_link_libraries(parallel-mater PRIVATE ${CMAKE_DL_LIBS})
+if(MSVC)
+    target_compile_options(parallel-mater PRIVATE /W4)
+else()
+    target_compile_options(parallel-mater PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set(PARALLEL_MATER_BUILD_MANIFEST_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/manifests")
+file(MAKE_DIRECTORY "${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+file(GENERATE
+    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+file(GENERATE
+    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+
+if(BUILD_TESTING)
+    add_library(parallel-mater-mock-driver SHARED tests/mock_driver.cpp)
+    set_target_properties(parallel-mater-mock-driver PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES)
+    target_include_directories(parallel-mater-mock-driver PRIVATE include)
+    set(PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR
+        "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/multi")
+    file(MAKE_DIRECTORY "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}")
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}/slang-cuda.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}/mock.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    add_executable(parallel-mater-loader-multidriver-tests
+        tests/loader_multidriver_tests.cpp)
+    target_compile_features(parallel-mater-loader-multidriver-tests
+        PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-loader-multidriver-tests
+        PRIVATE ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-loader-multidriver-tests
+        parallel-mater-mock-driver)
+    add_test(NAME parallel-mater-loader-multidriver-tests
+        COMMAND parallel-mater-loader-multidriver-tests)
+    set_tests_properties(parallel-mater-loader-multidriver-tests PROPERTIES
+        LABELS "api;loader;driver"
+        ENVIRONMENT
+            "PM_DRIVER_PATH=${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}")
+
+    if(Vulkan_FOUND)
+        add_executable(parallel-mater-vulkan-executor-tests
+            tests/vulkan_executor_tests.cpp)
+        target_compile_features(parallel-mater-vulkan-executor-tests
+            PRIVATE cxx_std_20)
+        target_link_libraries(parallel-mater-vulkan-executor-tests
+            PRIVATE parallel-mater-vulkan-executor)
+        add_test(NAME parallel-mater-vulkan-executor-tests
+            COMMAND parallel-mater-vulkan-executor-tests)
+        set_tests_properties(parallel-mater-vulkan-executor-tests PROPERTIES
+            LABELS "device;vulkan" SKIP_RETURN_CODE 77)
+    endif()
+
+    add_executable(parallel-mater-driver-abi-tests tests/driver_abi_tests.cpp)
+    target_include_directories(parallel-mater-driver-abi-tests PRIVATE include)
+    target_compile_features(parallel-mater-driver-abi-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-driver-abi-tests PRIVATE ${CMAKE_DL_LIBS})
+    add_test(NAME parallel-mater-driver-abi-tests
+        COMMAND parallel-mater-driver-abi-tests
+            $<TARGET_FILE:parallel-mater-driver-slang-cuda>
+            $<TARGET_FILE:parallel-mater>)
+    set_tests_properties(parallel-mater-driver-abi-tests PROPERTIES
+        LABELS "api;driver")
+
+    add_executable(parallel-mater-command-api-tests tests/command_api_tests.cpp)
+    target_link_libraries(parallel-mater-command-api-tests
+                          PRIVATE ParallelMater::parallel_mater)
+    target_compile_features(parallel-mater-command-api-tests PRIVATE cxx_std_20)
+    add_test(NAME parallel-mater-command-api-tests
+             COMMAND parallel-mater-command-api-tests)
+    set_tests_properties(parallel-mater-command-api-tests
+        PROPERTIES
+            LABELS "api;cuda;loader"
+            SKIP_RETURN_CODE 77
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+endif()
+
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    # CPU-only asset preparation is shared by applications and drivers.  Keep it
+    # outside every device driver: it has no allocation, dispatch, or scheduling
+    # responsibilities.
+    add_library(parallel-mater-asset-preparation STATIC
+                src/fluid_geometry.cpp
+                src/soft_body_geometry.cpp
+                src/rope_geometry.cpp)
+    target_compile_features(parallel-mater-asset-preparation PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-asset-preparation PUBLIC include)
+    target_link_libraries(parallel-mater-asset-preparation PRIVATE CUDA::cudart)
+    target_compile_options(parallel-mater-asset-preparation
+                           PRIVATE -Wall -Wextra -Wpedantic)
+
     add_library(parallel-mater-gallery-scene STATIC
+                examples/gallery/scene_builder.cpp
+                examples/gallery/render/render_scene.cpp
                 examples/support/scene.cpp
                 examples/support/brick_scene.cpp
                 examples/support/device_profiles.cpp
@@ -300,10 +998,14 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
         parallel-mater-gallery-scene
-        PUBLIC examples/support/include
+        PUBLIC examples/support/include examples/gallery
         PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
     target_link_libraries(
-        parallel-mater-gallery-scene PUBLIC ParallelMater::parallel_mater)
+        parallel-mater-gallery-scene
+        PUBLIC ParallelMater::parallel_mater
+        PRIVATE parallel-mater-asset-preparation)
+    target_compile_definitions(parallel-mater-gallery-scene
+        PRIVATE PARALLEL_MATER_COMMAND_GALLERY_ONLY=1)
     target_compile_options(
         parallel-mater-gallery-scene PRIVATE -Wall -Wextra -Wpedantic)
 
@@ -316,17 +1018,19 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
         set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
     endif()
-    add_executable(parallel-mater-conformance
-                   conformance/v1/src/cuda_runner.cpp)
-    target_link_libraries(parallel-mater-conformance PRIVATE
-        parallel-mater-conformance-registry
-        parallel-mater-gallery-scene
-        CUDA::cudart)
-    target_compile_definitions(parallel-mater-conformance PRIVATE
-        PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-        PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-    target_compile_options(parallel-mater-conformance
-                           PRIVATE -Wall -Wextra -Wpedantic)
+    if(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
+        add_executable(parallel-mater-conformance
+                       conformance/v1/src/cuda_runner.cpp)
+        target_link_libraries(parallel-mater-conformance PRIVATE
+            parallel-mater-conformance-registry
+            parallel-mater-gallery-scene
+            CUDA::cudart)
+        target_compile_definitions(parallel-mater-conformance PRIVATE
+            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+        target_compile_options(parallel-mater-conformance
+                               PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-rigid-scene-benchmark
@@ -432,6 +1136,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE CUDA::cuda_driver CUDA::cudart ${CMAKE_DL_LIBS})
     target_compile_options(
         parallel-mater-gallery-renderer PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_definitions(parallel-mater-gallery-renderer
+        PRIVATE PARALLEL_MATER_COMMAND_GALLERY_ONLY=1)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
@@ -449,6 +1155,14 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                                PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
+    add_library(parallel-mater-gallery-application STATIC
+                examples/gallery/application.cpp)
+    target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
+    target_link_libraries(
+        parallel-mater-gallery-application
+        PUBLIC parallel-mater-gallery-renderer
+        PRIVATE glfw OpenGL::GL)
+
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
@@ -460,12 +1174,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                    "${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}" COPYONLY)
     target_link_libraries(
         parallel-mater-gallery
-        PRIVATE
-            parallel-mater-gallery-renderer
-            glfw
-            OpenGL::GL)
+        PRIVATE parallel-mater-gallery-application)
     target_compile_definitions(
-        parallel-mater-gallery
+        parallel-mater-gallery-application
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
             PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}"
@@ -508,7 +1219,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         VERBATIM)
 endif()
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
     add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
     target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
@@ -577,15 +1288,6 @@ if(BUILD_TESTING)
     if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         add_test(NAME parallel-mater-conformance-inputs
                  COMMAND parallel-mater-conformance --check-inputs)
-        add_test(NAME parallel-mater-conformance-cuda-goldens
-            COMMAND ${Python3_EXECUTABLE}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/reproduce.py
-                    --runner $<TARGET_FILE:parallel-mater-conformance>
-                    --comparator ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/compare.py
-                    --cases ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases
-                    --golden ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/golden/cuda)
-        set_tests_properties(parallel-mater-conformance-cuda-goldens
-            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900 RUN_SERIAL TRUE)
 
         find_program(PARALLEL_MATER_BLENDER_EXECUTABLE NAMES blender)
         if(PARALLEL_MATER_BLENDER_EXECUTABLE)
@@ -1197,7 +1899,8 @@ if(BUILD_TESTING)
     endif()
 endif()
 
-if(BUILD_TESTING AND NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS AND
+   NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     add_library(parallel-mater-cuda-conformance-scene STATIC
         examples/support/scene.cpp
         examples/support/rope_render.cpp
@@ -1548,7 +2251,7 @@ if(PARALLEL_MATER_BUILD_METAL)
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 ${PARALLEL_MATER_METAL_GENERATED_DIR}
         COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid_shared.slang
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid.slang
                 -DPM_TARGET_METAL=1 -DPM_TARGET_CUDA=0
                 -entry pm_fluid_cell_keys
                 -entry pm_fluid_forces
@@ -1591,7 +2294,7 @@ if(PARALLEL_MATER_BUILD_METAL)
                 ${PARALLEL_MATER_METALLIB_INCLUDE}
         DEPENDS src/metal/kernels.metal
                 src/metal/geometry_constraints.metal
-                src/slang/fluid_shared.slang
+                src/slang/fluid.slang
                 src/slang/geometry_constraints.slang
                 include/parallel_mater/solver/geometry_constraints.hpp
                 include/parallel_mater/solver/contact_friction.hpp
@@ -1955,8 +2658,8 @@ if(PARALLEL_MATER_BUILD_METAL)
                 PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
                 PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
                 PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
-                PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
-                PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
+                PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb"
+                PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
                 PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
                 PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
                 PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
@@ -2045,23 +2748,20 @@ endif()
 
 if(BUILD_TESTING)
     add_subdirectory(tests/solver)
-    # Compile both registry/header contracts on Linux too; the native Metal
-    # renderer and GPU kernels still require validation on an Apple host.
-    foreach(registry_backend IN ITEMS cuda metal)
-        if(registry_backend STREQUAL "cuda" AND NOT PARALLEL_MATER_BUILD_CUDA)
-            continue()
-        endif()
-        set(registry_target parallel-mater-${registry_backend}-gallery-registry-tests)
-        add_executable(${registry_target} tests/gallery/gallery_registry_contract_tests.cpp)
-        target_compile_features(${registry_target} PRIVATE cxx_std_20)
-        target_include_directories(${registry_target} PRIVATE include examples/support/include)
-        if(registry_backend STREQUAL "metal")
-            target_compile_definitions(${registry_target} PRIVATE PARALLEL_MATER_GALLERY_METAL=1)
-        else()
-            target_link_libraries(${registry_target} PRIVATE CUDA::cudart)
-        endif()
-        add_test(NAME ${registry_target} COMMAND ${registry_target})
-    endforeach()
+    add_executable(parallel-mater-gallery-registry-tests
+        tests/gallery/gallery_registry_contract_tests.cpp)
+    target_compile_features(parallel-mater-gallery-registry-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-gallery-registry-tests PRIVATE
+        include examples/support/include)
+    add_test(NAME parallel-mater-gallery-registry-tests
+        COMMAND parallel-mater-gallery-registry-tests)
+    add_executable(parallel-mater-gallery-input-tests
+        tests/gallery/gallery_input_tests.cpp)
+    target_compile_features(parallel-mater-gallery-input-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-gallery-input-tests PRIVATE
+        include examples/support/include)
+    add_test(NAME parallel-mater-gallery-input-tests
+        COMMAND parallel-mater-gallery-input-tests)
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
@@ -2089,7 +2789,6 @@ if(NOT PARALLEL_MATER_INSTALL_TARGETS)
     message(FATAL_ERROR "At least one ParallelMater backend must be enabled")
 endif()
 
-set(PARALLEL_MATER_PACKAGE_NEEDS_CUDA ${PARALLEL_MATER_BUILD_CUDA})
 configure_package_config_file(
     cmake/ParallelMaterConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake
@@ -2099,12 +2798,31 @@ write_basic_package_version_file(
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion)
 
+set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+    "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cuda${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set(PARALLEL_MATER_INSTALLED_LAYER_PATH
+    "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_layer_validation${CMAKE_SHARED_LIBRARY_SUFFIX}")
+configure_file(config/driver-manifest.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
+configure_file(config/validation-layer.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json @ONLY)
+
 install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
     EXPORT ParallelMaterTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(
+    FILES
+        include/parallel_mater/parallel_mater.h
+        include/parallel_mater/interop_vulkan.h
+        include/parallel_mater/pm_driver.h
+        include/parallel_mater/pm_layer.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
 install(FILES tools/blender/export_parallel_mater_scene.py
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender)
 install(
