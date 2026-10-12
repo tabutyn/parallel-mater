@@ -5,6 +5,11 @@ instance, enumerate and create a device, bind memory, create resources and a
 physics pipeline, record commands, submit them to a queue, synchronize, and
 read timing or memory queries through `parallel_mater.h`.
 
+Applications link the `parallel-mater` loader. The loader discovers installable
+Parallel Mater drivers, aggregates their physical devices, loads optional
+layers, and dispatches commands to the driver that owns each device. It contains
+no GPU API, allocator, shader compiler, simulation schedule, or physics code.
+
 One set of Slang shaders implements rigid bodies, particle fluid, cloth, rope,
 soft bodies, smoke, and their couplings. CUDA is the first runtime device
 adapter; it owns allocation, transfer, dispatch, synchronization, and native
@@ -52,10 +57,13 @@ and [API specification](docs/reference/parallel-mater-specification.pdf)
 describe the Vulkan-style API: explicit devices, allocation, physics pipelines,
 command buffers and synchronization. The reference lists declarations;
 its purple section markers point to explanations and rules in the specification.
-The `parallel-mater` library exposes the public C command API in
-`parallel_mater/parallel_mater.h`. Its CUDA runtime implements device, memory,
-command, synchronization, query, native-buffer, and physics services. Features
-are advertised only when their shared Slang schedule is present.
+The `parallel-mater` loader exposes the public C command API in
+`parallel_mater/parallel_mater.h`. The first installable driver,
+`parallel_mater_driver_slang_cuda`, implements device, memory, command,
+synchronization, query, native-buffer, and physics services. Driver discovery,
+the private ABI, manifests, and vendor requirements are documented in the
+[driver SDK](docs/DRIVER_SDK.md). Features are advertised only when their
+shared Slang schedule is present.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -82,14 +90,18 @@ checksum-pinned official package. Set
 NVCC compiles Slang's generated CUDA source; no Slang runtime is shipped. See
 the [Slang toolchain and source layout](docs/SLANG.md).
 
-### Target support
+### Target and driver support
 
-The CUDA device adapter is the first implementation of the command runtime.
-Metal, DirectX 12, Vulkan, and WebGPU physics targets are unavailable until
-they implement and independently qualify the same Slang schedule. CMake rejects
-the retired backend-specific physics builds instead of selecting them as a
-fallback. Native API names remain in interoperability enums because applications
-may query support and receive `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
+The Slang/CUDA driver is the first qualified implementation. All shared Slang
+modules are also compiled to Vulkan SPIR-V. A native Vulkan execution service
+can create pipelines, record dispatches and barriers, and submit
+timeline-synchronized command buffers; Vulkan physics remains unadvertised
+until its complete shared schedule passes the same conformance and gallery
+gates. Metal, DirectX 12, and WebGPU execution are likewise unavailable until
+independently qualified. CMake rejects retired backend-specific physics builds
+instead of selecting them as a fallback. Native API names remain in
+interoperability enums because applications may query support and receive
+`PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
 
 ## Blender and OptiX gallery
 

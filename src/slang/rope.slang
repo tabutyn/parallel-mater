@@ -126,12 +126,12 @@ void rope_solve_tridiagonal(uint edges)
 void rope_project_stretch(RopeData rope, float dt, int first, int last,
     BodyParameters* parameters, RigidBodyState* states)
 {
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     uint edges = rope.count - 1u;
     if (lane == 0u) ropeMaximum = 0.0f;
     float alpha = max(rope.options.stretch_compliance / (dt * dt),
         1.0e-5f * float(rope.count) / rope.options.mass);
-    for (uint edge = lane; edge < edges; edge += cudaBlockDim().x)
+    for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
         rope.directions[edge] = normalized_or(subtract(
             rope.positions[edge + 1u], rope.positions[edge]),
             {1.0f, 0.0f, 0.0f});
@@ -139,7 +139,7 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
     for (uint activePass = 0u; activePass < 4u; ++activePass)
     {
         if (lane == 0u) ropeReleased = 0u;
-        for (uint edge = lane; edge < edges; edge += cudaBlockDim().x)
+        for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
         {
             ropeRhs[edge] = -(vector_length(subtract(
                 rope.positions[edge + 1u], rope.positions[edge])) -
@@ -157,7 +157,7 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
         pmGroupBarrier();
         if (lane == 0u) rope_solve_tridiagonal(edges);
         pmGroupBarrier();
-        for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+        for (uint node = lane; node < rope.count; node += pmGroupSize().x)
         {
             Vec3 impulse = {};
             if (node != 0u) impulse = add(impulse,
@@ -187,7 +187,7 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
         pmGroupBarrier();
         if (unchanged) break;
     }
-    for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+    for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
         Vec3 impulse = rope.scratch[node];
         int body = rope_anchor_body(rope, node, first, last);
@@ -206,9 +206,9 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
     pmGroupBarrier();
     float scale = min(1.0f,
         rope.options.radius / max(ropeMaximum, 1.0e-10f));
-    for (uint edge = lane; edge < edges; edge += cudaBlockDim().x)
+    for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
         rope.lambda[edge] += scale * ropeRhs[edge];
-    for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+    for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
         Vec3 impulse = multiply(rope.scratch[node], scale);
         rope.constraint_forces[node] = add(rope.constraint_forces[node],
@@ -1010,11 +1010,11 @@ void rope_soft_contact(RopeData rope, RopeSoftTarget target, uint index,
 void rope_project_velocities(RopeData rope, float dt, int first, int last,
     BodyParameters* parameters, RigidBodyState* states)
 {
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     uint edges = rope.count - 1u;
     float alpha = max(rope.options.stretch_compliance / (dt * dt),
         1.0e-5f * float(rope.count) / rope.options.mass);
-    for (uint edge = lane; edge < edges; edge += cudaBlockDim().x)
+    for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
     {
         rope.directions[edge] = normalized_or(subtract(
             rope.positions[edge + 1u], rope.positions[edge]),
@@ -1023,7 +1023,7 @@ void rope_project_velocities(RopeData rope, float dt, int first, int last,
             rope.velocities[edge + 1u], rope.velocities[edge]));
     }
     pmGroupBarrier();
-    for (uint edge = lane; edge < edges; edge += cudaBlockDim().x)
+    for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
     {
         ropeDiagonal[edge] = rope_contact_weight(rope, edge,
             rope.directions[edge], first, last, parameters, states) +
@@ -1037,7 +1037,7 @@ void rope_project_velocities(RopeData rope, float dt, int first, int last,
     pmGroupBarrier();
     if (lane == 0u) rope_solve_tridiagonal(edges);
     pmGroupBarrier();
-    for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+    for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
         Vec3 impulse = {};
         if (node != 0u)
@@ -1097,13 +1097,13 @@ void rope_advance(
     uniform bool first_substep, uniform RopeSoftTarget soft_a,
     uniform RopeSoftTarget soft_b)
 {
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)
         rope_sync_anchors(rope, first, last,
             old_states != nullptr ? old_states : states);
     pmGroupBarrier();
-    for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+    for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
         rope.previous[node] = rope.positions[node];
         rope.normals[node] = {};
@@ -1138,7 +1138,7 @@ void rope_advance(
         for (uint phase = 0u; phase < 3u; ++phase)
         {
             for (uint body = lane; body < body_count;
-                 body += cudaBlockDim().x)
+                 body += pmGroupSize().x)
             {
                 rope.body_translation[body] = {};
                 rope.body_rotation[body] = {};
@@ -1147,7 +1147,7 @@ void rope_advance(
             if (phase == 0u)
             {
                 for (uint node = lane; node < rope.count;
-                     node += cudaBlockDim().x)
+                     node += pmGroupSize().x)
                 {
                     rope_contact(rope, node, false, dt, first, last,
                         parameters, states, old_states, meshes, body_count);
@@ -1161,7 +1161,7 @@ void rope_advance(
             {
                 for (uint node = 2u * lane + phase - 1u;
                      node + 1u < rope.count;
-                     node += 2u * cudaBlockDim().x)
+                     node += 2u * pmGroupSize().x)
                 {
                     rope_contact(rope, node, true, dt, first, last,
                         parameters, states, old_states, meshes, body_count);
@@ -1184,7 +1184,7 @@ void rope_advance(
         if (rope.options.self_collision)
         {
             for (uint node = lane; node < rope.count;
-                 node += cudaBlockDim().x)
+                 node += pmGroupSize().x)
             {
                 Vec3 correction = {};
                 uint hits = 0u;
@@ -1212,20 +1212,20 @@ void rope_advance(
             }
             pmGroupBarrier();
             for (uint node = lane; node < rope.count;
-                 node += cudaBlockDim().x)
+                 node += pmGroupSize().x)
                 rope.positions[node] = add(
                     rope.positions[node], rope.scratch[node]);
             pmGroupBarrier();
         }
         float strain = 0.0f;
         for (uint edge = lane; edge + 1u < rope.count;
-             edge += cudaBlockDim().x)
+             edge += pmGroupSize().x)
             strain = max(strain, abs(vector_length(subtract(
                 rope.positions[edge + 1u], rope.positions[edge])) /
                 rope.rest[edge] - 1.0f));
         ropeStrain[lane] = strain;
         pmGroupBarrier();
-        for (uint stride = cudaBlockDim().x / 2u; stride != 0u;
+        for (uint stride = pmGroupSize().x / 2u; stride != 0u;
              stride /= 2u)
         {
             if (lane < stride)
@@ -1242,7 +1242,7 @@ void rope_advance(
     }
     if (ropeConverged == 0u)
     {
-        for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+        for (uint node = lane; node < rope.count; node += pmGroupSize().x)
         {
             rope.normals[node] = {};
             rope.normals2[node] = {};
@@ -1251,7 +1251,7 @@ void rope_advance(
         for (uint pass = 0u; pass < 8u; ++pass)
             rope_project_stretch(rope, dt, first, last, parameters, states);
     }
-    for (uint node = lane; node < rope.count; node += cudaBlockDim().x)
+    for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
         int body = rope_anchor_body(rope, node, first, last);
         if (rope_soft_anchor(rope, node))

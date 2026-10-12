@@ -321,7 +321,7 @@ void smoke_deformable_bounds(
     uniform Vec3* surface, uniform uint count,
     uniform Vec3* minimum, uniform Vec3* maximum)
 {
-    if (cudaBlockIdx().x != 0u || cudaThreadIdx().x != 0u) return;
+    if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     Vec3 low = surface[0];
     Vec3 high = surface[0];
     for (uint index = 1u; index < count; ++index)
@@ -481,12 +481,12 @@ void smoke_apply_rigid_impulses(
     uniform uint body, uniform BodyParameters* parameters,
     uniform RigidBodyState* states)
 {
-    if (cudaBlockIdx().x != 0u ||
+    if (pmBlockIndex().x != 0u ||
         parameters[body].motion != MotionType.dynamic) return;
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {}, localAngular = {};
     for (uint particle = lane; particle < count;
-         particle += cudaBlockDim().x)
+         particle += pmGroupSize().x)
     {
         FluidBodyImpulse item = impulses[particle];
         if (item.body != body) continue;
@@ -496,7 +496,7 @@ void smoke_apply_rigid_impulses(
     smoke_impulse_linear[lane] = localLinear;
     smoke_impulse_angular[lane] = localAngular;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (lane < stride)
         {

@@ -3,29 +3,99 @@
 
 import types;
 
-uint pmThreadIndex()
+#ifdef PM_TARGET_VULKAN
+public in uint3 pmVulkanGroupId : SV_GroupID;
+public in uint3 pmVulkanGroupThreadId : SV_GroupThreadID;
+public in uint3 pmVulkanDispatchThreadId : SV_DispatchThreadID;
+uniform uint3 pmDispatchGroupCount;
+uniform uint pmDispatchGroupSizeX;
+
+public uint3 pmBlockIndex() { return pmVulkanGroupId; }
+public uint3 pmGroupThreadIndex() { return pmVulkanGroupThreadId; }
+public uint3 pmGroupSize() { return uint3(pmDispatchGroupSizeX, 1u, 1u); }
+
+public uint pmAtomicAdd(uint* value, uint addend)
 {
-    return cudaBlockIdx().x * cudaBlockDim().x + cudaThreadIdx().x;
+    uint original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public uint64_t pmAtomicAdd(uint64_t* value, uint64_t addend)
+{
+    uint64_t original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public float pmAtomicAdd(float* value, float addend)
+{
+    float original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public uint pmAtomicMax(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedMax(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicMin(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedMin(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicOr(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedOr(*value, candidate, original);
+    return original;
+}
+public uint64_t pmAtomicOr(uint64_t* value, uint64_t candidate)
+{
+    uint64_t original;
+    InterlockedOr(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicExchange(uint* value, uint replacement)
+{
+    uint original;
+    InterlockedExchange(*value, replacement, original);
+    return original;
+}
+public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
+public uint3 pmGridDim() { return pmDispatchGroupCount; }
+
+// Vulkan has no in-dispatch grid barrier. The Vulkan executor splits logical
+// schedules at each grid dependency; this remains a group barrier in a pass.
+public void pmGridBarrier() { DeviceMemoryBarrierWithGroupSync(); }
+#else
+public uint3 pmBlockIndex() { return cudaBlockIdx(); }
+public uint3 pmGroupThreadIndex() { return cudaThreadIdx(); }
+public uint3 pmGroupSize() { return cudaBlockDim(); }
+
+public uint pmThreadIndex()
+{
+    return pmBlockIndex().x * pmGroupSize().x + pmGroupThreadIndex().x;
 }
 
 __target_intrinsic(cuda, "make_uint3(gridDim.x, gridDim.y, gridDim.z)")
-uint3 pmGridDim();
+public uint3 pmGridDim();
 
-__target_intrinsic(cuda, "atomicAdd") uint pmAtomicAdd(uint* value, uint addend);
-__target_intrinsic(cuda, "atomicAdd") uint64_t pmAtomicAdd(
+__target_intrinsic(cuda, "atomicAdd") public uint pmAtomicAdd(uint* value, uint addend);
+__target_intrinsic(cuda, "atomicAdd") public uint64_t pmAtomicAdd(
     uint64_t* value, uint64_t addend);
-__target_intrinsic(cuda, "atomicAdd") float pmAtomicAdd(float* value, float addend);
-__target_intrinsic(cuda, "atomicMax") uint pmAtomicMax(uint* value, uint candidate);
-__target_intrinsic(cuda, "atomicMin") uint pmAtomicMin(uint* value, uint candidate);
-__target_intrinsic(cuda, "atomicOr") uint pmAtomicOr(uint* value, uint candidate);
-__target_intrinsic(cuda, "atomicOr") uint64_t pmAtomicOr(
+__target_intrinsic(cuda, "atomicAdd") public float pmAtomicAdd(float* value, float addend);
+__target_intrinsic(cuda, "atomicMax") public uint pmAtomicMax(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicMin") public uint pmAtomicMin(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicOr") public uint pmAtomicOr(uint* value, uint candidate);
+__target_intrinsic(cuda, "atomicOr") public uint64_t pmAtomicOr(
     uint64_t* value, uint64_t candidate);
-__target_intrinsic(cuda, "atomicExch") uint pmAtomicExchange(uint* value, uint replacement);
-__target_intrinsic(cuda, "__syncwarp") void pmSyncWarp(uint mask);
+__target_intrinsic(cuda, "atomicExch") public uint pmAtomicExchange(uint* value, uint replacement);
+__target_intrinsic(cuda, "__syncwarp") public void pmSyncWarp(uint mask);
 __target_intrinsic(cuda, "pm_cuda_grid_barrier()")
-void pmNativeGridBarrier();
+public void pmNativeGridBarrier();
 
-void pmGridBarrier()
+public void pmGridBarrier()
 {
     __requirePrelude("struct PmCudaGridWorkspace { unsigned int size; unsigned int barrier; };\n"
         "__device__ __forceinline__ void pm_cuda_grid_barrier() {\n"
@@ -49,5 +119,10 @@ void pmGridBarrier()
         "}\n");
     pmNativeGridBarrier();
 }
+#endif
 
-void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
+#ifdef PM_TARGET_VULKAN
+public uint pmThreadIndex() { return pmVulkanDispatchThreadId.x; }
+#endif
+
+public void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }

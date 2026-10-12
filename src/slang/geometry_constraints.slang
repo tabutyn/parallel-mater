@@ -886,9 +886,9 @@ void prepare_avbd_kernel(
     uniform uint base_iterations, uniform uint requested_iterations,
     uniform uint grid_blocks)
 {
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     for (uint bodyIndex = lane; bodyIndex < count;
-         bodyIndex += cudaBlockDim().x)
+         bodyIndex += pmGroupSize().x)
     {
         Vec3 oldVelocity = bodies[bodyIndex].previous_velocity;
         bool historyValid = bodies[bodyIndex].history_valid != 0u;
@@ -949,7 +949,7 @@ void prepare_avbd_kernel(
     }
     pmGroupBarrier();
     for (uint active = lane; active < *pair_count;
-         active += cudaBlockDim().x)
+         active += pmGroupSize().x)
     {
         uint a = pairs[active] / count;
         uint b = pairs[active] % count;
@@ -1026,7 +1026,7 @@ void prepare_avbd_kernel(
         }
     }
     for (uint jointIndex = lane; jointIndex < joint_capacity;
-         jointIndex += cudaBlockDim().x)
+         jointIndex += pmGroupSize().x)
     {
         joints[jointIndex].avbd_count = 0u;
         if (joints[jointIndex].alive)
@@ -1055,7 +1055,7 @@ void prepare_avbd_kernel(
     pmGroupBarrier();
     for (uint jointIndex = lane;
          jointIndex < min(joint_capacity, kAvbdPrepareJointCacheSize);
-         jointIndex += cudaBlockDim().x)
+         jointIndex += pmGroupSize().x)
     {
         AvbdPrepareJointMetadata metadata;
         metadata.a = joints[jointIndex].geometry.dense_a;
@@ -1194,7 +1194,7 @@ void prepare_avbd_kernel(
     pmGroupBarrier();
     for (uint bodyIndex = lane;
          bodyIndex < min(count, kAvbdPrepareBodyCacheSize);
-         bodyIndex += cudaBlockDim().x)
+         bodyIndex += pmGroupSize().x)
     {
         AvbdPrepareBodyMetadata metadata = rigidAvbdBodyCache[bodyIndex];
         bodies[bodyIndex].parent = metadata.parent;
@@ -1205,14 +1205,14 @@ void prepare_avbd_kernel(
     }
     for (uint active = lane;
          active < min(*pair_count, kAvbdPrepareContactCacheSize);
-         active += cudaBlockDim().x)
+         active += pmGroupSize().x)
     {
         manifolds[active].avbd_next_a = rigidAvbdContactCache[active].next_a;
         manifolds[active].avbd_next_b = rigidAvbdContactCache[active].next_b;
     }
     for (uint jointIndex = lane;
          jointIndex < min(joint_capacity, kAvbdPrepareJointCacheSize);
-         jointIndex += cudaBlockDim().x)
+         jointIndex += pmGroupSize().x)
     {
         joints[jointIndex].avbd_next_a =
             rigidAvbdJointCache[jointIndex].next_a;

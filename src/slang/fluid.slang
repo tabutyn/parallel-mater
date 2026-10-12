@@ -175,7 +175,7 @@ void fluid_reserve_contact_events(
     uniform uint* world_count, uniform uint* overflow,
     uniform uint capacity)
 {
-    if (cudaBlockIdx().x != 0u || cudaThreadIdx().x != 0u) return;
+    if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     uint used = *world_count;
     uint available = capacity - used;
     uint retained = min(*selected_count, available);
@@ -248,7 +248,7 @@ void fluid_source_emit(
     uniform uint* count, uniform uint capacity, uniform uint first_spawned,
     uniform uint first_id, uniform uint* misses)
 {
-    if (cudaThreadIdx().x != 0u || cudaBlockIdx().x != 0u) return;
+    if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
     *misses = 0u;
     uint previousCount = *count;
     for (uint item = 0u; item < amount; ++item)

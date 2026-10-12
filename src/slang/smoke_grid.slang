@@ -1276,12 +1276,12 @@ void smoke_grid_rigid_force(
     uniform float kinematic_viscosity, uniform float les_coefficient,
     uniform float dt)
 {
-    uint lane = cudaThreadIdx().x;
+    uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {};
     Vec3 localAngular = {};
     RigidBodyState state = states[body];
     for (uint triangle = lane; triangle < mesh.index_count / 3u;
-         triangle += cudaBlockDim().x)
+         triangle += pmGroupSize().x)
     {
         uint base = triangle * 3u;
         Vec3 a = transform_point(state, mesh.vertices[mesh.indices[base]]);
@@ -1329,7 +1329,7 @@ void smoke_grid_rigid_force(
     smoke_grid_rigid_linear[lane] = localLinear;
     smoke_grid_rigid_angular[lane] = localAngular;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (lane < stride)
         {

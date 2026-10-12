@@ -23,15 +23,15 @@ void cloth_project_volume(
     uniform float compliance, uniform float dt, uniform float* lambda,
     uniform bool reset_lambda)
 {
-    if (cudaBlockIdx().x != 0u) return;
-    uint thread = cudaThreadIdx().x;
+    if (pmBlockIndex().x != 0u) return;
+    uint thread = pmGroupThreadIndex().x;
     if (thread == 0u)
     {
         if (reset_lambda) *lambda = 0.0f;
         clothSignedVolume = 0.0f;
     }
     pmGroupBarrier();
-    for (uint wave = 0u; wave < triangle_count; wave += cudaBlockDim().x)
+    for (uint wave = 0u; wave < triangle_count; wave += pmGroupSize().x)
     {
         uint triangle = wave + thread;
         if (triangle < triangle_count)
@@ -47,14 +47,14 @@ void cloth_project_volume(
         pmGroupBarrier();
         if (thread == 0u)
         {
-            uint count = min(cudaBlockDim().x, triangle_count - wave);
+            uint count = min(pmGroupSize().x, triangle_count - wave);
             for (uint item = 0u; item < count; ++item)
                 clothSignedVolume += clothScalarTerms[item];
         }
         pmGroupBarrier();
     }
     for (uint vertex = thread; vertex < vertex_count;
-         vertex += cudaBlockDim().x)
+         vertex += pmGroupSize().x)
     {
         Vec3 gradient = {};
         for (uint item = corner_offsets[vertex];
@@ -76,7 +76,7 @@ void cloth_project_volume(
     if (thread == 0u) clothApplyCorrection = 0u;
     pmGroupBarrier();
     float inverseMassSum = 0.0f;
-    for (uint wave = 0u; wave < vertex_count; wave += cudaBlockDim().x)
+    for (uint wave = 0u; wave < vertex_count; wave += pmGroupSize().x)
     {
         uint vertex = wave + thread;
         if (vertex < vertex_count)
@@ -85,7 +85,7 @@ void cloth_project_volume(
         pmGroupBarrier();
         if (thread == 0u)
         {
-            uint count = min(cudaBlockDim().x, vertex_count - wave);
+            uint count = min(pmGroupSize().x, vertex_count - wave);
             for (uint item = 0u; item < count; ++item)
                 inverseMassSum += clothScalarTerms[item];
         }
@@ -107,7 +107,7 @@ void cloth_project_volume(
     pmGroupBarrier();
     if (clothApplyCorrection == 0u) return;
     for (uint vertex = thread; vertex < vertex_count;
-         vertex += cudaBlockDim().x)
+         vertex += pmGroupSize().x)
     {
         if (inverse_masses[vertex] == 0.0f) continue;
         positions[vertex] = add(positions[vertex], multiply(
@@ -161,13 +161,13 @@ void cloth_limit_strain(
     uniform DeformableNeighbor* neighbors, uniform uint8_t* free_nodes,
     uniform uint count)
 {
-    uint thread = cudaThreadIdx().x;
+    uint thread = pmGroupThreadIndex().x;
     for (uint pass = 0u; pass < 32u; ++pass)
     {
         if (thread == 0u) clothChanged = 0u;
         pmGroupBarrier();
         bool changed = false;
-        for (uint node = thread; node < count; node += cudaBlockDim().x)
+        for (uint node = thread; node < count; node += pmGroupSize().x)
         {
             Vec3 correction = {};
             uint degree = 0u;
@@ -198,7 +198,7 @@ void cloth_limit_strain(
             InterlockedOr(clothChanged, 1u, ignored);
         }
         pmGroupBarrier();
-        for (uint node = thread; node < count; node += cudaBlockDim().x)
+        for (uint node = thread; node < count; node += pmGroupSize().x)
             positions[node] = scratch[node];
         pmGroupBarrier();
         if (clothChanged == 0u) break;

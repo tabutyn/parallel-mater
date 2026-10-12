@@ -1585,8 +1585,8 @@ void pm_generate_rigid_leaf_pairs(
     uniform uint leaf_pair_cache_slot_capacity,
     uniform uint leaf_pairs_per_slot, uniform uint shared_leaf_capacity)
 {
-    uint lane = cudaThreadIdx().x;
-    for (uint activeIndex = cudaBlockIdx().x;
+    uint lane = pmGroupThreadIndex().x;
+    for (uint activeIndex = pmBlockIndex().x;
          activeIndex < *active_pair_count; activeIndex += pmGridDim().x)
     {
         uint pair = active_pairs[activeIndex];
@@ -1636,7 +1636,7 @@ void pm_generate_rigid_leaf_pairs(
         if (cacheBounds)
         {
             for (uint leaf = lane; leaf < totalLeaves;
-                 leaf += cudaBlockDim().x)
+                 leaf += pmGroupSize().x)
             {
                 bool body = leaf < aMesh.bvh_leaf_count;
                 TriangleMeshResource mesh = body ? aMesh : bMesh;
@@ -1654,9 +1654,9 @@ void pm_generate_rigid_leaf_pairs(
         uint bodyLeaf = colliderLeaves != 0u ? lane / colliderLeaves : 0u;
         uint colliderLeaf = colliderLeaves != 0u ? lane % colliderLeaves : 0u;
         uint bodyStride = colliderLeaves != 0u
-            ? cudaBlockDim().x / colliderLeaves : 0u;
+            ? pmGroupSize().x / colliderLeaves : 0u;
         uint colliderStride = colliderLeaves != 0u
-            ? cudaBlockDim().x % colliderLeaves : 0u;
+            ? pmGroupSize().x % colliderLeaves : 0u;
         uint localCount = 0u;
         while (bodyLeaf < aMesh.bvh_leaf_count && colliderLeaves != 0u)
         {
@@ -1701,7 +1701,7 @@ void pm_generate_rigid_leaf_pairs(
         if (lane == 0u)
         {
             uint prefix = 0u;
-            for (uint worker = 0u; worker < cudaBlockDim().x; ++worker)
+            for (uint worker = 0u; worker < pmGroupSize().x; ++worker)
             {
                 uint workerCount = rigidLeafOffsets[worker];
                 rigidLeafOffsets[worker] = prefix;
@@ -1789,9 +1789,9 @@ void pm_evaluate_rigid_leaf_pairs(
     uniform ContactManifold* leaf_manifolds, uniform uint blocks_per_pair,
     uniform float timestep, uniform ContactManifold* manifolds)
 {
-    uint lane = cudaThreadIdx().x;
-    uint pairBlock = cudaBlockIdx().x % blocks_per_pair;
-    for (uint activeIndex = cudaBlockIdx().x / blocks_per_pair;
+    uint lane = pmGroupThreadIndex().x;
+    uint pairBlock = pmBlockIndex().x % blocks_per_pair;
+    for (uint activeIndex = pmBlockIndex().x / blocks_per_pair;
          activeIndex < *active_pair_count;
          activeIndex += pmGridDim().x / blocks_per_pair)
     {
@@ -1836,9 +1836,9 @@ void pm_evaluate_rigid_leaf_pairs(
             rigidLeafReducedManifold.face_patch = false;
         }
         pmGroupBarrier();
-        for (uint wave = pairBlock * cudaBlockDim().x;
+        for (uint wave = pairBlock * pmGroupSize().x;
              wave < candidateCount;
-             wave += cudaBlockDim().x * blocks_per_pair)
+             wave += pmGroupSize().x * blocks_per_pair)
         {
             uint candidate = wave + lane;
             ContactManifold* local = &rigidLeafWorkerManifolds[lane];
@@ -1878,7 +1878,7 @@ void pm_evaluate_rigid_leaf_pairs(
             if (leaf_manifolds == nullptr && lane == 0u)
             {
                 float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
-                uint waveCount = min(cudaBlockDim().x,
+                uint waveCount = min(pmGroupSize().x,
                     candidateCount - wave);
                 for (uint worker = 0u; worker < waveCount; ++worker)
                 {

@@ -1,13 +1,13 @@
 {
   "contract": "Parallel Mater command API 0.2",
-  "implementation": "src/api runtime entry points; no generated runtime stubs",
+  "implementation": "src/loader public entry points routed to installable drivers",
   "functions": [
     {
       "name": "pmGetInstanceProcAddr",
       "section": "3.1",
       "card": "function_pointers",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:162",
+      "source": "src/loader/entry.cpp:49",
       "status": "implemented"
     },
     {
@@ -15,7 +15,7 @@
       "section": "3.1",
       "card": "function_pointers",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:174",
+      "source": "src/loader/entry.cpp:105",
       "status": "implemented"
     },
     {
@@ -23,7 +23,31 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:180",
+      "source": "src/loader/entry.cpp:115",
+      "status": "implemented"
+    },
+    {
+      "name": "pmEnumerateInstanceLayerProperties",
+      "section": "3.2",
+      "card": "instance",
+      "header": "parallel_mater.h",
+      "source": "src/loader/entry.cpp:65",
+      "status": "implemented"
+    },
+    {
+      "name": "pmEnumerateInstanceExtensionProperties",
+      "section": "3.2",
+      "card": "instance",
+      "header": "parallel_mater.h",
+      "source": "src/loader/entry.cpp:77",
+      "status": "implemented"
+    },
+    {
+      "name": "pmEnumerateDeviceExtensionProperties",
+      "section": "3.2",
+      "card": "instance",
+      "header": "parallel_mater.h",
+      "source": "src/loader/entry.cpp:88",
       "status": "implemented"
     },
     {
@@ -31,7 +55,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:187",
+      "source": "src/loader/entry.cpp:122",
       "status": "implemented"
     },
     {
@@ -39,7 +63,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:237",
+      "source": "src/loader/entry.cpp:199",
       "status": "implemented"
     },
     {
@@ -47,7 +71,7 @@
       "section": "4.1",
       "card": "physical_devices",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:241",
+      "source": "src/loader/entry.cpp:212",
       "status": "implemented"
     },
     {
@@ -55,7 +79,7 @@
       "section": "4.2",
       "card": "properties",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:257",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -63,7 +87,7 @@
       "section": "4.3",
       "card": "queues",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:272",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -71,7 +95,7 @@
       "section": "4.4",
       "card": "features",
       "header": "parallel_mater.h",
-      "source": "src/api/instance.cpp:287",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -79,7 +103,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:23",
+      "source": "src/loader/entry.cpp:230",
       "status": "implemented"
     },
     {
@@ -87,7 +111,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:52",
+      "source": "src/loader/entry.cpp:283",
       "status": "implemented"
     },
     {
@@ -95,7 +119,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:58",
+      "source": "src/loader/entry.cpp:293",
       "status": "implemented"
     },
     {
@@ -103,7 +127,7 @@
       "section": "5.1",
       "card": "memory_types",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:65",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -111,7 +135,7 @@
       "section": "5.3",
       "card": "allocation",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:6",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -119,7 +143,7 @@
       "section": "5.3",
       "card": "allocation",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:31",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -127,7 +151,7 @@
       "section": "5.4",
       "card": "mapping",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:39",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -135,7 +159,7 @@
       "section": "5.4",
       "card": "mapping",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:55",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -143,7 +167,7 @@
       "section": "5.4",
       "card": "mapping",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:61",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -151,7 +175,7 @@
       "section": "5.4",
       "card": "mapping",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:77",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -159,7 +183,7 @@
       "section": "6.1",
       "card": "buffer",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:82",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -167,7 +191,7 @@
       "section": "6.1",
       "card": "buffer",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:101",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -175,7 +199,7 @@
       "section": "6.2",
       "card": "buffer_binding",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:107",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -183,7 +207,7 @@
       "section": "6.2",
       "card": "buffer_binding",
       "header": "parallel_mater.h",
-      "source": "src/api/memory.cpp:117",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -191,7 +215,7 @@
       "section": "6.4",
       "card": "geometry",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:268",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -199,7 +223,7 @@
       "section": "6.4",
       "card": "geometry",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:287",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -207,7 +231,7 @@
       "section": "6.4",
       "card": "geometry",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:293",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -215,7 +239,7 @@
       "section": "6.4",
       "card": "geometry",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:314",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -223,23 +247,23 @@
       "section": "6.5",
       "card": "geometry_build",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:339",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCreateSimulation",
       "section": "7.1",
       "card": "simulation_create",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:351",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmDestroySimulation",
       "section": "7.1",
       "card": "simulation_create",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:507",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -247,7 +271,7 @@
       "section": "7.2",
       "card": "simulation_memory",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:519",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -255,39 +279,39 @@
       "section": "7.2",
       "card": "simulation_memory",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:529",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdWriteRigidBodies",
       "section": "7.4",
       "card": "bodies",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:599",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdApplyRigidInputs",
       "section": "7.5",
       "card": "body_inputs",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:663",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdSetRigidStates",
       "section": "7.5",
       "card": "body_inputs",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:695",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdSetKinematicTargets",
       "section": "7.5",
       "card": "body_inputs",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:722",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -295,7 +319,7 @@
       "section": "7.6",
       "card": "hit_boxes",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1137",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -303,23 +327,23 @@
       "section": "8.3",
       "card": "constraint_info",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:753",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCreatePhysicsPipeline",
       "section": "9.5",
       "card": "pipeline_create",
       "header": "parallel_mater.h",
-      "source": "src/api/pipeline.cpp:6",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmDestroyPhysicsPipeline",
       "section": "9.5",
       "card": "pipeline_create",
       "header": "parallel_mater.h",
-      "source": "src/api/pipeline.cpp:69",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -327,7 +351,7 @@
       "section": "10.2",
       "card": "cloth_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:189",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -335,7 +359,7 @@
       "section": "10.2",
       "card": "cloth_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:831",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -343,7 +367,7 @@
       "section": "10.2",
       "card": "cloth_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:871",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -351,7 +375,7 @@
       "section": "10.3",
       "card": "rope_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:272",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -359,7 +383,7 @@
       "section": "10.3",
       "card": "rope_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:912",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -367,7 +391,7 @@
       "section": "10.4",
       "card": "soft_body_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:354",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -375,7 +399,7 @@
       "section": "10.4",
       "card": "soft_body_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:953",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -383,7 +407,7 @@
       "section": "10.4",
       "card": "soft_body_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:992",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -391,7 +415,7 @@
       "section": "10.5",
       "card": "smoke_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:468",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -399,7 +423,7 @@
       "section": "10.5",
       "card": "smoke_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1030",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -407,7 +431,7 @@
       "section": "10.6",
       "card": "emitters",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:547",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -415,7 +439,7 @@
       "section": "10.6",
       "card": "emitters",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:606",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -423,7 +447,7 @@
       "section": "10.7",
       "card": "paint_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:665",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -431,7 +455,7 @@
       "section": "10.7",
       "card": "paint_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:759",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -439,7 +463,7 @@
       "section": "10.7",
       "card": "paint_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:809",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -447,7 +471,7 @@
       "section": "10.7",
       "card": "paint_resources",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1069",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -455,7 +479,7 @@
       "section": "10.8",
       "card": "event_outputs",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1099",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -463,7 +487,7 @@
       "section": "10.8",
       "card": "event_outputs",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1206",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -471,7 +495,7 @@
       "section": "10.8",
       "card": "event_outputs",
       "header": "parallel_mater.h",
-      "source": "src/api/domains.cpp:1261",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -479,7 +503,7 @@
       "section": "11.1",
       "card": "command_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:6",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -487,7 +511,7 @@
       "section": "11.1",
       "card": "command_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:24",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -495,7 +519,7 @@
       "section": "11.1",
       "card": "command_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:36",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -503,7 +527,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:58",
+      "source": "src/loader/entry.cpp:326",
       "status": "implemented"
     },
     {
@@ -511,7 +535,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:101",
+      "source": "src/loader/entry.cpp:369",
       "status": "implemented"
     },
     {
@@ -519,7 +543,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:121",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -527,7 +551,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:141",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -535,7 +559,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:151",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -543,39 +567,39 @@
       "section": "11.4",
       "card": "simulation_init",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:823",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdSetFluidParticles",
       "section": "11.4",
       "card": "simulation_init",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:879",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdBindPhysicsPipeline",
       "section": "11.5",
       "card": "step",
       "header": "parallel_mater.h",
-      "source": "src/api/pipeline.cpp:75",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdStepSimulation",
       "section": "11.5",
       "card": "step",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:946",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdCopyBuffer",
       "section": "12.1",
       "card": "buffer_copy",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:168",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -583,23 +607,23 @@
       "section": "12.2",
       "card": "outputs",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:987",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdCopyFluidParticles",
       "section": "12.2",
       "card": "outputs",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:1071",
-      "status": "capability-gated until the Slang simulation schedule is wired"
+      "source": "generated/api/loader_forward.inc",
+      "status": "implemented"
     },
     {
       "name": "pmCmdPipelineBarrier",
       "section": "13.2",
       "card": "barriers",
       "header": "parallel_mater.h",
-      "source": "src/api/commands.cpp:206",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -607,7 +631,7 @@
       "section": "13.3",
       "card": "semaphores",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:124",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -615,7 +639,7 @@
       "section": "13.3",
       "card": "semaphores",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:140",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -623,7 +647,7 @@
       "section": "13.3",
       "card": "semaphores",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:151",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -631,7 +655,7 @@
       "section": "13.3",
       "card": "semaphores",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:162",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -639,7 +663,7 @@
       "section": "13.4",
       "card": "submission",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:170",
+      "source": "src/loader/entry.cpp:388",
       "status": "implemented"
     },
     {
@@ -647,7 +671,7 @@
       "section": "13.4",
       "card": "submission",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:315",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -655,7 +679,7 @@
       "section": "13.4",
       "card": "submission",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:320",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -663,7 +687,7 @@
       "section": "13.5",
       "card": "fences",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:325",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -671,7 +695,7 @@
       "section": "13.5",
       "card": "fences",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:345",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -679,7 +703,7 @@
       "section": "13.5",
       "card": "fences",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:353",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -687,7 +711,7 @@
       "section": "13.5",
       "card": "fences",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:365",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -695,7 +719,7 @@
       "section": "13.5",
       "card": "fences",
       "header": "parallel_mater.h",
-      "source": "src/api/synchronization.cpp:381",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -703,7 +727,7 @@
       "section": "14.1",
       "card": "native_support",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:4",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -711,7 +735,7 @@
       "section": "14.2",
       "card": "native_device",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:15",
+      "source": "src/loader/entry.cpp:412",
       "status": "implemented"
     },
     {
@@ -719,7 +743,7 @@
       "section": "14.2",
       "card": "native_device",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:26",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -727,7 +751,7 @@
       "section": "14.3",
       "card": "native_buffer",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:39",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -735,7 +759,7 @@
       "section": "14.3",
       "card": "native_buffer",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:59",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -743,7 +767,7 @@
       "section": "14.4",
       "card": "native_timeline",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:73",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -751,7 +775,7 @@
       "section": "14.4",
       "card": "native_timeline",
       "header": "parallel_mater.h",
-      "source": "src/api/interop.cpp:81",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -759,7 +783,7 @@
       "section": "14.6",
       "card": "vulkan_device",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:4",
+      "source": "src/loader/entry.cpp:443",
       "status": "implemented"
     },
     {
@@ -767,7 +791,7 @@
       "section": "14.6",
       "card": "vulkan_device",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:16",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -775,7 +799,7 @@
       "section": "14.7",
       "card": "vulkan_buffer",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:24",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -783,7 +807,7 @@
       "section": "14.7",
       "card": "vulkan_buffer",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:34",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -791,7 +815,7 @@
       "section": "14.8",
       "card": "vulkan_semaphore",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:42",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -799,7 +823,7 @@
       "section": "14.8",
       "card": "vulkan_semaphore",
       "header": "interop_vulkan.h",
-      "source": "src/api/interop_vulkan.cpp:51",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -807,7 +831,7 @@
       "section": "15.1",
       "card": "query_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:6",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -815,7 +839,7 @@
       "section": "15.1",
       "card": "query_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:43",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -823,7 +847,7 @@
       "section": "15.1",
       "card": "query_pool",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:52",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -831,7 +855,7 @@
       "section": "15.2",
       "card": "timestamps",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:70",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -839,7 +863,7 @@
       "section": "15.3",
       "card": "step_stats",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:88",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -847,7 +871,7 @@
       "section": "15.3",
       "card": "step_stats",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:108",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -855,7 +879,7 @@
       "section": "15.3",
       "card": "step_stats",
       "header": "parallel_mater.h",
-      "source": "src/api/resources.cpp:1109",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -863,7 +887,7 @@
       "section": "15.4",
       "card": "query_results",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:151",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -871,7 +895,7 @@
       "section": "15.5",
       "card": "memory_budget",
       "header": "parallel_mater.h",
-      "source": "src/api/queries.cpp:200",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -879,7 +903,7 @@
       "section": "16.1",
       "card": "limits",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:80",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     },
     {
@@ -887,7 +911,7 @@
       "section": "16.2",
       "card": "formats",
       "header": "parallel_mater.h",
-      "source": "src/api/device.cpp:102",
+      "source": "generated/api/loader_forward.inc",
       "status": "implemented"
     }
   ],
@@ -903,7 +927,17 @@
       "card": "function_pointers"
     },
     {
+      "name": "PmExtensionProperties",
+      "section": "3.2",
+      "card": "instance"
+    },
+    {
       "name": "PmInstanceCreateInfo",
+      "section": "3.2",
+      "card": "instance"
+    },
+    {
+      "name": "PmLayerProperties",
       "section": "3.2",
       "card": "instance"
     },
@@ -1557,6 +1591,9 @@
     "PFN_pmGetInstanceProcAddr",
     "PFN_pmGetDeviceProcAddr",
     "PFN_pmEnumerateInstanceVersion",
+    "PFN_pmEnumerateInstanceLayerProperties",
+    "PFN_pmEnumerateInstanceExtensionProperties",
+    "PFN_pmEnumerateDeviceExtensionProperties",
     "PFN_pmCreateInstance",
     "PFN_pmDestroyInstance",
     "PFN_pmEnumeratePhysicalDevices",

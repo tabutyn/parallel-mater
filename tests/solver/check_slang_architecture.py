@@ -12,6 +12,37 @@ failures: list[str] = []
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
 world = (ROOT / "src" / "world.cu").read_text()
+registry = (ROOT / "registry" / "pm.xml")
+if not registry.exists():
+    failures.append("registry/pm.xml: canonical API registry missing")
+if "parallel-mater-driver-slang-cuda SHARED" not in cmake:
+    failures.append("CMakeLists.txt: Slang/CUDA runtime is not an installable driver")
+if "add_library(parallel-mater SHARED" not in cmake:
+    failures.append("CMakeLists.txt: public API is not a standalone loader")
+for embedded_path in (
+    "PARALLEL_MATER_DEFAULT_DRIVER_PATH",
+    "PARALLEL_MATER_DEFAULT_VALIDATION_LAYER_PATH",
+):
+    if embedded_path in cmake:
+        failures.append(
+            f"CMakeLists.txt: loader embeds non-relocatable {embedded_path}"
+        )
+loader_driver = (ROOT / "src" / "loader" / "driver.cpp").read_text()
+if "append_loader_relative_directories" not in loader_driver:
+    failures.append("src/loader/driver.cpp: relocatable manifest discovery missing")
+if "ManifestKind::driver" not in loader_driver or "ManifestKind::layer" not in loader_driver:
+    failures.append("src/loader/driver.cpp: driver/layer manifests are not separated")
+if "pm_driverNegotiateLoaderInterfaceVersion" not in (
+        ROOT / "include" / "parallel_mater" / "pm_driver.h").read_text():
+    failures.append("pm_driver.h: loader/driver ABI negotiation missing")
+for loader_source in sorted((ROOT / "src" / "loader").glob("*")):
+    if not loader_source.is_file():
+        continue
+    loader_text = loader_source.read_text()
+    for forbidden in ("cudaStream", "cudaEvent", "parallel_mater::World", ".slang"):
+        if forbidden in loader_text:
+            failures.append(
+                f"{loader_source.relative_to(ROOT)}: loader owns device/physics detail {forbidden}")
 if "install(DIRECTORY include/" in cmake:
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
 if "Backend-specific physics implementations are retired" not in cmake:
@@ -74,6 +105,15 @@ for module in (
         failures.append(f"missing {dispatch.relative_to(ROOT)}")
     elif f'parallel_mater_{module}_runtime.cu' not in dispatch.read_text():
         failures.append(f"{dispatch.relative_to(ROOT)}: not backed by generated Slang")
+
+for shader in sorted((ROOT / "src" / "slang").rglob("*.slang")):
+    if shader.name == "device_intrinsics.slang":
+        continue
+    text = shader.read_text()
+    for intrinsic in ("cudaBlockIdx()", "cudaThreadIdx()", "cudaBlockDim()"):
+        if intrinsic in text:
+            failures.append(
+                f"{shader.relative_to(ROOT)}: native launch intrinsic {intrinsic}")
 
 migrated_launches = {
     "cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain",

@@ -10,6 +10,7 @@
 namespace parallel_mater::gallery {
 namespace {
 
+#if !defined(PARALLEL_MATER_COMMAND_GALLERY_ONLY)
 void vector(std::ostream &stream, Vec3 value) {
     stream << value.x << ' ' << value.y << ' ' << value.z;
 }
@@ -17,6 +18,7 @@ void vector(std::ostream &stream, Vec3 value) {
 void quaternion(std::ostream &stream, Quaternion value) {
     stream << value.x << ' ' << value.y << ' ' << value.z << ' ' << value.w;
 }
+#endif
 
 [[nodiscard]] bool default_capture_path(std::uint64_t frame,
                                         std::filesystem::path &output,
@@ -39,6 +41,7 @@ void quaternion(std::ostream &stream, Quaternion value) {
 
 } // namespace
 
+#if !defined(PARALLEL_MATER_COMMAND_GALLERY_ONLY)
 bool write_physics_debug_capture(World &world,
                                  const std::filesystem::path &output,
                                  std::string &error) {
@@ -182,6 +185,7 @@ bool save_physics_debug_capture(World &world, std::filesystem::path &output,
     if (!default_capture_path(frame.frame_index, output, error)) return false;
     return write_physics_debug_capture(world, output, error);
 }
+#endif
 
 bool write_physics_debug_capture(const CommandSceneFrame &frame,
                                  const std::filesystem::path &output,

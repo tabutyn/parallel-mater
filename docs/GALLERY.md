@@ -11,8 +11,8 @@ its types are installed with the physics library.
 
 ```text
 parallel_mater (installed library)
-  World, FluidId, RigidBodyId, RigidConstraintId, ClothId, SoftBodyId, RopeId, geometry sampling, inflow/outflow,
-  paint fields and rules, device views, contacts
+  loader, instance/device discovery, command buffers, synchronization, memory,
+  physics resources and pipelines, queries, and native interoperability
 
 examples/gallery (not installed)
   .glb assets, scene loader, renderer adapters, controls, objectives
@@ -30,9 +30,9 @@ Headless physics builds remain free of OpenGL and OptiX.
 
 ## First gallery sequence
 
-This sequence describes the OptiX gallery. The native Metal gallery retains
-its earlier Point/Motor/Generic Spring/procedural dump controllers; see the
-[Metal parity integration notes](METAL_GALLERY_PARITY.md) for the current gap.
+The same ordered catalog, scene construction, controls, and simulation path are
+used by interactive, headless, benchmark, and replay runs. Platform adapters
+only draw the resulting public resource views and overlays.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
@@ -155,7 +155,8 @@ The legend reports the per-frame normalization maximum. These visualizers read
 
 The Rigid Body entry loads `examples/assets/RigidBody.glb`, instantiates its
 passive ground, dynamic sphere, and 384 independently simulated Array bricks
-through `World`, and ray traces their shared authored meshes. Arrow input tilts
+through public `pm*` resource and command calls, and ray traces their shared
+authored meshes. Arrow input tilts
 gravity relative to the current camera for the sphere. Both authored brick
 Arrays set `pm_gravity_tilt = false`, so they retain vertical gravity instead
 of toppling from the control field; they remain independent dynamic bodies and
@@ -264,7 +265,8 @@ slow step is allowed to finish; excess backlog is dropped instead of doing
 several equally slow steps before drawing. This protects input/render cadence
 under overload but cannot make an over-budget simulation run in real time.
 
-All gallery entries create `World` with opt-in rolling physics capture.
+All gallery entries create resources and record work through the public command
+API with opt-in rolling physics capture.
 Outside the smoke contexts, `Z` shows available contact and deformable-surface normals, `X` rigid inputs and
 rigid/deformable contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
@@ -279,8 +281,9 @@ scene; the legacy `--water-cloth-debug` also selects Water Cloth. Wireframe and
 normals follow the API's separated triangle surface after tearing; broken
 bonds are omitted rather than drawn across detached fragments. Force vectors
 remain attached to physical nodes.
-The gallery supplies cloth UVs to `World::add_paint_field` and registers a
-rigid-to-cloth paint rule. Collision and mask stamping happen in `World`; the OptiX
+The gallery supplies cloth UVs through `pmCreatePaintField` and registers a
+rigid-to-cloth paint rule. Collision and mask stamping happen in the selected
+physics driver; the OptiX
 adapter merely filters and displays the borrowed two-sided mask.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
 to 50 degrees relative to the camera. The tilt eases in and returns to
@@ -289,10 +292,10 @@ so reversing direction can build a wave instead of stopping at the wall.
 Unlike Inflow, its Blender Flow/Geometry cylinder is sampled into particles
 on an HCP lattice once at scene creation; it does not keep emitting. The
 authored sphere starts above the bowl and falls through the water. The gallery
-registers the bowl's render triangles and UVs as a `World` paint field; the
+registers the bowl's render triangles and UVs as a public paint-field resource; the
 physics contact path stamps its persistent two-sided mask. The renderer only
 samples that mask and applies blue color with cubic filtering. The sphere and
-pegs remain unpainted. `World` owns no renderer or paint color.
+pegs remain unpainted. The physics driver owns no renderer or paint color.
 The shared water shader reflects authored geometry and uses the original
 course's lighter absorption and haze. All three fluid scenes use the shared
 render-only foam module: foam signals seed bounded, short-lived multi-bubble
@@ -308,9 +311,9 @@ can present the same scenes in order and layer objectives on top.
 
 An example scene owns only application state:
 
-- create resources in a `World`;
+- create and bind resources through the public API;
 - translate input into gravity, forces, impulses, or kinematic targets;
-- invoke one world step per fixed frame;
+- record and submit one physics step per fixed frame;
 - render borrowed device views;
 - consume contact events for effects and objectives;
 - decide success and request the next scene.

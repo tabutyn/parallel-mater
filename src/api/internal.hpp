@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#if defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
+#include "driver_remap.h"
+#endif
+
 #include <parallel_mater/parallel_mater.h>
 #include <parallel_mater/parallel_mater.hpp>
 

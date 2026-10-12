@@ -16,7 +16,7 @@ void rope_cloth_sample_anchor(
     uniform float* inverse_masses, uniform uint vertex,
     uniform float effective_mass)
 {
-    if (cudaBlockIdx().x != 0u || cudaThreadIdx().x != 0u) return;
+    if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     soft_anchor_positions[end] = positions[vertex];
     soft_anchor_velocities[end] = velocities[vertex];
     soft_anchor_impulses[end] = {};
@@ -35,7 +35,7 @@ void rope_cloth_apply_anchor(
     uniform float maximum_acceleration, uniform float dt,
     uniform float frame_inverse_dt)
 {
-    if (cudaBlockIdx().x != 0u || cudaThreadIdx().x != 0u) return;
+    if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     float inverseMass = inverse_masses[vertex];
     if (inverseMass <= 0.0f) return;
     Vec3 correction = clamp_length(

@@ -5,18 +5,33 @@ import re
 from api_model import declarations, public_types
 from content import SECTIONS
 from model import SPEC_NUMBERS
-from check_api import legacy_inventory
+
+LOADER_SPECIAL = {
+    "pmGetInstanceProcAddr", "pmGetDeviceProcAddr",
+    "pmEnumerateInstanceVersion", "pmCreateInstance", "pmDestroyInstance",
+    "pmEnumeratePhysicalDevices", "pmCreateDevice", "pmDestroyDevice",
+    "pmGetDeviceQueue", "pmAllocateCommandBuffers", "pmFreeCommandBuffers",
+    "pmQueueSubmit", "pmImportNativeDevice", "pmImportVulkanDeviceEXT",
+    "pmEnumerateInstanceLayerProperties",
+    "pmEnumerateInstanceExtensionProperties",
+    "pmEnumerateDeviceExtensionProperties",
+}
 
 
 def generate_coverage(root, destination):
     commands = declarations()
     definitions = {}
-    for source in sorted((root / "src/api").glob("*.cpp")):
+    for source in sorted((root / "src/loader").glob("*.cpp")):
         text = source.read_text()
         for match in re.finditer(
-                r'extern\s+"C"\s+PMAPI_ATTR\s+[^\n]*?\b(pm\w+)\s*\(', text):
+                r'extern\s+"C"\s+PMAPI_ATTR\s+[\w*]+\s+PMAPI_CALL\s+(pm\w+)\s*\(',
+                text):
             definitions.setdefault(match.group(1), []).append(
                 f"{source.relative_to(root)}:{text.count(chr(10), 0, match.start()) + 1}")
+    for command in commands:
+        if command["name"] not in LOADER_SPECIAL:
+            definitions.setdefault(command["name"], []).append(
+                "generated/api/loader_forward.inc")
 
     missing = sorted({command["name"] for command in commands} - definitions.keys())
     duplicates = {name: locations for name, locations in definitions.items()
@@ -25,25 +40,16 @@ def generate_coverage(root, destination):
         raise ValueError(
             f"Runtime command coverage mismatch; missing={missing}, duplicates={duplicates}")
 
-    capability_gated = {
-        "pmCreatePhysicsPipeline", "pmCmdBindPhysicsPipeline",
-        "pmCreateSimulation", "pmBindSimulationMemory", "pmCmdBuildGeometry",
-        "pmCmdWriteRigidBodies", "pmCmdApplyRigidInputs", "pmCmdSetRigidStates",
-        "pmCmdWriteRigidConstraints", "pmCmdResetSimulation",
-        "pmCmdSetFluidParticles", "pmCmdStepSimulation",
-        "pmCmdCopyRigidStates", "pmCmdCopyFluidParticles",
-    }
     inventory = {
         "contract": "Parallel Mater command API 0.2",
-        "implementation": "src/api runtime entry points; no generated runtime stubs",
+        "implementation": "src/loader public entry points routed to installable drivers",
         "functions": [{
             "name": command["name"],
             "section": SPEC_NUMBERS[command["card"]],
             "card": command["card"],
             "header": "interop_vulkan.h" if command["extension"] else "parallel_mater.h",
             "source": definitions[command["name"]][0],
-            "status": ("capability-gated until the Slang simulation schedule is wired"
-                       if command["name"] in capability_gated else "implemented"),
+            "status": "implemented",
         } for command in commands],
         "types": [{"name": name, "section": SPEC_NUMBERS[card.key],
                    "card": card.key}
@@ -57,5 +63,3 @@ def generate_coverage(root, destination):
     }
     (destination / "api-coverage.json").write_text(
         json.dumps(inventory, indent=2) + "\n")
-    (destination / "legacy-api-inventory.json").write_text(
-        json.dumps(legacy_inventory(root), indent=2) + "\n")

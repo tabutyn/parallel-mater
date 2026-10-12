@@ -43,9 +43,9 @@ void soft_body_measure_momentum(
     uniform Vec3* velocities, uniform float* inverse_masses,
     uniform uint count, uniform Vec3* output)
 {
-    uint thread = cudaThreadIdx().x;
+    uint thread = pmGroupThreadIndex().x;
     Vec3 local = {};
-    for (uint node = thread; node < count; node += cudaBlockDim().x)
+    for (uint node = thread; node < count; node += pmGroupSize().x)
     {
         float inverseMass = inverse_masses[node];
         if (inverseMass > 0.0f)
@@ -53,7 +53,7 @@ void soft_body_measure_momentum(
     }
     softValuesA[thread] = local;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (thread < stride)
             softValuesA[thread] = add(
@@ -72,10 +72,10 @@ void soft_body_restore_momentum(
     uniform uint* dynamic_contact_flag, uniform float maximum_speed)
 {
     if (*dynamic_contact_flag == 0u) return;
-    uint thread = cudaThreadIdx().x;
+    uint thread = pmGroupThreadIndex().x;
     Vec3 actual = {};
     Vec3 contact = {};
-    for (uint node = thread; node < count; node += cudaBlockDim().x)
+    for (uint node = thread; node < count; node += pmGroupSize().x)
     {
         float inverseMass = inverse_masses[node];
         if (inverseMass <= 0.0f) continue;
@@ -85,7 +85,7 @@ void soft_body_restore_momentum(
     softValuesA[thread] = actual;
     softValuesB[thread] = contact;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (thread < stride)
         {
@@ -103,7 +103,7 @@ void soft_body_restore_momentum(
             subtract(target, softValuesA[0]), 1.0f / movable_mass);
     }
     pmGroupBarrier();
-    for (uint node = thread; node < count; node += cudaBlockDim().x)
+    for (uint node = thread; node < count; node += pmGroupSize().x)
         if (inverse_masses[node] > 0.0f)
             velocities[node] = clamp_length(
                 add(velocities[node], softCenterCorrection), maximum_speed);
@@ -135,11 +135,11 @@ void soft_body_project_rest_shape(
     uniform float maximum_projection,
     uniform uint* dynamic_contact_flag)
 {
-    if (cudaBlockIdx().x != 0u || stiffness <= 0.0f ||
+    if (pmBlockIndex().x != 0u || stiffness <= 0.0f ||
         *dynamic_contact_flag != 0u) return;
-    uint thread = cudaThreadIdx().x;
+    uint thread = pmGroupThreadIndex().x;
     Vec3 currentCenter = {};
-    for (uint base = 0u; base < count; base += cudaBlockDim().x)
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
     {
         uint node = base + thread;
         if (node < count)
@@ -150,7 +150,7 @@ void soft_body_project_rest_shape(
         pmGroupBarrier();
         if (thread == 0u)
         {
-            uint valid = min(cudaBlockDim().x, count - base);
+            uint valid = min(pmGroupSize().x, count - base);
             for (uint item = 0u; item < valid; ++item)
             {
                 float inverseMass = softInverseMasses[item];
@@ -169,7 +169,7 @@ void soft_body_project_rest_shape(
     pmGroupBarrier();
 
     ShapeMatrix covariance = {};
-    for (uint base = 0u; base < count; base += cudaBlockDim().x)
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
     {
         uint node = base + thread;
         if (node < count)
@@ -181,7 +181,7 @@ void soft_body_project_rest_shape(
         pmGroupBarrier();
         if (thread == 0u)
         {
-            uint valid = min(cudaBlockDim().x, count - base);
+            uint valid = min(pmGroupSize().x, count - base);
             for (uint item = 0u; item < valid; ++item)
             {
                 float inverseMass = softInverseMasses[item];
@@ -235,7 +235,7 @@ void soft_body_project_rest_shape(
         softOrientation = orientation;
     }
     pmGroupBarrier();
-    for (uint node = thread; node < count; node += cudaBlockDim().x)
+    for (uint node = thread; node < count; node += pmGroupSize().x)
     {
         float inverseMass = inverse_masses[node];
         if (inverseMass <= 0.0f) continue;
@@ -246,7 +246,7 @@ void soft_body_project_rest_shape(
     }
     pmGroupBarrier();
     Vec3 weightedCorrection = {};
-    for (uint base = 0u; base < count; base += cudaBlockDim().x)
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
     {
         uint node = base + thread;
         if (node < count)
@@ -257,7 +257,7 @@ void soft_body_project_rest_shape(
         pmGroupBarrier();
         if (thread == 0u)
         {
-            uint valid = min(cudaBlockDim().x, count - base);
+            uint valid = min(pmGroupSize().x, count - base);
             for (uint item = 0u; item < valid; ++item)
             {
                 float inverseMass = softInverseMasses[item];
@@ -272,7 +272,7 @@ void soft_body_project_rest_shape(
         softCenterCorrection = multiply(
             weightedCorrection, 1.0f / movable_mass);
     pmGroupBarrier();
-    for (uint node = thread; node < count; node += cudaBlockDim().x)
+    for (uint node = thread; node < count; node += pmGroupSize().x)
         if (inverse_masses[node] > 0.0f)
             positions[node] = add(positions[node],
                 subtract(corrections[node], softCenterCorrection));
@@ -335,11 +335,11 @@ void deformable_project_links_warp(
     uniform float maximum_projection_fraction)
 {
     const uint groupSize = 16u;
-    uint lane = cudaThreadIdx().x & (groupSize - 1u);
-    uint group = cudaBlockIdx().x * (cudaBlockDim().x / groupSize) +
-        cudaThreadIdx().x / groupSize;
+    uint lane = pmGroupThreadIndex().x & (groupSize - 1u);
+    uint group = pmBlockIndex().x * (pmGroupSize().x / groupSize) +
+        pmGroupThreadIndex().x / groupSize;
     if (group >= count) return;
-    uint groupMask = 0xffffu << (cudaThreadIdx().x & 16u);
+    uint groupMask = 0xffffu << (pmGroupThreadIndex().x & 16u);
     float selfMass = inverse_masses[group];
     Vec3 position = positions[group];
     if (selfMass == 0.0f)
@@ -369,12 +369,12 @@ void deformable_project_links_warp(
                 edgeCorrection = multiply(difference, amount);
             }
         }
-        softValuesA[cudaThreadIdx().x] = edgeCorrection;
+        softValuesA[pmGroupThreadIndex().x] = edgeCorrection;
         pmSyncWarp(groupMask);
         if (lane == 0u)
         {
             uint valid = min(groupSize, last - base);
-            uint batch = cudaThreadIdx().x;
+            uint batch = pmGroupThreadIndex().x;
             for (uint item = 0u; item < valid; ++item)
                 correction = add(correction, softValuesA[batch + item]);
         }
@@ -521,11 +521,11 @@ void soft_body_damp_springs_warp(
     uniform uint count, uniform float damping, uniform float maximum_speed)
 {
     const uint groupSize = 16u;
-    uint lane = cudaThreadIdx().x & (groupSize - 1u);
-    uint group = cudaBlockIdx().x * (cudaBlockDim().x / groupSize) +
-        cudaThreadIdx().x / groupSize;
+    uint lane = pmGroupThreadIndex().x & (groupSize - 1u);
+    uint group = pmBlockIndex().x * (pmGroupSize().x / groupSize) +
+        pmGroupThreadIndex().x / groupSize;
     if (group >= count) return;
-    uint groupMask = 0xffffu << (cudaThreadIdx().x & 16u);
+    uint groupMask = 0xffffu << (pmGroupThreadIndex().x & 16u);
     if (inverse_masses[group] == 0.0f)
     {
         if (lane == 0u) output[group] = {};
@@ -548,12 +548,12 @@ void soft_body_damp_springs_warp(
             edgeCorrection = multiply(axis, dot(
                 subtract(velocities[neighbor.index], velocity), axis));
         }
-        softValuesA[cudaThreadIdx().x] = edgeCorrection;
+        softValuesA[pmGroupThreadIndex().x] = edgeCorrection;
         pmSyncWarp(groupMask);
         if (lane == 0u)
         {
             uint valid = min(groupSize, last - base);
-            uint batch = cudaThreadIdx().x;
+            uint batch = pmGroupThreadIndex().x;
             for (uint item = 0u; item < valid; ++item)
                 correction = add(correction, softValuesA[batch + item]);
         }

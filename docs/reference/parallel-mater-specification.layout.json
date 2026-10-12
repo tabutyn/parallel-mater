@@ -16,7 +16,7 @@
     "allocator": 4,
     "discovery": 4,
     "physical_devices": 4,
-    "properties": 4,
+    "properties": 5,
     "queues": 5,
     "features": 5,
     "device": 6,
@@ -338,8 +338,12 @@
     "pmDeviceWaitIdle": "submission",
     "PmDomainOutputHeader": "domain_records",
     "pmEndCommandBuffer": "command_buffers",
+    "pmEnumerateDeviceExtensionProperties": "instance",
+    "pmEnumerateInstanceExtensionProperties": "instance",
+    "pmEnumerateInstanceLayerProperties": "instance",
     "pmEnumerateInstanceVersion": "instance",
     "pmEnumeratePhysicalDevices": "physical_devices",
+    "PmExtensionProperties": "instance",
     "PmFence": "base_types",
     "PmFlags": "base_types",
     "PmFloat2": "domain_records",
@@ -390,6 +394,7 @@
     "PmInstance": "base_types",
     "PmInstanceCreateInfo": "instance",
     "pmInvalidateMappedMemoryRanges": "mapping",
+    "PmLayerProperties": "instance",
     "PmLiquidMaterialState": "liquid_material",
     "pmMapMemory": "mapping",
     "PmMappedMemoryRange": "mapping",
@@ -482,5 +487,5 @@
     "example_record",
     "example_submit"
   ],
-  "pdf_sha256": "22c9f85fc5cc9bfbaee85472deae6ae607784dd03323c7c3efbb908729cce18d"
+  "pdf_sha256": "9702a81010e21168a5c3f0c748d36439449b21ce716678adf9de43b3ae085ab6"
 }

@@ -108,7 +108,10 @@ typedef enum PmResult {
     PM_ERROR_FORMAT_NOT_SUPPORTED = -6,
     PM_ERROR_CAPACITY_EXCEEDED = -7,
     PM_ERROR_DEVICE_LOST = -8,
-    PM_ERROR_INCOMPATIBLE_VERSION = -9
+    PM_ERROR_INCOMPATIBLE_VERSION = -9,
+    PM_ERROR_DRIVER_NOT_FOUND = -10,
+    PM_ERROR_LAYER_NOT_PRESENT = -11,
+    PM_ERROR_EXTENSION_NOT_PRESENT = -12
 } PmResult;
 ```
 
@@ -149,18 +152,40 @@ Related sections: [3.2](#spec-instance), [4.5](#spec-device).
 ### 3.2 Instance creation
 
 ```c
+typedef struct PmLayerProperties {
+    char layerName[256];
+    uint32_t specificationVersion;
+    uint32_t implementationVersion;
+    char description[256];
+} PmLayerProperties;
+typedef struct PmExtensionProperties {
+    char extensionName[256];
+    uint32_t specificationVersion;
+} PmExtensionProperties;
 typedef struct PmInstanceCreateInfo {
     PmStructureType sType;
     const void* pNext;
     uint32_t apiVersion;
     const char* pApplicationName;
     PmBool32 enableValidation;
+    uint32_t enabledLayerCount;
+    const char* const* ppEnabledLayerNames;
+    uint32_t enabledExtensionCount;
+    const char* const* ppEnabledExtensionNames;
 } PmInstanceCreateInfo;
 ```
 
 ```c
 PmResult pmEnumerateInstanceVersion(
     uint32_t* pApiVersion);
+PmResult pmEnumerateInstanceLayerProperties(
+    uint32_t* pCount, PmLayerProperties* pProperties);
+PmResult pmEnumerateInstanceExtensionProperties(
+    const char* pLayerName, uint32_t* pCount,
+    PmExtensionProperties* pProperties);
+PmResult pmEnumerateDeviceExtensionProperties(
+    PmPhysicalDevice physicalDevice, const char* pLayerName,
+    uint32_t* pCount, PmExtensionProperties* pProperties);
 PmResult pmCreateInstance(
     const PmInstanceCreateInfo* pInfo,
     const PmAllocationCallbacks* pAllocator,
@@ -315,6 +340,8 @@ typedef struct PmDeviceCreateInfo {
     uint32_t queueCreateInfoCount;
     const PmDeviceQueueCreateInfo* pQueueInfos;
     PmPhysicalDeviceFeatures enabledFeatures;
+    uint32_t enabledExtensionCount;
+    const char* const* ppEnabledExtensionNames;
 } PmDeviceCreateInfo;
 ```
 
@@ -2526,7 +2553,7 @@ Types and identifiers
 ### 18.1 Types, handles & constants
 
 ```c
-#define PM_API_VERSION_0_2 ((uint32_t)(2u << 12))
+#define PM_API_VERSION_0_2 PM_MAKE_API_VERSION(0, 2, 0)
 #define PM_WHOLE_SIZE UINT64_MAX
 #define PM_TIMEOUT_INFINITE UINT64_MAX
 #define PM_INVALID_INDEX UINT32_MAX
@@ -2694,8 +2721,12 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmDeviceWaitIdle | [13.4](#spec-submission) |
 | PmDomainOutputHeader | [10.1](#spec-domain_records) |
 | pmEndCommandBuffer | [11.2](#spec-command_buffers) |
+| pmEnumerateDeviceExtensionProperties | [3.2](#spec-instance) |
+| pmEnumerateInstanceExtensionProperties | [3.2](#spec-instance) |
+| pmEnumerateInstanceLayerProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceVersion | [3.2](#spec-instance) |
 | pmEnumeratePhysicalDevices | [4.1](#spec-physical_devices) |
+| PmExtensionProperties | [3.2](#spec-instance) |
 | PmFence | [18.1](#spec-base_types) |
 | PmFlags | [18.1](#spec-base_types) |
 | PmFloat2 | [10.1](#spec-domain_records) |
@@ -2746,6 +2777,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmInstance | [18.1](#spec-base_types) |
 | PmInstanceCreateInfo | [3.2](#spec-instance) |
 | pmInvalidateMappedMemoryRanges | [5.4](#spec-mapping) |
+| PmLayerProperties | [3.2](#spec-instance) |
 | PmLiquidMaterialState | [9.2](#spec-liquid_material) |
 | pmMapMemory | [5.4](#spec-mapping) |
 | PmMappedMemoryRange | [5.4](#spec-mapping) |

@@ -12,8 +12,8 @@ public void pm_compact_count_blocks(
     uniform uint8_t* flags, uniform uint count, uniform uint tile_size,
     uniform uint* block_counts)
 {
-    uint block = cudaBlockIdx().x;
-    uint thread = cudaThreadIdx().x;
+    uint block = pmBlockIndex().x;
+    uint thread = pmGroupThreadIndex().x;
     uint index = block * tile_size + thread;
     if (thread == 0u) pmCompactionCount = 0u;
     pmGroupBarrier();
@@ -29,8 +29,8 @@ public void pm_compact_scatter_indices(
     uniform uint8_t* flags, uniform uint count, uniform uint tile_size,
     uniform uint* block_offsets, uniform uint* output)
 {
-    uint block = cudaBlockIdx().x;
-    uint thread = cudaThreadIdx().x;
+    uint block = pmBlockIndex().x;
+    uint thread = pmGroupThreadIndex().x;
     uint index = block * tile_size + thread;
     uint selected = index < count && flags[index] != 0u ? 1u : 0u;
     pmCompactionFlags[thread] = selected;

@@ -21,7 +21,7 @@ void rigid_avbd_minimize_free_translation(BodyParameters* parameters,
     RigidConstraintResource* joints, AvbdBody* bodies, bool velocityPhase)
 {
     uint lane = pmThreadIndex();
-    uint stride = cudaBlockDim().x * pmGridDim().x;
+    uint stride = pmGroupSize().x * pmGridDim().x;
     for (uint root = lane; root < count; root += stride)
     {
         if (parameters[root].motion != MotionType.dynamic ||
@@ -101,7 +101,7 @@ void solve_avbd_kernel(
     uniform ContactSchedule* schedule, uniform float dt)
 {
     uint lane = pmThreadIndex();
-    uint stride = cudaBlockDim().x * pmGridDim().x;
+    uint stride = pmGroupSize().x * pmGridDim().x;
     for (uint phase = 0u; phase < 2u; ++phase)
     {
         if (phase != 0u)

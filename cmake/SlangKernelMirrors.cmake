@@ -36,6 +36,19 @@ function(parallel_mater_add_slang_kernel_mirrors)
             COMMENT "Validating ${module}.slang as CUDA"
             COMMAND_EXPAND_LISTS VERBATIM)
         set(module_outputs "${cuda_output}")
+        set(spirv_output "${generated_dir}/${module}.spv")
+        add_custom_command(
+            OUTPUT "${spirv_output}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${generated_dir}"
+            COMMAND "${slangc}" "${source}"
+                -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
+                -target spirv -profile sm_6_5 -fp-mode precise
+                -warnings-as-errors all -DPM_TARGET_VULKAN=1
+                ${module_definitions} ${entry_arguments} -o "${spirv_output}"
+            DEPENDS ${slang_dependencies} "${slangc}"
+            COMMENT "Validating ${module}.slang as Vulkan SPIR-V"
+            COMMAND_EXPAND_LISTS VERBATIM)
+        list(APPEND module_outputs "${spirv_output}")
         if(TARGET CUDA::nvrtc)
             set(ptx_output "${generated_dir}/${module}.ptx")
             add_custom_command(

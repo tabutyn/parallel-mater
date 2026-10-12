@@ -34,6 +34,9 @@ constexpr PmFlags k_buffer_usage = PM_BUFFER_TRANSFER_SRC_BIT |
     case PM_ERROR_CAPACITY_EXCEEDED: return "capacity exceeded";
     case PM_ERROR_DEVICE_LOST: return "device lost";
     case PM_ERROR_INCOMPATIBLE_VERSION: return "incompatible version";
+    case PM_ERROR_DRIVER_NOT_FOUND: return "driver not found";
+    case PM_ERROR_LAYER_NOT_PRESENT: return "layer not present";
+    case PM_ERROR_EXTENSION_NOT_PRESENT: return "extension not present";
     }
     return "unknown error";
 }

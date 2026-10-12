@@ -13,8 +13,8 @@ public void pm_radix_histogram_u64(
     uniform uint64_t* keys, uniform uint count, uniform uint tile_size,
     uniform uint shift, uniform uint block_count, uniform uint* histograms)
 {
-    uint block = cudaBlockIdx().x;
-    uint thread = cudaThreadIdx().x;
+    uint block = pmBlockIndex().x;
+    uint thread = pmGroupThreadIndex().x;
     if (block >= block_count) return;
     if (thread < kPmRadix) pmRadixCounts[thread] = 0u;
     pmGroupBarrier();
@@ -58,8 +58,8 @@ public void pm_radix_scatter_u64_u32(
     uniform uint block_count, uniform uint* offsets,
     uniform uint64_t* output_keys, uniform uint* output_values)
 {
-    uint block = cudaBlockIdx().x;
-    uint thread = cudaThreadIdx().x;
+    uint block = pmBlockIndex().x;
+    uint thread = pmGroupThreadIndex().x;
     if (block >= block_count) return;
     uint index = block * tile_size + thread;
     uint64_t key = index < count ? input_keys[index] : 0ull;

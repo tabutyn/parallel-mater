@@ -20,7 +20,7 @@ void rope_soft_sample_anchor(
     uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
     uniform Vec3 weights, uniform Vec3 offset)
 {
-    if (cudaThreadIdx().x != 0u || cudaBlockIdx().x != 0u) return;
+    if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
     uint base = 3u * triangle;
     float w[3];
     w[0] = weights.x;
@@ -55,15 +55,15 @@ void rope_soft_scatter_anchor(
     uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
     uniform Vec3 weights, uniform Vec3* node_impulses)
 {
-    if (cudaBlockIdx().x != 0u) return;
-    uint thread = cudaThreadIdx().x;
+    if (pmBlockIndex().x != 0u) return;
+    uint thread = pmGroupThreadIndex().x;
     Vec3 anchor = soft_anchor_positions[end];
     support_radius = contact_support_radius +
         (support_radius - contact_support_radius) /
         (1.0f + float(*contact_count) / 2.0f);
     float radiusSquared = support_radius * support_radius;
     float localSum = 0.0f;
-    for (uint node = thread; node < node_count; node += cudaBlockDim().x)
+    for (uint node = thread; node < node_count; node += pmGroupSize().x)
     {
         float squared = length_squared(subtract(node_positions[node], anchor));
         if (squared < radiusSquared)
@@ -74,7 +74,7 @@ void rope_soft_scatter_anchor(
     }
     ropeSoftSums[thread] = localSum;
     pmGroupBarrier();
-    for (uint stride = cudaBlockDim().x / 2u; stride != 0u; stride /= 2u)
+    for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
         if (thread < stride)
             ropeSoftSums[thread] += ropeSoftSums[thread + stride];
@@ -84,7 +84,7 @@ void rope_soft_scatter_anchor(
     {
         Vec3 impulse = multiply(
             soft_anchor_impulses[end], 1.0f / ropeSoftSums[0]);
-        for (uint node = thread; node < node_count; node += cudaBlockDim().x)
+        for (uint node = thread; node < node_count; node += pmGroupSize().x)
         {
             float squared = length_squared(
                 subtract(node_positions[node], anchor));

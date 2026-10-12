@@ -17,10 +17,30 @@ int main() {
     CHECK(version == PM_API_VERSION_0_2);
     CHECK(pmGetInstanceProcAddr(nullptr, "pmCreateInstance") != nullptr);
     CHECK(pmGetInstanceProcAddr(nullptr, "pmQueueSubmit") == nullptr);
+    std::uint32_t layer_count = 0U;
+    CHECK(pmEnumerateInstanceLayerProperties(&layer_count, nullptr) == PM_SUCCESS);
+    CHECK(layer_count == 1U);
+    PmLayerProperties layer{};
+    CHECK(pmEnumerateInstanceLayerProperties(&layer_count, &layer) == PM_SUCCESS);
+    CHECK(std::strcmp(layer.layerName, "PM_LAYER_KHRONOS_validation") == 0);
+
+    const char *missing_instance_extension = "PM_EXT_missing";
+    PmInstanceCreateInfo missing_instance_info{};
+    missing_instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    missing_instance_info.apiVersion = PM_API_VERSION_0_2;
+    missing_instance_info.enabledExtensionCount = 1U;
+    missing_instance_info.ppEnabledExtensionNames = &missing_instance_extension;
+    PmInstance missing_instance{};
+    CHECK(pmCreateInstance(&missing_instance_info, nullptr, &missing_instance) ==
+          PM_ERROR_EXTENSION_NOT_PRESENT);
+    CHECK(missing_instance == nullptr);
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_2;
+    const char *validation_layer = "PM_LAYER_KHRONOS_validation";
+    instance_info.enabledLayerCount = 1U;
+    instance_info.ppEnabledLayerNames = &validation_layer;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
 
@@ -55,8 +75,34 @@ int main() {
     device_info.enabledFeatures.rigidConstraints = PM_TRUE;
     device_info.enabledFeatures.particleLiquids = PM_TRUE;
     device_info.enabledFeatures.cloth = PM_TRUE;
+    std::uint32_t device_extension_count{};
+    CHECK(pmEnumerateDeviceExtensionProperties(
+              physical, nullptr, &device_extension_count, nullptr) == PM_SUCCESS);
+    std::array<PmExtensionProperties, 4> device_extensions{};
+    const char *enabled_device_extension = nullptr;
+    CHECK(device_extension_count <= device_extensions.size());
+    if (device_extension_count != 0U) {
+        CHECK(pmEnumerateDeviceExtensionProperties(
+                  physical, nullptr, &device_extension_count,
+                  device_extensions.data()) == PM_SUCCESS);
+        enabled_device_extension = device_extensions[0].extensionName;
+        device_info.enabledExtensionCount = 1U;
+        device_info.ppEnabledExtensionNames = &enabled_device_extension;
+    }
+    const char *missing_device_extension = "PM_EXT_missing";
+    PmDeviceCreateInfo missing_device_info = device_info;
+    missing_device_info.enabledExtensionCount = 1U;
+    missing_device_info.ppEnabledExtensionNames = &missing_device_extension;
+    PmDevice missing_device{};
+    CHECK(pmCreateDevice(physical, &missing_device_info, &missing_device) ==
+          PM_ERROR_EXTENSION_NOT_PRESENT);
+    CHECK(missing_device == nullptr);
     PmDevice device{};
-    CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
+    const PmResult create_device = pmCreateDevice(physical, &device_info, &device);
+    if (create_device != PM_SUCCESS)
+        std::fprintf(stderr, "pmCreateDevice returned %d\n",
+                     static_cast<int>(create_device));
+    CHECK(create_device == PM_SUCCESS);
     CHECK(pmGetDeviceProcAddr(device, "pmQueueSubmit") != nullptr);
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);

@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
+#if defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
+#include "driver_remap.h"
+#endif
 #include <parallel_mater/interop_vulkan.h>
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportVulkanDeviceEXT(

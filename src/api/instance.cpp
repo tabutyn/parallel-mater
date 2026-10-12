@@ -184,6 +184,33 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmEnumerateInstanceVersion(
     return PM_SUCCESS;
 }
 
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL
+pmEnumerateDeviceExtensionProperties(PmPhysicalDevice physical,
+                                     const char *layer_name,
+                                     std::uint32_t *count,
+                                     PmExtensionProperties *properties) {
+    if (physical == nullptr || count == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (layer_name != nullptr) return PM_ERROR_LAYER_NOT_PRESENT;
+#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+    constexpr std::uint32_t available = 1U;
+    if (properties == nullptr) {
+        *count = available;
+        return PM_SUCCESS;
+    }
+    if (*count == 0U) return PM_INCOMPLETE;
+    properties[0] = {};
+    std::strncpy(properties[0].extensionName, "PM_EXT_vulkan_interop",
+                 sizeof properties[0].extensionName - 1U);
+    properties[0].specificationVersion = 1U;
+    *count = available;
+    return PM_SUCCESS;
+#else
+    *count = 0U;
+    return PM_SUCCESS;
+#endif
+}
+
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
     const PmInstanceCreateInfo *info, const PmAllocationCallbacks *allocator,
     PmInstance *instance) {

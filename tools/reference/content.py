@@ -1,7 +1,9 @@
 """Single source for the C API, quick reference, and specification."""
 from dataclasses import dataclass, field
 from textwrap import dedent
+from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 
 
 @dataclass
@@ -1580,6 +1582,34 @@ SECTIONS += [
 
 def structure_name(name):
     return "PM_STRUCTURE_TYPE_" + re.sub(r"(?<!^)(?=[A-Z])", "_", name[2:]).upper()
+
+
+def apply_registry():
+    """Replace declarations with the canonical API registry contents."""
+    global PRELUDE
+    registry = Path(__file__).resolve().parents[2] / "registry" / "pm.xml"
+    root = ET.parse(registry).getroot()
+    PRELUDE = root.findtext("prelude") or ""
+    indexed = {card.key: card for section in SECTIONS for card in section.cards}
+    registry_keys = set()
+    for node in root.findall("./cards/card"):
+        key = node.attrib["key"]
+        registry_keys.add(key)
+        if key not in indexed:
+            raise RuntimeError(f"registry card {key!r} has no documentation card")
+        card = indexed[key]
+        card.types = (node.findtext("types") or "").strip()
+        card.functions = (node.findtext("commands") or "").strip()
+        card.extension = node.attrib.get("extension") == "true"
+        card.emit_header = node.attrib.get("emit-header", "true") == "true"
+    documented = {key for key, card in indexed.items()
+                  if card.types or card.functions}
+    missing = documented - registry_keys
+    if missing:
+        raise RuntimeError(f"declaration cards missing from registry: {sorted(missing)}")
+
+
+apply_registry()
 
 
 STRUCTURE_NAMES = [name for section in SECTIONS for card in section.cards

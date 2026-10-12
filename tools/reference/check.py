@@ -20,7 +20,7 @@ from layout import BOTTOM, COLUMNS, MARGIN, TOP, SPEC_PURPLE, symbol_color
 from model import REFERENCE_NOTES, SPEC_NUMBERS, reference_sections
 from specification import NUMBERS, plain
 from api_model import public_types
-from check_api import check_contract, legacy_inventory
+from check_api import check_contract
 
 
 def require(condition, message):
@@ -61,7 +61,7 @@ def main():
     installed_headers = [ROOT / "include/parallel_mater/parallel_mater.h",
                          ROOT / "include/parallel_mater/interop_vulkan.h"]
     generated_paths = headers + installed_headers + [
-        DEST / "api-coverage.json", DEST / "legacy-api-inventory.json"]
+        DEST / "api-coverage.json"]
     before_headers = {p: p.read_bytes() for p in generated_paths}
     for draft, installed in zip(headers, installed_headers):
         require(draft.read_text() == installed.read_text(),
@@ -80,11 +80,6 @@ def main():
     coverage = json.loads((DEST / "api-coverage.json").read_text())
     require({cmd["name"] for cmd in coverage["functions"]} == declared, "Stale command inventory")
     require({typ["name"] for typ in coverage["types"]} == declared_types, "Stale type inventory")
-    legacy = legacy_inventory(ROOT)
-    require(legacy == json.loads((DEST / "legacy-api-inventory.json").read_text()), "Stale legacy inventory")
-    require(all(entry["definition_candidates"] for backend in ("cuda", "metal", "d3d12")
-                for group in ("world_methods", "frame_methods", "host_utilities")
-                for entry in legacy[backend][group]), "Legacy function has no implementation/stub candidate")
     keys = {c.key for c in cards} | {s.key for s in SECTIONS}
     require(all(link in keys for c in cards for link in c.links), "Unresolved panel reference")
     print(f"PASS: {len(declared)} functions share their declarations with the PDF")
