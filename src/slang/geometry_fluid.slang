@@ -235,17 +235,20 @@ void fluid_static_contacts(
     uniform float radius, uniform float spawn_clearance,
     uniform uint first_spawned, uniform bool recover_spawn, uniform Vec3 up,
     uniform BodyParameters* parameters, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform uint body_index,
+    uniform TriangleMeshResource* meshes, uniform RigidBodyId* body_ids,
+    uniform uint body_index,
     uniform float particle_mass, uniform bool collect_contacts,
     uniform FluidContactSample* samples, uniform uint8_t* contact_flags,
-    uniform FluidId fluid_id, uniform RigidBodyId body_id,
+    uniform FluidId fluid_id,
     uniform bool apply_paint, uniform PaintFieldResource* paint_fields,
     uniform uint field_capacity, uniform PaintRuleResource* paint_rules,
     uniform uint rule_capacity)
 {
     uint particle = pmThreadIndex();
     BodyParameters body = parameters[body_index];
+    if (body.motion != MotionType.static_body) return;
     RigidBodyState state = states[body_index];
+    RigidBodyId body_id = body_ids[body_index];
     TriangleMeshResource mesh = meshes[body.mesh.index];
     if (particle >= *count || mesh.bvh_node_count == 0u) return;
     Vec3 origin = inverse_rotate(state.orientation,

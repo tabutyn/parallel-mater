@@ -44,16 +44,26 @@ function(parallel_mater_add_slang_geometry_constraints)
         "${metal_source}" "${metal_reflection}"
         "${hlsl_source}" "${hlsl_reflection}")
 
-    if(TARGET CUDA::nvrtc)
+    if(CMAKE_CUDA_COMPILER)
         set(ptx "${generated_dir}/parallel_mater_geometry_constraints.ptx")
+        if(CMAKE_CUDA_ARCHITECTURES)
+            set(ptx_architectures ${CMAKE_CUDA_ARCHITECTURES})
+            list(GET ptx_architectures 0 ptx_architecture)
+            string(REGEX REPLACE "-(real|virtual)$" "" ptx_architecture
+                "${ptx_architecture}")
+        else()
+            set(ptx_architecture 52)
+        endif()
+        get_filename_component(cuda_host_compiler_dir
+            "${CMAKE_CXX_COMPILER}" DIRECTORY)
         add_custom_command(
             OUTPUT "${ptx}"
-            COMMAND "${slangc}" "${source}"
-                -entry avbdConformanceMain -stage compute
-                -target ptx -fp-mode precise -warnings-as-errors all
-                -nvrtc-path "$<TARGET_FILE_DIR:CUDA::nvrtc>/nvrtc"
-                -o "${ptx}"
-            DEPENDS "${source}" "${slangc}" CUDA::nvrtc
+            COMMAND "${CMAKE_CUDA_COMPILER}"
+                --ptx --std=c++17
+                --gpu-architecture=compute_${ptx_architecture}
+                --compiler-bindir "${cuda_host_compiler_dir}"
+                "${cuda_source}" -o "${ptx}"
+            DEPENDS "${cuda_source}" "${CMAKE_CUDA_COMPILER}"
             COMMENT "Compiling the Slang rigid constraint CUDA conformance kernel"
             VERBATIM)
         list(APPEND slang_outputs "${ptx}")
@@ -76,19 +86,6 @@ function(parallel_mater_add_slang_geometry_constraints)
             COMMENT "Validating Slang-generated rigid constraints with the native Metal compiler"
             VERBATIM)
         list(APPEND slang_outputs "${metal_air}")
-    endif()
-
-    if(PARALLEL_MATER_BUILD_D3D12)
-        set(d3d12_binary "${generated_dir}/parallel_mater_geometry_constraints.cso")
-        add_custom_command(
-            OUTPUT "${d3d12_binary}"
-            COMMAND "${PARALLEL_MATER_FXC_EXECUTABLE}"
-                /nologo /T cs_5_1 /E avbdConformanceMain
-                /O3 /Gis /Ges /WX /Fo "${d3d12_binary}" "${hlsl_source}"
-            DEPENDS "${hlsl_source}"
-            COMMENT "Validating Slang-generated rigid constraints with the native D3D12 compiler"
-            VERBATIM)
-        list(APPEND slang_outputs "${d3d12_binary}")
     endif()
 
     add_custom_target(parallel-mater-slang-geometry-constraints ALL

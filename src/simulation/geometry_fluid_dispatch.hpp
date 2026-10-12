@@ -13,10 +13,10 @@ void collide_fluid_with_static_body(
     const std::uint32_t *count, float radius, float spawn_clearance,
     std::uint32_t first_spawned, bool recover_spawn, const void *up,
     const void *body_parameters, const void *body_states, const void *meshes,
+    const void *body_ids,
     std::uint32_t body_index, float particle_mass, bool collect_contacts,
     void *contact_samples, std::uint8_t *contact_flags,
     std::uint32_t fluid_index, std::uint32_t fluid_generation,
-    std::uint32_t body_id_index, std::uint32_t body_id_generation,
     bool apply_paint, const void *paint_fields,
     std::uint32_t paint_field_capacity, const void *paint_rules,
     std::uint32_t paint_rule_capacity) noexcept;

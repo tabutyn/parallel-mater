@@ -19,15 +19,14 @@ void collide_fluid_with_static_body(
     const std::uint32_t *count, float radius, float spawn_clearance,
     std::uint32_t first_spawned, bool recover_spawn, const void *up,
     const void *body_parameters, const void *body_states, const void *meshes,
+    const void *body_ids,
     std::uint32_t body_index, float particle_mass, bool collect_contacts,
     void *contact_samples, std::uint8_t *contact_flags,
     std::uint32_t fluid_index, std::uint32_t fluid_generation,
-    std::uint32_t body_id_index, std::uint32_t body_id_generation,
     bool apply_paint, const void *paint_fields,
     std::uint32_t paint_field_capacity, const void *paint_rules,
     std::uint32_t paint_rule_capacity) noexcept {
     const auto fluid_id = FluidId_0{fluid_index, fluid_generation};
-    const auto body_id = RigidBodyId_0{body_id_index, body_id_generation};
     fluid_static_contacts<<<grid, block, 0U, stream>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous)), foam,
@@ -37,9 +36,10 @@ void collide_fluid_with_static_body(
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(body_states)),
         const_cast<TriangleMeshResource_0 *>(
             as<TriangleMeshResource_0>(meshes)),
+        const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)),
         body_index, particle_mass, collect_contacts,
         as<FluidContactSample_0>(contact_samples), contact_flags,
-        fluid_id, body_id, apply_paint,
+        fluid_id, apply_paint,
         const_cast<PaintFieldResource_0 *>(
             as<PaintFieldResource_0>(paint_fields)),
         paint_field_capacity,

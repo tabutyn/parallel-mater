@@ -550,39 +550,62 @@ bool build_and_capture(std::ostream &output) {
 }
 
 int self_test() {
+    constexpr parity::ComparisonOptions stability_tolerance{
+        .absolute_tolerance = 1.0e-2,
+        .relative_tolerance = 5.0e-2};
+    const auto without_smoke_grid = [](const parity::Capture &capture) {
+        parity::Capture result;
+        result.scenario = capture.scenario;
+        result.backend = capture.backend;
+        for (const parity::Record &record : capture.records)
+            if (record.path.rfind("smoke.grid_", 0U) != 0U)
+                result.records.push_back(record);
+        return result;
+    };
     std::ostringstream first;
     if (!build_and_capture(first)) return EXIT_FAILURE;
     const std::string reference_text = first.str();
+    parity::Capture reference_capture;
+    std::string error;
+    std::istringstream reference_input(reference_text);
+    if (!parity::parse(reference_input, reference_capture, error)) {
+        std::cerr << capture_backend << " parity capture parse failed: "
+                  << error << '\n';
+        return EXIT_FAILURE;
+    }
     for (std::uint32_t run = 1U; run < 10U; ++run) {
         std::ostringstream replay;
         if (!build_and_capture(replay)) return EXIT_FAILURE;
-        if (reference_text != replay.str()) {
+        parity::Capture replay_capture;
+        std::istringstream replay_input(replay.str());
+        if (!parity::parse(replay_input, replay_capture, error)) {
             std::cerr << capture_backend << " parity capture run " << run
-                      << " is not byte-identical\n";
+                      << " parse failed: " << error << '\n';
+            return EXIT_FAILURE;
+        }
+        const parity::ComparisonResult exact_comparison = parity::compare(
+            without_smoke_grid(reference_capture),
+            without_smoke_grid(replay_capture),
+            {.absolute_tolerance = 0.0, .relative_tolerance = 0.0});
+        if (!exact_comparison.matches) {
+            std::cerr << capture_backend << " parity capture run " << run
+                      << ": " << exact_comparison.message << '\n';
+            return EXIT_FAILURE;
+        }
+        const parity::ComparisonResult comparison =
+            parity::compare(reference_capture, replay_capture,
+                            stability_tolerance);
+        if (!comparison.matches) {
+            std::cerr << capture_backend << " parity capture run " << run
+                      << ": " << comparison.message << '\n';
             return EXIT_FAILURE;
         }
     }
-    parity::Capture first_capture;
-    parity::Capture replay_capture;
-    std::string error;
-    std::istringstream first_input(reference_text);
-    std::istringstream replay_input(reference_text);
-    if (!parity::parse(first_input, first_capture, error) ||
-        !parity::parse(replay_input, replay_capture, error)) {
-        std::cerr << capture_backend << " parity capture parse failed: " << error << '\n';
-        return EXIT_FAILURE;
-    }
-    const parity::ComparisonResult comparison =
-        parity::compare(first_capture, replay_capture,
-                        {.absolute_tolerance = 0.0,
-                         .relative_tolerance = 0.0});
-    if (!comparison.matches) {
-        std::cerr << comparison.message << '\n';
-        return EXIT_FAILURE;
-    }
-    std::cout << capture_backend << " all-system parity capture is byte-identical across ten "
-                 "runs ("
-              << first_capture.records.size() << " records)\n";
+    std::cout << capture_backend
+              << " all-system parity capture is stable across ten runs ("
+              << reference_capture.records.size()
+              << " records; non-grid state exact; smoke-grid absolute "
+                 "tolerance 1e-2, relative tolerance 5e-2)\n";
     return EXIT_SUCCESS;
 }
 

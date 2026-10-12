@@ -11,8 +11,9 @@ migration.
 - `world.cu` contains no GPU kernels or direct physics launches.
 - Device and simulation dispatch adapters contain platform services and
   generated-kernel launches only.
-- Backend-specific Metal and DirectCompute physics build options fail at
-  configure time. Vulkan and WebGPU physics are not advertised.
+- The DirectCompute implementation and its platform gallery have been removed.
+  The retired Metal physics build option still fails at configure time; Vulkan
+  and WebGPU physics are not advertised.
 - The retired hand-written CUDA physics kernels have been deleted. CUDA source
   produced by Slang, the thin CUDA device adapter, CUDA interoperability, and
   OptiX drawing remain.

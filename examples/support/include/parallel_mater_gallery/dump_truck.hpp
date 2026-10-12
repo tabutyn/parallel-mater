@@ -9,8 +9,6 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 namespace parallel_mater::metal::gallery {
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-namespace parallel_mater::d3d12::gallery {
 #else
 namespace parallel_mater::gallery {
 #endif
@@ -167,8 +165,6 @@ inline constexpr std::uint32_t default_dump_payload_count = 100U;
 }
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-} // namespace parallel_mater::d3d12::gallery
 #else
 } // namespace parallel_mater::gallery
 #endif

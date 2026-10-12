@@ -397,6 +397,30 @@ int main() {
     CHECK(step_statistics.stepCount >= 1U);
     CHECK(step_statistics.peakActiveBodies == 2U);
 
+    // The gallery's F key enables contact collection and copies the resulting
+    // events through the loader API. Keep this path covered because its count
+    // buffers may reside in GPU-owned managed-memory pages on Windows.
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    step.flags = PM_STEP_COLLECT_CONTACT_EVENTS_BIT;
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    const PmBufferRange contact_output{destination, 0U, 256U};
+    CHECK(pmCmdCopyContactEvents(commands, simulation, &contact_output) ==
+          PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    const auto *contact_header =
+        static_cast<const PmDomainOutputHeader *>(mapped_destination);
+    CHECK(contact_header->activeCount <= contact_header->capacity);
+    CHECK(contact_header->capacity == simulation_info.contactCapacity);
+    CHECK(contact_header->revision >= 2U);
+    CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_SUCCESS);
+    CHECK(execution == PM_SUCCESS);
+
     CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);

@@ -3,8 +3,6 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 #include <parallel_mater/metal.hpp>
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-#include <parallel_mater/d3d12.hpp>
 #else
 #include <parallel_mater/parallel_mater.hpp>
 #endif
@@ -13,8 +11,6 @@
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 namespace parallel_mater::metal::gallery::math {
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-namespace parallel_mater::d3d12::gallery::math {
 #else
 namespace parallel_mater::gallery::math {
 #endif
@@ -61,8 +57,6 @@ namespace parallel_mater::gallery::math {
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery::math
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-} // namespace parallel_mater::d3d12::gallery::math
 #else
 } // namespace parallel_mater::gallery::math
 #endif
