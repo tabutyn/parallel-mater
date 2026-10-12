@@ -10,6 +10,16 @@ include(CheckLanguage)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+function(parallel_mater_enable_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:/W4>)
+    else()
+        target_compile_options(${target} PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
+    endif()
+endfunction()
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(PARALLEL_MATER_LIBRARY_ARCH 64)
 else()
@@ -36,12 +46,8 @@ option(PARALLEL_MATER_BUILD_CUDA
        "Build the CUDA Slang device adapter" ${PARALLEL_MATER_CUDA_DEFAULT})
 option(PARALLEL_MATER_BUILD_METAL
        "Build the retired Apple Metal physics implementation" OFF)
-option(PARALLEL_MATER_BUILD_D3D12
-       "Build the retired Windows DirectCompute physics implementation" OFF)
 option(PARALLEL_MATER_BUILD_METAL_GALLERY
        "Build the native Metal gallery" OFF)
-option(PARALLEL_MATER_BUILD_D3D12_GALLERY
-       "Build the native D3D12 gallery" OFF)
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
@@ -63,7 +69,7 @@ option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
-if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_D3D12)
+if(PARALLEL_MATER_BUILD_METAL)
     message(FATAL_ERROR
         "Backend-specific physics implementations are retired. Configure the "
         "shared command API with a validated Slang device adapter instead.")
@@ -78,8 +84,7 @@ if(PARALLEL_MATER_SLANG_TEST_BUILD)
 endif()
 
 # Ship prebuilt icons so ordinary builds need no image conversion tools.
-if(WIN32 AND (PARALLEL_MATER_BUILD_D3D12_GALLERY OR
-              PARALLEL_MATER_BUILD_OPTIX_GALLERY))
+if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     enable_language(RC)
     set(PARALLEL_MATER_GALLERY_ICON
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/ParallelMater.ico")
@@ -96,9 +101,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY AND NOT PARALLEL_MATER_BUILD_CUDA)
 endif()
 if(PARALLEL_MATER_BUILD_METAL_GALLERY AND NOT PARALLEL_MATER_BUILD_METAL)
     message(FATAL_ERROR "The Metal gallery requires PARALLEL_MATER_BUILD_METAL")
-endif()
-if(PARALLEL_MATER_BUILD_D3D12_GALLERY AND NOT PARALLEL_MATER_BUILD_D3D12)
-    message(FATAL_ERROR "The D3D12 gallery requires PARALLEL_MATER_BUILD_D3D12")
 endif()
 if(PARALLEL_MATER_BUILD_BENCHMARKS AND
    NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
@@ -142,7 +144,6 @@ set(PARALLEL_MATER_INSTALL_TARGETS)
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
    PARALLEL_MATER_BUILD_METAL_GALLERY OR
-   PARALLEL_MATER_BUILD_D3D12_GALLERY OR
    (PARALLEL_MATER_BUILD_CUDA AND BUILD_TESTING))
     FetchContent_Declare(
         parallel_mater_cgltf
@@ -745,8 +746,7 @@ if(Vulkan_FOUND)
     target_include_directories(parallel-mater-vulkan-executor
         PUBLIC src include ${Vulkan_INCLUDE_DIRS})
     target_link_libraries(parallel-mater-vulkan-executor PUBLIC Vulkan::Vulkan)
-    target_compile_options(parallel-mater-vulkan-executor
-        PRIVATE -Wall -Wextra -Wpedantic)
+    parallel_mater_enable_warnings(parallel-mater-vulkan-executor)
     target_sources(parallel-mater-driver-slang-cuda PRIVATE
         src/api/interop_vulkan.cpp)
     target_include_directories(parallel-mater-driver-slang-cuda PRIVATE ${Vulkan_INCLUDE_DIRS})
@@ -879,6 +879,7 @@ target_include_directories(parallel-mater
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE ${PARALLEL_MATER_API_GENERATED_DIR})
 target_compile_definitions(parallel-mater PRIVATE
+    PARALLEL_MATER_LOADER_IMPLEMENTATION=1
     PARALLEL_MATER_SYSTEM_DRIVER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/drivers.d"
     PARALLEL_MATER_SYSTEM_LAYER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/layers.d")
 if(Vulkan_FOUND)
@@ -894,8 +895,7 @@ else()
 endif()
 
 set(PARALLEL_MATER_BUILD_MANIFEST_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/manifests")
-file(MAKE_DIRECTORY "${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+    "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/manifests")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
@@ -910,10 +910,11 @@ if(BUILD_TESTING)
         CXX_STANDARD_REQUIRED YES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES)
+    target_compile_definitions(parallel-mater-mock-driver PRIVATE
+        PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
     target_include_directories(parallel-mater-mock-driver PRIVATE include)
     set(PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR
         "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/multi")
-    file(MAKE_DIRECTORY "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}")
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}/slang-cuda.json"
         CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
@@ -984,8 +985,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_features(parallel-mater-asset-preparation PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-asset-preparation PUBLIC include)
     target_link_libraries(parallel-mater-asset-preparation PRIVATE CUDA::cudart)
-    target_compile_options(parallel-mater-asset-preparation
-                           PRIVATE -Wall -Wextra -Wpedantic)
+    parallel_mater_enable_warnings(parallel-mater-asset-preparation)
 
     add_library(parallel-mater-gallery-scene STATIC
                 examples/gallery/scene_builder.cpp
@@ -1006,8 +1006,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE parallel-mater-asset-preparation)
     target_compile_definitions(parallel-mater-gallery-scene
         PRIVATE PARALLEL_MATER_COMMAND_GALLERY_ONLY=1)
-    target_compile_options(
-        parallel-mater-gallery-scene PRIVATE -Wall -Wextra -Wpedantic)
+    parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
     execute_process(
         COMMAND git rev-parse HEAD
@@ -1028,8 +1027,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_definitions(parallel-mater-conformance PRIVATE
             PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
             PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-        target_compile_options(parallel-mater-conformance
-                               PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-conformance)
     endif()
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
@@ -1038,25 +1036,20 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_link_libraries(
             parallel-mater-rigid-scene-benchmark
             PRIVATE parallel-mater-gallery-scene)
-        target_compile_options(
-            parallel-mater-rigid-scene-benchmark
-            PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-rigid-scene-benchmark)
 
         add_executable(parallel-mater-rigid-capture-benchmark
                        benchmarks/rigid_capture.cpp)
         target_link_libraries(parallel-mater-rigid-capture-benchmark
                               PRIVATE parallel-mater-gallery-scene)
-        target_compile_options(parallel-mater-rigid-capture-benchmark
-                               PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-rigid-capture-benchmark)
 
         add_executable(parallel-mater-dump-benchmark
                        benchmarks/dump_scene.cpp)
         target_link_libraries(
             parallel-mater-dump-benchmark
             PRIVATE parallel-mater-gallery-scene)
-        target_compile_options(
-            parallel-mater-dump-benchmark
-            PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-dump-benchmark)
 
         add_executable(parallel-mater-fluid-rigid-benchmark
                        benchmarks/fluid_rigid_scene.cpp)
@@ -1066,9 +1059,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_definitions(
             parallel-mater-fluid-rigid-benchmark PRIVATE
             PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
-        target_compile_options(
-            parallel-mater-fluid-rigid-benchmark
-            PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-fluid-rigid-benchmark)
 
         add_executable(parallel-mater-pegs-benchmark
                        benchmarks/pegs_scene.cpp)
@@ -1082,7 +1073,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     FetchContent_Declare(
         parallel_mater_optix_dev
         GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
-        GIT_TAG f1f6dd803f3159992d248178f6e09421c6eb8b6d
+        GIT_TAG fff65c2a7c592f1ea5f1661ad7d2381cf965f9bd
         GIT_SHALLOW TRUE)
     FetchContent_GetProperties(parallel_mater_optix_dev)
     if(NOT parallel_mater_optix_dev_POPULATED)
@@ -1090,10 +1081,32 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     find_package(OpenGL REQUIRED)
-    find_package(glfw3 3.3 REQUIRED)
+    find_package(glfw3 3.3 QUIET)
+    if(NOT TARGET glfw)
+        set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+        FetchContent_Declare(
+            parallel_mater_glfw
+            GIT_REPOSITORY https://github.com/glfw/glfw.git
+            GIT_TAG 3.4
+            GIT_SHALLOW TRUE)
+        FetchContent_MakeAvailable(parallel_mater_glfw)
+    endif()
 
     set(PARALLEL_MATER_OPTIX_PTX
         ${CMAKE_CURRENT_BINARY_DIR}/generated/parallel_mater_optix.ptx)
+    if(CMAKE_CUDA_ARCHITECTURES)
+        set(parallel_mater_optix_architectures ${CMAKE_CUDA_ARCHITECTURES})
+        list(GET parallel_mater_optix_architectures 0
+            parallel_mater_optix_architecture)
+        string(REGEX REPLACE "-(real|virtual)$" ""
+            parallel_mater_optix_architecture
+            "${parallel_mater_optix_architecture}")
+    else()
+        set(parallel_mater_optix_architecture 52)
+    endif()
     add_custom_command(
         OUTPUT ${PARALLEL_MATER_OPTIX_PTX}
         COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -1102,7 +1115,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             ${CMAKE_CUDA_COMPILER}
             --ptx
             --std=c++17
-            --gpu-architecture=compute_75
+            --gpu-architecture=compute_${parallel_mater_optix_architecture}
             --use_fast_math
             --generate-line-info
             -I${parallel_mater_optix_dev_SOURCE_DIR}/include
@@ -1134,10 +1147,11 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery-renderer
         PUBLIC parallel-mater-gallery-scene
         PRIVATE CUDA::cuda_driver CUDA::cudart ${CMAKE_DL_LIBS})
-    target_compile_options(
-        parallel-mater-gallery-renderer PRIVATE -Wall -Wextra -Wpedantic)
+    parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
     target_compile_definitions(parallel-mater-gallery-renderer
-        PRIVATE PARALLEL_MATER_COMMAND_GALLERY_ONLY=1)
+        PRIVATE
+            PARALLEL_MATER_COMMAND_GALLERY_ONLY=1
+            $<$<PLATFORM_ID:Windows>:NOMINMAX>)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
@@ -1145,14 +1159,13 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         target_compile_definitions(parallel-mater-dump-truck-benchmark PRIVATE
             PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
-        target_compile_options(parallel-mater-dump-truck-benchmark PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-dump-truck-benchmark)
         add_executable(parallel-mater-rigid-frame-benchmark benchmarks/rigid_frame.cpp)
         target_link_libraries(parallel-mater-rigid-frame-benchmark
                               PRIVATE parallel-mater-gallery-renderer)
         target_compile_definitions(parallel-mater-rigid-frame-benchmark PRIVATE
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
-        target_compile_options(parallel-mater-rigid-frame-benchmark
-                               PRIVATE -Wall -Wextra -Wpedantic)
+        parallel_mater_enable_warnings(parallel-mater-rigid-frame-benchmark)
     endif()
 
     add_library(parallel-mater-gallery-application STATIC
@@ -1934,280 +1947,6 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS AND
         PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CUDA_CONFORMANCE_SOURCE_COMMIT}")
 endif()
 endif() # PARALLEL_MATER_BUILD_CUDA
-
-if(PARALLEL_MATER_BUILD_D3D12)
-    if(NOT WIN32)
-        message(FATAL_ERROR "PARALLEL_MATER_BUILD_D3D12 requires Windows")
-    endif()
-
-    set(PARALLEL_MATER_FXC_HINTS
-        "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/bin/x64"
-        "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/bin")
-    file(GLOB PARALLEL_MATER_WINDOWS_SDK_BIN_DIRS
-         LIST_DIRECTORIES TRUE
-         "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/bin/*")
-    foreach(sdk_bin_dir IN LISTS PARALLEL_MATER_WINDOWS_SDK_BIN_DIRS)
-        if(IS_DIRECTORY "${sdk_bin_dir}/x64")
-            list(APPEND PARALLEL_MATER_FXC_HINTS "${sdk_bin_dir}/x64")
-        endif()
-    endforeach()
-    list(REVERSE PARALLEL_MATER_FXC_HINTS)
-    find_program(PARALLEL_MATER_FXC_EXECUTABLE
-        NAMES fxc fxc.exe
-        HINTS ${PARALLEL_MATER_FXC_HINTS}
-        REQUIRED)
-    set(PARALLEL_MATER_D3D12_GENERATED_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/d3d12)
-    set(PARALLEL_MATER_D3D12_SHADER_HEADERS)
-    foreach(shader IN ITEMS integrate prepare generate generate_guided generate_warp color finalize clear compact_count compact_prefix compact_scatter contacts contacts_warp contact_prepare contact_events)
-        set(shader_header
-            ${PARALLEL_MATER_D3D12_GENERATED_DIR}/pm_d3d12_${shader}.h)
-        set(shader_binary ${PARALLEL_MATER_D3D12_GENERATED_DIR}/pm_d3d12_${shader}.cso)
-        set(shader_optimization /O3)
-        set(shader_source ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d12/rigid.hlsl)
-        if(shader MATCHES "^compact_")
-            set(shader_source ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d12/compact.hlsl)
-        elseif(shader MATCHES "^contacts")
-            set(shader_source ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d12/contacts.hlsl)
-        elseif(shader STREQUAL "contact_prepare" OR shader STREQUAL "contact_events")
-            set(shader_source ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d12/contact_prepare.hlsl)
-        endif()
-        if(shader STREQUAL "generate" OR shader STREQUAL "prepare" OR
-           shader STREQUAL "color" OR shader STREQUAL "finalize" OR
-           shader STREQUAL "contact_prepare" OR shader MATCHES "^contacts")
-            # FXC's higher optimization levels take prohibitively long on the
-            # regular BVH kernel and serial preparation/contact solver. The
-            # guided sweep is compiled separately; /Gis preserves solve math.
-            set(shader_optimization /O1)
-        endif()
-        add_custom_command(
-            OUTPUT ${shader_header}
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    ${PARALLEL_MATER_D3D12_GENERATED_DIR}
-            COMMAND ${PARALLEL_MATER_FXC_EXECUTABLE}
-                    /nologo /T cs_5_1 /E rigid_${shader}
-                    ${shader_optimization} /Gis /Ges /WX
-                    /Fo ${shader_binary}
-                    ${shader_source}
-            COMMAND ${CMAKE_COMMAND}
-                    -DINPUT=${shader_binary} -DOUTPUT=${shader_header}
-                    -DSYMBOL=pm_d3d12_${shader}
-                    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShader.cmake
-            BYPRODUCTS ${shader_binary}
-            DEPENDS src/d3d12/rigid.hlsl ${shader_source} cmake/EmbedShader.cmake
-            VERBATIM)
-        list(APPEND PARALLEL_MATER_D3D12_SHADER_HEADERS ${shader_header})
-    endforeach()
-    set_source_files_properties(${PARALLEL_MATER_D3D12_SHADER_HEADERS}
-                                PROPERTIES GENERATED TRUE)
-
-    add_library(parallel-mater-d3d12 STATIC
-        src/d3d12/world.cpp
-        src/d3d12/stubs.cpp
-        src/fluid_geometry.cpp
-        src/fluid_source.cpp
-        src/soft_body_geometry.cpp
-        src/rope_geometry.cpp
-        ${PARALLEL_MATER_D3D12_SHADER_HEADERS})
-    add_library(ParallelMater::d3d12 ALIAS parallel-mater-d3d12)
-    target_compile_features(parallel-mater-d3d12 PUBLIC cxx_std_20)
-    target_compile_definitions(parallel-mater-d3d12
-        PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX PARALLEL_MATER_D3D12_GEOMETRY=1)
-    target_include_directories(parallel-mater-d3d12
-        PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        PRIVATE ${PARALLEL_MATER_D3D12_GENERATED_DIR})
-    target_link_libraries(parallel-mater-d3d12
-                          PUBLIC d3d12 dxgi dxguid)
-    if(MSVC)
-        target_compile_options(parallel-mater-d3d12 PRIVATE
-                               /W4 /permissive- /EHsc /Zc:__cplusplus)
-    endif()
-    set_target_properties(parallel-mater-d3d12 PROPERTIES
-        EXPORT_NAME d3d12
-        OUTPUT_NAME parallel-mater-d3d12)
-    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-d3d12)
-
-    if(BUILD_TESTING)
-        add_executable(parallel-mater-d3d12-api-contract-tests
-                       tests/d3d12/api_contract.cpp)
-        target_link_libraries(parallel-mater-d3d12-api-contract-tests
-                              PRIVATE ParallelMater::d3d12)
-        target_compile_features(parallel-mater-d3d12-api-contract-tests
-                                PRIVATE cxx_std_20)
-        add_test(NAME parallel-mater-d3d12-api-contract-tests
-                 COMMAND parallel-mater-d3d12-api-contract-tests)
-
-        add_executable(parallel-mater-d3d12-foundation-tests
-                       tests/d3d12/foundation_tests.cpp)
-        target_link_libraries(parallel-mater-d3d12-foundation-tests
-                              PRIVATE ParallelMater::d3d12)
-        target_compile_features(parallel-mater-d3d12-foundation-tests
-                                PRIVATE cxx_std_20)
-        add_test(NAME parallel-mater-d3d12-foundation-tests
-                 COMMAND parallel-mater-d3d12-foundation-tests)
-        set_tests_properties(parallel-mater-d3d12-foundation-tests
-                             PROPERTIES LABELS "d3d12;rigid")
-    endif()
-
-    if(PARALLEL_MATER_BUILD_D3D12_GALLERY)
-        find_package(glfw3 3.3 QUIET)
-        if(NOT TARGET glfw)
-            set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-            set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-            set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-            set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-            FetchContent_Declare(
-                parallel_mater_glfw
-                GIT_REPOSITORY https://github.com/glfw/glfw.git
-                GIT_TAG 3.4
-                GIT_SHALLOW TRUE)
-            FetchContent_MakeAvailable(parallel_mater_glfw)
-        endif()
-        set(PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS)
-        foreach(stage IN ITEMS vs ps ui_vs ui_ps)
-            string(REGEX REPLACE "^ui_" "" shader_profile ${stage})
-            set(gallery_shader_header
-                ${PARALLEL_MATER_D3D12_GENERATED_DIR}/pm_d3d12_gallery_${stage}.h)
-            add_custom_command(
-                OUTPUT ${gallery_shader_header}
-                COMMAND ${CMAKE_COMMAND} -E make_directory
-                        ${PARALLEL_MATER_D3D12_GENERATED_DIR}
-                COMMAND ${PARALLEL_MATER_FXC_EXECUTABLE}
-                        /nologo /T ${shader_profile}_5_1 /E gallery_${stage}
-                        /O3 /Gis /Ges /WX
-                        /Fh ${gallery_shader_header}
-                        /Vn pm_d3d12_gallery_${stage}
-                        ${CMAKE_CURRENT_SOURCE_DIR}/examples/d3d12_gallery/render.hlsl
-                DEPENDS examples/d3d12_gallery/render.hlsl
-                VERBATIM)
-            list(APPEND PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS
-                 ${gallery_shader_header})
-        endforeach()
-        set_source_files_properties(
-            ${PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS}
-            PROPERTIES GENERATED TRUE)
-
-        add_library(parallel-mater-d3d12-gallery-scene STATIC
-            examples/support/scene.cpp
-            examples/support/rope_render.cpp)
-        target_compile_features(parallel-mater-d3d12-gallery-scene
-                                PUBLIC cxx_std_20)
-        target_compile_definitions(parallel-mater-d3d12-gallery-scene
-                                   PUBLIC PARALLEL_MATER_GALLERY_D3D12=1)
-        target_include_directories(parallel-mater-d3d12-gallery-scene
-            PUBLIC examples/support/include
-            PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
-        target_link_libraries(parallel-mater-d3d12-gallery-scene
-                              PUBLIC ParallelMater::d3d12)
-        if(MSVC)
-            target_compile_options(parallel-mater-d3d12-gallery-scene
-                                   PRIVATE /W4 /permissive- /EHsc)
-        endif()
-
-        add_executable(parallel-mater-d3d12-gallery
-            examples/d3d12_gallery/main.cpp
-            ${PARALLEL_MATER_D3D12_GALLERY_SHADER_HEADERS}
-            "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
-        target_compile_features(parallel-mater-d3d12-gallery PRIVATE cxx_std_20)
-        target_include_directories(parallel-mater-d3d12-gallery
-                                   PRIVATE ${PARALLEL_MATER_D3D12_GENERATED_DIR})
-        target_compile_definitions(parallel-mater-d3d12-gallery PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX PARALLEL_MATER_GALLERY_D3D12=1
-            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
-            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
-            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
-            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
-            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb"
-            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
-        target_link_libraries(parallel-mater-d3d12-gallery PRIVATE
-            parallel-mater-d3d12-gallery-scene glfw d3d12 dxgi dxguid)
-        if(MSVC)
-            target_compile_options(parallel-mater-d3d12-gallery
-                                   PRIVATE /W4 /permissive- /EHsc)
-        endif()
-
-        add_executable(parallel-mater-d3d12-launcher WIN32
-            examples/d3d12_gallery/launcher.cpp
-            "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
-        target_compile_features(parallel-mater-d3d12-launcher PRIVATE cxx_std_20)
-        target_link_libraries(parallel-mater-d3d12-launcher PRIVATE shell32 ole32 user32)
-        set_target_properties(parallel-mater-d3d12-launcher PROPERTIES OUTPUT_NAME "Parallel-Mater")
-        set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-        include(InstallRequiredSystemLibraries)
-        set(PARALLEL_MATER_D3D12_RUNTIME_DIRECTORY "")
-        if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
-            list(GET CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS 0 gallery_runtime)
-            get_filename_component(PARALLEL_MATER_D3D12_RUNTIME_DIRECTORY "${gallery_runtime}" DIRECTORY)
-            add_custom_command(TARGET parallel-mater-d3d12-launcher POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
-                        $<TARGET_FILE_DIR:parallel-mater-d3d12-launcher>
-                VERBATIM)
-        endif()
-        add_custom_target(install-d3d12-gallery
-            COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
-                -File ${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1
-                -BuildDirectory $<TARGET_FILE_DIR:parallel-mater-d3d12-gallery>
-                -Version ${PROJECT_VERSION}
-            DEPENDS parallel-mater-d3d12-gallery parallel-mater-d3d12-launcher
-            COMMENT "Installing Parallel-Mater for the current user and adding its Start menu entry"
-            VERBATIM)
-
-        if(BUILD_TESTING)
-            add_executable(parallel-mater-d3d12-gallery-controls tests/d3d12/gallery_controls.cpp)
-            target_link_libraries(parallel-mater-d3d12-gallery-controls PRIVATE parallel-mater-d3d12-gallery-scene)
-            add_test(NAME parallel-mater-d3d12-gallery-controls COMMAND parallel-mater-d3d12-gallery-controls)
-            execute_process(
-                COMMAND git rev-parse HEAD
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                OUTPUT_VARIABLE PARALLEL_MATER_D3D12_SOURCE_COMMIT
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                ERROR_QUIET)
-            if(NOT PARALLEL_MATER_D3D12_SOURCE_COMMIT)
-                set(PARALLEL_MATER_D3D12_SOURCE_COMMIT unknown)
-            endif()
-            add_executable(parallel-mater-d3d12-conformance
-                conformance/v1/src/d3d12_runner.cpp)
-            target_link_libraries(parallel-mater-d3d12-conformance PRIVATE
-                parallel-mater-conformance-registry
-                parallel-mater-d3d12-gallery-scene d3d12 dxgi)
-            target_compile_features(parallel-mater-d3d12-conformance
-                                    PRIVATE cxx_std_20)
-            target_compile_definitions(parallel-mater-d3d12-conformance PRIVATE
-                PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-                PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_D3D12_SOURCE_COMMIT}")
-            add_test(NAME parallel-mater-d3d12-conformance-inputs
-                     COMMAND parallel-mater-d3d12-conformance --check-inputs)
-            add_test(NAME parallel-mater-d3d12-conformance-cuda-goldens
-                COMMAND ${Python3_EXECUTABLE}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/reproduce_d3d12.py
-                    --runner $<TARGET_FILE:parallel-mater-d3d12-conformance>
-                    --comparator ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/compare.py
-                    --cases ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases
-                    --golden ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/golden/cuda
-                    --repetitions 10)
-            set_tests_properties(
-                parallel-mater-d3d12-conformance-cuda-goldens
-                PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800 RUN_SERIAL TRUE
-                           LABELS "d3d12;conformance;rigid")
-            add_test(NAME parallel-mater-d3d12-rigid-gallery-validation
-                COMMAND parallel-mater-d3d12-gallery
-                    --warp --all-rigid-scenes --headless --validate
-                    --repeat 10 --frames 1 --dump-spheres 32
-                    --width 320 --height 240
-                    --output ${CMAKE_CURRENT_BINARY_DIR}/d3d12-gallery-captures)
-            set_tests_properties(parallel-mater-d3d12-rigid-gallery-validation
-                PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE
-                           LABELS "d3d12;gallery;rigid")
-        endif()
-    endif()
-endif()
 
 if(PARALLEL_MATER_BUILD_METAL)
     if(NOT APPLE)

@@ -97,6 +97,24 @@ constexpr std::uint32_t k_soft_contact_cleanup_passes = 8U;
     return failure(StatusCode::cuda_failure, message, error);
 }
 
+template <typename T>
+[[nodiscard]] Status read_device_value(cudaStream_t stream,
+                                       const T *source,
+                                       T &destination,
+                                       const char *message) noexcept {
+    cudaError_t error = cudaMemcpyAsync(&destination, source,
+        sizeof(destination), cudaMemcpyDeviceToHost, stream);
+    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+    return error == cudaSuccess ? success() : cuda_failure(error, message);
+}
+
+[[nodiscard]] Status read_device_u32(cudaStream_t stream,
+                                     const std::uint32_t *source,
+                                     std::uint32_t &destination,
+                                     const char *message) noexcept {
+    return read_device_value(stream, source, destination, message);
+}
+
 __host__ __device__ Vec3 add(Vec3 a, Vec3 b) noexcept {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
@@ -210,11 +228,20 @@ enum class TimingStage : std::uint8_t {
     Status debug_status{};
     if (error == cudaSuccess && completion->on_complete)
         debug_status = completion->on_complete();
-    if (error == cudaSuccess && completion->fluid_neighbor_overflow != nullptr &&
-        *completion->fluid_neighbor_overflow != 0U) {
-        completion->completion_status = failure(
-            StatusCode::capacity_exceeded,
-            "fluid neighbor count exceeded maximum_neighbors");
+    if (error == cudaSuccess && completion->fluid_neighbor_overflow != nullptr) {
+        std::uint32_t overflow = 0U;
+        const Status overflow_status = read_device_u32(
+            nullptr, completion->fluid_neighbor_overflow, overflow,
+            "fluid neighbor overflow readback failed");
+        if (!overflow_status) {
+            completion->completion_status = overflow_status;
+        } else if (overflow != 0U) {
+            completion->completion_status = failure(
+                StatusCode::capacity_exceeded,
+                "fluid neighbor count exceeded maximum_neighbors");
+        } else if (!debug_status) {
+            completion->completion_status = debug_status;
+        }
     } else if (!debug_status) {
         completion->completion_status = debug_status;
     }
@@ -1222,7 +1249,11 @@ struct World::Impl {
                 const auto &owner = fluids[slot];
                 if (!owner || !owner->alive) continue;
                 const FluidStorage &fluid = *owner;
-                const std::uint32_t count = *fluid.count;
+                std::uint32_t count{};
+                const auto count_status = read_device_u32(
+                    nullptr, fluid.count, count,
+                    "physics debug fluid count readback failed");
+                if (!count_status) return count_status;
                 output.fluid_particles.reserve(
                     output.fluid_particles.size() + count);
                 for (std::uint32_t index = 0U; index < count; ++index)
@@ -2065,7 +2096,10 @@ Status World::fluid_view(FluidId id, FluidDeviceView &output) const noexcept {
     if (!(status = impl_->validate_handle(id, fluid))) return status;
     if (impl_->frame && !impl_->frame->acknowledged)
         return failure(StatusCode::busy, "fluid view requires a completed frame");
-    const std::uint32_t count = *fluid->count;
+    std::uint32_t count{};
+    status = read_device_u32(nullptr, fluid->count, count,
+                             "fluid view count readback failed");
+    if (!status) return status;
     output = {{fluid->positions, count}, {fluid->velocities, count},
               {fluid->forces, count}, {fluid->ids, count},
               {fluid->foam, count}, {fluid->temperatures, count},
@@ -2330,6 +2364,21 @@ Status World::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
     if (impl_->frame && !impl_->frame->acknowledged)
         return failure(StatusCode::busy, "smoke view requires a completed frame");
     const auto &smoke = *impl_->smokes[id.index];
+    float pressure_residual = 0.0F;
+    if (smoke.grid.resolution != 0U) {
+        float residual_max = 0.0F;
+        float rhs_max = 0.0F;
+        cudaError_t error = cudaMemcpy(&residual_max, smoke.grid.residual_max,
+                                       sizeof(residual_max),
+                                       cudaMemcpyDeviceToHost);
+        if (error == cudaSuccess) {
+            error = cudaMemcpy(&rhs_max, smoke.grid.rhs_max, sizeof(rhs_max),
+                               cudaMemcpyDeviceToHost);
+        }
+        if (error != cudaSuccess)
+            return cuda_failure(error, "smoke pressure residual readback failed");
+        pressure_residual = residual_max / fmaxf(rhs_max, 1.0e-5F);
+    }
     output = {{smoke.positions, smoke.count}, {smoke.velocities, smoke.count},
         {smoke.ages, smoke.count}, {smoke.number_densities, smoke.count},
         {smoke.pressures, smoke.count}, {smoke.vorticities, smoke.count},
@@ -2344,10 +2393,7 @@ Status World::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
         {smoke.grid.divergence, smoke.grid.cell_count},
         smoke.grid.resolution, smoke.grid.height,
         smoke.grid.minimum, smoke.grid.spacing,
-        smoke.grid.resolution != 0U
-            ? *smoke.grid.residual_max /
-                fmaxf(*smoke.grid.rhs_max, 1.0e-5F)
-            : 0.0F};
+        pressure_residual};
     return success();
 }
 
@@ -3412,10 +3458,16 @@ Status World::paint_field_view(PaintFieldId id,
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
-        !impl_->paint_fields[id.index].alive ||
-        impl_->paint_fields[id.index].generation != id.generation)
+        impl_->paint_fields == nullptr)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
-    const PaintFieldResource &field = impl_->paint_fields[id.index];
+    PaintFieldResource field{};
+    const cudaError_t error = cudaMemcpy(
+        &field, &impl_->paint_fields[id.index], sizeof(field),
+        cudaMemcpyDeviceToHost);
+    if (error != cudaSuccess)
+        return cuda_failure(error, "paint field view readback failed");
+    if (!field.alive || field.generation != id.generation)
+        return failure(StatusCode::invalid_handle, "paint field handle is stale");
     output = {{field.pixels, static_cast<std::uint64_t>(field.options.width) *
                                  field.options.height},
               field.options.width, field.options.height, impl_->revision};
@@ -5887,16 +5939,35 @@ Status World::read_rigid_constraint_state(
         status = wait_for_completion(impl_->frame);
         if (!status) return status;
     }
-    RigidConstraintResource *resource = nullptr;
-    status = impl_->validate_handle(id, resource);
-    if (!status) return status;
+    if (id.index >= impl_->options.rigid_constraint_capacity ||
+        impl_->rigid_constraints == nullptr) {
+        return failure(StatusCode::invalid_handle,
+                       "rigid constraint handle index is invalid");
+    }
+    RigidConstraintResource *resource = &impl_->rigid_constraints[id.index];
     RigidConstraintState temporary{};
+    std::uint32_t generation = 0U;
+    bool alive = false;
     cudaError_t error = cudaMemcpyAsync(
         &temporary, &resource->state, sizeof(temporary),
         cudaMemcpyDeviceToHost, stream);
-    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
+    if (error == cudaSuccess) {
+        error = cudaMemcpyAsync(&generation, &resource->generation,
+                                sizeof(generation), cudaMemcpyDeviceToHost,
+                                stream);
+    }
+    if (error == cudaSuccess) {
+        error = cudaMemcpyAsync(&alive, &resource->alive, sizeof(alive),
+                                cudaMemcpyDeviceToHost, stream);
+    }
+    const cudaError_t synchronization_error = cudaStreamSynchronize(stream);
+    if (error == cudaSuccess) error = synchronization_error;
     if (error != cudaSuccess)
         return cuda_failure(error, "rigid constraint state readback failed");
+    if (!alive || generation != id.generation) {
+        return failure(StatusCode::invalid_handle,
+                       "rigid constraint handle is stale");
+    }
     output = temporary;
     return success();
 }
@@ -6141,8 +6212,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             std::uint32_t body{};
             status = impl_->validate_handle(coupling->options.body, body);
             if (!status) return status;
-            moving_triangle_boundary |=
-                impl_->parameters[body].motion != MotionType::static_body;
+            // Rigid metadata lives in GPU-managed storage. Treat every active
+            // coupling as moving rather than faulting on a host dereference.
+            moving_triangle_boundary = true;
         }
         for (const auto &coupling : impl_->smoke_soft_body_couplings)
             moving_triangle_boundary |= coupling && coupling->alive &&
@@ -6164,12 +6236,20 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             std::uint32_t body{};
             status = impl_->validate_handle(coupling->options.body, body);
             if (!status) return status;
-            const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
-            const auto triangles = mesh.index_count / 3U;
+            BodyParameters parameters{};
+            status = read_device_value(stream, impl_->parameters + body,
+                parameters, "failed to read smoke rigid-body parameters");
+            if (!status) return status;
+            const auto *mesh = impl_->meshes + parameters.mesh.index;
+            TriangleMeshResource mesh_metadata{};
+            status = read_device_value(stream, mesh, mesh_metadata,
+                "failed to read smoke rigid-body mesh metadata");
+            if (!status) return status;
+            const auto triangles = mesh_metadata.index_count / 3U;
             for (int pass = 0; pass < raster_passes; ++pass)
                 simulation::raster_smoke_grid_rigid_body(
                     (triangles + 127U) / 128U, 128U, stream,
-                    &mesh, impl_->states[impl_->current_state], body,
+                    &mesh_metadata, impl_->states[impl_->current_state], body,
                     dispatch_field, dispatch_boundary, pass != 0);
         }
         for (const auto &coupling : impl_->smoke_soft_body_couplings) {
@@ -6426,19 +6506,18 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         });
     const bool has_smoke = std::any_of(impl_->smokes.begin(), impl_->smokes.end(),
         [](const auto &smoke) { return smoke && smoke->alive; });
-    bool any_moving_body = false;
-    if (impl_->fluid_count != 0U || has_smoke) {
-        for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
-            any_moving_body |= impl_->parameters[body].motion !=
-                               MotionType::static_body;
-        if (any_moving_body) {
-            error = cudaMemcpyAsync(impl_->fluid_previous_states,
-                impl_->states[impl_->current_state],
-                impl_->rigid_body_count * sizeof(RigidBodyState),
-                cudaMemcpyDeviceToDevice, stream);
-            if (error != cudaSuccess)
-                return cuda_failure(error, "fluid body state copy failed");
-        }
+    // Body parameters live in GPU-managed storage. Reading motion types here
+    // can fault on Windows while the GPU owns those pages, so conservatively
+    // run the rigid coupling path whenever rigid bodies exist.
+    const bool has_rigid_bodies = impl_->rigid_body_count != 0U;
+    if ((impl_->fluid_count != 0U || has_smoke) &&
+        has_rigid_bodies) {
+        error = cudaMemcpyAsync(impl_->fluid_previous_states,
+            impl_->states[impl_->current_state],
+            impl_->rigid_body_count * sizeof(RigidBodyState),
+            cudaMemcpyDeviceToDevice, stream);
+        if (error != cudaSuccess)
+            return cuda_failure(error, "fluid body state copy failed");
     }
     const float substep_timestep =
         options.timestep / static_cast<float>(options.substeps);
@@ -7597,7 +7676,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
     }
 
-    if (any_moving_body && impl_->fluid_count != 0U) {
+    if (impl_->rigid_body_count != 0U && impl_->fluid_count != 0U) {
         simulation::calculate_fluid_body_bounds(
             block_count, block_size, stream,
             impl_->parameters, impl_->fluid_previous_states,
@@ -7635,7 +7714,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
             continue;
         FluidStorage &fluid = *impl_->fluids[fluid_index];
         const FluidId fluid_id{fluid_index, fluid.generation};
-        std::uint32_t live = *fluid.count;
+        std::uint32_t live{};
+        status = read_device_u32(stream, fluid.count, live,
+                                 "fluid count readback failed");
+        if (!status) return status;
         const std::uint32_t first_spawned = live;
         bool spawned = false;
         const std::uint32_t blocks =
@@ -7680,9 +7762,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         }
         if (has_sources) {
             // One readback per fluid, never one per sample. No frame allocation.
-            error = cudaStreamSynchronize(stream);
-            if (error != cudaSuccess) return cuda_failure(error, "fluid source emission failed");
-            live = *fluid.count;
+            status = read_device_u32(stream, fluid.count, live,
+                                     "fluid source emission failed");
+            if (!status) return status;
             const auto amount = live - first_spawned;
             spawned = amount != 0;
             fluid.next_id += amount;
@@ -7710,7 +7792,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 : diameter * diameter * diameter);
         const std::uint32_t body_words =
             (impl_->options.rigid_body_capacity + 63U) / 64U;
-        if (any_moving_body) {
+        if (has_rigid_bodies) {
             error = cudaMemsetAsync(impl_->fluid_body_masks, 0,
                 k_fluid_body_buckets * body_words * sizeof(unsigned long long),
                 stream);
@@ -7975,7 +8057,7 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     cloth.indices, cloth.index_count / 3U,
                     cloth.orientation);
             }
-            if (any_moving_body) {
+            if (has_rigid_bodies) {
                 error = cudaMemsetAsync(impl_->fluid_body_contact_flags, 0,
                     impl_->rigid_body_count * sizeof(std::uint32_t), stream);
                 if (error != cudaSuccess)
@@ -8014,14 +8096,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 status = record_timing_stage(TimingStage::fluid_moving_contacts, 3U);
                 if (!status) return status;
             }
-            bool any_static_body = false;
             const Vec3 static_contact_up = normalized_or(
                 multiply(options.gravity, -1.0F), {0.0F, 1.0F, 0.0F});
             for (std::uint32_t body = 0U; body < impl_->rigid_body_count;
                  ++body) {
-                if (impl_->parameters[body].motion != MotionType::static_body)
-                    continue;
-                any_static_body = true;
                 simulation::collide_fluid_with_static_body(
                     blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.previous,
@@ -8029,15 +8107,14 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                     fluid.options.support_radius, first_spawned,
                     spawned && iteration == 0U, &static_contact_up,
                     impl_->parameters, impl_->states[impl_->current_state],
-                    impl_->meshes, body, particle_mass,
+                    impl_->meshes, impl_->ids, body, particle_mass,
                     collect_fluid_contacts, fluid.contact_samples,
                     fluid.contact_flags, fluid_id.index, fluid_id.generation,
-                    impl_->ids[body].index, impl_->ids[body].generation,
                     impl_->paint_rule_count != 0U,
                     impl_->paint_fields, impl_->options.paint_field_capacity,
                     impl_->paint_rules, impl_->options.paint_rule_capacity);
             }
-            if (any_static_body) {
+            if (has_rigid_bodies) {
                 status = record_timing_stage(TimingStage::fluid_static_contacts);
                 if (!status) return status;
             }
@@ -8132,7 +8209,10 @@ Status World::step_async(StepOptions options, FrameToken &completion,
         auto &coupling = *owner;
         auto &fluid = *impl_->fluids[coupling.options.fluid.index];
         auto &smoke = *impl_->smokes[coupling.options.smoke.index];
-        const auto live = *fluid.count;
+        std::uint32_t live{};
+        status = read_device_u32(stream, fluid.count, live,
+                                 "fluid-smoke count readback failed");
+        if (!status) return status;
         if (live == 0U) continue;
         if (smoke.grid.resolution == 0U && smoke.count != 0U &&
             smoke.index_dirty) {
@@ -8352,14 +8432,22 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                 std::uint32_t body = 0U;
                 status = impl_->validate_handle(coupling->options.body, body);
                 if (!status) return status;
-                const auto &mesh = impl_->meshes[impl_->parameters[body].mesh.index];
+                BodyParameters parameters{};
+                status = read_device_value(stream, impl_->parameters + body,
+                    parameters, "failed to read smoke rigid-body parameters");
+                if (!status) return status;
+                const auto *mesh = impl_->meshes + parameters.mesh.index;
+                TriangleMeshResource mesh_metadata{};
+                status = read_device_value(stream, mesh, mesh_metadata,
+                    "failed to read smoke rigid-body mesh metadata");
+                if (!status) return status;
                 const float clearance = coupling->options.contact_distance > 0.0F
                     ? coupling->options.contact_distance
                     : smoke.options.particle_radius;
                 if (smoke.grid.resolution != 0U &&
                     coupling->options.air_density > 0.0F)
                     simulation::apply_smoke_grid_force_to_rigid_body(
-                        1U, 128U, stream, &mesh,
+                        1U, 128U, stream, &mesh_metadata,
                         body, impl_->parameters,
                         impl_->states[impl_->current_state],
                         smoke_dispatch_grid(smoke.grid),
@@ -8374,9 +8462,9 @@ Status World::step_async(StepOptions options, FrameToken &completion,
                         (smoke.count + 127U) / 128U, 128U, stream,
                         smoke.positions, smoke.previous_positions,
                         smoke.velocities, smoke.ages, smoke.pressures, smoke.count,
-                        smoke.options.lifetime, &mesh,
+                        smoke.options.lifetime, &mesh_metadata,
                         impl_->states[impl_->current_state],
-                        any_moving_body ? impl_->fluid_previous_states
+                        has_rigid_bodies ? impl_->fluid_previous_states
                                         : impl_->states[impl_->current_state],
                         body, clearance,
                         (smoke.grid.resolution == 0U ?
@@ -8481,17 +8569,30 @@ Status World::step(StepOptions options, cudaStream_t stream) noexcept {
 
 ContactDeviceView World::contacts() const noexcept {
     if (!impl_ || (impl_->frame && !impl_->frame->acknowledged)) return {};
-    const std::uint32_t count = *impl_->fluid_contact_count;
+    std::uint32_t count = 0U;
+    std::uint32_t overflow = 0U;
+    if (!read_device_u32(nullptr, impl_->fluid_contact_count, count,
+                         "fluid contact count readback failed") ||
+        !read_device_u32(nullptr, impl_->fluid_contact_overflow, overflow,
+                         "fluid contact overflow readback failed")) {
+        return {};
+    }
+    count = std::min(count, impl_->options.contact_capacity);
     return {{impl_->fluid_contact_events, count}, count,
-            *impl_->fluid_contact_overflow != 0U, impl_->frame_index};
+            overflow != 0U, impl_->frame_index};
 }
 
 RigidContactDeviceView World::rigid_contacts() const noexcept {
     if (!impl_ || (impl_->frame && !impl_->frame->acknowledged)) {
         return {};
     }
-    return {{impl_->rigid_contact_events, *impl_->rigid_contact_count},
-            *impl_->rigid_contact_count, impl_->frame_index};
+    std::uint32_t count = 0U;
+    if (!read_device_u32(nullptr, impl_->rigid_contact_count, count,
+                         "rigid contact count readback failed")) {
+        return {};
+    }
+    count = std::min(count, impl_->rigid_contact_capacity);
+    return {{impl_->rigid_contact_events, count}, count, impl_->frame_index};
 }
 
 Status World::physics_debug_frame(

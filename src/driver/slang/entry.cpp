@@ -11,11 +11,7 @@
 #include <cstdint>
 #include <cstring>
 
-#if defined(_WIN32)
-#define PM_DRIVER_EXPORT extern "C" __declspec(dllexport)
-#else
-#define PM_DRIVER_EXPORT extern "C" __attribute__((visibility("default")))
-#endif
+#define PM_DRIVER_EXPORT extern "C" PM_DRIVER_API_ATTR
 
 namespace {
 

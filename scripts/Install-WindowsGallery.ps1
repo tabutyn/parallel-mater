@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if (![Environment]::Is64BitOperatingSystem) { throw 'Parallel-Mater requires 64-bit Windows.' }
 $sourceRoot = (Resolve-Path -LiteralPath "$PSScriptRoot\..").Path
-if (!$BuildDirectory) { $BuildDirectory = Join-Path $sourceRoot 'build-d3d12-full\Release' }
+if (!$BuildDirectory) { $BuildDirectory = Join-Path $sourceRoot 'build\Release' }
 $BuildDirectory = (Resolve-Path -LiteralPath $BuildDirectory).Path
 $installRoot = [IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\Parallel-Mater'))
 $shortcutPath = Join-Path ([Environment]::GetFolderPath('Programs')) 'Parallel-Mater.lnk'
@@ -35,7 +35,7 @@ if (Test-Path -LiteralPath $installRoot) {
     }
     $previousFiles = @($previous.files)
 }
-$running = Get-Process -Name 'Parallel-Mater','parallel-mater-d3d12-gallery' -ErrorAction SilentlyContinue |
+$running = Get-Process -Name 'Parallel-Mater','parallel-mater-gallery' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and [IO.Path]::GetDirectoryName($_.Path) -eq $installRoot }
 if ($running) { throw 'Close the installed Parallel-Mater gallery before updating it.' }
 if (Test-Path -LiteralPath $shortcutPath) {
@@ -45,9 +45,7 @@ if (Test-Path -LiteralPath $shortcutPath) {
     }
 }
 $files = [ordered]@{}
-foreach ($name in @('Parallel-Mater.exe','parallel-mater-d3d12-gallery.exe')) {
-    $files[$name] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory $name)).Path
-}
+$files['Parallel-Mater.exe'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'Parallel-Mater.exe')).Path
 foreach ($dll in Get-ChildItem -LiteralPath $BuildDirectory -Filter '*.dll' -File) {
     $files[$dll.Name] = $dll.FullName
 }
@@ -56,26 +54,46 @@ if ($RuntimeDirectory) {
         $files[$dll.Name] = $dll.FullName
     }
 }
-foreach ($name in @('RigidBody','ConstraintFixed','ConstraintPoint','ConstraintHinge',
-                    'ConstraintPiston','ConstraintGeneric','ConstraintMotorSpring','DumpTruck')) {
-    $files["assets\$name.glb"] = (Resolve-Path -LiteralPath "$sourceRoot\examples\assets\$name.glb").Path
+foreach ($asset in Get-ChildItem -LiteralPath "$sourceRoot\examples\assets" -Filter '*.glb' -File) {
+    $files["assets\$($asset.Name)"] = $asset.FullName
 }
 $files['LICENSE'] = "$sourceRoot\LICENSE"
-$files['D3D12.md'] = "$sourceRoot\docs\D3D12.md"
+$files['GALLERY.md'] = "$sourceRoot\docs\GALLERY.md"
 $files['Uninstall.ps1'] = "$PSScriptRoot\Uninstall-WindowsGallery.ps1"
+$generatedFiles = @('manifests\slang-cuda.json','manifests\validation.json')
 # Resolve every input before making installation changes.
 foreach ($source in $files.Values) { if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing package file: $source" } }
-New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
-New-Item -ItemType Directory -Path (Join-Path $installRoot 'assets') -Force | Out-Null
+$obsoleteTargets = @($previousFiles | Where-Object {
+    !$files.Contains($_) -and $generatedFiles -notcontains $_
+} | ForEach-Object {
+    $target = [IO.Path]::GetFullPath((Join-Path $installRoot $_))
+    if (!$target.StartsWith($installRoot + '\',[StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe previous installation path: $_"
+    }
+    $target
+})
+foreach ($directory in @($installRoot,'assets','manifests')) {
+    $path = if ($directory -eq $installRoot) { $installRoot } else { Join-Path $installRoot $directory }
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
+}
 $manifest = [ordered]@{ application='Parallel-Mater'; directory=$installRoot; version=$Version;
-    files=@(@($previousFiles) + @($files.Keys) | Sort-Object -Unique) }
+    files=@(@($files.Keys) + $generatedFiles | Sort-Object -Unique) }
 # Keep the ownership marker even if a copy fails, so rerunning can repair it.
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 foreach ($name in $files.Keys) { Copy-Item -LiteralPath $files[$name] -Destination (Join-Path $installRoot $name) -Force }
+@{ file_format_version='1.0.0'; PMD=@{
+    library_path='../parallel_mater_driver_slang_cuda.dll'; api_version='0.2.0'; library_arch='64'
+} } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $installRoot $generatedFiles[0]) -Encoding UTF8
+@{ file_format_version='1.0.0'; layer=@{
+    name='PM_LAYER_KHRONOS_validation'; library_path='../parallel_mater_layer_validation.dll'; api_version='0.2.0'
+} } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $installRoot $generatedFiles[1]) -Encoding UTF8
+foreach ($target in $obsoleteTargets) {
+    if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target -Force }
+}
 $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
 $shortcut.TargetPath = Join-Path $installRoot 'Parallel-Mater.exe'
 $shortcut.WorkingDirectory = $installRoot
-$shortcut.Description = 'Parallel-Mater - DirectCompute Physics Gallery'
+$shortcut.Description = 'Parallel-Mater - Slang GPU Physics Gallery'
 $shortcut.IconLocation = $shortcut.TargetPath + ',0'
 $shortcut.Save()
 $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'

@@ -6,13 +6,6 @@
 
 #if defined(PARALLEL_MATER_CONFORMANCE_METAL)
 #import <Metal/Metal.h>
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl/client.h>
 #else
 #include <cuda_runtime_api.h>
 #endif
@@ -48,9 +41,6 @@ namespace {
 #if defined(PARALLEL_MATER_CONFORMANCE_METAL)
 using namespace parallel_mater::metal;
 using namespace parallel_mater::metal::gallery;
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-using namespace parallel_mater::d3d12;
-using namespace parallel_mater::d3d12::gallery;
 #else
 using namespace parallel_mater;
 using namespace parallel_mater::gallery;
@@ -72,68 +62,8 @@ constexpr std::size_t large_sample_limit = 32U;
 #endif
 }
 
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-Microsoft::WRL::ComPtr<ID3D12Device> d3d12_override_device;
-Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12_override_queue;
-
-void configure_d3d12_warp() {
-    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-    Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-    HRESULT hr = CreateDXGIFactory2(
-        0U, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()));
-    if (FAILED(hr)) throw std::runtime_error("create DXGI factory for WARP");
-    hr = factory->EnumWarpAdapter(
-        IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-    if (FAILED(hr)) throw std::runtime_error("enumerate D3D12 WARP adapter");
-    hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0,
-        IID_PPV_ARGS(d3d12_override_device.ReleaseAndGetAddressOf()));
-    if (FAILED(hr)) throw std::runtime_error("create D3D12 WARP device");
-    D3D12_COMMAND_QUEUE_DESC queue{};
-    queue.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    hr = d3d12_override_device->CreateCommandQueue(
-        &queue, IID_PPV_ARGS(d3d12_override_queue.ReleaseAndGetAddressOf()));
-    if (FAILED(hr)) throw std::runtime_error("create D3D12 WARP direct queue");
-}
-
-[[nodiscard]] bool d3d12_case_supported(const CaseDefinition &definition) {
-    constexpr std::string_view later_systems[] = {
-        "fluid", "cloth", "soft_body", "rope", "smoke", "paint"};
-    for (const std::string &coverage : definition.coverage)
-        for (std::string_view system : later_systems)
-            if (coverage.find(system) != std::string::npos) return false;
-    return true;
-}
-
-[[nodiscard]] std::string d3d12_device_name(ID3D12Device *device) {
-    if (device == nullptr) return "unknown";
-    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-    if (FAILED(CreateDXGIFactory2(0U,
-            IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()))) ||
-        FAILED(factory->EnumAdapterByLuid(device->GetAdapterLuid(),
-            IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()))))
-        return "unknown";
-    DXGI_ADAPTER_DESC1 description{};
-    if (FAILED(adapter->GetDesc1(&description))) return "unknown";
-    const int count = WideCharToMultiByte(CP_UTF8, 0, description.Description,
-        -1, nullptr, 0, nullptr, nullptr);
-    std::string result(count > 0 ? static_cast<std::size_t>(count) : 0U, '\0');
-    if (count > 1) {
-        WideCharToMultiByte(CP_UTF8, 0, description.Description, -1,
-                            result.data(), count, nullptr, nullptr);
-        result.pop_back();
-    }
-    return result;
-}
-#endif
-
 [[nodiscard]] Status create_backend_world(WorldOptions options,
                                           World &output) noexcept {
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    if (d3d12_override_device)
-        return World::create(options,
-            {d3d12_override_device.Get(),d3d12_override_queue.Get()},output);
-#endif
     return World::create(options,output);
 }
 
@@ -143,8 +73,7 @@ void require(Status status, std::string_view operation) {
         (status.message != nullptr ? status.message : "unknown error"));
 }
 
-#if !defined(PARALLEL_MATER_CONFORMANCE_METAL) && \
-    !defined(PARALLEL_MATER_CONFORMANCE_D3D12)
+#if !defined(PARALLEL_MATER_CONFORMANCE_METAL)
 void require_cuda(cudaError_t status, std::string_view operation) {
     if (status == cudaSuccess) return;
     throw std::runtime_error(std::string(operation) + ": " +
@@ -164,83 +93,6 @@ std::vector<T> download(BufferSpan<const T> span) {
             static_cast<const std::byte *>(buffer.contents) + span.byte_offset);
         std::copy_n(source, result.size(), result.data());
     }
-    return result;
-}
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-std::vector<T> download(BufferSpan<const T> span) {
-    using Microsoft::WRL::ComPtr;
-    std::vector<T> result(static_cast<std::size_t>(span.size));
-    if (result.empty()) return result;
-    auto *source = static_cast<ID3D12Resource *>(span.resource);
-    if (source == nullptr)
-        throw std::runtime_error("D3D12 conformance buffer is null");
-    ComPtr<ID3D12Device> device;
-    if (FAILED(source->GetDevice(
-            IID_PPV_ARGS(device.ReleaseAndGetAddressOf()))))
-        throw std::runtime_error("get D3D12 conformance device failed");
-    D3D12_HEAP_PROPERTIES heap{};
-    heap.Type = D3D12_HEAP_TYPE_READBACK;
-    heap.CreationNodeMask = heap.VisibleNodeMask = 1U;
-    D3D12_RESOURCE_DESC buffer{};
-    buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    buffer.Width = result.size() * sizeof(T);
-    buffer.Height = 1U;
-    buffer.DepthOrArraySize = 1U;
-    buffer.MipLevels = 1U;
-    buffer.SampleDesc.Count = 1U;
-    buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    ComPtr<ID3D12Resource> readback;
-    if (FAILED(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE,
-            &buffer, D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-            IID_PPV_ARGS(readback.ReleaseAndGetAddressOf()))))
-        throw std::runtime_error("create D3D12 conformance readback failed");
-    D3D12_COMMAND_QUEUE_DESC queue_desc{};
-    queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    ComPtr<ID3D12CommandQueue> queue;
-    ComPtr<ID3D12CommandAllocator> allocator;
-    ComPtr<ID3D12GraphicsCommandList> commands;
-    ComPtr<ID3D12Fence> fence;
-    if (FAILED(device->CreateCommandQueue(&queue_desc,
-            IID_PPV_ARGS(queue.ReleaseAndGetAddressOf()))) ||
-        FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-            IID_PPV_ARGS(allocator.ReleaseAndGetAddressOf()))) ||
-        FAILED(device->CreateCommandList(0U, D3D12_COMMAND_LIST_TYPE_DIRECT,
-            allocator.Get(), nullptr,
-            IID_PPV_ARGS(commands.ReleaseAndGetAddressOf()))) ||
-        FAILED(device->CreateFence(0U, D3D12_FENCE_FLAG_NONE,
-            IID_PPV_ARGS(fence.ReleaseAndGetAddressOf()))))
-        throw std::runtime_error("create D3D12 conformance copy queue failed");
-    D3D12_RESOURCE_BARRIER barrier{};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = source;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    commands->ResourceBarrier(1U, &barrier);
-    commands->CopyBufferRegion(readback.Get(), 0U, source, span.byte_offset,
-                               result.size() * sizeof(T));
-    std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-    commands->ResourceBarrier(1U, &barrier);
-    if (FAILED(commands->Close()))
-        throw std::runtime_error("close D3D12 conformance copy list failed");
-    ID3D12CommandList *lists[] = {commands.Get()};
-    queue->ExecuteCommandLists(1U, lists);
-    if (FAILED(queue->Signal(fence.Get(), 1U)))
-        throw std::runtime_error("signal D3D12 conformance copy failed");
-    HANDLE event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    if (event == nullptr || FAILED(fence->SetEventOnCompletion(1U, event))) {
-        if (event != nullptr) CloseHandle(event);
-        throw std::runtime_error("arm D3D12 conformance copy fence failed");
-    }
-    WaitForSingleObject(event, INFINITE);
-    CloseHandle(event);
-    void *mapped = nullptr;
-    D3D12_RANGE range{0U, result.size() * sizeof(T)};
-    if (FAILED(readback->Map(0U, &range, &mapped)))
-        throw std::runtime_error("map D3D12 conformance readback failed");
-    std::copy_n(static_cast<const T *>(mapped), result.size(), result.data());
-    D3D12_RANGE written{0U, 0U};
-    readback->Unmap(0U, &written);
     return result;
 }
 #else
@@ -382,8 +234,7 @@ Json samples_json(const std::vector<Vec3> &positions,
 
 TriangleMeshId upload_mesh(World &world, const std::vector<Vec3> &vertices,
                            const std::vector<std::uint32_t> &indices) {
-#if defined(PARALLEL_MATER_CONFORMANCE_METAL) || \
-    defined(PARALLEL_MATER_CONFORMANCE_D3D12)
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
     TriangleMeshId mesh{};
     require(world.add_triangle_mesh(
                 HostSpan<const Vec3>{vertices.data(), vertices.size()},
@@ -1181,12 +1032,6 @@ Json run_case(const CaseDefinition &definition,
         device != nil ? std::string(device.name.UTF8String) : "unknown";
     provenance["registry_id"] = static_cast<std::uint64_t>(
         device != nil ? device.registryID : 0U);
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    auto *device = static_cast<ID3D12Device *>(
-        runtime.world.native_context().device);
-    provenance["device_name"] = d3d12_device_name(device);
-    provenance["adapter_luid"] = static_cast<std::uint64_t>(
-        device != nullptr ? device->GetAdapterLuid().LowPart : 0U);
 #else
     provenance["device_ordinal"] =
         static_cast<std::int64_t>(runtime.world.device_ordinal());
@@ -1194,8 +1039,6 @@ Json run_case(const CaseDefinition &definition,
     Json result = Json::object();
 #if defined(PARALLEL_MATER_CONFORMANCE_METAL)
     result["backend"] = "metal";
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    result["backend"] = "d3d12";
 #else
     result["backend"] = "cuda";
 #endif
@@ -1316,15 +1159,6 @@ Json device_provenance() {
     result["host_compiler"] = host_compiler();
     result["registry_id"] = static_cast<std::uint64_t>(device.registryID);
     return result;
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    World world;
-    require(create_backend_world({}, world), "create D3D12 provenance world");
-    auto *device = static_cast<ID3D12Device *>(world.native_context().device);
-    Json result = Json::object();
-    result["device_name"] = d3d12_device_name(device);
-    result["host_compiler"] = host_compiler();
-    result["shader_model"] = "5.1";
-    return result;
 #else
     int device = 0;
     require_cuda(cudaGetDevice(&device), "get CUDA device");
@@ -1357,8 +1191,6 @@ void write_manifest(const std::filesystem::path &source_root) {
     Json manifest = Json::object();
 #if defined(PARALLEL_MATER_CONFORMANCE_METAL)
     manifest["backend"] = "metal";
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    manifest["backend"] = "d3d12";
 #else
     manifest["backend"] = "cuda";
 #endif
@@ -1378,7 +1210,6 @@ struct Arguments {
     bool provenance{};
     bool update{};
     bool every_frame{};
-    bool warp{};
     std::string case_id{};
     std::filesystem::path output{};
 };
@@ -1392,7 +1223,6 @@ Arguments parse_arguments(int argc, char **argv) {
         else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--update-goldens") result.update = true;
         else if (argument == "--every-frame") result.every_frame = true;
-        else if (argument == "--warp") result.warp = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
         else if (argument == "--output" && index + 1 < argc)
@@ -1409,8 +1239,7 @@ Arguments parse_arguments(int argc, char **argv) {
     if (result.update && !result.output.empty())
         throw std::runtime_error("--update-goldens writes only to golden/cuda; "
                                  "do not combine it with --output");
-#if defined(PARALLEL_MATER_CONFORMANCE_METAL) || \
-    defined(PARALLEL_MATER_CONFORMANCE_D3D12)
+#if defined(PARALLEL_MATER_CONFORMANCE_METAL)
     if (result.update)
         throw std::runtime_error(
             "Non-CUDA runners cannot update the CUDA reference goldens");
@@ -1423,10 +1252,6 @@ Arguments parse_arguments(int argc, char **argv) {
             "--every-frame requires one named --case and cannot update goldens");
     if (!result.update && !result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
-#if !defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-    if (result.warp)
-        throw std::runtime_error("--warp is available only in the D3D12 runner");
-#endif
     return result;
 }
 
@@ -1439,24 +1264,13 @@ int main(int argc, char **argv) {
             PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT;
         if (arguments.list) {
             for (const auto &definition : case_registry())
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-                if (d3d12_case_supported(definition))
-#endif
                 std::cout << definition.id << '\n';
             return 0;
         }
         if (arguments.check)
             return check_inputs(source_root) ? 0 : 1;
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-        if (arguments.warp) configure_d3d12_warp();
-#endif
 #if defined(PARALLEL_MATER_CONFORMANCE_METAL)
         if (MTLCreateSystemDefaultDevice() == nil) return 77;
-#elif defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-        {
-            World probe;
-            if (!create_backend_world({}, probe)) return 77;
-        }
 #else
         int devices = 0;
         if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0) return 77;
@@ -1476,19 +1290,11 @@ int main(int argc, char **argv) {
         std::vector<const CaseDefinition *> definitions;
         if (selected == "all") {
             for (const auto &definition : case_registry())
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-                if (d3d12_case_supported(definition))
-#endif
                 definitions.push_back(&definition);
         } else {
             const CaseDefinition *definition = find_case(selected);
             if (definition == nullptr)
                 throw std::runtime_error("unknown conformance case: " + selected);
-#if defined(PARALLEL_MATER_CONFORMANCE_D3D12)
-            if (!d3d12_case_supported(*definition))
-                throw std::runtime_error(
-                    "case belongs to a later D3D12 subsystem gate: " + selected);
-#endif
             definitions.push_back(definition);
         }
         for (const CaseDefinition *definition : definitions) {

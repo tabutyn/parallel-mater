@@ -10,13 +10,7 @@
 #include <utility>
 #include <vector>
 
-#if defined(PARALLEL_MATER_GALLERY_D3D12)
-namespace parallel_mater::d3d12::gallery {
-using ::parallel_mater::gallery::Camera;
-using ::parallel_mater::gallery::screen_space_force;
-#else
 namespace parallel_mater::gallery {
-#endif
 
 // Scene-authored force controls. Equal force/mass ratios share one GPU update;
 // no per-body position readback is needed to apply force at the center of mass.

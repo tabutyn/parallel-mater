@@ -9,6 +9,7 @@
 #include "vector_math.hpp"
 
 #include <optix_function_table_definition.h>
+#include <optix_stack_size.h>
 #include <optix_stubs.h>
 
 #include <cuda.h>
@@ -471,9 +472,23 @@ struct OptixRenderer::Impl {
                         context, &pipeline_options, &link_options, groups.data(),
                         groups.size(), log.data(), &log_size, &pipeline),
                     "optixPipelineCreate");
-        check_optix(optixPipelineSetStackSizeFromCallDepths(pipeline, 1U, 0U, 0U,
-                                                            0U, 2U),
-                    "optixPipelineSetStackSizeFromCallDepths");
+        OptixStackSizes stack_sizes{};
+        for (const OptixProgramGroup group : groups) {
+            check_optix(optixUtilAccumulateStackSizes(group, &stack_sizes,
+                                                      pipeline),
+                        "optixUtilAccumulateStackSizes");
+        }
+        unsigned int direct_from_traversal{};
+        unsigned int direct_from_state{};
+        unsigned int continuation{};
+        check_optix(optixUtilComputeStackSizes(
+                        &stack_sizes, 1U, 0U, 0U, &direct_from_traversal,
+                        &direct_from_state, &continuation),
+                    "optixUtilComputeStackSizes");
+        check_optix(optixPipelineSetStackSize(
+                        pipeline, direct_from_traversal, direct_from_state,
+                        continuation, 2U),
+                    "optixPipelineSetStackSize");
     }
 
     void create_geometry(const SceneDefinition &scene) {

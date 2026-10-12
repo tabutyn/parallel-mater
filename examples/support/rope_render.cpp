@@ -4,8 +4,6 @@
 #include <cmath>
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 namespace parallel_mater::metal::gallery {
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-namespace parallel_mater::d3d12::gallery {
 #else
 namespace parallel_mater::gallery {
 #endif
@@ -39,8 +37,6 @@ void update_rope_render_mesh(const std::vector<Vec3> &nodes,float radius,Triangl
 }
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery
-#elif defined(PARALLEL_MATER_GALLERY_D3D12)
-} // namespace parallel_mater::d3d12::gallery
 #else
 } // namespace parallel_mater::gallery
 #endif

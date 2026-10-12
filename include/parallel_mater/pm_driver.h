@@ -9,6 +9,16 @@
 extern "C" {
 #endif
 
+#ifndef PM_DRIVER_API_ATTR
+#if defined(_WIN32) && defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
+#define PM_DRIVER_API_ATTR __declspec(dllexport)
+#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION) && defined(__GNUC__)
+#define PM_DRIVER_API_ATTR __attribute__((visibility("default")))
+#else
+#define PM_DRIVER_API_ATTR
+#endif
+#endif
+
 #define PM_DRIVER_INTERFACE_VERSION 1u
 #define PM_DRIVER_MANIFEST_FILE_VERSION "1.0.0"
 
@@ -21,13 +31,13 @@ typedef PFN_pmVoidFunction (PMAPI_CALL *PFN_pmDriverGetDeviceProcAddr)(
 typedef PFN_pmVoidFunction (PMAPI_CALL *PFN_pmDriverGetPhysicalDeviceProcAddr)(
     PmInstance instance, const char* pName);
 
-PMAPI_ATTR PmResult PMAPI_CALL pm_driverNegotiateLoaderInterfaceVersion(
+PM_DRIVER_API_ATTR PmResult PMAPI_CALL pm_driverNegotiateLoaderInterfaceVersion(
     uint32_t* pVersion);
-PMAPI_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetInstanceProcAddr(
+PM_DRIVER_API_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetInstanceProcAddr(
     PmInstance instance, const char* pName);
-PMAPI_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
+PM_DRIVER_API_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
     PmDevice device, const char* pName);
-PMAPI_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetPhysicalDeviceProcAddr(
+PM_DRIVER_API_ATTR PFN_pmVoidFunction PMAPI_CALL pm_driverGetPhysicalDeviceProcAddr(
     PmInstance instance, const char* pName);
 
 #ifdef __cplusplus
