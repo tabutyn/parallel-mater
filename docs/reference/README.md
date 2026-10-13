@@ -12,8 +12,9 @@ The documentation has two forms:
   validity, lifetime, synchronization, and failure rules.
 - [Specification text](parallel-mater-specification.md): searchable Markdown
   generated from the same source.
-- [API coverage](api-coverage.json): every function and type, its source
-  location, implementation state, and specification section.
+- [API routing coverage](api-coverage.json): every function and type, its
+  loader source or forwarding route, and specification section. Device support
+  is queried from the selected driver at runtime.
 
 The three-column reference uses continuous colored topic regions with stepped
 boundaries. The opening bar contains the wordmark, API overview, and color key.
@@ -38,8 +39,9 @@ Header and runtime coverage generation does not require the PDF dependencies:
 python3 tools/reference/build.py --headers-only
 ```
 
-`tools/reference/content.py` is the declaration and specification source.
-`tools/reference/model.py` owns section numbering. Generation writes headers,
-the two documents, Markdown, and coverage inventories; it never writes runtime
-implementation files. Diagrams are vector drawing instructions. The transparent
-wordmark is the only raster asset.
+`registry/pm.xml` is the declaration and ABI source of truth, including stable
+structure-type values. `tools/reference/content.py` owns reference layout text,
+and `tools/reference/model.py` owns section numbering. Generation writes
+headers, the two documents, Markdown, and routing inventories; it never writes
+runtime implementation files. Diagrams are vector drawing instructions. The
+transparent wordmark is the only raster asset.

@@ -43,13 +43,22 @@ def generate_coverage(root, destination):
     inventory = {
         "contract": "Parallel Mater command API 0.2",
         "implementation": "src/loader public entry points routed to installable drivers",
+        "statusMeaning": {
+            "implemented": "owned and executed by the loader",
+            "driver-routed": ("the loader forwards the command; support is "
+                              "reported by the selected driver's features, "
+                              "limits, formats, and extensions"),
+        },
         "functions": [{
             "name": command["name"],
             "section": SPEC_NUMBERS[command["card"]],
             "card": command["card"],
             "header": "interop_vulkan.h" if command["extension"] else "parallel_mater.h",
             "source": definitions[command["name"]][0],
-            "status": "implemented",
+            "status": ("driver-routed"
+                       if definitions[command["name"]][0] ==
+                          "generated/api/loader_forward.inc"
+                       else "implemented"),
         } for command in commands],
         "types": [{"name": name, "section": SPEC_NUMBERS[card.key],
                    "card": card.key}

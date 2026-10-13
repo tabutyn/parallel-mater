@@ -4,7 +4,7 @@
 #define PM_GEOMETRY_NAMESPACE parallel_mater::metal
 #define PM_GEOMETRY_SUCCESS 0
 #else
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 #define PM_GEOMETRY_NAMESPACE parallel_mater
 #define PM_GEOMETRY_SUCCESS cudaSuccess
 #endif

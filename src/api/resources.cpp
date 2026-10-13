@@ -458,7 +458,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         created->destroyers.resize(info->destroyerCapacity);
         created->paint_fields.resize(info->paintFieldCount);
         created->paint_rules.resize(info->paintRuleCapacity);
-        created->runtime = std::make_unique<parallel_mater::World>();
+        created->runtime = std::make_unique<parallel_mater::SimulationRuntime>();
         created->info.pFluidCapacities = created->fluids.data();
         created->info.pClothCapacities = created->cloth_capacities.data();
         created->info.pRopeCapacities = created->rope_capacities.data();
@@ -577,13 +577,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
     } catch (const std::bad_alloc &) {
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    parallel_mater::World initialized;
+    parallel_mater::SimulationRuntime initialized;
     PmResult result = PM_SUCCESS;
     {
         parallel_mater::simulation::ScopedMemoryArena scope(
             simulation->arena.get());
         result = parallel_mater::api::from_status(
-            parallel_mater::World::create(
+            parallel_mater::SimulationRuntime::create(
                 simulation->world_options, initialized,
                 device->services->stream()));
     }
@@ -831,7 +831,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             {
                 parallel_mater::simulation::ScopedMemoryArena arena_scope(
                     simulation->arena.get());
-                *simulation->runtime = parallel_mater::World{};
+                *simulation->runtime = parallel_mater::SimulationRuntime{};
             }
             for (auto &[geometry, id] : simulation->geometries) {
                 (void)id;
@@ -839,12 +839,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
                     geometry->arena->reset();
             }
             simulation->arena->reset();
-            parallel_mater::World initialized;
+            parallel_mater::SimulationRuntime initialized;
             {
                 parallel_mater::simulation::ScopedMemoryArena arena_scope(
                     simulation->arena.get());
                 result = parallel_mater::api::from_status(
-                    parallel_mater::World::create(
+                    parallel_mater::SimulationRuntime::create(
                         simulation->world_options, initialized, stream));
             }
             if (result != PM_SUCCESS) {

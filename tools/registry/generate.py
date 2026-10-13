@@ -6,9 +6,9 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tools" / "reference"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from api_model import declarations  # noqa: E402
+from api_registry import declarations  # noqa: E402
 
 
 SPECIAL = {

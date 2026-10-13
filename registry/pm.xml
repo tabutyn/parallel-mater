@@ -9,7 +9,21 @@
 extern "C" {
 #endif
 #ifndef PMAPI_ATTR
+#if defined(_WIN32)
+#if defined(PARALLEL_MATER_LOADER_IMPLEMENTATION)
+#define PMAPI_ATTR __declspec(dllexport)
+#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
 #define PMAPI_ATTR
+#else
+#define PMAPI_ATTR __declspec(dllimport)
+#endif
+#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
+#define PMAPI_ATTR
+#elif defined(__GNUC__)
+#define PMAPI_ATTR __attribute__((visibility("default")))
+#else
+#define PMAPI_ATTR
+#endif
 #endif
 #ifndef PMAPI_CALL
 #define PMAPI_CALL
@@ -48,6 +62,23 @@ typedef struct PmSemaphore_T* PmSemaphore;
 typedef struct PmFence_T* PmFence;
 typedef struct PmQueryPool_T* PmQueryPool;
 </prelude>
+  <!-- Values are part of the public ABI. They must never depend on the order
+       of documentation cards or declarations. New values are appended. -->
+  <structure-types>
+    <type name="PmInstanceCreateInfo" value="1" />
+    <type name="PmDeviceCreateInfo" value="2" />
+    <type name="PmMemoryAllocateInfo" value="3" />
+    <type name="PmBufferCreateInfo" value="4" />
+    <type name="PmGeometryCreateInfo" value="5" />
+    <type name="PmSimulationCreateInfo" value="6" />
+    <type name="PmPhysicsPipelineCreateInfo" value="7" />
+    <type name="PmCommandPoolCreateInfo" value="8" />
+    <type name="PmCommandBufferBeginInfo" value="9" />
+    <type name="PmSemaphoreCreateInfo" value="10" />
+    <type name="PmSubmitInfo" value="11" />
+    <type name="PmNativeDeviceImportInfo" value="12" />
+    <type name="PmQueryPoolCreateInfo" value="13" />
+  </structure-types>
   <cards>
     <card key="intent" section="overview" extension="false" emit-header="true">
       <types />

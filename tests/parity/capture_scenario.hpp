@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 #if defined(PARALLEL_MATER_PARITY_CUDA)
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 #else
 #include <parallel_mater/metal.hpp>
 #endif

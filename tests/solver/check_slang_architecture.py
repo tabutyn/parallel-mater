@@ -11,19 +11,24 @@ CUDA_KERNEL = re.compile(r"__global__\s+void\s+([A-Za-z0-9_]+)")
 failures: list[str] = []
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
-world = (ROOT / "src" / "world.cu").read_text()
+loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text()
+build_contract = cmake + "\n" + loader_cmake
+runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
+runtime = runtime_path.read_text()
+runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text()
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():
     failures.append("registry/pm.xml: canonical API registry missing")
 if "parallel-mater-driver-slang-cuda SHARED" not in cmake:
     failures.append("CMakeLists.txt: Slang/CUDA runtime is not an installable driver")
-if "add_library(parallel-mater SHARED" not in cmake:
+if "include(cmake/ParallelMaterLoader.cmake)" not in cmake or \
+        "add_library(parallel-mater SHARED" not in loader_cmake:
     failures.append("CMakeLists.txt: public API is not a standalone loader")
 for embedded_path in (
     "PARALLEL_MATER_DEFAULT_DRIVER_PATH",
     "PARALLEL_MATER_DEFAULT_VALIDATION_LAYER_PATH",
 ):
-    if embedded_path in cmake:
+    if embedded_path in build_contract:
         failures.append(
             f"CMakeLists.txt: loader embeds non-relocatable {embedded_path}"
         )
@@ -43,8 +48,17 @@ for loader_source in sorted((ROOT / "src" / "loader").glob("*")):
         if forbidden in loader_text:
             failures.append(
                 f"{loader_source.relative_to(ROOT)}: loader owns device/physics detail {forbidden}")
-if "install(DIRECTORY include/" in cmake:
+if "install(DIRECTORY include/" in build_contract:
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
+if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
+    failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
+if re.search(r"\bclass\s+World\b", runtime_header):
+    failures.append("src/simulation/runtime.hpp: legacy World class remains")
+for api_source in sorted((ROOT / "src" / "api").glob("*")):
+    if api_source.is_file() and re.search(
+            r"parallel_mater::World\b", api_source.read_text()):
+        failures.append(
+            f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
 if "Backend-specific physics implementations are retired" not in cmake:
     failures.append("CMakeLists.txt: retired native physics builds are not rejected")
 retired_headers = {
@@ -75,8 +89,9 @@ for retired_header in sorted(retired_headers):
         failures.append(f"src/{retired_header}: retired native physics source remains")
     if f'src/{retired_header}' in cmake:
         failures.append(f"CMakeLists.txt: migrated native physics source {retired_header}")
-    if f'#include "{retired_header}"' in world:
-        failures.append(f"src/world.cu: migrated native physics include {retired_header}")
+    if f'#include "{retired_header}"' in runtime:
+        failures.append(
+            f"src/simulation/runtime.cu: migrated native physics include {retired_header}")
 
 for module in (
     "cloth",
@@ -171,8 +186,9 @@ migrated_launches = {
     "rope_advance",
 }
 for kernel in sorted(migrated_launches):
-    if re.search(rf"\b{re.escape(kernel)}\s*<<<", world):
-        failures.append(f"src/world.cu: native launch remains for {kernel}")
+    if re.search(rf"\b{re.escape(kernel)}\s*<<<", runtime):
+        failures.append(
+            f"src/simulation/runtime.cu: native launch remains for {kernel}")
 
 consumer_paths = [ROOT / "examples" / "gallery" / "application.cpp"]
 consumer_paths.extend(sorted((ROOT / "examples" / "gallery" / "render").glob("*")))
@@ -186,7 +202,7 @@ for path in consumer_paths:
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.
-native_sources = [ROOT / "src" / "world.cu"]
+native_sources = [runtime_path]
 native_sources.extend(
     path for path in sorted((ROOT / "src").glob("*.cuh"))
 )

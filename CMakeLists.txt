@@ -10,6 +10,13 @@ include(CheckLanguage)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+add_test(NAME parallel-mater-generated-api-check
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/reference/build.py"
+            --check-generated)
+set_tests_properties(parallel-mater-generated-api-check PROPERTIES
+    LABELS "api;registry")
+
 function(parallel_mater_enable_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE
@@ -52,9 +59,9 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
-option(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS
-       "Build transitional tests of the private reference-driver World core" OFF)
-mark_as_advanced(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
+option(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS
+       "Build transitional tests of the private CUDA reference runtime" OFF)
+mark_as_advanced(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
 if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
    NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
@@ -141,6 +148,8 @@ else()
 endif()
 
 set(PARALLEL_MATER_INSTALL_TARGETS)
+
+include(cmake/ParallelMaterLoader.cmake)
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
    PARALLEL_MATER_BUILD_METAL_GALLERY OR
@@ -726,7 +735,7 @@ add_library(
     src/simulation/smoke_grid_dispatch.cu
     src/simulation/memory_arena.cpp
     src/simulation/primitives.cu
-    src/world.cu
+    src/simulation/runtime.cu
     src/simulation/geometry_storage.hpp
     src/simulation/rope_storage.hpp
     src/simulation/fluid_smoke_storage.hpp
@@ -735,7 +744,6 @@ add_library(
     src/fluid_source.cpp
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
-find_package(Vulkan QUIET)
 if(Vulkan_FOUND)
     add_library(parallel-mater-vulkan-executor STATIC
         src/device/vulkan_executor.cpp)
@@ -827,6 +835,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${PARALLEL_MATER_SLANG_GENERATED_DIR}
         ${PARALLEL_MATER_API_GENERATED_DIR})
 target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
@@ -846,96 +855,13 @@ else()
             $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall,-Wextra>)
 endif()
 
-add_library(parallel-mater SHARED
-    src/loader/driver.cpp
-    src/loader/entry.cpp)
-add_library(parallel-mater-layer-validation SHARED
-    src/layers/validation.cpp)
-set_target_properties(parallel-mater-layer-validation PROPERTIES
-    OUTPUT_NAME parallel_mater_layer_validation
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED YES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES)
-target_include_directories(parallel-mater-layer-validation PRIVATE include)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-layer-validation)
-
-add_dependencies(parallel-mater
-    parallel-mater-driver-slang-cuda
-    parallel-mater-layer-validation)
-add_library(ParallelMater::parallel_mater ALIAS parallel-mater)
-add_library(ParallelMater::api ALIAS parallel-mater)
 add_library(ParallelMater::slang_cuda_driver ALIAS
             parallel-mater-driver-slang-cuda)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
-set_target_properties(parallel-mater PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED YES
-    EXPORT_NAME parallel_mater
-    POSITION_INDEPENDENT_CODE ON)
-target_include_directories(parallel-mater
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE ${PARALLEL_MATER_API_GENERATED_DIR})
-target_compile_definitions(parallel-mater PRIVATE
-    PARALLEL_MATER_LOADER_IMPLEMENTATION=1
-    PARALLEL_MATER_SYSTEM_DRIVER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/drivers.d"
-    PARALLEL_MATER_SYSTEM_LAYER_MANIFEST_DIR="${CMAKE_INSTALL_FULL_DATADIR}/parallel-mater/layers.d")
-if(Vulkan_FOUND)
-    target_include_directories(parallel-mater PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_compile_definitions(parallel-mater PRIVATE
-        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
-endif()
-target_link_libraries(parallel-mater PRIVATE ${CMAKE_DL_LIBS})
-if(MSVC)
-    target_compile_options(parallel-mater PRIVATE /W4)
-else()
-    target_compile_options(parallel-mater PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
-set(PARALLEL_MATER_BUILD_MANIFEST_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/manifests")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
-file(GENERATE
-    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 
 if(BUILD_TESTING)
-    add_library(parallel-mater-mock-driver SHARED tests/mock_driver.cpp)
-    set_target_properties(parallel-mater-mock-driver PROPERTIES
-        CXX_STANDARD 20
-        CXX_STANDARD_REQUIRED YES
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN YES)
-    target_compile_definitions(parallel-mater-mock-driver PRIVATE
-        PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
-    target_include_directories(parallel-mater-mock-driver PRIVATE include)
-    set(PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR
-        "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/multi")
-    file(GENERATE
-        OUTPUT "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}/slang-cuda.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
-    file(GENERATE
-        OUTPUT "${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}/mock.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
-    add_executable(parallel-mater-loader-multidriver-tests
-        tests/loader_multidriver_tests.cpp)
-    target_compile_features(parallel-mater-loader-multidriver-tests
-        PRIVATE cxx_std_20)
-    target_link_libraries(parallel-mater-loader-multidriver-tests
-        PRIVATE ParallelMater::parallel_mater)
-    add_dependencies(parallel-mater-loader-multidriver-tests
-        parallel-mater-mock-driver)
-    add_test(NAME parallel-mater-loader-multidriver-tests
-        COMMAND parallel-mater-loader-multidriver-tests)
-    set_tests_properties(parallel-mater-loader-multidriver-tests PROPERTIES
-        LABELS "api;loader;driver"
-        ENVIRONMENT
-            "PM_DRIVER_PATH=${PARALLEL_MATER_MULTIDRIVER_MANIFEST_DIR}")
-
     if(Vulkan_FOUND)
         add_executable(parallel-mater-vulkan-executor-tests
             tests/vulkan_executor_tests.cpp)
@@ -949,10 +875,13 @@ if(BUILD_TESTING)
             LABELS "device;vulkan" SKIP_RETURN_CODE 77)
     endif()
 
-    add_executable(parallel-mater-driver-abi-tests tests/driver_abi_tests.cpp)
+    add_executable(parallel-mater-driver-abi-tests
+        tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-driver-abi-tests PRIVATE include)
     target_compile_features(parallel-mater-driver-abi-tests PRIVATE cxx_std_20)
     target_link_libraries(parallel-mater-driver-abi-tests PRIVATE ${CMAKE_DL_LIBS})
+    add_dependencies(parallel-mater-driver-abi-tests
+        parallel-mater-driver-slang-cuda parallel-mater)
     add_test(NAME parallel-mater-driver-abi-tests
         COMMAND parallel-mater-driver-abi-tests
             $<TARGET_FILE:parallel-mater-driver-slang-cuda>
@@ -960,10 +889,13 @@ if(BUILD_TESTING)
     set_tests_properties(parallel-mater-driver-abi-tests PROPERTIES
         LABELS "api;driver")
 
-    add_executable(parallel-mater-command-api-tests tests/command_api_tests.cpp)
+    add_executable(parallel-mater-command-api-tests
+        tests/api/command_api_tests.cpp)
     target_link_libraries(parallel-mater-command-api-tests
                           PRIVATE ParallelMater::parallel_mater)
     target_compile_features(parallel-mater-command-api-tests PRIVATE cxx_std_20)
+    add_dependencies(parallel-mater-command-api-tests
+        parallel-mater-driver-slang-cuda parallel-mater-layer-validation)
     add_test(NAME parallel-mater-command-api-tests
              COMMAND parallel-mater-command-api-tests)
     set_tests_properties(parallel-mater-command-api-tests
@@ -983,7 +915,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 src/soft_body_geometry.cpp
                 src/rope_geometry.cpp)
     target_compile_features(parallel-mater-asset-preparation PUBLIC cxx_std_20)
-    target_include_directories(parallel-mater-asset-preparation PUBLIC include)
+    target_include_directories(parallel-mater-asset-preparation
+        PUBLIC include
+        PRIVATE src)
     target_link_libraries(parallel-mater-asset-preparation PRIVATE CUDA::cudart)
     parallel_mater_enable_warnings(parallel-mater-asset-preparation)
 
@@ -998,7 +932,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
         parallel-mater-gallery-scene
-        PUBLIC examples/support/include examples/gallery
+        PUBLIC examples/support/include examples/gallery src
         PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
     target_link_libraries(
         parallel-mater-gallery-scene
@@ -1017,7 +951,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
         set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
     endif()
-    if(PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
+    if(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
         add_executable(parallel-mater-conformance
                        conformance/v1/src/cuda_runner.cpp)
         target_link_libraries(parallel-mater-conformance PRIVATE
@@ -1177,6 +1111,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE glfw OpenGL::GL)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
+    add_dependencies(parallel-mater-gallery
+        parallel-mater-driver-slang-cuda parallel-mater-layer-validation)
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
                        "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
@@ -1232,7 +1168,11 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         VERBATIM)
 endif()
 
-if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
+if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
+    # Transitional reference-runtime tests include private implementation
+    # declarations. Public API and gallery consumers never receive this path.
+    get_property(parallel_mater_targets_before_reference_tests
+        DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
     target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
     add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
@@ -1317,14 +1257,6 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
             set_tests_properties(parallel-mater-blender-export-tests
                                  PROPERTIES TIMEOUT 300)
         endif()
-        add_executable(parallel-mater-camera-controller-tests
-                       tests/gallery/camera_controller_tests.cpp)
-        target_link_libraries(
-            parallel-mater-camera-controller-tests
-            PRIVATE parallel-mater-gallery-scene)
-        add_test(NAME parallel-mater-camera-controller-tests
-                 COMMAND parallel-mater-camera-controller-tests)
-
         add_executable(parallel-mater-gallery-scene-tests
                        tests/gallery/scene_tests.cpp)
         target_link_libraries(
@@ -1372,13 +1304,6 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
                  COMMAND parallel-mater-rigid-wall-tests)
         set_tests_properties(parallel-mater-rigid-wall-tests
                              PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-physics-frame-budget-tests
-                       tests/gallery/physics_frame_budget_tests.cpp)
-        target_include_directories(parallel-mater-physics-frame-budget-tests
-                                   PRIVATE examples/support/include)
-        add_test(NAME parallel-mater-physics-frame-budget-tests
-                 COMMAND parallel-mater-physics-frame-budget-tests)
 
         add_executable(parallel-mater-fixed-collector-tests
                        tests/gallery/fixed_collector_tests.cpp)
@@ -1910,9 +1835,20 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS)
             parallel-mater-fluid-particle-view-test
             parallel-mater-fluid-particles-test.ppm 30 --fluid-particle-view)
     endif()
+    get_property(parallel_mater_reference_test_targets
+        DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    list(REMOVE_ITEM parallel_mater_reference_test_targets
+         ${parallel_mater_targets_before_reference_tests})
+    foreach(parallel_mater_reference_test_target
+            IN LISTS parallel_mater_reference_test_targets)
+        target_include_directories(${parallel_mater_reference_test_target}
+            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+        target_link_libraries(${parallel_mater_reference_test_target}
+            PRIVATE ParallelMater::slang_cuda_driver)
+    endforeach()
 endif()
 
-if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS AND
+if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS AND
    NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     add_library(parallel-mater-cuda-conformance-scene STATIC
         examples/support/scene.cpp
@@ -1921,10 +1857,10 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_INTERNAL_WORLD_TESTS AND
     target_compile_features(parallel-mater-cuda-conformance-scene
                             PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-cuda-conformance-scene
-        PUBLIC examples/support/include
+        PUBLIC examples/support/include src
         PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
     target_link_libraries(parallel-mater-cuda-conformance-scene
-                          PUBLIC ParallelMater::parallel_mater)
+                          PUBLIC ParallelMater::slang_cuda_driver)
 
     execute_process(
         COMMAND git rev-parse HEAD
@@ -2487,6 +2423,24 @@ endif()
 
 if(BUILD_TESTING)
     add_subdirectory(tests/solver)
+    add_executable(parallel-mater-camera-controller-tests
+        tests/gallery/camera_controller_tests.cpp)
+    target_compile_features(parallel-mater-camera-controller-tests
+        PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-camera-controller-tests PRIVATE
+        include examples/support/include)
+    add_test(NAME parallel-mater-camera-controller-tests
+        COMMAND parallel-mater-camera-controller-tests)
+
+    add_executable(parallel-mater-physics-frame-budget-tests
+        tests/gallery/physics_frame_budget_tests.cpp)
+    target_compile_features(parallel-mater-physics-frame-budget-tests
+        PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-physics-frame-budget-tests
+        PRIVATE examples/support/include)
+    add_test(NAME parallel-mater-physics-frame-budget-tests
+        COMMAND parallel-mater-physics-frame-budget-tests)
+
     add_executable(parallel-mater-gallery-registry-tests
         tests/gallery/gallery_registry_contract_tests.cpp)
     target_compile_features(parallel-mater-gallery-registry-tests PRIVATE cxx_std_20)
@@ -2524,10 +2478,6 @@ if(BUILD_TESTING)
              COMMAND parallel-mater-parity-compare --self-test)
 endif()
 
-if(NOT PARALLEL_MATER_INSTALL_TARGETS)
-    message(FATAL_ERROR "At least one ParallelMater backend must be enabled")
-endif()
-
 configure_package_config_file(
     cmake/ParallelMaterConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake
@@ -2537,14 +2487,16 @@ write_basic_package_version_file(
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion)
 
-set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
-    "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cuda${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set(PARALLEL_MATER_INSTALLED_LAYER_PATH
     "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_layer_validation${CMAKE_SHARED_LIBRARY_SUFFIX}")
-configure_file(config/driver-manifest.json.in
-    ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
 configure_file(config/validation-layer.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json @ONLY)
+if(PARALLEL_MATER_BUILD_CUDA)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cuda${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
+endif()
 
 install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
@@ -2558,8 +2510,10 @@ install(
         include/parallel_mater/pm_driver.h
         include/parallel_mater/pm_layer.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+if(PARALLEL_MATER_BUILD_CUDA)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
 install(FILES tools/blender/export_parallel_mater_scene.py

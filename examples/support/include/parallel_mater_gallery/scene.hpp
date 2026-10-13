@@ -4,7 +4,7 @@
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 #include <parallel_mater/metal.hpp>
 #else
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 #endif
 
 #include <parallel_mater_gallery/device_profiles.hpp>

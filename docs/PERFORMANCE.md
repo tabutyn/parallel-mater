@@ -653,7 +653,7 @@ Source inspection explains the main optimization candidates:
 - `src/geometry_constraints.cuh`, `resolve_small_rigid_contacts_kernel`: the
   <=256-body solver uses one block and sequential, body-disjoint contact colors.
   Any face patch raises the whole contact solve from eight to 32 iterations.
-- `src/world.cu`, `ordinary_rigid_stack`: **any joint in the world** disables
+- `src/simulation/runtime.cu`, `ordinary_rigid_stack`: **any joint in the world** disables
   prepared contact responses and the ordinary-stack coloring optimization, even
   for the free payload spheres. DUMP has nine joints, so it cannot use that path.
 - `src/geometry_constraints.cuh`, `solve_rigid_constraints_kernel`: a single GPU

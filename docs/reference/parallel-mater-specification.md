@@ -2582,7 +2582,7 @@ typedef struct PmFence_T* PmFence;
 typedef struct PmQueryPool_T* PmQueryPool;
 ```
 
-Handles are opaque pointers, not structures applications may dereference. PMAPI_ATTR and PMAPI_CALL default to empty and may be supplied by the platform ABI. All declarations use C linkage in C++. PmBool32 is PM_FALSE or PM_TRUE. Each command has a PFN_pmCommandName function-pointer typedef with exactly the displayed return type, parameters and PMAPI_CALL convention.
+Handles are opaque pointers, not structures applications may dereference. PMAPI_ATTR supplies the platform's loader import/export visibility and PMAPI_CALL supplies its calling convention. All declarations use C linkage in C++. PmBool32 is PM_FALSE or PM_TRUE. Each command has a PFN_pmCommandName function-pointer typedef with exactly the displayed return type, parameters and PMAPI_CALL convention.
 
 <a id="spec-structure_types"></a>
 
