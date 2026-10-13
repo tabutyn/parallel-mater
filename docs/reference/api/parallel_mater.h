@@ -9,7 +9,21 @@
 extern "C" {
 #endif
 #ifndef PMAPI_ATTR
+#if defined(_WIN32)
+#if defined(PARALLEL_MATER_LOADER_IMPLEMENTATION)
+#define PMAPI_ATTR __declspec(dllexport)
+#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
 #define PMAPI_ATTR
+#else
+#define PMAPI_ATTR __declspec(dllimport)
+#endif
+#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
+#define PMAPI_ATTR
+#elif defined(__GNUC__)
+#define PMAPI_ATTR __attribute__((visibility("default")))
+#else
+#define PMAPI_ATTR
+#endif
 #endif
 #ifndef PMAPI_CALL
 #define PMAPI_CALL

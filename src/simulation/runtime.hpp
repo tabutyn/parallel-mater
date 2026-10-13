@@ -145,7 +145,7 @@ struct SoftBodyDeviceView {
     ParticleSourceMesh mesh, std::vector<Vec3> &output) noexcept;
 
 // Appends sampled particles to output. This CPU utility needs no CUDA device;
-// callers can inspect or downsample before uploading to World.
+// callers can inspect or downsample before uploading to SimulationRuntime.
 [[nodiscard]] Status sample_fluid_geometry(
     FluidGeometrySource source, std::vector<FluidParticle> &output) noexcept;
 
@@ -186,7 +186,7 @@ struct FluidDeviceView {
 struct RigidBodyDeviceView {
     DeviceSpan<const RigidBodyId> ids{};
     DeviceSpan<const RigidBodyState> states{};
-    // State at the start of the latest World::step call. Renderers may blend
+    // State at the start of the latest SimulationRuntime::step call. Renderers may blend
     // previous_states toward states using a fixed-timestep accumulator.
     DeviceSpan<const RigidBodyState> previous_states{};
     // Inputs captured at the beginning of the last completed frame. Empty
@@ -225,19 +225,19 @@ class FrameToken {
   private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
-    friend class World;
+    friend class SimulationRuntime;
 };
 
-class World {
+class SimulationRuntime {
   public:
-    World() noexcept;
-    ~World();
-    World(World &&) noexcept;
-    World &operator=(World &&) noexcept;
-    World(const World &) = delete;
-    World &operator=(const World &) = delete;
+    SimulationRuntime() noexcept;
+    ~SimulationRuntime();
+    SimulationRuntime(SimulationRuntime &&) noexcept;
+    SimulationRuntime &operator=(SimulationRuntime &&) noexcept;
+    SimulationRuntime(const SimulationRuntime &) = delete;
+    SimulationRuntime &operator=(const SimulationRuntime &) = delete;
 
-    [[nodiscard]] static Status create(WorldOptions options, World &output,
+    [[nodiscard]] static Status create(WorldOptions options, SimulationRuntime &output,
                                        cudaStream_t stream = nullptr) noexcept;
 
     [[nodiscard]] Status add_fluid(FluidOptions options,
@@ -406,7 +406,7 @@ class World {
         RigidConstraintId constraint, RigidConstraintState &output,
         cudaStream_t stream = nullptr) const noexcept;
 
-    // Copies an indexed two-sided triangle soup into World-owned CUDA memory.
+    // Copies an indexed two-sided triangle soup into SimulationRuntime-owned CUDA memory.
     // Triangles need not form a closed, manifold, or consistently wound mesh.
     [[nodiscard]] Status add_triangle_mesh(
         DeviceSpan<const Vec3> vertices,
@@ -426,7 +426,7 @@ class World {
         PaintRuleOptions options, PaintRuleId &output) noexcept;
     [[nodiscard]] Status remove_paint_rule(PaintRuleId rule) noexcept;
 
-    // Only one frame may be in flight per World in the initial release.
+    // Only one frame may be in flight per SimulationRuntime in the initial release.
     [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,
                                     cudaStream_t stream = nullptr) noexcept;
     [[nodiscard]] Status step(StepOptions options,
@@ -435,7 +435,7 @@ class World {
     [[nodiscard]] ContactDeviceView contacts() const noexcept;
     [[nodiscard]] RigidContactDeviceView rigid_contacts() const noexcept;
     // Borrow the latest host debug frame, or deep-copy the chronological ring.
-    // Both require physics_debug.frame_capacity > 0 at World creation.
+    // Both require physics_debug.frame_capacity > 0 at SimulationRuntime creation.
     [[nodiscard]] Status physics_debug_frame(
         PhysicsDebugFrameView &output) const noexcept;
     [[nodiscard]] Status copy_physics_debug_capture(
@@ -450,5 +450,9 @@ class World {
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
+
+// Transitional name used only by the reference-runtime regression corpus.
+// Production consumers use the public pm* command API.
+using World = SimulationRuntime;
 
 } // namespace parallel_mater

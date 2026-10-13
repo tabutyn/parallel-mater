@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Focused public-API regressions for the production rigid constraint solver. Every case
 // prints physical errors, and --case NAME permits short solver experiments.
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 #include <parallel_mater/solver/geometry_constraints.hpp>
 #include <cuda_runtime_api.h>
 #include <algorithm>

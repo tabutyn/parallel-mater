@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 #include "../../examples/support/vector_math.hpp"
 #include <cuda_runtime_api.h>
 #include <algorithm>

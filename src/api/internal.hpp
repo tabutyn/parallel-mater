@@ -6,7 +6,7 @@
 #endif
 
 #include <parallel_mater/parallel_mater.h>
-#include <parallel_mater/parallel_mater.hpp>
+#include <simulation/runtime.hpp>
 
 #include "../device/device.hpp"
 #include "../simulation/memory_arena.hpp"
@@ -101,7 +101,7 @@ struct PmSimulation_T {
     parallel_mater::WorldOptions world_options{};
     PmSimulationMemoryBinding binding{};
     std::unique_ptr<parallel_mater::simulation::MemoryArena> arena;
-    std::unique_ptr<parallel_mater::World> runtime;
+    std::unique_ptr<parallel_mater::SimulationRuntime> runtime;
     std::unordered_map<PmGeometry, parallel_mater::TriangleMeshId> geometries;
     std::vector<std::optional<parallel_mater::RigidBodyId>> rigid_bodies;
     std::vector<parallel_mater::RigidBodyId> rigid_dense_ids;

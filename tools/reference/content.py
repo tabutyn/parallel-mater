@@ -1,4 +1,4 @@
-"""Single source for the C API, quick reference, and specification."""
+"""Consumer-facing reference and specification content."""
 from dataclasses import dataclass, field
 from textwrap import dedent
 from pathlib import Path
@@ -35,62 +35,7 @@ def c(key, title, text="", *, types="", functions="", code="", rows=(), links=()
                 dedent(code).strip(), list(rows), tuple(links), tone, extension, emit_header)
 
 
-PRELUDE = r"""
-#ifndef PARALLEL_MATER_H
-#define PARALLEL_MATER_H
-#include <stddef.h>
-#include <stdint.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifndef PMAPI_ATTR
-#if defined(_WIN32)
-#if defined(PARALLEL_MATER_LOADER_IMPLEMENTATION)
-#define PMAPI_ATTR __declspec(dllexport)
-#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
-#define PMAPI_ATTR
-#else
-#define PMAPI_ATTR __declspec(dllimport)
-#endif
-#elif defined(PARALLEL_MATER_DRIVER_IMPLEMENTATION)
-#define PMAPI_ATTR
-#elif defined(__GNUC__)
-#define PMAPI_ATTR __attribute__((visibility("default")))
-#else
-#define PMAPI_ATTR
-#endif
-#endif
-#ifndef PMAPI_CALL
-#define PMAPI_CALL
-#endif
-#define PM_API_VERSION_0_2 ((uint32_t)(2u << 12))
-#define PM_WHOLE_SIZE UINT64_MAX
-#define PM_TIMEOUT_INFINITE UINT64_MAX
-#define PM_INVALID_INDEX UINT32_MAX
-#define PM_QUEUE_FAMILY_IGNORED UINT32_MAX
-#define PM_QUEUE_FAMILY_EXTERNAL (UINT32_MAX - 1u)
-#define PM_FALSE 0u
-#define PM_TRUE 1u
-typedef uint32_t PmBool32;
-typedef uint32_t PmFlags;
-typedef uint64_t PmDeviceSize;
-typedef uint64_t PmStageFlags;
-typedef uint64_t PmAccessFlags;
-typedef struct PmInstance_T* PmInstance;
-typedef struct PmPhysicalDevice_T* PmPhysicalDevice;
-typedef struct PmDevice_T* PmDevice;
-typedef struct PmQueue_T* PmQueue;
-typedef struct PmDeviceMemory_T* PmDeviceMemory;
-typedef struct PmBuffer_T* PmBuffer;
-typedef struct PmGeometry_T* PmGeometry;
-typedef struct PmSimulation_T* PmSimulation;
-typedef struct PmPhysicsPipeline_T* PmPhysicsPipeline;
-typedef struct PmCommandPool_T* PmCommandPool;
-typedef struct PmCommandBuffer_T* PmCommandBuffer;
-typedef struct PmSemaphore_T* PmSemaphore;
-typedef struct PmFence_T* PmFence;
-typedef struct PmQueryPool_T* PmQueryPool;
-"""
+PRELUDE = ""  # Populated from registry/pm.xml by apply_registry().
 
 SECTIONS = [
     Section("overview", "Parallel Mater", "API 0.2", [
@@ -1600,7 +1545,7 @@ def structure_name(name):
 
 def apply_registry():
     """Replace declarations with the canonical API registry contents."""
-    global PRELUDE
+    global PRELUDE, STRUCTURE_TYPE_VALUES
     registry = Path(__file__).resolve().parents[2] / "registry" / "pm.xml"
     root = ET.parse(registry).getroot()
     PRELUDE = root.findtext("prelude") or ""
@@ -1622,22 +1567,44 @@ def apply_registry():
     if missing:
         raise RuntimeError(f"declaration cards missing from registry: {sorted(missing)}")
 
+    STRUCTURE_TYPE_VALUES = {}
+    for node in root.findall("./structure-types/type"):
+        name = node.attrib["name"]
+        value = int(node.attrib["value"], 0)
+        if name in STRUCTURE_TYPE_VALUES:
+            raise RuntimeError(f"duplicate structure type name: {name}")
+        if value == 0 or value in STRUCTURE_TYPE_VALUES.values():
+            raise RuntimeError(f"invalid or duplicate structure type value: {value}")
+        STRUCTURE_TYPE_VALUES[name] = value
+
+    declared_structure_types = {
+        name for section in SECTIONS for card in section.cards
+        for name, body in re.findall(
+            r"typedef struct (Pm\w+) \{(.*?)\}", card.types, re.S)
+        if "PmStructureType sType;" in body
+    }
+    registered_structure_types = set(STRUCTURE_TYPE_VALUES)
+    if declared_structure_types != registered_structure_types:
+        raise RuntimeError(
+            "structure type registry mismatch; missing="
+            f"{sorted(declared_structure_types - registered_structure_types)}, "
+            "extra="
+            f"{sorted(registered_structure_types - declared_structure_types)}")
+
 
 apply_registry()
 
 
-STRUCTURE_NAMES = [name for section in SECTIONS for card in section.cards
-    for name, body in re.findall(r"typedef struct (Pm\w+) \{(.*?)\}", card.types, re.S)
-    if "PmStructureType sType;" in body]
 STRUCTURE_TYPES = "typedef enum PmStructureType {\n    PM_STRUCTURE_TYPE_UNDEFINED = 0,\n"
-STRUCTURE_TYPES += "\n".join(f"    {structure_name(name)} = {i+1},"
-                             for i, name in enumerate(STRUCTURE_NAMES))
+STRUCTURE_TYPES += "\n".join(
+    f"    {structure_name(name)} = {value},"
+    for name, value in sorted(STRUCTURE_TYPE_VALUES.items(), key=lambda item: item[1]))
 STRUCTURE_TYPES += "\n} PmStructureType;"
 
 SECTIONS.append(Section("fundamentals", "Fundamental declarations", "Types and identifiers", [
     c("base_types", "Types, handles & constants",
       types=PRELUDE[PRELUDE.index("#define PM_API_VERSION_0_2"):], emit_header=False,
-      text="Handles are opaque pointers, not structures applications may dereference. PMAPI_ATTR and PMAPI_CALL default to empty and may be supplied by the platform ABI. All declarations use C linkage in C++. PmBool32 is PM_FALSE or PM_TRUE. Each command has a PFN_pmCommandName function-pointer typedef with exactly the displayed return type, parameters and PMAPI_CALL convention."),
+      text="Handles are opaque pointers, not structures applications may dereference. PMAPI_ATTR supplies the platform's loader import/export visibility and PMAPI_CALL supplies its calling convention. All declarations use C linkage in C++. PmBool32 is PM_FALSE or PM_TRUE. Each command has a PFN_pmCommandName function-pointer typedef with exactly the displayed return type, parameters and PMAPI_CALL convention."),
     c("structure_types", "Structure types", types=STRUCTURE_TYPES, emit_header=False,
       text="Every extensible input structure sets sType to the identifier for its exact structure type. pNext is NULL unless a supported extension defines the chained structure. An identifier does not enable a feature or extension."),
 ]))
