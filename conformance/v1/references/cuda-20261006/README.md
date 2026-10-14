@@ -10,23 +10,12 @@ CUDA compiler 13.1.80, runtime/driver API version 13010; GCC 12.2.0;
 Release, CUDA ON, Metal OFF, OptiX gallery ON, testing ON, architecture 86.
 The archive includes the actual CMake cache and NVIDIA driver report.
 
-## Use on the Mac
+## Archived usage
 
-Check out this branch (or its merged descendant), build the Metal backend, then:
-
-```bash
-mkdir -p /tmp/cuda-reference-20261006
-tar -xzf conformance/v1/references/cuda-20261006/physics-runs.tar.gz \
-  -C /tmp/cuda-reference-20261006
-build-metal/parallel-mater-metal-conformance --check-inputs
-build-metal/parallel-mater-metal-conformance --case all --output /tmp/metal-results
-python3 conformance/v1/compare.py --cases conformance/v1/cases \
-  --expected /tmp/cuda-reference-20261006/run-01 --actual /tmp/metal-results \
-  --report /tmp/metal-vs-cuda.json
-build-metal/parallel-mater-metal-parity-capture /tmp/metal.capture
-build-metal/parallel-mater-parity-compare \
-  /tmp/cuda-reference-20261006/all-systems-01.capture /tmp/metal.capture
-```
+This package predates the loader-driver migration. The native Metal runner it
+originally targeted has been removed. Retain the captures as historical CUDA
+evidence; future adapters must use the current backend-neutral v1 runner and
+result schema rather than restoring the old platform implementation.
 
 `run-01` is simply the first capture, **not a selected best result**. For any
 of the five non-repeatable cases, compare against all ten retained runs before
@@ -51,11 +40,9 @@ manifest. See the reviewable `repeatability.json` beside the archive.
 - Clean source and unchanged source revision were verified before and after
   capture. No inputs, tolerances, or golden results were rewritten.
 
-The five varying cases prevent the strict reference qualification requested in
-`docs/CUDA_REFERENCE_REQUIREMENTS.md`. Floating atomic reductions in
-`src/fluid_cloth.cuh` and `src/smoke_grid.cuh` are investigation candidates,
-not a proven complete diagnosis. Preserve this evidence while isolating their
-first divergent phase; do not attribute these variations to Metal.
+The five varying cases prevent strict reference qualification. Floating atomic
+reductions were investigation candidates, not a proven complete diagnosis.
+Preserve this evidence when comparing a future driver.
 
 The historical golden corpus is still historical: 18 cases match this capture
 and 12 differ under today's comparator. The old Hinge/Piston results were
@@ -77,12 +64,9 @@ energy gain. Hinge/slider, the eight-right-left-cycle piston test, and rope
 settling/winding checks pass. The fix is limited to intersecting triangles;
 separated surface contacts retain their established behavior.
 
-The Metal physics kernels were not changed here. Port the intersecting
-convex/concave contact logic in `src/geometry_constraints.cuh` before
-classifying those changed contact trajectories as unrelated Metal defects.
-The essential inputs are both bodies' previous transforms, the concave face,
-and its signed separation from the incident convex triangle. Do not substitute
-the concave body's origin for the face's entry side.
+The essential contact inputs are both bodies' previous transforms, the concave
+face, and its signed separation from the incident convex triangle. Future
+drivers receive this logic from the shared Slang implementation.
 
 ## Scope
 
@@ -100,7 +84,7 @@ requested matrix of all scene/debug/control combinations. It is supplemental
 evidence, not visual-parity approval.
 
 This package unblocks numerical inspection and tolerance comparisons.
-It does not assert Metal parity, exact CUDA repeatability for all systems, or
+It does not assert cross-driver parity, exact CUDA repeatability for all systems, or
 approval of the historical goldens. Engine-internal phase tracing is the next
 step for failures that public checkpoints cannot isolate. Gallery debug-view,
 OptiX GPU-capture, and performance handoffs remain separate requirements.

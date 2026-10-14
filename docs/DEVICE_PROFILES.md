@@ -5,10 +5,10 @@ brick count, uniform brick scale, and separated wall count. Bricks remain
 independent triangle-mesh rigid bodies; scale changes mass by volume and lets the
 physics backend derive inertia from the scaled triangles.
 
-Both galleries render at 1920×1080 internally. Press `P` in the Rigid Body scene
+The shared gallery renders at 1920×1080 internally. Press `P` in the Rigid Body scene
 to edit the three wall values. `Tab` changes fields, `Enter` applies and restarts,
 `C` runs calibration, `V` verifies the latest passing calibration, and `R`
-restarts the current configuration. CUDA and Metal also accept
+restarts the current configuration. The gallery also accepts
 `--brick-count`, `--brick-scale`, `--brick-planes`, `--calibrate`, and
 `--profiles-file`.
 
@@ -17,8 +17,8 @@ the command line, so regression tests retain the same scene on every machine.
 Interactive releases read the catalog bundled beside the executable; merely
 launching the app never opens a source checkout or external development drive.
 
-Interactive CUDA and Metal startup select bricks automatically from the current
-physics GPU and the bundled data, in this order:
+Interactive startup selects bricks automatically from the current physics GPU
+and the bundled data, in this order:
 
 1. Use an exact compatible `verified_profiles` entry when one exists.
 2. Otherwise use `measurements` for the same GPU model/variant, backend, OS family,
@@ -71,8 +71,8 @@ after writing the local result.
 Missing manufacturer values remain absent. Compute-unit counts, memory
 bandwidth, and power figures provide search context; they never predict or
 certify a brick count. The measured preset ladder and compatible prior profiles
-guide calibration. Contact solving contains dependent work and Metal contact
-storage grows approximately with the square of rigid-body count, so theoretical
+guide calibration. Contact solving contains dependent work and contact storage
+can grow approximately with the square of rigid-body count, so theoretical
 shader throughput is not a reliable capacity conversion.
 
 Verified profile matching includes machine/GPU variant, memory, backend, operating
@@ -85,9 +85,8 @@ both profile matching and new calibration results. Earlier `*-rigid-v1`
 profiles remain on disk but are not reused; recalibrate before verifying a
 profile for the shared solver.
 
-Metal's verify action asks for a destination, which can be the tracked catalog
-or a standalone export when no checkout is present. CUDA writes a standalone
-local export unless `--profiles-file` explicitly identifies the tracked catalog.
+Verification writes a standalone local export unless `--profiles-file`
+explicitly identifies the tracked catalog.
 Catalog replacement is atomic, serializes concurrent writers, and rejects an
 external edit detected between read and rename. AMD, Google, Intel, and Qualcomm
 records are research entries only until a future runtime backend can measure

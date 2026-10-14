@@ -96,8 +96,8 @@ The Slang/CUDA driver is the first qualified implementation. All shared Slang
 modules are also compiled to Vulkan SPIR-V as a portability check, but there is
 no Vulkan driver until a complete shared schedule passes the same conformance
 and gallery gates. Metal, DirectX 12, and WebGPU execution are likewise
-unavailable until independently qualified. CMake rejects retired
-backend-specific physics builds instead of selecting them as a fallback. Native
+unavailable until independently qualified. Retired backend-specific physics
+targets are absent rather than available as fallbacks. Native
 API names remain in
 interoperability enums because applications may query support and receive
 `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
@@ -126,13 +126,12 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
-For AVBD-budget experiments, use `--contact-passes 1` in the gallery,
-or `--passes 1` with `parallel-mater-rigid-scene-benchmark examples/assets/RigidBody.glb`.
+For AVBD-budget experiments, use `--contact-passes 1` in the gallery.
 The command API field is `PmRigidSolverState::rigidIterations`; 1–64 selects
 iterations per pose/impact phase for both contacts and joints. Impacted islands
 may therefore report twice that value;
 integration substeps are unchanged. Low budgets can destabilize stacks. Check
-quality with `parallel-mater-rigid-wall-tests --passes 1`, not only timing.
+quality with `parallel-mater-command-gallery-tests`, not only timing.
 The overlay labels `X` as GPU launches and reports total AVBD iterations in
 the last substep separately.
 

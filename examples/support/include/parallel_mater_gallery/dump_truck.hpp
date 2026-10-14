@@ -7,11 +7,7 @@
 #include <cmath>
 #include <limits>
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-namespace parallel_mater::metal::gallery {
-#else
 namespace parallel_mater::gallery {
-#endif
 
 // Gallery-only actuator: the public solver moves a dynamic bucket around its
 // authored rear pivot, carrying reaction forces through the dynamic chassis.
@@ -144,8 +140,4 @@ inline constexpr std::uint32_t default_dump_payload_count = 100U;
     scene.rigid_constraints = std::move(joints);
     return true;
 }
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-} // namespace parallel_mater::metal::gallery
-#else
 } // namespace parallel_mater::gallery
-#endif

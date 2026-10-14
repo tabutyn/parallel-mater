@@ -1,17 +1,10 @@
 // SPDX-License-Identifier: MIT
-#if defined(PARALLEL_MATER_METAL_GEOMETRY)
-#include <parallel_mater/metal.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
-#define PM_GEOMETRY_SUCCESS 0
-#else
 #include <simulation/runtime.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater
 #define PM_GEOMETRY_SUCCESS cudaSuccess
-#endif
 #include <algorithm>
 #include <cmath>
 #include <vector>
-namespace PM_GEOMETRY_NAMESPACE {
+namespace parallel_mater {
 Status sample_rope_centerline(HostSpan<const Vec3> line, float spacing,
                              std::vector<Vec3> &output) noexcept {
     if (!line.data || line.size < 2 || !std::isfinite(spacing) || spacing <= 0)
@@ -49,4 +42,3 @@ Status sample_rope_centerline(HostSpan<const Vec3> line, float spacing,
 }
 } // namespace parallel_mater
 #undef PM_GEOMETRY_SUCCESS
-#undef PM_GEOMETRY_NAMESPACE

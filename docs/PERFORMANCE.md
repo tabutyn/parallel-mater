@@ -1,5 +1,8 @@
 # Physics performance
 
+> Historical entries below may name retired native Metal executables. They are
+> retained as measurement provenance, not as current build or test instructions.
+
 ## Reading these measurements after the AVBD migration
 
 The historical sections below record earlier solver revisions, not the current AVBD

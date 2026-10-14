@@ -124,23 +124,6 @@ function(parallel_mater_add_slang_geometry_constraints)
             "${ptx}" PARENT_SCOPE)
     endif()
 
-    if(PARALLEL_MATER_BUILD_METAL)
-        set(metal_air "${generated_dir}/parallel_mater_geometry_constraints.air")
-        add_custom_command(
-            OUTPUT "${metal_air}"
-            COMMAND ${CMAKE_COMMAND} -E env
-                CLANG_MODULE_CACHE_PATH=${generated_dir}/metal-module-cache
-                "${PARALLEL_MATER_XCRUN_EXECUTABLE}" -sdk macosx metal
-                -std=metal4.0 -mmacosx-version-min=26.0
-                -fno-fast-math -ffp-contract=fast
-                -fmodules-cache-path=${generated_dir}/metal-module-cache
-                -c "${metal_source}" -o "${metal_air}"
-            DEPENDS "${metal_source}"
-            COMMENT "Validating Slang-generated rigid constraints with the native Metal compiler"
-            VERBATIM)
-        list(APPEND slang_outputs "${metal_air}")
-    endif()
-
     add_custom_target(parallel-mater-slang-geometry-constraints ALL
                       DEPENDS ${slang_outputs})
     set(PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_CUDA_SOURCE

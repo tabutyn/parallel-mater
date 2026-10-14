@@ -27,7 +27,7 @@ cmake -S . -B build \
   -DPARALLEL_MATER_SLANGC_EXECUTABLE=/opt/slang-2026.18/bin/slangc
 ```
 
-Generated CUDA, PTX, MSL, HLSL, reflection records, AIR, and metallibs remain
+Generated CUDA, PTX, MSL, HLSL, DXIL, SPIR-V, and reflection records remain
 in the build tree.
 
 ## Validation

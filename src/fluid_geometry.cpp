@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: MIT
-#if defined(PARALLEL_MATER_METAL_GEOMETRY)
-#include <parallel_mater/metal.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
-#define PM_GEOMETRY_SUCCESS 0
-#else
 #include <simulation/runtime.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater
 #define PM_GEOMETRY_SUCCESS cudaSuccess
-#endif
 
 #include <algorithm>
 #include <array>
@@ -17,7 +10,7 @@
 #include <new>
 #include <vector>
 
-namespace PM_GEOMETRY_NAMESPACE {
+namespace parallel_mater {
 namespace {
 
 Vec3 add(Vec3 a, Vec3 b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
@@ -160,4 +153,3 @@ Status sample_fluid_geometry(FluidGeometrySource source,
 
 } // namespace parallel_mater
 #undef PM_GEOMETRY_SUCCESS
-#undef PM_GEOMETRY_NAMESPACE
