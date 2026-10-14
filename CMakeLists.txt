@@ -388,6 +388,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 examples/support/scene.cpp
                 examples/support/brick_scene.cpp
                 examples/support/device_profiles.cpp
+                examples/support/physics_debug.cpp
                 examples/support/rope_render.cpp
                 examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
@@ -420,6 +421,37 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             TIMEOUT 300
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+
+        add_executable(parallel-mater-rigid-constraint-command-tests
+                       tests/gallery/rigid_constraint_command_tests.cpp)
+        target_link_libraries(parallel-mater-rigid-constraint-command-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(
+            parallel-mater-rigid-constraint-command-tests PRIVATE
+            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb")
+        add_dependencies(parallel-mater-rigid-constraint-command-tests
+                         parallel-mater-driver-slang-cuda)
+        parallel_mater_enable_warnings(
+            parallel-mater-rigid-constraint-command-tests)
+        add_test(NAME parallel-mater-rigid-constraint-command-tests
+                 COMMAND parallel-mater-rigid-constraint-command-tests)
+        set_tests_properties(
+            parallel-mater-rigid-constraint-command-tests PROPERTIES
+            LABELS "api;gallery;cuda;constraints"
+            SKIP_RETURN_CODE 77
+            TIMEOUT 300
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+
+        add_executable(parallel-mater-physics-debug-tests
+                       tests/gallery/physics_debug_tests.cpp)
+        target_link_libraries(parallel-mater-physics-debug-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        parallel_mater_enable_warnings(parallel-mater-physics-debug-tests)
+        add_test(NAME parallel-mater-physics-debug-tests
+                 COMMAND parallel-mater-physics-debug-tests)
+        set_tests_properties(parallel-mater-physics-debug-tests PROPERTIES
+            LABELS "gallery;capture")
 
         add_executable(parallel-mater-gallery-scene-tests
                        tests/gallery/scene_tests.cpp)
@@ -624,8 +656,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 examples/gallery/application_validation.cpp.inc
                 examples/gallery/application_calibration.cpp.inc
                 examples/support/runtime_platform.cpp
-                examples/support/overlay.cpp
-                examples/support/physics_debug.cpp)
+                examples/support/overlay.cpp)
     target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
     target_link_libraries(
         parallel-mater-gallery-application

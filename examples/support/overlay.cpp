@@ -577,6 +577,23 @@ void draw_brick_settings_overlay(
          {160, 190, 210, 255}, ui.font(1));
 }
 
+void draw_status_overlay(std::vector<std::uint32_t> &rgba,
+                         std::uint32_t width, std::uint32_t height,
+                         std::string_view message, bool failure) {
+    if (message.empty() || width < 80U || height < 54U) return;
+    constexpr int scale = 2;
+    constexpr int glyph_width = 6 * scale;
+    const std::size_t maximum_characters =
+        static_cast<std::size_t>((width - 48U) / glyph_width);
+    message = message.substr(0U, maximum_characters);
+    const int panel_width = static_cast<int>(message.size()) * glyph_width + 28;
+    rectangle(rgba, width, height, 16, 16, 16 + panel_width, 50,
+              failure ? Color{72, 18, 18, 235} : Color{8, 52, 34, 235});
+    text(rgba, width, height, 30, 26, message,
+         failure ? Color{255, 135, 135, 255}
+                 : Color{120, 255, 180, 255}, scale);
+}
+
 bool draw_rigid_contact_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const std::vector<PmContactEvent> &contacts,

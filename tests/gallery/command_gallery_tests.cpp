@@ -57,11 +57,23 @@ template <std::size_t Size>
         error = "rigid output count does not match the scene";
         return false;
     }
-    for (const PmRigidState &state : frame.rigid_states)
+    for (const PmRigidState &state : frame.rigid_states) {
         if (!finite(state)) {
             error = "rigid output contains a non-finite value";
             return false;
+        } else if (std::fabs(state.position[0]) > 1'000.0F ||
+                 std::fabs(state.position[1]) > 1'000.0F ||
+                 std::fabs(state.position[2]) > 1'000.0F ||
+                 std::fabs(state.linearVelocity[0]) > 1'000.0F ||
+                 std::fabs(state.linearVelocity[1]) > 1'000.0F ||
+                 std::fabs(state.linearVelocity[2]) > 1'000.0F ||
+                 std::fabs(state.angularVelocity[0]) > 1'000.0F ||
+                 std::fabs(state.angularVelocity[1]) > 1'000.0F ||
+                 std::fabs(state.angularVelocity[2]) > 1'000.0F) {
+            error = "rigid output escaped the stability bounds";
+            return false;
         }
+    }
     for (const PmFluidParticleOutput &particle : frame.fluid_particles)
         if (!finite(particle.position) || !finite(particle.velocity)) {
             error = "fluid output contains a non-finite value";
@@ -133,11 +145,17 @@ int main() {
             std::cerr << entry.name << ": create failed: " << error << '\n';
             return 1;
         }
-        if (!simulation.step(1.0F / 60.0F, 4U,
-                             {0.0F, -9.81F, 0.0F}, frame, error, true) ||
-            !validate_frame(scene, frame, error)) {
-            std::cerr << entry.name << ": step failed: " << error << '\n';
-            return 1;
+        const std::uint32_t frame_count =
+            index <= gallery_context_index(GalleryContext::dump) ? 120U : 1U;
+        for (std::uint32_t frame_index = 0U; frame_index < frame_count;
+             ++frame_index) {
+            if (!simulation.step(1.0F / 60.0F, 4U,
+                                 {0.0F, -9.81F, 0.0F}, frame, error, true) ||
+                !validate_frame(scene, frame, error)) {
+                std::cerr << entry.name << ": frame " << frame_index
+                          << " failed: " << error << '\n';
+                return 1;
+            }
         }
 
         if (entry.context == GalleryContext::constraint_point) {

@@ -305,7 +305,7 @@ class ExportSceneTests(unittest.TestCase):
         expected_types = {
             "ConstraintFixed": ("fixed", 1),
             "ConstraintPoint": ("point", 4),
-            "ConstraintHinge": ("hinge", 4),
+            "ConstraintHinge": ("hinge", 5),
             "ConstraintSlider": ("slider", 1),
             "ConstraintPiston": ("piston", 1),
             "ConstraintGeneric": ("generic", 1),
@@ -316,8 +316,7 @@ class ExportSceneTests(unittest.TestCase):
             with self.subTest(scene=name):
                 bpy.ops.wm.open_mainfile(filepath=str(ASSETS / f"{name}.blend"))
                 document = self.check_export(Counter(
-                    rigid_body=6 if kind in ("motor", "point") else
-                               5 if kind == "hinge" else
+                    rigid_body=6 if kind in ("motor", "point", "hinge") else
                                3 if kind == "piston" else
                                51 if kind == "fixed" else 4,
                     rigid_constraint=count,
@@ -328,7 +327,8 @@ class ExportSceneTests(unittest.TestCase):
                 self.assertEqual(len(constraints), count)
                 self.assertEqual(
                     Counter(item["pm_constraint_type"] for item in constraints),
-                    Counter(hinge=3, slider=1) if kind == "hinge" else
+                    Counter(hinge=3, slider=1, generic_spring=1)
+                    if kind == "hinge" else
                     Counter({kind: count}))
                 self.assertTrue(all(item["pm_body_a"] and item["pm_body_b"]
                                     for item in constraints))
@@ -377,7 +377,7 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertEqual(
                         {(item["pm_body_a"], item["pm_body_b"])
                          for item in constraints},
-                        {("Ground.001", "Gear"),
+                        {("HingeFrame", "Gear"),
                          ("Ground.001", "Gear.001"),
                          ("Ground.001", "Gear.002"),
                          ("Ground.001", "Ground.002")})
@@ -391,9 +391,30 @@ class ExportSceneTests(unittest.TestCase):
                     self.assertFalse(slider["pm_use_limit_lin_x"])
                     self.assertEqual(slider["pm_limit_lin_x_lower"], -4.0)
                     self.assertEqual(slider["pm_limit_lin_x_upper"], 2.0)
+                    spring = next(item for item in constraints
+                                  if item["pm_constraint_type"] ==
+                                  "generic_spring")
+                    self.assertEqual(
+                        (spring["pm_body_a"], spring["pm_body_b"]),
+                        ("Ground.001", "Ground.002"))
+                    self.assertTrue(spring["pm_use_spring_x"])
+                    self.assertEqual(spring["pm_spring_stiffness_x"], 50.0)
+                    self.assertEqual(spring["pm_spring_damping_x"], 14.0)
                     rod = bpy.context.scene.objects["Ground.002"]
                     self.assertIsNotNone(rod.rigid_body)
                     self.assertEqual(rod.rigid_body_constraint.object2, rod)
+                    frame = bpy.context.scene.objects["HingeFrame"]
+                    driver = bpy.context.scene.objects["Gear"]
+                    driver_joint = bpy.context.scene.objects["Constraint1"]
+                    self.assertEqual(frame.rigid_body.type, "PASSIVE")
+                    self.assertEqual(driver_joint.rigid_body_constraint.object1,
+                                     frame)
+                    self.assertEqual(driver_joint.rigid_body_constraint.object2,
+                                     driver)
+                    self.assertLess(
+                        (driver_joint.matrix_world.translation -
+                         driver.matrix_world.translation).length,
+                        1.0e-6)
                     for joint in bpy.context.scene.objects:
                         constraint = joint.rigid_body_constraint
                         if constraint is None or constraint.type != "HINGE":
@@ -408,8 +429,8 @@ class ExportSceneTests(unittest.TestCase):
                          for node in document["nodes"]
                          if node.get("extras", {}).get("pm_system") ==
                          "rigid_body"},
-                        {"Ground.001", "Ground.002", "Gear", "Gear.001",
-                         "Gear.002"})
+                        {"Ground.001", "Ground.002", "HingeFrame", "Gear",
+                         "Gear.001", "Gear.002"})
                     bodies = {
                         node["extras"]["pm_source_name"]: node["extras"]
                         for node in document["nodes"]

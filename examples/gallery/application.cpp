@@ -646,8 +646,11 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     bool timing_visible = false;
     GalleryDebugState debug;
     debug.reset(options.fluid_particle_view);
-    bool capture_requested = false;
     using FrameClock = std::chrono::steady_clock;
+    bool capture_requested = false;
+    std::string capture_status;
+    bool capture_status_failure = false;
+    FrameClock::time_point capture_status_until{};
     auto previous_frame_time = FrameClock::now();
     double physics_accumulator = 0.0;
     std::uint64_t observed_session_revision = session.revision;
@@ -1032,16 +1035,6 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             rigid_interpolation_alpha = static_cast<float>(std::clamp(
                 physics_accumulator / static_cast<double>(k_timestep),
                 0.0, 1.0));
-            if (physics_steps != 0U && capture_requested) {
-                std::filesystem::path capture_path;
-                if (save_physics_debug_capture(runtime.frame, capture_path,
-                                               error)) {
-                    std::cout << "Physics capture " << capture_path << '\n';
-                } else {
-                    std::cerr << "Physics capture failed: " << error << '\n';
-                }
-                capture_requested = false;
-            }
             if (physics_steps != 0U && timing_visible) {
                 // Per-stage timestamp queries will replace this compatibility
                 // presentation as command-query coverage is expanded.
@@ -1063,6 +1056,30 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 statistics.contact_overflow_count = static_cast<std::uint32_t>(
                     runtime.frame.statistics.overflowCount);
             }
+        }
+
+        const bool capture_frame_ready = runtime.frame.revision != 0U ||
+            !runtime.frame.rigid_states.empty() ||
+            !runtime.frame.fluid_particles.empty() ||
+            !runtime.frame.cloth_vertices.empty() ||
+            !runtime.frame.soft_body_nodes.empty() ||
+            !runtime.frame.rope_nodes.empty() ||
+            !runtime.frame.smoke_particles.empty();
+        if (capture_requested && capture_frame_ready) {
+            std::filesystem::path capture_path;
+            if (save_physics_debug_capture(runtime.frame, capture_path,
+                                           error)) {
+                capture_status = "CAPTURED " + capture_path.string();
+                capture_status_failure = false;
+                std::cout << "Physics capture " << capture_path << '\n';
+            } else {
+                capture_status = "CAPTURE FAILED: " + error;
+                capture_status_failure = true;
+                std::cerr << "Physics capture failed: " << error << '\n';
+            }
+            capture_status_until = FrameClock::now() +
+                std::chrono::seconds(4);
+            capture_requested = false;
         }
 
         const Camera current_camera = input_state.shared.camera.camera();
@@ -1191,6 +1208,10 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                     runtime.context, input_state.count_value,
                     input_state.count_value_invalid);
         }
+        if (!capture_status.empty() && FrameClock::now() < capture_status_until)
+            draw_status_overlay(pixels, runtime.renderer.width(),
+                                runtime.renderer.height(), capture_status,
+                                capture_status_failure);
 
         if (!presentation.present(pixels, error)) {
             std::cerr << "Presentation failed: " << error << '\n';
