@@ -76,6 +76,11 @@ option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
+if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
+        "Build and validate the portable Slang rigid constraint core" FORCE)
+endif()
+
 if(PARALLEL_MATER_BUILD_METAL)
     message(FATAL_ERROR
         "Backend-specific physics implementations are retired. Configure the "
@@ -979,7 +984,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         GIT_SHALLOW TRUE)
     FetchContent_MakeAvailable(pm_optix)
 
-    find_package(OpenGL REQUIRED)
+    if(NOT WIN32)
+        find_package(OpenGL REQUIRED)
+    endif()
     find_package(glfw3 3.3 QUIET)
     if(NOT TARGET glfw)
         set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -1030,6 +1037,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     add_library(parallel-mater-gallery-renderer STATIC
                 examples/support/optix_renderer.cpp
+                examples/support/cuda_gallery_device.cpp
                 examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
                 examples/support/overlay.cpp
@@ -1050,7 +1058,27 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_definitions(parallel-mater-gallery-renderer
         PRIVATE
             PARALLEL_MATER_COMMAND_GALLERY_ONLY=1
+            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
             $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+
+    add_library(parallel-mater-gallery-window STATIC)
+    target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-gallery-window
+        PUBLIC examples/support/include)
+    if(WIN32)
+        target_sources(parallel-mater-gallery-window PRIVATE
+            examples/support/d3d12_window.cpp)
+        target_link_libraries(parallel-mater-gallery-window
+            PRIVATE glfw d3d12 dxgi)
+        target_compile_definitions(parallel-mater-gallery-window
+            PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    else()
+        target_sources(parallel-mater-gallery-window PRIVATE
+            examples/support/opengl_window.cpp)
+        target_link_libraries(parallel-mater-gallery-window
+            PRIVATE glfw OpenGL::GL)
+    endif()
+    parallel_mater_enable_warnings(parallel-mater-gallery-window)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
@@ -1073,7 +1101,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw OpenGL::GL)
+        PRIVATE glfw parallel-mater-gallery-window)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     add_dependencies(parallel-mater-gallery
@@ -1123,8 +1151,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
             PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
             PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
-            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb"
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
     add_custom_command(
         TARGET parallel-mater-gallery POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -1586,8 +1613,7 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
         target_compile_definitions(parallel-mater-material-visibility-tests PRIVATE
             PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf"
             PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
-            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb")
         add_test(NAME parallel-mater-material-visibility-tests
                  COMMAND parallel-mater-material-visibility-tests)
         set_tests_properties(parallel-mater-material-visibility-tests
@@ -2388,6 +2414,10 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     include(cmake/SlangGeometryConstraints.cmake)
     parallel_mater_add_slang_geometry_constraints()
+    if(WIN32 AND TARGET parallel-mater-gallery-window)
+        add_dependencies(parallel-mater-gallery-window
+                         parallel-mater-slang-avbd-dxil)
+    endif()
 endif()
 
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)

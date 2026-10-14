@@ -5,7 +5,6 @@
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,21 +43,20 @@ enum class SmokeDebugMode : std::uint8_t {
 };
 
 #if !defined(PARALLEL_MATER_GALLERY_METAL)
-class OptixRenderer {
+class GalleryRenderer {
   public:
-    OptixRenderer() noexcept;
-    ~OptixRenderer();
-    OptixRenderer(OptixRenderer &&) noexcept;
-    OptixRenderer &operator=(OptixRenderer &&) noexcept;
-    OptixRenderer(const OptixRenderer &) = delete;
-    OptixRenderer &operator=(const OptixRenderer &) = delete;
+    GalleryRenderer() noexcept;
+    ~GalleryRenderer();
+    GalleryRenderer(GalleryRenderer &&) noexcept;
+    GalleryRenderer &operator=(GalleryRenderer &&) noexcept;
+    GalleryRenderer(const GalleryRenderer &) = delete;
+    GalleryRenderer &operator=(const GalleryRenderer &) = delete;
 
     [[nodiscard]] static bool create(const SceneDefinition &scene,
                                      const CommandSceneInstance &instance,
-                                     const std::filesystem::path &ptx_path,
                                      std::uint32_t width,
                                      std::uint32_t height,
-                                     OptixRenderer &output,
+                                     GalleryRenderer &output,
                                      std::string &error);
 
     [[nodiscard]] bool render(const RenderSceneFrame &frame,
@@ -84,6 +82,9 @@ class OptixRenderer {
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
+
+[[nodiscard]] std::uint64_t gallery_device_available_memory() noexcept;
+[[nodiscard]] HardwareIdentity gallery_device_hardware_identity();
 #endif
 
 } // namespace parallel_mater::gallery

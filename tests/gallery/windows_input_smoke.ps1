@@ -14,6 +14,7 @@ public static class GalleryInputSmoke {
     [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint key, uint mapType);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rect);
+    [DllImport("kernel32.dll")] public static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
 }
 '@
 $Executable = (Resolve-Path -LiteralPath $Executable).Path
@@ -23,6 +24,7 @@ $stdoutPath = Join-Path $Output 'stdout.log'
 $stderrPath = Join-Path $Output 'stderr.log'
 Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
 $process = Start-Process -FilePath $Executable -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+$processHandle = [IntPtr]::Zero
 try {
     $deadline = (Get-Date).AddSeconds(30)
     do {
@@ -32,6 +34,7 @@ try {
     } while ($process.MainWindowHandle -eq 0 -and (Get-Date) -lt $deadline)
     if ($process.MainWindowHandle -eq 0) { throw 'Viewer did not open a window' }
     $window = $process.MainWindowHandle
+    $processHandle = $process.Handle
     [GalleryInputSmoke]::SetForegroundWindow($window) | Out-Null
     function Set-Key([uint32]$key,[bool]$pressed) {
         $scan = [GalleryInputSmoke]::MapVirtualKey($key, 0)
@@ -92,8 +95,21 @@ try {
     }
     Save-Window 'switched-scene'
     Send-Key 0x1B # Escape
-    if (!$process.WaitForExit(10000)) { throw 'Escape did not close the viewer' }
-    if ($process.ExitCode -ne 0) { throw "Viewer exited with code $($process.ExitCode)" }
+    if (!$process.WaitForExit(5000)) {
+        # A posted key can race a long GPU frame; retry after the event loop
+        # has had a full timeout window to drain.
+        Send-Key 0x1B
+        if (!$process.WaitForExit(10000)) { throw 'Escape did not close the viewer' }
+    }
+    # PowerShell 5 can leave ExitCode uncached when Start-Process redirects
+    # output. Complete asynchronous stream handling, then refresh the handle.
+    $process.WaitForExit()
+    $process.Refresh()
+    [uint32]$exitCode = 0
+    if (![GalleryInputSmoke]::GetExitCodeProcess($processHandle, [ref]$exitCode)) {
+        throw 'Could not read the viewer exit code'
+    }
+    if ($exitCode -ne 0) { throw "Viewer exited with code $exitCode" }
     Write-Output "Real window key/scene-switch test passed. Captures: $Output"
 } finally {
     $process.Refresh()

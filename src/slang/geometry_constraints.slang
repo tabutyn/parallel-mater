@@ -5,6 +5,30 @@
 #ifndef PM_GEOMETRY_CONSTRAINTS_ADAPTER
 #define PM_GEOMETRY_CONSTRAINTS_ADAPTER 0
 #endif
+#ifndef PM_TARGET_D3D12
+#define PM_TARGET_D3D12 0
+#endif
+
+#if PM_TARGET_D3D12
+#define PM_AVBD_BUFFER(T) RWStructuredBuffer<T>
+// A full eight-contact manifold is larger than D3D12's 2 KiB structured
+// element limit. The adapter binds contacts densely and metadata separately;
+// every target still executes the same contact and constraint equations.
+#define PM_AVBD_MANIFOLD_BUFFER uint
+#define PM_AVBD_MANIFOLD_COUNT(buffer, index) manifoldMetadata[index].x
+#define PM_AVBD_MANIFOLD_NEXT_A(buffer, index) manifoldMetadata[index].y
+#define PM_AVBD_MANIFOLD_NEXT_B(buffer, index) manifoldMetadata[index].z
+#define PM_AVBD_MANIFOLD_CONTACT(buffer, index, point) \
+    manifoldContacts[index * 8u + point]
+#else
+#define PM_AVBD_BUFFER(T) T*
+#define PM_AVBD_MANIFOLD_BUFFER ContactManifold*
+#define PM_AVBD_MANIFOLD_COUNT(buffer, index) buffer[index].count
+#define PM_AVBD_MANIFOLD_NEXT_A(buffer, index) buffer[index].avbd_next_a
+#define PM_AVBD_MANIFOLD_NEXT_B(buffer, index) buffer[index].avbd_next_b
+#define PM_AVBD_MANIFOLD_CONTACT(buffer, index, point) \
+    buffer[index].contacts[point]
+#endif
 
 #include "constraint_math.slang"
 
@@ -35,6 +59,33 @@ struct AvbdBody
     Vec3 previous_velocity;
     uint history_valid;
 };
+
+#if PM_TARGET_D3D12
+struct PMAvbdDispatchConstants
+{
+    uint count;
+    uint joint_capacity;
+    float dt;
+    Vec3 gravity;
+    uint base_iterations;
+    uint requested_iterations;
+    uint grid_blocks;
+};
+
+RWStructuredBuffer<BodyParameters> parameters : register(u0);
+RWStructuredBuffer<RigidBodyState> previous : register(u1);
+RWStructuredBuffer<RigidBodyState> states : register(u2);
+RWStructuredBuffer<Contact> manifoldContacts : register(u3);
+RWStructuredBuffer<uint> pairs : register(u4);
+RWStructuredBuffer<uint> pair_count : register(u5);
+RWStructuredBuffer<RigidConstraintResource> joints : register(u6);
+RWStructuredBuffer<RigidBodyId> ids : register(u7);
+RWStructuredBuffer<AvbdBody> bodies : register(u8);
+RWStructuredBuffer<ContactSchedule> schedule : register(u9);
+RWStructuredBuffer<uint4> manifoldMetadata : register(u10);
+ConstantBuffer<PMAvbdDispatchConstants> avbdConstants : register(b0);
+static const uint manifolds = 0u;
+#endif
 
 float rigid_avbd_component(Vec3 value, uint axis)
 {
@@ -81,7 +132,7 @@ Vec3 rigid_avbd_contact_delta_velocity(Quaternion from, Quaternion to,
     return {delta.x * scale, delta.y * scale, delta.z * scale};
 }
 
-bool rigid_avbd_axis_enabled(uint8_t mask, uint axis)
+bool rigid_avbd_axis_enabled(PM_GEOMETRY_UINT8 mask, uint axis)
 {
     return (uint(mask) & (1u << axis)) != 0u;
 }
@@ -104,7 +155,8 @@ Vec3 rigid_avbd_relative_rotation_vector(Quaternion frameA,
         relative.z * angle / size};
 }
 
-uint rigid_avbd_find_dense(RigidBodyId id, RigidBodyId* ids, uint count)
+uint rigid_avbd_find_dense(RigidBodyId id, PM_AVBD_BUFFER(RigidBodyId) ids,
+    uint count)
 {
     for (uint index = 0u; index < count; ++index)
         if (ids[index].index == id.index &&
@@ -220,7 +272,7 @@ float rigid_avbd_contact_skin(Contact contact, BodyParameters a,
 }
 
 void rigid_avbd_contact_rows(Contact contact, uint a, uint b,
-    AvbdBody* bodies, out AvbdVector6 jacobianA[3],
+    PM_AVBD_BUFFER(AvbdBody) bodies, out AvbdVector6 jacobianA[3],
     out AvbdVector6 jacobianB[3], out float error[3])
 {
     Vec3 tangent0;
@@ -246,7 +298,7 @@ void rigid_avbd_contact_rows(Contact contact, uint a, uint b,
 }
 
 float rigid_avbd_contact_normal_row(Contact contact, uint a, uint b,
-    AvbdBody* bodies, out AvbdVector6 jacobianA,
+    PM_AVBD_BUFFER(AvbdBody) bodies, out AvbdVector6 jacobianA,
     out AvbdVector6 jacobianB)
 {
     Vec3 armA = subtract(contact.point, bodies[a].target.position);
@@ -320,7 +372,7 @@ RigidAvbdRow rigid_avbd_stored_row(AvbdRow source)
 }
 
 void rigid_avbd_visit_joint_row(inout RigidConstraintResource joint,
-    AvbdBody* bodies, inout AvbdBlock block, inout uint index,
+    PM_AVBD_BUFFER(AvbdBody) bodies, inout AvbdBlock block, inout uint index,
     inout float impulse, bool first, AvbdVector6 jacobianA,
     AvbdVector6 jacobianB, float current, float previous, float penalty,
     float dt, bool angular, float stiffness, float damping, float lower,
@@ -408,7 +460,9 @@ void rigid_avbd_visit_joint_row(inout RigidConstraintResource joint,
 }
 
 float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
-    BodyParameters* parameters, RigidBodyState* previous, AvbdBody* bodies,
+    PM_AVBD_BUFFER(BodyParameters) parameters,
+    PM_AVBD_BUFFER(RigidBodyState) previous,
+    PM_AVBD_BUFFER(AvbdBody) bodies,
     float dt, inout AvbdBlock block, bool first, uint visit)
 {
     uint index = 0u;
@@ -620,8 +674,13 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
     return impulse;
 }
 
+#if PM_TARGET_D3D12
+static const uint kAvbdPrepareBodyCacheSize = 512u;
+static const uint kAvbdPrepareContactCacheSize = 512u;
+#else
 static const uint kAvbdPrepareBodyCacheSize = 1024u;
 static const uint kAvbdPrepareContactCacheSize = 1024u;
+#endif
 static const uint kAvbdPrepareJointCacheSize = 128u;
 
 struct AvbdPrepareBodyMetadata
@@ -659,13 +718,16 @@ groupshared AvbdPrepareContactMetadata
 groupshared AvbdPrepareJointMetadata
     rigidAvbdJointCache[kAvbdPrepareJointCacheSize];
 
-bool rigid_avbd_prepare_contact_impact(__constref ContactManifold manifold,
-    BodyParameters a, BodyParameters b, float dt)
+bool rigid_avbd_prepare_contact_impact(uint active,
+    PM_AVBD_MANIFOLD_BUFFER manifolds, BodyParameters a, BodyParameters b,
+    float dt)
 {
     bool impact = false;
-    for (uint point = 0u; point < manifold.count; ++point)
+    for (uint point = 0u;
+         point < PM_AVBD_MANIFOLD_COUNT(manifolds, active); ++point)
     {
-        Contact contact = manifold.contacts[point];
+        Contact contact = PM_AVBD_MANIFOLD_CONTACT(
+            manifolds, active, point);
         float skin = rigid_avbd_contact_skin(contact, a, b);
         bool newImpact = (!contact.avbd_cached ||
             contact.avbd_dual[0].lambda <= 1.0e-6f ||
@@ -681,53 +743,57 @@ bool rigid_avbd_prepare_contact_impact(__constref ContactManifold manifold,
     return impact;
 }
 
-uint rigid_avbd_graph_parent(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_parent(uint body, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? rigidAvbdBodyCache[body].parent : bodies[body].parent;
 }
 
-void rigid_avbd_graph_set_parent(uint body, uint value, AvbdBody* bodies)
+void rigid_avbd_graph_set_parent(uint body, uint value,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     if (body < kAvbdPrepareBodyCacheSize)
         rigidAvbdBodyCache[body].parent = value;
     else bodies[body].parent = value;
 }
 
-uint rigid_avbd_graph_color(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_color(uint body, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? rigidAvbdBodyCache[body].color : bodies[body].color;
 }
 
-void rigid_avbd_graph_set_color(uint body, uint value, AvbdBody* bodies)
+void rigid_avbd_graph_set_color(uint body, uint value,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     if (body < kAvbdPrepareBodyCacheSize)
         rigidAvbdBodyCache[body].color = value;
     else bodies[body].color = value;
 }
 
-uint rigid_avbd_graph_contact_head(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_contact_head(uint body,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? rigidAvbdBodyCache[body].contact_head : bodies[body].contact_head;
 }
 
 void rigid_avbd_graph_set_contact_head(
-    uint body, uint value, AvbdBody* bodies)
+    uint body, uint value, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     if (body < kAvbdPrepareBodyCacheSize)
         rigidAvbdBodyCache[body].contact_head = value;
     else bodies[body].contact_head = value;
 }
 
-uint rigid_avbd_graph_joint_head(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_joint_head(uint body, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? rigidAvbdBodyCache[body].joint_head : bodies[body].joint_head;
 }
 
-void rigid_avbd_graph_set_joint_head(uint body, uint value, AvbdBody* bodies)
+void rigid_avbd_graph_set_joint_head(uint body, uint value,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     if (body < kAvbdPrepareBodyCacheSize)
         rigidAvbdBodyCache[body].joint_head = value;
@@ -735,20 +801,22 @@ void rigid_avbd_graph_set_joint_head(uint body, uint value, AvbdBody* bodies)
 }
 
 bool rigid_avbd_graph_dynamic(
-    uint body, AvbdBody* bodies, BodyParameters* parameters)
+    uint body, PM_AVBD_BUFFER(AvbdBody) bodies,
+    PM_AVBD_BUFFER(BodyParameters) parameters)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? (rigidAvbdBodyCache[body].flags & 1u) != 0u
         : parameters[body].motion == MotionType.dynamic;
 }
 
-uint rigid_avbd_graph_impact(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_impact(uint body, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     return body < kAvbdPrepareBodyCacheSize
         ? rigidAvbdBodyCache[body].flags >> 1u : bodies[body].impact;
 }
 
-void rigid_avbd_graph_set_impact(uint body, uint value, AvbdBody* bodies)
+void rigid_avbd_graph_set_impact(uint body, uint value,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     if (body < kAvbdPrepareBodyCacheSize)
         rigidAvbdBodyCache[body].flags =
@@ -756,15 +824,16 @@ void rigid_avbd_graph_set_impact(uint body, uint value, AvbdBody* bodies)
     else bodies[body].impact = value;
 }
 
-uint rigid_avbd_graph_root(uint body, AvbdBody* bodies)
+uint rigid_avbd_graph_root(uint body, PM_AVBD_BUFFER(AvbdBody) bodies)
 {
     while (body != rigid_avbd_graph_parent(body, bodies))
         body = rigid_avbd_graph_parent(body, bodies);
     return body;
 }
 
-void rigid_avbd_graph_unite(uint a, uint b, AvbdBody* bodies,
-    BodyParameters* parameters)
+void rigid_avbd_graph_unite(uint a, uint b,
+    PM_AVBD_BUFFER(AvbdBody) bodies,
+    PM_AVBD_BUFFER(BodyParameters) parameters)
 {
     if (!rigid_avbd_graph_dynamic(a, bodies, parameters) ||
         !rigid_avbd_graph_dynamic(b, bodies, parameters)) return;
@@ -775,85 +844,91 @@ void rigid_avbd_graph_unite(uint a, uint b, AvbdBody* bodies,
 }
 
 bool rigid_avbd_graph_contact_nonempty(
-    uint active, ContactManifold* manifolds)
+    uint active, PM_AVBD_MANIFOLD_BUFFER manifolds)
 {
     return active < kAvbdPrepareContactCacheSize
         ? (rigidAvbdContactCache[active].flags & 1u) != 0u
-        : manifolds[active].count != 0u;
+        : PM_AVBD_MANIFOLD_COUNT(manifolds, active) != 0u;
 }
 
-uint rigid_avbd_graph_contact_a(uint active, uint* pairs, uint bodyCount)
+uint rigid_avbd_graph_contact_a(uint active, PM_AVBD_BUFFER(uint) pairs,
+    uint bodyCount)
 {
     return active < kAvbdPrepareContactCacheSize
         ? rigidAvbdContactCache[active].a : pairs[active] / bodyCount;
 }
 
-uint rigid_avbd_graph_contact_b(uint active, uint* pairs, uint bodyCount)
+uint rigid_avbd_graph_contact_b(uint active, PM_AVBD_BUFFER(uint) pairs,
+    uint bodyCount)
 {
     return active < kAvbdPrepareContactCacheSize
         ? rigidAvbdContactCache[active].b : pairs[active] % bodyCount;
 }
 
 uint rigid_avbd_graph_contact_next(
-    uint active, bool first, ContactManifold* manifolds)
+    uint active, bool first, PM_AVBD_MANIFOLD_BUFFER manifolds)
 {
     if (active < kAvbdPrepareContactCacheSize)
         return first ? rigidAvbdContactCache[active].next_a
             : rigidAvbdContactCache[active].next_b;
-    return first ? manifolds[active].avbd_next_a
-        : manifolds[active].avbd_next_b;
+    return first ? PM_AVBD_MANIFOLD_NEXT_A(manifolds, active)
+        : PM_AVBD_MANIFOLD_NEXT_B(manifolds, active);
 }
 
 void rigid_avbd_graph_set_contact_next(uint active, bool first, uint value,
-    ContactManifold* manifolds)
+    PM_AVBD_MANIFOLD_BUFFER manifolds)
 {
     if (active < kAvbdPrepareContactCacheSize)
     {
         if (first) rigidAvbdContactCache[active].next_a = value;
         else rigidAvbdContactCache[active].next_b = value;
     }
-    else if (first) manifolds[active].avbd_next_a = value;
-    else manifolds[active].avbd_next_b = value;
+    else if (first) PM_AVBD_MANIFOLD_NEXT_A(manifolds, active) = value;
+    else PM_AVBD_MANIFOLD_NEXT_B(manifolds, active) = value;
 }
 
 bool rigid_avbd_graph_contact_impact(uint active, uint a, uint b, float dt,
-    ContactManifold* manifolds, BodyParameters* parameters)
+    PM_AVBD_MANIFOLD_BUFFER manifolds,
+    PM_AVBD_BUFFER(BodyParameters) parameters)
 {
     return active < kAvbdPrepareContactCacheSize
         ? (rigidAvbdContactCache[active].flags & 2u) != 0u
         : rigid_avbd_prepare_contact_impact(
-            manifolds[active], parameters[a], parameters[b], dt);
+            active, manifolds, parameters[a], parameters[b], dt);
 }
 
 uint rigid_avbd_graph_joint_count(
-    uint index, RigidConstraintResource* joints)
+    uint index, PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     return index < kAvbdPrepareJointCacheSize
         ? rigidAvbdJointCache[index].count : joints[index].avbd_count;
 }
 
 uint rigid_avbd_graph_joint_iterations(
-    uint index, RigidConstraintResource* joints)
+    uint index, PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     return index < kAvbdPrepareJointCacheSize
         ? rigidAvbdJointCache[index].iterations
         : joints[index].options.solver_iterations;
 }
 
-uint rigid_avbd_graph_joint_a(uint index, RigidConstraintResource* joints)
+uint rigid_avbd_graph_joint_a(uint index,
+    PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     return index < kAvbdPrepareJointCacheSize
         ? rigidAvbdJointCache[index].a : joints[index].geometry.dense_a;
 }
 
-uint rigid_avbd_graph_joint_b(uint index, RigidConstraintResource* joints)
+uint rigid_avbd_graph_joint_b(uint index,
+    PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     return index < kAvbdPrepareJointCacheSize
         ? rigidAvbdJointCache[index].b : joints[index].geometry.dense_b;
 }
 
 uint rigid_avbd_graph_joint_next(
-    uint index, bool first, RigidConstraintResource* joints)
+    uint index, bool first,
+    PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     if (index < kAvbdPrepareJointCacheSize)
         return first ? rigidAvbdJointCache[index].next_a
@@ -862,7 +937,7 @@ uint rigid_avbd_graph_joint_next(
 }
 
 void rigid_avbd_graph_set_joint_next(uint index, bool first, uint value,
-    RigidConstraintResource* joints)
+    PM_AVBD_BUFFER(RigidConstraintResource) joints)
 {
     if (index < kAvbdPrepareJointCacheSize)
     {
@@ -876,16 +951,37 @@ void rigid_avbd_graph_set_joint_next(uint index, bool first, uint value,
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void prepare_avbd_kernel(
-    uniform BodyParameters* parameters, uniform RigidBodyState* previous,
-    uniform RigidBodyState* predicted, uniform uint count,
-    uniform ContactManifold* manifolds, uniform uint* pairs,
-    uniform uint* pair_count, uniform RigidConstraintResource* joints,
-    uniform uint joint_capacity, uniform RigidBodyId* ids,
-    uniform AvbdBody* bodies, uniform ContactSchedule* schedule,
+#if !PM_TARGET_D3D12
+    PM_AVBD_BUFFER(BodyParameters) parameters,
+    PM_AVBD_BUFFER(RigidBodyState) previous,
+    PM_AVBD_BUFFER(RigidBodyState) states, uniform uint count,
+    PM_AVBD_MANIFOLD_BUFFER manifolds,
+    PM_AVBD_BUFFER(uint) pairs,
+    PM_AVBD_BUFFER(uint) pair_count,
+    PM_AVBD_BUFFER(RigidConstraintResource) joints,
+    uniform uint joint_capacity,
+    PM_AVBD_BUFFER(RigidBodyId) ids,
+    PM_AVBD_BUFFER(AvbdBody) bodies,
+    PM_AVBD_BUFFER(ContactSchedule) schedule,
     uniform float dt, uniform Vec3 gravity,
     uniform uint base_iterations, uniform uint requested_iterations,
     uniform uint grid_blocks)
+#else
+    uint3 groupId : SV_GroupID,
+    uint3 groupThreadId : SV_GroupThreadID,
+    uint3 dispatchThreadId : SV_DispatchThreadID)
+#endif
 {
+#if PM_TARGET_D3D12
+    pmSetD3D12ThreadIndices(groupId, groupThreadId, dispatchThreadId);
+    uint count = avbdConstants.count;
+    uint joint_capacity = avbdConstants.joint_capacity;
+    float dt = avbdConstants.dt;
+    Vec3 gravity = avbdConstants.gravity;
+    uint base_iterations = avbdConstants.base_iterations;
+    uint requested_iterations = avbdConstants.requested_iterations;
+    uint grid_blocks = avbdConstants.grid_blocks;
+#endif
     uint lane = pmGroupThreadIndex().x;
     for (uint bodyIndex = lane; bodyIndex < count;
          bodyIndex += pmGroupSize().x)
@@ -897,8 +993,8 @@ void prepare_avbd_kernel(
         body.color = kInvalidDense;
         body.contact_head = kInvalidDense;
         body.joint_head = kInvalidDense;
-        body.target = predicted[bodyIndex];
-        body.current_orientation = predicted[bodyIndex].orientation;
+        body.target = states[bodyIndex];
+        body.current_orientation = states[bodyIndex].orientation;
         bodies[bodyIndex] = body;
         if (bodyIndex < kAvbdPrepareBodyCacheSize)
         {
@@ -932,9 +1028,9 @@ void prepare_avbd_kernel(
         for (uint axis = 0u; axis < 3u; ++axis)
         {
             body.inertia.h[axis][axis] = mass / (dt * dt);
-            Vec3 localAxis = inverse_rotate(predicted[bodyIndex].orientation,
+            Vec3 localAxis = inverse_rotate(states[bodyIndex].orientation,
                 rigid_avbd_basis_axis(axis));
-            Vec3 column = rotate(predicted[bodyIndex].orientation, {
+            Vec3 column = rotate(states[bodyIndex].orientation, {
                 localAxis.x / max(
                     parameters[bodyIndex].inverse_inertia_local.x, 1.0e-12f),
                 localAxis.y / max(
@@ -948,16 +1044,18 @@ void prepare_avbd_kernel(
         bodies[bodyIndex] = body;
     }
     pmGroupBarrier();
-    for (uint active = lane; active < *pair_count;
+    for (uint active = lane; active < pair_count[0];
          active += pmGroupSize().x)
     {
         uint a = pairs[active] / count;
         uint b = pairs[active] % count;
         float penalty = rigid_avbd_pair_stiffness(
             parameters[a], parameters[b], dt);
-        for (uint point = 0u; point < manifolds[active].count; ++point)
+        for (uint point = 0u;
+             point < PM_AVBD_MANIFOLD_COUNT(manifolds, active); ++point)
         {
-            Contact contact = manifolds[active].contacts[point];
+            Contact contact = PM_AVBD_MANIFOLD_CONTACT(
+                manifolds, active, point);
             if (!contact.avbd_cached)
             {
                 contact.avbd_anchor_a = inverse_rotate(
@@ -968,15 +1066,15 @@ void prepare_avbd_kernel(
                     subtract(contact.point, previous[b].position));
             }
             Vec3 motionA = subtract(
-                predicted[a].position, previous[a].position);
+                states[a].position, previous[a].position);
             Vec3 motionB = subtract(
-                predicted[b].position, previous[b].position);
+                states[b].position, previous[b].position);
             Vec3 angularA = multiply(rigid_avbd_contact_delta_velocity(
-                previous[a].orientation, predicted[a].orientation, dt), dt);
+                previous[a].orientation, states[a].orientation, dt), dt);
             Vec3 angularB = multiply(rigid_avbd_contact_delta_velocity(
-                previous[b].orientation, predicted[b].orientation, dt), dt);
-            Vec3 armA = subtract(contact.point, predicted[a].position);
-            Vec3 armB = subtract(contact.point, predicted[b].position);
+                previous[b].orientation, states[b].orientation, dt), dt);
+            Vec3 armA = subtract(contact.point, states[a].position);
+            Vec3 armB = subtract(contact.point, states[b].position);
             float closing = dot(contact.normal, subtract(
                 add(motionB, cross(angularB, armB)),
                 add(motionA, cross(angularA, armA))));
@@ -984,10 +1082,10 @@ void prepare_avbd_kernel(
             Vec3 tangent0;
             Vec3 tangent1;
             rigid_avbd_basis(contact.normal, tangent0, tangent1);
-            Vec3 anchorDelta = subtract(add(predicted[b].position,
-                rotate(predicted[b].orientation, contact.avbd_anchor_b)),
-                add(predicted[a].position,
-                    rotate(predicted[a].orientation, contact.avbd_anchor_a)));
+            Vec3 anchorDelta = subtract(add(states[b].position,
+                rotate(states[b].orientation, contact.avbd_anchor_b)),
+                add(states[a].position,
+                    rotate(states[a].orientation, contact.avbd_anchor_a)));
             Vec3 oldAnchorDelta = subtract(add(previous[b].position,
                 rotate(previous[b].orientation, contact.avbd_anchor_b)),
                 add(previous[a].position,
@@ -1010,17 +1108,18 @@ void prepare_avbd_kernel(
                 dual = avbdWarmStart(dual, kAvbdMaximumPenalty);
                 contact.avbd_dual[axis] = {dual.lambda, dual.penalty};
             }
-            manifolds[active].contacts[point] = contact;
+            PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point) = contact;
         }
         if (active < kAvbdPrepareContactCacheSize)
         {
             AvbdPrepareContactMetadata metadata;
             metadata.a = a;
             metadata.b = b;
-            metadata.next_a = manifolds[active].avbd_next_a;
-            metadata.next_b = manifolds[active].avbd_next_b;
-            metadata.flags = (manifolds[active].count != 0u ? 1u : 0u) |
-                (rigid_avbd_prepare_contact_impact(manifolds[active],
+            metadata.next_a = PM_AVBD_MANIFOLD_NEXT_A(manifolds, active);
+            metadata.next_b = PM_AVBD_MANIFOLD_NEXT_B(manifolds, active);
+            metadata.flags = (PM_AVBD_MANIFOLD_COUNT(
+                    manifolds, active) != 0u ? 1u : 0u) |
+                (rigid_avbd_prepare_contact_impact(active, manifolds,
                     parameters[a], parameters[b], dt) ? 2u : 0u);
             rigidAvbdContactCache[active] = metadata;
         }
@@ -1077,9 +1176,9 @@ void prepare_avbd_kernel(
         // pose update alone is not sufficient for motors, springs, limits, or
         // coupled contacts, so the production schedule remains exact.
         value.counts[2] = 0u;
-        value.candidates = *pair_count;
+        value.candidates = pair_count[0];
         schedule[0] = value;
-        for (uint active = 0u; active < *pair_count; ++active)
+        for (uint active = 0u; active < pair_count[0]; ++active)
         {
             if (!rigid_avbd_graph_contact_nonempty(active, manifolds))
                 continue;
@@ -1119,7 +1218,7 @@ void prepare_avbd_kernel(
         // Preserve one established scene-wide authored budget. Candidate and
         // color order are physics-visible in a finite AVBD solve; there is no
         // second per-island iteration path.
-        for (uint active = 0u; active < *pair_count; ++active)
+        for (uint active = 0u; active < pair_count[0]; ++active)
         {
             uint a = rigid_avbd_graph_contact_a(active, pairs, count);
             uint b = rigid_avbd_graph_contact_b(active, pairs, count);
@@ -1204,11 +1303,13 @@ void prepare_avbd_kernel(
         bodies[bodyIndex].impact = metadata.flags >> 1u;
     }
     for (uint active = lane;
-         active < min(*pair_count, kAvbdPrepareContactCacheSize);
+         active < min(pair_count[0], kAvbdPrepareContactCacheSize);
          active += pmGroupSize().x)
     {
-        manifolds[active].avbd_next_a = rigidAvbdContactCache[active].next_a;
-        manifolds[active].avbd_next_b = rigidAvbdContactCache[active].next_b;
+        PM_AVBD_MANIFOLD_NEXT_A(manifolds, active) =
+            rigidAvbdContactCache[active].next_a;
+        PM_AVBD_MANIFOLD_NEXT_B(manifolds, active) =
+            rigidAvbdContactCache[active].next_b;
     }
     for (uint jointIndex = lane;
          jointIndex < min(joint_capacity, kAvbdPrepareJointCacheSize);
