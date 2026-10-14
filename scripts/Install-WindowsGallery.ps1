@@ -35,7 +35,7 @@ if (Test-Path -LiteralPath $installRoot) {
     }
     $previousFiles = @($previous.files)
 }
-$running = Get-Process -Name 'Parallel-Mater','parallel-mater-gallery' -ErrorAction SilentlyContinue |
+$running = Get-Process -Name 'Parallel-Mater' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and [IO.Path]::GetDirectoryName($_.Path) -eq $installRoot }
 if ($running) { throw 'Close the installed Parallel-Mater gallery before updating it.' }
 if (Test-Path -LiteralPath $shortcutPath) {

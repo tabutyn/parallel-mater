@@ -12,6 +12,29 @@ function(parallel_mater_add_slang_kernel_mirrors)
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
     set(outputs)
 
+    set(nvrtc_path)
+    if(TARGET CUDA::nvrtc)
+        if(WIN32)
+            file(GLOB nvrtc_candidates LIST_DIRECTORIES false
+                 "${CUDAToolkit_BIN_DIR}/nvrtc64_*.dll")
+            list(FILTER nvrtc_candidates EXCLUDE REGEX "\\.alt\\.dll$")
+            list(SORT nvrtc_candidates COMPARE NATURAL ORDER DESCENDING)
+            list(LENGTH nvrtc_candidates nvrtc_candidate_count)
+            if(nvrtc_candidate_count GREATER 0)
+                list(GET nvrtc_candidates 0 nvrtc_dll)
+                cmake_path(GET nvrtc_dll PARENT_PATH nvrtc_directory)
+                cmake_path(GET nvrtc_dll STEM nvrtc_name)
+                set(nvrtc_path "${nvrtc_directory}/${nvrtc_name}")
+            else()
+                message(WARNING
+                    "NVRTC runtime not found in ${CUDAToolkit_BIN_DIR}; "
+                    "Slang PTX mirror validation is disabled")
+            endif()
+        else()
+            set(nvrtc_path "$<TARGET_FILE_DIR:CUDA::nvrtc>/nvrtc")
+        endif()
+    endif()
+
     function(add_mirror module)
         set(entries ${ARGN})
         set(entry_arguments)
@@ -49,7 +72,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
             COMMENT "Validating ${module}.slang as Vulkan SPIR-V"
             COMMAND_EXPAND_LISTS VERBATIM)
         list(APPEND module_outputs "${spirv_output}")
-        if(TARGET CUDA::nvrtc)
+        if(nvrtc_path)
             set(ptx_output "${generated_dir}/${module}.ptx")
             add_custom_command(
                 OUTPUT "${ptx_output}"
@@ -57,7 +80,7 @@ function(parallel_mater_add_slang_kernel_mirrors)
                 COMMAND "${slangc}" "${source}"
                     -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                     -target ptx -fp-mode precise -warnings-as-errors all
-                    -nvrtc-path "$<TARGET_FILE_DIR:CUDA::nvrtc>/nvrtc"
+                    -nvrtc-path "${nvrtc_path}"
                     ${module_definitions} ${entry_arguments} -o "${ptx_output}"
                 DEPENDS ${slang_dependencies} "${slangc}" CUDA::nvrtc
                 COMMENT "Validating ${module}.slang as PTX"

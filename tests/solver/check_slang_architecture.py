@@ -237,7 +237,8 @@ for path in consumer_paths:
 gallery_application = (ROOT / "examples" / "gallery" / "application.cpp").read_text()
 for platform_detail in (
     "cuda_runtime_api.h", "cudaMemGetInfo", "cudaGetDevice",
-    "OptixRenderer",
+    "cuda_runtime", "OptixRenderer", "PARALLEL_MATER_OPTIX_PTX_PATH",
+    "glDrawPixels",
 ):
     if platform_detail in gallery_application:
         failures.append(
@@ -259,6 +260,36 @@ for removed_vulkan_executor in (
     if removed_vulkan_executor.exists():
         failures.append(
             f"{removed_vulkan_executor.relative_to(ROOT)}: unused partial backend remains")
+
+d3d12_window_path = ROOT / "examples" / "support" / "d3d12_window.cpp"
+if not d3d12_window_path.exists():
+    failures.append("examples/support/d3d12_window.cpp: adapter missing")
+else:
+    d3d12_window = d3d12_window_path.read_text()
+    for required in ("D3D12CreateDevice", "CreateSwapChainForHwnd"):
+        if required not in d3d12_window:
+            failures.append(
+                f"examples/support/d3d12_window.cpp: missing {required}"
+            )
+    for forbidden in ("solve_avbd_kernel", "prepare_avbd_kernel", "runtime.cu"):
+        if forbidden in d3d12_window:
+            failures.append(
+                "examples/support/d3d12_window.cpp: physics leaked into "
+                f"adapter: {forbidden}"
+            )
+
+slang_constraints_cmake = (
+    ROOT / "cmake" / "SlangGeometryConstraints.cmake"
+).read_text()
+for required in (
+    "-target dxil",
+    "-DPM_TARGET_D3D12=1",
+    "parallel-mater-slang-avbd-dxil",
+):
+    if required not in slang_constraints_cmake:
+        failures.append(
+            f"cmake/SlangGeometryConstraints.cmake: missing DXIL contract {required}"
+        )
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.

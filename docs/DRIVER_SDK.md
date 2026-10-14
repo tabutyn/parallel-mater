@@ -102,10 +102,12 @@ physics implementations. Platform device code may allocate, transfer, bind,
 dispatch, and synchronize but cannot contain collision, constraint, material,
 or coupling equations.
 
-Vulkan SPIR-V compilation validates the shared shader source, but it is not a
-driver. A Vulkan driver must bind the complete shared schedule and independently
-pass conformance and every gallery scene before advertising a physical device or
-`PM_EXT_vulkan_interop`.
+The previous standalone Vulkan executor scaffold has been removed. Vulkan
+interop remains part of the public API contract, but a Vulkan driver must be a
+thin native wrapper around the shared Slang schedule rather than a second
+physics runtime. The Vulkan physical device remains unadvertised until that
+wrapper binds the complete shared schedule and independently passes conformance
+and every gallery scene.
 
 A hardware vendor may reuse its compiler, memory manager, queue scheduler, and
 kernel runtime between its Vulkan driver and its Parallel Mater driver. Parallel

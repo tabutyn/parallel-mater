@@ -73,6 +73,11 @@ option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
+if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
+        "Build and validate the portable Slang rigid constraint core" FORCE)
+endif()
+
 if(PARALLEL_MATER_BUILD_METAL)
     message(FATAL_ERROR
         "Backend-specific physics implementations are retired. Configure the "
@@ -989,16 +994,15 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
     endif()
     FetchContent_Declare(
-        parallel_mater_optix_dev
+        pm_optix
         GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
         GIT_TAG fff65c2a7c592f1ea5f1661ad7d2381cf965f9bd
         GIT_SHALLOW TRUE)
-    FetchContent_GetProperties(parallel_mater_optix_dev)
-    if(NOT parallel_mater_optix_dev_POPULATED)
-        FetchContent_Populate(parallel_mater_optix_dev)
-    endif()
+    FetchContent_MakeAvailable(pm_optix)
 
-    find_package(OpenGL REQUIRED)
+    if(NOT WIN32)
+        find_package(OpenGL REQUIRED)
+    endif()
     find_package(glfw3 3.3 QUIET)
     if(NOT TARGET glfw)
         set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -1036,7 +1040,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             --gpu-architecture=compute_${parallel_mater_optix_architecture}
             --use_fast_math
             --generate-line-info
-            -I${parallel_mater_optix_dev_SOURCE_DIR}/include
+            -I${pm_optix_SOURCE_DIR}/include
             -I${CMAKE_CURRENT_SOURCE_DIR}/examples/support
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/support/optix_device.cu
             -o ${PARALLEL_MATER_OPTIX_PTX}
@@ -1060,7 +1064,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PUBLIC examples/support/include
         PRIVATE
             examples/support
-            ${parallel_mater_optix_dev_SOURCE_DIR}/include)
+            ${pm_optix_SOURCE_DIR}/include)
     target_link_libraries(
         parallel-mater-gallery-renderer
         PUBLIC parallel-mater-gallery-scene
@@ -1070,6 +1074,25 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
             $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+
+    add_library(parallel-mater-gallery-window STATIC)
+    target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-gallery-window
+        PUBLIC examples/support/include)
+    if(WIN32)
+        target_sources(parallel-mater-gallery-window PRIVATE
+            examples/support/d3d12_window.cpp)
+        target_link_libraries(parallel-mater-gallery-window
+            PRIVATE glfw d3d12 dxgi)
+        target_compile_definitions(parallel-mater-gallery-window
+            PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    else()
+        target_sources(parallel-mater-gallery-window PRIVATE
+            examples/support/opengl_window.cpp)
+        target_link_libraries(parallel-mater-gallery-window
+            PRIVATE glfw OpenGL::GL)
+    endif()
+    parallel_mater_enable_warnings(parallel-mater-gallery-window)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
@@ -1093,7 +1116,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw OpenGL::GL CUDA::cudart)
+        PRIVATE glfw parallel-mater-gallery-window CUDA::cudart)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     add_dependencies(parallel-mater-gallery
@@ -1101,6 +1124,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
                        "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
+        set_target_properties(parallel-mater-gallery PROPERTIES
+            OUTPUT_NAME "Parallel-Mater")
     endif()
     set(PARALLEL_MATER_GALLERY_PROFILE_CATALOG
         "${CMAKE_CURRENT_BINARY_DIR}/config/device-profiles.json")
@@ -1150,6 +1175,17 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 "${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
                 "$<TARGET_FILE_DIR:parallel-mater-gallery>/config/device-profiles.json"
         VERBATIM)
+    if(WIN32)
+        add_custom_target(install-windows-gallery
+            COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+                -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1"
+                -BuildDirectory "$<TARGET_FILE_DIR:parallel-mater-gallery>"
+                -Version "${PROJECT_VERSION}"
+            DEPENDS parallel-mater-gallery
+            COMMENT "Installing Parallel-Mater for the current user"
+            USES_TERMINAL
+            VERBATIM)
+    endif()
 endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
@@ -1680,6 +1716,10 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     include(cmake/SlangGeometryConstraints.cmake)
     parallel_mater_add_slang_geometry_constraints()
+    if(WIN32 AND TARGET parallel-mater-gallery-window)
+        add_dependencies(parallel-mater-gallery-window
+                         parallel-mater-slang-avbd-dxil)
+    endif()
 endif()
 
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)

@@ -12,6 +12,7 @@
 #include <parallel_mater_gallery/runtime_platform.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
+#include <parallel_mater_gallery/window.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 
@@ -63,6 +64,7 @@ using parallel_mater::gallery::GalleryDebugState;
 using parallel_mater::gallery::GalleryInputState;
 using parallel_mater::gallery::GalleryKey;
 using parallel_mater::gallery::GallerySceneSource;
+using parallel_mater::gallery::GalleryWindow;
 using parallel_mater::gallery::gallery_entries;
 using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_context_index;
@@ -1175,23 +1177,8 @@ bool stable_calibration_scene(GalleryRuntime &runtime, bool quiet,
     return true;
 }
 
-void present_calibration_frame(GLFWwindow *window,
-                               const std::vector<std::uint32_t> &pixels,
-                               std::uint32_t width, std::uint32_t height) {
-    int framebuffer_width = 0, framebuffer_height = 0;
-    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-    glViewport(0, 0, framebuffer_width, framebuffer_height);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glRasterPos2f(-1.0F, -1.0F);
-    glPixelZoom(static_cast<float>(framebuffer_width) / width,
-                static_cast<float>(framebuffer_height) / height);
-    glDrawPixels(static_cast<int>(width), static_cast<int>(height), GL_RGBA,
-                 GL_UNSIGNED_BYTE, pixels.data());
-    glfwSwapBuffers(window);
-}
-
 bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
-                           GLFWwindow *window, std::uint32_t quiet_frames,
+                           GalleryWindow &window, std::uint32_t quiet_frames,
                            std::uint32_t collision_frames, bool off_center,
                            std::vector<parallel_mater::gallery::CalibrationSample> &samples,
                            bool &stable, std::string &error) {
@@ -1220,12 +1207,12 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         }
         if (!runtime.renderer.render(runtime.render_frame,
                                      camera.camera(), pixels, error)) return false;
-        present_calibration_frame(window, pixels, candidate.width, candidate.height);
+        if (!window.present(pixels, error)) return false;
         const double milliseconds = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - begin).count();
         samples.push_back({milliseconds, collision, true});
         glfwPollEvents();
-        return glfwWindowShouldClose(window) == GLFW_FALSE;
+        return glfwWindowShouldClose(window.native_handle()) == GLFW_FALSE;
     };
     for (std::uint32_t frame = 0U; frame < quiet_frames; ++frame)
         if (!measure(false)) { if (error.empty()) error = "calibration cancelled"; return false; }
@@ -1249,9 +1236,9 @@ double measured_seconds(
         });
 }
 
-bool calibrate_bricks(Options &options, GLFWwindow *window,
+bool calibrate_bricks(Options &options, GalleryWindow &window,
                       CalibrationResult &output, std::string &error) {
-    glfwSwapInterval(0);
+    window.set_vsync(false);
     const auto &presets = parallel_mater::gallery::brick_calibration_presets();
     std::optional<std::size_t> best;
     for (std::size_t index = 0U; index < presets.size(); ++index) {
@@ -1263,7 +1250,7 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
                                    index % 2U != 0U, samples, stable,
                                    trial_error)) {
             if (trial_error.find("memory budget") != std::string::npos) break;
-            glfwSwapInterval(1); error = trial_error; return false;
+            window.set_vsync(true); error = trial_error; return false;
         }
         const double duration = std::chrono::duration<double>(
             std::chrono::steady_clock::now() - begin).count();
@@ -1284,7 +1271,7 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
         }
         if (!parallel_mater::gallery::calibration_passes(metrics)) {
             if (index == 0U) {
-                glfwSwapInterval(1);
+                window.set_vsync(true);
                 error = "minimum one-brick preset failed the 1080p frame budget";
                 return false;
             }
@@ -1294,7 +1281,8 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
         best = index;
     }
     if (!best.has_value()) {
-        glfwSwapInterval(1); error = "no brick preset met the 1080p frame budget";
+        window.set_vsync(true);
+        error = "no brick preset met the 1080p frame budget";
         return false;
     }
     for (std::size_t index = *best + 1U; index-- > 0U;) {
@@ -1306,7 +1294,7 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
                    std::chrono::steady_clock::now() - begin).count() < 180.0) {
             if (!run_calibration_trial(options, presets[index], window, 60U, 300U,
                                        off_center, samples, stable, error)) {
-                glfwSwapInterval(1); return false;
+                window.set_vsync(true); return false;
             }
             if (!stable) break;
             off_center = !off_center;
@@ -1324,12 +1312,12 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
             output = {.config = presets[index], .metrics = metrics,
                       .hardware =
                           parallel_mater::gallery::platform_hardware_identity()};
-            glfwSwapInterval(1);
+            window.set_vsync(true);
             return true;
         }
         if (index == 0U) break;
     }
-    glfwSwapInterval(1);
+    window.set_vsync(true);
     error = "no brick preset passed sustained 1080p qualification";
     return false;
 }
@@ -1787,50 +1775,35 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         return 0;
     }
 
-    if (glfwInit() == GLFW_FALSE) {
-        std::cerr << "GLFW initialization failed\n";
-        return 1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    GLFWwindow *window = glfwCreateWindow(
-        1280, 720,
+    const char *window_title =
 #ifdef PARALLEL_MATER_SLANG_TEST_BUILD
-        "ParallelMater Gallery - Slang Production Test",
+        "ParallelMater Gallery - Slang Production Test";
 #else
-        "ParallelMater Gallery",
+        "ParallelMater Gallery";
 #endif
-        nullptr, nullptr);
-    if (window == nullptr) {
-        std::cerr << "GLFW window creation failed\n";
-        glfwTerminate();
+    GalleryWindow presentation;
+    if (!GalleryWindow::create(1280U, 720U, options.width, options.height,
+                               window_title, presentation, error)) {
+        std::cerr << error << '\n';
         return 1;
     }
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    GLFWwindow *window = presentation.native_handle();
     glfwSetWindowUserPointer(window, &input_state);
     glfwSetMouseButtonCallback(window, &mouse_button);
     glfwSetCursorPosCallback(window, &cursor_position);
     glfwSetScrollCallback(window, &scroll);
     glfwSetCharCallback(window, &character_input);
-    glDisable(GL_DEPTH_TEST);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
     if (options.calibrate) {
         CalibrationResult result;
-        if (!calibrate_bricks(options, window, result, error)) {
+        if (!calibrate_bricks(options, presentation, result, error)) {
             if (result.metrics.duration_seconds > 0.0)
                 save_local_calibration(result);
             std::cerr << "Calibration failed: " << error << '\n';
-            glfwDestroyWindow(window);
-            glfwTerminate();
             return 1;
         }
         last_calibration = result;
         save_local_calibration(result);
-        glfwDestroyWindow(window);
-        glfwTerminate();
         return 0;
     }
 
@@ -1860,7 +1833,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 CalibrationResult result;
                 std::string calibration_error;
                 bool calibration_succeeded = false;
-                if (calibrate_bricks(options, window, result,
+                if (calibrate_bricks(options, presentation, result,
                                      calibration_error)) {
                     calibration_succeeded = true;
                     last_calibration = result;
@@ -2384,21 +2357,10 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                     input_state.count_value_invalid);
         }
 
-        int framebuffer_width = 0, framebuffer_height = 0;
-        glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-        glViewport(0, 0, framebuffer_width, framebuffer_height);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glRasterPos2f(-1.0F, -1.0F);
-        glPixelZoom(static_cast<float>(framebuffer_width) /
-                        static_cast<float>(options.width),
-                    static_cast<float>(framebuffer_height) /
-                        static_cast<float>(options.height));
-        glDrawPixels(static_cast<int>(options.width),
-                     static_cast<int>(options.height), GL_RGBA, GL_UNSIGNED_BYTE,
-                     pixels.data());
-        glfwSwapBuffers(window);
+        if (!presentation.present(pixels, error)) {
+            std::cerr << "Presentation failed: " << error << '\n';
+            return 1;
+        }
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
     return 0;
 }

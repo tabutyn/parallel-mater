@@ -3,15 +3,34 @@
 
 import types;
 
-#ifdef PM_TARGET_VULKAN
-public in uint3 pmVulkanGroupId : SV_GroupID;
-public in uint3 pmVulkanGroupThreadId : SV_GroupThreadID;
-public in uint3 pmVulkanDispatchThreadId : SV_DispatchThreadID;
+#ifndef PM_TARGET_D3D12
+#define PM_TARGET_D3D12 0
+#endif
+
+#if defined(PM_TARGET_VULKAN)
+public in uint3 pmGroupId : SV_GroupID;
+public in uint3 pmGroupThreadId : SV_GroupThreadID;
+public in uint3 pmDispatchThreadId : SV_DispatchThreadID;
+#elif PM_TARGET_D3D12
+static uint3 pmGroupId;
+static uint3 pmGroupThreadId;
+static uint3 pmDispatchThreadId;
+
+public void pmSetD3D12ThreadIndices(uint3 groupId, uint3 groupThreadId,
+    uint3 dispatchThreadId)
+{
+    pmGroupId = groupId;
+    pmGroupThreadId = groupThreadId;
+    pmDispatchThreadId = dispatchThreadId;
+}
+#endif
+
+#if defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
 uniform uint3 pmDispatchGroupCount;
 uniform uint pmDispatchGroupSizeX;
 
-public uint3 pmBlockIndex() { return pmVulkanGroupId; }
-public uint3 pmGroupThreadIndex() { return pmVulkanGroupThreadId; }
+public uint3 pmBlockIndex() { return pmGroupId; }
+public uint3 pmGroupThreadIndex() { return pmGroupThreadId; }
 public uint3 pmGroupSize() { return uint3(pmDispatchGroupSizeX, 1u, 1u); }
 
 public uint pmAtomicAdd(uint* value, uint addend)
@@ -65,8 +84,9 @@ public uint pmAtomicExchange(uint* value, uint replacement)
 public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
 public uint3 pmGridDim() { return pmDispatchGroupCount; }
 
-// Vulkan has no in-dispatch grid barrier. The Vulkan executor splits logical
-// schedules at each grid dependency; this remains a group barrier in a pass.
+// Graphics APIs have no in-dispatch grid barrier. Their thin device adapters
+// split logical schedules at each grid dependency; this remains a group
+// barrier within one dispatch.
 public void pmGridBarrier() { DeviceMemoryBarrierWithGroupSync(); }
 #else
 public uint3 pmBlockIndex() { return cudaBlockIdx(); }
@@ -121,8 +141,8 @@ public void pmGridBarrier()
 }
 #endif
 
-#ifdef PM_TARGET_VULKAN
-public uint pmThreadIndex() { return pmVulkanDispatchThreadId.x; }
+#if defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
+public uint pmThreadIndex() { return pmDispatchThreadId.x; }
 #endif
 
 public void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
