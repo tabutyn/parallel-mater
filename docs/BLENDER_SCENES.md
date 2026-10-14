@@ -528,9 +528,11 @@ vector; loose spheres retain downward gravity until collected. Ground uses frict
 `4.0`; all 49 small spheres use friction `16.0`. Their effective
 small-sphere/ground coefficient is `8.0`, making attached spheres grip the
 floor and rotate the collector instead of letting the cluster slide.
-The Hinge + Slider scene's panel and single visible axial cylinder are merged
-into the first active gear. All three active gears hinge against the same passive `Ground.001`
-body, with each constraint frame's Z axis copied from its gear's local Z axis.
+The Hinge + Slider scene's panel and single visible axial cylinder form the
+passive `HingeFrame`; keeping them out of the first active gear prevents the
+frame from orbiting with the gear. The first gear hinges against `HingeFrame`,
+the other two hinge against passive `Ground.001`, and each constraint frame's
+Z axis is copied from its gear's local Z axis.
 Tooth contact propagates through both interfaces, so adjacent gears rotate in
 opposite directions and the first and third rotate in the same direction. The
 authored center distances, starting phases, collision search margins,
@@ -541,10 +543,11 @@ rebounding; both followers use mass `1.0` and angular damping `0.01` so they
 follow through freely instead of pushing the driver back. The scene has no
 loose ball. `Ground.002` is an active rod carrying a Slider constraint against
 the passive `Ground.001` frame, with its authored vertical local-X axis and
-unlimited travel. Gear teeth, not a joint limit, must support and drive the rod.
+unlimited travel. A damped return spring along that free axis keeps the rack
+engaged during long runs; gear teeth still support and drive its visible motion.
 Constraint Object 1 and Object 2 must both be assigned in Blender,
 including when the constraint lives on a rigid mesh rather than an Empty.
-The scene contains five rigid bodies; the old separate `Ground` floor is removed.
+The scene contains six rigid bodies; the old separate `Ground` floor is removed.
 The isolated full-rotation regression moves only the rod away, keeps the shared
 anchor frame stationary, drives the first gear, and checks contact-driven follower rotation.
 The unmodified scene replay checks slider travel, orientation, and lateral

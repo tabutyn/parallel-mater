@@ -116,11 +116,12 @@ int main() try {
     check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
                          scene, error),
           error.empty() ? "load Hinge + Slider scene" : error.c_str());
-    check(scene.rigid_bodies.size() == 5U &&
-              scene.rigid_constraints.size() == 4U,
+    check(scene.rigid_bodies.size() == 6U &&
+              scene.rigid_constraints.size() == 5U,
           "Hinge + Slider scene topology changed");
 
     const std::size_t rod_index = body_index(scene, "Ground.002");
+    const std::size_t ground_index = body_index(scene, "Ground.001");
     const std::array<std::size_t, 3U> gear_indices{
         body_index(scene, "Gear"), body_index(scene, "Gear.001"),
         body_index(scene, "Gear.002")};
@@ -131,6 +132,49 @@ int main() try {
         {rod_initial.orientation.x, rod_initial.orientation.y,
          rod_initial.orientation.z, rod_initial.orientation.w},
         {}, {}};
+    const auto driver_hinge = std::find_if(
+        scene.rigid_constraints.begin(), scene.rigid_constraints.end(),
+        [&](const RigidConstraintDefinition &constraint) {
+            return constraint.options.type == RigidConstraintType::hinge &&
+                (constraint.body_a == gear_indices[0] ||
+                 constraint.body_b == gear_indices[0]);
+        });
+    check(driver_hinge != scene.rigid_constraints.end(),
+          "driver gear hinge is missing");
+    const Vec3 driver_local_anchor = driver_hinge->body_a == gear_indices[0]
+        ? driver_hinge->options.local_anchor_a
+        : driver_hinge->options.local_anchor_b;
+    check(length(driver_local_anchor) < 1.0e-4F,
+          "driver gear hinge must be centered on the gear");
+    const auto slider = std::find_if(
+        scene.rigid_constraints.begin(), scene.rigid_constraints.end(),
+        [&](const RigidConstraintDefinition &constraint) {
+            return constraint.options.type == RigidConstraintType::slider &&
+                ((constraint.body_a == ground_index &&
+                  constraint.body_b == rod_index) ||
+                 (constraint.body_a == rod_index &&
+                  constraint.body_b == ground_index));
+        });
+    check(slider != scene.rigid_constraints.end() &&
+              slider->options.linear_limits.axes == 0U,
+          "rack slider must retain free axial travel");
+    const auto return_spring = std::find_if(
+        scene.rigid_constraints.begin(), scene.rigid_constraints.end(),
+        [&](const RigidConstraintDefinition &constraint) {
+            return constraint.options.type ==
+                    RigidConstraintType::generic_spring &&
+                ((constraint.body_a == ground_index &&
+                  constraint.body_b == rod_index) ||
+                 (constraint.body_a == rod_index &&
+                  constraint.body_b == ground_index));
+        });
+    check(return_spring != scene.rigid_constraints.end() &&
+              return_spring->options.linear_springs.axes == 1U &&
+              std::fabs(return_spring->options.linear_springs.stiffness.x -
+                        50.0F) < 1.0e-4F &&
+              std::fabs(return_spring->options.linear_springs.damping.x -
+                        14.0F) < 1.0e-4F,
+          "rack return spring configuration changed");
 
     CommandScene simulation;
     CommandSceneInstance instance;
@@ -155,7 +199,7 @@ int main() try {
     const rigid_mesh_checks::MeshSamples slider_mesh(scene, rod_index);
     const rigid_mesh_checks::MeshSamples slider_gear_mesh(
         scene, gear_indices[2]);
-    for (std::uint32_t frame_index = 0U; frame_index < 240U; ++frame_index) {
+    for (std::uint32_t frame_index = 0U; frame_index < 2400U; ++frame_index) {
         check(simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
                               frame, error, true),
               error.empty() ? "step Hinge + Slider scene" : error.c_str());
@@ -241,7 +285,9 @@ int main() try {
     check(maximum_slider_axis_error < 1.0e-3F,
           "slider axis lost alignment");
     check(maximum_slider_travel > 0.01F,
-          "unlimited slider did not travel along its axis");
+          "slider did not travel along its axis");
+    check(maximum_slider_travel < 1.0F,
+          "return spring did not bound slider travel");
     check(maximum_slider_mesh_penetration < 0.002F,
           "slider and gear meshes interpenetrated by more than 2 mm");
     check(slider_contact_impulse > 0.1F,

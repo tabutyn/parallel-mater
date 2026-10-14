@@ -197,7 +197,7 @@ const std::vector<CaseDefinition> &case_registry() {
              {40U, "set_constraints_enabled", "scene", {1.0, 0.0, 0.0, 0.0}, 1U}}));
         result.push_back(integrated(
             "constraint-hinge", "Three-gear authored hinge train",
-            "ConstraintHinge", "a118ee8433e7d59f126b06fd99bfc9c513b4aa496a5b69de7a46ad967298dfea",
+            "ConstraintHinge", "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
             {"hinge_joint", "contact", "alternating_rotation", "energy"}, 90U));
         result.push_back(integrated(
             "constraint-slider", "Authored slider constraint",
