@@ -323,6 +323,29 @@ if "OptixRenderer" in renderer_interface:
     failures.append(
         "examples/support/include/parallel_mater_gallery/renderer.hpp: "
         "drawing interface exposes the OptiX adapter")
+legacy_cuda_gallery_platform = (
+    ROOT / "examples" / "support" / "cuda_runtime_platform.cpp"
+)
+if legacy_cuda_gallery_platform.exists():
+    failures.append(
+        "examples/support/cuda_runtime_platform.cpp: CUDA-specific gallery "
+        "platform remains")
+for common_gallery_path in (
+    ROOT / "examples" / "support" / "runtime_platform.cpp",
+    ROOT / "examples" / "support" / "software_renderer.cpp",
+):
+    if not common_gallery_path.exists():
+        failures.append(
+            f"{common_gallery_path.relative_to(ROOT)}: common gallery adapter missing")
+        continue
+    common_gallery_text = common_gallery_path.read_text()
+    for backend_detail in (
+        "cuda_runtime", "CUdevice", "Optix", "optixLaunch",
+    ):
+        if backend_detail in common_gallery_text:
+            failures.append(
+                f"{common_gallery_path.relative_to(ROOT)}: common gallery "
+                f"adapter owns NVIDIA detail {backend_detail}")
 for removed_vulkan_executor in (
     ROOT / "src" / "api" / "interop_vulkan.cpp",
     ROOT / "src" / "device" / "vulkan_executor.cpp",
@@ -361,6 +384,27 @@ for required in (
         failures.append(
             f"cmake/SlangGeometryConstraints.cmake: missing DXIL contract {required}"
         )
+
+d3d12_driver_path = ROOT / "src" / "driver" / "d3d12" / "entry.cpp"
+if "parallel-mater-driver-slang-d3d12 SHARED" not in cmake:
+    failures.append("CMakeLists.txt: D3D12 loader driver target missing")
+if not d3d12_driver_path.exists():
+    failures.append("src/driver/d3d12/entry.cpp: thin D3D12 driver missing")
+else:
+    d3d12_driver = d3d12_driver_path.read_text()
+    for required in (
+        "generated::avbd_prepare", "generated::avbd_solve",
+        "SetComputeRootDescriptorTable", "Dispatch", "ResourceBarrier",
+    ):
+        if required not in d3d12_driver:
+            failures.append(
+                f"src/driver/d3d12/entry.cpp: missing shared DXIL driver "
+                f"contract {required}")
+    for forbidden in ("simulation/runtime.hpp", "cuda_runtime", ".cu\""):
+        if forbidden in d3d12_driver:
+            failures.append(
+                f"src/driver/d3d12/entry.cpp: physics/backend implementation "
+                f"leaked into thin driver: {forbidden}")
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.

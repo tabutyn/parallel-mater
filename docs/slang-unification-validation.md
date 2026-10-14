@@ -33,6 +33,13 @@ kernels or direct launches in the runtime.
 - Command API, API contract, gallery catalog/input, Slang architecture, and
   Slang reflection tests pass on the CUDA host.
 - All 105 AVBD fixtures and the CPU/CUDA/Slang AVBD-core tests pass.
+- The loader-visible D3D12 adapter creates both shared AVBD DXIL pipelines,
+  binds and dispatches their schedule, validates readback, and passes public
+  memory/buffer/barrier/fence/native-handle tests. It advertises no physics
+  feature until the remaining domain schedules are command-wired.
+- The common gallery builds with OptiX disabled, uses the software renderer and
+  thin D3D12 presentation window, and passes the real-window F/Tab/scene-switch
+  harness while physics is supplied by the selected full-feature driver.
 - All 42 CUDA gallery headless, action, render, debug, containment, and coupled
   scene tests pass through the shared gallery application path. This includes
   Point release/restore, Hinge, Piston, Motor + Spring, dump tip/drive, rope,
@@ -56,6 +63,6 @@ command API.
 |---|---|
 | CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
-| DirectX 12 | Unavailable; no qualified Slang device adapter |
+| DirectX 12 | Core loader driver and AVBD DXIL schedule qualified; physics features intentionally unavailable |
 | Vulkan | Interoperability declarations only; physics unavailable |
 | WebGPU | Unavailable |

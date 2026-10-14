@@ -1,4 +1,8 @@
-# CUDA reference requirements for Metal parity
+# Archived CUDA/Metal parity requirements (2026)
+
+> Historical migration record. The native Metal implementation and its
+> backend-specific gallery were removed after the shared Slang migration.
+> Nothing below is a current build, release, or handoff requirement.
 
 The CUDA implementation is the behavioral reference for the Metal port. The
 Metal work can continue on Apple Silicon, but the remaining engine differences

@@ -113,7 +113,8 @@ corpus capture. Inspect all numerical diffs and rerun the complete CTest suite.
 Retain its log and lossless gallery images alongside the package. Do not call
 a non-repeatable capture a golden.
 
-See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
+See the archived
+[CUDA/Metal parity requirements](../../docs/archive/cuda-metal-parity-2026.md)
 for conditional first-divergent-phase instrumentation and the separate visual
 and performance handoffs. A future adapter must run this same case registry
 through the shared command API and compare the complete result directory.

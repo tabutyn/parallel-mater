@@ -21,12 +21,12 @@ apps/gallery_game (not installed)
   scene selection, progression, save data, menus
 ```
 
-The renderer consumes borrowed device views. The current optional OptiX module
-ray traces Blender-authored rigid render meshes without making OptiX a
-dependency of the installed physics package. Its first implementation performs
-a synchronous device-to-host image readback for a deliberately small and clear
-example; CUDA/OpenGL interop is deferred until measurements justify it.
-Headless physics builds remain free of OpenGL and OptiX.
+Renderers consume the backend-neutral `RenderSceneFrame` copied through the
+public command API. The default software adapter rasterizes that frame without
+CUDA or OptiX; native window adapters only present its CPU RGBA image. The
+optional OptiX adapter ray traces the same scene/frame contract and is isolated
+in its own target. Headless physics builds remain free of window and renderer
+dependencies.
 
 ## First gallery sequence
 
@@ -283,8 +283,8 @@ bonds are omitted rather than drawn across detached fragments. Force vectors
 remain attached to physical nodes.
 The gallery supplies cloth UVs through `pmCreatePaintField` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in the selected
-physics driver; the OptiX
-adapter merely filters and displays the borrowed two-sided mask.
+physics driver; renderer adapters merely filter and display the copied
+two-sided mask.
 In Peg Paint, the arrow keys or WASD tilt the scene's authored 2g gravity up
 to 50 degrees relative to the camera. The tilt eases in and returns to
 vertical when released. Static fluid contacts use impulse-limited friction,

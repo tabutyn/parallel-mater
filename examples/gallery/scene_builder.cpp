@@ -451,18 +451,27 @@ bool CommandScene::create(const SceneDefinition &scene,
                                             physical_devices.data()),
                  "enumerate physical devices", error))
         return false;
-    next->physical = physical_devices.front();
-    PmPhysicalDeviceFeatures features{};
-    pmGetPhysicalDeviceFeatures(next->physical, &features);
     const bool requires_fluid = scene.fluid_options.capacity != 0U;
-    if (features.rigidBodies != PM_TRUE ||
-        (!scene.rigid_constraints.empty() &&
-         features.rigidConstraints != PM_TRUE) ||
-        (requires_fluid && features.particleLiquids != PM_TRUE) ||
-        (!scene.cloths.empty() && features.cloth != PM_TRUE) ||
-        (!scene.ropes.empty() && features.rope != PM_TRUE) ||
-        (!scene.soft_bodies.empty() && features.softBodies != PM_TRUE) ||
-        (scene.has_smoke && features.smoke != PM_TRUE)) {
+    PmPhysicalDeviceFeatures features{};
+    for (PmPhysicalDevice candidate : physical_devices) {
+        PmPhysicalDeviceFeatures candidate_features{};
+        pmGetPhysicalDeviceFeatures(candidate, &candidate_features);
+        const bool compatible = candidate_features.rigidBodies == PM_TRUE &&
+            (scene.rigid_constraints.empty() ||
+             candidate_features.rigidConstraints == PM_TRUE) &&
+            (!requires_fluid ||
+             candidate_features.particleLiquids == PM_TRUE) &&
+            (scene.cloths.empty() || candidate_features.cloth == PM_TRUE) &&
+            (scene.ropes.empty() || candidate_features.rope == PM_TRUE) &&
+            (scene.soft_bodies.empty() ||
+             candidate_features.softBodies == PM_TRUE) &&
+            (!scene.has_smoke || candidate_features.smoke == PM_TRUE);
+        if (!compatible) continue;
+        next->physical = candidate;
+        features = candidate_features;
+        break;
+    }
+    if (next->physical == nullptr) {
         error = "selected device does not expose every scene capability";
         return false;
     }

@@ -2,10 +2,11 @@
 #include "support.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/optix_renderer.hpp>
+#include <parallel_mater_gallery/renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 #include <cuda_profiler_api.h>
+#include <cuda_runtime_api.h>
 #include <charconv>
 #include <fstream>
 #include <iomanip>
@@ -70,9 +71,9 @@ int main(int argc, char **argv) {
         std::cerr << "create simulation: " << error << '\n';
         return 1;
     }
-    OptixRenderer renderer;
-    if (render && !OptixRenderer::create(scene,instance,PARALLEL_MATER_OPTIX_PTX_PATH,
-                                         960,720,renderer,error)) {
+    RendererHandle renderer;
+    if (render && !create_renderer(scene, instance, 960U, 720U,
+                                   renderer, error)) {
         std::cerr << error << '\n'; return 1;
     }
     CameraController camera;
@@ -95,7 +96,7 @@ int main(int argc, char **argv) {
         return simulation.step(options.timestep, options.substeps,
                                options.gravity, frame, error);
     };
-    for (unsigned frame = 0; frame < warmup; ++frame)
+    for (unsigned frame_index = 0; frame_index < warmup; ++frame_index)
         if (!step() || !draw()) {
             if (!error.empty()) std::cerr << "warmup: " << error << '\n';
             return 1;
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
     using Clock = std::chrono::steady_clock;
     const auto ms = [](auto a, auto b) { return std::chrono::duration<double,std::milli>(b-a).count(); };
     if (trace && cudaProfilerStart() != cudaSuccess) return 1;
-    for (unsigned frame = 0; frame < frames; ++frame) {
+    for (unsigned frame_index = 0; frame_index < frames; ++frame_index) {
         const auto start = Clock::now();
         if (!bed.advance(simulation, scene, instance, options.timestep,
                          error)) {
@@ -144,7 +145,7 @@ int main(int argc, char **argv) {
         const auto drawn = Clock::now();
         controls.add(ms(start,controlled)); physics.add(ms(controlled,stepped));
         rendering.add(ms(stepped,drawn)); total.add(ms(start,drawn));
-        if (csv) csv << frame << ',' << ms(start,controlled) << ',' << ms(controlled,stepped)
+        if (csv) csv << frame_index << ',' << ms(start,controlled) << ',' << ms(controlled,stepped)
                      << ',' << ms(stepped,drawn) << ',' << ms(start,drawn) << '\n';
     }
     if (trace && cudaProfilerStop() != cudaSuccess) return 1;

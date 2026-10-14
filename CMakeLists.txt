@@ -48,11 +48,38 @@ if(NOT APPLE AND NOT WIN32)
 else()
     set(PARALLEL_MATER_CUDA_DEFAULT OFF)
 endif()
+if(WIN32)
+    set(PARALLEL_MATER_D3D12_DEFAULT ON)
+else()
+    set(PARALLEL_MATER_D3D12_DEFAULT OFF)
+endif()
 
 option(PARALLEL_MATER_BUILD_CUDA
        "Build the CUDA Slang device adapter" ${PARALLEL_MATER_CUDA_DEFAULT})
+option(PARALLEL_MATER_BUILD_D3D12
+       "Build the D3D12 loader and shared-Slang qualification adapter"
+       ${PARALLEL_MATER_D3D12_DEFAULT})
+option(PARALLEL_MATER_BUILD_GALLERY
+       "Build the backend-neutral gallery application" OFF)
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
-       "Build the optional OptiX and glTF gallery" OFF)
+       "Deprecated: build the gallery with the OptiX renderer" OFF)
+set(PARALLEL_MATER_GALLERY_RENDERER "SOFTWARE" CACHE STRING
+    "Gallery renderer adapter (SOFTWARE or OPTIX)")
+set_property(CACHE PARALLEL_MATER_GALLERY_RENDERER PROPERTY STRINGS
+             SOFTWARE OPTIX)
+if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    set(PARALLEL_MATER_BUILD_GALLERY ON CACHE BOOL
+        "Build the backend-neutral gallery application" FORCE)
+    set(PARALLEL_MATER_GALLERY_RENDERER OPTIX CACHE STRING
+        "Gallery renderer adapter (SOFTWARE or OPTIX)" FORCE)
+endif()
+string(TOUPPER "${PARALLEL_MATER_GALLERY_RENDERER}"
+       PARALLEL_MATER_GALLERY_RENDERER)
+if(NOT PARALLEL_MATER_GALLERY_RENDERER STREQUAL "SOFTWARE" AND
+   NOT PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
+    message(FATAL_ERROR
+        "PARALLEL_MATER_GALLERY_RENDERER must be SOFTWARE or OPTIX")
+endif()
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
 if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_METAL_GALLERY)
@@ -68,7 +95,8 @@ option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
-if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+if(WIN32 AND (PARALLEL_MATER_BUILD_GALLERY OR
+              PARALLEL_MATER_BUILD_D3D12))
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
         "Build and validate the portable Slang rigid constraint core" FORCE)
 endif()
@@ -82,7 +110,7 @@ if(PARALLEL_MATER_SLANG_TEST_BUILD)
 endif()
 
 # Ship prebuilt icons so ordinary builds need no image conversion tools.
-if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+if(WIN32 AND PARALLEL_MATER_BUILD_GALLERY)
     enable_language(RC)
     set(PARALLEL_MATER_GALLERY_ICON
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/ParallelMater.ico")
@@ -94,16 +122,22 @@ if(WIN32 AND PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PROPERTIES OBJECT_DEPENDS "${PARALLEL_MATER_GALLERY_ICON}")
 endif()
 
-if(PARALLEL_MATER_BUILD_OPTIX_GALLERY AND NOT PARALLEL_MATER_BUILD_CUDA)
+if(PARALLEL_MATER_BUILD_GALLERY AND
+   PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX" AND
+   NOT PARALLEL_MATER_BUILD_CUDA)
     message(FATAL_ERROR "The OptiX gallery requires PARALLEL_MATER_BUILD_CUDA")
 endif()
 if(PARALLEL_MATER_BUILD_BENCHMARKS AND
-   NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+   NOT PARALLEL_MATER_BUILD_GALLERY)
     message(FATAL_ERROR
-            "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
+            "Rigid scene benchmarks require PARALLEL_MATER_BUILD_GALLERY")
+endif()
+if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
+    message(FATAL_ERROR
+        "The current profiler-backed benchmarks require PARALLEL_MATER_BUILD_CUDA")
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/Slang.cmake)
@@ -139,7 +173,7 @@ set(PARALLEL_MATER_INSTALL_TARGETS)
 
 include(cmake/ParallelMaterLoader.cmake)
 
-if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
+if(PARALLEL_MATER_BUILD_GALLERY OR
    (PARALLEL_MATER_BUILD_CUDA AND BUILD_TESTING))
     FetchContent_Declare(
         parallel_mater_cgltf
@@ -149,7 +183,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
     FetchContent_MakeAvailable(parallel_mater_cgltf)
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR BUILD_TESTING)
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
         src/fluid_source.cpp
@@ -893,7 +927,9 @@ if(BUILD_TESTING)
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
 endif()
 
-if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+endif() # PARALLEL_MATER_BUILD_CUDA
+
+if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-scene STATIC
                 examples/gallery/scene_builder.cpp
                 examples/gallery/render/render_scene.cpp
@@ -913,7 +949,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PRIVATE parallel-mater-host-preparation)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
-    if(BUILD_TESTING)
+    if(BUILD_TESTING AND PARALLEL_MATER_BUILD_CUDA)
         add_executable(parallel-mater-command-gallery-tests
                        tests/gallery/command_gallery_tests.cpp)
         target_link_libraries(parallel-mater-command-gallery-tests
@@ -993,12 +1029,14 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
         set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
     endif()
-    FetchContent_Declare(
-        pm_optix
-        GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
-        GIT_TAG fff65c2a7c592f1ea5f1661ad7d2381cf965f9bd
-        GIT_SHALLOW TRUE)
-    FetchContent_MakeAvailable(pm_optix)
+    if(PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
+        FetchContent_Declare(
+            pm_optix
+            GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
+            GIT_TAG fff65c2a7c592f1ea5f1661ad7d2381cf965f9bd
+            GIT_SHALLOW TRUE)
+        FetchContent_MakeAvailable(pm_optix)
+    endif()
 
     if(NOT WIN32)
         find_package(OpenGL REQUIRED)
@@ -1017,63 +1055,72 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         FetchContent_MakeAvailable(parallel_mater_glfw)
     endif()
 
-    set(PARALLEL_MATER_OPTIX_PTX
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/parallel_mater_optix.ptx)
-    if(CMAKE_CUDA_ARCHITECTURES)
-        set(parallel_mater_optix_architectures ${CMAKE_CUDA_ARCHITECTURES})
-        list(GET parallel_mater_optix_architectures 0
-            parallel_mater_optix_architecture)
-        string(REGEX REPLACE "-(real|virtual)$" ""
-            parallel_mater_optix_architecture
-            "${parallel_mater_optix_architecture}")
-    else()
-        set(parallel_mater_optix_architecture 52)
-    endif()
-    add_custom_command(
-        OUTPUT ${PARALLEL_MATER_OPTIX_PTX}
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                ${CMAKE_CURRENT_BINARY_DIR}/generated
-        COMMAND
-            ${CMAKE_CUDA_COMPILER}
-            --ptx
-            --std=c++17
-            --gpu-architecture=compute_${parallel_mater_optix_architecture}
-            --use_fast_math
-            --generate-line-info
-            -I${pm_optix_SOURCE_DIR}/include
-            -I${CMAKE_CURRENT_SOURCE_DIR}/examples/support
-            ${CMAKE_CURRENT_SOURCE_DIR}/examples/support/optix_device.cu
-            -o ${PARALLEL_MATER_OPTIX_PTX}
-        DEPENDS
-            examples/support/optix_device.cu
-            examples/support/renderer_shared.hpp
-        VERBATIM)
-    add_custom_target(parallel-mater-optix-ptx
-                      DEPENDS ${PARALLEL_MATER_OPTIX_PTX})
+    if(PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
+        set(PARALLEL_MATER_OPTIX_PTX
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/parallel_mater_optix.ptx)
+        if(CMAKE_CUDA_ARCHITECTURES)
+            set(parallel_mater_optix_architectures ${CMAKE_CUDA_ARCHITECTURES})
+            list(GET parallel_mater_optix_architectures 0
+                parallel_mater_optix_architecture)
+            string(REGEX REPLACE "-(real|virtual)$" ""
+                parallel_mater_optix_architecture
+                "${parallel_mater_optix_architecture}")
+        else()
+            set(parallel_mater_optix_architecture 52)
+        endif()
+        add_custom_command(
+            OUTPUT ${PARALLEL_MATER_OPTIX_PTX}
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    ${CMAKE_CURRENT_BINARY_DIR}/generated
+            COMMAND
+                ${CMAKE_CUDA_COMPILER}
+                --ptx
+                --std=c++17
+                --gpu-architecture=compute_${parallel_mater_optix_architecture}
+                --use_fast_math
+                --generate-line-info
+                -I${pm_optix_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/examples/support
+                ${CMAKE_CURRENT_SOURCE_DIR}/examples/support/optix_device.cu
+                -o ${PARALLEL_MATER_OPTIX_PTX}
+            DEPENDS
+                examples/support/optix_device.cu
+                examples/support/renderer_shared.hpp
+            VERBATIM)
+        add_custom_target(parallel-mater-optix-ptx
+                          DEPENDS ${PARALLEL_MATER_OPTIX_PTX})
 
-    add_library(parallel-mater-gallery-renderer STATIC
-                examples/support/optix_renderer.cpp
-                examples/support/foam_visuals.cpp
-                examples/support/fluid_surface.cu
-                examples/support/overlay.cpp
-                examples/support/physics_debug.cpp)
-    add_dependencies(parallel-mater-gallery-renderer parallel-mater-optix-ptx)
+        add_library(parallel-mater-gallery-renderer STATIC
+                    examples/support/optix_renderer.cpp
+                    examples/support/foam_visuals.cpp
+                    examples/support/fluid_surface.cu)
+        add_dependencies(parallel-mater-gallery-renderer
+                         parallel-mater-optix-ptx)
+        target_include_directories(
+            parallel-mater-gallery-renderer
+            PUBLIC examples/support/include
+            PRIVATE
+                examples/support
+                ${pm_optix_SOURCE_DIR}/include)
+        target_link_libraries(
+            parallel-mater-gallery-renderer
+            PUBLIC parallel-mater-gallery-scene
+            PRIVATE CUDA::cuda_driver CUDA::cudart ${CMAKE_DL_LIBS})
+        target_compile_definitions(parallel-mater-gallery-renderer
+            PRIVATE
+                PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
+                $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+    else()
+        add_library(parallel-mater-gallery-renderer STATIC
+                    examples/support/software_renderer.cpp)
+        target_include_directories(parallel-mater-gallery-renderer
+            PUBLIC examples/support/include
+            PRIVATE examples/support examples/gallery)
+        target_link_libraries(parallel-mater-gallery-renderer
+            PUBLIC parallel-mater-gallery-scene)
+    endif()
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
-    target_include_directories(
-        parallel-mater-gallery-renderer
-        PUBLIC examples/support/include
-        PRIVATE
-            examples/support
-            ${pm_optix_SOURCE_DIR}/include)
-    target_link_libraries(
-        parallel-mater-gallery-renderer
-        PUBLIC parallel-mater-gallery-scene
-        PRIVATE CUDA::cuda_driver CUDA::cudart ${CMAKE_DL_LIBS})
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
-    target_compile_definitions(parallel-mater-gallery-renderer
-        PRIVATE
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
-            $<$<PLATFORM_ID:Windows>:NOMINMAX>)
 
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
@@ -1096,31 +1143,35 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
-        target_link_libraries(parallel-mater-dump-truck-benchmark PRIVATE parallel-mater-gallery-renderer)
+        target_link_libraries(parallel-mater-dump-truck-benchmark
+                              PRIVATE parallel-mater-gallery-renderer
+                                      CUDA::cudart)
         target_compile_definitions(parallel-mater-dump-truck-benchmark PRIVATE
-            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
         parallel_mater_enable_warnings(parallel-mater-dump-truck-benchmark)
         add_executable(parallel-mater-rigid-frame-benchmark benchmarks/rigid_frame.cpp)
         target_link_libraries(parallel-mater-rigid-frame-benchmark
                               PRIVATE parallel-mater-gallery-renderer)
-        target_compile_definitions(parallel-mater-rigid-frame-benchmark PRIVATE
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
         parallel_mater_enable_warnings(parallel-mater-rigid-frame-benchmark)
     endif()
 
     add_library(parallel-mater-gallery-application STATIC
                 examples/gallery/application.cpp
-                examples/support/cuda_runtime_platform.cpp)
+                examples/support/runtime_platform.cpp
+                examples/support/overlay.cpp
+                examples/support/physics_debug.cpp)
     target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw parallel-mater-gallery-window CUDA::cudart)
+        PRIVATE glfw parallel-mater-gallery-window)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
-    add_dependencies(parallel-mater-gallery
-        parallel-mater-driver-slang-cuda parallel-mater-layer-validation)
+    add_dependencies(parallel-mater-gallery parallel-mater-layer-validation)
+    if(PARALLEL_MATER_BUILD_CUDA)
+        add_dependencies(parallel-mater-gallery
+                         parallel-mater-driver-slang-cuda)
+    endif()
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
                        "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
@@ -1188,14 +1239,85 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 endif()
 
-endif() # PARALLEL_MATER_BUILD_CUDA
-
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     include(cmake/SlangGeometryConstraints.cmake)
     parallel_mater_add_slang_geometry_constraints()
     if(WIN32 AND TARGET parallel-mater-gallery-window)
         add_dependencies(parallel-mater-gallery-window
                          parallel-mater-slang-avbd-dxil)
+    endif()
+endif()
+
+if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+    set(PARALLEL_MATER_D3D12_GENERATED_DIR
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/d3d12")
+    set(PARALLEL_MATER_D3D12_DXIL_HEADER
+        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_avbd_dxil.hpp")
+    add_custom_command(
+        OUTPUT "${PARALLEL_MATER_D3D12_DXIL_HEADER}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "${PARALLEL_MATER_D3D12_GENERATED_DIR}"
+        COMMAND ${CMAKE_COMMAND}
+                "-DPREPARE_INPUT=${PARALLEL_MATER_SLANG_AVBD_PREPARE_DXIL}"
+                "-DSOLVE_INPUT=${PARALLEL_MATER_SLANG_AVBD_SOLVE_DXIL}"
+                "-DOUTPUT_FILE=${PARALLEL_MATER_D3D12_DXIL_HEADER}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxil.cmake"
+        DEPENDS
+            "${PARALLEL_MATER_SLANG_AVBD_PREPARE_DXIL}"
+            "${PARALLEL_MATER_SLANG_AVBD_SOLVE_DXIL}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxil.cmake"
+        COMMENT "Embedding shared AVBD DXIL in the D3D12 driver"
+        VERBATIM)
+    add_library(parallel-mater-driver-slang-d3d12 SHARED
+        src/driver/d3d12/entry.cpp
+        "${PARALLEL_MATER_D3D12_DXIL_HEADER}")
+    add_dependencies(parallel-mater-driver-slang-d3d12
+                     parallel-mater-slang-avbd-dxil)
+    target_compile_features(parallel-mater-driver-slang-d3d12 PRIVATE cxx_std_20)
+    target_compile_definitions(parallel-mater-driver-slang-d3d12 PRIVATE
+        PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN)
+    target_include_directories(parallel-mater-driver-slang-d3d12
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE "${PARALLEL_MATER_D3D12_GENERATED_DIR}")
+    target_link_libraries(parallel-mater-driver-slang-d3d12 PRIVATE d3d12 dxgi)
+    parallel_mater_enable_warnings(parallel-mater-driver-slang-d3d12)
+    set_target_properties(parallel-mater-driver-slang-d3d12 PROPERTIES
+        OUTPUT_NAME parallel_mater_driver_slang_d3d12
+        EXPORT_NAME slang_d3d12_driver
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES
+        POSITION_INDEPENDENT_CODE ON)
+    add_library(ParallelMater::slang_d3d12_driver ALIAS
+                parallel-mater-driver-slang-d3d12)
+    list(APPEND PARALLEL_MATER_INSTALL_TARGETS
+         parallel-mater-driver-slang-d3d12)
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-d3d12.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    if(BUILD_TESTING)
+        add_executable(parallel-mater-d3d12-command-api-tests
+            tests/api/d3d12_command_api_tests.cpp)
+        target_compile_features(parallel-mater-d3d12-command-api-tests
+            PRIVATE cxx_std_20)
+        target_link_libraries(parallel-mater-d3d12-command-api-tests
+            PRIVATE ParallelMater::parallel_mater)
+        add_dependencies(parallel-mater-d3d12-command-api-tests
+            parallel-mater-driver-slang-d3d12)
+        parallel_mater_enable_warnings(parallel-mater-d3d12-command-api-tests)
+        add_test(NAME parallel-mater-d3d12-command-api-tests
+            COMMAND parallel-mater-d3d12-command-api-tests)
+        set_tests_properties(parallel-mater-d3d12-command-api-tests PROPERTIES
+            LABELS "api;d3d12;loader;slang"
+            SKIP_RETURN_CODE 77
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
     endif()
 endif()
 
@@ -1287,6 +1409,12 @@ if(PARALLEL_MATER_BUILD_CUDA)
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
 endif()
+if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_d3d12${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json @ONLY)
+endif()
 
 install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
@@ -1307,6 +1435,10 @@ if(PARALLEL_MATER_BUILD_CUDA)
         install(FILES "${PARALLEL_MATER_CUDART_RUNTIME}"
                 DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
+endif()
+if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
