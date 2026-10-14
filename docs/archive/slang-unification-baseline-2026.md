@@ -1,4 +1,7 @@
-# Slang unification baseline
+# Archived Slang unification baseline (2026)
+
+> Historical pre-migration measurement record. This is not a current build,
+> validation, performance, or release checklist.
 
 Captured before command-runtime physics dispatch changed. Goldens were not
 updated and scene counts or solver quality were not reduced.

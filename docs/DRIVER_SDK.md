@@ -14,6 +14,7 @@ ordinary `pm*` application symbols.
 | `pm_driver.h` | Versioned private loader-driver ABI |
 | `pm_layer.h` | Versioned loader-layer observation and validation ABI |
 | `parallel_mater_driver_slang_cuda` | First reference driver and conformance baseline |
+| `parallel_mater_driver_slang_d3d12` | Windows core transfer driver and shared AVBD DXIL qualification adapter; no physics features advertised yet |
 | `PM_LAYER_KHRONOS_validation` | Optional validation layer |
 
 ## Required driver exports

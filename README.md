@@ -64,6 +64,13 @@ synchronization, query, native-buffer, and physics services. Driver discovery,
 the private ABI, manifests, and vendor requirements are documented in the
 [driver SDK](docs/DRIVER_SDK.md). Features are advertised only when their
 shared Slang schedule is present.
+
+On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
+implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
+and memory budgets, and qualifies device creation by dispatching the embedded
+shared AVBD DXIL prepare/solve schedule. It deliberately does not advertise
+physics features until the remaining shared domain schedules are wired through
+the command API.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -78,9 +85,10 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-The runtime test skips with code 77 when no CUDA device is available. Compute
-capability `86` is the local RTX 3050 Ti setting; consumers should select the
-architectures they ship.
+CUDA runtime tests skip with code 77 when no CUDA device is available. The
+Windows D3D12 command test also skips when no Shader Model 6.6 adapter is
+available. Compute capability `86` is the local RTX 3050 Ti setting; consumers
+should select the architectures they ship.
 
 CUDA compiles the shared physics modules under `src/slang/`; build target
 `parallel-mater-slang-kernel-mirrors` validates every entry. CMake resolves one
@@ -92,21 +100,25 @@ the [Slang toolchain and source layout](docs/SLANG.md).
 
 ### Target and driver support
 
-The Slang/CUDA driver is the first qualified implementation. All shared Slang
+The Slang/CUDA driver is the first fully qualified physics implementation. All shared Slang
 modules are also compiled to Vulkan SPIR-V as a portability check, but there is
 no Vulkan driver until a complete shared schedule passes the same conformance
-and gallery gates. Metal, DirectX 12, and WebGPU execution are likewise
-unavailable until independently qualified. Retired backend-specific physics
-targets are absent rather than available as fallbacks. Native
+and gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule
+and core transfer API but advertises no physics domains; Metal and WebGPU have
+no drivers. Retired backend-specific physics targets are absent rather than
+available as fallbacks. Native
 API names remain in
 interoperability enums because applications may query support and receive
 `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
 
-## Blender and OptiX gallery
+## Blender gallery and renderer adapters
 
-The optional gallery loads a committed Blender-authored `.glb`, creates its
-rigid bodies through the public API, and ray traces its render meshes with
-OptiX. It is deliberately separate from the installed physics library.
+The optional gallery loads committed Blender-authored `.glb` files and creates
+every scene through the public command API. The default renderer is a portable
+software rasterizer feeding a thin native window/presentation adapter (D3D12 on
+Windows, OpenGL elsewhere). OptiX is an optional renderer adapter and is
+deliberately separate from the common catalog, scene, input, and application
+targets.
 
 All Blender scenes use one exporter,
 `tools/blender/export_parallel_mater_scene.py`: as a Blender File → Export menu
@@ -119,7 +131,9 @@ loader without changing the source assets.
 cmake -S . -B build-gallery \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CUDA_ARCHITECTURES=86 \
-  -DPARALLEL_MATER_BUILD_OPTIX_GALLERY=ON \
+  -DPARALLEL_MATER_BUILD_CUDA=ON \
+  -DPARALLEL_MATER_BUILD_GALLERY=ON \
+  -DPARALLEL_MATER_GALLERY_RENDERER=SOFTWARE \
   -DBUILD_TESTING=ON
 cmake --build build-gallery
 ctest --test-dir build-gallery --output-on-failure
@@ -221,7 +235,9 @@ same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
   --headless /tmp/water-cloth.ppm
 ```
 
-The gallery currently requires an NVIDIA driver supported by OptiX 9.1,
-OpenGL, and GLFW. CMake fetches pinned cgltf and OptiX header revisions only
-when the optional gallery is enabled. See [the Blender scene contract](docs/BLENDER_SCENES.md)
+The gallery executable has no compile-time CUDA or OptiX dependency. Running a
+scene still requires a loader driver advertising all physics features used by
+that scene; today that is the Slang/CUDA driver. Select `OPTIX` instead of
+`SOFTWARE` to build the optional NVIDIA renderer; only that selection fetches
+the pinned OptiX headers. See [the Blender scene contract](docs/BLENDER_SCENES.md)
 before authoring or exporting another scene.
