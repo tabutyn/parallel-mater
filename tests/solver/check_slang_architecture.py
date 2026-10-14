@@ -81,8 +81,14 @@ for retired_metal_path in (
     "src/metal",
     "tests/metal",
     "examples/metal_gallery",
+    "tests/parity/capture_scenario.hpp",
+    "conformance/v1/src/metal_runner.mm",
 ):
-    if (ROOT / retired_metal_path).exists():
+    retired_path = ROOT / retired_metal_path
+    if retired_path.is_file() or (
+        retired_path.is_dir()
+        and any(item.is_file() for item in retired_path.rglob("*"))
+    ):
         failures.append(f"{retired_metal_path}: retired Metal adapter remains")
 for retired_metal_build_token in (
     "option(PARALLEL_MATER_BUILD_METAL",
@@ -107,33 +113,6 @@ for legacy_root in (ROOT / "tests", ROOT / "benchmarks"):
         ):
             failures.append(
                 f"{source.relative_to(ROOT)}: legacy World test path remains")
-for retired_native_path in (
-    ROOT / "include" / "parallel_mater" / "metal.hpp",
-    ROOT / "src" / "metal",
-    ROOT / "examples" / "metal_gallery",
-    ROOT / "tests" / "metal",
-    ROOT / "tests" / "parity" / "capture_scenario.hpp",
-    ROOT / "conformance" / "v1" / "src" / "metal_runner.mm",
-):
-    if retired_native_path.is_file() or (
-            retired_native_path.is_dir() and
-            any(item.is_file() for item in retired_native_path.rglob("*"))):
-        failures.append(
-            f"{retired_native_path.relative_to(ROOT)}: retired native Metal "
-            "implementation remains"
-        )
-for retired_build_contract in (
-    "PARALLEL_MATER_BUILD_METAL",
-    "PARALLEL_MATER_BUILD_METAL_GALLERY",
-    "PARALLEL_MATER_GALLERY_METAL",
-    "PARALLEL_MATER_METAL_GEOMETRY",
-    "parallel-mater-metal",
-):
-    if retired_build_contract in cmake:
-        failures.append(
-            "CMakeLists.txt: retired native Metal build contract remains: "
-            f"{retired_build_contract}"
-        )
 retired_headers = {
     "cloth.cuh",
     "cloth_rope.cuh",

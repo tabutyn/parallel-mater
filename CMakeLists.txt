@@ -815,6 +815,20 @@ target_include_directories(
 target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
     PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
 target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE CUDA::cudart)
+if(WIN32)
+    find_file(PARALLEL_MATER_CUDART_RUNTIME
+        NAMES "cudart64_${CUDAToolkit_VERSION_MAJOR}.dll"
+        PATHS "${CUDAToolkit_BIN_DIR}"
+        NO_DEFAULT_PATH
+        REQUIRED)
+    add_custom_command(
+        TARGET parallel-mater-driver-slang-cuda POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PARALLEL_MATER_CUDART_RUNTIME}"
+                "$<TARGET_FILE_DIR:parallel-mater-driver-slang-cuda>"
+        COMMENT "Deploying the CUDA runtime beside the Slang CUDA driver"
+        VERBATIM)
+endif()
 if(MSVC)
     target_compile_options(
         parallel-mater-driver-slang-cuda
@@ -1291,6 +1305,10 @@ install(
 if(PARALLEL_MATER_BUILD_CUDA)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
             DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+    if(WIN32)
+        install(FILES "${PARALLEL_MATER_CUDART_RUNTIME}"
+                DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
