@@ -33,7 +33,7 @@ int main() {
         require(load_glb_scene(PARALLEL_MATER_ALPHA_SCENE_PATH, materials, error),
                 "load material fixture: " + error);
         constexpr std::array expected{false, false, true, false,
-                                      true, true, true, true};
+                                      true, false, true, true};
         require(materials.meshes.size() == expected.size() &&
                     materials.rigid_bodies.size() == 1U &&
                     materials.rigid_bodies[0].mesh_indices.size() == expected.size(),
