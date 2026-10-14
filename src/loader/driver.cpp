@@ -27,6 +27,10 @@ enum class ManifestKind { driver, layer };
 
 using NativeString = std::filesystem::path::string_type;
 
+[[nodiscard]] std::filesystem::path path_from_utf8(const std::string &value) {
+    return std::filesystem::path(std::u8string(value.begin(), value.end()));
+}
+
 void *open_library(const std::filesystem::path &path) noexcept {
 #if defined(_WIN32)
     std::error_code error;
@@ -109,7 +113,7 @@ std::filesystem::path library_from_manifest(
     if (!std::regex_search(text, match,
             std::regex(R"re("library_path"\s*:\s*"([^"]+)")re")))
         return {};
-    std::filesystem::path path = std::filesystem::u8path(match[1].str());
+    std::filesystem::path path = path_from_utf8(match[1].str());
     if (path.is_relative()) path = manifest.parent_path() / path;
     return path.lexically_normal();
 }

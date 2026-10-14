@@ -5,6 +5,8 @@
 
 #include <cuda_runtime_api.h>
 
+#include "host_preparation.hpp"
+
 #include <parallel_mater/types.hpp>
 
 #include <cstddef>
@@ -21,29 +23,6 @@ template <typename T> struct DeviceSpan {
     [[nodiscard]] constexpr bool empty() const noexcept { return size == 0U; }
 };
 
-enum class StatusCode : std::uint8_t {
-    success,
-    invalid_argument,
-    not_supported,
-    invalid_handle,
-    capacity_exceeded,
-    busy,
-    out_of_memory,
-    cuda_failure,
-    internal_error,
-};
-
-struct Status {
-    StatusCode code{StatusCode::success};
-    cudaError_t cuda_error{cudaSuccess};
-    const char *message{};
-
-    [[nodiscard]] constexpr bool ok() const noexcept {
-        return code == StatusCode::success;
-    }
-    [[nodiscard]] constexpr explicit operator bool() const noexcept { return ok(); }
-};
-
 struct RopeDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
@@ -54,10 +33,6 @@ struct RopeDeviceView {
     DeviceSpan<const float> rest_lengths{};
     float radius{};
 };
-
-[[nodiscard]] Status sample_rope_centerline(
-    HostSpan<const Vec3> centerline, float spacing,
-    std::vector<Vec3> &output) noexcept;
 
 struct SmokeDeviceView {
     DeviceSpan<const Vec3> positions{};
@@ -117,13 +92,6 @@ struct ClothDeviceView {
     DeviceSpan<const Vec3> rope_contact_forces{};
 };
 
-// Host-side preparation; no CUDA device is needed. Refine long surface edges
-// to lattice resolution (maximum edge 1.5 * spacing allows triangle diagonals),
-// preserve the closed input shape/winding, and connect every new physical
-// surface node to the same volumetric spring lattice. Output is transactional.
-[[nodiscard]] Status build_soft_body_geometry(
-    SoftBodyGeometrySource source, SoftBodyGeometry &output) noexcept;
-
 struct SoftBodyDeviceView {
     DeviceSpan<const Vec3> positions{};
     DeviceSpan<const Vec3> velocities{};
@@ -137,16 +105,6 @@ struct SoftBodyDeviceView {
     std::uint32_t node_count{};
     std::uint32_t surface_vertex_count{};
 };
-
-// Host-only deterministic surface subdivision/thinning. Explicit spacing > 0.
-// Transactional: replaces output on success, leaves it unchanged on failure.
-[[nodiscard]] Status sample_fluid_source(
-    ParticleSourceMesh mesh, std::vector<Vec3> &output) noexcept;
-
-// Appends sampled particles to output. This CPU utility needs no CUDA device;
-// callers can inspect or downsample before uploading to SimulationRuntime.
-[[nodiscard]] Status sample_fluid_geometry(
-    FluidGeometrySource source, std::vector<FluidParticle> &output) noexcept;
 
 // A field targets either one rigid-body mesh or one deforming cloth. Its UVs
 // correspond to target vertices. Pixels hold two side bits:

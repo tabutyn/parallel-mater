@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
 
-#include <simulation/runtime.hpp>
-
 #include "vector_math.hpp"
+
+#include <simulation/host_preparation.hpp>
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>

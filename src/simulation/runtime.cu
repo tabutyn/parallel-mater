@@ -90,11 +90,11 @@ constexpr std::uint32_t k_soft_contact_cleanup_passes = 8U;
 
 [[nodiscard]] Status failure(StatusCode code, const char *message,
                              cudaError_t cuda_error = cudaSuccess) noexcept {
-    return {code, cuda_error, message};
+    return {code, static_cast<std::int32_t>(cuda_error), message};
 }
 
 [[nodiscard]] Status cuda_failure(cudaError_t error, const char *message) noexcept {
-    return failure(StatusCode::cuda_failure, message, error);
+    return failure(StatusCode::backend_failure, message, error);
 }
 
 template <typename T>

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <simulation/runtime.hpp>
+#include <simulation/host_preparation.hpp>
 
 #include <algorithm>
 #include <array>
