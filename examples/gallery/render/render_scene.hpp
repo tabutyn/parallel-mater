@@ -3,7 +3,7 @@
 
 #include "../scene_builder.hpp"
 
-#include <parallel_mater/types.hpp>
+#include <simulation/types.hpp>
 
 #include <cstdint>
 #include <vector>

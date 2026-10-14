@@ -23,7 +23,7 @@ native APIs provide execution and presentation rather than separate physics.
 compiled into the production CUDA runtime and cross-target validation outputs.
 It owns both the shared
 AVBD numerical core and the migrating rigid contact/joint solver entry points.
-[geometry_constraints.hpp](../include/parallel_mater/solver/geometry_constraints.hpp)
+[geometry_constraints.hpp](../src/simulation/solver/geometry_constraints.hpp)
 preserves
 the matching C++17 reference contract and thin generated-code adapters. The
 shared numerical core owns:

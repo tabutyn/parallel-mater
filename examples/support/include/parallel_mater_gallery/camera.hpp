@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <parallel_mater/types.hpp>
+#include <simulation/types.hpp>
 
 namespace parallel_mater::gallery {
 

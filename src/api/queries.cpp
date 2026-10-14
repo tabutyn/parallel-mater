@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
-#include "../device/cuda_device.hpp"
 
 #include <cstring>
 
@@ -128,10 +127,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
     return parallel_mater::api::record(
         command_buffer, [pool, query, simulation](
                             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SimulationStatistics source{};
             const PmResult result = parallel_mater::api::from_status(
-                simulation->runtime->collect_statistics(source, stream));
+                simulation->runtime->collect_statistics(source, queue));
             if (result != PM_SUCCESS) return result;
             PmStepStatistics &statistics = pool->slots[query].statistics;
             statistics.stepCount = simulation->submitted_steps;

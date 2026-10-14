@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
-#include "../device/cuda_device.hpp"
 #include "../simulation/exports.hpp"
 #include "../simulation/geometry_constraints_dispatch.hpp"
 #include "../simulation/geometry_storage.hpp"
@@ -187,7 +186,7 @@ using parallel_mater::Vec3;
 }
 
 [[nodiscard]] PmResult register_geometry_impl(
-    PmSimulation simulation, PmGeometry geometry, cudaStream_t stream,
+    PmSimulation simulation, PmGeometry geometry, parallel_mater::device::ExecutionQueue queue,
     TriangleMeshId &output) noexcept {
     if (geometry == nullptr || geometry->device != simulation->device ||
         !geometry->built || geometry->memory == nullptr)
@@ -221,7 +220,7 @@ using parallel_mater::Vec3;
     parallel_mater::simulation::ScopedMemoryArena geometry_scope(
         geometry->arena.get());
     const auto status = simulation->runtime->add_triangle_mesh(
-        {vertex_data, vertices.count}, {index_data, indices.count}, created, stream);
+        {vertex_data, vertices.count}, {index_data, indices.count}, created, queue);
     const PmResult result = parallel_mater::api::from_status(status);
     if (result != PM_SUCCESS) return result;
     try {
@@ -284,7 +283,7 @@ PmResult register_geometry(PmSimulation simulation, PmGeometry geometry,
                            parallel_mater::device::Services &services,
                            TriangleMeshId &output) noexcept {
     return register_geometry_impl(
-        simulation, geometry, parallel_mater::device::cuda_stream(services), output);
+        simulation, geometry, parallel_mater::device::execution_queue(services), output);
 }
 
 } // namespace parallel_mater::api
@@ -611,7 +610,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
         result = parallel_mater::api::from_status(
             parallel_mater::SimulationRuntime::create(
                 simulation->simulation_options, initialized,
-                parallel_mater::device::cuda_stream(*device->services)));
+                parallel_mater::device::execution_queue(*device->services)));
     }
     if (result != PM_SUCCESS) {
         simulation->arena.reset();
@@ -854,7 +853,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
     return parallel_mater::api::record(
         command_buffer, [simulation](
                             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             PmResult result = validate_bound(simulation);
             if (result != PM_SUCCESS) return result;
             {
@@ -874,7 +873,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
                     simulation->arena.get());
                 result = parallel_mater::api::from_status(
                     parallel_mater::SimulationRuntime::create(
-                        simulation->simulation_options, initialized, stream));
+                        simulation->simulation_options, initialized, queue));
             }
             if (result != PM_SUCCESS) {
                 simulation->execution_result = result;
@@ -934,7 +933,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
                 parallel_mater::api::require_device_ownership(
                     copied.range.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
@@ -942,7 +941,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
             auto &slot = simulation->fluid_ids[fluid];
             if (slot.has_value()) {
                 result = parallel_mater::api::from_status(
-                    simulation->runtime->remove_fluid(*slot, stream));
+                    simulation->runtime->remove_fluid(*slot, queue));
                 if (result != PM_SUCCESS) return result;
                 slot.reset();
             }
@@ -970,7 +969,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
             parallel_mater::FluidId created{};
             result = parallel_mater::api::from_status(
                 simulation->runtime->add_fluid(
-                    options, {source, copied.count}, created, stream));
+                    options, {source, copied.count}, created, queue));
             if (result != PM_SUCCESS) return result;
             slot = created;
             return PM_SUCCESS;
@@ -992,7 +991,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
     return parallel_mater::api::record(
         command_buffer, [simulation, copied, pipeline](
                             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
@@ -1010,7 +1009,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             options.collect_rigid_contacts = collect_contacts;
             options.collect_fluid_contacts = collect_contacts;
             result = parallel_mater::api::from_status(
-                simulation->runtime->step(options, stream));
+                simulation->runtime->step(options, queue));
             simulation->execution_result = result;
             if (result == PM_SUCCESS) {
                 ++simulation->submitted_steps;
@@ -1132,7 +1131,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyFluidParticles(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             if (!simulation->fluid_ids[fluid].has_value())
                 return PM_ERROR_INVALID_STATE;
             parallel_mater::FluidDeviceView view{};
@@ -1142,7 +1141,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyFluidParticles(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_fluid_particles(
-                stream, view.positions.data, view.velocities.data,
+                queue, view.positions.data, view.velocities.data,
                 view.accelerations.data, view.temperatures.data, view.foam.data,
                 view.stable_particle_ids.data, view.particle_count,
                 simulation->fluids[fluid].particleCapacity, view.revision,

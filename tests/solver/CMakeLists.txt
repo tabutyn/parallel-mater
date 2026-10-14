@@ -8,13 +8,13 @@ endif()
 
 add_executable(parallel-mater-contact-friction-tests contact_friction_tests.cpp)
 target_compile_features(parallel-mater-contact-friction-tests PRIVATE cxx_std_17)
-target_include_directories(parallel-mater-contact-friction-tests PRIVATE ../../include)
+target_include_directories(parallel-mater-contact-friction-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-contact-friction-tests
          COMMAND parallel-mater-contact-friction-tests)
 
 add_executable(parallel-mater-avbd-core-tests geometry_constraint_tests.cpp)
 target_compile_features(parallel-mater-avbd-core-tests PRIVATE cxx_std_17)
-target_include_directories(parallel-mater-avbd-core-tests PRIVATE ../../include)
+target_include_directories(parallel-mater-avbd-core-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-avbd-core-tests COMMAND parallel-mater-avbd-core-tests)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -31,7 +31,7 @@ if("CUDA" IN_LIST contact_test_languages)
     add_executable(parallel-mater-contact-friction-cuda-tests
                    contact_friction_cuda_tests.cu)
     target_include_directories(parallel-mater-contact-friction-cuda-tests
-                               PRIVATE ../../include)
+                               PRIVATE ../../src)
     set_target_properties(parallel-mater-contact-friction-cuda-tests
                           PROPERTIES CUDA_STANDARD 17)
     add_test(NAME parallel-mater-contact-friction-cuda-tests
@@ -41,7 +41,7 @@ if("CUDA" IN_LIST contact_test_languages)
 
     add_executable(parallel-mater-avbd-core-cuda-tests
                    geometry_constraint_cuda_tests.cu)
-    target_include_directories(parallel-mater-avbd-core-cuda-tests PRIVATE ../../include)
+    target_include_directories(parallel-mater-avbd-core-cuda-tests PRIVATE ../../src)
     set_target_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES CUDA_STANDARD 17)
     add_test(NAME parallel-mater-avbd-core-cuda-tests COMMAND parallel-mater-avbd-core-cuda-tests)
     set_tests_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES SKIP_RETURN_CODE 77)
@@ -52,7 +52,7 @@ if("CUDA" IN_LIST contact_test_languages)
                        geometry_constraint_slang_cuda_tests.cu)
         add_dependencies(parallel-mater-avbd-slang-cuda-tests
                          parallel-mater-slang-geometry-constraints)
-        target_include_directories(parallel-mater-avbd-slang-cuda-tests PRIVATE ../../include)
+        target_include_directories(parallel-mater-avbd-slang-cuda-tests PRIVATE ../../src)
         target_link_libraries(parallel-mater-avbd-slang-cuda-tests
                               PRIVATE CUDA::cuda_driver CUDA::cudart)
         set_target_properties(parallel-mater-avbd-slang-cuda-tests

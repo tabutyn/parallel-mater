@@ -3,7 +3,7 @@
 
 #include "status.hpp"
 
-#include <parallel_mater/types.hpp>
+#include "types.hpp"
 
 #include <vector>
 

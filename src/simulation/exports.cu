@@ -7,6 +7,11 @@ namespace parallel_mater::simulation {
 
 namespace {
 
+[[nodiscard]] cudaStream_t native_stream(
+    device::ExecutionQueue queue) noexcept {
+    return static_cast<cudaStream_t>(queue.native_handle);
+}
+
 [[nodiscard]] PmResult launch_result() noexcept {
     const cudaError_t error = cudaGetLastError();
     if (error == cudaSuccess) return PM_SUCCESS;
@@ -24,14 +29,15 @@ template <typename... Pointers>
 
 } // namespace
 
-cudaError_t query_rigid_hit_box(
-    cudaStream_t stream, const HitBox &box, const void *body_parameters,
+PmResult query_rigid_hit_box(
+    device::ExecutionQueue queue, const HitBox &box, const void *body_parameters,
     const void *body_states, const void *meshes, std::uint32_t body_count,
     std::uint8_t *matches) noexcept {
     if (body_count != 0U &&
         !all_present(body_parameters, body_states, meshes, matches))
-        return cudaErrorInvalidValue;
-    if (body_count == 0U) return cudaSuccess;
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (body_count == 0U) return PM_SUCCESS;
+    const cudaStream_t stream = native_stream(queue);
     HitBox_0 converted{};
     converted.center_0 = {box.center.x, box.center.y, box.center.z};
     converted.orientation_3 = {box.orientation.x, box.orientation.y,
@@ -48,15 +54,16 @@ cudaError_t query_rigid_hit_box(
         reinterpret_cast<RigidBodyState_0 *>(const_cast<void *>(body_states)),
         reinterpret_cast<TriangleMeshResource_0 *>(const_cast<void *>(meshes)),
         body_count, matches);
-    return cudaGetLastError();
+    return launch_result();
 }
 
-cudaError_t query_particle_hit_box(
-    cudaStream_t stream, const HitBox &box, const Vec3 *positions,
+PmResult query_particle_hit_box(
+    device::ExecutionQueue queue, const HitBox &box, const Vec3 *positions,
     std::uint32_t particle_count, std::uint8_t *matches) noexcept {
     if (particle_count != 0U && !all_present(positions, matches))
-        return cudaErrorInvalidValue;
-    if (particle_count == 0U) return cudaSuccess;
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (particle_count == 0U) return PM_SUCCESS;
+    const cudaStream_t stream = native_stream(queue);
     HitBox_0 converted{};
     converted.center_0 = {box.center.x, box.center.y, box.center.z};
     converted.orientation_3 = {box.orientation.x, box.orientation.y,
@@ -69,11 +76,11 @@ cudaError_t query_particle_hit_box(
         block_size, 0U, stream>>>(
         converted, reinterpret_cast<Vec3_0 *>(const_cast<Vec3 *>(positions)),
         particle_count, matches);
-    return cudaGetLastError();
+    return launch_result();
 }
 
 PmResult export_fluid_particles(
-    cudaStream_t stream, const Vec3 *positions, const Vec3 *velocities,
+    device::ExecutionQueue queue, const Vec3 *positions, const Vec3 *velocities,
     const Vec3 *accelerations, const float *temperatures, const float *foam,
     const std::uint32_t *stable_ids, std::uint32_t count,
     std::uint32_t capacity, std::uint64_t revision,
@@ -87,6 +94,7 @@ PmResult export_fluid_particles(
         !all_present(positions, velocities, accelerations, temperatures, foam,
                      stable_ids, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_fluid_particles<<<((count == 0U ? 1U : count) + block_size - 1U) / block_size,
                              block_size, 0U, stream>>>(
@@ -101,7 +109,7 @@ PmResult export_fluid_particles(
 }
 
 PmResult export_cloth_vertices(
-    cudaStream_t stream, const Vec3 *positions, const Vec3 *velocities,
+    device::ExecutionQueue queue, const Vec3 *positions, const Vec3 *velocities,
     const Vec3 *rigid_forces, const Vec3 *liquid_forces,
     const Vec3 *soft_body_forces, const Vec3 *rope_forces,
     std::uint32_t count, std::uint32_t capacity, std::uint64_t revision,
@@ -114,6 +122,7 @@ PmResult export_cloth_vertices(
         !all_present(positions, velocities, rigid_forces, liquid_forces,
                      soft_body_forces, rope_forces, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_cloth_vertices<<<((count == 0U ? 1U : count) + block_size - 1U) / block_size,
                             block_size, 0U, stream>>>(
@@ -130,7 +139,7 @@ PmResult export_cloth_vertices(
 }
 
 PmResult export_surface_positions(
-    cudaStream_t stream, const Vec3 *positions, std::uint32_t count,
+    device::ExecutionQueue queue, const Vec3 *positions, std::uint32_t count,
     std::uint32_t capacity, std::uint64_t revision,
     PmDomainOutputHeader *header, PmFloat3 *destination) noexcept {
     static_assert(sizeof(Vec3) == sizeof(PmFloat3));
@@ -139,6 +148,7 @@ PmResult export_surface_positions(
     if (header == nullptr ||
         (count != 0U && !all_present(positions, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_surface_positions<<<
         ((count == 0U ? 1U : count) + block_size - 1U) / block_size,
@@ -151,7 +161,7 @@ PmResult export_surface_positions(
 }
 
 PmResult export_rope_nodes(
-    cudaStream_t stream, const Vec3 *positions, const Vec3 *velocities,
+    device::ExecutionQueue queue, const Vec3 *positions, const Vec3 *velocities,
     const Vec3 *constraint_forces, const Vec3 *contact_forces,
     const Vec3 *liquid_forces, const Vec3 *soft_body_forces,
     std::uint32_t count, std::uint32_t capacity, std::uint64_t revision,
@@ -163,6 +173,7 @@ PmResult export_rope_nodes(
         !all_present(positions, velocities, constraint_forces, contact_forces,
                      liquid_forces, soft_body_forces, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_rope_nodes<<<((count == 0U ? 1U : count) + block_size - 1U) / block_size,
                         block_size, 0U, stream>>>(
@@ -179,7 +190,7 @@ PmResult export_rope_nodes(
 }
 
 PmResult export_soft_body_nodes(
-    cudaStream_t stream, const Vec3 *positions, const Vec3 *velocities,
+    device::ExecutionQueue queue, const Vec3 *positions, const Vec3 *velocities,
     const Vec3 *rigid_forces, const Vec3 *cloth_forces,
     const Vec3 *liquid_forces, const Vec3 *rope_forces,
     std::uint32_t count, std::uint32_t capacity, std::uint64_t revision,
@@ -192,6 +203,7 @@ PmResult export_soft_body_nodes(
         !all_present(positions, velocities, rigid_forces, cloth_forces,
                      liquid_forces, rope_forces, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_soft_body_nodes<<<((count == 0U ? 1U : count) + block_size - 1U) / block_size,
                              block_size, 0U, stream>>>(
@@ -208,7 +220,7 @@ PmResult export_soft_body_nodes(
 }
 
 PmResult export_smoke_particles(
-    cudaStream_t stream, const Vec3 *positions, const Vec3 *velocities,
+    device::ExecutionQueue queue, const Vec3 *positions, const Vec3 *velocities,
     const float *ages, const float *number_densities, const float *pressures,
     const Vec3 *vorticities, std::uint32_t count, std::uint32_t capacity,
     std::uint64_t revision, PmDomainOutputHeader *header,
@@ -221,6 +233,7 @@ PmResult export_smoke_particles(
         !all_present(positions, velocities, ages, number_densities, pressures,
                      vorticities, destination)))
         return PM_ERROR_INVALID_ARGUMENT;
+    const cudaStream_t stream = native_stream(queue);
     constexpr std::uint32_t block_size = 256U;
     export_smoke_particles<<<((count == 0U ? 1U : count) + block_size - 1U) / block_size,
                              block_size, 0U, stream>>>(

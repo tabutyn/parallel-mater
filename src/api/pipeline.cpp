@@ -62,6 +62,17 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
             return PM_ERROR_INVALID_ARGUMENT;
         }
     }
+    for (const auto &coupling : created->couplings) {
+        if (coupling.type == PM_COUPLING_LIQUID_LIQUID) {
+            parallel_mater::api::destroy_object(device, created);
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        }
+        if (coupling.type < PM_COUPLING_LIQUID_RIGID ||
+            coupling.type > PM_COUPLING_SMOKE_SOFT_BODY) {
+            parallel_mater::api::destroy_object(device, created);
+            return PM_ERROR_INVALID_ARGUMENT;
+        }
+    }
     *pipeline = created;
     return PM_SUCCESS;
 }

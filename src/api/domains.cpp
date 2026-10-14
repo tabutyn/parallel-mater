@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
-#include "../device/cuda_device.hpp"
 #include "../simulation/exports.hpp"
 
 #include <algorithm>
@@ -685,7 +684,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
     return parallel_mater::api::record(command_buffer,
         [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
@@ -741,7 +740,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                 options.height = source.info.height;
                 parallel_mater::PaintFieldId created{};
                 const PmResult result = parallel_mater::api::from_status(
-                    simulation->runtime->add_paint_field(options, created, stream));
+                    simulation->runtime->add_paint_field(options, created, queue));
                 services.free(device_uvs);
                 if (result != PM_SUCCESS) return result;
                 slot = created;
@@ -813,12 +812,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdClearPaintFields(
     return parallel_mater::api::record(command_buffer,
         [simulation, first, count](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             for (std::uint32_t offset = 0U; offset < count; ++offset) {
                 const auto &slot = simulation->paint_fields[first + offset];
                 if (!slot.has_value()) return PM_ERROR_INVALID_STATE;
                 const PmResult result = parallel_mater::api::from_status(
-                    simulation->runtime->clear_paint_field(*slot, stream));
+                    simulation->runtime->clear_paint_field(*slot, queue));
                 if (result != PM_SUCCESS) return result;
             }
             return PM_SUCCESS;
@@ -843,7 +842,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothState(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::ClothId id{};
             PmResult result = require_slot(simulation->cloths, cloth, id);
             if (result != PM_SUCCESS) return result;
@@ -858,7 +857,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothState(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_cloth_vertices(
-                stream, view.positions.data, view.velocities.data,
+                queue, view.positions.data, view.velocities.data,
                 view.rigid_contact_forces.data, view.fluid_contact_forces.data,
                 view.soft_body_contact_forces.data,
                 view.rope_contact_forces.data, count,
@@ -888,7 +887,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothSurface(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::ClothId id{};
             PmResult result = require_slot(simulation->cloths, cloth, id);
             if (result != PM_SUCCESS) return result;
@@ -907,7 +906,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothSurface(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_surface_positions(
-                stream, positions, count,
+                queue, positions, count,
                 simulation->cloth_capacities[cloth].triangleIndexCapacity,
                 simulation->submitted_steps,
                 reinterpret_cast<PmDomainOutputHeader *>(target),
@@ -934,7 +933,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRopeState(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::RopeId id{};
             PmResult result = require_slot(simulation->ropes, rope_index, id);
             if (result != PM_SUCCESS) return result;
@@ -950,7 +949,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRopeState(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_rope_nodes(
-                stream, view.positions.data, view.velocities.data,
+                queue, view.positions.data, view.velocities.data,
                 view.constraint_forces.data, view.contact_forces.data,
                 view.fluid_contact_forces.data,
                 view.soft_body_contact_forces.data, count,
@@ -980,7 +979,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodyState(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SoftBodyId id{};
             PmResult result = require_slot(simulation->soft_bodies, soft_body, id);
             if (result != PM_SUCCESS) return result;
@@ -995,7 +994,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodyState(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_soft_body_nodes(
-                stream, view.positions.data, view.velocities.data,
+                queue, view.positions.data, view.velocities.data,
                 view.rigid_contact_forces.data, view.cloth_contact_forces.data,
                 view.fluid_contact_forces.data, view.rope_contact_forces.data,
                 count, simulation->soft_body_capacities[soft_body].nodeCapacity,
@@ -1024,7 +1023,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodySurface(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SoftBodyId id{};
             PmResult result = require_slot(simulation->soft_bodies, soft_body, id);
             if (result != PM_SUCCESS) return result;
@@ -1040,7 +1039,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodySurface(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_surface_positions(
-                stream, view.surface_positions.data, count,
+                queue, view.surface_positions.data, count,
                 simulation->soft_body_capacities[soft_body].surfaceVertexCapacity,
                 simulation->submitted_steps,
                 reinterpret_cast<PmDomainOutputHeader *>(target),
@@ -1067,7 +1066,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySmokeState(
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
             if (ownership != PM_SUCCESS) return ownership;
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SmokeId id{};
             PmResult result = require_slot(simulation->smokes, smoke_index, id);
             if (result != PM_SUCCESS) return result;
@@ -1082,7 +1081,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySmokeState(
             auto *target = static_cast<std::byte *>(
                 parallel_mater::api::buffer_pointer(copied.buffer, copied.offset));
             return parallel_mater::simulation::export_smoke_particles(
-                stream, view.positions.data, view.velocities.data,
+                queue, view.positions.data, view.velocities.data,
                 view.ages.data, view.number_densities.data,
                 view.pressures.data, view.vorticities.data, count,
                 simulation->smoke_capacities[smoke_index].particleCapacity,
@@ -1142,7 +1141,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyConstraintStates(
     return parallel_mater::api::record(command_buffer,
         [simulation, first, count, copied](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             std::vector<PmConstraintState> states(count);
             for (std::uint32_t offset = 0U; offset < count; ++offset) {
                 const auto &slot = simulation->constraints[first + offset];
@@ -1153,7 +1152,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyConstraintStates(
                 parallel_mater::RigidConstraintState state{};
                 PmResult result = parallel_mater::api::from_status(
                     simulation->runtime->read_rigid_constraint_state(
-                        *slot, state, stream));
+                        *slot, state, queue));
                 if (result != PM_SUCCESS) return result;
                 states[offset] = {state.enabled ? PM_TRUE : PM_FALSE,
                     state.broken ? PM_TRUE : PM_FALSE, state.applied_impulse};
@@ -1188,7 +1187,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdQueryHitBox(
         command_buffer,
         [simulation, copied_box, copied_destination](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::HitBox query{};
             query.center = {copied_box.center[0], copied_box.center[1],
                             copied_box.center[2]};
@@ -1199,7 +1198,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdQueryHitBox(
                 copied_box.halfExtents[1], copied_box.halfExtents[2]};
             parallel_mater::HitBoxResult matches{};
             PmResult result = parallel_mater::api::from_status(
-                simulation->runtime->query_hit_box(query, matches, stream));
+                simulation->runtime->query_hit_box(query, matches, queue));
             if (result != PM_SUCCESS) return result;
             const PmDeviceSize bytes = sizeof(PmHitBoxOutputHeader) +
                 matches.rigid_bodies.size() * sizeof(std::uint32_t) +
@@ -1389,7 +1388,7 @@ PmResult initialize_couplings(PmSimulation simulation,
         PmResult result = PM_SUCCESS;
         switch (source.type) {
         case PM_COUPLING_LIQUID_RIGID:
-            // Rigid/liquid contact is a core schedule edge in the CUDA runtime.
+            // Rigid/liquid contact is a core edge in the shared scheduler.
             break;
         case PM_COUPLING_LIQUID_LIQUID:
             return PM_ERROR_FEATURE_NOT_PRESENT;
