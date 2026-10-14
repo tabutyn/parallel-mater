@@ -12,7 +12,8 @@ failures: list[str] = []
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
 loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text()
-build_contract = cmake + "\n" + loader_cmake
+metal_cmake = (ROOT / "cmake" / "BuildMetalPhysics.cmake").read_text()
+build_contract = cmake + "\n" + loader_cmake + "\n" + metal_cmake
 runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
 runtime = runtime_path.read_text()
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text()
@@ -60,15 +61,15 @@ for api_source in sorted((ROOT / "src" / "api").glob("*")):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
 for required_metal_slang in (
-    "src/slang/rigid_narrowphase.slang",
-    "src/slang/rigid_constraints.slang",
-    "src/slang/particle_rigid.slang",
-    "src/slang/cloth_rigid.slang",
-    "src/slang/rope_step.slang",
+    "rigid_narrowphase.slang",
+    "rigid_constraints.slang",
+    "particle_rigid.slang",
+    "cloth_rigid.slang",
+    "rope_step.slang",
 ):
-    if required_metal_slang not in cmake:
+    if required_metal_slang not in metal_cmake:
         failures.append(
-            f"CMakeLists.txt: Metal compatibility build omits {required_metal_slang}"
+            f"BuildMetalPhysics.cmake: Metal build omits {required_metal_slang}"
         )
 for native_metal in sorted((ROOT / "src" / "metal").glob("*.metal")):
     failures.append(
@@ -78,7 +79,7 @@ for retired_metal in (
     "src/metal/kernels.metal",
     "src/metal/geometry_constraints.metal",
 ):
-    if retired_metal in cmake:
+    if retired_metal in build_contract:
         failures.append(f"CMakeLists.txt: retired native Metal source {retired_metal}")
 retired_headers = {
     "cloth.cuh",
