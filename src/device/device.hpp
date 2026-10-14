@@ -78,5 +78,7 @@ class Services {
                                  Description *descriptions) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_cuda(
     int ordinal, PmResult &result) noexcept;
+[[nodiscard]] std::unique_ptr<Services> create_cpu(
+    int ordinal, PmResult &result) noexcept;
 
 } // namespace parallel_mater::device

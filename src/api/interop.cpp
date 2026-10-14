@@ -7,10 +7,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetPhysicalDeviceInteropProperties(
     if (properties == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *properties = {};
     if (physical == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    (void)backend;
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+#else
     if (backend != PM_NATIVE_BACKEND_CUDA)
         return PM_ERROR_FEATURE_NOT_PRESENT;
     properties->bufferImport = PM_TRUE;
     return PM_SUCCESS;
+#endif
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeDevice(
@@ -29,6 +34,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
     if (native_device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *native_device = {};
     if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+#else
     native_device->backend = PM_NATIVE_BACKEND_CUDA;
     native_device->physicalDevice = static_cast<PmNativeHandle>(
         device->physical->description.ordinal);
@@ -40,6 +48,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
         return PM_ERROR_INVALID_STATE;
     }
     return PM_SUCCESS;
+#endif
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
@@ -56,6 +65,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
         (info->buffer + info->offset) % 256U != 0U ||
         info->nativeUsage != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+#else
     auto *created = parallel_mater::api::make_object<PmBuffer_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
@@ -70,14 +82,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
     created->imported = true;
     *buffer = created;
     return PM_SUCCESS;
+#endif
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeBuffer(
     PmDevice device, PmBuffer buffer, PmNativeBufferInfo *native_buffer) {
-    if (device == nullptr || buffer == nullptr || native_buffer == nullptr ||
-        buffer->device != device || buffer->native_pointer == nullptr)
-        return PM_ERROR_INVALID_ARGUMENT;
+    if (native_buffer == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *native_buffer = {};
+    if (device == nullptr || buffer == nullptr || buffer->device != device ||
+        buffer->native_pointer == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+#else
     native_buffer->buffer = buffer->native_buffer;
     native_buffer->offset = buffer->native_offset;
     native_buffer->size = buffer->size;
@@ -85,6 +102,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeBuffer(
     native_buffer->nativeUsage = buffer->native_usage;
     native_buffer->owningQueueFamilyIndex = buffer->queue_family;
     return PM_SUCCESS;
+#endif
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeSemaphore(

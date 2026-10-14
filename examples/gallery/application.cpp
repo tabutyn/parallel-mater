@@ -895,6 +895,16 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     return true;
 }
 
+std::filesystem::path gallery_resource_path(
+    const Options &options, const std::filesystem::path &configured) {
+    if (configured.is_absolute() || options.executable_path.empty())
+        return configured;
+    std::error_code error;
+    const std::filesystem::path bundled =
+        (options.executable_path.parent_path() / configured).lexically_normal();
+    return std::filesystem::exists(bundled, error) ? bundled : configured;
+}
+
 [[nodiscard]] bool build_runtime(const Options &options,
                                  GalleryContext context,
                                  std::uint32_t dump_spheres,
@@ -936,8 +946,8 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
             std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
-        const std::filesystem::path &scene_path = scene_paths[
-            static_cast<std::size_t>(entry.source)];
+        const std::filesystem::path scene_path = gallery_resource_path(
+            options, scene_paths[static_cast<std::size_t>(entry.source)]);
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
             error = "scene load failed: " + error;
@@ -1107,13 +1117,7 @@ struct CalibrationResult {
 
 std::filesystem::path device_profiles_path(const Options &options) {
     if (options.profiles_file_overridden) return options.profiles_file;
-    if (!options.executable_path.empty()) {
-        const auto bundled = options.executable_path.parent_path() /
-            "config/device-profiles.json";
-        std::error_code error;
-        if (std::filesystem::is_regular_file(bundled, error)) return bundled;
-    }
-    return options.profiles_file;
+    return gallery_resource_path(options, options.profiles_file);
 }
 
 bool launch_calibration_ball(GalleryRuntime &runtime, bool off_center,

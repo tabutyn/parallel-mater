@@ -92,15 +92,48 @@ the [Slang toolchain and source layout](docs/SLANG.md).
 
 ### Target and driver support
 
-The Slang/CUDA driver is the first qualified implementation. All shared Slang
-modules are also compiled to Vulkan SPIR-V as a portability check, but there is
-no Vulkan driver until a complete shared schedule passes the same conformance
-and gallery gates. Metal, DirectX 12, and WebGPU execution are likewise
-unavailable until independently qualified. Retired backend-specific physics
-targets are absent rather than available as fallbacks. Native
+The Slang/CUDA driver is the first fully qualified implementation. macOS also
+builds a loader-native Slang CPU driver: its serial host adapter executes the
+shared generated rigid-body, constraint, contact, debug, and query kernels. It
+is a correctness and development path, not yet a performance replacement for
+a native Apple GPU adapter, and it does not advertise fluid, cloth, rope, soft
+body, smoke, or paint capabilities. All shared Slang modules are also compiled
+to Vulkan SPIR-V as a portability check, but there is no Vulkan driver until a
+complete shared schedule passes the same conformance and gallery gates. Metal,
+DirectX 12, and WebGPU execution are likewise unavailable until independently
+qualified. Retired backend-specific physics targets are absent rather than
+available as fallbacks. Native
 API names remain in
 interoperability enums because applications may query support and receive
 `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
+
+### macOS Gallery development shell
+
+On macOS, the default build creates `ParallelMater Gallery.app` and bundles the
+Slang CPU driver. For physics, the app uses only the public loader, discovers
+the driver from its bundled manifest, and renders the backend-neutral gallery
+frame with a CPU presentation adapter. It contains none of the retired Metal
+physics implementation. Rigid and rigid-constraint galleries run through the
+shared Slang kernels; galleries requiring an unadvertised domain report that
+no compatible device is available instead of silently using another backend.
+
+For a stable development Dock item, enable continuous deployment in one build
+directory. Each successful default build stages, ad-hoc signs, atomically
+replaces `/Applications/ParallelMater Gallery.app`, refreshes Launch Services,
+and adds the new bundle to the Dock if needed:
+
+```bash
+cmake -S . -B build-macos-gallery \
+  -DPARALLEL_MATER_BUILD_MACOS_GALLERY=ON \
+  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=ON
+cmake --build build-macos-gallery
+```
+
+The explicit `deploy-macos-gallery` target performs the same refresh when auto
+deployment is disabled. The bundle carries its driver and portable manifest,
+so an installed or Dock-launched app never scans the source or build directory.
+A rebuilt driver becomes visible when deployment atomically refreshes the
+bundle, without restoring backend physics.
 
 ## Blender and OptiX gallery
 

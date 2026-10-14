@@ -14,13 +14,17 @@ domains rather than native APIs or solver experiments.
 - Domain-pair files contain coupling kernels.
 - `queries.slang` contains scene-query kernels.
 
-The command-API CUDA driver dispatches generated Slang kernels. Its device and
-simulation adapters allocate, transfer, synchronize, and dispatch; they do not
-contain alternate physics equations.
+The command-API CUDA driver dispatches generated Slang kernels. The macOS Slang
+CPU driver compiles the same rigid-body, constraint, contact, debug, and query
+kernels to C++ and dispatches them serially as a correctness-first development
+path. Their device and simulation adapters allocate, transfer, synchronize,
+and dispatch; they do not contain alternate physics equations.
 
-No Metal device adapter is shipped. Cross-target generation of the shared AVBD
-module remains a compiler and reflection portability check; it does not expose
-a backend-specific runtime or advertise Metal execution.
+No Metal device adapter or Metal physics implementation is shipped. The CPU
+driver advertises only the rigid capabilities that its shared Slang schedule
+currently executes; other domains remain unavailable. Cross-target generation
+of the shared AVBD module remains a compiler and reflection portability check;
+it does not expose a backend-specific runtime or advertise Metal execution.
 
 ## Compiler toolchain
 
@@ -32,8 +36,8 @@ cmake -S . -B build \
   -DPARALLEL_MATER_SLANGC_EXECUTABLE=/opt/slang-2026.18/bin/slangc
 ```
 
-Generated CUDA, PTX, MSL, HLSL, DXIL, SPIR-V, and reflection records remain
-in the build tree.
+Generated CUDA, C++, PTX, MSL, HLSL, DXIL, SPIR-V, and reflection records
+remain in the build tree.
 
 ## Validation
 

@@ -21,6 +21,42 @@ if not registry.exists():
     failures.append("registry/pm.xml: canonical API registry missing")
 if "parallel-mater-driver-slang-cuda SHARED" not in cmake:
     failures.append("CMakeLists.txt: Slang/CUDA runtime is not an installable driver")
+cpu_driver_cmake_path = ROOT / "cmake" / "ParallelMaterSlangCpu.cmake"
+if not cpu_driver_cmake_path.exists():
+    failures.append("cmake/ParallelMaterSlangCpu.cmake: macOS Slang driver missing")
+else:
+    cpu_driver_cmake = cpu_driver_cmake_path.read_text()
+    for required in (
+        "parallel-mater-driver-slang-cpu SHARED",
+        "-target cpp",
+        "parallel_mater_geometry_runtime.cpp",
+        "parallel_mater_geometry_constraints_runtime.cpp",
+        "parallel_mater_queries_runtime.cpp",
+    ):
+        if required not in cpu_driver_cmake:
+            failures.append(
+                "cmake/ParallelMaterSlangCpu.cmake: missing shared-Slang "
+                f"driver contract {required}"
+            )
+    cpu_dispatch_contracts = {
+        "src/simulation/cpu_geometry_dispatch.cpp":
+            "parallel_mater_geometry_runtime.cpp",
+        "src/simulation/cpu_geometry_constraints_dispatch.cpp":
+            "parallel_mater_geometry_constraints_runtime.cpp",
+        "src/simulation/cpu_exports.cpp":
+            "parallel_mater_queries_runtime.cpp",
+    }
+    for relative, generated_source in cpu_dispatch_contracts.items():
+        dispatch_text = (ROOT / relative).read_text()
+        if generated_source not in dispatch_text:
+            failures.append(
+                f"{relative}: not backed by generated Slang C++"
+            )
+        for native_launch in ("__global__", "<<<"):
+            if native_launch in dispatch_text:
+                failures.append(
+                    f"{relative}: native physics launch {native_launch} remains"
+                )
 if "include(cmake/ParallelMaterLoader.cmake)" not in cmake or \
         "add_library(parallel-mater SHARED" not in loader_cmake:
     failures.append("CMakeLists.txt: public API is not a standalone loader")
@@ -315,6 +351,13 @@ for platform_detail in (
         failures.append(
             "examples/gallery/application.cpp: shared application owns "
             f"platform detail {platform_detail}")
+macos_gallery_main = ROOT / "examples" / "gallery" / "macos_main.mm"
+macos_gallery_cmake = ROOT / "cmake" / "ParallelMaterMacOSGallery.cmake"
+for path in (macos_gallery_main, macos_gallery_cmake):
+    if path.exists() and "PARALLEL_MATER_DEVELOPMENT_DRIVER_PATH" in path.read_text():
+        failures.append(
+            f"{path.relative_to(ROOT)}: installed app embeds a development "
+            "driver path")
 renderer_interface = (
     ROOT / "examples" / "support" / "include" /
     "parallel_mater_gallery" / "renderer.hpp"

@@ -53,8 +53,17 @@ option(PARALLEL_MATER_BUILD_CUDA
        "Build the CUDA Slang device adapter" ${PARALLEL_MATER_CUDA_DEFAULT})
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
+option(PARALLEL_MATER_BUILD_MACOS_GALLERY
+       "Build the loader-native macOS Gallery application" ${APPLE})
+option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
+       "Build the serial Slang CPU reference driver" ${APPLE})
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
+if(PARALLEL_MATER_BUILD_MACOS_GALLERY AND
+   PARALLEL_MATER_BUILD_OPTIX_GALLERY)
+    message(FATAL_ERROR
+        "Select either the macOS software Gallery or the CUDA/OptiX Gallery")
+endif()
 if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_METAL_GALLERY)
     message(FATAL_ERROR
         "Backend-specific physics implementations are retired. Use the shared command API "
@@ -103,7 +112,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND
             "Rigid scene benchmarks require PARALLEL_MATER_BUILD_OPTIX_GALLERY")
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/Slang.cmake)
@@ -140,6 +149,7 @@ set(PARALLEL_MATER_INSTALL_TARGETS)
 include(cmake/ParallelMaterLoader.cmake)
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
+   PARALLEL_MATER_BUILD_MACOS_GALLERY OR
    (PARALLEL_MATER_BUILD_CUDA AND BUILD_TESTING))
     FetchContent_Declare(
         parallel_mater_cgltf
@@ -149,7 +159,9 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
     FetchContent_MakeAvailable(parallel_mater_cgltf)
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR BUILD_TESTING)
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
+   PARALLEL_MATER_BUILD_MACOS_GALLERY OR
+   BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
         src/fluid_source.cpp
@@ -1190,6 +1202,22 @@ endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
 
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    if(NOT APPLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires macOS")
+    endif()
+    include(cmake/ParallelMaterSlangCpu.cmake)
+endif()
+
+if(PARALLEL_MATER_BUILD_MACOS_GALLERY)
+    if(NOT APPLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_MACOS_GALLERY requires macOS")
+    endif()
+    include(cmake/ParallelMaterMacOSGallery.cmake)
+endif()
+
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     include(cmake/SlangGeometryConstraints.cmake)
     parallel_mater_add_slang_geometry_constraints()
@@ -1287,6 +1315,12 @@ if(PARALLEL_MATER_BUILD_CUDA)
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
 endif()
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
+endif()
 
 install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
@@ -1307,6 +1341,10 @@ if(PARALLEL_MATER_BUILD_CUDA)
         install(FILES "${PARALLEL_MATER_CUDART_RUNTIME}"
                 DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
+endif()
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)

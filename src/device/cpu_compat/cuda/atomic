@@ -1,0 +1,5 @@
+// SPDX-License-Identifier: MIT
+#pragma once
+
+// The shared host scheduler does not use CUDA atomics; it historically
+// included this header alongside the device build.
