@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/optix_renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
@@ -337,7 +337,7 @@ void optix_log(unsigned int level, const char *tag, const char *message,
 
 } // namespace
 
-struct GalleryRenderer::Impl {
+struct OptixRenderer::Impl {
     std::uint32_t width{};
     std::uint32_t height{};
     SceneDefinition scene{};
@@ -1128,15 +1128,16 @@ void paint_smoke_view(const std::vector<Vec3> &positions,
     }
 }
 
-GalleryRenderer::GalleryRenderer() noexcept = default;
-GalleryRenderer::~GalleryRenderer() = default;
-GalleryRenderer::GalleryRenderer(GalleryRenderer &&) noexcept = default;
-GalleryRenderer &GalleryRenderer::operator=(GalleryRenderer &&) noexcept = default;
+OptixRenderer::OptixRenderer() noexcept = default;
+OptixRenderer::~OptixRenderer() = default;
+OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
+OptixRenderer &OptixRenderer::operator=(OptixRenderer &&) noexcept = default;
 
-bool GalleryRenderer::create(const SceneDefinition &scene,
+bool OptixRenderer::create(const SceneDefinition &scene,
                            const CommandSceneInstance &instance,
+                           const std::filesystem::path &ptx_path,
                            std::uint32_t width, std::uint32_t height,
-                           GalleryRenderer &output, std::string &error) {
+                           OptixRenderer &output, std::string &error) {
     error.clear();
     if (scene.meshes.empty() || scene.rigid_bodies.empty() || width == 0U ||
         height == 0U) {
@@ -1149,7 +1150,7 @@ bool GalleryRenderer::create(const SceneDefinition &scene,
         implementation->height = height;
         implementation->scene = scene;
         implementation->create_context();
-        implementation->create_pipeline(PARALLEL_MATER_OPTIX_PTX_PATH);
+        implementation->create_pipeline(ptx_path);
         implementation->create_geometry(scene);
         implementation->create_instances(scene);
         implementation->create_paint(scene, instance);
@@ -1172,7 +1173,19 @@ bool GalleryRenderer::create(const SceneDefinition &scene,
     }
 }
 
-bool GalleryRenderer::render(const RenderSceneFrame &frame,
+bool create_renderer(const SceneDefinition &scene,
+                     const CommandSceneInstance &instance,
+                     std::uint32_t width, std::uint32_t height,
+                     RendererHandle &output, std::string &error) {
+    auto renderer = std::make_unique<OptixRenderer>();
+    if (!OptixRenderer::create(scene, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
+                               width, height, *renderer, error))
+        return false;
+    output.implementation_ = std::move(renderer);
+    return true;
+}
+
+bool OptixRenderer::render(const RenderSceneFrame &frame,
                            Camera camera, std::vector<std::uint32_t> &rgba,
                            std::string &error, RendererTimings *timings,
                            FluidRenderMode fluid_mode,
@@ -1290,7 +1303,7 @@ bool GalleryRenderer::render(const RenderSceneFrame &frame,
     }
 }
 
-bool GalleryRenderer::advance_visuals(const RenderSceneFrame &frame,
+bool OptixRenderer::advance_visuals(const RenderSceneFrame &frame,
                                     std::string &error) {
     error.clear();
     if (!impl_) {
@@ -1320,7 +1333,7 @@ bool GalleryRenderer::advance_visuals(const RenderSceneFrame &frame,
     }
 }
 
-bool GalleryRenderer::paint_coverage(std::uint64_t &painted_texels,
+bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
                                    std::string &error) const {
     error.clear();
     painted_texels = 0U;
@@ -1348,11 +1361,11 @@ bool GalleryRenderer::paint_coverage(std::uint64_t &painted_texels,
     }
 }
 
-std::uint32_t GalleryRenderer::width() const noexcept {
+std::uint32_t OptixRenderer::width() const noexcept {
     return impl_ ? impl_->width : 0U;
 }
 
-std::uint32_t GalleryRenderer::height() const noexcept {
+std::uint32_t OptixRenderer::height() const noexcept {
     return impl_ ? impl_->height : 0U;
 }
 

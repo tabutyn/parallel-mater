@@ -93,13 +93,12 @@ the [Slang toolchain and source layout](docs/SLANG.md).
 ### Target and driver support
 
 The Slang/CUDA driver is the first qualified implementation. All shared Slang
-modules are also compiled to Vulkan SPIR-V. A native Vulkan execution service
-can create pipelines, record dispatches and barriers, and submit
-timeline-synchronized command buffers; Vulkan physics remains unadvertised
-until its complete shared schedule passes the same conformance and gallery
-gates. Metal, DirectX 12, and WebGPU execution are likewise unavailable until
-independently qualified. CMake rejects retired backend-specific physics builds
-instead of selecting them as a fallback. Native API names remain in
+modules are also compiled to Vulkan SPIR-V as a portability check, but there is
+no Vulkan driver until a complete shared schedule passes the same conformance
+and gallery gates. Metal, DirectX 12, and WebGPU execution are likewise
+unavailable until independently qualified. CMake rejects retired
+backend-specific physics builds instead of selecting them as a fallback. Native
+API names remain in
 interoperability enums because applications may query support and receive
 `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
 

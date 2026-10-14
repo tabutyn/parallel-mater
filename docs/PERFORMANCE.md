@@ -221,9 +221,10 @@ changes and the new D3D12 backend. D3D12 retains its existing solver; the AVBD
 migration above covers CUDA and Metal only. The authored-asset measurements
 above are not benchmarks of the newly generated, device-adaptive brick scene.
 
-CUDA/Metal calibration matching and output now use `cuda-avbd-v1` and
-`metal-avbd-v1`. Old profiles are preserved on disk but rejected for this solver;
-the profile regression checks both rejection and matching-version acceptance.
+Calibration matching and output use the shared `slang-avbd-v1` solver key.
+Backend and driver identity remain separate profile fields. Old profiles are
+preserved on disk but rejected for this solver; the profile regression checks
+both rejection and matching-version acceptance.
 
 The merged Release gallery build succeeds. **20/20 focused CTest entries pass**
 in 188.94 seconds: original/new rigid suites, complete truck cycle and payload,

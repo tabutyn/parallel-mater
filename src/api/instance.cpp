@@ -206,6 +206,7 @@ pmEnumerateDeviceExtensionProperties(PmPhysicalDevice physical,
     *count = available;
     return PM_SUCCESS;
 #else
+    (void)properties;
     *count = 0U;
     return PM_SUCCESS;
 #endif

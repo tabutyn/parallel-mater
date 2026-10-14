@@ -1,0 +1,34 @@
+name: Windows loader and shared gallery contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  loader:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Configure platform-neutral targets
+        run: >-
+          cmake -S . -B build
+          -DBUILD_TESTING=ON
+          -DPARALLEL_MATER_BUILD_CUDA=OFF
+          -DPARALLEL_MATER_BUILD_METAL=OFF
+          -DPARALLEL_MATER_BUILD_OPTIX_GALLERY=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=OFF
+      - name: Build loader and shared contracts
+        run: >-
+          cmake --build build --config Release --target
+          parallel-mater-loader-driver-discovery-tests
+          parallel-mater-gallery-registry-tests
+          parallel-mater-gallery-input-tests
+      - name: Test loader and shared contracts
+        run: >-
+          ctest --test-dir build -C Release --output-on-failure
+          -R "parallel-mater-(loader(-unicode)?-driver-discovery|gallery-registry|gallery-input)-tests"

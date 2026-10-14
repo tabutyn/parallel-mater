@@ -101,9 +101,9 @@ int main() {
 
         const Camera camera{.eye = {0.0F, 3.0F, 3.0F}, .target = {}};
         auto render = [&](const SceneDefinition &definition) {
-            GalleryRenderer renderer;
-            require(GalleryRenderer::create(
-                definition, instance, 96U, 96U, renderer, error), error);
+            RendererHandle renderer;
+            require(create_renderer(definition, instance, 96U, 96U,
+                                    renderer, error), error);
             RenderSceneFrame render_frame;
             require(make_render_scene_frame(definition, frame, render_frame,
                                             error), error);
@@ -138,10 +138,9 @@ int main() {
                     {0.0F, -9.81F, 0.0F}, water_frame, error), error);
         const auto render_water = [&](SceneDefinition definition,
                                       FluidRenderMode mode) {
-            GalleryRenderer renderer;
-            require(GalleryRenderer::create(
-                definition, water_instance, 96U, 96U, renderer, error),
-                error);
+            RendererHandle renderer;
+            require(create_renderer(definition, water_instance, 96U, 96U,
+                                    renderer, error), error);
             RenderSceneFrame render_frame;
             require(make_render_scene_frame(definition, water_frame,
                                             render_frame, error), error);

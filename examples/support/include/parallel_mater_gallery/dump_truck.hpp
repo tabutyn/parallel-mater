@@ -32,25 +32,6 @@ class DumpTruckBed {
     [[nodiscard]] float angle() const noexcept { return angle_; }
     [[nodiscard]] bool raised() const noexcept { return raised_; }
 
-    [[nodiscard]] Status advance(World &world, SceneDefinition &scene,
-                                 const SceneInstance &instance, float timestep) noexcept {
-        if (index_ >= scene.rigid_constraints.size() || index_ >= instance.rigid_constraints.size())
-            return {StatusCode::invalid_argument, {}, "dump lift bindings are missing"};
-        const float next = angle_ + std::clamp((raised_ ? maximum_angle : 0.0F) - angle_,
-                                              -angular_speed*timestep, angular_speed*timestep);
-        if (next == angle_) return {};
-        auto &joint = scene.rigid_constraints[index_];
-        auto options = joint.options;
-        const float s = std::sin(next*0.5F), c = std::cos(next*0.5F);
-        const auto q = authored_orientation_;
-        options.local_orientation_a = {q.x*c+q.y*s, q.y*c-q.x*s, q.z*c+q.w*s, q.w*c-q.z*s};
-        options.body_a = instance.rigid_bodies[joint.body_a];
-        options.body_b = instance.rigid_bodies[joint.body_b];
-        const auto status = world.update_rigid_constraint(instance.rigid_constraints[index_], options);
-        if (status) { joint.options = options; angle_ = next; }
-        return status;
-    }
-
     [[nodiscard]] bool advance(CommandScene &simulation,
                                SceneDefinition &scene,
                                const CommandSceneInstance &instance,

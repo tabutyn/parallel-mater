@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/device_profiles.hpp>
 #include <parallel_mater_gallery/scene.hpp>
+#include <scene_builder.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -23,24 +24,20 @@ void check(bool condition, const char *message) {
     }
 }
 
-template <typename Status>
-bool succeeded(Status status, const char *message) {
-    if (status) return true;
-    std::cerr << "FAIL: " << message;
-    if (status.message != nullptr) std::cerr << ": " << status.message;
-    std::cerr << '\n';
-    ++failures;
-    return false;
+parallel_mater::RigidBodyState rigid_state(const PmRigidState &source) {
+    return {{source.position[0], source.position[1], source.position[2]},
+            {source.orientation[0], source.orientation[1],
+             source.orientation[2], source.orientation[3]},
+            {source.linearVelocity[0], source.linearVelocity[1],
+             source.linearVelocity[2]},
+            {source.angularVelocity[0], source.angularVelocity[1],
+             source.angularVelocity[2]}};
 }
 }
 
 int main() {
     using namespace parallel_mater::gallery;
     using parallel_mater::RigidBodyState;
-    using parallel_mater::WorldOptions;
-    using parallel_mater::WorldStatistics;
-    using namespace parallel_mater::gallery;
-    using World = parallel_mater::World;
 
     std::string error;
     check(validate_brick_config({1U, 0.5F, 1U}, error),
@@ -59,8 +56,8 @@ int main() {
               brick_calibration_presets().back() ==
                   BrickSceneConfig{3'840U, 0.5F, 5U},
           "calibration ladder must retain its version-one endpoints");
-    check(estimated_contact_bytes(400U) >
-              estimated_contact_bytes(200U),
+    check(estimated_rigid_contact_bytes(400U) >
+              estimated_rigid_contact_bytes(200U),
           "contact memory estimate must grow with body count");
 
     DeviceProfileCatalog catalog;
@@ -89,7 +86,7 @@ int main() {
         });
     check(measured != catalog.measurements.end(), "RTX 3050 Ti must have a measured startup point");
     if (measured == catalog.measurements.end()) return 1;
-    const auto chosen = select_startup_bricks(catalog, measured->hardware, cuda_rigid_solver_version);
+    const auto chosen = select_startup_bricks(catalog, measured->hardware, slang_solver_version);
     check(chosen.source == BrickSelectionSource::measured &&
               chosen.scene == BrickSceneConfig{24U, 2.0F, 1U},
           "startup must select the largest measured 60/30 configuration, not the first sample");
@@ -98,35 +95,35 @@ int main() {
     changed_device.operating_system = "Linux 6.2.0";
     changed_device.machine_model = "different hostname";
     changed_device.memory_bytes += 16U * 1024U * 1024U;
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).scene == chosen.scene,
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).scene == chosen.scene,
           "GPU recommendations survive driver/kernel updates and small VRAM reservation changes");
     changed_device.gpu_model = "unmeasured GPU";
-    const auto unknown = select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version);
+    const auto unknown = select_startup_bricks(catalog, changed_device, slang_solver_version);
     check(unknown.source == BrickSelectionSource::fallback && unknown.scene.brick_count == 8U,
           "unknown GPUs use a modest fallback, not another GPU's measured capacity");
     changed_device = measured->hardware;
     changed_device.backend = "metal";
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).source ==
               BrickSelectionSource::fallback,
           "startup cannot borrow measurements from a different backend");
     changed_device = measured->hardware;
     changed_device.memory_bytes /= 2U;
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).source ==
               BrickSelectionSource::fallback,
           "startup cannot borrow measurements from a different memory variant");
     check(select_startup_bricks(catalog, measured->hardware, "cuda-rigid-v1").source ==
               BrickSelectionSource::fallback &&
-          select_startup_bricks(catalog, measured->hardware, cuda_rigid_solver_version,
+          select_startup_bricks(catalog, measured->hardware, slang_solver_version,
                                1280U, 720U).source == BrickSelectionSource::fallback,
           "startup measurements must match the solver and render resolution");
     DeviceProfileCatalog unsuitable;
     unsuitable.measurements.push_back(*measured);
     unsuitable.measurements.front().stable = false;
-    check(select_startup_bricks(unsuitable, measured->hardware, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(unsuitable, measured->hardware, slang_solver_version).source ==
               BrickSelectionSource::fallback, "unstable measurements cannot prescribe startup counts");
     unsuitable.measurements.front().stable = true;
     unsuitable.measurements.front().collision_p95_milliseconds = 34.0;
-    check(select_startup_bricks(unsuitable, measured->hardware, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(unsuitable, measured->hardware, slang_solver_version).source ==
               BrickSelectionSource::fallback, "impacts below 30 FPS cannot prescribe startup counts");
 
     SceneDefinition authored, generated;
@@ -209,96 +206,93 @@ int main() {
     SceneDefinition physical_scene;
     check(make_brick_scene(authored, {24U, 1.0F, 2U}, physical_scene, error),
           error.empty() ? "generate physics regression scene" : error.c_str());
-    WorldOptions world_options{};
-    if (succeeded(scene_world_options(physical_scene, world_options),
-                  "derive generated wall capacities")) {
-        world_options.rigid_sleeping = true;
-        World world;
-        SceneInstance instance;
-        if (succeeded(World::create(world_options, world),
-                      "create generated wall world") &&
-            succeeded(instantiate_scene(physical_scene, world, instance),
-                      "instantiate generated wall")) {
-            bool stepped = true;
-            for (unsigned frame = 0U; frame < 120U && stepped; ++frame)
-                stepped = succeeded(world.step({}), "settle generated wall");
-            WorldStatistics quiet_statistics{};
-            if (stepped && succeeded(world.collect_statistics(quiet_statistics),
-                                     "collect generated wall sleep state")) {
-                check(quiet_statistics.rigid_body_count == 26U,
-                      "generated wall world must retain every body");
-            }
-
+    CommandScene physical_simulation;
+    CommandSceneInstance physical_instance;
+    CommandSceneFrame physical_frame;
+    bool command_device_available = true;
+    if (!CommandScene::create(physical_scene, 0U, physical_simulation,
+                              physical_instance, error)) {
+        command_device_available = false;
+        if (error.find("physical device") != std::string::npos)
+            std::cout << "SKIP: command physics regression: " << error << '\n';
+        else
+            check(false, "create generated wall through command API");
+        error.clear();
+    } else {
+        bool stepped = true;
+        for (unsigned frame = 0U; frame < 120U && stepped; ++frame)
+            stepped = physical_simulation.step(
+                1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                physical_frame, error);
+        check(stepped, "settle generated wall through command API");
+        if (stepped) {
+            check(physical_frame.rigid_states.size() == 26U,
+                  "generated wall command output must retain every body");
             std::size_t ball = physical_scene.rigid_bodies.size();
             float quiet_maximum_displacement = 0.0F;
             float quiet_maximum_speed = 0.0F;
             for (std::size_t index = 0U;
-                 index < physical_scene.rigid_bodies.size(); ++index) {
-                RigidBodyState state{};
-                if (!succeeded(world.read_rigid_body_state(
-                                   instance.rigid_bodies[index], state),
-                               "read quiet generated body")) {
-                    stepped = false;
-                    break;
-                }
+                 index < physical_frame.rigid_states.size(); ++index) {
+                const RigidBodyState state =
+                    rigid_state(physical_frame.rigid_states[index]);
                 check(std::isfinite(state.position.x) &&
                           std::isfinite(state.position.y) &&
                           std::isfinite(state.position.z),
                       "generated support state must remain finite");
-                const auto initial =
-                    physical_scene.rigid_bodies[index].options.initial_state;
                 const auto &definition = physical_scene.rigid_bodies[index];
+                const auto initial = definition.options.initial_state;
                 if (definition.source_name == "Layer1" ||
                     definition.source_name == "Layer2") {
                     quiet_maximum_displacement = std::max(
                         quiet_maximum_displacement,
-                        std::hypot(std::hypot(state.position.x - initial.position.x,
-                                             state.position.y - initial.position.y),
-                                   state.position.z - initial.position.z));
-                    quiet_maximum_speed = std::max(quiet_maximum_speed, std::sqrt(
-                        state.linear_velocity.x * state.linear_velocity.x +
-                        state.linear_velocity.y * state.linear_velocity.y +
-                        state.linear_velocity.z * state.linear_velocity.z));
+                        std::hypot(
+                            std::hypot(state.position.x - initial.position.x,
+                                       state.position.y - initial.position.y),
+                            state.position.z - initial.position.z));
+                    quiet_maximum_speed = std::max(
+                        quiet_maximum_speed,
+                        std::hypot(std::hypot(state.linear_velocity.x,
+                                             state.linear_velocity.y),
+                                   state.linear_velocity.z));
                 }
-                if (definition.source_name == "Icosphere")
-                    ball = index;
+                if (definition.source_name == "Icosphere") ball = index;
             }
             check(quiet_maximum_displacement < 0.03F &&
                       quiet_maximum_speed < 0.03F,
                   "generated multi-wall support must remain stable at rest");
-            if (stepped && ball < physical_scene.rigid_bodies.size()) {
+            if (ball < physical_scene.rigid_bodies.size()) {
                 RigidBodyState launch =
                     physical_scene.rigid_bodies[ball].options.initial_state;
                 launch.position = {0.0F, 1.05F, 3.0F};
                 launch.linear_velocity = {0.0F, 0.0F, -10.0F};
-                stepped = succeeded(world.set_rigid_body_state(
-                    instance.rigid_bodies[ball], launch),
-                    "launch ball into generated walls");
+                stepped = physical_simulation.set_rigid_state(
+                    physical_instance.rigid_bodies[ball], launch, error);
             }
-            for (unsigned frame = 0U; frame < 240U && stepped; ++frame) {
-                stepped = succeeded(world.step({}), "impact generated walls");
-            }
+            check(stepped, "launch ball through command API");
+            for (unsigned frame = 0U; frame < 240U && stepped; ++frame)
+                stepped = physical_simulation.step(
+                    1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                    physical_frame, error);
+            check(stepped, "impact generated walls through command API");
             unsigned displaced = 0U;
             float peak_speed = 0.0F;
             for (std::size_t index = 0U;
-                 index < physical_scene.rigid_bodies.size() && stepped; ++index) {
-                RigidBodyState state{};
-                if (!succeeded(world.read_rigid_body_state(
-                                   instance.rigid_bodies[index], state),
-                               "read generated impact body")) {
-                    stepped = false;
-                    break;
-                }
-                peak_speed = std::max(peak_speed, std::sqrt(
-                    state.linear_velocity.x * state.linear_velocity.x +
-                    state.linear_velocity.y * state.linear_velocity.y +
-                    state.linear_velocity.z * state.linear_velocity.z));
+                 index < physical_frame.rigid_states.size() && stepped; ++index) {
+                const RigidBodyState state =
+                    rigid_state(physical_frame.rigid_states[index]);
+                peak_speed = std::max(
+                    peak_speed,
+                    std::hypot(std::hypot(state.linear_velocity.x,
+                                          state.linear_velocity.y),
+                               state.linear_velocity.z));
                 const auto &body = physical_scene.rigid_bodies[index];
-                if (body.source_name != "Layer1" && body.source_name != "Layer2")
+                if (body.source_name != "Layer1" &&
+                    body.source_name != "Layer2")
                     continue;
-                const float dx = state.position.x - body.options.initial_state.position.x;
-                const float dz = state.position.z - body.options.initial_state.position.z;
-                displaced += std::hypot(dx, dz) > 0.05F;
+                displaced += std::hypot(
+                    state.position.x - body.options.initial_state.position.x,
+                    state.position.z - body.options.initial_state.position.z) >
+                    0.05F;
             }
             check(displaced >= 4U,
                   "ball impact must move bricks in the generated walls");
@@ -310,52 +304,50 @@ int main() {
     SceneDefinition sleeping_scene;
     check(make_brick_scene(authored, {2U, 1.0F, 1U}, sleeping_scene, error),
           error.empty() ? "generate sleep/wake scene" : error.c_str());
-    WorldOptions sleeping_options{};
-    if (succeeded(scene_world_options(sleeping_scene, sleeping_options),
-                  "derive sleep/wake capacities")) {
-        sleeping_options.rigid_sleeping = true;
-        World world;
-        SceneInstance instance;
-        if (succeeded(World::create(sleeping_options, world),
-                      "create sleep/wake world") &&
-            succeeded(instantiate_scene(sleeping_scene, world, instance),
-                      "instantiate sleep/wake scene")) {
-            bool stepped = true;
-            for (unsigned frame = 0U; frame < 240U && stepped; ++frame)
-                stepped = succeeded(world.step({}), "settle sleeping brick");
-            std::size_t brick = sleeping_scene.rigid_bodies.size();
-            for (std::size_t index = 0U;
-                 index < sleeping_scene.rigid_bodies.size(); ++index) {
-                const auto &body = sleeping_scene.rigid_bodies[index];
-                if (body.source_name == "Layer1" || body.source_name == "Layer2")
-                    brick = index;
-            }
-            WorldStatistics before_wake{};
-            if (stepped && succeeded(world.collect_statistics(before_wake),
-                                     "collect sleeping brick state"))
-                check(before_wake.rigid_body_count == 4U,
-                      "sleep-enabled generated scene must retain every body");
-            if (stepped && brick < sleeping_scene.rigid_bodies.size()) {
-                RigidBodyState before{};
-                stepped = succeeded(world.read_rigid_body_state(
-                    instance.rigid_bodies[brick], before),
-                    "read sleeping brick");
-                if (stepped)
-                    stepped = succeeded(world.apply_impulse(
-                        instance.rigid_bodies[brick], {10.0F, 0.0F, 0.0F},
-                        before.position), "wake generated brick");
-                for (unsigned frame = 0U; frame < 12U && stepped; ++frame)
-                    stepped = succeeded(world.step({}), "step woken brick");
-                RigidBodyState after{};
-                if (stepped && succeeded(world.read_rigid_body_state(
-                        instance.rigid_bodies[brick], after),
-                        "read woken brick"))
-                    check(after.position.x - before.position.x > 0.02F,
-                          "an impulse must wake and move a generated brick");
+    CommandScene sleeping_simulation;
+    CommandSceneInstance sleeping_instance;
+    CommandSceneFrame sleeping_frame;
+    if (command_device_available &&
+        CommandScene::create(sleeping_scene, 0U, sleeping_simulation,
+                             sleeping_instance, error)) {
+        bool stepped = true;
+        for (unsigned frame = 0U; frame < 240U && stepped; ++frame)
+            stepped = sleeping_simulation.step(
+                1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                sleeping_frame, error);
+        check(stepped, "settle sleeping brick through command API");
+        std::size_t brick = sleeping_scene.rigid_bodies.size();
+        for (std::size_t index = 0U;
+             index < sleeping_scene.rigid_bodies.size(); ++index) {
+            const auto &body = sleeping_scene.rigid_bodies[index];
+            if (body.source_name == "Layer1" ||
+                body.source_name == "Layer2")
+                brick = index;
+        }
+        if (stepped && brick < sleeping_scene.rigid_bodies.size()) {
+            const RigidBodyState before =
+                rigid_state(sleeping_frame.rigid_states[brick]);
+            PmRigidInput input{};
+            input.bodyIndex = sleeping_instance.rigid_bodies[brick];
+            input.linearImpulse[0] = 10.0F;
+            stepped = sleeping_simulation.apply_rigid_inputs({input}, error);
+            for (unsigned frame = 0U; frame < 12U && stepped; ++frame)
+                stepped = sleeping_simulation.step(
+                    1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                    sleeping_frame, error);
+            check(stepped, "wake generated brick through command API");
+            if (stepped) {
+                const RigidBodyState after =
+                    rigid_state(sleeping_frame.rigid_states[brick]);
+                check(after.position.x - before.position.x > 0.02F,
+                      "an impulse must wake and move a generated brick");
             }
         }
+    } else if (!command_device_available) {
+        error.clear();
+    } else {
+        check(false, "create sleep/wake scene through command API");
     }
-
     const std::vector<CalibrationSample> samples{
         {10.0, false, true}, {14.0, false, true},
         {12.0, true, true}, {14.5, true, true}};
@@ -404,10 +396,10 @@ int main() {
     auto verified_catalog = catalog;
     auto preferred = profile;
     preferred.hardware = measured->hardware;
-    preferred.solver_version = cuda_rigid_solver_version;
+    preferred.solver_version = slang_solver_version;
     verified_catalog.verified_profiles.push_back(preferred);
     const auto verified_choice = select_startup_bricks(
-        verified_catalog, measured->hardware, cuda_rigid_solver_version);
+        verified_catalog, measured->hardware, slang_solver_version);
     check(verified_choice.source == BrickSelectionSource::verified &&
               verified_choice.scene == preferred.scene,
           "an exact verified profile takes precedence over short measured recommendations");
@@ -419,7 +411,7 @@ int main() {
               find_matching_profile(saved, profile.hardware) != nullptr,
           "saved verified profile must round-trip and match");
     const auto saved_choice = select_startup_bricks(
-        saved, measured->hardware, cuda_rigid_solver_version);
+        saved, measured->hardware, slang_solver_version);
     check(saved.measurements.size() == catalog.measurements.size() &&
               saved_choice.source == BrickSelectionSource::measured &&
               saved_choice.scene == chosen.scene &&
@@ -439,20 +431,20 @@ int main() {
     if (legacy_profile == legacy_profiles.verified_profiles.end()) return 1;
     legacy_profile->solver_version = "cuda-rigid-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, cuda_rigid_solver_version) == nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) == nullptr,
           "AVBD must reject pre-migration CUDA calibration");
-    legacy_profile->solver_version = cuda_rigid_solver_version;
+    legacy_profile->solver_version = slang_solver_version;
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, cuda_rigid_solver_version) != nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) != nullptr,
           "AVBD must accept matching CUDA calibration");
     legacy_profile->solver_version = "metal-rigid-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, "metal-avbd-v1") == nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) == nullptr,
           "AVBD must reject pre-migration Metal calibration");
-    legacy_profile->solver_version = "metal-avbd-v1";
+    legacy_profile->solver_version = slang_solver_version;
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, "metal-avbd-v1") != nullptr,
-          "AVBD must accept matching Metal calibration");
+              brick_render_width, brick_render_height, slang_solver_version) != nullptr,
+          "AVBD must accept matching shared solver calibration");
     auto mismatched_hardware = profile.hardware;
     mismatched_hardware.power_mode = "low-power";
     check(find_matching_profile(saved, mismatched_hardware) == nullptr,

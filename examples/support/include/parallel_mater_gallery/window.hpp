@@ -12,7 +12,7 @@ struct GLFWwindow;
 namespace parallel_mater::gallery {
 
 // Owns the native window and the API-specific presentation surface. Physics
-// and scene code only hand it a CPU RGBA image produced by GalleryRenderer.
+// and scene code only hand it a CPU RGBA image produced by the renderer adapter.
 class GalleryWindow {
   public:
     GalleryWindow() noexcept;

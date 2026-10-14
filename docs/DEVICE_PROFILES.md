@@ -80,9 +80,10 @@ system/driver, power mode, 1080p dimensions, scene version, and solver version.
 An incompatible verified profile is skipped; measurements or the modest startup
 fallback above supply the interactive configuration instead.
 
-The AVBD migration uses the `cuda-avbd-v1` solver key for profile matching and
-new calibration results. Historical `metal-avbd-v1` measurements remain data
-records only; no current runtime consumes them.
+The AVBD migration uses the shared `slang-avbd-v1` solver key for
+both profile matching and new calibration results. Earlier `*-rigid-v1`
+profiles remain on disk but are not reused; recalibrate before verifying a
+profile for the shared solver.
 
 CUDA writes a standalone local export unless `--profiles-file` explicitly
 identifies the tracked catalog.

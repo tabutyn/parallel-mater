@@ -18,7 +18,7 @@ $targets = @($manifest.files | ForEach-Object {
     if (!$target.StartsWith($installRoot + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe installation manifest path.' }
     $target
 })
-$running = Get-Process -Name 'Parallel-Mater' -ErrorAction SilentlyContinue |
+$running = Get-Process -Name 'Parallel-Mater','parallel-mater-gallery' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and [IO.Path]::GetDirectoryName($_.Path) -eq $installRoot }
 if ($running) { throw 'Close Parallel-Mater before uninstalling it.' }
 if (!$PSCmdlet.ShouldProcess($installRoot,'Uninstall Parallel-Mater; preserve user captures and logs')) { return }
@@ -34,7 +34,7 @@ foreach ($target in $targets) {
     if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target -Force }
 }
 Remove-Item -LiteralPath $manifestPath -Force
-foreach ($directory in @((Join-Path $installRoot 'assets'),$installRoot)) {
+foreach ($directory in @((Join-Path $installRoot 'assets'),(Join-Path $installRoot 'config'),(Join-Path $installRoot 'manifests'),$installRoot)) {
     if ((Test-Path -LiteralPath $directory) -and !(Get-ChildItem -LiteralPath $directory -Force | Select-Object -First 1)) {
         Remove-Item -LiteralPath $directory
     }

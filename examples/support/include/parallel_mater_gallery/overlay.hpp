@@ -112,11 +112,6 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 [[nodiscard]] bool draw_rigid_contact_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
-    std::uint32_t height, RigidContactDeviceView contacts, Camera camera,
-    std::string &error);
-
-[[nodiscard]] bool draw_rigid_contact_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const std::vector<PmContactEvent> &contacts,
     Camera camera, std::string &error);
 
@@ -128,24 +123,10 @@ struct ClothDebugOptions {
     bool bonds{};
 };
 
-// Shared cloth diagnostics. Data comes directly from ClothDeviceView so any
-// client renderer can reproduce the gallery's Z/X/C/V inspection modes.
-// Surface normals/wireframe follow fracture topology; bonds show only live
-// physical constraints, and force vectors remain anchored to physical nodes.
-[[nodiscard]] bool draw_cloth_debug_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width,
-    std::uint32_t height, ClothDeviceView cloth, Camera camera,
-    ClothDebugOptions options, std::string &error);
-
 [[nodiscard]] bool draw_cloth_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const SceneDefinition &scene,
     const CommandSceneFrame &frame, std::uint32_t cloth, Camera camera,
-    ClothDebugOptions options, std::string &error);
-
-[[nodiscard]] bool draw_soft_body_debug_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width,
-    std::uint32_t height, SoftBodyDeviceView body, Camera camera,
     ClothDebugOptions options, std::string &error);
 
 [[nodiscard]] bool draw_soft_body_debug_overlay(
@@ -162,33 +143,14 @@ struct PhysicsDebugVisualizationOptions {
 };
 
 [[nodiscard]] bool draw_rope_debug_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width, std::uint32_t height,
-    RopeDeviceView rope, Camera camera, std::string &error);
-
-[[nodiscard]] bool draw_rope_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const CommandSceneFrame &frame,
     std::uint32_t rope, Camera camera, std::string &error);
-
-// Draws host-side state and force vectors captured by the public debug API.
-// Rendering remains a client concern and does not enter the physics API.
-void draw_physics_debug_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width,
-    std::uint32_t height, PhysicsDebugFrameView frame, Camera camera,
-    PhysicsDebugVisualizationOptions options);
 
 void draw_physics_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const CommandSceneFrame &frame, Camera camera,
     PhysicsDebugVisualizationOptions options);
-
-// Visualizes cell-centered fields exposed by SmokeDeviceView. The renderer is
-// deliberately outside simulation: the API supplies solver state while clients
-// choose slices, normalization, and color maps.
-[[nodiscard]] bool draw_smoke_grid_debug_overlay(
-    std::vector<std::uint32_t> &rgba, std::uint32_t width,
-    std::uint32_t height, SmokeDeviceView smoke, Camera camera,
-    SmokeDebugMode mode, std::string &error);
 
 [[nodiscard]] bool draw_smoke_debug_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,

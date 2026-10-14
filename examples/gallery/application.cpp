@@ -9,6 +9,7 @@
 #include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/physics_frame_budget.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 #include <parallel_mater_gallery/window.hpp>
@@ -47,7 +48,6 @@ using parallel_mater::RigidConstraintState;
 using parallel_mater::RigidConstraintType;
 using parallel_mater::MotionType;
 using parallel_mater::Quaternion;
-using parallel_mater::Status;
 using parallel_mater::StepOptions;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
@@ -64,6 +64,7 @@ using parallel_mater::gallery::GalleryDebugState;
 using parallel_mater::gallery::GalleryInputState;
 using parallel_mater::gallery::GalleryKey;
 using parallel_mater::gallery::GallerySceneSource;
+using parallel_mater::gallery::GalleryWindow;
 using parallel_mater::gallery::gallery_entries;
 using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_context_index;
@@ -73,8 +74,7 @@ using parallel_mater::gallery::is_soft_body_context;
 using parallel_mater::gallery::is_smoke_context;
 using parallel_mater::gallery::toggles_constraint;
 using parallel_mater::gallery::uses_rigid_gravity;
-using parallel_mater::gallery::GalleryRenderer;
-using parallel_mater::gallery::GalleryWindow;
+using parallel_mater::gallery::RendererHandle;
 using parallel_mater::gallery::SmokeDebugMode;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::CommandScene;
@@ -243,7 +243,7 @@ struct GalleryRuntime {
     CommandSceneInstance instance{};
     CommandSceneFrame frame{};
     RenderSceneFrame render_frame{};
-    GalleryRenderer renderer{};
+    RendererHandle renderer{};
     FixedContactCollector fixed_collector{};
     parallel_mater::gallery::ArrowForces arrow_forces{};
     parallel_mater::gallery::DumpTruckBed dump_bed{};
@@ -665,16 +665,6 @@ struct FluidEscapeTrace {
         validate_brick_config(output.bricks, brick_error);
 }
 
-[[nodiscard]] bool require(Status status, const char *operation) {
-    if (status) {
-        return true;
-    }
-    std::cerr << operation << " failed: "
-              << (status.message != nullptr ? status.message : "unknown")
-              << '\n';
-    return false;
-}
-
 [[nodiscard]] bool toggle_constraints(GalleryRuntime &runtime) {
     if (runtime.scene.rigid_constraints.empty() ||
         runtime.scene.rigid_constraints.size() !=
@@ -1003,9 +993,9 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
     }
     if (context == GalleryContext::rigid_body) {
         const std::uint64_t free_bytes =
-            parallel_mater::gallery::gallery_device_available_memory();
+            parallel_mater::gallery::platform_available_device_memory();
         if (free_bytes != 0U &&
-            parallel_mater::gallery::estimated_contact_bytes(
+            parallel_mater::gallery::estimated_rigid_contact_bytes(
                 static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
                 free_bytes * 7U / 10U) {
             error = "brick scene exceeds the available GPU memory budget";
@@ -1056,8 +1046,9 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                           << body.arrow_force
                           << " N (camera-relative ground plane; gravity stays vertical)\n";
     }
-    if (!GalleryRenderer::create(next.scene, next.instance, options.width,
-                                 options.height, next.renderer, error)) {
+    if (!parallel_mater::gallery::create_renderer(
+            next.scene, next.instance, options.width, options.height,
+            next.renderer, error)) {
         error = "renderer creation failed: " + error;
         return false;
     }
@@ -1186,12 +1177,6 @@ bool stable_calibration_scene(GalleryRuntime &runtime, bool quiet,
     return true;
 }
 
-bool present_calibration_frame(GalleryWindow &window,
-                               const std::vector<std::uint32_t> &pixels,
-                               std::string &error) {
-    return window.present(pixels, error);
-}
-
 bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
                            GalleryWindow &window, std::uint32_t quiet_frames,
                            std::uint32_t collision_frames, bool off_center,
@@ -1222,7 +1207,7 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         }
         if (!runtime.renderer.render(runtime.render_frame,
                                      camera.camera(), pixels, error)) return false;
-        if (!present_calibration_frame(window, pixels, error)) return false;
+        if (!window.present(pixels, error)) return false;
         const double milliseconds = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - begin).count();
         samples.push_back({milliseconds, collision, true});
@@ -1281,8 +1266,8 @@ bool calibrate_bricks(Options &options, GalleryWindow &window,
                   << metrics.collision_maximum_milliseconds << " ms\n";
         if (index == 0U) {
             output = {.config = presets[index], .metrics = metrics,
-                      .hardware = parallel_mater::gallery::
-                          gallery_device_hardware_identity()};
+                      .hardware =
+                          parallel_mater::gallery::platform_hardware_identity()};
         }
         if (!parallel_mater::gallery::calibration_passes(metrics)) {
             if (index == 0U) {
@@ -1325,8 +1310,8 @@ bool calibrate_bricks(Options &options, GalleryWindow &window,
         if (parallel_mater::gallery::calibration_passes(metrics)) {
             options.bricks = presets[index];
             output = {.config = presets[index], .metrics = metrics,
-                      .hardware = parallel_mater::gallery::
-                          gallery_device_hardware_identity()};
+                      .hardware =
+                          parallel_mater::gallery::platform_hardware_identity()};
             window.set_vsync(true);
             return true;
         }
@@ -1346,7 +1331,8 @@ void save_local_calibration(const CalibrationResult &result) {
     const auto temporary = path.string() + ".tmp";
     std::ofstream output(temporary, std::ios::trunc);
     if (!output) return;
-    output << "{\n  \"verified\": false,\n  \"backend\": \"cuda\",\n"
+    output << "{\n  \"verified\": false,\n  \"backend\": \""
+           << result.hardware.backend << "\",\n"
            << "  \"gpu_model\": \"" << result.hardware.gpu_model << "\",\n"
            << "  \"gpu_variant\": \"" << result.hardware.gpu_variant << "\",\n"
            << "  \"machine_model\": \"" << result.hardware.machine_model << "\",\n"
@@ -1361,7 +1347,7 @@ void save_local_calibration(const CalibrationResult &result) {
            << "  \"scene_version\": "
            << parallel_mater::gallery::brick_scene_version << ",\n"
            << "  \"solver_version\": \""
-           << parallel_mater::gallery::cuda_rigid_solver_version << "\",\n"
+           << parallel_mater::gallery::slang_solver_version << "\",\n"
            << "  \"build_revision\": \""
            << PARALLEL_MATER_GALLERY_GIT_COMMIT << "\",\n"
            << "  \"brick_count\": " << result.config.brick_count << ",\n"
@@ -1395,7 +1381,7 @@ bool verify_and_save_profile(const Options &options,
     parallel_mater::gallery::VerifiedBrickProfile profile;
     profile.hardware = result.hardware;
     profile.scene = result.config;
-    profile.solver_version = parallel_mater::gallery::cuda_rigid_solver_version;
+    profile.solver_version = parallel_mater::gallery::slang_solver_version;
     profile.build_revision = PARALLEL_MATER_GALLERY_GIT_COMMIT;
     profile.metrics = result.metrics;
     const std::time_t now = std::time(nullptr);
@@ -1444,10 +1430,9 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         return 2;
     }
     if (options.headless_output.empty()) {
-        const HardwareIdentity hardware =
-            parallel_mater::gallery::gallery_device_hardware_identity();
+        const HardwareIdentity hardware = platform_hardware_identity();
         if (hardware.gpu_model.empty()) {
-            std::cerr << "Could not identify the current CUDA device\n";
+            std::cerr << "Could not identify the current Parallel Mater device\n";
             return 1;
         }
         DeviceProfileCatalog catalog;
@@ -1459,7 +1444,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 catalog = {};
             }
             const auto selection = select_startup_bricks(
-                catalog, hardware, cuda_rigid_solver_version, options.width, options.height);
+                catalog, hardware, slang_solver_version, options.width, options.height);
             options.bricks = selection.scene;
             selection_label = brick_selection_label(selection.source);
         }

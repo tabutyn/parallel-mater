@@ -463,7 +463,7 @@ bool validate_brick_config(const BrickSceneConfig &config,
     error.clear(); return true;
 }
 
-std::uint64_t estimated_contact_bytes(std::uint32_t rigid_body_count) noexcept {
+std::uint64_t estimated_rigid_contact_bytes(std::uint32_t rigid_body_count) noexcept {
     const std::uint64_t count = rigid_body_count;
     const std::uint64_t pairs = count > 1U ? count * (count - 1U) / 2U : 1U;
     // Conservative sum for manifold/cache/island/active-pair and dense flag buffers.

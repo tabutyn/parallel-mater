@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-# Also configure standalone: no CUDA toolkit, GPU or public World header needed.
+# Also configure standalone: no CUDA toolkit, GPU or private runtime needed.
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(ParallelMaterContactTests LANGUAGES CXX)
     include(CTest)

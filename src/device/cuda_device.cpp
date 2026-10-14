@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include "device.hpp"
+#include "cuda_device.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -31,8 +31,65 @@ class CudaServices final : public Services {
     }
 
     [[nodiscard]] int ordinal() const noexcept override { return ordinal_; }
-    [[nodiscard]] cudaStream_t stream() const noexcept override { return stream_; }
-    [[nodiscard]] cudaEvent_t epoch() const noexcept override { return epoch_; }
+    [[nodiscard]] void *native_queue_handle() const noexcept override {
+        return stream_;
+    }
+
+    [[nodiscard]] Event epoch() const noexcept override {
+        return to_event(epoch_);
+    }
+
+    [[nodiscard]] PmResult create_event(bool enable_timing,
+                                        Event &output) noexcept override {
+        cudaEvent_t event{};
+        const cudaError_t error = cudaEventCreateWithFlags(
+            &event, enable_timing ? cudaEventDefault : cudaEventDisableTiming);
+        if (error != cudaSuccess) return from_cuda(error);
+        output = to_event(event);
+        return PM_SUCCESS;
+    }
+
+    void destroy_event(Event event) noexcept override {
+        if (event) (void)cudaEventDestroy(to_cuda(event));
+    }
+
+    [[nodiscard]] PmResult record_event(Event event) noexcept override {
+        if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        return from_cuda(cudaEventRecord(to_cuda(event), stream_));
+    }
+
+    [[nodiscard]] PmResult enqueue_wait(Event event) noexcept override {
+        if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        return from_cuda(cudaStreamWaitEvent(stream_, to_cuda(event), 0U));
+    }
+
+    [[nodiscard]] PmResult wait_event(Event event) noexcept override {
+        if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        return from_cuda(cudaEventSynchronize(to_cuda(event)));
+    }
+
+    [[nodiscard]] PmResult query_event(Event event,
+                                       bool &ready) noexcept override {
+        if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        const cudaError_t status = cudaEventQuery(to_cuda(event));
+        if (status == cudaSuccess) {
+            ready = true;
+            return PM_SUCCESS;
+        }
+        if (status == cudaErrorNotReady) {
+            ready = false;
+            return PM_SUCCESS;
+        }
+        ready = false;
+        return from_cuda(status);
+    }
+
+    [[nodiscard]] PmResult elapsed_time(Event begin, Event end,
+                                        float &milliseconds) noexcept override {
+        if (!begin || !end) return PM_ERROR_INVALID_ARGUMENT;
+        return from_cuda(cudaEventElapsedTime(
+            &milliseconds, to_cuda(begin), to_cuda(end)));
+    }
 
     [[nodiscard]] PmResult allocate(PmDeviceSize size, bool host_visible,
                                     void **output) noexcept override {
@@ -66,6 +123,14 @@ class CudaServices final : public Services {
     }
 
   private:
+    [[nodiscard]] static Event to_event(cudaEvent_t event) noexcept {
+        return {reinterpret_cast<std::uintptr_t>(event)};
+    }
+
+    [[nodiscard]] static cudaEvent_t to_cuda(Event event) noexcept {
+        return reinterpret_cast<cudaEvent_t>(event.value);
+    }
+
     int ordinal_{};
     cudaStream_t stream_{};
     cudaEvent_t epoch_{};
@@ -73,8 +138,8 @@ class CudaServices final : public Services {
 
 } // namespace
 
-PmResult from_cuda(cudaError_t error) noexcept {
-    switch (error) {
+PmResult from_driver_error(std::int32_t error) noexcept {
+    switch (static_cast<cudaError_t>(error)) {
     case cudaSuccess: return PM_SUCCESS;
     case cudaErrorMemoryAllocation: return PM_ERROR_OUT_OF_DEVICE_MEMORY;
     case cudaErrorInvalidValue:

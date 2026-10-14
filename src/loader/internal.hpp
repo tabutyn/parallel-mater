@@ -6,6 +6,7 @@
 #include <parallel_mater/pm_layer.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -41,12 +42,12 @@ struct Layer {
     Layer(const Layer &) = delete;
     Layer &operator=(const Layer &) = delete;
 
-    static std::shared_ptr<Layer> open(const std::string &path,
+    static std::shared_ptr<Layer> open(const std::filesystem::path &path,
                                        std::string &error);
     PmResult pre(const char *command, const void *handle) const;
     void post(const char *command, const void *handle, PmResult result) const;
 
-    std::string path;
+    std::filesystem::path path;
     void *library{};
     PFN_pmLayerPreCall pre_call{};
     PFN_pmLayerPostCall post_call{};
@@ -60,14 +61,14 @@ struct Driver {
     Driver(const Driver &) = delete;
     Driver &operator=(const Driver &) = delete;
 
-    static std::shared_ptr<Driver> open(const std::string &path,
+    static std::shared_ptr<Driver> open(const std::filesystem::path &path,
                                         std::string &error);
     PFN_pmVoidFunction resolve(const Route &route, const char *name) const;
     PFN_pmVoidFunction instance_proc(PmInstance instance,
                                      const char *name) const;
     PFN_pmVoidFunction device_proc(PmDevice device, const char *name) const;
 
-    std::string path;
+    std::filesystem::path path;
     std::uint32_t interface_version{};
     void *library{};
     PFN_pmDriverGetInstanceProcAddr get_instance_proc{};

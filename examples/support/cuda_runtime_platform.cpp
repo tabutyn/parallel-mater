@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 
 #include <cuda_runtime_api.h>
 
@@ -13,15 +13,7 @@
 
 namespace parallel_mater::gallery {
 
-std::uint64_t gallery_device_available_memory() noexcept {
-    std::size_t free_bytes = 0U;
-    std::size_t total_bytes = 0U;
-    return cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess
-        ? static_cast<std::uint64_t>(free_bytes)
-        : 0U;
-}
-
-HardwareIdentity gallery_device_hardware_identity() {
+HardwareIdentity platform_hardware_identity() {
     cudaDeviceProp properties{};
     int device = 0;
     int driver = 0;
@@ -53,8 +45,7 @@ HardwareIdentity gallery_device_hardware_identity() {
         std::ifstream cpuinfo("/proc/cpuinfo");
         std::string line;
         while (std::getline(cpuinfo, line)) {
-            const std::string prefix = "model name";
-            if (!line.starts_with(prefix)) continue;
+            if (!line.starts_with("model name")) continue;
             const auto separator = line.find(':');
             if (separator != std::string::npos) {
                 result.cpu_model = line.substr(separator + 1U);
@@ -87,6 +78,14 @@ HardwareIdentity gallery_device_hardware_identity() {
     result.driver = "CUDA driver " + std::to_string(driver);
     result.power_mode = "driver-default";
     return result;
+}
+
+std::uint64_t platform_available_device_memory() noexcept {
+    std::size_t free_bytes = 0U;
+    std::size_t total_bytes = 0U;
+    return cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess
+        ? static_cast<std::uint64_t>(free_bytes)
+        : 0U;
 }
 
 } // namespace parallel_mater::gallery

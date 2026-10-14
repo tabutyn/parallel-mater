@@ -37,6 +37,10 @@ if "append_loader_relative_directories" not in loader_driver:
     failures.append("src/loader/driver.cpp: relocatable manifest discovery missing")
 if "ManifestKind::driver" not in loader_driver or "ManifestKind::layer" not in loader_driver:
     failures.append("src/loader/driver.cpp: driver/layer manifests are not separated")
+for ansi_loader_call in ("LoadLibraryA", "GetModuleHandleExA", "GetModuleFileNameA"):
+    if ansi_loader_call in loader_driver:
+        failures.append(
+            f"src/loader/driver.cpp: Windows loader is not Unicode-safe: {ansi_loader_call}")
 if "pm_driverNegotiateLoaderInterfaceVersion" not in (
         ROOT / "include" / "parallel_mater" / "pm_driver.h").read_text():
     failures.append("pm_driver.h: loader/driver ABI negotiation missing")
@@ -54,6 +58,18 @@ if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
 if re.search(r"\bclass\s+World\b", runtime_header):
     failures.append("src/simulation/runtime.hpp: legacy World class remains")
+if re.search(r"\busing\s+World\s*=", runtime_header):
+    failures.append("src/simulation/runtime.hpp: legacy World alias remains")
+for boundary_header in (
+    ROOT / "src" / "api" / "internal.hpp",
+    ROOT / "src" / "device" / "device.hpp",
+):
+    boundary_text = boundary_header.read_text()
+    for cuda_type in ("cudaStream_t", "cudaEvent_t", "cuda_runtime_api.h"):
+        if cuda_type in boundary_text:
+            failures.append(
+                f"{boundary_header.relative_to(ROOT)}: device boundary "
+                f"exposes {cuda_type}")
 for api_source in sorted((ROOT / "src" / "api").glob("*")):
     if api_source.is_file() and re.search(
             r"parallel_mater::World\b", api_source.read_text()):
@@ -77,6 +93,22 @@ for retired_metal_build_token in (
         failures.append(
             f"CMakeLists.txt: retired Metal adapter token {retired_metal_build_token}"
         )
+for legacy_root in (ROOT / "tests", ROOT / "benchmarks"):
+    for source in sorted(legacy_root.rglob("*")):
+        if not source.is_file() or "metal" in source.parts:
+            continue
+        if source.suffix not in {".cpp", ".cu", ".hpp", ".h"}:
+            continue
+        source_text = source.read_text()
+        if re.search(
+            r"\busing\s+World\s*=|\bWorld::|"
+            r"\b(?:create_scene_world|instantiate_scene|scene_world_options)\b",
+            source_text,
+        ):
+            failures.append(
+                f"{source.relative_to(ROOT)}: legacy World test path remains")
+if "Backend-specific physics implementations are retired" not in cmake:
+    failures.append("CMakeLists.txt: retired native physics builds are not rejected")
 retired_headers = {
     "cloth.cuh",
     "cloth_rope.cuh",
@@ -222,19 +254,32 @@ for path in consumer_paths:
     ):
         failures.append(f"{path.relative_to(ROOT)}: legacy World dependency")
 
-gallery_application = (
-    ROOT / "examples" / "gallery" / "application.cpp"
-).read_text()
-for forbidden in (
-    "OptixRenderer",
-    "cuda_runtime",
-    "PARALLEL_MATER_OPTIX_PTX_PATH",
+gallery_application = (ROOT / "examples" / "gallery" / "application.cpp").read_text()
+for platform_detail in (
+    "cuda_runtime_api.h", "cudaMemGetInfo", "cudaGetDevice",
+    "cuda_runtime", "OptixRenderer", "PARALLEL_MATER_OPTIX_PTX_PATH",
     "glDrawPixels",
 ):
-    if forbidden in gallery_application:
+    if platform_detail in gallery_application:
         failures.append(
-            f"examples/gallery/application.cpp: renderer backend leak {forbidden}"
-        )
+            "examples/gallery/application.cpp: shared application owns "
+            f"platform detail {platform_detail}")
+renderer_interface = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "renderer.hpp"
+).read_text()
+if "OptixRenderer" in renderer_interface:
+    failures.append(
+        "examples/support/include/parallel_mater_gallery/renderer.hpp: "
+        "drawing interface exposes the OptiX adapter")
+for removed_vulkan_executor in (
+    ROOT / "src" / "api" / "interop_vulkan.cpp",
+    ROOT / "src" / "device" / "vulkan_executor.cpp",
+    ROOT / "src" / "device" / "vulkan_executor.hpp",
+):
+    if removed_vulkan_executor.exists():
+        failures.append(
+            f"{removed_vulkan_executor.relative_to(ROOT)}: unused partial backend remains")
 
 d3d12_window_path = ROOT / "examples" / "support" / "d3d12_window.cpp"
 if not d3d12_window_path.exists():
@@ -249,7 +294,8 @@ else:
     for forbidden in ("solve_avbd_kernel", "prepare_avbd_kernel", "runtime.cu"):
         if forbidden in d3d12_window:
             failures.append(
-                f"examples/support/d3d12_window.cpp: physics leaked into adapter: {forbidden}"
+                "examples/support/d3d12_window.cpp: physics leaked into "
+                f"adapter: {forbidden}"
             )
 
 slang_constraints_cmake = (

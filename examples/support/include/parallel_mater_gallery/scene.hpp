@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <simulation/runtime.hpp>
+#include <parallel_mater/types.hpp>
 
 #include <parallel_mater_gallery/device_profiles.hpp>
 
@@ -154,35 +154,6 @@ struct SceneDefinition {
     bool has_smoke{};
 };
 
-struct SceneInstance {
-    struct PaintBinding {
-        std::uint32_t body_index{};
-        std::uint32_t mesh_index{};
-        PaintFieldId field{};
-    };
-    std::vector<RigidBodyId> rigid_bodies{};
-    std::vector<RigidConstraintId> rigid_constraints{};
-    std::vector<ClothId> cloths{};
-    std::vector<SoftBodyId> soft_bodies{};
-    std::vector<RopeId> ropes{};
-    std::vector<FluidClothCouplingId> fluid_cloth_couplings{};
-    std::vector<SoftBodyClothCouplingId> soft_body_cloth_couplings{};
-    std::vector<FluidSoftBodyCouplingId> fluid_soft_body_couplings{};
-    std::vector<FluidRopeCouplingId> fluid_rope_couplings{};
-    std::vector<RopeSoftBodyCouplingId> rope_soft_body_couplings{};
-    std::vector<RopeClothCouplingId> rope_cloth_couplings{};
-    std::vector<PaintBinding> paint_bindings{};
-    FluidId fluid{};
-    bool has_fluid{};
-    SmokeId smoke{};
-    bool has_smoke{};
-    std::vector<FluidSmokeCouplingId> fluid_smoke_couplings{};
-    std::vector<SmokeSoftBodyCouplingId> smoke_soft_body_couplings{};
-    std::vector<SmokeClothCouplingId> smoke_cloth_couplings{};
-    std::vector<SmokeRopeCouplingId> smoke_rope_couplings{};
-    std::vector<SmokeRigidCouplingId> smoke_rigid_couplings{};
-};
-
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,
                                   SceneDefinition &output,
                                   std::string &error);
@@ -199,20 +170,5 @@ struct SceneInstance {
                                     const ::parallel_mater::gallery::BrickSceneConfig &config,
                                     SceneDefinition &output,
                                     std::string &error);
-
-// Derives the capacities needed by the shared scene instantiator. Gallery
-// clients, tests, and benchmarks should use this instead of mirroring its
-// mesh/paint/cloth accounting.
-[[nodiscard]] Status scene_world_options(
-    const SceneDefinition &scene, WorldOptions &output,
-    PhysicsDebugOptions physics_debug = {}) noexcept;
-
-[[nodiscard]] Status create_scene_world(
-    const SceneDefinition &scene, World &world, SceneInstance &output,
-    PhysicsDebugOptions physics_debug = {}) noexcept;
-
-[[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
-                                       World &world,
-                                       SceneInstance &output) noexcept;
 
 } // namespace parallel_mater::gallery

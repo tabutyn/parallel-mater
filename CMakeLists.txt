@@ -55,12 +55,9 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
-option(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS
-       "Build transitional tests of the private CUDA reference runtime" OFF)
-mark_as_advanced(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
 if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_METAL_GALLERY)
     message(FATAL_ERROR
-        "Metal compatibility targets are retired. Use the shared command API "
+        "Backend-specific physics implementations are retired. Use the shared command API "
         "with a validated Slang device adapter.")
 endif()
 if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
@@ -837,6 +834,9 @@ add_library(ParallelMater::slang_cuda_driver ALIAS
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+file(GENERATE
+    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-cuda.json"
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     add_executable(parallel-mater-driver-abi-tests
@@ -902,9 +902,78 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         parallel-mater-gallery-scene
         PUBLIC ParallelMater::parallel_mater
         PRIVATE parallel-mater-asset-preparation)
-    target_compile_definitions(parallel-mater-gallery-scene
-        PRIVATE PARALLEL_MATER_COMMAND_GALLERY_ONLY=1)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
+
+    if(BUILD_TESTING)
+        add_executable(parallel-mater-command-gallery-tests
+                       tests/gallery/command_gallery_tests.cpp)
+        target_link_libraries(parallel-mater-command-gallery-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-command-gallery-tests PRIVATE
+            PARALLEL_MATER_GALLERY_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+        add_dependencies(parallel-mater-command-gallery-tests
+                         parallel-mater-driver-slang-cuda)
+        parallel_mater_enable_warnings(parallel-mater-command-gallery-tests)
+        add_test(NAME parallel-mater-command-gallery-tests
+                 COMMAND parallel-mater-command-gallery-tests)
+        set_tests_properties(parallel-mater-command-gallery-tests PROPERTIES
+            LABELS "api;gallery;cuda"
+            SKIP_RETURN_CODE 77
+            TIMEOUT 300
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+
+        add_executable(parallel-mater-gallery-scene-tests
+                       tests/gallery/scene_tests.cpp)
+        target_link_libraries(parallel-mater-gallery-scene-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-gallery-scene-tests PRIVATE
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
+            PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb"
+            PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
+            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
+            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb")
+        add_dependencies(parallel-mater-gallery-scene-tests
+                         parallel-mater-driver-slang-cuda)
+        parallel_mater_enable_warnings(parallel-mater-gallery-scene-tests)
+        add_test(NAME parallel-mater-gallery-scene-tests
+                 COMMAND parallel-mater-gallery-scene-tests)
+
+        add_executable(parallel-mater-device-profile-tests
+                       tests/gallery/device_profiles_tests.cpp)
+        target_link_libraries(parallel-mater-device-profile-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-device-profile-tests PRIVATE
+            PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
+        add_dependencies(parallel-mater-device-profile-tests
+                         parallel-mater-driver-slang-cuda)
+        parallel_mater_enable_warnings(parallel-mater-device-profile-tests)
+        add_test(NAME parallel-mater-device-profile-tests
+                 COMMAND parallel-mater-device-profile-tests)
+
+        add_executable(parallel-mater-dump-truck-tests
+                       tests/gallery/dump_truck_tests.cpp)
+        target_link_libraries(parallel-mater-dump-truck-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-dump-truck-tests PRIVATE
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
+        add_dependencies(parallel-mater-dump-truck-tests
+                         parallel-mater-driver-slang-cuda)
+        parallel_mater_enable_warnings(parallel-mater-dump-truck-tests)
+        add_test(NAME parallel-mater-dump-truck-tests
+                 COMMAND parallel-mater-dump-truck-tests)
+
+        set_tests_properties(
+            parallel-mater-gallery-scene-tests
+            parallel-mater-device-profile-tests
+            parallel-mater-dump-truck-tests PROPERTIES
+            LABELS "api;gallery;cuda"
+            SKIP_RETURN_CODE 77
+            TIMEOUT 300
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+    endif()
 
     execute_process(
         COMMAND git rev-parse HEAD
@@ -915,59 +984,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
         set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
     endif()
-    if(PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
-        add_executable(parallel-mater-conformance
-                       conformance/v1/src/cuda_runner.cpp)
-        target_link_libraries(parallel-mater-conformance PRIVATE
-            parallel-mater-conformance-registry
-            parallel-mater-gallery-scene
-            CUDA::cudart)
-        target_compile_definitions(parallel-mater-conformance PRIVATE
-            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-        parallel_mater_enable_warnings(parallel-mater-conformance)
-    endif()
-
-    if(PARALLEL_MATER_BUILD_BENCHMARKS)
-        add_executable(parallel-mater-rigid-scene-benchmark
-                       benchmarks/rigid_scene.cpp)
-        target_link_libraries(
-            parallel-mater-rigid-scene-benchmark
-            PRIVATE parallel-mater-gallery-scene)
-        parallel_mater_enable_warnings(parallel-mater-rigid-scene-benchmark)
-
-        add_executable(parallel-mater-rigid-capture-benchmark
-                       benchmarks/rigid_capture.cpp)
-        target_link_libraries(parallel-mater-rigid-capture-benchmark
-                              PRIVATE parallel-mater-gallery-scene)
-        parallel_mater_enable_warnings(parallel-mater-rigid-capture-benchmark)
-
-        add_executable(parallel-mater-dump-benchmark
-                       benchmarks/dump_scene.cpp)
-        target_link_libraries(
-            parallel-mater-dump-benchmark
-            PRIVATE parallel-mater-gallery-scene)
-        parallel_mater_enable_warnings(parallel-mater-dump-benchmark)
-
-        add_executable(parallel-mater-fluid-rigid-benchmark
-                       benchmarks/fluid_rigid_scene.cpp)
-        target_link_libraries(
-            parallel-mater-fluid-rigid-benchmark
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(
-            parallel-mater-fluid-rigid-benchmark PRIVATE
-            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
-        parallel_mater_enable_warnings(parallel-mater-fluid-rigid-benchmark)
-
-        add_executable(parallel-mater-pegs-benchmark
-                       benchmarks/pegs_scene.cpp)
-        target_link_libraries(
-            parallel-mater-pegs-benchmark PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(
-            parallel-mater-pegs-benchmark PRIVATE
-            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb")
-    endif()
-
     FetchContent_Declare(
         pm_optix
         GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
@@ -1028,7 +1044,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 
     add_library(parallel-mater-gallery-renderer STATIC
                 examples/support/optix_renderer.cpp
-                examples/support/cuda_gallery_device.cpp
                 examples/support/foam_visuals.cpp
                 examples/support/fluid_surface.cu
                 examples/support/overlay.cpp
@@ -1048,7 +1063,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
     target_compile_definitions(parallel-mater-gallery-renderer
         PRIVATE
-            PARALLEL_MATER_COMMAND_GALLERY_ONLY=1
             PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
             $<$<PLATFORM_ID:Windows>:NOMINMAX>)
 
@@ -1087,12 +1101,13 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     add_library(parallel-mater-gallery-application STATIC
-                examples/gallery/application.cpp)
+                examples/gallery/application.cpp
+                examples/support/cuda_runtime_platform.cpp)
     target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw parallel-mater-gallery-window)
+        PRIVATE glfw parallel-mater-gallery-window CUDA::cudart)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     add_dependencies(parallel-mater-gallery
@@ -1164,719 +1179,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 endif()
 
-if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
-    # Transitional reference-runtime tests include private implementation
-    # declarations. Public API and gallery consumers never receive this path.
-    get_property(parallel_mater_targets_before_reference_tests
-        DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
-    add_executable(parallel-mater-soft-body-geometry-tests tests/soft_body_geometry_tests.cpp)
-    target_link_libraries(parallel-mater-soft-body-geometry-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-soft-body-geometry-tests COMMAND parallel-mater-soft-body-geometry-tests)
-    add_executable(parallel-mater-fluid-soft-body-tests tests/fluid_soft_body_tests.cpp)
-    target_link_libraries(parallel-mater-fluid-soft-body-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-fluid-soft-body-tests COMMAND parallel-mater-fluid-soft-body-tests)
-    set_tests_properties(parallel-mater-fluid-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77)
-    add_executable(parallel-mater-fluid-rope-tests tests/fluid_rope_tests.cpp)
-    target_link_libraries(parallel-mater-fluid-rope-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-fluid-rope-tests COMMAND parallel-mater-fluid-rope-tests)
-    set_tests_properties(parallel-mater-fluid-rope-tests PROPERTIES SKIP_RETURN_CODE 77)
-    add_executable(parallel-mater-api-contract-tests tests/api_contract.cpp)
-    target_link_libraries(
-        parallel-mater-api-contract-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-api-contract-tests
-             COMMAND parallel-mater-api-contract-tests)
-
-    add_executable(parallel-mater-cuda-parity-capture tests/parity/cuda_capture.cpp)
-    target_link_libraries(parallel-mater-cuda-parity-capture PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-cuda-parity-capture-self-test
-             COMMAND parallel-mater-cuda-parity-capture --self-test)
-    set_tests_properties(parallel-mater-cuda-parity-capture-self-test
-                         PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-    add_executable(parallel-mater-rigid-tests tests/rigid_tests.cpp)
-    target_link_libraries(
-        parallel-mater-rigid-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-rigid-tests COMMAND parallel-mater-rigid-tests)
-    set_tests_properties(parallel-mater-rigid-tests PROPERTIES SKIP_RETURN_CODE 77)
-
-    add_executable(parallel-mater-avbd-rigid-tests
-                   tests/rigid_constraint_tests.cpp)
-    target_link_libraries(parallel-mater-avbd-rigid-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-avbd-rigid-tests COMMAND parallel-mater-avbd-rigid-tests)
-    set_tests_properties(parallel-mater-avbd-rigid-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-    add_executable(parallel-mater-hit-box-tests tests/hit_box_tests.cpp)
-    target_link_libraries(
-        parallel-mater-hit-box-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-hit-box-tests COMMAND parallel-mater-hit-box-tests)
-    set_tests_properties(parallel-mater-hit-box-tests PROPERTIES SKIP_RETURN_CODE 77)
-
-    add_executable(parallel-mater-fluid-tests tests/fluid_tests.cpp)
-    target_link_libraries(
-        parallel-mater-fluid-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-fluid-tests COMMAND parallel-mater-fluid-tests)
-    set_tests_properties(parallel-mater-fluid-tests PROPERTIES SKIP_RETURN_CODE 77)
-
-    add_executable(parallel-mater-fluid-source-tests tests/fluid_source_tests.cpp)
-    target_link_libraries(parallel-mater-fluid-source-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-fluid-source-tests COMMAND parallel-mater-fluid-source-tests)
-    set_tests_properties(parallel-mater-fluid-source-tests PROPERTIES SKIP_RETURN_CODE 77)
-
-    add_executable(parallel-mater-rope-api-tests tests/rope_api_tests.cpp)
-    target_link_libraries(parallel-mater-rope-api-tests PRIVATE ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-rope-api-tests COMMAND parallel-mater-rope-api-tests)
-    set_tests_properties(parallel-mater-rope-api-tests PROPERTIES SKIP_RETURN_CODE 77)
-
-    add_executable(parallel-mater-paint-geometry-tests
-                   tests/paint_geometry_tests.cpp)
-    target_link_libraries(parallel-mater-paint-geometry-tests PRIVATE
-        ParallelMater::parallel_mater)
-    add_test(NAME parallel-mater-paint-geometry-tests
-             COMMAND parallel-mater-paint-geometry-tests)
-
-    if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
-        add_test(NAME parallel-mater-conformance-inputs
-                 COMMAND parallel-mater-conformance --check-inputs)
-
-        find_program(PARALLEL_MATER_BLENDER_EXECUTABLE NAMES blender)
-        if(PARALLEL_MATER_BLENDER_EXECUTABLE)
-            add_executable(parallel-mater-blender-scene-check
-                           tests/gallery/blender_scene_check.cpp)
-            target_link_libraries(parallel-mater-blender-scene-check
-                                 PRIVATE parallel-mater-gallery-scene)
-            add_test(NAME parallel-mater-blender-export-tests
-                COMMAND ${PARALLEL_MATER_BLENDER_EXECUTABLE}
-                        --background --factory-startup --threads 1
-                        --python-exit-code 1
-                        --python ${CMAKE_CURRENT_SOURCE_DIR}/tests/blender/export_scene_tests.py
-                        -- --loader $<TARGET_FILE:parallel-mater-blender-scene-check>)
-            set_tests_properties(parallel-mater-blender-export-tests
-                                 PROPERTIES TIMEOUT 300)
-        endif()
-        add_executable(parallel-mater-gallery-scene-tests
-                       tests/gallery/scene_tests.cpp)
-        target_link_libraries(
-            parallel-mater-gallery-scene-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(
-            parallel-mater-gallery-scene-tests
-            PRIVATE
-                PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
-                PARALLEL_MATER_PASSIVE_ACTIVE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/PassiveActive.glb")
-        target_compile_definitions(
-            parallel-mater-gallery-scene-tests
-            PRIVATE
-                PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb")
-        target_compile_definitions(
-            parallel-mater-gallery-scene-tests
-            PRIVATE
-                PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb")
-        target_compile_definitions(
-            parallel-mater-gallery-scene-tests
-            PRIVATE
-                PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb")
-        add_test(NAME parallel-mater-gallery-scene-tests
-                 COMMAND parallel-mater-gallery-scene-tests)
-        set_tests_properties(parallel-mater-gallery-scene-tests
-                             PROPERTIES SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-device-profile-tests
-                       tests/gallery/device_profiles_tests.cpp)
-        target_link_libraries(parallel-mater-device-profile-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-device-profile-tests PRIVATE
-            PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
-            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
-        add_test(NAME parallel-mater-device-profile-tests
-                 COMMAND parallel-mater-device-profile-tests)
-
-        add_executable(parallel-mater-rigid-wall-tests
-                       tests/gallery/rigid_wall_tests.cpp)
-        target_link_libraries(parallel-mater-rigid-wall-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-rigid-wall-tests PRIVATE
-            PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
-        add_test(NAME parallel-mater-rigid-wall-tests
-                 COMMAND parallel-mater-rigid-wall-tests)
-        set_tests_properties(parallel-mater-rigid-wall-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-fixed-collector-tests
-                       tests/gallery/fixed_collector_tests.cpp)
-        target_link_libraries(parallel-mater-fixed-collector-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-fixed-collector-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb")
-        add_test(NAME parallel-mater-fixed-collector-tests
-                 COMMAND parallel-mater-fixed-collector-tests)
-        set_tests_properties(parallel-mater-fixed-collector-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-rigid-constraint-scene-tests
-                       tests/gallery/rigid_constraint_scene_tests.cpp)
-        add_executable(parallel-mater-celestial-scene-tests
-                       tests/gallery/celestial_scene_tests.cpp)
-        add_executable(parallel-mater-dump-truck-tests tests/gallery/dump_truck_tests.cpp)
-        target_link_libraries(parallel-mater-dump-truck-tests PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-dump-truck-tests PRIVATE
-            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
-        add_test(NAME parallel-mater-dump-truck-tests COMMAND parallel-mater-dump-truck-tests)
-        add_test(NAME parallel-mater-dump-payload-tests
-                 COMMAND parallel-mater-dump-truck-tests --metadata-only)
-        set_tests_properties(parallel-mater-dump-truck-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        target_link_libraries(parallel-mater-celestial-scene-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-celestial-scene-tests PRIVATE
-            PARALLEL_MATER_CELESTIAL_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb")
-        add_test(NAME parallel-mater-celestial-scene-tests
-                 COMMAND parallel-mater-celestial-scene-tests)
-        set_tests_properties(parallel-mater-celestial-scene-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-        target_link_libraries(parallel-mater-rigid-constraint-scene-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(
-            parallel-mater-rigid-constraint-scene-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
-            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPoint.glb"
-            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
-            PARALLEL_MATER_CONSTRAINT_SLIDER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintSlider.glb"
-            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGenericSpring.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotor.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb")
-        add_test(NAME parallel-mater-rigid-constraint-scene-tests
-                 COMMAND parallel-mater-rigid-constraint-scene-tests)
-        set_tests_properties(parallel-mater-rigid-constraint-scene-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-        add_test(NAME parallel-mater-hinge-slider-contact-tests
-                 COMMAND parallel-mater-rigid-constraint-scene-tests --hinge-four-substeps)
-        set_tests_properties(parallel-mater-hinge-slider-contact-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-piston-scene-tests
-                       tests/gallery/piston_scene_tests.cpp)
-        target_link_libraries(parallel-mater-piston-scene-tests
-                              PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-piston-scene-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb")
-        add_test(NAME parallel-mater-piston-scene-tests
-                 COMMAND parallel-mater-piston-scene-tests)
-        set_tests_properties(parallel-mater-piston-scene-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-arrow-force-tests tests/gallery/arrow_force_tests.cpp)
-        target_link_libraries(parallel-mater-arrow-force-tests PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-arrow-force-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb")
-        add_test(NAME parallel-mater-arrow-force-tests COMMAND parallel-mater-arrow-force-tests)
-        set_tests_properties(parallel-mater-arrow-force-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
-
-        add_executable(parallel-mater-generic-contact-tests tests/gallery/generic_contact_tests.cpp)
-        target_link_libraries(parallel-mater-generic-contact-tests PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-generic-contact-tests PRIVATE
-            PARALLEL_MATER_GENERIC_TRAY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/generic_tray.glb")
-        add_test(NAME parallel-mater-generic-contact-tests COMMAND parallel-mater-generic-contact-tests)
-        set_tests_properties(parallel-mater-generic-contact-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-cloth-tests tests/gallery/cloth_tests.cpp)
-        target_link_libraries(parallel-mater-cloth-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-cloth-tests PRIVATE
-            PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb")
-        add_test(NAME parallel-mater-cloth-tests COMMAND parallel-mater-cloth-tests)
-        set_tests_properties(parallel-mater-cloth-tests
-            PROPERTIES SKIP_RETURN_CODE 77)
-        add_executable(parallel-mater-cloth-variants-tests
-            tests/gallery/cloth_variants_tests.cpp)
-        target_link_libraries(parallel-mater-cloth-variants-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-cloth-variants-tests PRIVATE
-            PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
-            PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb")
-        add_test(NAME parallel-mater-cloth-variants-tests
-            COMMAND parallel-mater-cloth-variants-tests)
-        set_tests_properties(parallel-mater-cloth-variants-tests
-            PROPERTIES SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-cloth-water-tests
-            tests/gallery/cloth_water_tests.cpp)
-        target_link_libraries(parallel-mater-cloth-water-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-cloth-water-tests PRIVATE
-            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb")
-        add_test(NAME parallel-mater-cloth-water-tests
-            COMMAND parallel-mater-cloth-water-tests)
-        set_tests_properties(parallel-mater-cloth-water-tests
-            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-
-        add_executable(parallel-mater-soft-body-tests
-            tests/gallery/soft_body_tests.cpp)
-        target_link_libraries(parallel-mater-soft-body-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-soft-body-tests PRIVATE
-            PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb")
-        add_test(NAME parallel-mater-soft-body-tests
-            COMMAND parallel-mater-soft-body-tests)
-        set_tests_properties(parallel-mater-soft-body-tests
-            PROPERTIES SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-soft-body-rigid-tests
-            tests/gallery/soft_body_rigid_tests.cpp)
-        target_link_libraries(parallel-mater-soft-body-rigid-tests
-            PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-soft-body-rigid-tests PRIVATE
-            PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb")
-        add_test(NAME parallel-mater-soft-body-rigid-tests
-            COMMAND parallel-mater-soft-body-rigid-tests)
-        set_tests_properties(parallel-mater-soft-body-rigid-tests
-            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-        add_test(NAME parallel-mater-soft-body-contact-stress
-            COMMAND parallel-mater-soft-body-rigid-tests --contact-stress)
-        add_test(NAME parallel-mater-soft-body-shape-contact-stress
-            COMMAND parallel-mater-soft-body-rigid-tests --shape-contact-stress)
-        set_tests_properties(parallel-mater-soft-body-contact-stress
-            parallel-mater-soft-body-shape-contact-stress
-            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-
-        add_executable(parallel-mater-soft-body-cloth-tests
-                       tests/gallery/soft_body_cloth_tests.cpp)
-        target_link_libraries(parallel-mater-soft-body-cloth-tests PRIVATE
-            parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-soft-body-cloth-tests PRIVATE
-            PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb")
-        add_test(NAME parallel-mater-soft-body-cloth-tests
-                 COMMAND parallel-mater-soft-body-cloth-tests)
-        set_tests_properties(parallel-mater-soft-body-cloth-tests PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 180)
-
-        add_executable(parallel-mater-cloth-debug-tests
-                       tests/gallery/cloth_debug_tests.cpp)
-        target_link_libraries(parallel-mater-cloth-debug-tests PRIVATE
-            parallel-mater-gallery-renderer CUDA::cudart)
-        add_test(NAME parallel-mater-cloth-debug-tests
-                 COMMAND parallel-mater-cloth-debug-tests)
-        set_tests_properties(parallel-mater-cloth-debug-tests PROPERTIES
-                             SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-smoke-debug-tests
-                       tests/gallery/smoke_debug_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-debug-tests PRIVATE
-            parallel-mater-gallery-renderer CUDA::cudart)
-        add_test(NAME parallel-mater-smoke-debug-tests
-                 COMMAND parallel-mater-smoke-debug-tests)
-        set_tests_properties(parallel-mater-smoke-debug-tests PROPERTIES
-                             SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-cloth-fracture-tests
-                       tests/gallery/cloth_fracture_tests.cpp)
-        target_link_libraries(parallel-mater-cloth-fracture-tests PRIVATE
-            parallel-mater CUDA::cudart)
-        add_test(NAME parallel-mater-cloth-fracture-tests
-                 COMMAND parallel-mater-cloth-fracture-tests)
-        set_tests_properties(parallel-mater-cloth-fracture-tests PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 60)
-
-        add_executable(parallel-mater-soft-body-fluid-tests
-                       tests/gallery/soft_body_fluid_tests.cpp)
-        target_link_libraries(parallel-mater-soft-body-fluid-tests PRIVATE
-            parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-soft-body-fluid-tests PRIVATE
-            PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb")
-        add_test(NAME parallel-mater-soft-body-fluid-tests
-                 COMMAND parallel-mater-soft-body-fluid-tests)
-        set_tests_properties(parallel-mater-soft-body-fluid-tests PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 180)
-
-        add_executable(parallel-mater-rope-tests tests/gallery/rope_tests.cpp)
-        target_link_libraries(parallel-mater-rope-tests PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-rope-tests PRIVATE
-            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
-            PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb")
-        add_test(NAME parallel-mater-rope-tests COMMAND parallel-mater-rope-tests)
-        set_tests_properties(parallel-mater-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-rope-soft-body-tests tests/gallery/rope_soft_body_tests.cpp)
-        target_link_libraries(parallel-mater-rope-soft-body-tests PRIVATE parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-rope-soft-body-tests PRIVATE
-            PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb")
-        add_test(NAME parallel-mater-rope-soft-body-tests COMMAND parallel-mater-rope-soft-body-tests)
-        set_tests_properties(parallel-mater-rope-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-rope-cloth-tests tests/gallery/rope_cloth_tests.cpp)
-        target_link_libraries(parallel-mater-rope-cloth-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-rope-cloth-tests PRIVATE
-            PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb")
-        add_test(NAME parallel-mater-rope-cloth-tests COMMAND parallel-mater-rope-cloth-tests)
-        set_tests_properties(parallel-mater-rope-cloth-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-smoke-tests tests/gallery/smoke_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-tests PRIVATE
-            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb")
-        add_test(NAME parallel-mater-smoke-tests COMMAND parallel-mater-smoke-tests)
-        set_tests_properties(parallel-mater-smoke-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-smoke-grid-tests tests/gallery/smoke_grid_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-grid-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-grid-tests PRIVATE
-            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
-            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb")
-        add_test(NAME parallel-mater-smoke-grid-tests COMMAND parallel-mater-smoke-grid-tests)
-        set_tests_properties(parallel-mater-smoke-grid-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
-        add_executable(parallel-mater-smoke-water-tests tests/gallery/smoke_water_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-water-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-water-tests PRIVATE
-            PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb")
-        add_test(NAME parallel-mater-smoke-water-tests COMMAND parallel-mater-smoke-water-tests)
-        set_tests_properties(parallel-mater-smoke-water-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-smoke-soft-body-tests tests/gallery/smoke_soft_body_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-soft-body-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-soft-body-tests PRIVATE
-            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb")
-        add_test(NAME parallel-mater-smoke-soft-body-tests COMMAND parallel-mater-smoke-soft-body-tests)
-        set_tests_properties(parallel-mater-smoke-soft-body-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-smoke-cloth-tests tests/gallery/smoke_cloth_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-cloth-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-cloth-tests PRIVATE
-            PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb")
-        add_test(NAME parallel-mater-smoke-cloth-tests COMMAND parallel-mater-smoke-cloth-tests)
-        set_tests_properties(parallel-mater-smoke-cloth-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_executable(parallel-mater-smoke-rope-tests tests/gallery/smoke_rope_tests.cpp)
-        target_link_libraries(parallel-mater-smoke-rope-tests PRIVATE parallel-mater-gallery-scene CUDA::cudart)
-        target_compile_definitions(parallel-mater-smoke-rope-tests PRIVATE
-            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
-        add_test(NAME parallel-mater-smoke-rope-tests COMMAND parallel-mater-smoke-rope-tests)
-        set_tests_properties(parallel-mater-smoke-rope-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_test(NAME parallel-mater-rope-soft-body-winding-tests
-                 COMMAND parallel-mater-rope-soft-body-tests 320 --wind)
-        set_tests_properties(parallel-mater-rope-soft-body-winding-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_test(NAME parallel-mater-rope-soft-body-release-tests
-                 COMMAND parallel-mater-rope-soft-body-tests 1000 --wind-release)
-        set_tests_properties(parallel-mater-rope-soft-body-release-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        if(TARGET parallel-mater-dump-benchmark)
-            add_test(NAME parallel-mater-dump-small-contact-tests
-                     COMMAND parallel-mater-dump-benchmark 100 1200)
-            set_tests_properties(parallel-mater-dump-small-contact-tests
-                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-            add_test(NAME parallel-mater-dump-fused-limit-tests
-                     COMMAND parallel-mater-dump-benchmark 250 240)
-            set_tests_properties(parallel-mater-dump-fused-limit-tests
-                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        endif()
-        if(TARGET parallel-mater-fluid-rigid-benchmark)
-            add_test(NAME parallel-mater-fluid-rigid-small-contact-tests
-                     COMMAND parallel-mater-fluid-rigid-benchmark 1000)
-            set_tests_properties(parallel-mater-fluid-rigid-small-contact-tests
-                                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        endif()
-        add_test(NAME parallel-mater-rope-soft-body-pull-tests
-                 COMMAND parallel-mater-rope-soft-body-tests 180 --pull)
-        set_tests_properties(parallel-mater-rope-soft-body-pull-tests
-                             PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_test(NAME parallel-mater-rope-settle-tests
-                 COMMAND parallel-mater-rope-tests 1200 --settle)
-        add_test(NAME parallel-mater-rope-release-tests
-                 COMMAND parallel-mater-rope-tests 1200 --settle-after-motion)
-        add_test(NAME parallel-mater-rope-wrap-tests
-                 COMMAND parallel-mater-rope-tests 600 --wrapped)
-        add_test(NAME parallel-mater-rope-winding-tests
-                 COMMAND parallel-mater-rope-tests 500 --winding)
-        add_test(NAME parallel-mater-rope-fluid-tests
-                 COMMAND parallel-mater-rope-tests 180 --fluid)
-        add_test(NAME parallel-mater-rope-fluid-winding-tests
-                 COMMAND parallel-mater-rope-tests 600 --fluid-winding)
-        set_tests_properties(parallel-mater-rope-fluid-tests
-                             parallel-mater-rope-fluid-winding-tests PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 240)
-        set_tests_properties(parallel-mater-rope-settle-tests
-                             parallel-mater-rope-release-tests
-                             parallel-mater-rope-wrap-tests
-                             parallel-mater-rope-winding-tests PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 180)
-        add_test(NAME parallel-mater-soft-body-fluid-dry-test
-                 COMMAND parallel-mater-soft-body-fluid-tests 600 --dry)
-        set_tests_properties(parallel-mater-soft-body-fluid-dry-test PROPERTIES
-                             SKIP_RETURN_CODE 77 TIMEOUT 180)
-
-        add_executable(parallel-mater-material-visibility-tests
-                       tests/gallery/material_visibility_tests.cpp)
-        target_link_libraries(parallel-mater-material-visibility-tests PRIVATE
-            parallel-mater-gallery-renderer CUDA::cudart)
-        target_compile_definitions(parallel-mater-material-visibility-tests PRIVATE
-            PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf"
-            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
-            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb")
-        add_test(NAME parallel-mater-material-visibility-tests
-                 COMMAND parallel-mater-material-visibility-tests)
-        set_tests_properties(parallel-mater-material-visibility-tests
-                             PROPERTIES SKIP_RETURN_CODE 77)
-
-        add_executable(parallel-mater-foam-visuals-tests
-                       tests/gallery/foam_visuals_tests.cpp
-                       examples/support/foam_visuals.cpp)
-        target_include_directories(parallel-mater-foam-visuals-tests PRIVATE
-            examples/support examples/support/include)
-        target_link_libraries(parallel-mater-foam-visuals-tests PRIVATE
-            ParallelMater::parallel_mater)
-        target_compile_features(parallel-mater-foam-visuals-tests PRIVATE cxx_std_20)
-        add_test(NAME parallel-mater-foam-visuals-tests
-                 COMMAND parallel-mater-foam-visuals-tests)
-
-        if(PARALLEL_MATER_BUILD_BENCHMARKS)
-            add_test(NAME parallel-mater-pegs-stability-test
-                     COMMAND parallel-mater-pegs-benchmark --verify-settling)
-            set_tests_properties(parallel-mater-pegs-stability-test
-                                 PROPERTIES SKIP_RETURN_CODE 77)
-            add_test(NAME parallel-mater-pegs-tilt-test
-                     COMMAND parallel-mater-pegs-benchmark --verify-tilt)
-            set_tests_properties(parallel-mater-pegs-tilt-test
-                                 PROPERTIES SKIP_RETURN_CODE 77)
-            add_test(NAME parallel-mater-pegs-slosh-test
-                     COMMAND parallel-mater-pegs-benchmark --verify-slosh)
-            set_tests_properties(parallel-mater-pegs-slosh-test
-                                 PROPERTIES SKIP_RETURN_CODE 77)
-        endif()
-
-        add_executable(parallel-mater-fluid-surface-tests
-                       tests/gallery/fluid_surface_tests.cpp)
-        target_include_directories(parallel-mater-fluid-surface-tests PRIVATE
-            examples/support ${pm_optix_SOURCE_DIR}/include)
-        target_link_libraries(parallel-mater-fluid-surface-tests PRIVATE
-            parallel-mater-gallery-renderer CUDA::cudart)
-        target_compile_definitions(parallel-mater-fluid-surface-tests PRIVATE
-            PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb")
-        add_test(NAME parallel-mater-fluid-surface-tests
-                 COMMAND parallel-mater-fluid-surface-tests)
-        set_tests_properties(parallel-mater-fluid-surface-tests
-                             PROPERTIES SKIP_RETURN_CODE 77)
-        function(add_gallery_headless_test name output frames)
-            add_test(
-                NAME ${name}
-                COMMAND parallel-mater-gallery
-                        ${ARGN}
-                        --headless ${CMAKE_CURRENT_BINARY_DIR}/${output}
-                        --frames ${frames})
-        endfunction()
-
-        add_gallery_headless_test(
-            parallel-mater-optix-headless-test
-            parallel-mater-optix-test.ppm 30)
-        add_gallery_headless_test(
-            parallel-mater-constraint-fixed-headless-test
-            parallel-mater-constraint-fixed.ppm 120 --constraint-fixed
-            --gravity-tilt-degrees 30)
-        add_gallery_headless_test(
-            parallel-mater-constraint-point-headless-test
-            parallel-mater-constraint-point.ppm 180 --constraint-point)
-        add_gallery_headless_test(
-            parallel-mater-constraint-point-release-headless-test
-            parallel-mater-constraint-point-release.ppm 180 --constraint-point
-            --constraint-action-after-frames 60)
-        add_gallery_headless_test(
-            parallel-mater-constraint-hinge-headless-test
-            parallel-mater-constraint-hinge.ppm 120 --constraint-hinge)
-        add_gallery_headless_test(
-            parallel-mater-constraint-piston-headless-test
-            parallel-mater-constraint-piston.ppm 120 --constraint-piston)
-        add_gallery_headless_test(
-            parallel-mater-constraint-generic-headless-test
-            parallel-mater-constraint-generic.ppm 120 --constraint-generic)
-        add_gallery_headless_test(
-            parallel-mater-constraint-motor-spring-headless-test
-            parallel-mater-constraint-motor-spring.ppm 120
-            --constraint-motor-spring --motor-forward --motor-right)
-        add_gallery_headless_test(
-            parallel-mater-rope-headless-test
-            parallel-mater-rope-settled.ppm 900 --rope)
-        add_gallery_headless_test(
-            parallel-mater-rope-fluid-headless-test
-            parallel-mater-rope-fluid.ppm 180 --rope-fluid)
-        set_tests_properties(parallel-mater-rope-fluid-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-rope-soft-body-headless-test
-            parallel-mater-rope-soft-body.ppm 180 --rope-soft-body)
-        add_gallery_headless_test(
-            parallel-mater-rope-cloth-headless-test
-            parallel-mater-rope-cloth.ppm 300 --rope-cloth)
-        add_gallery_headless_test(
-            parallel-mater-smoke-headless-test
-            parallel-mater-smoke.ppm 240 --smoke)
-        add_gallery_headless_test(
-            parallel-mater-smoke-soft-body-headless-test
-            parallel-mater-smoke-soft-body.ppm 180 --smoke-softbody)
-        set_tests_properties(parallel-mater-smoke-soft-body-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-smoke-cloth-headless-test
-            parallel-mater-smoke-cloth.ppm 180 --smoke-cloth)
-        set_tests_properties(parallel-mater-smoke-cloth-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-smoke-rope-headless-test
-            parallel-mater-smoke-rope.ppm 180 --smoke-rope)
-        set_tests_properties(parallel-mater-smoke-rope-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-smoke-rope-tilt-headless-test
-            parallel-mater-smoke-rope-tilt.ppm 90 --smoke-rope
-            --gravity-tilt-degrees 45)
-        set_tests_properties(parallel-mater-smoke-rope-tilt-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Smoke particles=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-dump-headless-test
-            parallel-mater-dump-test.ppm 150 --dump-spheres 10)
-        add_gallery_headless_test(
-            parallel-mater-dump-tip-headless-test
-            parallel-mater-dump-tip.ppm 480 --dump-spheres 100 --dump-after-frames 120)
-        add_gallery_headless_test(
-            parallel-mater-dump-drive-headless-test
-            parallel-mater-dump-drive.ppm 60 --dump-spheres 10 --motor-forward --motor-right)
-        add_gallery_headless_test(
-            parallel-mater-fluid-headless-test
-            parallel-mater-fluid-test.ppm 30 --fluid)
-        set_tests_properties(parallel-mater-fluid-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-fluid-rigid-headless-test
-            parallel-mater-fluid-rigid-test.ppm 120 --fluid-rigid)
-        set_tests_properties(parallel-mater-fluid-rigid-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "foam_patches=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-peg-paint-headless-test
-            parallel-mater-peg-paint-test.ppm 180 --peg-paint)
-        add_gallery_headless_test(
-            parallel-mater-cloth-headless-test
-            parallel-mater-cloth-test.ppm 180 --cloth)
-        add_gallery_headless_test(
-            parallel-mater-cloth-tear-headless-test
-            parallel-mater-cloth-tear-test.ppm 180 --cloth-tear)
-        add_gallery_headless_test(
-            parallel-mater-cloth-tear-rolled-render-test
-            parallel-mater-cloth-tear-rolled-test.ppm 420
-            --cloth-tear --cloth-tilt-degrees 45
-            --cloth-tilt-after-frames 120)
-        add_gallery_headless_test(
-            parallel-mater-cloth-paint-headless-test
-            parallel-mater-cloth-paint-test.ppm 180 --cloth-paint)
-        set_tests_properties(parallel-mater-cloth-paint-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Painted texels=[1-9][0-9]*")
-        add_gallery_headless_test(
-            parallel-mater-water-cloth-headless-test
-            parallel-mater-water-cloth-test.ppm 180 --water-cloth)
-        set_tests_properties(parallel-mater-water-cloth-headless-test PROPERTIES
-            TIMEOUT 120)
-        add_gallery_headless_test(
-            parallel-mater-water-cloth-debug-headless-test
-            parallel-mater-water-cloth-debug-test.ppm 180 --water-cloth-debug)
-        set_tests_properties(
-            parallel-mater-water-cloth-debug-headless-test PROPERTIES
-            TIMEOUT 120)
-        add_gallery_headless_test(
-            parallel-mater-water-cloth-left-regression-test
-            parallel-mater-water-cloth-left-test.ppm 180
-            --water-cloth --cloth-tilt-left)
-        set_tests_properties(
-            parallel-mater-water-cloth-left-regression-test PROPERTIES
-            TIMEOUT 120)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-headless-test
-            parallel-mater-soft-body-test.ppm 180 --soft-body)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-tilt-headless-test
-            parallel-mater-soft-body-tilt-test.ppm 180
-            --soft-body --cloth-tilt-degrees 45)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-rigid-headless-test
-            parallel-mater-soft-body-rigid-test.ppm 180
-            --soft-body-rigid --cloth-tilt-degrees 45)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-cloth-headless-test
-            parallel-mater-soft-body-cloth-test.ppm 180 --soft-body-cloth)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-fluid-headless-test
-            parallel-mater-soft-body-fluid-test.ppm 240 --soft-body-fluid --fluid-particles 4000)
-        add_gallery_headless_test(
-            parallel-mater-soft-body-cloth-tear-debug-test
-            parallel-mater-soft-body-cloth-tear-debug.ppm 600 --soft-body-cloth
-            --cloth-tilt-after-frames 240 --cloth-tilt-degrees 45 --cloth-debug)
-        set_tests_properties(parallel-mater-soft-body-cloth-tear-debug-test PROPERTIES
-                             PASS_REGULAR_EXPRESSION "Cloth debug surfaces=2")
-        add_gallery_headless_test(
-            parallel-mater-physics-capture-headless-test
-            parallel-mater-physics-capture-test.ppm 10
-            --physics-capture
-            ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-physics-capture-test.log)
-        set_tests_properties(
-            parallel-mater-physics-capture-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Physics capture")
-        add_gallery_headless_test(
-            parallel-mater-peg-paint-containment-test
-            parallel-mater-peg-paint-containment-test.ppm 600
-            --peg-paint --fluid-particle-view --trace-fluid-escapes)
-        add_gallery_headless_test(
-            parallel-mater-peg-paint-cap-test
-            parallel-mater-peg-paint-cap-test.ppm 180
-            --peg-paint --fluid-particles 100)
-        add_gallery_headless_test(
-            parallel-mater-fluid-containment-test
-            parallel-mater-fluid-containment-test.ppm 120
-            --fluid --trace-fluid-escapes)
-        add_gallery_headless_test(
-            parallel-mater-fluid-cap-headless-test
-            parallel-mater-fluid-cap-test.ppm 30 --fluid-particles 100)
-        set_tests_properties(parallel-mater-fluid-cap-headless-test PROPERTIES
-            PASS_REGULAR_EXPRESSION "Fluid particles=100 ")
-        add_gallery_headless_test(
-            parallel-mater-fluid-particle-view-test
-            parallel-mater-fluid-particles-test.ppm 30 --fluid-particle-view)
-    endif()
-    get_property(parallel_mater_reference_test_targets
-        DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
-    list(REMOVE_ITEM parallel_mater_reference_test_targets
-         ${parallel_mater_targets_before_reference_tests})
-    foreach(parallel_mater_reference_test_target
-            IN LISTS parallel_mater_reference_test_targets)
-        target_include_directories(${parallel_mater_reference_test_target}
-            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-        target_link_libraries(${parallel_mater_reference_test_target}
-            PRIVATE ParallelMater::slang_cuda_driver)
-    endforeach()
-endif()
-
-if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS AND
-   NOT PARALLEL_MATER_BUILD_OPTIX_GALLERY)
-    add_library(parallel-mater-cuda-conformance-scene STATIC
-        examples/support/scene.cpp
-        examples/support/rope_render.cpp
-        examples/support/surface_query.cpp)
-    target_compile_features(parallel-mater-cuda-conformance-scene
-                            PUBLIC cxx_std_20)
-    target_include_directories(parallel-mater-cuda-conformance-scene
-        PUBLIC examples/support/include src
-        PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
-    target_link_libraries(parallel-mater-cuda-conformance-scene
-                          PUBLIC ParallelMater::slang_cuda_driver)
-
-    execute_process(
-        COMMAND git rev-parse HEAD
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        OUTPUT_VARIABLE PARALLEL_MATER_CUDA_CONFORMANCE_SOURCE_COMMIT
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET)
-    if(NOT PARALLEL_MATER_CUDA_CONFORMANCE_SOURCE_COMMIT)
-        set(PARALLEL_MATER_CUDA_CONFORMANCE_SOURCE_COMMIT unknown)
-    endif()
-    add_executable(parallel-mater-cuda-conformance
-                   conformance/v1/src/cuda_runner.cpp)
-    target_link_libraries(parallel-mater-cuda-conformance PRIVATE
-        parallel-mater-conformance-registry
-        parallel-mater-cuda-conformance-scene
-        CUDA::cudart)
-    target_compile_features(parallel-mater-cuda-conformance PRIVATE cxx_std_20)
-    target_compile_definitions(parallel-mater-cuda-conformance PRIVATE
-        PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-        PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CUDA_CONFORMANCE_SOURCE_COMMIT}")
-endif()
 endif() # PARALLEL_MATER_BUILD_CUDA
 
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
