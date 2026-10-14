@@ -64,12 +64,19 @@ if("CUDA" IN_LIST contact_test_languages)
 endif()
 
 if(TARGET parallel-mater-slang-geometry-constraints AND Python3_EXECUTABLE)
+    set(parallel_mater_slang_reflections
+        ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_CUDA_REFLECTION}
+        ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_METAL_REFLECTION}
+        ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_HLSL_REFLECTION})
+    if(WIN32)
+        list(APPEND parallel_mater_slang_reflections
+            ${PARALLEL_MATER_SLANG_AVBD_PREPARE_DXIL_REFLECTION}
+            ${PARALLEL_MATER_SLANG_AVBD_SOLVE_DXIL_REFLECTION})
+    endif()
     add_test(NAME parallel-mater-avbd-slang-reflection-tests
         COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/check_slang_reflection.py
-            ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_CUDA_REFLECTION}
-            ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_METAL_REFLECTION}
-            ${PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_HLSL_REFLECTION})
+            ${parallel_mater_slang_reflections})
     set_tests_properties(parallel-mater-avbd-slang-reflection-tests
                          PROPERTIES LABELS "slang;avbd")
 endif()

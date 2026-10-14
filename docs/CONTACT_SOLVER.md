@@ -12,9 +12,9 @@ velocity solve, or guided-body projection in the production stepping path.
 Collision filtering still groups welded siblings; that does not merge their
 physical mass or replace their joints.
 
-The D3D12 backend merged from `main` is preserved separately and has not been
-ported to AVBD. The equations, iteration semantics and validation below describe
-CUDA/Metal, not D3D12 solver parity.
+The retired DirectCompute backend is no longer present. The equations,
+iteration semantics and validation below describe the common Slang solver;
+native APIs provide execution and presentation rather than separate physics.
 
 ## Shared numerical core
 

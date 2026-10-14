@@ -101,10 +101,9 @@ int main() {
 
         const Camera camera{.eye = {0.0F, 3.0F, 3.0F}, .target = {}};
         auto render = [&](const SceneDefinition &definition) {
-            OptixRenderer renderer;
-            require(OptixRenderer::create(definition, instance,
-                                         PARALLEL_MATER_OPTIX_PTX_PATH,
-                                         96U, 96U, renderer, error), error);
+            GalleryRenderer renderer;
+            require(GalleryRenderer::create(
+                definition, instance, 96U, 96U, renderer, error), error);
             RenderSceneFrame render_frame;
             require(make_render_scene_frame(definition, frame, render_frame,
                                             error), error);
@@ -139,10 +138,9 @@ int main() {
                     {0.0F, -9.81F, 0.0F}, water_frame, error), error);
         const auto render_water = [&](SceneDefinition definition,
                                       FluidRenderMode mode) {
-            OptixRenderer renderer;
-            require(OptixRenderer::create(
-                definition, water_instance,
-                PARALLEL_MATER_OPTIX_PTX_PATH, 96U, 96U, renderer, error),
+            GalleryRenderer renderer;
+            require(GalleryRenderer::create(
+                definition, water_instance, 96U, 96U, renderer, error),
                 error);
             RenderSceneFrame render_frame;
             require(make_render_scene_frame(definition, water_frame,

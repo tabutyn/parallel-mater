@@ -18,7 +18,7 @@ $targets = @($manifest.files | ForEach-Object {
     if (!$target.StartsWith($installRoot + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe installation manifest path.' }
     $target
 })
-$running = Get-Process -Name 'Parallel-Mater','parallel-mater-d3d12-gallery' -ErrorAction SilentlyContinue |
+$running = Get-Process -Name 'Parallel-Mater' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and [IO.Path]::GetDirectoryName($_.Path) -eq $installRoot }
 if ($running) { throw 'Close Parallel-Mater before uninstalling it.' }
 if (!$PSCmdlet.ShouldProcess($installRoot,'Uninstall Parallel-Mater; preserve user captures and logs')) { return }

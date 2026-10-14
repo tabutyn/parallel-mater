@@ -2,6 +2,18 @@
 // Shared physics resource and value layouts.
 // Keep aggregate fields scalar so their layouts match host-visible API records.
 
+#ifndef PM_TARGET_D3D12
+#define PM_TARGET_D3D12 0
+#endif
+
+// DXIL cannot perform memory access through i8 values. Keep logical enum
+// values identical while exposing a legal structured-buffer scalar.
+#if PM_TARGET_D3D12
+#define PM_STORAGE_UINT8 uint
+#else
+#define PM_STORAGE_UINT8 uint8_t
+#endif
+
 static const float kEpsilon = 1.0e-6f;
 static const uint kInvalidDense = 0xffffffffu;
 
@@ -57,7 +69,7 @@ struct HitBox
     Vec3 half_extents;
 };
 
-enum MotionType : uint8_t
+enum MotionType : PM_STORAGE_UINT8
 {
     static_body,
     kinematic,
