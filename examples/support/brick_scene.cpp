@@ -7,11 +7,7 @@
 #include <numeric>
 #include <sstream>
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-namespace parallel_mater::metal::gallery {
-#else
 namespace parallel_mater::gallery {
-#endif
 namespace {
 
 bool is_brick(const RigidBodyDefinition &body) {
@@ -223,8 +219,4 @@ bool make_brick_scene(const SceneDefinition &authored,
     return true;
 }
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-} // namespace parallel_mater::metal::gallery
-#else
 } // namespace parallel_mater::gallery
-#endif

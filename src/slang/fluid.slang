@@ -8,9 +8,6 @@ import device_intrinsics;
 #ifndef PM_TARGET_CUDA
 #define PM_TARGET_CUDA 1
 #endif
-#ifndef PM_TARGET_METAL
-#define PM_TARGET_METAL 0
-#endif
 
 static const int kFluidCellBias = 1 << 20;
 static const uint64_t kFluidEmptyCell = 0xffffffffffffffffull;
@@ -406,20 +403,6 @@ struct PMParticleMetadata
     uint64_t boiled;
 };
 
-#if PM_TARGET_METAL
-[[vk::binding(0, 0)]] RWStructuredBuffer<PMPackedVec3> positions : register(u0);
-[[vk::binding(1, 0)]] RWStructuredBuffer<PMPackedVec3> velocities : register(u1);
-[[vk::binding(2, 0)]] RWStructuredBuffer<PMPackedVec3> accelerations : register(u2);
-[[vk::binding(4, 0)]] RWStructuredBuffer<float> foam : register(u4);
-[[vk::binding(6, 0)]] ConstantBuffer<PMFluidConstants> constantsBuffer : register(b6);
-[[vk::binding(7, 0)]] StructuredBuffer<PMParticleMetadata> metadata : register(t7);
-[[vk::binding(8, 0)]] RWStructuredBuffer<PMPackedVec3> previous : register(u8);
-[[vk::binding(9, 0)]] RWStructuredBuffer<float> foamSources : register(u9);
-[[vk::binding(10, 0)]] RWStructuredBuffer<uint64_t> cellKeys : register(u10);
-[[vk::binding(12, 0)]] RWStructuredBuffer<uint> sortedIndices : register(u12);
-[[vk::binding(14, 0)]] RWStructuredBuffer<uint> neighborOverflow : register(u14);
-[[vk::binding(15, 0)]] RWStructuredBuffer<uint> maximumNeighborCount : register(u15);
-#endif
 
 static const int kPmFluidCellBias = 1 << 20;
 static const uint64_t kPmFluidEmptyCell = ~uint64_t(0);
@@ -490,13 +473,7 @@ void pm_fluid_cell_keys(
 )
 {
     uint index = dispatchThreadId.x;
-#if PM_TARGET_METAL
-    uint count = metadata[0].count;
-    uint capacity = metadata[0].capacity;
-    float inverseRadius = 1.0f / constantsBuffer.supportRadius;
-#else
     uint count = countBuffer[0];
-#endif
     if (index >= capacity)
         return;
     if (index >= count)
@@ -536,17 +513,8 @@ void pm_fluid_forces(
 )
 {
     uint index = dispatchThreadId.x;
-#if PM_TARGET_METAL
-    PMFluidConstants constants = constantsBuffer;
-    uint count = metadata[0].count;
-    float3 gravity = pmLoad(constants.gravity);
-    float3 up = dot(gravity, gravity) > 1.0e-12f
-        ? -normalize(gravity)
-        : float3(0.0f, 1.0f, 0.0f);
-#else
     uint count = countBuffer[0];
     float3 up = pmLoad(upValue);
-#endif
     if (index >= count)
         return;
 
@@ -648,12 +616,7 @@ void pm_fluid_integrate(
 )
 {
     uint index = dispatchThreadId.x;
-#if PM_TARGET_METAL
-    PMFluidConstants constants = constantsBuffer;
-    uint count = metadata[0].count;
-#else
     uint count = countBuffer[0];
-#endif
     if (index >= count)
         return;
     previous[index] = positions[index];

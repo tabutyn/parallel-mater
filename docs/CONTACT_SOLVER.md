@@ -1,11 +1,11 @@
 # Unified rigid AVBD solver
 
-The production CUDA/Metal adapters described here consume the numerical core
-generated from [one Slang implementation](SLANG.md). The portable C++ header is
+The production CUDA adapter consumes the numerical core generated from
+[one Slang implementation](SLANG.md). The portable C++ header is
 the host reference used by equation fixtures. Collision geometry, graph
 construction, storage, synchronization, and dispatch remain backend adapters.
 
-On CUDA and Metal, rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
+Rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
 There is no stack-only solver, joint-triggered fallback, welded-compound
 velocity solve, or guided-body projection in the production stepping path.
@@ -19,7 +19,8 @@ native APIs provide execution and presentation rather than separate physics.
 ## Shared numerical core
 
 [geometry_constraints.slang](../src/slang/geometry_constraints.slang) is
-compiled into the production CUDA and Metal kernels. It owns both the shared
+compiled into the production CUDA runtime and cross-target validation outputs.
+It owns both the shared
 AVBD numerical core and the migrating rigid contact/joint solver entry points.
 [geometry_constraints.hpp](../include/parallel_mater/solver/geometry_constraints.hpp)
 preserves
@@ -33,8 +34,8 @@ shared numerical core owns:
 - Corrective-phase reference forces, so total motor/friction bounds are not
   accidentally applied twice.
 
-The CUDA and Metal adapters own geometry, persistent state, adjacency, vertex
-coloring and GPU synchronization. Static/kinematic endpoints are read-only.
+Device adapters own geometry, persistent state, adjacency, vertex coloring and
+GPU synchronization. Static/kinematic endpoints are read-only.
 Dynamic contact and joint edges connect islands; sharing a floor does not.
 CPU fixtures exercise the portable reference, while Slang reflection and PTX
 fixtures exercise generated code from the production source.
@@ -125,12 +126,9 @@ CUDA distributes colored vertices over a resident cooperative grid; devices
 without cooperative launch use the same equations in one thread block.
 Graph preparation stages compact adjacency, parent and color metadata in a
 bounded shared-memory cache. CUDA caches the first 1,024 bodies/contacts and
-128 joints (44,032 bytes); Metal uses 512/512/64 (22,016 bytes). Entries outside
-those prefixes use global storage through the same accessors. Union order,
-coloring order and physical equations do not change at a cache boundary.
-Metal currently uses one threadgroup. Metal's optional rigid sleeping is
-conservatively disabled during this migration: bodies stay awake rather than
-using the old solver's incompatible sleeping state.
+128 joints (44,032 bytes). Entries outside those prefixes use global storage
+through the same accessors. Union order, coloring order and physical equations
+do not change at a cache boundary.
 
 ## Validation
 
@@ -194,12 +192,8 @@ ctest --test-dir build-gallery -j1 --output-on-failure \
 Full gallery regressions and backend conformance remain separate requirements:
 scalar parity does not prove collision generation, scene stability or coupled
 fluid/rope/cloth behavior. Do not regenerate goldens or loosen physical
-tolerances to conceal a solver regression. Native Metal compilation and device
-testing require an Apple host; Linux layout/syntax checks are not substitutes.
-The pre-existing collision adapters are not identical: Metal lacks CUDA's
-per-triangle outward-shell normals used to reject some guided swept contacts.
-Thin/one-sided guided CCD therefore needs particular attention in native
-backend comparison; a shared numerical solver alone does not close that gap.
+tolerances to conceal a solver regression. A future device adapter must pass
+these gates before its native API is advertised.
 
 The migration also repairs two coupled-contact cases exposed by changed rigid
 trajectories: opposing soft-surface planes use the two-halfspace projection
@@ -210,5 +204,4 @@ anisotropic mass and enforcing the friction bound against the corrected normal
 force. This is one coupled tangent descent step, not a claim of fully converged
 sliding friction. Rope supports remain unilateral; an
 upward-gravity lift-off regression checks that settled nodes can still leave
-the floor. The rope correction is mirrored in Metal; the soft-surface cleanup
-is CUDA-only. These changes do not increase the global rigid iteration budget.
+the floor. These changes do not increase the global rigid iteration budget.

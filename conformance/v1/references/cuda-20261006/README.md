@@ -10,27 +10,10 @@ CUDA compiler 13.1.80, runtime/driver API version 13010; GCC 12.2.0;
 Release, CUDA ON, Metal OFF, OptiX gallery ON, testing ON, architecture 86.
 The archive includes the actual CMake cache and NVIDIA driver report.
 
-## Use on the Mac
-
-Check out this branch (or its merged descendant), build the Metal backend, then:
-
-```bash
-mkdir -p /tmp/cuda-reference-20261006
-tar -xzf conformance/v1/references/cuda-20261006/physics-runs.tar.gz \
-  -C /tmp/cuda-reference-20261006
-build-metal/parallel-mater-metal-conformance --check-inputs
-build-metal/parallel-mater-metal-conformance --case all --output /tmp/metal-results
-python3 conformance/v1/compare.py --cases conformance/v1/cases \
-  --expected /tmp/cuda-reference-20261006/run-01 --actual /tmp/metal-results \
-  --report /tmp/metal-vs-cuda.json
-build-metal/parallel-mater-metal-parity-capture /tmp/metal.capture
-build-metal/parallel-mater-parity-compare \
-  /tmp/cuda-reference-20261006/all-systems-01.capture /tmp/metal.capture
-```
-
-`run-01` is simply the first capture, **not a selected best result**. For any
-of the five non-repeatable cases, compare against all ten retained runs before
-classifying a discrepancy as Metal-specific. Do not loosen tolerances to match.
+The backend-specific Metal comparison commands from the original handoff were
+retired with that compatibility adapter. This archive remains a historical CUDA
+diagnostic corpus. `run-01` is simply the first capture, **not a selected best
+result**; do not treat it as a selected best result or loosen tolerances to match.
 
 ## Repeatability findings
 

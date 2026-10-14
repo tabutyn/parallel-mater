@@ -39,13 +39,8 @@ int main() {
     using parallel_mater::RigidBodyState;
     using parallel_mater::WorldOptions;
     using parallel_mater::WorldStatistics;
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-    using namespace parallel_mater::metal::gallery;
-    using World = parallel_mater::metal::World;
-#else
     using namespace parallel_mater::gallery;
     using World = parallel_mater::World;
-#endif
 
     std::string error;
     check(validate_brick_config({1U, 0.5F, 1U}, error),
@@ -64,8 +59,8 @@ int main() {
               brick_calibration_presets().back() ==
                   BrickSceneConfig{3'840U, 0.5F, 5U},
           "calibration ladder must retain its version-one endpoints");
-    check(estimated_metal_contact_bytes(400U) >
-              estimated_metal_contact_bytes(200U),
+    check(estimated_contact_bytes(400U) >
+              estimated_contact_bytes(200U),
           "contact memory estimate must grow with body count");
 
     DeviceProfileCatalog catalog;
@@ -452,11 +447,11 @@ int main() {
           "AVBD must accept matching CUDA calibration");
     legacy_profile->solver_version = "metal-rigid-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, metal_rigid_solver_version) == nullptr,
+              brick_render_width, brick_render_height, "metal-avbd-v1") == nullptr,
           "AVBD must reject pre-migration Metal calibration");
-    legacy_profile->solver_version = metal_rigid_solver_version;
+    legacy_profile->solver_version = "metal-avbd-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, metal_rigid_solver_version) != nullptr,
+              brick_render_width, brick_render_height, "metal-avbd-v1") != nullptr,
           "AVBD must accept matching Metal calibration");
     auto mismatched_hardware = profile.hardware;
     mismatched_hardware.power_mode = "low-power";

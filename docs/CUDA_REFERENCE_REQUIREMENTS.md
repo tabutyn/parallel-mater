@@ -87,17 +87,9 @@ capture the later ball-only tilt, support-impulse, independent-impact, and
 teleport/cache-invalidation phases so a resting-wall fix cannot freeze the
 bricks or break controls.
 
-Metal can emit the same schema from
-`parallel-mater-metal-rigid-wall-tests`. Comparing those phase records—not the
-30-case score—is the acceptance path for the first simulation users see.
-
-Metal probes also rule out three broad substitutions: a prepared response
-patch alone, that patch combined with first-fit coloring, and simply doubling
-the world substeps. The first two destabilize the wall more; eight substeps
-improves but does not pass the unchanged gate and costs about 2.8 times the
-wall-test runtime. The requested trace therefore needs the first divergent
-contact row and cache transition, not just CUDA's high-level solver mode or a
-different gallery timestep.
+A future device adapter must emit the same schema through the shared command
+API. Comparing those phase records—not only the 30-case score—is the acceptance
+path for the first simulation users see.
 
 ## CUDA engine traces still needed
 
@@ -186,25 +178,23 @@ values.
 For a guided or constrained body, include the complete contact frame used by
 CUDA: fixed, axial, axial-rotation, fixed-member, and static-body flags; body
 reference point; axis; projected point velocity; directional inverse mass;
-and the exact impulse applied to every aggregate member. Metal now mirrors
-those contact-frame fields, so these records are needed to determine whether
-the first mismatch is geometry, frame construction, or constrained impulse
-response.
+and the exact impulse applied to every aggregate member. These records are
+needed to determine whether a mismatch is geometry, frame construction, or
+constrained impulse response.
 
-The shared conformance runner can now produce the frame-level outer trace
-without modifying the canonical registry. Run the CUDA and Metal binaries
-with the same command before adding kernel-local instrumentation:
+The shared conformance runner can produce the frame-level outer trace without
+modifying the canonical registry. Run the CUDA binary before adding
+kernel-local instrumentation:
 
 ```bash
 parallel-mater-conformance --case rigid-direct --every-frame \
   --output /path/to/cuda-every-frame
-parallel-mater-metal-conformance --case rigid-direct --every-frame \
-  --output /path/to/metal-every-frame
 ```
 
 Repeat for a remaining case to identify the first divergent frame. This mode
 retains canonical case provenance, cannot update goldens, and does not replace
-the cache/solver fields requested above.
+the cache/solver fields requested above. Future adapters must expose equivalent
+tracing through the command API rather than a backend-specific runner.
 
 ### Constraint solve
 
@@ -279,7 +269,6 @@ git status --short
 cmake -S . -B build-cuda-reference \
   -DCMAKE_BUILD_TYPE=Release \
   -DPARALLEL_MATER_BUILD_CUDA=ON \
-  -DPARALLEL_MATER_BUILD_METAL=OFF \
   -DPARALLEL_MATER_BUILD_OPTIX_GALLERY=ON \
   -DBUILD_TESTING=ON
 cmake --build build-cuda-reference --parallel

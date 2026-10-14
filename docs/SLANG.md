@@ -18,12 +18,9 @@ The command-API CUDA driver dispatches generated Slang kernels. Its device and
 simulation adapters allocate, transfer, synchronize, and dispatch; they do not
 contain alternate physics equations.
 
-The Metal compatibility `World` builds every physics kernel from Slang,
-including rigid broad phase, narrow phase, AVBD constraints, particles,
-cloth, rope, soft bodies, fluids, smoke, paint, and all coupling passes.
-Metal-specific entry points use the packed runtime ABI in `metal_common.slang`
-and the domain adapter modules. No native Metal physics source remains. The
-Metal compatibility target is not yet an advertised command-API device driver.
+No Metal device adapter is shipped. Cross-target generation of the shared AVBD
+module remains a compiler and reflection portability check; it does not expose
+a backend-specific runtime or advertise Metal execution.
 
 ## Compiler toolchain
 
@@ -35,14 +32,8 @@ cmake -S . -B build \
   -DPARALLEL_MATER_SLANGC_EXECUTABLE=/opt/slang-2026.18/bin/slangc
 ```
 
-Generated CUDA, PTX, SPIR-V, MSL, reflection records, AIR, and metallibs remain
-in the build tree.
-
-For Metal, Slang emits one MSL module per production subsystem or coupling so
-each module preserves the compatibility runtime's argument-table bindings.
-Apple's `metal` compiler validates every generated source independently, and
-`metallib` links the generated AIR objects. The build uses Slang's
-`metallib_3_2` capability and Apple compiles the result as Metal 4.
+Generated CUDA, PTX, SPIR-V, HLSL, MSL, and reflection records remain in the
+build tree.
 
 ## Validation
 
@@ -61,5 +52,5 @@ ctest --test-dir build --output-on-failure \
 
 Compilation alone does not qualify a command-API target. Its schedule must use
 the shared Slang kernels, pass API and architecture checks, and complete gallery
-review on that target. The Metal compatibility suite separately validates the
-generated MSL/AIR/metallib pipeline and its retained `World` behavior.
+review on that target. Retired backend-specific adapters are rejected by the
+architecture test.

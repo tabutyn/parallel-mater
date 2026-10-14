@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
-#if defined(PARALLEL_MATER_METAL_GEOMETRY)
-#include <parallel_mater/metal.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater::metal
-#define PM_GEOMETRY_SUCCESS 0
-#else
 #include <simulation/runtime.hpp>
 #define PM_GEOMETRY_NAMESPACE parallel_mater
 #define PM_GEOMETRY_SUCCESS cudaSuccess
-#endif
 #include <algorithm>
 #include <array>
 #include <cmath>

@@ -1,15 +1,7 @@
 // SPDX-License-Identifier: MIT
-#if defined(PARALLEL_MATER_PARITY_CUDA)
 #include <simulation/runtime.hpp>
-#else
-#include <parallel_mater/metal.hpp>
-#endif
 
 #include "capture_format.hpp"
-
-#if !defined(PARALLEL_MATER_PARITY_CUDA)
-#import <Metal/Metal.h>
-#endif
 
 #include <array>
 #include <cmath>
@@ -24,19 +16,13 @@
 #include <stdexcept>
 #include <vector>
 
-#if defined(PARALLEL_MATER_PARITY_CUDA)
 using namespace parallel_mater;
 template <typename T> using BufferSpan = DeviceSpan<T>;
 constexpr const char *capture_backend = "cuda";
-#else
-using namespace parallel_mater::metal;
-constexpr const char *capture_backend = "metal";
-#endif
 namespace parity = parallel_mater::test::parity;
 
 namespace {
 
-#if defined(PARALLEL_MATER_PARITY_CUDA)
 void cuda_check(cudaError_t error) {
     if (error != cudaSuccess) throw std::runtime_error(cudaGetErrorString(error));
 }
@@ -51,14 +37,6 @@ template <typename T> struct Upload {
     Upload(const Upload &) = delete;
     Upload &operator=(const Upload &) = delete;
 };
-#else
-template <typename T> const T *contents(BufferSpan<const T> span) {
-    id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)span.buffer;
-    return reinterpret_cast<const T *>(
-        static_cast<const std::byte *>(buffer.contents) + span.byte_offset);
-}
-
-#endif
 
 bool checked(Status status, std::string_view operation) {
     if (status.ok()) return true;
@@ -215,14 +193,10 @@ template <typename T, typename Write>
 void write_buffer(parity::Writer &writer, std::string_view name,
                   BufferSpan<const T> span, Write write) {
     writer.unsigned_value(std::string(name) + ".count", span.size);
-#if defined(PARALLEL_MATER_PARITY_CUDA)
     std::vector<T> downloaded(span.size);
     if (span.size) cuda_check(cudaMemcpy(downloaded.data(), span.data,
                                         span.size * sizeof(T), cudaMemcpyDeviceToHost));
     const T *values = downloaded.data();
-#else
-    const T *values = contents(span);
-#endif
     for (std::uint64_t i = 0; i < span.size; ++i)
         write(writer, member(name, i, "value"), values[i]);
 }
@@ -292,17 +266,11 @@ bool build_and_capture(std::ostream &output) {
     const std::array<std::uint32_t, 12> mesh_indices{
         0U, 2U, 1U, 0U, 1U, 3U, 1U, 2U, 3U, 2U, 0U, 3U};
     TriangleMeshId mesh{};
-#if defined(PARALLEL_MATER_PARITY_CUDA)
     const Upload<Vec3> uploaded_vertices(mesh_vertices.data(), mesh_vertices.size());
     const Upload<std::uint32_t> uploaded_indices(mesh_indices.data(), mesh_indices.size());
     status = world.add_triangle_mesh(
         {uploaded_vertices.data, mesh_vertices.size()},
         {uploaded_indices.data, mesh_indices.size()}, mesh);
-#else
-    status = world.add_triangle_mesh(
-        {mesh_vertices.data(), mesh_vertices.size()},
-        {mesh_indices.data(), mesh_indices.size()}, mesh);
-#endif
     if (!checked(status, "add parity mesh")) return false;
 
     RigidBodyId obstacle{}, anchor{}, constrained{};
@@ -337,12 +305,8 @@ bool build_and_capture(std::ostream &output) {
         {{0.03F, 1.0F, 0.0F}, {}, 20.0F},
     }};
     FluidId fluid{};
-#if defined(PARALLEL_MATER_PARITY_CUDA)
     const Upload<FluidParticle> uploaded_water(water.data(), water.size());
     const auto *water_data = uploaded_water.data;
-#else
-    const auto *water_data = water.data();
-#endif
     status = world.add_fluid(
         {.capacity = 8U,
          .particle_radius = 0.03F,
@@ -612,10 +576,8 @@ int self_test() {
 } // namespace
 
 int main(int argc, char **argv) try {
-#if defined(PARALLEL_MATER_PARITY_CUDA)
     int devices = 0;
     if (cudaGetDeviceCount(&devices) != cudaSuccess || !devices) return 77;
-#endif
     if (argc == 2 && std::string_view(argv[1]) == "--self-test")
         return self_test();
     if (argc != 2) {

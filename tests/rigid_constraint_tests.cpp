@@ -701,10 +701,8 @@ std::vector<ScheduleFrame> schedule_contact_prefix(unsigned moving_count) {
     return result;
 }
 void test_schedule() {
-    // CUDA caches body/contact[0,1024), joint[0,128); Metal uses 512/64.
-    // These boundaries are storage choices only; traversal and solve order
-    // agree. The public-API fixture also records Metal's smaller boundaries
-    // for reuse when this CUDA-upload test harness gains a Metal runner.
+    // Exercise both smaller and production cache-prefix boundaries. These are
+    // storage choices only; traversal and solve order must agree.
     const auto reference = schedule_assembly(0,0);
     for (const auto padding : std::array<std::array<unsigned,2>,8>{{
             {509,0},{512,0},{1021,0},{1024,0},{0,63},{0,64},{0,127},{0,128}}}) {

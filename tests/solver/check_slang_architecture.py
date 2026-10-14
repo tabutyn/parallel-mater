@@ -12,8 +12,7 @@ failures: list[str] = []
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
 loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text()
-metal_cmake = (ROOT / "cmake" / "BuildMetalPhysics.cmake").read_text()
-build_contract = cmake + "\n" + loader_cmake + "\n" + metal_cmake
+build_contract = cmake + "\n" + loader_cmake
 runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
 runtime = runtime_path.read_text()
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text()
@@ -60,27 +59,24 @@ for api_source in sorted((ROOT / "src" / "api").glob("*")):
             r"parallel_mater::World\b", api_source.read_text()):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
-for required_metal_slang in (
-    "rigid_narrowphase.slang",
-    "rigid_constraints.slang",
-    "particle_rigid.slang",
-    "cloth_rigid.slang",
-    "rope_step.slang",
+for retired_metal_path in (
+    "cmake/BuildMetalPhysics.cmake",
+    "include/parallel_mater/metal.hpp",
+    "src/metal",
+    "tests/metal",
+    "examples/metal_gallery",
 ):
-    if required_metal_slang not in metal_cmake:
+    if (ROOT / retired_metal_path).exists():
+        failures.append(f"{retired_metal_path}: retired Metal adapter remains")
+for retired_metal_build_token in (
+    "option(PARALLEL_MATER_BUILD_METAL",
+    "ParallelMater::metal",
+    "parallel-mater-metal",
+):
+    if retired_metal_build_token in build_contract:
         failures.append(
-            f"BuildMetalPhysics.cmake: Metal build omits {required_metal_slang}"
+            f"CMakeLists.txt: retired Metal adapter token {retired_metal_build_token}"
         )
-for native_metal in sorted((ROOT / "src" / "metal").glob("*.metal")):
-    failures.append(
-        f"{native_metal.relative_to(ROOT)}: native Metal source remains"
-    )
-for retired_metal in (
-    "src/metal/kernels.metal",
-    "src/metal/geometry_constraints.metal",
-):
-    if retired_metal in build_contract:
-        failures.append(f"CMakeLists.txt: retired native Metal source {retired_metal}")
 retired_headers = {
     "cloth.cuh",
     "cloth_rope.cuh",
@@ -145,6 +141,12 @@ for shader in sorted((ROOT / "src" / "slang").rglob("*.slang")):
     if shader.name == "device_intrinsics.slang":
         continue
     text = shader.read_text()
+    for retired_metal_token in ("PM_TARGET_METAL", "import metal_common"):
+        if retired_metal_token in text:
+            failures.append(
+                f"{shader.relative_to(ROOT)}: retired Metal adapter token "
+                f"{retired_metal_token}"
+            )
     for intrinsic in ("cudaBlockIdx()", "cudaThreadIdx()", "cudaBlockDim()"):
         if intrinsic in text:
             failures.append(

@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-#include <parallel_mater/metal.hpp>
-#else
 #include <simulation/runtime.hpp>
-#endif
 
 #include <parallel_mater_gallery/device_profiles.hpp>
 
@@ -14,11 +10,7 @@
 #include <string>
 #include <vector>
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-namespace parallel_mater::metal::gallery {
-#else
 namespace parallel_mater::gallery {
-#endif
 
 struct Vertex {
     Vec3 position{};
@@ -223,8 +215,4 @@ struct SceneInstance {
                                        World &world,
                                        SceneInstance &output) noexcept;
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-} // namespace parallel_mater::metal::gallery
-#else
 } // namespace parallel_mater::gallery
-#endif

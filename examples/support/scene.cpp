@@ -21,11 +21,7 @@
 #include <unordered_set>
 #include <utility>
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-namespace parallel_mater::metal::gallery {
-#else
 namespace parallel_mater::gallery {
-#endif
 namespace {
 
 using math::add;
@@ -36,11 +32,7 @@ using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-constexpr std::int64_t k_backend_success = 0;
-#else
 constexpr cudaError_t k_backend_success = cudaSuccess;
-#endif
 
 class FlatJson {
   public:
@@ -1966,12 +1958,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
                     "failed to assemble gallery triangle mesh"};
         }
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-        return world.add_triangle_mesh(
-            HostSpan<const Vec3>{vertices.data(), vertices.size()},
-            HostSpan<const std::uint32_t>{indices.data(), indices.size()},
-            mesh_id);
-#else
         Vec3 *device_vertices = nullptr;
         std::uint32_t *device_indices = nullptr;
         cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_vertices),
@@ -2005,7 +1991,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return mesh_status;
         }
         return {};
-#endif
     };
 
     for (const RigidBodyDefinition &definition : scene.rigid_bodies) {
@@ -2263,12 +2248,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
             return {StatusCode::out_of_memory, k_backend_success,
                     "failed to select initial gallery particles"};
         }
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-        Status status = world.add_fluid(
-            scene.fluid_options,
-            HostSpan<const FluidParticle>{initial.data(), initial.size()},
-            output.fluid);
-#else
         FluidParticle *device_initial = nullptr;
         if (!initial.empty()) {
             cudaError_t error = cudaMalloc(
@@ -2286,7 +2265,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         Status status = world.add_fluid(scene.fluid_options,
             {device_initial, initial.size()}, output.fluid);
         cudaFree(device_initial);
-#endif
         if (!status) return status;
         output.has_fluid = true;
         for (SoftBodyId body : output.soft_bodies) {
@@ -2355,17 +2333,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         std::vector<Vec2> uvs;
         uvs.reserve(mesh.vertices.size());
         for (const Vertex &vertex : mesh.vertices) uvs.push_back(vertex.uv);
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-        PaintFieldId field{};
-        const PaintFieldHostOptions host_options{
-            .body = options.body,
-            .mesh = options.mesh,
-            .cloth = options.cloth,
-            .vertex_uvs = {uvs.data(), uvs.size()},
-            .width = options.width,
-            .height = options.height};
-        Status status = world.add_paint_field(host_options, field);
-#else
         Vec2 *device_uvs = nullptr;
         cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_uvs),
                                       uvs.size() * sizeof(Vec2));
@@ -2380,7 +2347,6 @@ Status instantiate_scene(const SceneDefinition &scene, World &world,
         PaintFieldId field{};
         Status status = world.add_paint_field(options, field);
         cudaFree(device_uvs);
-#endif
         if (!status) return status;
         PaintRuleId rule{};
         rule_options.target = field;
@@ -2465,8 +2431,4 @@ Status create_scene_world(const SceneDefinition &scene, World &world,
 }
 #endif
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-} // namespace parallel_mater::metal::gallery
-#else
 } // namespace parallel_mater::gallery
-#endif

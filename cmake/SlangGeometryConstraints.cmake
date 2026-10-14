@@ -59,7 +59,7 @@ function(parallel_mater_add_slang_geometry_constraints)
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
             -target dxil -profile sm_6_6 -fp-mode precise -O2
             -warnings-as-errors all
-            -DPM_TARGET_D3D12=1 -DPM_TARGET_CUDA=0 -DPM_TARGET_METAL=0
+            -DPM_TARGET_D3D12=1 -DPM_TARGET_CUDA=0
             -DPM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
         add_custom_command(
             OUTPUT "${dxil_prepare}" "${dxil_prepare_reflection}"
@@ -122,23 +122,6 @@ function(parallel_mater_add_slang_geometry_constraints)
         list(APPEND slang_outputs "${ptx}")
         set(PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX
             "${ptx}" PARENT_SCOPE)
-    endif()
-
-    if(PARALLEL_MATER_BUILD_METAL)
-        set(metal_air "${generated_dir}/parallel_mater_geometry_constraints.air")
-        add_custom_command(
-            OUTPUT "${metal_air}"
-            COMMAND ${CMAKE_COMMAND} -E env
-                CLANG_MODULE_CACHE_PATH=${generated_dir}/metal-module-cache
-                "${PARALLEL_MATER_XCRUN_EXECUTABLE}" -sdk macosx metal
-                -std=metal4.0 -mmacosx-version-min=26.0
-                -fno-fast-math -ffp-contract=fast
-                -fmodules-cache-path=${generated_dir}/metal-module-cache
-                -c "${metal_source}" -o "${metal_air}"
-            DEPENDS "${metal_source}"
-            COMMENT "Validating Slang-generated rigid constraints with the native Metal compiler"
-            VERBATIM)
-        list(APPEND slang_outputs "${metal_air}")
     endif()
 
     add_custom_target(parallel-mater-slang-geometry-constraints ALL

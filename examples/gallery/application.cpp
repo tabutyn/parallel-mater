@@ -1005,7 +1005,7 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         const std::uint64_t free_bytes =
             parallel_mater::gallery::gallery_device_available_memory();
         if (free_bytes != 0U &&
-            parallel_mater::gallery::estimated_metal_contact_bytes(
+            parallel_mater::gallery::estimated_contact_bytes(
                 static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
                 free_bytes * 7U / 10U) {
             error = "brick scene exceeds the available GPU memory budget";

@@ -2,18 +2,12 @@
 #pragma once
 
 #include <parallel_mater_gallery/scene.hpp>
-#if !defined(PARALLEL_MATER_GALLERY_METAL)
 #include <scene_builder.hpp>
-#endif
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-namespace parallel_mater::metal::gallery {
-#else
 namespace parallel_mater::gallery {
-#endif
 
 // Gallery-only actuator: the public solver moves a dynamic bucket around its
 // authored rear pivot, carrying reaction forces through the dynamic chassis.
@@ -57,7 +51,6 @@ class DumpTruckBed {
         return status;
     }
 
-#if !defined(PARALLEL_MATER_GALLERY_METAL)
     [[nodiscard]] bool advance(CommandScene &simulation,
                                SceneDefinition &scene,
                                const CommandSceneInstance &instance,
@@ -84,7 +77,6 @@ class DumpTruckBed {
         angle_ = next;
         return true;
     }
-#endif
 
   private:
     std::size_t index_{std::numeric_limits<std::size_t>::max()};
@@ -167,8 +159,4 @@ inline constexpr std::uint32_t default_dump_payload_count = 100U;
     scene.rigid_constraints = std::move(joints);
     return true;
 }
-#if defined(PARALLEL_MATER_GALLERY_METAL)
-} // namespace parallel_mater::metal::gallery
-#else
 } // namespace parallel_mater::gallery
-#endif

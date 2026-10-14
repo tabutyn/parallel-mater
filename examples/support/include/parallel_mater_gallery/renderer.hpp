@@ -42,7 +42,6 @@ enum class SmokeDebugMode : std::uint8_t {
     divergence,
 };
 
-#if !defined(PARALLEL_MATER_GALLERY_METAL)
 class GalleryRenderer {
   public:
     GalleryRenderer() noexcept;
@@ -85,6 +84,5 @@ class GalleryRenderer {
 
 [[nodiscard]] std::uint64_t gallery_device_available_memory() noexcept;
 [[nodiscard]] HardwareIdentity gallery_device_hardware_identity();
-#endif
 
 } // namespace parallel_mater::gallery
