@@ -1,5 +1,5 @@
 {
-  "backend": "cuda",
+  "backend": "slang-cuda",
   "case_count": 30,
   "deterministic_settings": {
     "contact_order": "canonical",
@@ -44,5 +44,5 @@
   },
   "result_schema": "parallel-mater-conformance-result/v1",
   "schema": "parallel-mater-conformance-manifest/v1",
-  "source_commit": "b3cb3d0fac068890771c5effe29dc30f916c298d"
+  "source_commit": "b5fcca176df104b97ec85443a25baae93093d621"
 }

@@ -41,9 +41,10 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,
         return false;
     }
     stream << std::setprecision(9)
-           << "parallel_mater_physics_capture 2\n"
+           << "parallel_mater_physics_capture 3\n"
            << "frame " << frame.revision
            << " rigid " << frame.rigid_states.size()
+           << " constraints " << frame.constraint_states.size()
            << " fluid " << frame.fluid_particles.size()
            << " cloth " << frame.cloth_vertices.size()
            << " soft_body " << frame.soft_body_nodes.size()
@@ -62,6 +63,14 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,
                << " angular_velocity " << state.angularVelocity[0] << ' '
                << state.angularVelocity[1] << ' ' << state.angularVelocity[2]
                << '\n';
+    }
+    for (std::size_t index = 0; index < frame.constraint_states.size();
+         ++index) {
+        const PmConstraintState &state = frame.constraint_states[index];
+        stream << "constraint " << index
+               << " enabled " << state.enabled
+               << " broken " << state.broken
+               << " applied_impulse " << state.appliedImpulse << '\n';
     }
     for (const PmFluidParticleOutput &particle : frame.fluid_particles) {
         stream << "fluid " << particle.stableId << " position "

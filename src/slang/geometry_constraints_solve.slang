@@ -93,6 +93,49 @@ void rigid_avbd_minimize_free_translation(
     rigid_avbd_barrier();
 }
 
+// The iterative hinge rows keep motion tangent to the anchor, while the finite
+// quaternion update follows the chord of that motion. Remove the
+// resulting positional residue once per substep so off-centre hinges do not
+// accumulate drift through full rotations or contact impulses. This is the
+// final projection of the AVBD solve, not a separate constraint solver.
+void rigid_avbd_project_hinge_anchors(
+    PM_AVBD_BUFFER(BodyParameters) parameters,
+    PM_AVBD_BUFFER(RigidConstraintResource) joints, uint jointCapacity,
+    PM_AVBD_BUFFER(RigidBodyState) states)
+{
+    if (pmThreadIndex() == 0u)
+    {
+        for (uint jointIndex = 0u; jointIndex < jointCapacity; ++jointIndex)
+        {
+            if (joints[jointIndex].avbd_count == 0u ||
+                !joints[jointIndex].state.enabled ||
+                joints[jointIndex].options.type != RigidConstraintType.hinge)
+                continue;
+            uint a = joints[jointIndex].geometry.dense_a;
+            uint b = joints[jointIndex].geometry.dense_b;
+            float inverseMassA = parameters[a].motion == MotionType.dynamic
+                ? parameters[a].inverse_mass : 0.0f;
+            float inverseMassB = parameters[b].motion == MotionType.dynamic
+                ? parameters[b].inverse_mass : 0.0f;
+            float inverseMassSum = inverseMassA + inverseMassB;
+            if (inverseMassSum <= kEpsilon) continue;
+
+            RigidBodyState stateA = states[a];
+            RigidBodyState stateB = states[b];
+            Vec3 anchorA = add(stateA.position, rotate(stateA.orientation,
+                joints[jointIndex].options.local_anchor_a));
+            Vec3 anchorB = add(stateB.position, rotate(stateB.orientation,
+                joints[jointIndex].options.local_anchor_b));
+            Vec3 error = subtract(anchorB, anchorA);
+            Vec3 correctionA = multiply(error, inverseMassA / inverseMassSum);
+            Vec3 correctionB = multiply(error, inverseMassB / inverseMassSum);
+            states[a].position = add(states[a].position, correctionA);
+            states[b].position = subtract(states[b].position, correctionB);
+        }
+    }
+    rigid_avbd_barrier();
+}
+
 [shader("compute")]
 [numthreads(32, 1, 1)]
 void solve_avbd_kernel(
@@ -521,6 +564,10 @@ void solve_avbd_kernel(
                     state.orientation, dt));
             states[bodyIndex] = state;
         }
+        rigid_avbd_barrier();
+        if (phase == 0u)
+            rigid_avbd_project_hinge_anchors(
+                parameters, joints, joint_capacity, states);
         if (lane == 0u)
         {
             schedule[0].counts[phase == 0u ? 6u : 7u] =

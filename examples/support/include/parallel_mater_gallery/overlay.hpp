@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace parallel_mater::gallery {
@@ -172,5 +173,9 @@ void draw_brick_settings_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const std::array<std::string, 3> &values,
     std::size_t selected, bool invalid);
+
+void draw_status_overlay(std::vector<std::uint32_t> &rgba,
+                         std::uint32_t width, std::uint32_t height,
+                         std::string_view message, bool failure);
 
 } // namespace parallel_mater::gallery
