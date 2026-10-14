@@ -337,7 +337,7 @@ void optix_log(unsigned int level, const char *tag, const char *message,
 
 } // namespace
 
-struct OptixRenderer::Impl {
+struct GalleryRenderer::Impl {
     std::uint32_t width{};
     std::uint32_t height{};
     SceneDefinition scene{};
@@ -1128,16 +1128,15 @@ void paint_smoke_view(const std::vector<Vec3> &positions,
     }
 }
 
-OptixRenderer::OptixRenderer() noexcept = default;
-OptixRenderer::~OptixRenderer() = default;
-OptixRenderer::OptixRenderer(OptixRenderer &&) noexcept = default;
-OptixRenderer &OptixRenderer::operator=(OptixRenderer &&) noexcept = default;
+GalleryRenderer::GalleryRenderer() noexcept = default;
+GalleryRenderer::~GalleryRenderer() = default;
+GalleryRenderer::GalleryRenderer(GalleryRenderer &&) noexcept = default;
+GalleryRenderer &GalleryRenderer::operator=(GalleryRenderer &&) noexcept = default;
 
-bool OptixRenderer::create(const SceneDefinition &scene,
+bool GalleryRenderer::create(const SceneDefinition &scene,
                            const CommandSceneInstance &instance,
-                           const std::filesystem::path &ptx_path,
                            std::uint32_t width, std::uint32_t height,
-                           OptixRenderer &output, std::string &error) {
+                           GalleryRenderer &output, std::string &error) {
     error.clear();
     if (scene.meshes.empty() || scene.rigid_bodies.empty() || width == 0U ||
         height == 0U) {
@@ -1150,7 +1149,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         implementation->height = height;
         implementation->scene = scene;
         implementation->create_context();
-        implementation->create_pipeline(ptx_path);
+        implementation->create_pipeline(PARALLEL_MATER_OPTIX_PTX_PATH);
         implementation->create_geometry(scene);
         implementation->create_instances(scene);
         implementation->create_paint(scene, instance);
@@ -1173,7 +1172,7 @@ bool OptixRenderer::create(const SceneDefinition &scene,
     }
 }
 
-bool OptixRenderer::render(const RenderSceneFrame &frame,
+bool GalleryRenderer::render(const RenderSceneFrame &frame,
                            Camera camera, std::vector<std::uint32_t> &rgba,
                            std::string &error, RendererTimings *timings,
                            FluidRenderMode fluid_mode,
@@ -1291,7 +1290,7 @@ bool OptixRenderer::render(const RenderSceneFrame &frame,
     }
 }
 
-bool OptixRenderer::advance_visuals(const RenderSceneFrame &frame,
+bool GalleryRenderer::advance_visuals(const RenderSceneFrame &frame,
                                     std::string &error) {
     error.clear();
     if (!impl_) {
@@ -1321,7 +1320,7 @@ bool OptixRenderer::advance_visuals(const RenderSceneFrame &frame,
     }
 }
 
-bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
+bool GalleryRenderer::paint_coverage(std::uint64_t &painted_texels,
                                    std::string &error) const {
     error.clear();
     painted_texels = 0U;
@@ -1349,11 +1348,11 @@ bool OptixRenderer::paint_coverage(std::uint64_t &painted_texels,
     }
 }
 
-std::uint32_t OptixRenderer::width() const noexcept {
+std::uint32_t GalleryRenderer::width() const noexcept {
     return impl_ ? impl_->width : 0U;
 }
 
-std::uint32_t OptixRenderer::height() const noexcept {
+std::uint32_t GalleryRenderer::height() const noexcept {
     return impl_ ? impl_->height : 0U;
 }
 

@@ -102,12 +102,12 @@ physics implementations. Platform device code may allocate, transfer, bind,
 dispatch, and synchronize but cannot contain collision, constraint, material,
 or coupling equations.
 
-`src/device/vulkan_executor.*` is the native Vulkan execution service for the
-SPIR-V target. It creates compute pipelines from Slang output and provides the
-same explicit command-buffer, compute-barrier, timeline-submit, and queue
-operations required by a driver schedule. It contains no physics equations.
-The Vulkan physical device remains unadvertised until the complete shared
-schedule is bound and independently passes conformance and every gallery scene.
+The previous standalone Vulkan executor scaffold has been removed. Vulkan
+interop remains part of the public API contract, but a Vulkan driver must be a
+thin native wrapper around the shared Slang schedule rather than a second
+physics runtime. The Vulkan physical device remains unadvertised until that
+wrapper binds the complete shared schedule and independently passes conformance
+and every gallery scene.
 
 A hardware vendor may reuse its compiler, memory manager, queue scheduler, and
 kernel runtime between its Vulkan driver and its Parallel Mater driver. Parallel

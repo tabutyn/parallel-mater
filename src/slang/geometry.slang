@@ -6,6 +6,17 @@ import types;
 import math;
 import device_intrinsics;
 
+#ifndef PM_TARGET_D3D12
+#define PM_TARGET_D3D12 0
+#endif
+
+// DXIL does not support i8 structured-buffer memory operations.
+#if PM_TARGET_D3D12
+#define PM_GEOMETRY_UINT8 uint
+#else
+#define PM_GEOMETRY_UINT8 uint8_t
+#endif
+
 struct RigidAvbdVector6 { float values[6]; };
 struct RigidAvbdDual { float lambda; float penalty; };
 struct RigidAvbdRow
@@ -37,7 +48,7 @@ struct KinematicTarget
     bool active;
 };
 
-enum RigidConstraintType : uint8_t
+enum RigidConstraintType : PM_GEOMETRY_UINT8
 {
     fixed,
     point,
@@ -51,14 +62,14 @@ enum RigidConstraintType : uint8_t
 
 struct RigidConstraintLimitOptions
 {
-    uint8_t axes;
+    PM_GEOMETRY_UINT8 axes;
     Vec3 lower;
     Vec3 upper;
 };
 
 struct RigidConstraintSpringOptions
 {
-    uint8_t axes;
+    PM_GEOMETRY_UINT8 axes;
     Vec3 stiffness;
     Vec3 damping;
 };
