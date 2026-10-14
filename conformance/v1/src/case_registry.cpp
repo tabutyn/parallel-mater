@@ -231,7 +231,7 @@ const std::vector<CaseDefinition> &case_registry() {
             48U, "deformable", {}, true));
         result.push_back(integrated(
             "cloth-core", "Cloth pinning, pressure, and rigid contact",
-            "Cloth", "44ab33e01e3c1693a351642de7a75ad788f8517e86207a525f3150ab4593aa60",
+            "Cloth", "f4dc3dd53aa6f2459ef3032bbbd4711406a049f31bb7b2a7ea9bf3006b503033",
             {"cloth", "pinning", "pressure", "rigid_cloth_contact", "topology"},
             48U, "deformable"));
         {

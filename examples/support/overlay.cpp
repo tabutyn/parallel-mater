@@ -127,6 +127,31 @@ void text(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     }
 }
 
+struct MenuScale {
+    float value{1.0F};
+
+    [[nodiscard]] int pixels(int amount) const {
+        return static_cast<int>(std::lround(static_cast<float>(amount) * value));
+    }
+
+    [[nodiscard]] int font(int amount) const {
+        return std::max(1, pixels(amount));
+    }
+};
+
+[[nodiscard]] MenuScale menu_scale(std::uint32_t width,
+                                   std::uint32_t height) {
+    // The native window presents at 1280x720 while the renderer may use a
+    // larger device profile. Scale both layout and glyphs before that image
+    // is downsampled so menus keep their intended presentation size.
+    constexpr float presentation_width = 1280.0F;
+    constexpr float presentation_height = 720.0F;
+    return {std::max(0.25F,
+                     std::min(static_cast<float>(width) / presentation_width,
+                              static_cast<float>(height) /
+                                  presentation_height))};
+}
+
 [[nodiscard]] Vec3 normalized(Vec3 value) {
     return math::normalize_or(value, {}, 1.0e-6F);
 }
@@ -427,39 +452,46 @@ void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection) {
+    const MenuScale ui = menu_scale(width, height);
     const int center = static_cast<int>(width) / 2;
-    constexpr int row_height = 68;
+    const int row_height = ui.pixels(68);
     const int count = static_cast<int>(gallery_entries.size());
-    const int visible = std::clamp((static_cast<int>(height) - 110) / row_height, 1, count);
+    const int visible = std::clamp(
+        (static_cast<int>(height) - ui.pixels(110)) / row_height, 1, count);
     const int selected = static_cast<int>(gallery_context_index(selection));
     const int first = std::clamp(selected - visible / 2, 0, count - visible);
-    const int panel_height = 81 + row_height * visible;
-    const int top = std::max(14, (static_cast<int>(height) - panel_height) / 2);
-    rectangle(rgba, width, height, center - 255, top, center + 255,
+    const int panel_height = ui.pixels(81) + row_height * visible;
+    const int top = std::max(ui.pixels(14),
+                             (static_cast<int>(height) - panel_height) / 2);
+    rectangle(rgba, width, height, center - ui.pixels(255), top,
+              center + ui.pixels(255),
               top + panel_height,
               {4, 10, 16, 230});
-    text(rgba, width, height, center - 225, top + 24, "SCENES",
-         {110, 225, 255, 255}, 3);
-    text(rgba, width, height, center - 70, top + 34,
-         "Z X C V B N DEBUG   M CAPTURE", {185, 220, 235, 255}, 1);
+    text(rgba, width, height, center - ui.pixels(225), top + ui.pixels(24),
+         "SCENES", {110, 225, 255, 255}, ui.font(3));
+    text(rgba, width, height, center - ui.pixels(70), top + ui.pixels(34),
+         "Z X C V B N DEBUG   M CAPTURE", {185, 220, 235, 255}, ui.font(1));
 
     const auto row = [&](int y, GalleryContext context, Color background,
                          Color icon, std::string_view name,
                          std::string_view state, Color state_color) {
         if (selection == context) {
-            rectangle(rgba, width, height, center - 226, y - 6, center + 226,
-                      y + 60, {105, 255, 155, 255});
+            rectangle(rgba, width, height, center - ui.pixels(226),
+                      y - ui.pixels(6), center + ui.pixels(226),
+                      y + ui.pixels(60), {105, 255, 155, 255});
         }
-        rectangle(rgba, width, height, center - 220, y, center + 220, y + 54,
-                  background);
-        rectangle(rgba, width, height, center - 198, y + 8, center - 160,
-                  y + 46, icon);
-        text(rgba, width, height, center - 135, y + 6, name,
-             {245, 247, 250, 255}, 2);
-        text(rgba, width, height, center - 135, y + 31, state, state_color, 1);
+        rectangle(rgba, width, height, center - ui.pixels(220), y,
+                  center + ui.pixels(220), y + ui.pixels(54), background);
+        rectangle(rgba, width, height, center - ui.pixels(198),
+                  y + ui.pixels(8), center - ui.pixels(160),
+                  y + ui.pixels(46), icon);
+        text(rgba, width, height, center - ui.pixels(135), y + ui.pixels(6),
+             name, {245, 247, 250, 255}, ui.font(2));
+        text(rgba, width, height, center - ui.pixels(135), y + ui.pixels(31),
+             state, state_color, ui.font(1));
     };
 
-    int y = top + 78;
+    int y = top + ui.pixels(78);
     for (int index = first; index < first + visible; ++index) {
         const GalleryEntry &entry = gallery_entries[static_cast<std::size_t>(index)];
         row(y, entry.context, color(entry.background), color(entry.icon),
@@ -472,60 +504,77 @@ void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
                         bool invalid) {
+    const MenuScale ui = menu_scale(width, height);
     const GalleryEntry &entry = gallery_entry(context);
     const bool fluid = entry.count_kind == GalleryCountKind::fluid_particles;
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
-    rectangle(rgba, width, height, center_x - 260, center_y - 118,
-              center_x + 260, center_y + 118, {4, 10, 16, 242});
-    text(rgba, width, height, center_x - 220, center_y - 88,
+    rectangle(rgba, width, height, center_x - ui.pixels(260),
+              center_y - ui.pixels(118), center_x + ui.pixels(260),
+              center_y + ui.pixels(118), {4, 10, 16, 242});
+    text(rgba, width, height, center_x - ui.pixels(220),
+         center_y - ui.pixels(88),
          fluid ? "FLUID PARTICLE CAP" : "DUMP SPHERES",
-         fluid ? Color{35, 150, 255, 255} : Color{245, 130, 45, 255}, 2);
-    rectangle(rgba, width, height, center_x - 220, center_y - 30,
-              center_x + 220, center_y + 20,
+         fluid ? Color{35, 150, 255, 255} : Color{245, 130, 45, 255},
+         ui.font(2));
+    rectangle(rgba, width, height, center_x - ui.pixels(220),
+              center_y - ui.pixels(30), center_x + ui.pixels(220),
+              center_y + ui.pixels(20),
               invalid ? Color{105, 20, 20, 255} : Color{27, 38, 48, 255});
-    text(rgba, width, height, center_x - 198, center_y - 17,
-         (fluid ? "MAX " : "COUNT ") + value, {245, 247, 250, 255}, 2);
-    text(rgba, width, height, center_x - 220, center_y + 42,
+    text(rgba, width, height, center_x - ui.pixels(198),
+         center_y - ui.pixels(17), (fluid ? "MAX " : "COUNT ") + value,
+         {245, 247, 250, 255}, ui.font(2));
+    text(rgba, width, height, center_x - ui.pixels(220),
+         center_y + ui.pixels(42),
          invalid ? ("USE " + std::to_string(entry.minimum_count) + '-' +
                     std::to_string(entry.maximum_count))
                  : ("MIN " + std::to_string(entry.minimum_count) + "  MAX " +
                     std::to_string(entry.maximum_count)),
-         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
-    text(rgba, width, height, center_x - 220, center_y + 72,
-         "ENTER APPLY  ESC CANCEL", {160, 190, 210, 255}, 1);
+         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255},
+         ui.font(1));
+    text(rgba, width, height, center_x - ui.pixels(220),
+         center_y + ui.pixels(72), "ENTER APPLY  ESC CANCEL",
+         {160, 190, 210, 255}, ui.font(1));
 }
 
 void draw_brick_settings_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,
     std::uint32_t height, const std::array<std::string, 3> &values,
     std::size_t selected, bool invalid) {
+    const MenuScale ui = menu_scale(width, height);
     const int center_x = static_cast<int>(width) / 2;
     const int center_y = static_cast<int>(height) / 2;
-    rectangle(rgba, width, height, center_x - 300, center_y - 180,
-              center_x + 300, center_y + 180, {4, 10, 16, 242});
-    text(rgba, width, height, center_x - 260, center_y - 145,
-         "BRICK WALL SETTINGS", {105, 255, 155, 255}, 2);
+    rectangle(rgba, width, height, center_x - ui.pixels(300),
+              center_y - ui.pixels(180), center_x + ui.pixels(300),
+              center_y + ui.pixels(180), {4, 10, 16, 242});
+    text(rgba, width, height, center_x - ui.pixels(260),
+         center_y - ui.pixels(145), "BRICK WALL SETTINGS",
+         {105, 255, 155, 255}, ui.font(2));
     constexpr std::array labels{"COUNT  ", "SCALE  ", "WALLS  "};
     for (std::size_t index = 0; index < values.size(); ++index) {
-        const int y = center_y - 82 + static_cast<int>(index) * 58;
-        rectangle(rgba, width, height, center_x - 260, y,
-                  center_x + 260, y + 42,
+        const int y = center_y - ui.pixels(82) +
+                      static_cast<int>(index) * ui.pixels(58);
+        rectangle(rgba, width, height, center_x - ui.pixels(260), y,
+                  center_x + ui.pixels(260), y + ui.pixels(42),
                   index == selected
                       ? (invalid ? Color{105, 20, 20, 255}
                                  : Color{45, 72, 88, 255})
                       : Color{27, 38, 48, 255});
-        text(rgba, width, height, center_x - 238, y + 12,
+        text(rgba, width, height, center_x - ui.pixels(238),
+             y + ui.pixels(12),
              std::string(labels[index]) + values[index],
-             {245, 247, 250, 255}, 2);
+             {245, 247, 250, 255}, ui.font(2));
     }
-    text(rgba, width, height, center_x - 260, center_y + 106,
+    text(rgba, width, height, center_x - ui.pixels(260),
+         center_y + ui.pixels(106),
          invalid ? "COUNT 1-4096  SCALE .5-2  WALLS 1-16"
                  : "TAB FIELD  ENTER APPLY AND RESTART",
-         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255}, 1);
-    text(rgba, width, height, center_x - 260, center_y + 138,
+         invalid ? Color{255, 105, 105, 255} : Color{160, 190, 210, 255},
+         ui.font(1));
+    text(rgba, width, height, center_x - ui.pixels(260),
+         center_y + ui.pixels(138),
          "C AUTO-CALIBRATE  V VERIFY AND SAVE  ESC CANCEL",
-         {160, 190, 210, 255}, 1);
+         {160, 190, 210, 255}, ui.font(1));
 }
 
 void draw_status_overlay(std::vector<std::uint32_t> &rgba,
