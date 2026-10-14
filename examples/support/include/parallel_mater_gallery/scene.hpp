@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <parallel_mater/types.hpp>
+#include <simulation/types.hpp>
 
 #include <parallel_mater_gallery/device_profiles.hpp>
 

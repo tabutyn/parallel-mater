@@ -2,7 +2,7 @@
 #pragma once
 
 #include <parallel_mater/parallel_mater.h>
-#include <parallel_mater/types.hpp>
+#include <simulation/types.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <cstdint>
@@ -86,6 +86,7 @@ class CommandScene {
     [[nodiscard]] bool reset(std::string &error);
 
     [[nodiscard]] PmDevice device() const noexcept;
+    [[nodiscard]] PmPhysicalDevice physical_device() const noexcept;
     [[nodiscard]] PmSimulation simulation() const noexcept;
     [[nodiscard]] PmQueue queue() const noexcept;
 

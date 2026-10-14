@@ -29,19 +29,23 @@ alongside the remaining coupling and subsystem scenes.
 
 ## Validation tools
 
-The former CUDA runner directly called the removed C++ `World` interface and
-is not part of the command-only runtime. The repository currently validates
-the canonical inputs and comparator with:
+`parallel-mater-conformance` loads every canonical case through the shared
+scene loader and executes it through the public `pm*` command API. It does not
+link a backend-specific simulation interface. Validate the canonical inputs
+and comparator with:
 
 ```text
 ctest --test-dir <build> -R parallel-mater-conformance
 ```
 
-Driver qualification must execute these cases through the public `pm*`
-command API and emit `parallel-mater-conformance-result/v1`. Compare that
-output with:
+Run one case or the complete corpus and compare its
+`parallel-mater-conformance-result/v1` output with:
 
 ```text
+PM_DRIVER_FILES=<build>/manifests/slang-cuda.json \
+  <build>/parallel-mater-conformance \
+  --case all --output /path/to/driver-results
+
 python3 conformance/v1/compare.py \
   --cases conformance/v1/cases \
   --expected conformance/v1/golden/cuda \
@@ -113,10 +117,7 @@ corpus capture. Inspect all numerical diffs and rerun the complete CTest suite.
 Retain its log and lossless gallery images alongside the package. Do not call
 a non-repeatable capture a golden.
 
-See the archived
-[CUDA/Metal parity requirements](../../docs/archive/cuda-metal-parity-2026.md)
-for conditional first-divergent-phase instrumentation and the separate visual
-and performance handoffs. A future adapter must run this same case registry
-through the shared command API and compare the complete result directory.
-Backend-specific physics APIs, capture executables, and duplicate scene runners
-are not part of the canonical conformance contract.
+A future adapter must run this same case registry through the shared command
+API and compare the complete result directory. First-divergence instrumentation
+belongs in that driver path; backend-specific physics APIs, capture executables,
+and duplicate scene runners are not part of the canonical conformance contract.

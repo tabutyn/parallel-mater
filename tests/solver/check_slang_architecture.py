@@ -14,7 +14,11 @@ cmake = (ROOT / "CMakeLists.txt").read_text()
 loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text()
 build_contract = cmake + "\n" + loader_cmake
 runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
-runtime = runtime_path.read_text()
+runtime_paths = [runtime_path]
+runtime_paths.extend(sorted(
+    (ROOT / "src" / "simulation").glob("runtime_*.cu.inc")
+))
+runtime = "\n".join(path.read_text() for path in runtime_paths)
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text()
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():
@@ -56,9 +60,9 @@ if "install(DIRECTORY include/" in build_contract:
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
 if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
-if (ROOT / "include" / "parallel_mater" / "solver" / "contact.hpp").exists():
+if (ROOT / "src" / "simulation" / "solver" / "contact.hpp").exists():
     failures.append(
-        "include/parallel_mater/solver/contact.hpp: alternate contact solver remains"
+        "src/simulation/solver/contact.hpp: alternate contact solver remains"
     )
 if re.search(r"\bclass\s+World\b", runtime_header):
     failures.append("src/simulation/runtime.hpp: legacy World class remains")
@@ -67,6 +71,8 @@ if re.search(r"\busing\s+World\s*=", runtime_header):
 for boundary_header in (
     ROOT / "src" / "api" / "internal.hpp",
     ROOT / "src" / "device" / "device.hpp",
+    ROOT / "src" / "simulation" / "runtime.hpp",
+    ROOT / "src" / "simulation" / "exports.hpp",
 ):
     boundary_text = boundary_header.read_text()
     for cuda_type in ("cudaStream_t", "cudaEvent_t", "cuda_runtime_api.h"):
@@ -81,6 +87,11 @@ for api_source in sorted((ROOT / "src" / "api").glob("*")):
     if re.search(r"parallel_mater::World\b", api_text):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
+    for cuda_type in ("cudaStream_t", "cudaEvent_t", "cuda_runtime_api.h"):
+        if cuda_type in api_text:
+            failures.append(
+                f"{api_source.relative_to(ROOT)}: CUDA type leaked into API: "
+                f"{cuda_type}")
     for cuda_service in (
         "cudaMemcpy",
         "cudaMalloc",
@@ -273,7 +284,7 @@ for kernel in sorted(migrated_launches):
         failures.append(
             f"src/simulation/runtime.cu: native launch remains for {kernel}")
 
-consumer_paths = [ROOT / "examples" / "gallery" / "application.cpp"]
+consumer_paths = sorted((ROOT / "examples" / "gallery").glob("application*"))
 consumer_paths.extend(sorted((ROOT / "examples" / "gallery" / "render").glob("*")))
 for path in consumer_paths:
     if not path.is_file():
@@ -288,10 +299,12 @@ backend_neutral_sources = (
     ROOT / "src" / "fluid_source.cpp",
     ROOT / "src" / "soft_body_geometry.cpp",
     ROOT / "src" / "rope_geometry.cpp",
-    ROOT / "examples" / "gallery" / "scene_builder.cpp",
     ROOT / "examples" / "support" / "scene.cpp",
     ROOT / "examples" / "support" / "vector_math.hpp",
 )
+backend_neutral_sources += tuple(sorted(
+    (ROOT / "examples" / "gallery").glob("scene_builder*")
+))
 for path in backend_neutral_sources:
     text = path.read_text()
     for backend_detail in (
@@ -305,7 +318,11 @@ for path in backend_neutral_sources:
 if "parallel-mater-asset-preparation" in cmake:
     failures.append("CMakeLists.txt: duplicate gallery asset-preparation target remains")
 
-gallery_application = (ROOT / "examples" / "gallery" / "application.cpp").read_text()
+gallery_application = "\n".join(
+    path.read_text()
+    for path in sorted((ROOT / "examples" / "gallery").glob("application*"))
+    if path.is_file()
+)
 for platform_detail in (
     "cuda_runtime_api.h", "cudaMemGetInfo", "cudaGetDevice",
     "cuda_runtime", "OptixRenderer", "PARALLEL_MATER_OPTIX_PTX_PATH",
@@ -408,7 +425,7 @@ else:
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.
-native_sources = [runtime_path]
+native_sources = list(runtime_paths)
 native_sources.extend(
     path for path in sorted((ROOT / "src").glob("*.cuh"))
 )

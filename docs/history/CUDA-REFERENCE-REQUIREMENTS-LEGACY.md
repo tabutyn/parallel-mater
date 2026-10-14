@@ -12,7 +12,7 @@ NVIDIA machine.
 
 ## Available NVIDIA captures
 
-The [2026-10-06 CUDA physics package](../conformance/v1/references/cuda-20261006/README.md)
+The [2026-10-06 CUDA physics package](../../conformance/v1/references/cuda-20261006/README.md)
 contains all 30 cases from ten runs of clean source, plus the shared all-system
 capture, toolchain provenance, and first-divergence reports. It is usable for
 Metal numerical investigation now, but is explicitly **not a golden refresh**:

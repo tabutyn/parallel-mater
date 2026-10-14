@@ -59,6 +59,7 @@ int main() {
     pmGetPhysicalDeviceFeatures(physical, &supported);
     CHECK(supported.rigidBodies == PM_TRUE);
     CHECK(supported.rigidConstraints == PM_TRUE);
+    CHECK(supported.liquidLiquidCoupling == PM_FALSE);
     CHECK(supported.timelineSemaphores == PM_TRUE);
     CHECK(supported.timestampQueries == PM_TRUE);
     PmNativeInteropProperties cuda_interop{};
@@ -361,6 +362,16 @@ int main() {
         8U, 0.0F, 4U, 0.0F, PM_FALSE, 0.0F, 1.0e-7F};
     pipeline_info.clothMaterialCount = 1U;
     pipeline_info.pClothMaterials = &cloth_material;
+    PmCouplingState unsupported_coupling{};
+    unsupported_coupling.type = PM_COUPLING_LIQUID_LIQUID;
+    PmPhysicsPipelineCreateInfo unsupported_pipeline_info = pipeline_info;
+    unsupported_pipeline_info.couplingCount = 1U;
+    unsupported_pipeline_info.pCouplings = &unsupported_coupling;
+    PmPhysicsPipeline unsupported_pipeline{};
+    CHECK(pmCreatePhysicsPipeline(device, &unsupported_pipeline_info,
+                                  &unsupported_pipeline) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(unsupported_pipeline == nullptr);
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) == PM_SUCCESS);
     PmQueryPoolCreateInfo query_info{};

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
+
 function(parallel_mater_add_slang_kernel_mirrors)
     set(slangc "${PARALLEL_MATER_SLANGC_EXECUTABLE}")
     if(NOT slangc)
@@ -35,18 +37,12 @@ function(parallel_mater_add_slang_kernel_mirrors)
         endif()
     endif()
 
-    function(add_mirror module)
-        set(entries ${ARGN})
-        set(entry_arguments)
-        set(module_definitions)
-        if(module STREQUAL "geometry_constraints")
-            list(APPEND module_definitions
-                 -DPM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
-        endif()
-        foreach(entry IN LISTS entries)
-            list(APPEND entry_arguments -entry "${entry}" -stage compute)
-        endforeach()
+    foreach(module IN LISTS PARALLEL_MATER_SLANG_KERNEL_MODULES)
+        parallel_mater_slang_entry_arguments("${module}" MIRROR entry_arguments)
+        parallel_mater_slang_definition_arguments(
+            "${module}" MIRROR definition_arguments)
         set(source "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang")
+
         set(cuda_output "${generated_dir}/${module}.cu")
         add_custom_command(
             OUTPUT "${cuda_output}"
@@ -54,11 +50,13 @@ function(parallel_mater_add_slang_kernel_mirrors)
             COMMAND "${slangc}" "${source}"
                 -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                 -target cuda -fp-mode precise -warnings-as-errors all
-                ${module_definitions} ${entry_arguments} -o "${cuda_output}"
+                ${definition_arguments} ${entry_arguments} -o "${cuda_output}"
+            COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${cuda_output}"
             DEPENDS ${slang_dependencies} "${slangc}"
             COMMENT "Validating ${module}.slang as CUDA"
             COMMAND_EXPAND_LISTS VERBATIM)
-        set(module_outputs "${cuda_output}")
+        list(APPEND outputs "${cuda_output}")
+
         set(spirv_output "${generated_dir}/${module}.spv")
         add_custom_command(
             OUTPUT "${spirv_output}"
@@ -67,11 +65,13 @@ function(parallel_mater_add_slang_kernel_mirrors)
                 -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                 -target spirv -profile sm_6_5 -fp-mode precise
                 -warnings-as-errors all -DPM_TARGET_VULKAN=1
-                ${module_definitions} ${entry_arguments} -o "${spirv_output}"
+                ${definition_arguments} ${entry_arguments} -o "${spirv_output}"
+            COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${spirv_output}"
             DEPENDS ${slang_dependencies} "${slangc}"
             COMMENT "Validating ${module}.slang as Vulkan SPIR-V"
             COMMAND_EXPAND_LISTS VERBATIM)
-        list(APPEND module_outputs "${spirv_output}")
+        list(APPEND outputs "${spirv_output}")
+
         if(nvrtc_path)
             set(ptx_output "${generated_dir}/${module}.ptx")
             add_custom_command(
@@ -81,84 +81,15 @@ function(parallel_mater_add_slang_kernel_mirrors)
                     -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                     -target ptx -fp-mode precise -warnings-as-errors all
                     -nvrtc-path "${nvrtc_path}"
-                    ${module_definitions} ${entry_arguments} -o "${ptx_output}"
+                    ${definition_arguments} ${entry_arguments}
+                    -o "${ptx_output}"
+                COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${ptx_output}"
                 DEPENDS ${slang_dependencies} "${slangc}" CUDA::nvrtc
                 COMMENT "Validating ${module}.slang as PTX"
                 COMMAND_EXPAND_LISTS VERBATIM)
-            list(APPEND module_outputs "${ptx_output}")
+            list(APPEND outputs "${ptx_output}")
         endif()
-        set(outputs ${outputs} ${module_outputs} PARENT_SCOPE)
-    endfunction()
-
-    add_mirror(fluid
-        fluid_emit_cells fluid_compute_forces fluid_integrate
-        fluid_reserve_contact_events fluid_gather_contact_events
-        fluid_source_vacancies fluid_source_emit fluid_destroy_flags
-        fluid_gather fluid_copy_initial)
-    add_mirror(cloth cloth_project_volume cloth_break_bonds
-        cloth_limit_strain cloth_update_surface)
-    add_mirror(cloth_rope rope_cloth_sample_anchor rope_cloth_apply_anchor)
-    add_mirror(cloth_smoke smoke_cloth_wind smoke_cloth_contact)
-    add_mirror(fluid_cloth fluid_cloth_containment_forces
-        cloth_apply_fluid_forces fluid_project_inside_cloth)
-    add_mirror(fluid_rope fluid_rope_contacts fluid_rope_apply)
-    add_mirror(fluid_smoke fluid_smoke_drag fluid_smoke_grid_drag
-        fluid_smoke_exchange fluid_clear_inactive_keep)
-    add_mirror(fluid_soft_body fluid_soft_refit fluid_soft_detect
-        fluid_soft_solve fluid_soft_apply fluid_soft_recover)
-    add_mirror(geometry_cloth cloth_constrain_bodies
-        cloth_apply_body_corrections)
-    add_mirror(geometry pm_integrate_rigid_bodies
-        pm_compute_rigid_world_bounds pm_broad_phase_rigid_pairs
-        pm_generate_rigid_leaf_pairs pm_evaluate_rigid_leaf_pairs
-        pm_reduce_rigid_leaf_manifolds
-        pm_finalize_rigid_contact_manifolds pm_clear_rigid_inputs
-        pm_capture_rigid_inputs pm_prepare_parallel_contact_events
-        pm_load_rigid_contact_cache pm_save_rigid_contact_cache
-        pm_gather_rigid_debug_samples pm_clamp_rigid_speeds
-        pm_build_fixed_collision_groups)
-    add_mirror(geometry_fluid fluid_static_contacts fluid_body_bounds_kernel
-        fluid_index_body_cells fluid_detect_moving_contacts
-        fluid_resolve_moving_contacts reduce_point_body_impulses)
-    add_mirror(rope rope_advance)
-    add_mirror(geometry_smoke smoke_emit_cells smoke_density_pressure
-        smoke_pair_forces smoke_compute_vorticity smoke_advect smoke_emit
-        smoke_deformable_bounds smoke_rigid_contact
-        smoke_apply_rigid_impulses)
-    add_mirror(geometry_soft_body deformable_collide
-        soft_body_surface_contacts soft_body_apply_surface_contacts)
-    add_mirror(rope_smoke smoke_rope_wind smoke_rope_contact)
-    add_mirror(smoke_grid smoke_grid_initialize_cells
-        smoke_grid_initialize_faces smoke_grid_clear_obstacles
-        smoke_grid_raster_rigid smoke_grid_raster_deformable
-        smoke_grid_raster_soft smoke_grid_resolve_particle_fields
-        smoke_grid_splat_particles smoke_grid_advect_face
-        smoke_grid_correct_face smoke_grid_cell_diagnostics
-        smoke_grid_subgrid_force smoke_grid_apply_face_forces
-        smoke_grid_apply_face_boundaries smoke_grid_divergence
-        smoke_grid_pressure_smooth smoke_grid_pressure_residual
-        smoke_grid_restrict_residual smoke_grid_clear_scalar
-        smoke_grid_restrict_open smoke_grid_mark_domain_boundaries
-        smoke_grid_prolong_add smoke_grid_compare_residual
-        smoke_grid_reset_residual smoke_grid_project_face smoke_grid_trace
-        smoke_grid_soft_body_force smoke_grid_cloth_force
-        smoke_grid_apply_cloth_force smoke_grid_rigid_force)
-    add_mirror(soft_body deformable_predict soft_body_measure_momentum
-        soft_body_restore_momentum soft_body_project_rest_shape
-        deformable_project_links deformable_project_links_warp
-        soft_body_finalize_velocities soft_body_apply_contact_friction
-        soft_body_damp_springs soft_body_damp_springs_warp
-        soft_body_update_surface)
-    add_mirror(soft_body_cloth soft_cloth_detect soft_cloth_apply_soft
-        soft_cloth_apply_cloth)
-    add_mirror(soft_body_rope rope_soft_sample_anchor
-        rope_soft_scatter_anchor rope_soft_apply)
-    add_mirror(soft_body_smoke smoke_soft_body_wind smoke_soft_body_contact)
-    add_mirror(queries query_rigid_hit_box_kernel query_particle_hit_box_kernel)
-    add_mirror(primitives pm_exclusive_scan_u32 pm_compact_count_blocks
-        pm_compact_scatter_indices pm_radix_histogram_u64
-        pm_radix_prefix_u32 pm_radix_scatter_u64_u32)
-    add_mirror(geometry_constraints prepare_avbd_kernel solve_avbd_kernel)
+    endforeach()
 
     add_custom_target(parallel-mater-slang-kernel-mirrors ALL
         DEPENDS ${outputs})

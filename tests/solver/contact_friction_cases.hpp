@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <parallel_mater/solver/contact_friction.hpp>
+#include <simulation/solver/contact_friction.hpp>
 
 #include <cmath>
 

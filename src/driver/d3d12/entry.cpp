@@ -606,8 +606,10 @@ void drv_get_physical_properties(
     std::memcpy(properties->deviceUuid, &physical->description.AdapterLuid,
                 sizeof(physical->description.AdapterLuid));
     const std::string name = utf8(physical->description.Description);
-    std::strncpy(properties->deviceName, name.c_str(),
-                 sizeof(properties->deviceName) - 1U);
+    const std::size_t copy_size = std::min(
+        name.size(), sizeof(properties->deviceName) - 1U);
+    std::memcpy(properties->deviceName, name.data(), copy_size);
+    properties->deviceName[copy_size] = '\0';
 }
 
 PmResult drv_get_queue_families(PmPhysicalDevice physical,

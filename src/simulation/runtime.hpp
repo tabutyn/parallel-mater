@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Private runtime used by the current Slang CUDA driver implementation.
+// Private backend-neutral simulation scheduler used by Slang device adapters.
 
-#include <cuda_runtime_api.h>
-
+#include "../device/device.hpp"
 #include "host_preparation.hpp"
 
-#include <parallel_mater/types.hpp>
+#include "types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -195,19 +194,19 @@ class SimulationRuntime {
     SimulationRuntime &operator=(const SimulationRuntime &) = delete;
 
     [[nodiscard]] static Status create(SimulationOptions options, SimulationRuntime &output,
-                                       cudaStream_t stream = nullptr) noexcept;
+                                       device::ExecutionQueue queue = {}) noexcept;
 
     [[nodiscard]] Status add_fluid(FluidOptions options,
                                    DeviceSpan<const FluidParticle> initial_particles,
                                    FluidId &output,
-                                   cudaStream_t stream = nullptr) noexcept;
+                                   device::ExecutionQueue queue = {}) noexcept;
     // Samples one authored closed volume and creates a fluid. Continuous
     // inflow is configured separately with add_particle_source.
     [[nodiscard]] Status add_fluid_geometry(
         FluidOptions options, FluidGeometrySource source, FluidId &output,
-        cudaStream_t stream = nullptr) noexcept;
+        device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status remove_fluid(FluidId fluid,
-                                      cudaStream_t stream = nullptr) noexcept;
+                                      device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
     [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
     [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
@@ -238,14 +237,14 @@ class SimulationRuntime {
         SmokeRigidCouplingId coupling) noexcept;
 
     [[nodiscard]] Status add_cloth(ClothOptions options, ClothId &output,
-                                   cudaStream_t stream = nullptr) noexcept;
+                                   device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status remove_cloth(ClothId cloth) noexcept;
     [[nodiscard]] Status cloth_view(ClothId cloth,
                                     ClothDeviceView &output) const noexcept;
 
     [[nodiscard]] Status add_soft_body(SoftBodyOptions options,
                                        SoftBodyId &output,
-                                       cudaStream_t stream = nullptr) noexcept;
+                                       device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status remove_soft_body(SoftBodyId soft_body) noexcept;
     [[nodiscard]] Status soft_body_view(
         SoftBodyId soft_body, SoftBodyDeviceView &output) const noexcept;
@@ -346,12 +345,12 @@ class SimulationRuntime {
     // Explicit synchronous readback for gameplay code that needs one body.
     [[nodiscard]] Status read_rigid_body_state(
         RigidBodyId body, RigidBodyState &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        device::ExecutionQueue queue = {}) const noexcept;
     // Synchronously polls the latest completed state. Results include every
     // live rigid body and fluid; callers can filter for a specific goal body.
     [[nodiscard]] Status query_hit_box(
         HitBox box, HitBoxResult &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        device::ExecutionQueue queue = {}) const noexcept;
 
     [[nodiscard]] Status add_rigid_constraint(
         RigidConstraintOptions options, RigidConstraintId &output) noexcept;
@@ -361,22 +360,22 @@ class SimulationRuntime {
         RigidConstraintId constraint) noexcept;
     [[nodiscard]] Status read_rigid_constraint_state(
         RigidConstraintId constraint, RigidConstraintState &output,
-        cudaStream_t stream = nullptr) const noexcept;
+        device::ExecutionQueue queue = {}) const noexcept;
 
     // Copies an indexed two-sided triangle soup into SimulationRuntime-owned CUDA memory.
     // Triangles need not form a closed, manifold, or consistently wound mesh.
     [[nodiscard]] Status add_triangle_mesh(
         DeviceSpan<const Vec3> vertices,
         DeviceSpan<const std::uint32_t> triangle_indices,
-        TriangleMeshId &output, cudaStream_t stream = nullptr) noexcept;
+        TriangleMeshId &output, device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status remove_triangle_mesh(TriangleMeshId mesh) noexcept;
 
     [[nodiscard]] Status add_paint_field(
         PaintFieldOptions options, PaintFieldId &output,
-        cudaStream_t stream = nullptr) noexcept;
+        device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status remove_paint_field(PaintFieldId field) noexcept;
     [[nodiscard]] Status clear_paint_field(
-        PaintFieldId field, cudaStream_t stream = nullptr) noexcept;
+        PaintFieldId field, device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status paint_field_view(
         PaintFieldId field, PaintFieldDeviceView &output) const noexcept;
     [[nodiscard]] Status add_paint_rule(
@@ -385,9 +384,9 @@ class SimulationRuntime {
 
     // Only one frame may be in flight per SimulationRuntime in the initial release.
     [[nodiscard]] Status step_async(StepOptions options, FrameToken &completion,
-                                    cudaStream_t stream = nullptr) noexcept;
+                                    device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status step(StepOptions options,
-                              cudaStream_t stream = nullptr) noexcept;
+                              device::ExecutionQueue queue = {}) noexcept;
 
     [[nodiscard]] ContactDeviceView contacts() const noexcept;
     [[nodiscard]] RigidContactDeviceView rigid_contacts() const noexcept;
@@ -400,7 +399,7 @@ class SimulationRuntime {
     [[nodiscard]] Status collect_step_timings(
         SimulationStepTimings &output) const noexcept;
     [[nodiscard]] Status collect_statistics(SimulationStatistics &output,
-                                            cudaStream_t stream = nullptr) const noexcept;
+                                            device::ExecutionQueue queue = {}) const noexcept;
     [[nodiscard]] int device_ordinal() const noexcept;
 
   private:

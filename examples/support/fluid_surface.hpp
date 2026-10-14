@@ -3,7 +3,7 @@
 
 #include "renderer_shared.hpp"
 
-#include <parallel_mater/types.hpp>
+#include <simulation/types.hpp>
 
 #include <memory>
 #include <vector>

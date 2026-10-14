@@ -14,7 +14,19 @@ struct Event {
     std::uintptr_t value{};
 
     [[nodiscard]] explicit operator bool() const noexcept { return value != 0U; }
-    friend bool operator==(Event, Event) noexcept = default;
+    friend bool operator==(Event left, Event right) noexcept {
+        return left.value == right.value;
+    }
+};
+
+// Opaque queue token shared with the simulation scheduler. Only a concrete
+// device adapter may interpret the native handle.
+struct ExecutionQueue {
+    void *native_handle{};
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        return native_handle != nullptr;
+    }
 };
 
 enum class CopyDirection : std::uint8_t {
@@ -73,6 +85,11 @@ class Services {
     [[nodiscard]] virtual PmResult memory_budget(PmDeviceSize &available,
                                                  PmDeviceSize &total) noexcept = 0;
 };
+
+[[nodiscard]] inline ExecutionQueue execution_queue(
+    Services &services) noexcept {
+    return {services.native_queue_handle()};
+}
 
 [[nodiscard]] PmResult enumerate(std::uint32_t *count,
                                  Description *descriptions) noexcept;
