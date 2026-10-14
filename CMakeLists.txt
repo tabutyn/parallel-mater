@@ -155,6 +155,22 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY OR
     FetchContent_MakeAvailable(parallel_mater_cgltf)
 endif()
 
+if(PARALLEL_MATER_BUILD_CUDA OR BUILD_TESTING)
+    add_library(parallel-mater-host-preparation STATIC
+        src/fluid_geometry.cpp
+        src/fluid_source.cpp
+        src/soft_body_geometry.cpp
+        src/rope_geometry.cpp)
+    target_compile_features(parallel-mater-host-preparation PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-host-preparation
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(parallel-mater-host-preparation PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+    parallel_mater_enable_warnings(parallel-mater-host-preparation)
+endif()
+
 if(PARALLEL_MATER_BUILD_CUDA)
 check_language(CUDA)
 if(NOT CMAKE_CUDA_COMPILER)
@@ -732,11 +748,7 @@ add_library(
     src/simulation/geometry_storage.hpp
     src/simulation/rope_storage.hpp
     src/simulation/fluid_smoke_storage.hpp
-    src/simulation/smoke_storage.hpp
-    src/fluid_geometry.cpp
-    src/fluid_source.cpp
-    src/soft_body_geometry.cpp
-    src/rope_geometry.cpp)
+    src/simulation/smoke_storage.hpp)
 set_source_files_properties(
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
@@ -814,7 +826,9 @@ target_include_directories(
         ${PARALLEL_MATER_API_GENERATED_DIR})
 target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
     PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
-target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE CUDA::cudart)
+target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
+    parallel-mater-host-preparation
+    CUDA::cudart)
 if(MSVC)
     target_compile_options(
         parallel-mater-driver-slang-cuda
@@ -871,20 +885,6 @@ if(BUILD_TESTING)
 endif()
 
 if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
-    # CPU-only asset preparation is shared by applications and drivers.  Keep it
-    # outside every device driver: it has no allocation, dispatch, or scheduling
-    # responsibilities.
-    add_library(parallel-mater-asset-preparation STATIC
-                src/fluid_geometry.cpp
-                src/soft_body_geometry.cpp
-                src/rope_geometry.cpp)
-    target_compile_features(parallel-mater-asset-preparation PUBLIC cxx_std_20)
-    target_include_directories(parallel-mater-asset-preparation
-        PUBLIC include
-        PRIVATE src)
-    target_link_libraries(parallel-mater-asset-preparation PRIVATE CUDA::cudart)
-    parallel_mater_enable_warnings(parallel-mater-asset-preparation)
-
     add_library(parallel-mater-gallery-scene STATIC
                 examples/gallery/scene_builder.cpp
                 examples/gallery/render/render_scene.cpp
@@ -896,12 +896,12 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
     target_include_directories(
         parallel-mater-gallery-scene
-        PUBLIC examples/support/include examples/gallery src
-        PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
+        PUBLIC examples/support/include examples/gallery
+        PRIVATE src ${parallel_mater_cgltf_SOURCE_DIR})
     target_link_libraries(
         parallel-mater-gallery-scene
         PUBLIC ParallelMater::parallel_mater
-        PRIVATE parallel-mater-asset-preparation)
+        PRIVATE parallel-mater-host-preparation)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
     if(BUILD_TESTING)
@@ -1248,6 +1248,14 @@ if(BUILD_TESTING)
                                PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     add_test(NAME parallel-mater-types-contract-tests
              COMMAND parallel-mater-types-contract-tests)
+
+    add_executable(parallel-mater-soft-body-geometry-tests
+                   tests/soft_body_geometry_tests.cpp)
+    target_link_libraries(parallel-mater-soft-body-geometry-tests
+                          PRIVATE parallel-mater-host-preparation)
+    parallel_mater_enable_warnings(parallel-mater-soft-body-geometry-tests)
+    add_test(NAME parallel-mater-soft-body-geometry-tests
+             COMMAND parallel-mater-soft-body-geometry-tests)
 
     add_executable(parallel-mater-parity-compare
                    tests/parity/compare.cpp)

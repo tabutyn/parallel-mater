@@ -3,6 +3,8 @@
 
 #include "vector_math.hpp"
 
+#include <simulation/host_preparation.hpp>
+
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
@@ -31,8 +33,6 @@ using math::multiply;
 using math::subtract;
 
 constexpr float k_bounds_epsilon = 1.0e-4F;
-
-constexpr cudaError_t k_backend_success = cudaSuccess;
 
 class FlatJson {
   public:

@@ -254,6 +254,28 @@ for path in consumer_paths:
     ):
         failures.append(f"{path.relative_to(ROOT)}: legacy World dependency")
 
+backend_neutral_sources = (
+    ROOT / "src" / "fluid_geometry.cpp",
+    ROOT / "src" / "fluid_source.cpp",
+    ROOT / "src" / "soft_body_geometry.cpp",
+    ROOT / "src" / "rope_geometry.cpp",
+    ROOT / "examples" / "gallery" / "scene_builder.cpp",
+    ROOT / "examples" / "support" / "scene.cpp",
+    ROOT / "examples" / "support" / "vector_math.hpp",
+)
+for path in backend_neutral_sources:
+    text = path.read_text()
+    for backend_detail in (
+        "simulation/runtime.hpp", "cuda_runtime", "cudaSuccess", "cudaError_t",
+    ):
+        if backend_detail in text:
+            failures.append(
+                f"{path.relative_to(ROOT)}: host preparation owns backend detail "
+                f"{backend_detail}"
+            )
+if "parallel-mater-asset-preparation" in cmake:
+    failures.append("CMakeLists.txt: duplicate gallery asset-preparation target remains")
+
 gallery_application = (ROOT / "examples" / "gallery" / "application.cpp").read_text()
 for platform_detail in (
     "cuda_runtime_api.h", "cudaMemGetInfo", "cudaGetDevice",

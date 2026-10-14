@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <simulation/runtime.hpp>
-#define PM_GEOMETRY_NAMESPACE parallel_mater
-#define PM_GEOMETRY_SUCCESS cudaSuccess
+#include <simulation/host_preparation.hpp>
 
 #include <algorithm>
 #include <array>
@@ -11,7 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace PM_GEOMETRY_NAMESPACE {
+namespace parallel_mater {
 namespace {
 Vec3 add(Vec3 a, Vec3 b) { return {a.x+b.x, a.y+b.y, a.z+b.z}; }
 Vec3 sub(Vec3 a, Vec3 b) { return {a.x-b.x, a.y-b.y, a.z-b.z}; }
@@ -42,10 +40,10 @@ SoftBodySurfaceSource midpoint_source(const SoftBodySurfaceSource &a,
 Status build_soft_body_geometry(SoftBodyGeometrySource source,
                                 SoftBodyGeometry &output) noexcept {
     const auto invalid = [](const char *message) {
-        return Status{StatusCode::invalid_argument,PM_GEOMETRY_SUCCESS,message};
+        return Status{StatusCode::invalid_argument,0,message};
     };
     const auto capacity = [] {
-        return Status{StatusCode::capacity_exceeded,PM_GEOMETRY_SUCCESS,
+        return Status{StatusCode::capacity_exceeded,0,
                       "soft-body geometry exceeds configured capacity"};
     };
     if(!source.vertices.data || source.vertices.size<4 || source.vertices.size>UINT32_MAX ||
@@ -228,9 +226,7 @@ Status build_soft_body_geometry(SoftBodyGeometrySource source,
         output=std::move(result);
         return {};
     } catch(const std::length_error &) { return capacity(); }
-      catch(const std::logic_error &) { return {StatusCode::internal_error,PM_GEOMETRY_SUCCESS,"soft-body refinement provenance failed"}; }
-      catch(...) { return {StatusCode::out_of_memory,PM_GEOMETRY_SUCCESS,"soft-body geometry allocation failed"}; }
+      catch(const std::logic_error &) { return {StatusCode::internal_error,0,"soft-body refinement provenance failed"}; }
+      catch(...) { return {StatusCode::out_of_memory,0,"soft-body geometry allocation failed"}; }
 }
 } // namespace parallel_mater
-#undef PM_GEOMETRY_SUCCESS
-#undef PM_GEOMETRY_NAMESPACE

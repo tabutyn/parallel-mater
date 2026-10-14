@@ -258,8 +258,8 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
     case StatusCode::capacity_exceeded: return PM_ERROR_CAPACITY_EXCEEDED;
     case StatusCode::busy: return PM_ERROR_INVALID_STATE;
     case StatusCode::out_of_memory: return PM_ERROR_OUT_OF_DEVICE_MEMORY;
-    case StatusCode::cuda_failure: return parallel_mater::device::from_driver_error(
-        static_cast<std::int32_t>(status.cuda_error));
+    case StatusCode::backend_failure:
+        return parallel_mater::device::from_driver_error(status.backend_error);
     case StatusCode::internal_error: return PM_ERROR_INVALID_STATE;
     }
     return PM_ERROR_INVALID_STATE;
