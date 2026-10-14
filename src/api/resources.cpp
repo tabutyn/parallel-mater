@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "../device/cuda_device.hpp"
 #include "../simulation/exports.hpp"
 #include "../simulation/geometry_constraints_dispatch.hpp"
 #include "../simulation/geometry_storage.hpp"
@@ -258,9 +259,10 @@ void convert_axes(const PmAxisSpring source[3],
 namespace parallel_mater::api {
 
 PmResult register_geometry(PmSimulation simulation, PmGeometry geometry,
-                           cudaStream_t stream,
+                           parallel_mater::device::Services &services,
                            TriangleMeshId &output) noexcept {
-    return register_geometry_impl(simulation, geometry, stream, output);
+    return register_geometry_impl(
+        simulation, geometry, parallel_mater::device::cuda_stream(services), output);
 }
 
 } // namespace parallel_mater::api
@@ -342,7 +344,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBuildGeometry(
         geometry->memory == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
-        command_buffer, [geometry](cudaStream_t) noexcept {
+        command_buffer, [geometry](parallel_mater::device::Services &) noexcept {
             geometry->built = true;
             return PM_SUCCESS;
         });
@@ -585,7 +587,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
         result = parallel_mater::api::from_status(
             parallel_mater::SimulationRuntime::create(
                 simulation->world_options, initialized,
-                device->services->stream()));
+                parallel_mater::device::cuda_stream(*device->services)));
     }
     if (result != PM_SUCCESS) {
         simulation->arena.reset();
@@ -616,7 +618,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
     }
     return parallel_mater::api::record(
         command_buffer,
-        [simulation, first, copied = std::move(copied)](cudaStream_t stream) noexcept {
+        [simulation, first, copied = std::move(copied)](
+            parallel_mater::device::Services &services) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
@@ -633,7 +636,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 if (source.active == PM_FALSE) continue;
                 TriangleMeshId mesh{};
                 result = parallel_mater::api::register_geometry(
-                    simulation, source.geometry, stream, mesh);
+                    simulation, source.geometry, services, mesh);
                 if (result != PM_SUCCESS) return result;
                 RigidBodyOptions options{};
                 options.motion = motion_type(source.motionType);
@@ -676,7 +679,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdApplyRigidInputs(
             return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
         command_buffer, [simulation, copied = std::move(copied)](
-                            cudaStream_t) noexcept {
+                            parallel_mater::device::Services &) noexcept {
             for (const auto &input : copied) {
                 if (!simulation->rigid_bodies[input.bodyIndex].has_value())
                     return PM_ERROR_INVALID_STATE;
@@ -706,7 +709,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetRigidStates(
     catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
     return parallel_mater::api::record(
         command_buffer, [simulation, first, copied = std::move(copied)](
-                            cudaStream_t) noexcept {
+                            parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 const auto &slot = simulation->rigid_bodies[first + offset];
                 if (!slot.has_value()) return PM_ERROR_INVALID_STATE;
@@ -737,7 +740,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetKinematicTargets(
         if (!finite(target)) return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
         command_buffer, [simulation, first, copied = std::move(copied)](
-                            cudaStream_t) noexcept {
+                            parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 const auto &slot = simulation->rigid_bodies[first + offset];
                 if (!slot.has_value()) return PM_ERROR_INVALID_STATE;
@@ -766,7 +769,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidConstraints(
     catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
     return parallel_mater::api::record(
         command_buffer, [simulation, first, copied = std::move(copied)](
-                            cudaStream_t) noexcept {
+                            parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 auto &slot = simulation->constraints[first + offset];
                 if (slot.has_value()) {
@@ -825,7 +828,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
     if (simulation == nullptr || simulation->device != command_buffer->device)
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
-        command_buffer, [simulation](cudaStream_t stream) noexcept {
+        command_buffer, [simulation](
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             PmResult result = validate_bound(simulation);
             if (result != PM_SUCCESS) return result;
             {
@@ -900,7 +905,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
         command_buffer->bound_pipeline->fluids[fluid];
     return parallel_mater::api::record(
         command_buffer, [simulation, fluid, copied, material](
-                            cudaStream_t stream) noexcept {
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
@@ -956,7 +962,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
     if (command_buffer->statistics_open)
         command_buffer->statistics_simulation = simulation;
     return parallel_mater::api::record(
-        command_buffer, [simulation, copied, pipeline](cudaStream_t stream) noexcept {
+        command_buffer, [simulation, copied, pipeline](
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
@@ -1000,7 +1008,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
     return parallel_mater::api::record(
-        command_buffer, [simulation, first, count, copied](cudaStream_t stream) noexcept {
+        command_buffer, [simulation, first, count, copied](
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::RigidBodyDeviceView view{};
             PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->rigid_body_view(view));
@@ -1086,7 +1096,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyFluidParticles(
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
     return parallel_mater::api::record(
-        command_buffer, [simulation, fluid, copied](cudaStream_t stream) noexcept {
+        command_buffer, [simulation, fluid, copied](
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             if (!simulation->fluid_ids[fluid].has_value())
                 return PM_ERROR_INVALID_STATE;
             parallel_mater::FluidDeviceView view{};

@@ -47,7 +47,6 @@ using parallel_mater::RigidConstraintState;
 using parallel_mater::RigidConstraintType;
 using parallel_mater::MotionType;
 using parallel_mater::Quaternion;
-using parallel_mater::Status;
 using parallel_mater::StepOptions;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
@@ -662,16 +661,6 @@ struct FluidEscapeTrace {
     return (!output.print_brick_profile || output.headless_output.empty()) &&
         (!output.trace_fluid_escapes || !output.headless_output.empty()) &&
         validate_brick_config(output.bricks, brick_error);
-}
-
-[[nodiscard]] bool require(Status status, const char *operation) {
-    if (status) {
-        return true;
-    }
-    std::cerr << operation << " failed: "
-              << (status.message != nullptr ? status.message : "unknown")
-              << '\n';
-    return false;
 }
 
 [[nodiscard]] bool toggle_constraints(GalleryRuntime &runtime) {

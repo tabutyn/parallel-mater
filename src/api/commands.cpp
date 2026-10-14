@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "../device/cuda_device.hpp"
 
 #include <algorithm>
 
@@ -25,8 +26,8 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyCommandPool(
     PmDevice device, PmCommandPool pool) {
     if (device == nullptr || pool == nullptr || pool->device != device) return;
     for (PmCommandBuffer buffer : pool->buffers)
-        if (buffer->completion != nullptr)
-            (void)cudaEventDestroy(buffer->completion);
+        if (buffer->completion)
+            device->services->destroy_event(buffer->completion);
     for (PmCommandBuffer buffer : pool->buffers)
         parallel_mater::api::destroy_object(device, buffer);
     pool->buffers.clear();
@@ -78,19 +79,20 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmAllocateCommandBuffers(
         }
         created->device = device;
         created->pool = pool;
-        const cudaError_t event_error = cudaEventCreateWithFlags(
-            &created->completion, cudaEventDisableTiming);
-        if (event_error != cudaSuccess) {
+        const PmResult event_result = device->services->create_event(
+            false, created->completion);
+        if (event_result != PM_SUCCESS) {
             parallel_mater::api::destroy_object(device, created);
             for (std::size_t rollback = previous;
                  rollback < pool->buffers.size(); ++rollback) {
-                if (pool->buffers[rollback]->completion != nullptr)
-                    (void)cudaEventDestroy(pool->buffers[rollback]->completion);
+                if (pool->buffers[rollback]->completion)
+                    device->services->destroy_event(
+                        pool->buffers[rollback]->completion);
                 parallel_mater::api::destroy_object(device,
                                                     pool->buffers[rollback]);
             }
             pool->buffers.resize(previous);
-            return parallel_mater::device::from_cuda(event_error);
+            return event_result;
         }
         pool->buffers.push_back(created);
         buffers[index] = created;
@@ -112,7 +114,8 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmFreeCommandBuffers(
             continue;
         const auto found = std::find(pool->buffers.begin(), pool->buffers.end(), buffer);
         if (found == pool->buffers.end()) continue;
-        if (buffer->completion != nullptr) (void)cudaEventDestroy(buffer->completion);
+        if (buffer->completion)
+            device->services->destroy_event(buffer->completion);
         parallel_mater::api::destroy_object(device, buffer);
         pool->buffers.erase(found);
     }
@@ -191,7 +194,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyBuffer(
             return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
         command_buffer, [source, destination, copied = std::move(copied)](
-                            cudaStream_t stream) noexcept {
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             for (const PmBufferCopy &region : copied) {
                 const cudaError_t error = cudaMemcpyAsync(
                     parallel_mater::api::buffer_pointer(destination, region.dstOffset),

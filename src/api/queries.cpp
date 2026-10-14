@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "../device/cuda_device.hpp"
 
 #include <cstring>
 
@@ -24,12 +25,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
     }
     if (info->queryType == PM_QUERY_TIMESTAMP) {
         for (PmQuerySlot &slot : created->slots) {
-            const cudaError_t error = cudaEventCreate(&slot.event);
-            if (error != cudaSuccess) {
+            const PmResult result = device->services->create_event(true, slot.event);
+            if (result != PM_SUCCESS) {
                 for (PmQuerySlot &rollback : created->slots)
-                    if (rollback.event != nullptr) (void)cudaEventDestroy(rollback.event);
+                    if (rollback.event)
+                        device->services->destroy_event(rollback.event);
                 parallel_mater::api::destroy_object(device, created);
-                return parallel_mater::device::from_cuda(error);
+                return result;
             }
         }
     } else if (info->queryType != PM_QUERY_STEP_STATISTICS) {
@@ -45,7 +47,7 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyQueryPool(
     if (device == nullptr || pool == nullptr || pool->device != device) return;
     (void)device->services->wait_idle();
     for (PmQuerySlot &slot : pool->slots)
-        if (slot.event != nullptr) (void)cudaEventDestroy(slot.event);
+        if (slot.event) device->services->destroy_event(slot.event);
     parallel_mater::api::destroy_object(device, pool);
 }
 
@@ -58,7 +60,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetQueryPool(
         first > pool->slots.size() || count > pool->slots.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
-        command_buffer, [pool, first, count](cudaStream_t) noexcept {
+        command_buffer, [pool, first, count](
+                            parallel_mater::device::Services &) noexcept {
             for (std::uint32_t index = first; index < first + count; ++index) {
                 pool->slots[index].available = false;
                 pool->slots[index].statistics = {};
@@ -77,9 +80,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteTimestamp(
         pool->type != PM_QUERY_TIMESTAMP || query >= pool->slots.size())
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record(
-        command_buffer, [pool, query](cudaStream_t stream) noexcept {
-            const cudaError_t error = cudaEventRecord(pool->slots[query].event, stream);
-            if (error != cudaSuccess) return parallel_mater::device::from_cuda(error);
+        command_buffer, [pool, query](
+                            parallel_mater::device::Services &services) noexcept {
+            const PmResult result = services.record_event(pool->slots[query].event);
+            if (result != PM_SUCCESS) return result;
             pool->slots[query].available = true;
             return PM_SUCCESS;
         });
@@ -98,7 +102,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
     command_buffer->statistics_query = query;
     command_buffer->statistics_simulation = nullptr;
     return parallel_mater::api::record(
-        command_buffer, [pool, query](cudaStream_t) noexcept {
+        command_buffer, [pool, query](
+                            parallel_mater::device::Services &) noexcept {
             pool->slots[query].statistics = {};
             pool->slots[query].available = false;
             return PM_SUCCESS;
@@ -121,7 +126,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
     command_buffer->statistics_pool = nullptr;
     command_buffer->statistics_simulation = nullptr;
     return parallel_mater::api::record(
-        command_buffer, [pool, query, simulation](cudaStream_t stream) noexcept {
+        command_buffer, [pool, query, simulation](
+                            parallel_mater::device::Services &services) noexcept {
+            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::WorldStatistics source{};
             const PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->collect_statistics(source, stream));
@@ -167,18 +174,24 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
     for (std::uint32_t offset = 0U; offset < count; ++offset) {
         PmQuerySlot &slot = pool->slots[first + offset];
         if (slot.available && pool->type == PM_QUERY_TIMESTAMP) {
-            const cudaError_t status = (flags & PM_QUERY_RESULT_WAIT_BIT) != 0U
-                ? cudaEventSynchronize(slot.event) : cudaEventQuery(slot.event);
-            if (status == cudaErrorNotReady) slot.available = false;
-            else if (status != cudaSuccess) return parallel_mater::device::from_cuda(status);
+            if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
+                const PmResult result = device->services->wait_event(slot.event);
+                if (result != PM_SUCCESS) return result;
+            } else {
+                bool ready = false;
+                const PmResult result = device->services->query_event(
+                    slot.event, ready);
+                if (result != PM_SUCCESS) return result;
+                if (!ready) slot.available = false;
+            }
         }
         auto *destination = static_cast<std::byte *>(data) + offset * stride;
         if (slot.available) {
             if (pool->type == PM_QUERY_TIMESTAMP) {
                 float milliseconds = 0.0F;
-                const cudaError_t error = cudaEventElapsedTime(
-                    &milliseconds, device->services->epoch(), slot.event);
-                if (error != cudaSuccess) return parallel_mater::device::from_cuda(error);
+                const PmResult result = device->services->elapsed_time(
+                    device->services->epoch(), slot.event, milliseconds);
+                if (result != PM_SUCCESS) return result;
                 const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
                     milliseconds * 1'000'000.0F);
                 std::memcpy(destination, &nanoseconds, sizeof nanoseconds);

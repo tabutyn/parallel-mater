@@ -99,6 +99,6 @@ responsibilities, and qualification requirements are documented in the
 and observes the same command stream without becoming a physics
 implementation.
 
-The legacy C++ `World` implementation remains a private implementation detail
-inside the first Slang/CUDA driver while its scheduling code is decomposed. It
-is not installed, exported, or a supported application interface.
+The former C++ `World` compatibility interface has been removed. The first
+Slang/CUDA driver still uses a private simulation runtime internally; it is not
+installed, exported, or a supported application interface.

@@ -2,9 +2,9 @@
 #pragma once
 
 // Legacy sequential-impulse contact row, retained for compatibility and
-// standalone regression fixtures. Production World stepping uses avbd.hpp;
+// standalone regression fixtures. Production simulation stepping uses avbd.hpp;
 // this header does not select an alternate production solver.
-// No CUDA runtime / World API dependency.
+// No CUDA runtime or private simulation dependency.
 // Vector must be a float {x,y,z} aggregate. Adapter supplies point velocity,
 // directional response (inverse_mass), and application of that response.
 #include <cmath>

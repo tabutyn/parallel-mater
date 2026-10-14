@@ -114,7 +114,7 @@ PM_FIXTURE_INLINE bool convergence_case(unsigned index) {
 }
 
 // The exact same inputs and expected outputs run as C++ on the host and as
-// device code. New backends can execute these fixtures without the World API.
+// device code. New drivers can execute these fixtures without the private runtime.
 PM_FIXTURE_INLINE Result evaluate(unsigned index) {
     using namespace parallel_mater::solver;
     if (index >= 26) return {{}, {}, coupled_friction_case(index) ? 1.0F : 0.0F, 0};
