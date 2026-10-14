@@ -81,8 +81,14 @@ for retired_metal_path in (
     "src/metal",
     "tests/metal",
     "examples/metal_gallery",
+    "tests/parity/capture_scenario.hpp",
+    "conformance/v1/src/metal_runner.mm",
 ):
-    if (ROOT / retired_metal_path).exists():
+    retired_path = ROOT / retired_metal_path
+    if retired_path.is_file() or (
+        retired_path.is_dir()
+        and any(item.is_file() for item in retired_path.rglob("*"))
+    ):
         failures.append(f"{retired_metal_path}: retired Metal adapter remains")
 for retired_metal_build_token in (
     "option(PARALLEL_MATER_BUILD_METAL",

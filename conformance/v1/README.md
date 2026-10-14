@@ -1,8 +1,8 @@
 # Parallel Mater physics conformance v1
 
-This directory is the backend-neutral correctness contract for CUDA, Metal,
-and future implementations. It is separate from physics capture v1, which
-remains a debugging/replay format.
+This directory is the backend-neutral correctness contract for the qualified
+CUDA driver and future Slang device adapters. It is separate from physics
+capture v1, which remains a debugging/replay format.
 
 For shared implementation code and small host/device equation fixtures, see
 the [rigid-contact solver contract](../../docs/CONTACT_SOLVER.md). Full-engine
@@ -15,7 +15,7 @@ conformance remains required; passing the portable row tests is not sufficient.
   inputs reference committed GLBs; `manifest.json` pins every asset by SHA-256.
 - `golden/cuda/` contains one CUDA result per case. CUDA is the v1 reference,
   but matching is tolerance-based rather than bit-identical.
-- `compare.py` compares CUDA, Metal, or another backend's result directory and
+- `compare.py` compares CUDA with another driver result directory and
   writes an optional machine-readable report.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
@@ -40,7 +40,7 @@ parallel-mater-conformance --case <id> --every-frame --output <directory>
 parallel-mater-conformance --update-goldens
 ```
 
-`--every-frame` is a diagnostic mode shared by the CUDA and Metal runners. It
+`--every-frame` is a CUDA-runner diagnostic mode. It
 emits frame 0 and every completed frame for one named case while retaining the
 canonical case SHA-256. It never updates goldens; compare two every-frame
 captures directly or inspect them to locate the first divergent frame.
@@ -57,13 +57,14 @@ To compare another backend:
 python3 conformance/v1/compare.py \
   --cases conformance/v1/cases \
   --expected conformance/v1/golden/cuda \
-  --actual /path/to/metal-results \
+  --actual /path/to/backend-results \
   --report /path/to/report.json
 ```
 
-Metal emits the same `parallel-mater-conformance-result/v1` schema and keeps
-the canonical case SHA-256 in each result. Backend identity, timings, and
-backend-specific hashes are diagnostic and never gate correctness.
+Every future driver runner must emit the same
+`parallel-mater-conformance-result/v1` schema and retain the canonical case
+SHA-256 in each result. Backend identity, timings, and backend-specific hashes
+are diagnostic and never gate correctness.
 
 ## Matching rules
 
@@ -124,6 +125,7 @@ images alongside the package. Do not call a non-repeatable capture a golden.
 
 See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
 for conditional first-divergent-phase instrumentation and the separate visual
-and performance handoffs. Backend-specific Metal capture executables were
-retired with the compatibility adapter; a future adapter must qualify through
-the shared command API and canonical conformance contract.
+and performance handoffs. A future adapter must run this same case registry
+through the shared command API and compare the complete result directory.
+Backend-specific physics APIs, capture executables, and duplicate scene runners
+are not part of the canonical conformance contract.

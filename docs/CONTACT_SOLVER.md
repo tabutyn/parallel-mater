@@ -1,9 +1,10 @@
 # Unified rigid AVBD solver
 
 The production CUDA adapter consumes the numerical core generated from
-[one Slang implementation](SLANG.md). The portable C++ header is
-the host reference used by equation fixtures. Collision geometry, graph
-construction, storage, synchronization, and dispatch remain backend adapters.
+[one Slang implementation](SLANG.md); the same source is compiled for DXIL and
+MSL validation. The portable C++ header is the host reference used by equation
+fixtures. Collision geometry, graph construction, storage, synchronization,
+and dispatch remain device-adapter responsibilities.
 
 Rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
@@ -122,13 +123,14 @@ The overlay's AVBD iteration count reports actual pose plus impact work, not
 GPU launches. The usual default is 10 for ordinary stepping and 20 for a
 substep with impact correction. A smaller budget is not proof of convergence.
 
-CUDA distributes colored vertices over a resident cooperative grid; devices
+The CUDA driver distributes colored vertices over a resident cooperative grid; devices
 without cooperative launch use the same equations in one thread block.
 Graph preparation stages compact adjacency, parent and color metadata in a
 bounded shared-memory cache. CUDA caches the first 1,024 bodies/contacts and
-128 joints (44,032 bytes). Entries outside those prefixes use global storage
-through the same accessors. Union order, coloring order and physical equations
-do not change at a cache boundary.
+128 joints (44,032 bytes). The DXIL compile contract uses 512/512/64 to fit its
+threadgroup budget. Entries outside those prefixes use global storage through
+the same accessors. Union order, coloring order and physical equations do not
+change at a cache boundary.
 
 ## Validation
 
@@ -182,18 +184,20 @@ contend with each other or distort performance comparisons:
 ```sh
 # Full configured suite, including gallery and backend contracts.
 ctest --test-dir build-gallery -j1 --output-on-failure
-# Original gallery wall acceptance gate, without changing its tolerances.
+# Shared gallery scene acceptance through the loader driver.
 ctest --test-dir build-gallery -j1 --output-on-failure \
-  -R '^parallel-mater-rigid-wall-tests$'
-# Narrow solver diagnostic; this is not a substitute for the full suite.
-./build-gallery/parallel-mater-avbd-rigid-tests --case impact-spring --trace
+  -R '^parallel-mater-command-gallery-tests$'
+# Narrow equation fixtures; these are not a substitute for the full suite.
+ctest --test-dir build-gallery -R '^parallel-mater-avbd-core-tests$' \
+  --output-on-failure
 ```
 
-Full gallery regressions and backend conformance remain separate requirements:
+Full gallery regressions and driver conformance remain separate requirements:
 scalar parity does not prove collision generation, scene stability or coupled
 fluid/rope/cloth behavior. Do not regenerate goldens or loosen physical
-tolerances to conceal a solver regression. A future device adapter must pass
-these gates before its native API is advertised.
+tolerances to conceal a solver regression. Future D3D12, Metal, Vulkan, and
+WebGPU adapters must execute these same cases through the loader; source
+cross-compilation alone is not device qualification.
 
 The migration also repairs two coupled-contact cases exposed by changed rigid
 trajectories: opposing soft-surface planes use the two-halfspace projection
