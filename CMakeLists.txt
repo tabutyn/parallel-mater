@@ -60,7 +60,9 @@ option(PARALLEL_MATER_BUILD_D3D12
        "Build the D3D12 loader and shared-Slang qualification adapter"
        ${PARALLEL_MATER_D3D12_DEFAULT})
 option(PARALLEL_MATER_BUILD_GALLERY
-       "Build the backend-neutral gallery application" OFF)
+       "Build the backend-neutral gallery application" ${APPLE})
+option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
+       "Build the serial Slang CPU reference driver" ${APPLE})
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Deprecated: build the gallery with the OptiX renderer" OFF)
 set(PARALLEL_MATER_GALLERY_RENDERER "SOFTWARE" CACHE STRING
@@ -138,6 +140,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
+   PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/Slang.cmake)
@@ -183,7 +186,8 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
     FetchContent_MakeAvailable(parallel_mater_cgltf)
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
+   PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
         src/fluid_source.cpp
@@ -368,6 +372,14 @@ if(BUILD_TESTING)
 endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
+
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    if(NOT APPLE)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires macOS")
+    endif()
+    include(cmake/ParallelMaterSlangCpu.cmake)
+endif()
 
 execute_process(
     COMMAND git rev-parse HEAD
@@ -663,11 +675,19 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         PUBLIC parallel-mater-gallery-renderer
         PRIVATE glfw parallel-mater-gallery-window)
 
-    add_executable(parallel-mater-gallery examples/gallery/main.cpp)
+    if(APPLE)
+        include(cmake/ParallelMaterMacOSGallery.cmake)
+    else()
+        add_executable(parallel-mater-gallery examples/gallery/main.cpp)
+    endif()
     add_dependencies(parallel-mater-gallery parallel-mater-layer-validation)
     if(PARALLEL_MATER_BUILD_CUDA)
         add_dependencies(parallel-mater-gallery
                          parallel-mater-driver-slang-cuda)
+    endif()
+    if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+        add_dependencies(parallel-mater-gallery
+                         parallel-mater-driver-slang-cpu)
     endif()
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
@@ -682,47 +702,59 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_link_libraries(
         parallel-mater-gallery
         PRIVATE parallel-mater-gallery-application)
+    if(APPLE)
+        set(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY "../Resources/assets")
+        set(PARALLEL_MATER_GALLERY_PROFILE_PATH
+            "../Resources/config/device-profiles.json")
+    else()
+        set(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+        set(PARALLEL_MATER_GALLERY_PROFILE_PATH
+            "${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}")
+    endif()
     target_compile_definitions(
         parallel-mater-gallery-application
         PRIVATE
-            PARALLEL_MATER_DEFAULT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb"
-            PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_CATALOG}"
+            PARALLEL_MATER_DEFAULT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RigidBody.glb"
+            PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_PATH}"
             PARALLEL_MATER_GALLERY_GIT_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}"
-            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintFixed.glb"
-            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb"
-            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
-            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintPiston.glb"
-            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintGeneric.glb"
-            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintMotorSpring.glb"
-            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb"
-            PARALLEL_MATER_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Fluid.glb"
-            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/FluidRigid.glb"
-            PARALLEL_MATER_PEGS_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Pegs.glb"
-            PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
-            PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothTear.glb"
-            PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothPaint.glb"
-            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ClothWater.glb"
-            PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Softbody.glb"
-            PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyRigidBody.glb"
-            PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyCloth.glb"
-            PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SoftbodyFluid.glb"
-            PARALLEL_MATER_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Rope.glb"
-            PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeFluid.glb"
-            PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeSoftbody.glb"
-            PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RopeCloth.glb"
-            PARALLEL_MATER_SMOKE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Smoke.glb"
-            PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
-            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
-            PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
-            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
-    add_custom_command(
-        TARGET parallel-mater-gallery POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                "$<TARGET_FILE_DIR:parallel-mater-gallery>/config"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
-                "$<TARGET_FILE_DIR:parallel-mater-gallery>/config/device-profiles.json"
-        VERBATIM)
+            PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintFixed.glb"
+            PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Celestial.glb"
+            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintHinge.glb"
+            PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintPiston.glb"
+            PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintGeneric.glb"
+            PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintMotorSpring.glb"
+            PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/DumpTruck.glb"
+            PARALLEL_MATER_FLUID_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Fluid.glb"
+            PARALLEL_MATER_FLUID_RIGID_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/FluidRigid.glb"
+            PARALLEL_MATER_PEGS_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Pegs.glb"
+            PARALLEL_MATER_CLOTH_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Cloth.glb"
+            PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ClothTear.glb"
+            PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ClothPaint.glb"
+            PARALLEL_MATER_CLOTH_WATER_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ClothWater.glb"
+            PARALLEL_MATER_SOFT_BODY_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Softbody.glb"
+            PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SoftbodyRigidBody.glb"
+            PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SoftbodyCloth.glb"
+            PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SoftbodyFluid.glb"
+            PARALLEL_MATER_ROPE_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Rope.glb"
+            PARALLEL_MATER_ROPE_FLUID_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RopeFluid.glb"
+            PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RopeSoftbody.glb"
+            PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RopeCloth.glb"
+            PARALLEL_MATER_SMOKE_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Smoke.glb"
+            PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeWater.glb"
+            PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeSoftbody.glb"
+            PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeCloth.glb"
+            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeRope.glb")
+    if(NOT APPLE)
+        add_custom_command(
+            TARGET parallel-mater-gallery POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:parallel-mater-gallery>/config"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+                    "$<TARGET_FILE_DIR:parallel-mater-gallery>/config/device-profiles.json"
+            VERBATIM)
+    endif()
     if(WIN32)
         add_custom_target(install-windows-gallery
             COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
@@ -817,7 +849,6 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
     endif()
 endif()
-
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/SlangKernelMirrors.cmake)
     parallel_mater_add_slang_kernel_mirrors()
@@ -912,6 +943,12 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json @ONLY)
 endif()
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
+endif()
 
 install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
@@ -935,6 +972,10 @@ if(PARALLEL_MATER_BUILD_CUDA)
 endif()
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+endif()
+if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json
             DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json

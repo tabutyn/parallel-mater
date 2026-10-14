@@ -272,7 +272,10 @@ rigid/deformable contact forces,
 `C` fluid accelerations and reactions, and `N` rigid/fluid/cloth/soft velocities.
 `V` switches to available particle/deformable structure, `B` shows active cloth bonds
 or the soft-body surface, and
-`M` copies the common API capture to a self-describing log in `/tmp`. Missing
+`M` copies the common API capture to a self-describing log in the platform
+temporary directory (`/tmp` on Linux and the per-user temporary directory on
+macOS). The interactive gallery shows the resolved path after a successful
+capture. Missing
 systems simply contribute no vectors. Rendering and log persistence stay in
 gallery support; state, forces, contacts, and the chronological capture come
 from the public API. `--physics-capture file.log` exercises the same writer in

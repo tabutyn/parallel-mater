@@ -7,7 +7,73 @@ import types;
 #define PM_TARGET_D3D12 0
 #endif
 
-#if defined(PM_TARGET_VULKAN)
+#if defined(PM_TARGET_CPU)
+__target_intrinsic(cpp, "pm_cpu_block_index")
+public uint3 pmBlockIndex();
+__target_intrinsic(cpp, "pm_cpu_group_thread_index")
+public uint3 pmGroupThreadIndex();
+__target_intrinsic(cpp, "pm_cpu_group_size")
+public uint3 pmGroupSize();
+__target_intrinsic(cpp, "pm_cpu_grid_dim")
+public uint3 pmGridDim();
+
+public uint pmThreadIndex()
+{
+    return pmBlockIndex().x * pmGroupSize().x + pmGroupThreadIndex().x;
+}
+
+public uint pmAtomicAdd(uint* value, uint addend)
+{
+    uint original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public uint64_t pmAtomicAdd(uint64_t* value, uint64_t addend)
+{
+    uint64_t original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public float pmAtomicAdd(float* value, float addend)
+{
+    float original;
+    InterlockedAdd(*value, addend, original);
+    return original;
+}
+public uint pmAtomicMax(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedMax(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicMin(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedMin(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicOr(uint* value, uint candidate)
+{
+    uint original;
+    InterlockedOr(*value, candidate, original);
+    return original;
+}
+public uint64_t pmAtomicOr(uint64_t* value, uint64_t candidate)
+{
+    uint64_t original;
+    InterlockedOr(*value, candidate, original);
+    return original;
+}
+public uint pmAtomicExchange(uint* value, uint replacement)
+{
+    uint original;
+    InterlockedExchange(*value, replacement, original);
+    return original;
+}
+public void pmSyncWarp(uint) {}
+public void pmGridBarrier() {}
+public void pmGroupBarrier() {}
+#elif defined(PM_TARGET_VULKAN)
 public in uint3 pmGroupId : SV_GroupID;
 public in uint3 pmGroupThreadId : SV_GroupThreadID;
 public in uint3 pmDispatchThreadId : SV_DispatchThreadID;
@@ -25,7 +91,10 @@ public void pmSetD3D12ThreadIndices(uint3 groupId, uint3 groupThreadId,
 }
 #endif
 
-#if defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
+#if defined(PM_TARGET_CPU)
+// The host adapter supplies dispatch indices through the C++ target intrinsics
+// above and executes kernels serially, so no second implementation is needed.
+#elif defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
 uniform uint3 pmDispatchGroupCount;
 uniform uint pmDispatchGroupSizeX;
 
@@ -145,4 +214,6 @@ public void pmGridBarrier()
 public uint pmThreadIndex() { return pmDispatchThreadId.x; }
 #endif
 
+#if !defined(PM_TARGET_CPU)
 public void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
+#endif

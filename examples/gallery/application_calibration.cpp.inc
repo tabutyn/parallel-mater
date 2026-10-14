@@ -40,13 +40,7 @@ struct CalibrationResult {
 
 std::filesystem::path device_profiles_path(const Options &options) {
     if (options.profiles_file_overridden) return options.profiles_file;
-    if (!options.executable_path.empty()) {
-        const auto bundled = options.executable_path.parent_path() /
-            "config/device-profiles.json";
-        std::error_code error;
-        if (std::filesystem::is_regular_file(bundled, error)) return bundled;
-    }
-    return options.profiles_file;
+    return gallery_resource_path(options, options.profiles_file);
 }
 
 bool launch_calibration_ball(GalleryRuntime &runtime, bool off_center,

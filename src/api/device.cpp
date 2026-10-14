@@ -33,8 +33,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
         !subset(info->enabledFeatures, parallel_mater::api::supported_features()))
         return PM_ERROR_INVALID_ARGUMENT;
     PmResult result = PM_SUCCESS;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    auto services = parallel_mater::device::create_cpu(
+        physical->description.ordinal, result);
+#else
     auto services = parallel_mater::device::create_cuda(
         physical->description.ordinal, result);
+#endif
     if (!services) return result;
     auto *created = parallel_mater::api::make_object<PmDevice_T>(nullptr);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;

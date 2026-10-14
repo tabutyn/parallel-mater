@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: MIT
+# Native macOS packaging for the backend-neutral Gallery targets created by
+# the top-level build. Physics remains supplied only by loader-discovered
+# drivers bundled under Resources/drivers.d.
+
+find_library(PARALLEL_MATER_APPKIT_FRAMEWORK AppKit REQUIRED)
+
+set(PARALLEL_MATER_GALLERY_ICON
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/macos/ParallelMater.icns")
+add_custom_command(
+    OUTPUT "${PARALLEL_MATER_GALLERY_ICON}"
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_PNG=${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/logo.png
+        -DOUTPUT_ICNS=${PARALLEL_MATER_GALLERY_ICON}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateMacOSIcon.cmake
+    DEPENDS examples/assets/branding/logo.png cmake/GenerateMacOSIcon.cmake
+    COMMENT "Generating the ParallelMater macOS icon"
+    VERBATIM)
+
+add_executable(parallel-mater-gallery MACOSX_BUNDLE
+    examples/gallery/macos_main.mm
+    "${PARALLEL_MATER_GALLERY_ICON}")
+set_source_files_properties("${PARALLEL_MATER_GALLERY_ICON}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+file(GLOB PARALLEL_MATER_GALLERY_ASSETS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
+target_sources(parallel-mater-gallery PRIVATE
+    ${PARALLEL_MATER_GALLERY_ASSETS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json)
+set_source_files_properties(${PARALLEL_MATER_GALLERY_ASSETS}
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/assets")
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/config")
+target_link_libraries(parallel-mater-gallery PRIVATE
+    ${PARALLEL_MATER_APPKIT_FRAMEWORK})
+target_compile_options(parallel-mater-gallery PRIVATE
+    -fobjc-arc -Wall -Wextra -Wpedantic)
+set_target_properties(parallel-mater-gallery PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED YES
+    OBJCXX_STANDARD 20
+    OBJCXX_STANDARD_REQUIRED YES
+    OUTPUT_NAME "ParallelMater Gallery"
+    MACOSX_BUNDLE_INFO_PLIST
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples/gallery/Info.plist.in"
+    MACOSX_BUNDLE_BUNDLE_NAME "ParallelMater Gallery"
+    MACOSX_BUNDLE_ICON_FILE "ParallelMater.icns"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.tabutyn.parallel-mater.gallery"
+    MACOSX_BUNDLE_BUNDLE_VERSION "1"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    BUILD_WITH_INSTALL_RPATH YES
+    INSTALL_RPATH "@executable_path/../Frameworks")
+
+set(PARALLEL_MATER_BUNDLE_LAYER_MANIFEST
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/macos/validation.json")
+file(GENERATE OUTPUT "${PARALLEL_MATER_BUNDLE_LAYER_MANIFEST}" CONTENT
+"{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+add_custom_command(TARGET parallel-mater-gallery POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/layers.d"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:parallel-mater>"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:parallel-mater-layer-validation>"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:glfw>"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:glfw>"
+    COMMAND ${CMAKE_COMMAND}
+        -DAPPLICATION_EXECUTABLE=$<TARGET_FILE:parallel-mater-gallery>
+        -DGLFW_LIBRARY=$<TARGET_FILE:glfw>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/BundleMacOSRuntime.cmake
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PARALLEL_MATER_BUNDLE_LAYER_MANIFEST}"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/layers.d/validation.json"
+    VERBATIM)
+
+if(TARGET parallel-mater-driver-slang-cpu)
+    add_custom_command(TARGET parallel-mater-gallery POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:parallel-mater-driver-slang-cpu>"
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-cpu.json"
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-cpu.json"
+        VERBATIM)
+endif()
+
+set(PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY "/Applications" CACHE PATH
+    "Directory containing the continuously refreshed macOS Gallery")
+option(PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY
+       "Atomically refresh and Dock-pin the macOS Gallery after builds" OFF)
+if(PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY)
+    set(PARALLEL_MATER_MACOS_DEPLOY_KIND ALL)
+else()
+    set(PARALLEL_MATER_MACOS_DEPLOY_KIND)
+endif()
+add_custom_target(deploy-macos-gallery ${PARALLEL_MATER_MACOS_DEPLOY_KIND}
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_APP=$<TARGET_BUNDLE_DIR:parallel-mater-gallery>
+        -DDESTINATION_APP=${PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY}/ParallelMater\ Gallery.app
+        -DUPDATE_DOCK=ON
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployMacOSBundle.cmake
+    DEPENDS parallel-mater-gallery
+    COMMENT "Refreshing the installed ParallelMater Gallery"
+    USES_TERMINAL
+    VERBATIM)
+
+if(BUILD_TESTING)
+    add_executable(parallel-mater-software-renderer-tests
+        tests/gallery/software_renderer_tests.cpp)
+    target_compile_features(parallel-mater-software-renderer-tests PRIVATE cxx_std_20)
+    target_compile_definitions(parallel-mater-software-renderer-tests PRIVATE
+        PARALLEL_MATER_TEST_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb")
+    target_link_libraries(parallel-mater-software-renderer-tests PRIVATE
+        parallel-mater-gallery-renderer)
+    parallel_mater_enable_warnings(parallel-mater-software-renderer-tests)
+    add_test(NAME parallel-mater-software-renderer-tests
+             COMMAND parallel-mater-software-renderer-tests)
+    set_tests_properties(parallel-mater-software-renderer-tests PROPERTIES
+        LABELS "gallery;macos;renderer")
+    add_test(NAME parallel-mater-macos-gallery-help
+             COMMAND $<TARGET_FILE:parallel-mater-gallery> --help)
+    set_tests_properties(parallel-mater-macos-gallery-help PROPERTIES
+        LABELS "gallery;macos;bundle")
+    if(TARGET parallel-mater-driver-slang-cpu)
+        add_test(NAME parallel-mater-macos-slang-rigid-smoke
+            COMMAND $<TARGET_FILE:parallel-mater-gallery>
+                --constraint-point --frames 3 --headless
+                ${CMAKE_CURRENT_BINARY_DIR}/parallel-mater-slang-rigid-smoke.ppm)
+        set_tests_properties(parallel-mater-macos-slang-rigid-smoke PROPERTIES
+            LABELS "driver;gallery;macos;slang;smoke"
+            TIMEOUT 60)
+    endif()
+endif()

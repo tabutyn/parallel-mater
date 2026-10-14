@@ -14,6 +14,14 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     PmPhysicalDeviceFeatures features{};
     features.rigidBodies = PM_TRUE;
     features.rigidConstraints = PM_TRUE;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    features.contactEvents = PM_TRUE;
+    features.debugData = PM_TRUE;
+    features.timelineSemaphores = PM_TRUE;
+    features.timestampQueries = PM_TRUE;
+    features.statisticsQueries = PM_TRUE;
+    features.memoryBudget = PM_TRUE;
+#else
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;
     features.liquidLiquidCoupling = PM_FALSE;
@@ -30,6 +38,7 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.timestampQueries = PM_TRUE;
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
+#endif
     return features;
 }
 

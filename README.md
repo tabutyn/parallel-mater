@@ -100,12 +100,17 @@ the [Slang toolchain and source layout](docs/SLANG.md).
 
 ### Target and driver support
 
-The Slang/CUDA driver is the first fully qualified physics implementation. All shared Slang
-modules are also compiled to Vulkan SPIR-V as a portability check, but there is
-no Vulkan driver until a complete shared schedule passes the same conformance
-and gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule
-and core transfer API but advertises no physics domains; Metal and WebGPU have
-no drivers. Retired backend-specific physics targets are absent rather than
+The Slang/CUDA driver is the first fully qualified physics implementation.
+macOS also builds a loader-native Slang CPU driver: its serial host adapter
+executes the shared generated rigid-body, constraint, contact, debug, and query
+kernels. It is a correctness and development path, not yet a performance
+replacement for a native Apple GPU adapter, and it does not advertise fluid,
+cloth, rope, soft-body, smoke, or paint capabilities. All shared Slang modules
+are also compiled to Vulkan SPIR-V as a portability check, but there is no
+Vulkan driver until a complete shared schedule passes the same conformance and
+gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule and
+core transfer API but advertises no physics domains; Metal and WebGPU have no
+drivers. Retired backend-specific physics targets are absent rather than
 available as fallbacks. Native
 API names remain in
 interoperability enums because applications may query support and receive
@@ -139,6 +144,30 @@ cmake --build build-gallery
 ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
+
+### macOS Gallery application
+
+The default macOS build creates `ParallelMater Gallery.app`, bundles the Slang
+CPU driver and portable manifest, and loads physics only through the public
+loader. It contains none of the retired Metal physics implementation. Rigid and
+rigid-constraint galleries run through shared Slang kernels; unadvertised
+simulation domains remain unavailable.
+
+For a stable development Dock item, enable continuous deployment in one build
+directory. Each successful default build ad-hoc signs and atomically refreshes
+`/Applications/ParallelMater Gallery.app`:
+
+```bash
+cmake -S . -B build-macos-gallery \
+  -DPARALLEL_MATER_BUILD_GALLERY=ON \
+  -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON \
+  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=ON
+cmake --build build-macos-gallery
+```
+
+The installed app searches only its bundled `Resources/drivers.d`; it never
+scans the source or build volume. The explicit `deploy-macos-gallery` target
+performs the same refresh when automatic deployment is disabled.
 
 For AVBD-budget experiments, use `--contact-passes 1` in the gallery.
 The command API field is `PmRigidSolverState::rigidIterations`; 1–64 selects
@@ -208,7 +237,10 @@ drains through the outflow. Fluid/soft-body contact is an explicit API resource;
 the gallery reuses its normal water surface, foam, controls, and diagnostics.
 Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
 normals, `X` rigid and deformable contact forces, `C` fluid acceleration/reaction
-forces, `N` velocities, and `M` writes the rolling physics capture to `/tmp`.
+forces, `N` velocities, and `M` writes the rolling physics capture to the
+platform temporary directory (`/tmp` on Linux and the per-user temporary
+directory on macOS). The interactive gallery shows the resolved path after a
+successful capture.
 `V` exposes particles, cloth structure, or every soft-body spring where those
 systems exist; `B` shows cloth bonds or the soft-body surface wireframe. The
 gallery opts into debug-data output when it creates the simulation;

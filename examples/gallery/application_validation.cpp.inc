@@ -45,6 +45,17 @@
     return true;
 }
 
+[[nodiscard]] std::filesystem::path gallery_resource_path(
+    const Options &options, const std::filesystem::path &configured) {
+    if (configured.is_absolute() || options.executable_path.empty())
+        return configured;
+    std::error_code filesystem_error;
+    const std::filesystem::path bundled =
+        (options.executable_path.parent_path() / configured).lexically_normal();
+    return std::filesystem::exists(bundled, filesystem_error)
+        ? bundled : configured;
+}
+
 [[nodiscard]] bool build_runtime(const Options &options,
                                  GalleryContext context,
                                  std::uint32_t dump_spheres,
@@ -86,8 +97,8 @@
             std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
             std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
-        const std::filesystem::path &scene_path = scene_paths[
-            static_cast<std::size_t>(entry.source)];
+        const std::filesystem::path scene_path = gallery_resource_path(
+            options, scene_paths[static_cast<std::size_t>(entry.source)]);
         if (!parallel_mater::gallery::load_glb_scene(scene_path, next.scene,
                                                       error)) {
             error = "scene load failed: " + error;

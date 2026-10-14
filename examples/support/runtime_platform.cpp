@@ -12,6 +12,9 @@
 #if defined(__linux__)
 #include <fstream>
 #include <sys/utsname.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <sys/utsname.h>
 #endif
 
 namespace parallel_mater::gallery {
@@ -78,6 +81,19 @@ const char *backend_name(PmNativeBackend backend) noexcept {
     return "unknown";
 }
 
+#if defined(__APPLE__)
+[[nodiscard]] std::string system_string(const char *name) {
+    std::size_t length = 0U;
+    if (sysctlbyname(name, nullptr, &length, nullptr, 0U) != 0 || length < 2U)
+        return {};
+    std::string result(length, '\0');
+    if (sysctlbyname(name, result.data(), &length, nullptr, 0U) != 0)
+        return {};
+    while (!result.empty() && result.back() == '\0') result.pop_back();
+    return result;
+}
+#endif
+
 } // namespace
 
 HardwareIdentity platform_hardware_identity() {
@@ -88,7 +104,7 @@ HardwareIdentity platform_hardware_identity() {
     PmNativeDeviceInfo native{};
     pmGetPhysicalDeviceProperties(selected.physical, &properties);
     pmGetPhysicalDeviceMemoryProperties(selected.physical, &memory);
-    (void)pmGetNativeDevice(selected.device, &native);
+    const PmResult native_result = pmGetNativeDevice(selected.device, &native);
 
     HardwareIdentity result;
     const char *machine = std::getenv("COMPUTERNAME");
@@ -120,6 +136,16 @@ HardwareIdentity platform_hardware_identity() {
     result.operating_system = "Windows";
     if (const char *processor = std::getenv("PROCESSOR_IDENTIFIER"))
         result.cpu_model = processor;
+#elif defined(__APPLE__)
+    result.machine_model = system_string("hw.model");
+    result.cpu_model = system_string("machdep.cpu.brand_string");
+    if (result.cpu_model.empty()) result.cpu_model = system_string("hw.chip");
+    struct utsname system {};
+    if (uname(&system) == 0)
+        result.operating_system = std::string(system.sysname) + ' ' +
+            system.release;
+    else
+        result.operating_system = "macOS";
 #else
     result.operating_system = "unknown";
 #endif
@@ -131,7 +157,8 @@ HardwareIdentity platform_hardware_identity() {
         if ((memory.heaps[index].flags & PM_MEMORY_DEVICE_LOCAL_BIT) != 0U)
             result.memory_bytes = std::max(
                 result.memory_bytes, memory.heaps[index].size);
-    result.backend = backend_name(native.backend);
+    result.backend = native_result == PM_SUCCESS
+        ? backend_name(native.backend) : "parallel-mater-loader";
     result.driver = "Parallel Mater driver " +
         std::to_string(properties.driverVersion);
     result.power_mode = "driver-default";

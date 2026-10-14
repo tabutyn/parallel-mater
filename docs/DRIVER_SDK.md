@@ -15,6 +15,7 @@ ordinary `pm*` application symbols.
 | `pm_layer.h` | Versioned loader-layer observation and validation ABI |
 | `parallel_mater_driver_slang_cuda` | First reference driver and conformance baseline |
 | `parallel_mater_driver_slang_d3d12` | Windows core transfer driver and shared AVBD DXIL qualification adapter; no physics features advertised yet |
+| `parallel_mater_driver_slang_cpu` | Serial macOS rigid-capability development driver |
 | `PM_LAYER_KHRONOS_validation` | Optional validation layer |
 
 ## Required driver exports
@@ -97,11 +98,13 @@ buffers, schedule physics, or implement equations.
 
 ## Reference implementation
 
-The reference driver uses the shared Slang sources in `src/slang`. CUDA and
-Vulkan SPIR-V are compiler targets of the same modules; they are not separate
-physics implementations. Platform device code may allocate, transfer, bind,
-dispatch, and synchronize but cannot contain collision, constraint, material,
-or coupling equations.
+The reference drivers use the shared Slang sources in `src/slang`. CUDA,
+macOS-hosted C++, DXIL, and Vulkan SPIR-V are compiler targets of the same
+modules; they are not separate physics implementations. The serial macOS
+driver is a rigid-capability development path and advertises no unported
+simulation domain. Platform device code may allocate, transfer, bind, dispatch,
+and synchronize but cannot contain collision, constraint, material, or coupling
+equations.
 
 The previous standalone Vulkan executor scaffold has been removed. Vulkan
 interop remains part of the public API contract, but a Vulkan driver must be a
