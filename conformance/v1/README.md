@@ -1,8 +1,8 @@
 # Parallel Mater physics conformance v1
 
-This directory is the backend-neutral correctness contract for Parallel Mater
-drivers. It is separate from physics capture v1, which
-remains a debugging/replay format.
+This directory is the backend-neutral correctness contract for the qualified
+CUDA driver and future Slang device adapters. It is separate from physics
+capture v1, which remains a debugging/replay format.
 
 For shared implementation code and small host/device equation fixtures, see
 the [rigid-contact solver contract](../../docs/CONTACT_SOLVER.md). Full-engine
@@ -115,6 +115,7 @@ a non-repeatable capture a golden.
 
 See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
 for conditional first-divergent-phase instrumentation and the separate visual
-and performance handoffs. Backend-specific Metal capture executables were
-retired with the compatibility adapter; a future adapter must qualify through
-the shared command API and canonical conformance contract.
+and performance handoffs. A future adapter must run this same case registry
+through the shared command API and compare the complete result directory.
+Backend-specific physics APIs, capture executables, and duplicate scene runners
+are not part of the canonical conformance contract.
