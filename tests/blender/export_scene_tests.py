@@ -250,7 +250,7 @@ class ExportSceneTests(unittest.TestCase):
         driven = [node["extras"] for node in document["nodes"] if node["extras"].get("pm_arrow", 0) > 0]
         self.assertEqual(len(driven), 1)
         self.assertEqual(driven[0]["pm_source_name"], "GenericBlockA")
-        self.assertEqual(driven[0]["pm_arrow"], 100.0)
+        self.assertEqual(driven[0]["pm_arrow"], 1000.0)
 
     def test_rigid_body_array_wall_and_hit_box(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "RigidBody.blend"))
