@@ -56,6 +56,10 @@ if "install(DIRECTORY include/" in build_contract:
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
 if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
+if (ROOT / "include" / "parallel_mater" / "solver" / "contact.hpp").exists():
+    failures.append(
+        "include/parallel_mater/solver/contact.hpp: alternate contact solver remains"
+    )
 if re.search(r"\bclass\s+World\b", runtime_header):
     failures.append("src/simulation/runtime.hpp: legacy World class remains")
 if re.search(r"\busing\s+World\s*=", runtime_header):
@@ -71,10 +75,25 @@ for boundary_header in (
                 f"{boundary_header.relative_to(ROOT)}: device boundary "
                 f"exposes {cuda_type}")
 for api_source in sorted((ROOT / "src" / "api").glob("*")):
-    if api_source.is_file() and re.search(
-            r"parallel_mater::World\b", api_source.read_text()):
+    if not api_source.is_file():
+        continue
+    api_text = api_source.read_text()
+    if re.search(r"parallel_mater::World\b", api_text):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
+    for cuda_service in (
+        "cudaMemcpy",
+        "cudaMalloc",
+        "cudaFree",
+        "cudaSetDevice",
+        "cudaLaunchHostFunc",
+        "cudaStreamSynchronize",
+    ):
+        if cuda_service in api_text:
+            failures.append(
+                f"{api_source.relative_to(ROOT)}: API bypasses device services "
+                f"with {cuda_service}"
+            )
 for retired_metal_path in (
     "cmake/BuildMetalPhysics.cmake",
     "include/parallel_mater/metal.hpp",
@@ -93,7 +112,11 @@ for retired_metal_build_token in (
         failures.append(
             f"CMakeLists.txt: retired Metal adapter token {retired_metal_build_token}"
         )
-for legacy_root in (ROOT / "tests", ROOT / "benchmarks"):
+for legacy_root in (
+    ROOT / "tests",
+    ROOT / "benchmarks",
+    ROOT / "conformance" / "v1" / "src",
+):
     for source in sorted(legacy_root.rglob("*")):
         if not source.is_file() or "metal" in source.parts:
             continue

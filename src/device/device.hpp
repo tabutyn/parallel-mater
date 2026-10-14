@@ -17,6 +17,13 @@ struct Event {
     friend bool operator==(Event, Event) noexcept = default;
 };
 
+enum class CopyDirection : std::uint8_t {
+    automatic,
+    host_to_device,
+    device_to_host,
+    device_to_device,
+};
+
 [[nodiscard]] PmResult from_driver_error(std::int32_t error) noexcept;
 
 struct Description {
@@ -34,6 +41,7 @@ class Services {
     virtual ~Services() = default;
 
     [[nodiscard]] virtual int ordinal() const noexcept = 0;
+    [[nodiscard]] virtual void *native_device_handle() const noexcept = 0;
     [[nodiscard]] virtual void *native_queue_handle() const noexcept = 0;
     [[nodiscard]] virtual Event epoch() const noexcept = 0;
     [[nodiscard]] virtual PmResult create_event(
@@ -50,6 +58,17 @@ class Services {
                                             bool host_visible,
                                             void **output) noexcept = 0;
     virtual void free(void *allocation) noexcept = 0;
+    [[nodiscard]] virtual PmResult activate() noexcept = 0;
+    [[nodiscard]] virtual PmResult copy(
+        void *destination, const void *source, PmDeviceSize size,
+        CopyDirection direction = CopyDirection::automatic) noexcept = 0;
+    [[nodiscard]] virtual PmResult copy_and_wait(
+        void *destination, const void *source, PmDeviceSize size,
+        CopyDirection direction = CopyDirection::automatic) noexcept = 0;
+    // Takes ownership of `source` and releases it after the queued upload.
+    [[nodiscard]] virtual PmResult upload(
+        void *destination, std::unique_ptr<std::byte[]> source,
+        PmDeviceSize size) noexcept = 0;
     [[nodiscard]] virtual PmResult wait_idle() noexcept = 0;
     [[nodiscard]] virtual PmResult memory_budget(PmDeviceSize &available,
                                                  PmDeviceSize &total) noexcept = 0;

@@ -37,7 +37,7 @@ build tree.
 
 ## Validation
 
-The portable AVBD test executes 38 fixtures against the host reference. The
+The portable AVBD test executes 105 fixtures against the host reference. The
 full mirror target compiles every shared command-runtime entry point to CUDA,
 PTX when available, and SPIR-V. The architecture test rejects native CUDA
 physics kernels, direct physics launches, legacy command-runtime `World`

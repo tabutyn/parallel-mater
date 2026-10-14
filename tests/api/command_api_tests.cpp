@@ -61,6 +61,19 @@ int main() {
     CHECK(supported.rigidConstraints == PM_TRUE);
     CHECK(supported.timelineSemaphores == PM_TRUE);
     CHECK(supported.timestampQueries == PM_TRUE);
+    PmNativeInteropProperties cuda_interop{};
+    CHECK(pmGetPhysicalDeviceInteropProperties(
+              physical, PM_NATIVE_BACKEND_CUDA, &cuda_interop) == PM_SUCCESS);
+    CHECK(cuda_interop.deviceImport == PM_FALSE);
+    CHECK(cuda_interop.bufferImport == PM_TRUE);
+    CHECK(cuda_interop.timelineImport == PM_FALSE);
+    PmNativeInteropProperties unavailable_interop{PM_TRUE, PM_TRUE, PM_TRUE};
+    CHECK(pmGetPhysicalDeviceInteropProperties(
+              physical, PM_NATIVE_BACKEND_VULKAN, &unavailable_interop) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(unavailable_interop.deviceImport == PM_FALSE);
+    CHECK(unavailable_interop.bufferImport == PM_FALSE);
+    CHECK(unavailable_interop.timelineImport == PM_FALSE);
 
     float priority = 1.0F;
     PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
@@ -198,8 +211,64 @@ int main() {
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
     CHECK(native_device.backend == PM_NATIVE_BACKEND_CUDA);
+    CHECK(native_device.device != 0U);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U && native_buffer.size == 256U);
+    CHECK(native_buffer.offset == 0U && native_buffer.nativeUsage == 0U);
+    PmNativeBufferInfo misaligned_import = native_buffer;
+    misaligned_import.offset = 1U;
+    PmBuffer imported{};
+    CHECK(pmImportNativeBuffer(device, &misaligned_import, &imported) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    CHECK(imported == nullptr);
+    PmNativeBufferInfo borrowed_import = native_buffer;
+    borrowed_import.owningQueueFamilyIndex = PM_QUEUE_FAMILY_EXTERNAL;
+    CHECK(pmImportNativeBuffer(device, &borrowed_import, &imported) == PM_SUCCESS);
+    PmNativeBufferInfo borrowed_round_trip{};
+    CHECK(pmGetNativeBuffer(device, imported, &borrowed_round_trip) == PM_SUCCESS);
+    CHECK(borrowed_round_trip.buffer == borrowed_import.buffer);
+    CHECK(borrowed_round_trip.offset == borrowed_import.offset);
+    CHECK(borrowed_round_trip.owningQueueFamilyIndex ==
+          PM_QUEUE_FAMILY_EXTERNAL);
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    PmBufferMemoryBarrier visibility{};
+    visibility.range = {source, 0U, 256U};
+    visibility.srcQueueFamilyIndex = PM_QUEUE_FAMILY_IGNORED;
+    visibility.dstQueueFamilyIndex = PM_QUEUE_FAMILY_IGNORED;
+    CHECK(pmCmdPipelineBarrier(commands, 0U, nullptr, 1U, &visibility) ==
+          PM_SUCCESS);
+    PmBufferMemoryBarrier acquire{};
+    acquire.range = {imported, 0U, 256U};
+    acquire.srcQueueFamilyIndex = PM_QUEUE_FAMILY_EXTERNAL;
+    acquire.dstQueueFamilyIndex = 0U;
+    CHECK(pmCmdPipelineBarrier(commands, 0U, nullptr, 1U, &acquire) ==
+          PM_SUCCESS);
+    CHECK(pmCmdCopyBuffer(commands, source, imported, 1U, &copy) == PM_SUCCESS);
+    PmBufferMemoryBarrier release = acquire;
+    release.srcQueueFamilyIndex = 0U;
+    release.dstQueueFamilyIndex = PM_QUEUE_FAMILY_EXTERNAL;
+    CHECK(pmCmdPipelineBarrier(commands, 0U, nullptr, 1U, &release) ==
+          PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    submit.signalCount = 0U;
+    submit.pSignals = nullptr;
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    CHECK(pmGetNativeBuffer(device, imported, &borrowed_round_trip) == PM_SUCCESS);
+    CHECK(borrowed_round_trip.owningQueueFamilyIndex ==
+          PM_QUEUE_FAMILY_EXTERNAL);
+    pmDestroyBuffer(device, imported);
+    PmNativeHandle native_semaphore = 1U;
+    CHECK(pmGetNativeSemaphore(device, semaphore, &native_semaphore) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(native_semaphore == 0U);
+    PmSemaphore imported_semaphore{};
+    CHECK(pmImportNativeSemaphore(device, 1U, &imported_semaphore) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(imported_semaphore == nullptr);
     PmMemoryBudget budget{};
     CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_SUCCESS);
     CHECK(budget.applicationAllocationBytes >= 512U);

@@ -170,7 +170,7 @@ inlet per scene is supported.
 `SmokeSoftbody.blend` uses the same Smoke Inflow and a twenty-object grid of
 Blender Soft Body meshes. Each `Top` Goal group is an exact pin; the smoke
 carrier bends the remaining nodes, and the current soft skin deflects smoke
-tracers through `World::add_smoke_soft_body_coupling`. No extra Blender
+tracers through the pipeline's smoke/soft-body `PmCouplingState`. No extra Blender
 coupling marker is required when both systems exist in the scene. The source
 cylinders use 16 radial sides and nine axial rings, with
 `pm_node_spacing = 0.12` and `pm_solver_iterations = 4`; this keeps the
@@ -216,8 +216,8 @@ unhooked endpoint lies on or inside one rigid mesh, passive or active. If severa
 overlap, the nearest surface wins only when clearly closer; ambiguous targets
 are rejected. A Hook, where present, takes precedence over inference. Poly
 curves with Hooks are not supported; use Bézier for explicit Hook attachments.
-The geometry decides *which* objects connect; `World::add_rope_cloth_coupling`
-implements the physical joint after export.
+The geometry decides *which* objects connect; the pipeline's rope/cloth
+`PmCouplingState` implements the physical joint after export.
 
 `RopeCloth.blend` has four such post-to-corner curves. Its Simple Subdivision
 modifier sits before Cloth and becomes a 17×17 physical sheet during export;
@@ -356,8 +356,8 @@ listed as overrides. Unlisted custom properties are not supported controls.
 before gravity, damping, and contact/constraint reactions. Diagonal input is
 normalized. Release adds no force and preserves momentum. Arrays inherit the
 force per body, not divided across the array. This is gallery input metadata,
-not a new installed `World` API; other clients can apply the same force using
-the existing force/central-acceleration API. Materials determine surface
+not a scene-specific API; other clients record the same force with
+`pmCmdApplyRigidInputs`. Materials determine surface
 color; the renderer no longer adds a procedural floor pattern.
 
 ### Cloth
@@ -477,8 +477,8 @@ from the native constraint panel on joints).
 
 Hit boxes export as empty `pm_system = "hit_box"` nodes with `pm_name` and
 `pm_half_extent_x/y/z`. Their scene-root translation and rotation define the
-world-space trigger frame. They consume no `World` capacity until an
-application polls their `HitBox` value.
+world-space trigger frame. They consume no persistent simulation capacity;
+applications record `pmCmdQueryHitBox` when they need the result.
 
 When a proxy is selected, the exporter adds a non-rendered
 `pm_system = "collision_mesh"` glTF node and references it from the rigid-body
@@ -605,8 +605,8 @@ static-body substitution is implied by an Array modifier.
 
 ## Collision behavior
 
-`World::add_triangle_mesh` copies device vertices and indices, validates them,
-and builds a deterministic private BVH. Mesh–mesh narrow phase uses exact
+`pmCmdBuildGeometry` validates the bound vertex and index buffers and builds a
+deterministic private BVH. Mesh–mesh narrow phase uses exact
 edge/triangle closest features with a small two-sided shell. When motion over a
 substep exceeds that shell, conservative swept triangle-pair tests cover the
 linearized previous-to-current vertex paths before the discrete solve. This
@@ -739,13 +739,13 @@ closed physics topology.
 
 Set the cloth object's Boolean custom property `pm_contains_fluid` when a
 Geometry-flow liquid volume belongs inside that cloth. The gallery translates
-this relationship into `World::add_fluid_cloth_coupling`; containment,
+this relationship into a fluid/cloth `PmCouplingState`; containment,
 reaction forces, and volume preservation live in the installed physics API,
 not in scene-specific gallery code. Uniform Pressure Force is currently
 required to remain zero because the API implements target-volume pressure,
 not a separate constant inflation force.
 
-The gallery creates the cloth through `World::add_cloth` and updates its
+The gallery records cloth creation through `pmCmdWriteCloths` and updates its
 OptiX triangles each frame. The scene also contains the authored passive box
 and active sphere. All four Cloth gallery entries start with gravity straight
 down. Arrow keys steer it camera-relatively within a 45-degree tilt, returning
@@ -792,7 +792,7 @@ top and bottom rows and the active rigid sphere, authors `pm_paintable = true`,
 a 128×128 paint mask, `pm_paint_source` naming that sphere, and a 0.18-unit
 world-space paint brush radius. The sphere has an authored forward velocity
 so it can contact the cloth while gravity remains straight down. The gallery
-binds the cloth UVs to a `World` paint field and registers a rigid-to-cloth
+records the cloth UVs with `pmCmdWritePaintFields` and registers a rigid-to-cloth
 paint rule. Rigid–cloth collision and disk-shaped texel stamping are in the API;
 the gallery chooses blue and cubic filtering, while the variant has a neutral
 dry material so contact marks are visible. The cloth remains intact.
@@ -858,8 +858,8 @@ volume, so denser sampling does not silently increase fluid mass. These are
 general flow settings, not Peg-specific solver branches.
 
 The Peg Paint example paints persistent blue masks from qualifying fluid
-contacts with the bodies' exported UV surfaces. `World` owns the two-sided
-paint field; the gallery renderer chooses blue and cubic filtering. The
+contacts with the bodies' exported UV surfaces. The simulation owns the
+two-sided paint field; the gallery renderer chooses blue and cubic filtering. The
 exporter retains each render mesh's UV coordinates. Only the bowl has
 `pm_paintable = true`; the active sphere and four pegs remain unpainted. Other
 scenes do not allocate paint masks unless their authors opt in. Front and back

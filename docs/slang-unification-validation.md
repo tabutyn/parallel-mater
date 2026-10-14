@@ -1,17 +1,12 @@
 # Slang unification validation
 
-> Historical CUDA migration snapshot. The temporary Metal compatibility
-> adapter described by later checkpoints has since been retired.
-
-Status updated 2026-10-12 on source baseline
-`b3cb3d0fac068890771c5effe29dc30f916c298d` plus the uncommitted command-runtime
-migration.
+This page records the current validation contract for the unified runtime.
 
 ## Runtime architecture
 
 - `parallel-mater` exposes the C command API in `parallel_mater.h`.
 - The production runtime dispatches physics generated from `src/slang`.
-- `world.cu` contains no GPU kernels or direct physics launches.
+- `runtime.cu` contains no GPU kernels or direct physics launches.
 - Device and simulation dispatch adapters contain platform services and
   generated-kernel launches only.
 - DirectCompute and Metal backend-specific implementations and galleries have
@@ -31,13 +26,13 @@ kernels or direct launches in the runtime.
 - AVBD cross-target bundle and reflection validation: pass.
 - `parallel-mater-gallery` link through the command API: pass.
 - API declaration/runtime coverage generation: pass.
-- CPU contract, catalog, input, conformance registry/comparator, contact-core,
+- CPU contract, catalog, input, conformance registry/comparator, contact-friction,
   AVBD-core, architecture, and reflection tests: pass.
 - Gallery catalog contains 28 canonical entries; shared input tests verify Tab
   opens the complete catalog and dismisses parameter editing.
 - Command API, API contract, gallery catalog/input, Slang architecture, and
   Slang reflection tests pass on the CUDA host.
-- All 38 AVBD fixtures and the CPU/CUDA/Slang AVBD-core tests pass.
+- All 105 AVBD fixtures and the CPU/CUDA/Slang AVBD-core tests pass.
 - All 42 CUDA gallery headless, action, render, debug, containment, and coupled
   scene tests pass through the shared gallery application path. This includes
   Point release/restore, Hinge, Piston, Motor + Spring, dump tip/drive, rope,
@@ -51,15 +46,15 @@ kernels or direct launches in the runtime.
 The CUDA target was accepted by interactive review of the unified gallery on
 the RTX 3050 Ti on 2026-10-12. Exact comparisons with the retired CUDA solver,
 its performance profile, and its trajectory goldens are no longer release or
-source-deletion gates. The conformance runner remains available for diagnostic
-captures, while the obsolete CUDA-golden comparison is no longer registered as
-a required CTest.
+source-deletion gates. Canonical conformance inputs, historical goldens, and
+the comparator remain; a replacement runner must execute through the public
+command API.
 
 ## Target status
 
 | Target | Status |
 |---|---|
-| CUDA | Accepted shared Slang runtime; command API, architecture checks, 38 AVBD fixtures, 42 automated gallery gates, and interactive gallery review pass |
+| CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
 | DirectX 12 | Unavailable; no qualified Slang device adapter |
 | Vulkan | Interoperability declarations only; physics unavailable |

@@ -258,7 +258,8 @@ struct RopeOptions {
     float mass{0.1F}; // Total rope mass, distributed over sampled nodes.
     float stretch_compliance{0.0F};
     float velocity_damping{0.1F};
-    // World::step raises the shared substep count to respect live ropes' limits.
+    // SimulationRuntime::step raises the shared substep count to respect live
+    // ropes' limits.
     float maximum_substep_timestep{1.0F / 480.0F};
     float friction{0.4F};
     float maximum_speed{8.0F};
@@ -277,7 +278,7 @@ struct PhysicsDebugOptions {
     std::uint32_t frame_stride{1U};
 };
 
-struct WorldOptions {
+struct SimulationOptions {
     std::uint32_t fluid_capacity{1U};
     std::uint32_t smoke_capacity{1U};
     std::uint32_t fluid_smoke_coupling_capacity{1U};
@@ -297,7 +298,7 @@ struct WorldOptions {
     bool deterministic{true};
     // Allows stable, unconstrained rigid islands to stop integrating after
     // they have remained below the velocity thresholds for half a second.
-    // Metal preserves sleep under unchanged net loads (including gravity
+    // Drivers preserve sleep under unchanged net loads (including gravity
     // compensation); changed loads, impulses and state edits wake bodies.
     bool rigid_sleeping{};
     std::uint32_t cloth_capacity{1U};
@@ -905,7 +906,7 @@ struct KernelTiming {
     std::uint32_t launch_count{};
 };
 
-struct WorldStepTimings {
+struct SimulationStepTimings {
     std::uint64_t frame_index{};
     bool available{};
     KernelTiming rigid_integration{};
@@ -946,7 +947,7 @@ struct WorldStepTimings {
     KernelTiming smoke_emission{};
 };
 
-struct WorldStatistics {
+struct SimulationStatistics {
     std::uint64_t frame_index{};
     std::uint32_t fluid_count{};
     std::uint32_t particle_count{};
@@ -1008,7 +1009,7 @@ static_assert(sizeof(FluidId) == 8U && alignof(FluidId) == 4U);
 static_assert(sizeof(RigidBodyId) == 8U && alignof(RigidBodyId) == 4U);
 static_assert(sizeof(TriangleMeshId) == 8U && alignof(TriangleMeshId) == 4U);
 static_assert(std::is_standard_layout_v<RopeOptions>);
-static_assert(std::is_standard_layout_v<WorldOptions>);
+static_assert(std::is_standard_layout_v<SimulationOptions>);
 static_assert(std::is_standard_layout_v<StepOptions>);
 static_assert(std::is_standard_layout_v<SmokeOptions>);
 static_assert(std::is_standard_layout_v<SmokeSoftBodyCouplingOptions>);

@@ -129,7 +129,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
         command_buffer, [pool, query, simulation](
                             parallel_mater::device::Services &services) noexcept {
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
-            parallel_mater::WorldStatistics source{};
+            parallel_mater::SimulationStatistics source{};
             const PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->collect_statistics(source, stream));
             if (result != PM_SUCCESS) return result;

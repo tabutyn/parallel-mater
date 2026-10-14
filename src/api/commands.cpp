@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
-#include "../device/cuda_device.hpp"
 
 #include <algorithm>
 
@@ -195,13 +194,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyBuffer(
     return parallel_mater::api::record(
         command_buffer, [source, destination, copied = std::move(copied)](
                             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            if (source->queue_family != 0U || destination->queue_family != 0U)
+                return PM_ERROR_INVALID_STATE;
             for (const PmBufferCopy &region : copied) {
-                const cudaError_t error = cudaMemcpyAsync(
+                const PmResult result = services.copy(
                     parallel_mater::api::buffer_pointer(destination, region.dstOffset),
                     parallel_mater::api::buffer_pointer(source, region.srcOffset),
-                    static_cast<std::size_t>(region.size), cudaMemcpyDefault, stream);
-                if (error != cudaSuccess) return parallel_mater::device::from_cuda(error);
+                    region.size);
+                if (result != PM_SUCCESS) return result;
             }
             return PM_SUCCESS;
         });
@@ -216,12 +216,45 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdPipelineBarrier(
     if ((memory_count != 0U && memory_barriers == nullptr) ||
         (buffer_count != 0U && buffer_barriers == nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
-    for (std::uint32_t index = 0U; index < buffer_count; ++index) {
-        const auto &barrier = buffer_barriers[index];
+    std::vector<PmBufferMemoryBarrier> copied;
+    try {
+        if (buffer_count != 0U)
+            copied.assign(buffer_barriers, buffer_barriers + buffer_count);
+    } catch (const std::bad_alloc &) {
+        command_buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
+        return command_buffer->latched_error;
+    }
+    for (const auto &barrier : copied) {
+        const bool ignored =
+            barrier.srcQueueFamilyIndex == PM_QUEUE_FAMILY_IGNORED &&
+            barrier.dstQueueFamilyIndex == PM_QUEUE_FAMILY_IGNORED;
         if (barrier.range.buffer == nullptr ||
-            barrier.range.buffer->device != command_buffer->device)
+            barrier.range.buffer->device != command_buffer->device ||
+            !parallel_mater::api::range_fits(
+                barrier.range.offset, barrier.range.size,
+                barrier.range.buffer->size) ||
+            (!ignored &&
+             (barrier.srcQueueFamilyIndex == PM_QUEUE_FAMILY_IGNORED ||
+              barrier.dstQueueFamilyIndex == PM_QUEUE_FAMILY_IGNORED)) ||
+            (!ignored && barrier.srcQueueFamilyIndex != 0U &&
+             barrier.srcQueueFamilyIndex != PM_QUEUE_FAMILY_EXTERNAL) ||
+            (!ignored && barrier.dstQueueFamilyIndex != 0U &&
+             barrier.dstQueueFamilyIndex != PM_QUEUE_FAMILY_EXTERNAL))
             return PM_ERROR_INVALID_ARGUMENT;
     }
-    // CUDA stream order already provides the dependency expressed by this API.
-    return PM_SUCCESS;
+    if (copied.empty()) return PM_SUCCESS;
+    return parallel_mater::api::record(
+        command_buffer, [copied = std::move(copied)](
+            parallel_mater::device::Services &) noexcept {
+            for (const auto &barrier : copied) {
+                if (barrier.srcQueueFamilyIndex == PM_QUEUE_FAMILY_IGNORED)
+                    continue;
+                if (barrier.range.buffer->queue_family !=
+                    barrier.srcQueueFamilyIndex)
+                    return PM_ERROR_INVALID_STATE;
+                barrier.range.buffer->queue_family =
+                    barrier.dstQueueFamilyIndex;
+            }
+            return PM_SUCCESS;
+        });
 }

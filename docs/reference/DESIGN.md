@@ -82,7 +82,7 @@ The [Vulkan memory chapter](https://docs.vulkan.org/spec/latest/chapters/memory.
 informs explicit resource requirements, memory-type selection, allocation,
 binding, and suballocation. Host allocation callbacks are a separate concern
 from device memory. We expose persistent and scratch simulation storage;
-wrapping a `World` that secretly allocates these does not satisfy the contract.
+hidden device allocation outside that contract does not satisfy it.
 
 The [Vulkan synchronization guide](https://docs.vulkan.org/guide/latest/synchronization.html)
 informs the separation between device-to-device dependencies and host
@@ -102,11 +102,11 @@ and a Vulkan semaphore does not replace queue-family ownership transfers.
 
 ## Scope decisions
 
-The first contract covers rigid triangle geometry, rigid constraints,
-particle liquids, liquid/rigid and liquid/liquid coupling, and renderer
-interop. Cloth, rope, soft bodies, smoke grids, emitters, and paint remain
-available in the existing API; they require additional contract extensions
-before replacing that API. Nothing silently reinterprets them as liquids.
+The command contract covers rigid triangle geometry and constraints, particle
+liquids, cloth, rope, soft bodies, smoke grids, emitters, paint, their declared
+couplings, and renderer interoperability. Capability queries determine which
+domains and couplings a physical device can execute. Nothing silently
+reinterprets one domain as another or selects a retired implementation.
 
 There is one rigid geometry family. Spheres and boxes are mesh assets, not
 alternate body simulators. The pipeline's rigid state configures the unified

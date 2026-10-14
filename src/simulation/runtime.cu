@@ -1107,7 +1107,7 @@ struct SimulationRuntime::Impl {
         bool alive{};
     };
 
-    WorldOptions options{};
+    SimulationOptions options{};
     int device_ordinal{-1};
     std::uint32_t rigid_body_count{};
     std::uint32_t rigid_constraint_count{};
@@ -1551,7 +1551,7 @@ SimulationRuntime::~SimulationRuntime() = default;
 SimulationRuntime::SimulationRuntime(SimulationRuntime &&) noexcept = default;
 SimulationRuntime &SimulationRuntime::operator=(SimulationRuntime &&) noexcept = default;
 
-Status SimulationRuntime::create(WorldOptions options, SimulationRuntime &output,
+Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &output,
                      cudaStream_t stream) noexcept {
     (void)stream;
     if (options.rigid_body_capacity == 0U ||
@@ -1896,7 +1896,7 @@ Status SimulationRuntime::create(WorldOptions options, SimulationRuntime &output
 Status SimulationRuntime::add_fluid(FluidOptions options,
                         DeviceSpan<const FluidParticle> initial_particles,
                         FluidId &output, cudaStream_t stream) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.capacity == 0U || options.capacity > INT_MAX ||
@@ -2035,7 +2035,7 @@ Status SimulationRuntime::add_fluid_geometry(FluidOptions options,
 }
 
 Status SimulationRuntime::remove_fluid(FluidId id, cudaStream_t) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -2086,7 +2086,7 @@ Status SimulationRuntime::remove_fluid(FluidId id, cudaStream_t) noexcept {
 }
 
 Status SimulationRuntime::fluid_view(FluidId id, FluidDeviceView &output) const noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -2107,7 +2107,7 @@ Status SimulationRuntime::fluid_view(FluidId id, FluidDeviceView &output) const 
 
 Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.capacity == 0U || options.capacity > 1'000'000U ||
@@ -2312,7 +2312,7 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
 }
 
 Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->smokes.size() || !impl_->smokes[id.index] ||
@@ -2351,7 +2351,7 @@ Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
 
 Status SimulationRuntime::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     if (id.index >= impl_->smokes.size() || !impl_->smokes[id.index] ||
@@ -2397,7 +2397,7 @@ Status SimulationRuntime::smoke_view(SmokeId id, SmokeDeviceView &output) const 
 Status SimulationRuntime::add_fluid_smoke_coupling(
     FluidSmokeCouplingOptions options, FluidSmokeCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -2446,7 +2446,7 @@ Status SimulationRuntime::add_fluid_smoke_coupling(
 }
 
 Status SimulationRuntime::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_smoke_couplings.size() ||
@@ -2468,7 +2468,7 @@ Status SimulationRuntime::add_smoke_soft_body_coupling(
     SmokeSoftBodyCouplingOptions options,
     SmokeSoftBodyCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.smoke.index >= impl_->smokes.size() ||
@@ -2519,7 +2519,7 @@ Status SimulationRuntime::add_smoke_soft_body_coupling(
 
 Status SimulationRuntime::remove_smoke_soft_body_coupling(
     SmokeSoftBodyCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->smoke_soft_body_couplings.size() ||
@@ -2544,7 +2544,7 @@ Status SimulationRuntime::remove_smoke_soft_body_coupling(
 Status SimulationRuntime::add_smoke_cloth_coupling(
     SmokeClothCouplingOptions options, SmokeClothCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.smoke.index >= impl_->smokes.size() ||
@@ -2594,7 +2594,7 @@ Status SimulationRuntime::add_smoke_cloth_coupling(
 }
 
 Status SimulationRuntime::remove_smoke_cloth_coupling(SmokeClothCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->smoke_cloth_couplings.size() ||
@@ -2619,7 +2619,7 @@ Status SimulationRuntime::remove_smoke_cloth_coupling(SmokeClothCouplingId id) n
 Status SimulationRuntime::add_smoke_rope_coupling(
     SmokeRopeCouplingOptions options, SmokeRopeCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.smoke.index >= impl_->smokes.size() ||
@@ -2668,7 +2668,7 @@ Status SimulationRuntime::add_smoke_rope_coupling(
 }
 
 Status SimulationRuntime::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->smoke_rope_couplings.size() ||
@@ -2691,7 +2691,7 @@ Status SimulationRuntime::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noe
 Status SimulationRuntime::add_smoke_rigid_coupling(
     SmokeRigidCouplingOptions options, SmokeRigidCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.smoke.index >= impl_->smokes.size() ||
@@ -2735,7 +2735,7 @@ Status SimulationRuntime::add_smoke_rigid_coupling(
 }
 
 Status SimulationRuntime::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->smoke_rigid_couplings.size() ||
@@ -2772,7 +2772,7 @@ namespace {
 
 Status SimulationRuntime::add_particle_source(ParticleSourceMesh mesh, ParticleSourceOptions options,
                                        ParticleSourceId &output) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -2807,7 +2807,7 @@ Status SimulationRuntime::add_particle_source(ParticleSourceMesh mesh, ParticleS
 
 Status SimulationRuntime::update_particle_source(ParticleSourceId id,
                                           ParticleSourceOptions options) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->particle_sources.size() ||
@@ -2825,7 +2825,7 @@ Status SimulationRuntime::update_particle_source(ParticleSourceId id,
 }
 
 Status SimulationRuntime::remove_particle_source(ParticleSourceId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->particle_sources.size() ||
@@ -2840,7 +2840,7 @@ Status SimulationRuntime::remove_particle_source(ParticleSourceId id) noexcept {
 
 Status SimulationRuntime::add_particle_destroy_plane(ParticleDestroyPlaneOptions options,
                                          ParticleDestroyPlaneId &output) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -2860,7 +2860,7 @@ Status SimulationRuntime::add_particle_destroy_plane(ParticleDestroyPlaneOptions
 
 Status SimulationRuntime::update_particle_destroy_plane(ParticleDestroyPlaneId id,
                                             ParticleDestroyPlaneOptions options) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->destroy_planes.size() ||
@@ -2876,7 +2876,7 @@ Status SimulationRuntime::update_particle_destroy_plane(ParticleDestroyPlaneId i
 }
 
 Status SimulationRuntime::remove_particle_destroy_plane(ParticleDestroyPlaneId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->destroy_planes.size() ||
@@ -2998,7 +2998,7 @@ Status SimulationRuntime::add_triangle_mesh(
     DeviceSpan<const std::uint32_t> triangle_indices, TriangleMeshId &output,
     cudaStream_t stream) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -3289,7 +3289,7 @@ Status SimulationRuntime::add_triangle_mesh(
 
 Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -3335,7 +3335,7 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
 Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
                               PaintFieldId &output,
                               cudaStream_t stream) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     const bool cloth_target = options.cloth.generation != 0U;
@@ -3409,7 +3409,7 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
 }
 
 Status SimulationRuntime::remove_paint_field(PaintFieldId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
@@ -3432,7 +3432,7 @@ Status SimulationRuntime::remove_paint_field(PaintFieldId id) noexcept {
 }
 
 Status SimulationRuntime::clear_paint_field(PaintFieldId id, cudaStream_t stream) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
@@ -3451,7 +3451,7 @@ Status SimulationRuntime::clear_paint_field(PaintFieldId id, cudaStream_t stream
 
 Status SimulationRuntime::paint_field_view(PaintFieldId id,
                                PaintFieldDeviceView &output) const noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
@@ -3473,7 +3473,7 @@ Status SimulationRuntime::paint_field_view(PaintFieldId id,
 
 Status SimulationRuntime::add_paint_rule(PaintRuleOptions options,
                              PaintRuleId &output) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     const bool fluid_source = options.source.generation != 0U;
@@ -3523,7 +3523,7 @@ Status SimulationRuntime::add_paint_rule(PaintRuleOptions options,
 }
 
 Status SimulationRuntime::remove_paint_rule(PaintRuleId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_rule_capacity ||
@@ -3542,7 +3542,7 @@ Status SimulationRuntime::remove_paint_rule(PaintRuleId id) noexcept {
 Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
                         cudaStream_t stream) noexcept {
     (void)stream;
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.vertices.data == nullptr || options.vertices.size < 3U ||
@@ -3876,7 +3876,7 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
 }
 
 Status SimulationRuntime::remove_cloth(ClothId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->cloths.size() || !impl_->cloths[id.index] ||
@@ -3917,7 +3917,7 @@ Status SimulationRuntime::remove_cloth(ClothId id) noexcept {
 
 Status SimulationRuntime::cloth_view(ClothId id, ClothDeviceView &output) const noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     if (id.index >= impl_->cloths.size() || !impl_->cloths[id.index] ||
@@ -3954,7 +3954,7 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
                             cudaStream_t stream) noexcept {
     (void)stream;
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (options.nodes.data == nullptr || options.nodes.size < 4U ||
@@ -4333,7 +4333,7 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
 }
 
 Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument,"world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument,"simulation is not initialized");
     Status status=impl_->require_idle();
     if(!status)return status;
     if(!finite(options.radius)||options.radius<=0 || !finite(options.node_spacing)||
@@ -4409,7 +4409,7 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
 }
 
 Status SimulationRuntime::remove_rope(RopeId id) noexcept {
-    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    if(!impl_)return failure(StatusCode::invalid_argument,"simulation is not initialized");
     auto status=impl_->require_idle();if(!status)return status;
     if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
         return failure(StatusCode::invalid_handle,"rope handle is stale");
@@ -4436,7 +4436,7 @@ Status SimulationRuntime::remove_rope(RopeId id) noexcept {
 
 Status SimulationRuntime::rope_view(RopeId id, RopeDeviceView &output) const noexcept {
     output={};
-    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    if(!impl_)return failure(StatusCode::invalid_argument,"simulation is not initialized");
     auto status=impl_->require_current_device();if(!status)return status;
     if(impl_->frame && !impl_->frame->acknowledged)return failure(StatusCode::busy,"rope view requires completed frame");
     if(id.index>=impl_->ropes.size() || !impl_->ropes[id.index] || !impl_->ropes[id.index]->alive || impl_->ropes[id.index]->generation!=id.generation)
@@ -4458,7 +4458,7 @@ static bool valid_fluid_rope_options(FluidRopeCouplingOptions options) noexcept 
 Status SimulationRuntime::add_fluid_rope_coupling(
     FluidRopeCouplingOptions options, FluidRopeCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -4500,7 +4500,7 @@ Status SimulationRuntime::add_fluid_rope_coupling(
 
 Status SimulationRuntime::update_fluid_rope_coupling(
     FluidRopeCouplingId id, FluidRopeCouplingOptions options) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_rope_couplings.size() ||
@@ -4518,7 +4518,7 @@ Status SimulationRuntime::update_fluid_rope_coupling(
 }
 
 Status SimulationRuntime::remove_fluid_rope_coupling(FluidRopeCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_rope_couplings.size() ||
@@ -4550,7 +4550,7 @@ static bool valid_rope_soft_options(RopeSoftBodyCouplingOptions options) noexcep
 Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOptions options,
     RopeSoftBodyCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument,"world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument,"simulation is not initialized");
     auto status=impl_->require_idle();if(!status)return status;
     if(options.rope.index>=impl_->ropes.size() || !impl_->ropes[options.rope.index] ||
        !impl_->ropes[options.rope.index]->alive ||
@@ -4716,7 +4716,7 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
 
 Status SimulationRuntime::update_rope_soft_body_coupling(RopeSoftBodyCouplingId id,
     RopeSoftBodyCouplingOptions options) noexcept {
-    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    if(!impl_)return failure(StatusCode::invalid_argument,"simulation is not initialized");
     auto status=impl_->require_idle();if(!status)return status;
     if(id.index>=impl_->rope_soft_body_couplings.size() ||
        !impl_->rope_soft_body_couplings[id.index] ||
@@ -4748,7 +4748,7 @@ Status SimulationRuntime::update_rope_soft_body_coupling(RopeSoftBodyCouplingId 
 }
 
 Status SimulationRuntime::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId id) noexcept {
-    if(!impl_)return failure(StatusCode::invalid_argument,"world is not initialized");
+    if(!impl_)return failure(StatusCode::invalid_argument,"simulation is not initialized");
     auto status=impl_->require_idle();if(!status)return status;
     if(id.index>=impl_->rope_soft_body_couplings.size() ||
        !impl_->rope_soft_body_couplings[id.index] ||
@@ -4779,7 +4779,7 @@ Status SimulationRuntime::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId 
 Status SimulationRuntime::add_rope_cloth_coupling(RopeClothCouplingOptions options,
     RopeClothCouplingId &output) noexcept {
     output = {};
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     auto status = impl_->require_idle(); if (!status) return status;
     if (options.rope.index >= impl_->ropes.size() ||
         !impl_->ropes[options.rope.index] ||
@@ -4844,7 +4844,7 @@ Status SimulationRuntime::add_rope_cloth_coupling(RopeClothCouplingOptions optio
 
 Status SimulationRuntime::update_rope_cloth_coupling(RopeClothCouplingId id,
     RopeClothCouplingOptions options) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     auto status = impl_->require_idle(); if (!status) return status;
     if (id.index >= impl_->rope_cloth_couplings.size() ||
         !impl_->rope_cloth_couplings[id.index].alive ||
@@ -4880,7 +4880,7 @@ Status SimulationRuntime::update_rope_cloth_coupling(RopeClothCouplingId id,
 }
 
 Status SimulationRuntime::remove_rope_cloth_coupling(RopeClothCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     auto status = impl_->require_idle(); if (!status) return status;
     if (id.index >= impl_->rope_cloth_couplings.size() ||
         !impl_->rope_cloth_couplings[id.index].alive ||
@@ -4909,7 +4909,7 @@ Status SimulationRuntime::remove_rope_cloth_coupling(RopeClothCouplingId id) noe
 
 Status SimulationRuntime::remove_soft_body(SoftBodyId id) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->soft_bodies.size() || !impl_->soft_bodies[id.index] ||
@@ -4945,7 +4945,7 @@ Status SimulationRuntime::soft_body_view(SoftBodyId id,
                             SoftBodyDeviceView &output) const noexcept {
     output = {};
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     if (id.index >= impl_->soft_bodies.size() || !impl_->soft_bodies[id.index] ||
@@ -4978,7 +4978,7 @@ static bool valid_fluid_soft_options(FluidSoftBodyCouplingOptions options) noexc
 
 Status SimulationRuntime::add_fluid_soft_body_coupling(
     FluidSoftBodyCouplingOptions options, FluidSoftBodyCouplingId &output) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -5110,7 +5110,7 @@ Status SimulationRuntime::add_fluid_soft_body_coupling(
 
 Status SimulationRuntime::update_fluid_soft_body_coupling(
     FluidSoftBodyCouplingId id, FluidSoftBodyCouplingOptions options) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_soft_couplings.size() || !impl_->fluid_soft_couplings[id.index] ||
@@ -5127,7 +5127,7 @@ Status SimulationRuntime::update_fluid_soft_body_coupling(
 }
 
 Status SimulationRuntime::remove_fluid_soft_body_coupling(FluidSoftBodyCouplingId id) noexcept {
-    if (!impl_) return failure(StatusCode::invalid_argument, "world is not initialized");
+    if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_soft_couplings.size() || !impl_->fluid_soft_couplings[id.index] ||
@@ -5152,7 +5152,7 @@ Status SimulationRuntime::add_soft_body_cloth_coupling(
     SoftBodyClothCouplingOptions options,
     SoftBodyClothCouplingId &output) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     SoftBodyDeviceView soft_view{};
@@ -5196,7 +5196,7 @@ Status SimulationRuntime::add_soft_body_cloth_coupling(
 Status SimulationRuntime::update_soft_body_cloth_coupling(
     SoftBodyClothCouplingId id, SoftBodyClothCouplingOptions options) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->soft_cloth_couplings.size() ||
@@ -5217,7 +5217,7 @@ Status SimulationRuntime::update_soft_body_cloth_coupling(
 
 Status SimulationRuntime::remove_soft_body_cloth_coupling(SoftBodyClothCouplingId id) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->soft_cloth_couplings.size() ||
@@ -5237,7 +5237,7 @@ Status SimulationRuntime::add_fluid_cloth_coupling(
     FluidClothCouplingOptions options,
     FluidClothCouplingId &output) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     FluidStorage *fluid = nullptr;
@@ -5286,7 +5286,7 @@ Status SimulationRuntime::update_fluid_cloth_coupling(
     FluidClothCouplingId id,
     FluidClothCouplingOptions options) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_cloth_couplings.size() ||
@@ -5320,7 +5320,7 @@ Status SimulationRuntime::update_fluid_cloth_coupling(
 Status SimulationRuntime::remove_fluid_cloth_coupling(
     FluidClothCouplingId id) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->fluid_cloth_couplings.size() ||
@@ -5340,7 +5340,7 @@ Status SimulationRuntime::remove_fluid_cloth_coupling(
 Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
                              RigidBodyId &output) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5401,7 +5401,7 @@ Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
 
 Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5471,7 +5471,7 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
 Status SimulationRuntime::set_rigid_body_state(RigidBodyId body,
                                    RigidBodyState state) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5516,7 +5516,7 @@ Status SimulationRuntime::set_rigid_body_state(RigidBodyId body,
 Status SimulationRuntime::set_kinematic_target(RigidBodyId body,
                                    RigidBodyState target) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5551,7 +5551,7 @@ Status SimulationRuntime::set_kinematic_target(RigidBodyId body,
 Status SimulationRuntime::apply_force(RigidBodyId body, Vec3 force,
                           Vec3 world_point) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5582,7 +5582,7 @@ Status SimulationRuntime::apply_rigid_input(
     RigidBodyId body, Vec3 force, Vec3 torque, Vec3 linear_impulse,
     Vec3 angular_impulse) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) return status;
@@ -5611,7 +5611,7 @@ Status SimulationRuntime::apply_central_acceleration(
     HostSpan<RigidBodyId> bodies, Vec3 acceleration) noexcept {
     if (!impl_)
         return failure(StatusCode::invalid_argument,
-                       "world is not initialized");
+                       "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     if (!finite(acceleration) ||
@@ -5646,7 +5646,7 @@ Status SimulationRuntime::apply_central_acceleration(
 Status SimulationRuntime::apply_impulse(RigidBodyId body, Vec3 impulse,
                             Vec3 world_point) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5677,7 +5677,7 @@ Status SimulationRuntime::apply_impulse(RigidBodyId body, Vec3 impulse,
 Status SimulationRuntime::rigid_body_view(RigidBodyDeviceView &output) const noexcept {
     output = {};
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -5701,7 +5701,7 @@ Status SimulationRuntime::rigid_body_view(RigidBodyDeviceView &output) const noe
 Status SimulationRuntime::read_rigid_body_state(RigidBodyId body, RigidBodyState &output,
                                     cudaStream_t stream) const noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_current_device();
     if (!status) {
@@ -5737,7 +5737,7 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
                             cudaStream_t stream) const noexcept {
     if (!impl_)
         return failure(StatusCode::invalid_argument,
-                       "world is not initialized");
+                       "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     if (impl_->frame && !impl_->frame->acknowledged) {
@@ -5826,7 +5826,7 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
 Status SimulationRuntime::add_rigid_constraint(
     RigidConstraintOptions options, RigidConstraintId &output) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     status = validate_constraint_options(options);
@@ -5872,7 +5872,7 @@ Status SimulationRuntime::add_rigid_constraint(
 Status SimulationRuntime::update_rigid_constraint(
     RigidConstraintId id, RigidConstraintOptions options) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     status = validate_constraint_options(options);
@@ -5910,7 +5910,7 @@ Status SimulationRuntime::update_rigid_constraint(
 
 Status SimulationRuntime::remove_rigid_constraint(RigidConstraintId id) noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
     RigidConstraintResource *resource = nullptr;
@@ -5929,7 +5929,7 @@ Status SimulationRuntime::read_rigid_constraint_state(
     RigidConstraintId id, RigidConstraintState &output,
     cudaStream_t stream) const noexcept {
     if (!impl_)
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
     if (!status) return status;
     if (impl_->frame && !impl_->frame->acknowledged) {
@@ -5972,7 +5972,7 @@ Status SimulationRuntime::read_rigid_constraint_state(
 Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion,
                          cudaStream_t stream) noexcept {
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_idle();
     if (!status) {
@@ -8596,7 +8596,7 @@ Status SimulationRuntime::physics_debug_frame(
     PhysicsDebugFrameView &output) const noexcept {
     output = {};
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_current_device();
     if (!status) return status;
@@ -8641,7 +8641,7 @@ Status SimulationRuntime::copy_physics_debug_capture(
     PhysicsDebugCapture &output) const noexcept {
     output.frames.clear();
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_current_device();
     if (!status) return status;
@@ -8671,10 +8671,11 @@ Status SimulationRuntime::copy_physics_debug_capture(
     return success();
 }
 
-Status SimulationRuntime::collect_step_timings(WorldStepTimings &output) const noexcept {
+Status SimulationRuntime::collect_step_timings(
+    SimulationStepTimings &output) const noexcept {
     output = {};
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status status = impl_->require_current_device();
     if (!status) {
@@ -8837,11 +8838,11 @@ Status SimulationRuntime::collect_step_timings(WorldStepTimings &output) const n
     return success();
 }
 
-Status SimulationRuntime::collect_statistics(WorldStatistics &output,
+Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
                                  cudaStream_t stream) const noexcept {
     (void)stream;
     if (!impl_) {
-        return failure(StatusCode::invalid_argument, "world is not initialized");
+        return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
     Status device_status = impl_->require_current_device();
     if (!device_status) {

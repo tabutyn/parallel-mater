@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "cuda_device.hpp"
 
+#include <cuda.h>
+
 #include <algorithm>
 #include <cstring>
 #include <new>
@@ -8,29 +10,47 @@
 namespace parallel_mater::device {
 namespace {
 
+[[nodiscard]] constexpr cudaMemcpyKind cuda_copy_kind(
+    CopyDirection direction) noexcept {
+    switch (direction) {
+    case CopyDirection::automatic: return cudaMemcpyDefault;
+    case CopyDirection::host_to_device: return cudaMemcpyHostToDevice;
+    case CopyDirection::device_to_host: return cudaMemcpyDeviceToHost;
+    case CopyDirection::device_to_device: return cudaMemcpyDeviceToDevice;
+    }
+    return cudaMemcpyDefault;
+}
+
 class CudaServices final : public Services {
   public:
     explicit CudaServices(int ordinal) noexcept : ordinal_(ordinal) {}
 
     [[nodiscard]] PmResult initialize() noexcept {
-        cudaError_t error = cudaSetDevice(ordinal_);
-        if (error != cudaSuccess) return from_cuda(error);
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
+        cudaError_t error{};
         error = cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking);
         if (error != cudaSuccess) return from_cuda(error);
         error = cudaEventCreateWithFlags(&epoch_, cudaEventDefault);
         if (error != cudaSuccess) return from_cuda(error);
         error = cudaEventRecord(epoch_, stream_);
         if (error != cudaSuccess) return from_cuda(error);
+        if (cuCtxGetCurrent(&context_) != CUDA_SUCCESS || context_ == nullptr)
+            return PM_ERROR_INVALID_STATE;
         return PM_SUCCESS;
     }
 
     ~CudaServices() override {
+        (void)cudaSetDevice(ordinal_);
         if (stream_ != nullptr) (void)cudaStreamSynchronize(stream_);
         if (epoch_ != nullptr) (void)cudaEventDestroy(epoch_);
         if (stream_ != nullptr) (void)cudaStreamDestroy(stream_);
     }
 
     [[nodiscard]] int ordinal() const noexcept override { return ordinal_; }
+    [[nodiscard]] void *native_device_handle() const noexcept override {
+        return context_;
+    }
     [[nodiscard]] void *native_queue_handle() const noexcept override {
         return stream_;
     }
@@ -41,6 +61,8 @@ class CudaServices final : public Services {
 
     [[nodiscard]] PmResult create_event(bool enable_timing,
                                         Event &output) noexcept override {
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         cudaEvent_t event{};
         const cudaError_t error = cudaEventCreateWithFlags(
             &event, enable_timing ? cudaEventDefault : cudaEventDisableTiming);
@@ -50,27 +72,36 @@ class CudaServices final : public Services {
     }
 
     void destroy_event(Event event) noexcept override {
-        if (event) (void)cudaEventDestroy(to_cuda(event));
+        if (event && activate() == PM_SUCCESS)
+            (void)cudaEventDestroy(to_cuda(event));
     }
 
     [[nodiscard]] PmResult record_event(Event event) noexcept override {
         if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         return from_cuda(cudaEventRecord(to_cuda(event), stream_));
     }
 
     [[nodiscard]] PmResult enqueue_wait(Event event) noexcept override {
         if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         return from_cuda(cudaStreamWaitEvent(stream_, to_cuda(event), 0U));
     }
 
     [[nodiscard]] PmResult wait_event(Event event) noexcept override {
         if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         return from_cuda(cudaEventSynchronize(to_cuda(event)));
     }
 
     [[nodiscard]] PmResult query_event(Event event,
                                        bool &ready) noexcept override {
         if (!event) return PM_ERROR_INVALID_ARGUMENT;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         const cudaError_t status = cudaEventQuery(to_cuda(event));
         if (status == cudaSuccess) {
             ready = true;
@@ -87,6 +118,8 @@ class CudaServices final : public Services {
     [[nodiscard]] PmResult elapsed_time(Event begin, Event end,
                                         float &milliseconds) noexcept override {
         if (!begin || !end) return PM_ERROR_INVALID_ARGUMENT;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         return from_cuda(cudaEventElapsedTime(
             &milliseconds, to_cuda(begin), to_cuda(end)));
     }
@@ -96,6 +129,8 @@ class CudaServices final : public Services {
         if (output == nullptr || size == 0U || size > SIZE_MAX)
             return PM_ERROR_INVALID_ARGUMENT;
         *output = nullptr;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         const cudaError_t error = host_visible
             ? cudaMallocManaged(output, static_cast<std::size_t>(size),
                                 cudaMemAttachGlobal)
@@ -104,15 +139,67 @@ class CudaServices final : public Services {
     }
 
     void free(void *allocation) noexcept override {
-        if (allocation != nullptr) (void)cudaFree(allocation);
+        if (allocation != nullptr && activate() == PM_SUCCESS)
+            (void)cudaFree(allocation);
+    }
+
+    [[nodiscard]] PmResult activate() noexcept override {
+        return from_cuda(cudaSetDevice(ordinal_));
+    }
+
+    [[nodiscard]] PmResult copy(
+        void *destination, const void *source, PmDeviceSize size,
+        CopyDirection direction) noexcept override {
+        if (destination == nullptr || source == nullptr || size > SIZE_MAX)
+            return PM_ERROR_INVALID_ARGUMENT;
+        if (size == 0U) return PM_SUCCESS;
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
+        return from_cuda(cudaMemcpyAsync(destination, source,
+            static_cast<std::size_t>(size), cuda_copy_kind(direction), stream_));
+    }
+
+    [[nodiscard]] PmResult copy_and_wait(
+        void *destination, const void *source, PmDeviceSize size,
+        CopyDirection direction) noexcept override {
+        const PmResult result = copy(destination, source, size, direction);
+        if (result != PM_SUCCESS) return result;
+        return wait_idle();
+    }
+
+    [[nodiscard]] PmResult upload(
+        void *destination, std::unique_ptr<std::byte[]> source,
+        PmDeviceSize size) noexcept override {
+        if (!source) return PM_ERROR_INVALID_ARGUMENT;
+        if (size == 0U) return PM_SUCCESS;
+        const PmResult result = copy(destination, source.get(), size,
+                                     CopyDirection::host_to_device);
+        if (result != PM_SUCCESS) return result;
+
+        std::byte *owned = source.release();
+        const cudaError_t callback_result = cudaLaunchHostFunc(
+            stream_,
+            [](void *storage) { delete[] static_cast<std::byte *>(storage); },
+            owned);
+        if (callback_result == cudaSuccess) return PM_SUCCESS;
+
+        // The copy was accepted but ownership could not be attached to the
+        // stream. Drain it before releasing the source buffer.
+        (void)cudaStreamSynchronize(stream_);
+        delete[] owned;
+        return from_cuda(callback_result);
     }
 
     [[nodiscard]] PmResult wait_idle() noexcept override {
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         return from_cuda(cudaStreamSynchronize(stream_));
     }
 
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept override {
+        const PmResult current = activate();
+        if (current != PM_SUCCESS) return current;
         std::size_t free_bytes = 0U;
         std::size_t total_bytes = 0U;
         const cudaError_t error = cudaMemGetInfo(&free_bytes, &total_bytes);
@@ -132,6 +219,7 @@ class CudaServices final : public Services {
     }
 
     int ordinal_{};
+    CUcontext context_{};
     cudaStream_t stream_{};
     cudaEvent_t epoch_{};
 };

@@ -60,12 +60,6 @@ if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_METAL_GALLERY)
         "Backend-specific physics implementations are retired. Use the shared command API "
         "with a validated Slang device adapter.")
 endif()
-if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
-   NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
-    set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
-        ${PARALLEL_MATER_BUILD_SLANG_AVBD} CACHE BOOL
-        "Build and validate the portable Slang rigid constraint core")
-endif()
 option(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
        "Build and validate the portable Slang rigid constraint core"
        ${BUILD_TESTING})
@@ -828,6 +822,7 @@ target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
     PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
 target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
     parallel-mater-host-preparation
+    CUDA::cuda_driver
     CUDA::cudart)
 if(MSVC)
     target_compile_options(

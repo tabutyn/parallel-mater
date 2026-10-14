@@ -73,6 +73,9 @@ struct PmBuffer_T {
     std::uint32_t queue_family{};
     PmDeviceMemory memory{};
     PmDeviceSize memory_offset{};
+    PmNativeHandle native_buffer{};
+    PmDeviceSize native_offset{};
+    std::uint64_t native_usage{};
     void *native_pointer{};
     bool imported{};
 };
@@ -96,7 +99,7 @@ struct PmSimulation_T {
     std::vector<PmSmokeCapacity> smoke_capacities;
     std::vector<PmPaintFieldCapacity> paint_field_capacities;
     PmSimulationMemoryRequirements requirements{};
-    parallel_mater::WorldOptions world_options{};
+    parallel_mater::SimulationOptions simulation_options{};
     PmSimulationMemoryBinding binding{};
     std::unique_ptr<parallel_mater::simulation::MemoryArena> arena;
     std::unique_ptr<parallel_mater::SimulationRuntime> runtime;
@@ -229,6 +232,11 @@ void destroy_object(PmDevice_T *device, T *value) noexcept {
     if (buffer == nullptr || buffer->native_pointer == nullptr || offset > buffer->size)
         return nullptr;
     return static_cast<std::byte *>(buffer->native_pointer) + offset;
+}
+
+[[nodiscard]] inline PmResult require_device_ownership(PmBuffer buffer) noexcept {
+    return buffer != nullptr && buffer->queue_family == 0U
+        ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
 }
 
 [[nodiscard]] inline PmResult require_recording(PmCommandBuffer buffer) noexcept {

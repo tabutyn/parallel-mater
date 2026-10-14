@@ -1450,7 +1450,7 @@ without weakening determinism, containment, or authored geometry contracts.
 - scene: committed `examples/assets/PassiveActive.glb`, five rigid bodies
 - frame: `1/60 s`, four substeps
 - sampling: settle 360 frames, warm 10, measure 120
-- timing: CUDA events requested through `WorldStepTimings`; no external profiler
+- timing: command-API timestamp queries; no external profiler
 
 Build and reproduce the retained scene benchmark with:
 
@@ -1490,7 +1490,7 @@ Final 120-frame distribution:
 | **Frame wall** | **1.806 ms** | **1.375 ms** | **1.886 ms** |
 
 The live `F` overlay reports these same stages. Rendering is deliberately not
-included in `WorldStepTimings`.
+included in physics timing queries.
 
 ## Experiments kept or removed
 
@@ -1980,8 +1980,8 @@ The original rest curve crossed an invisible enclosure wall: one segment
 reached over 100 times its rest length. That is an invalid starting topology,
 not a material-stiffness problem. Only the enclosure was widened to the
 existing floor bounds. Curve geometry, Hook endpoints, post, ball, and material
-values were preserved. `World::add_rope` rejects centerlines crossing rigid
-triangles before creating a resource, with a failed-creation regression.
+values were preserved. Rope creation rejects centerlines crossing rigid
+triangles before activating the resource, with a failed-creation regression.
 
 The corrected scene exposed an independent solver problem. Contact normals
 were released after building the reduced inverse-mass matrix, but corrections

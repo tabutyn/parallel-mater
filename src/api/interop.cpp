@@ -7,7 +7,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetPhysicalDeviceInteropProperties(
     if (properties == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *properties = {};
     if (physical == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    if (backend != PM_NATIVE_BACKEND_CUDA) return PM_SUCCESS;
+    if (backend != PM_NATIVE_BACKEND_CUDA)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
     properties->bufferImport = PM_TRUE;
     return PM_SUCCESS;
 }
@@ -25,14 +26,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeDevice(
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
     PmDevice device, PmNativeDeviceInfo *native_device) {
-    if (device == nullptr || native_device == nullptr)
-        return PM_ERROR_INVALID_ARGUMENT;
+    if (native_device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *native_device = {};
+    if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     native_device->backend = PM_NATIVE_BACKEND_CUDA;
     native_device->physicalDevice = static_cast<PmNativeHandle>(
         device->physical->description.ordinal);
     native_device->device = static_cast<PmNativeHandle>(
-        device->services->ordinal());
+        reinterpret_cast<std::uintptr_t>(
+            device->services->native_device_handle()));
+    if (native_device->device == 0U) {
+        *native_device = {};
+        return PM_ERROR_INVALID_STATE;
+    }
     return PM_SUCCESS;
 }
 
@@ -41,7 +47,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
     if (buffer == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *buffer = nullptr;
     if (device == nullptr || info == nullptr || info->buffer == 0U ||
-        info->size == 0U || info->owningQueueFamilyIndex != 0U)
+        info->size == 0U ||
+        (info->owningQueueFamilyIndex != 0U &&
+         info->owningQueueFamilyIndex != PM_QUEUE_FAMILY_EXTERNAL) ||
+        info->offset > UINTPTR_MAX || info->buffer > UINTPTR_MAX ||
+        info->buffer > UINTPTR_MAX - info->offset ||
+        info->offset > UINT64_MAX - info->size ||
+        (info->buffer + info->offset) % 256U != 0U ||
+        info->nativeUsage != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     auto *created = parallel_mater::api::make_object<PmBuffer_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -49,6 +62,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
     created->size = info->size;
     created->usage = info->usage;
     created->queue_family = info->owningQueueFamilyIndex;
+    created->native_buffer = info->buffer;
+    created->native_offset = info->offset;
+    created->native_usage = info->nativeUsage;
     created->native_pointer = reinterpret_cast<void *>(
         static_cast<std::uintptr_t>(info->buffer + info->offset));
     created->imported = true;
@@ -62,10 +78,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeBuffer(
         buffer->device != device || buffer->native_pointer == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     *native_buffer = {};
-    native_buffer->buffer = static_cast<PmNativeHandle>(
-        reinterpret_cast<std::uintptr_t>(buffer->native_pointer));
+    native_buffer->buffer = buffer->native_buffer;
+    native_buffer->offset = buffer->native_offset;
     native_buffer->size = buffer->size;
     native_buffer->usage = buffer->usage;
+    native_buffer->nativeUsage = buffer->native_usage;
     native_buffer->owningQueueFamilyIndex = buffer->queue_family;
     return PM_SUCCESS;
 }
@@ -80,7 +97,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeSemaphore(
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeSemaphore(
     PmDevice device, PmSemaphore semaphore, PmNativeHandle *native) {
-    if (device == nullptr || semaphore == nullptr || native == nullptr ||
+    if (native == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *native = 0U;
+    if (device == nullptr || semaphore == nullptr ||
         semaphore->device != device)
         return PM_ERROR_INVALID_ARGUMENT;
     *native = semaphore->native;

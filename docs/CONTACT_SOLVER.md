@@ -162,19 +162,13 @@ Worst-case search cost remains quadratic in the number of distinct faces.
 It adds no cleanup passes. This is a coupled-surface repair, not another rigid
 solver. Fixtures cover nearly opposing thin boxes, sphere pinching and a
 triangle whose corners must not escape through inconsistent faces.
-`parallel-mater-avbd-rigid-tests` exercises the production World API: stacks,
-rotated joints, spring compliance, continuous motor turns, lifecycle resets
-and restitution. It also checks independent impact islands, spring impulse
-diagnostics during impact, pre-existing overlap recovery without ejection,
-stationary bodies within the collision skin, and unequal-mass closed-island
-momentum and center-of-mass preservation at one, four and ten iterations.
-The `schedule` case moves the same assembly across cached/uncached body and
-joint slots, then crosses the contact-cache boundary, checking states,
-impulses, contact order and graph diagnostics. The `skin` case includes unequal
-collision margins in both endpoint orders.
-Its `--case NAME` option
-supports focused diagnostics; `--trace` prints contact normals, points and
-impulses for `overlap` and `impact-spring`.
+`parallel-mater-command-api-tests` executes a Slang AVBD step through the
+public command API and reads the result through an output buffer.
+`parallel-mater-command-gallery-tests` builds and advances all 28 gallery
+scenes through the same API, covering rigid constraints and every coupled
+domain. `parallel-mater-contact-friction-tests` retains the coupled tangent
+descent fixtures used by the runtime; the obsolete standalone
+sequential-impulse solver and its self-tests have been removed.
 
 Run production physics tests serially so independent GPU workloads do not
 contend with each other or distort performance comparisons:
@@ -182,11 +176,9 @@ contend with each other or distort performance comparisons:
 ```sh
 # Full configured suite, including gallery and backend contracts.
 ctest --test-dir build-gallery -j1 --output-on-failure
-# Original gallery wall acceptance gate, without changing its tolerances.
+# Command API and complete gallery scene path.
 ctest --test-dir build-gallery -j1 --output-on-failure \
-  -R '^parallel-mater-rigid-wall-tests$'
-# Narrow solver diagnostic; this is not a substitute for the full suite.
-./build-gallery/parallel-mater-avbd-rigid-tests --case impact-spring --trace
+  -R '^parallel-mater-command-(api|gallery)-tests$'
 ```
 
 Full gallery regressions and backend conformance remain separate requirements:

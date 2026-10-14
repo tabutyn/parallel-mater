@@ -1,7 +1,7 @@
 # Parallel Mater physics conformance v1
 
-This directory is the backend-neutral correctness contract for CUDA, Metal,
-and future implementations. It is separate from physics capture v1, which
+This directory is the backend-neutral correctness contract for Parallel Mater
+drivers. It is separate from physics capture v1, which
 remains a debugging/replay format.
 
 For shared implementation code and small host/device equation fixtures, see
@@ -15,7 +15,7 @@ conformance remains required; passing the portable row tests is not sufficient.
   inputs reference committed GLBs; `manifest.json` pins every asset by SHA-256.
 - `golden/cuda/` contains one CUDA result per case. CUDA is the v1 reference,
   but matching is tolerance-based rather than bit-identical.
-- `compare.py` compares CUDA, Metal, or another backend's result directory and
+- `compare.py` compares a driver's result directory against a reference and
   writes an optional machine-readable report.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
@@ -27,43 +27,31 @@ required integrated scenes (`PassiveActive`, `ConstraintFixed`, `FluidRigid`,
 `ClothWater`, `SoftbodyRigidBody`, `SmokeWater`, and `SmokeRope`) are included
 alongside the remaining coupling and subsystem scenes.
 
-## CUDA runner
+## Validation tools
 
-Build with `PARALLEL_MATER_BUILD_OPTIX_GALLERY=ON`, then use:
+The former CUDA runner directly called the removed C++ `World` interface and
+is not part of the command-only runtime. The repository currently validates
+the canonical inputs and comparator with:
 
 ```text
-parallel-mater-conformance --list
-parallel-mater-conformance --check-inputs
-parallel-mater-conformance --provenance
-parallel-mater-conformance --case <id|all> --output <directory>
-parallel-mater-conformance --case <id> --every-frame --output <directory>
-parallel-mater-conformance --update-goldens
+ctest --test-dir <build> -R parallel-mater-conformance
 ```
 
-`--every-frame` is a diagnostic mode shared by the CUDA and Metal runners. It
-emits frame 0 and every completed frame for one named case while retaining the
-canonical case SHA-256. It never updates goldens; compare two every-frame
-captures directly or inspect them to locate the first divergent frame.
-
-`--update-goldens` is the only command that writes `golden/cuda/` or the
-manifest. It always refreshes the complete corpus. Reconfigure CMake after the
-implementation commit and before refreshing so `source_commit` identifies the
-code that produced the results. Golden and provenance diffs must be reviewed;
-the command never commits them or changes tolerances.
-
-To compare another backend:
+Driver qualification must execute these cases through the public `pm*`
+command API and emit `parallel-mater-conformance-result/v1`. Compare that
+output with:
 
 ```text
 python3 conformance/v1/compare.py \
   --cases conformance/v1/cases \
   --expected conformance/v1/golden/cuda \
-  --actual /path/to/metal-results \
+  --actual /path/to/driver-results \
   --report /path/to/report.json
 ```
 
-Metal emits the same `parallel-mater-conformance-result/v1` schema and keeps
-the canonical case SHA-256 in each result. Backend identity, timings, and
-backend-specific hashes are diagnostic and never gate correctness.
+Every driver result keeps the canonical case SHA-256. Driver identity,
+timings, and implementation-specific hashes are diagnostic and never gate
+correctness.
 
 ## Matching rules
 
@@ -90,9 +78,8 @@ backend-specific hashes are diagnostic and never gate correctness.
   same tolerance. Improving those safety metrics never fails conformance.
   Identities, lifecycle counts, and topology remain exact.
 
-CTest byte-checks registry serialization and GLB hashes, exercises comparator
-edge cases, and reproduces CUDA results in a temporary directory without
-rewriting the committed goldens.
+CTest byte-checks registry serialization and GLB hashes and exercises
+comparator edge cases without rewriting the committed goldens.
 
 ## NVIDIA reference handoff
 
@@ -100,27 +87,31 @@ Available captures:
 [2026-10-06 CUDA diagnostic package](references/cuda-20261006/README.md).
 Its strict repeatability limitations are recorded alongside the complete data.
 
-`capture_reference.py` retains ten complete runs, raw timings, device and
-source provenance, build options, per-file hashes, and the first divergent
-record. It refuses dirty source or a runner configured for another commit.
-Output must be a new directory outside the source worktree. It never updates
-goldens or relaxes tolerances.
+`capture_reference.py` accepts an external command-API conformance runner and
+retains ten complete runs, raw timings, device and source provenance, build
+options, per-file hashes, and the first divergent record. It refuses dirty
+source or a runner configured for another commit. Output must be a new
+directory outside the source worktree. It never updates goldens or relaxes
+tolerances.
 
 ```bash
 python3 conformance/v1/capture_reference.py \
   --runner /path/to/build/parallel-mater-conformance \
-  --parity-runner /path/to/build/parallel-mater-cuda-parity-capture \
   --output /path/to/new-cuda-reference
 ```
+
+An independently maintained diagnostic capture tool may be supplied with
+`--parity-runner`; the retired in-tree capture harness is no longer built.
 
 Only `diagnostics.timings` is excluded from exact same-device repeatability;
 every checkpoint, discrete value, ordering, state hash and provenance field
 remains exact. All raw runs survive a failure. `--allow-dirty` is available
 for investigation only and always produces an unqualified package.
 
-After qualification, explicitly run `--update-goldens`, inspect all numerical
-diffs, and rerun the complete CTest suite. Retain its log and lossless gallery
-images alongside the package. Do not call a non-repeatable capture a golden.
+Golden updates require a reviewed command-API runner and an explicit complete
+corpus capture. Inspect all numerical diffs and rerun the complete CTest suite.
+Retain its log and lossless gallery images alongside the package. Do not call
+a non-repeatable capture a golden.
 
 See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
 for conditional first-divergent-phase instrumentation and the separate visual

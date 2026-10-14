@@ -147,7 +147,7 @@ struct RigidBodyDeviceView {
     // previous_states toward states using a fixed-timestep accumulator.
     DeviceSpan<const RigidBodyState> previous_states{};
     // Inputs captured at the beginning of the last completed frame. Empty
-    // unless WorldOptions::physics_debug is enabled.
+    // unless SimulationOptions::physics_debug is enabled.
     DeviceSpan<const Vec3> applied_forces{};
     DeviceSpan<const Vec3> applied_torques{};
     std::uint64_t revision{};
@@ -194,7 +194,7 @@ class SimulationRuntime {
     SimulationRuntime(const SimulationRuntime &) = delete;
     SimulationRuntime &operator=(const SimulationRuntime &) = delete;
 
-    [[nodiscard]] static Status create(WorldOptions options, SimulationRuntime &output,
+    [[nodiscard]] static Status create(SimulationOptions options, SimulationRuntime &output,
                                        cudaStream_t stream = nullptr) noexcept;
 
     [[nodiscard]] Status add_fluid(FluidOptions options,
@@ -398,8 +398,8 @@ class SimulationRuntime {
     [[nodiscard]] Status copy_physics_debug_capture(
         PhysicsDebugCapture &output) const noexcept;
     [[nodiscard]] Status collect_step_timings(
-        WorldStepTimings &output) const noexcept;
-    [[nodiscard]] Status collect_statistics(WorldStatistics &output,
+        SimulationStepTimings &output) const noexcept;
+    [[nodiscard]] Status collect_statistics(SimulationStatistics &output,
                                             cudaStream_t stream = nullptr) const noexcept;
     [[nodiscard]] int device_ordinal() const noexcept;
 

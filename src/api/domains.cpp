@@ -99,7 +99,9 @@ struct RecordedPaintField {
 }
 
 template <typename T>
-[[nodiscard]] PmResult copy_device(cudaStream_t stream, const T *source,
+[[nodiscard]] PmResult copy_device(
+                                   parallel_mater::device::Services &services,
+                                   const T *source,
                                    std::size_t count,
                                    std::vector<T> &destination) noexcept {
     try { destination.resize(count); }
@@ -109,18 +111,21 @@ template <typename T>
         std::fill(destination.begin(), destination.end(), T{});
         return PM_SUCCESS;
     }
-    cudaError_t error = cudaMemcpyAsync(destination.data(), source,
-        count * sizeof(T), cudaMemcpyDeviceToHost, stream);
-    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-    return parallel_mater::device::from_cuda(error);
+    return services.copy_and_wait(destination.data(), source,
+        static_cast<PmDeviceSize>(count) * sizeof(T),
+        parallel_mater::device::CopyDirection::device_to_host);
 }
 
 template <typename T>
-[[nodiscard]] PmResult upload_records(cudaStream_t stream,
+[[nodiscard]] PmResult upload_records(
+                                      parallel_mater::device::Services &services,
                                       PmBufferRange destination,
                                       const std::vector<T> &records,
                                       std::uint32_t capacity,
                                       std::uint64_t revision) noexcept {
+    const PmResult ownership =
+        parallel_mater::api::require_device_ownership(destination.buffer);
+    if (ownership != PM_SUCCESS) return ownership;
     const PmDeviceSize required = sizeof(PmDomainOutputHeader) +
         static_cast<PmDeviceSize>(records.size()) * sizeof(T);
     if (required > destination.size) return PM_ERROR_CAPACITY_EXCEEDED;
@@ -136,44 +141,26 @@ template <typename T>
     if (!records.empty())
         std::memcpy(staging.get() + sizeof(header), records.data(),
                     records.size() * sizeof(T));
-    std::byte *owned = staging.release();
-    cudaError_t error = cudaMemcpyAsync(target, owned,
-        static_cast<std::size_t>(required), cudaMemcpyHostToDevice, stream);
-    if (error == cudaSuccess) {
-        error = cudaLaunchHostFunc(stream, [](void *storage) {
-            delete[] static_cast<std::byte *>(storage);
-        }, owned);
-    }
-    if (error != cudaSuccess) {
-        // A failed cleanup enqueue leaves ownership on the host. Drain any
-        // successful copy before releasing the source storage.
-        (void)cudaStreamSynchronize(stream);
-        delete[] owned;
-    }
-    return parallel_mater::device::from_cuda(error);
+    return services.upload(target, std::move(staging), required);
 }
 
-[[nodiscard]] PmResult upload_bytes(cudaStream_t stream, void *destination,
+[[nodiscard]] PmResult upload_bytes(
+                                    parallel_mater::device::Services &services,
+                                    PmBufferRange destination,
                                     const void *source,
                                     std::size_t size) noexcept {
+    const PmResult ownership =
+        parallel_mater::api::require_device_ownership(destination.buffer);
+    if (ownership != PM_SUCCESS) return ownership;
     if (size == 0U) return PM_SUCCESS;
     auto staging = std::unique_ptr<std::byte[]>(
         new (std::nothrow) std::byte[size]);
     if (!staging) return PM_ERROR_OUT_OF_HOST_MEMORY;
     std::memcpy(staging.get(), source, size);
-    std::byte *owned = staging.release();
-    cudaError_t error = cudaMemcpyAsync(destination, owned, size,
-                                        cudaMemcpyHostToDevice, stream);
-    if (error == cudaSuccess) {
-        error = cudaLaunchHostFunc(stream, [](void *storage) {
-            delete[] static_cast<std::byte *>(storage);
-        }, owned);
-    }
-    if (error != cudaSuccess) {
-        (void)cudaStreamSynchronize(stream);
-        delete[] owned;
-    }
-    return parallel_mater::device::from_cuda(error);
+    return services.upload(
+        parallel_mater::api::buffer_pointer(destination.buffer,
+                                             destination.offset),
+        std::move(staging), size);
 }
 
 [[nodiscard]] std::uint32_t rigid_slot(PmSimulation simulation,
@@ -711,24 +698,26 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                 }
                 const RecordedPaintField &source = copied[offset];
                 if (source.info.active == PM_FALSE) continue;
-                Vec2 *device_uvs = nullptr;
-                cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device_uvs),
-                                                source.uvs.size() * sizeof(Vec2));
-                if (error == cudaSuccess)
-                    error = cudaMemcpyAsync(device_uvs, source.uvs.data(),
-                        source.uvs.size() * sizeof(Vec2), cudaMemcpyHostToDevice,
-                        stream);
-                if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-                if (error != cudaSuccess) {
-                    if (device_uvs != nullptr) (void)cudaFree(device_uvs);
-                    return parallel_mater::device::from_cuda(error);
+                void *uv_allocation = nullptr;
+                const PmDeviceSize uv_bytes =
+                    static_cast<PmDeviceSize>(source.uvs.size()) * sizeof(Vec2);
+                PmResult allocation_result =
+                    services.allocate(uv_bytes, false, &uv_allocation);
+                if (allocation_result != PM_SUCCESS) return allocation_result;
+                auto *device_uvs = static_cast<Vec2 *>(uv_allocation);
+                PmResult copy_result = services.copy_and_wait(
+                    device_uvs, source.uvs.data(), uv_bytes,
+                    parallel_mater::device::CopyDirection::host_to_device);
+                if (copy_result != PM_SUCCESS) {
+                    services.free(device_uvs);
+                    return copy_result;
                 }
                 parallel_mater::PaintFieldOptions options{};
                 if (source.info.targetType == PM_PAINT_TARGET_RIGID) {
                     PmResult result = require_slot(simulation->rigid_bodies,
                         source.info.targetIndex, options.body);
                     if (result != PM_SUCCESS) {
-                        (void)cudaFree(device_uvs);
+                        services.free(device_uvs);
                         return result;
                     }
                     PmResult geometry_result =
@@ -736,14 +725,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                             simulation, source.info.geometry, services,
                             options.mesh);
                     if (geometry_result != PM_SUCCESS) {
-                        (void)cudaFree(device_uvs);
+                        services.free(device_uvs);
                         return geometry_result;
                     }
                 } else {
                     PmResult result = require_slot(simulation->cloths,
                         source.info.targetIndex, options.cloth);
                     if (result != PM_SUCCESS) {
-                        (void)cudaFree(device_uvs);
+                        services.free(device_uvs);
                         return result;
                     }
                 }
@@ -753,7 +742,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                 parallel_mater::PaintFieldId created{};
                 const PmResult result = parallel_mater::api::from_status(
                     simulation->runtime->add_paint_field(options, created, stream));
-                (void)cudaFree(device_uvs);
+                services.free(device_uvs);
                 if (result != PM_SUCCESS) return result;
                 slot = created;
             }
@@ -851,6 +840,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothState(
     return parallel_mater::api::record(command_buffer,
         [simulation, cloth, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::ClothId id{};
             PmResult result = require_slot(simulation->cloths, cloth, id);
@@ -893,6 +885,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothSurface(
     return parallel_mater::api::record(command_buffer,
         [simulation, cloth, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::ClothId id{};
             PmResult result = require_slot(simulation->cloths, cloth, id);
@@ -936,6 +931,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRopeState(
     return parallel_mater::api::record(command_buffer,
         [simulation, rope_index, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::RopeId id{};
             PmResult result = require_slot(simulation->ropes, rope_index, id);
@@ -979,6 +977,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodyState(
     return parallel_mater::api::record(command_buffer,
         [simulation, soft_body, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::SoftBodyId id{};
             PmResult result = require_slot(simulation->soft_bodies, soft_body, id);
@@ -1020,6 +1021,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodySurface(
     return parallel_mater::api::record(command_buffer,
         [simulation, soft_body, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::SoftBodyId id{};
             PmResult result = require_slot(simulation->soft_bodies, soft_body, id);
@@ -1060,6 +1064,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySmokeState(
     return parallel_mater::api::record(command_buffer,
         [simulation, smoke_index, copied](
             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::SmokeId id{};
             PmResult result = require_slot(simulation->smokes, smoke_index, id);
@@ -1101,7 +1108,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyPaintField(
     return parallel_mater::api::record(command_buffer,
         [simulation, field, copied](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::PaintFieldId id{};
             PmResult result = require_slot(simulation->paint_fields, field, id);
             if (result != PM_SUCCESS) return result;
@@ -1110,10 +1116,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyPaintField(
                 simulation->runtime->paint_field_view(id, view));
             if (result != PM_SUCCESS) return result;
             std::vector<std::uint32_t> pixels;
-            result = copy_device(stream, view.pixels.data,
+            result = copy_device(services, view.pixels.data,
                                  view.pixels.size, pixels);
             if (result != PM_SUCCESS) return result;
-            return upload_records(stream, copied, pixels,
+            return upload_records(services, copied, pixels,
                 view.width * view.height, view.revision);
         });
 }
@@ -1152,8 +1158,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyConstraintStates(
                 states[offset] = {state.enabled ? PM_TRUE : PM_FALSE,
                     state.broken ? PM_TRUE : PM_FALSE, state.applied_impulse};
             }
-            return upload_bytes(stream,
-                parallel_mater::api::buffer_pointer(copied.buffer, copied.offset),
+            return upload_bytes(services, copied,
                 states.data(), states.size() * sizeof(PmConstraintState));
         });
 }
@@ -1222,9 +1227,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdQueryHitBox(
                 particles[index] = {matches.particles[index].fluid.index,
                                     matches.particles[index].stable_particle_id};
             }
-            return upload_bytes(stream,
-                parallel_mater::api::buffer_pointer(
-                    copied_destination.buffer, copied_destination.offset),
+            return upload_bytes(services, copied_destination,
                 packed.data(), packed.size());
         });
 }
@@ -1243,15 +1246,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyContactEvents(
     return parallel_mater::api::record(command_buffer,
         [simulation, copied](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             const auto rigid_view = simulation->runtime->rigid_contacts();
             const auto liquid_view = simulation->runtime->contacts();
             std::vector<parallel_mater::RigidContactEvent> rigid;
             std::vector<parallel_mater::ContactEvent> liquid;
-            PmResult result = copy_device(stream, rigid_view.events.data,
+            PmResult result = copy_device(services, rigid_view.events.data,
                                           rigid_view.event_count, rigid);
             if (result == PM_SUCCESS)
-                result = copy_device(stream, liquid_view.events.data,
+                result = copy_device(services, liquid_view.events.data,
                                      liquid_view.event_count, liquid);
             if (result != PM_SUCCESS) return result;
             std::vector<PmContactEvent> records;
@@ -1280,7 +1282,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyContactEvents(
                 target.normalImpulse = source.normal_impulse;
                 records.push_back(target);
             }
-            return upload_records(stream, copied, records,
+            return upload_records(services, copied, records,
                 simulation->info.contactCapacity,
                 std::max(rigid_view.frame_index, liquid_view.frame_index));
         });
@@ -1300,7 +1302,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyDebugData(
     return parallel_mater::api::record(command_buffer,
         [simulation, copied](
             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::PhysicsDebugFrameView frame{};
             PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->physics_debug_frame(frame));
@@ -1368,7 +1369,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyDebugData(
                 std::memcpy(&target.force, &source.rigid_contact_force, sizeof(Vec3));
                 records.push_back(target);
             }
-            return upload_records(stream, copied, records,
+            return upload_records(services, copied, records,
                 static_cast<std::uint32_t>(records.size()), frame.frame_index);
         });
 }

@@ -67,6 +67,23 @@ using parallel_mater::Vec3;
     return true;
 }
 
+[[nodiscard]] bool geometry_view_fits(PmDevice device,
+                                      const PmBufferView &view,
+                                      PmFormat format,
+                                      PmDeviceSize element_size) noexcept {
+    if (view.range.buffer == nullptr || view.range.buffer->device != device ||
+        (view.range.buffer->usage & PM_BUFFER_GEOMETRY_INPUT_BIT) == 0U ||
+        view.format != format || view.count == 0U ||
+        view.stride != element_size ||
+        view.count > std::numeric_limits<PmDeviceSize>::max() / element_size)
+        return false;
+    const PmDeviceSize required =
+        static_cast<PmDeviceSize>(view.count) * element_size;
+    return required <= view.range.size &&
+        parallel_mater::api::range_fits(view.range.offset, view.range.size,
+                                         view.range.buffer->size);
+}
+
 [[nodiscard]] bool simulation_requirements(
     const PmSimulationCreateInfo &info,
     PmSimulationMemoryRequirements &output) noexcept {
@@ -182,6 +199,11 @@ using parallel_mater::Vec3;
     }
     const PmBufferView &vertices = geometry->info.vertices;
     const PmBufferView &indices = geometry->info.indices;
+    if (parallel_mater::api::require_device_ownership(vertices.range.buffer) !=
+            PM_SUCCESS ||
+        parallel_mater::api::require_device_ownership(indices.range.buffer) !=
+            PM_SUCCESS)
+        return PM_ERROR_INVALID_STATE;
     if (vertices.format != PM_FORMAT_R32G32B32_SFLOAT ||
         indices.format != PM_FORMAT_R32_UINT ||
         vertices.stride != sizeof(Vec3) || indices.stride != sizeof(std::uint32_t))
@@ -274,9 +296,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateGeometry(
     if (device == nullptr || info == nullptr ||
         !parallel_mater::api::valid_structure(
             info->sType, PM_STRUCTURE_TYPE_GEOMETRY_CREATE_INFO, info->pNext) ||
-        info->queueFamilyIndex != 0U || info->vertices.range.buffer == nullptr ||
-        info->indices.range.buffer == nullptr || info->vertices.count == 0U ||
-        info->indices.count == 0U || info->indices.count % 3U != 0U)
+        info->queueFamilyIndex != 0U ||
+        !geometry_view_fits(device, info->vertices,
+                            PM_FORMAT_R32G32B32_SFLOAT, sizeof(Vec3)) ||
+        !geometry_view_fits(device, info->indices, PM_FORMAT_R32_UINT,
+                            sizeof(std::uint32_t)) ||
+        info->indices.count % 3U != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     auto *created = parallel_mater::api::make_object<PmGeometry_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -473,7 +498,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    parallel_mater::WorldOptions options{};
+    parallel_mater::SimulationOptions options{};
     options.rigid_body_capacity = std::max(1U, info->rigidBodyCapacity);
     options.rigid_constraint_capacity = std::max(1U, info->constraintCapacity);
     options.triangle_mesh_capacity = std::max(16U, info->rigidBodyCapacity);
@@ -501,7 +526,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
     options.rope_cloth_coupling_capacity = coupling_capacity;
     options.physics_debug.frame_capacity = info->debugFrameCapacity;
     options.rigid_sleeping = true;
-    created->world_options = options;
+    created->simulation_options = options;
     *simulation = created;
     return PM_SUCCESS;
 }
@@ -562,8 +587,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
     }
     if (simulation->binding.persistentMemory != nullptr)
         return PM_ERROR_INVALID_STATE;
-    const PmResult current = parallel_mater::device::from_cuda(
-        cudaSetDevice(device->services->ordinal()));
+    const PmResult current = device->services->activate();
     if (current != PM_SUCCESS) return current;
     try {
         simulation->arena =
@@ -586,7 +610,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
             simulation->arena.get());
         result = parallel_mater::api::from_status(
             parallel_mater::SimulationRuntime::create(
-                simulation->world_options, initialized,
+                simulation->simulation_options, initialized,
                 parallel_mater::device::cuda_stream(*device->services)));
     }
     if (result != PM_SUCCESS) {
@@ -850,7 +874,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
                     simulation->arena.get());
                 result = parallel_mater::api::from_status(
                     parallel_mater::SimulationRuntime::create(
-                        simulation->world_options, initialized, stream));
+                        simulation->simulation_options, initialized, stream));
             }
             if (result != PM_SUCCESS) {
                 simulation->execution_result = result;
@@ -906,6 +930,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
     return parallel_mater::api::record(
         command_buffer, [simulation, fluid, copied, material](
                             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(
+                    copied.range.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -1004,13 +1032,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(
         destination->buffer->device != command_buffer->device ||
         first > simulation->rigid_bodies.size() ||
         count > simulation->rigid_bodies.size() - first ||
-        destination->size < static_cast<PmDeviceSize>(count) * sizeof(PmRigidState))
+        destination->size < static_cast<PmDeviceSize>(count) *
+                                sizeof(PmRigidState) ||
+        !parallel_mater::api::range_fits(destination->offset,
+                                         destination->size,
+                                         destination->buffer->size))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
     return parallel_mater::api::record(
         command_buffer, [simulation, first, count, copied](
                             parallel_mater::device::Services &services) noexcept {
-            const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             parallel_mater::RigidBodyDeviceView view{};
             PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->rigid_body_view(view));
@@ -1027,14 +1061,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(
                 }
                 auto &dense_ids = simulation->rigid_dense_ids;
                 if (!dense_ids.empty()) {
-                    cudaError_t copied_ids = cudaMemcpyAsync(
+                    const PmResult copied_ids = services.copy_and_wait(
                         dense_ids.data(), view.ids.data,
-                        dense_ids.size() * sizeof(dense_ids[0]),
-                        cudaMemcpyDeviceToHost, stream);
-                    if (copied_ids == cudaSuccess)
-                        copied_ids = cudaStreamSynchronize(stream);
-                    if (copied_ids != cudaSuccess)
-                        return parallel_mater::device::from_cuda(copied_ids);
+                        static_cast<PmDeviceSize>(dense_ids.size()) *
+                            sizeof(dense_ids[0]),
+                        parallel_mater::device::CopyDirection::device_to_host);
+                    if (copied_ids != PM_SUCCESS) return copied_ids;
                 }
                 for (std::size_t slot_index = 0U;
                      slot_index < simulation->rigid_bodies.size();
@@ -1064,14 +1096,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(
                        simulation->rigid_dense_indices[first + offset + run] ==
                            dense + run)
                     ++run;
-                const cudaError_t state_copy = cudaMemcpyAsync(
+                const PmResult state_copy = services.copy(
                     target + static_cast<std::size_t>(offset) *
                                  sizeof(PmRigidState),
                     view.states.data + dense,
-                    static_cast<std::size_t>(run) * sizeof(PmRigidState),
-                    cudaMemcpyDeviceToDevice, stream);
-                if (state_copy != cudaSuccess)
-                    return parallel_mater::device::from_cuda(state_copy);
+                    static_cast<PmDeviceSize>(run) * sizeof(PmRigidState),
+                    parallel_mater::device::CopyDirection::device_to_device);
+                if (state_copy != PM_SUCCESS) return state_copy;
                 offset += run;
             }
             return PM_SUCCESS;
@@ -1098,6 +1129,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyFluidParticles(
     return parallel_mater::api::record(
         command_buffer, [simulation, fluid, copied](
                             parallel_mater::device::Services &services) noexcept {
+            const PmResult ownership =
+                parallel_mater::api::require_device_ownership(copied.buffer);
+            if (ownership != PM_SUCCESS) return ownership;
             const cudaStream_t stream = parallel_mater::device::cuda_stream(services);
             if (!simulation->fluid_ids[fluid].has_value())
                 return PM_ERROR_INVALID_STATE;
