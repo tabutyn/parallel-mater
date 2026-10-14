@@ -744,25 +744,6 @@ add_library(
     src/fluid_source.cpp
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
-if(Vulkan_FOUND)
-    add_library(parallel-mater-vulkan-executor STATIC
-        src/device/vulkan_executor.cpp)
-    set_target_properties(parallel-mater-vulkan-executor PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        CXX_STANDARD 20
-        CXX_STANDARD_REQUIRED YES)
-    target_include_directories(parallel-mater-vulkan-executor
-        PUBLIC src include ${Vulkan_INCLUDE_DIRS})
-    target_link_libraries(parallel-mater-vulkan-executor PUBLIC Vulkan::Vulkan)
-    parallel_mater_enable_warnings(parallel-mater-vulkan-executor)
-    target_sources(parallel-mater-driver-slang-cuda PRIVATE
-        src/api/interop_vulkan.cpp)
-    target_include_directories(parallel-mater-driver-slang-cuda PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
-        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
-    target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
-        parallel-mater-vulkan-executor)
-endif()
 set_source_files_properties(
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
@@ -860,21 +841,11 @@ add_library(ParallelMater::slang_cuda_driver ALIAS
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+file(GENERATE
+    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-cuda.json"
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
-    if(Vulkan_FOUND)
-        add_executable(parallel-mater-vulkan-executor-tests
-            tests/vulkan_executor_tests.cpp)
-        target_compile_features(parallel-mater-vulkan-executor-tests
-            PRIVATE cxx_std_20)
-        target_link_libraries(parallel-mater-vulkan-executor-tests
-            PRIVATE parallel-mater-vulkan-executor)
-        add_test(NAME parallel-mater-vulkan-executor-tests
-            COMMAND parallel-mater-vulkan-executor-tests)
-        set_tests_properties(parallel-mater-vulkan-executor-tests PROPERTIES
-            LABELS "device;vulkan" SKIP_RETURN_CODE 77)
-    endif()
-
     add_executable(parallel-mater-driver-abi-tests
         tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-driver-abi-tests PRIVATE include)
@@ -1085,6 +1056,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     target_compile_definitions(parallel-mater-gallery-renderer
         PRIVATE
             PARALLEL_MATER_COMMAND_GALLERY_ONLY=1
+            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
             $<$<PLATFORM_ID:Windows>:NOMINMAX>)
 
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
@@ -1103,12 +1075,13 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     add_library(parallel-mater-gallery-application STATIC
-                examples/gallery/application.cpp)
+                examples/gallery/application.cpp
+                examples/support/cuda_runtime_platform.cpp)
     target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw OpenGL::GL)
+        PRIVATE glfw OpenGL::GL CUDA::cudart)
 
     add_executable(parallel-mater-gallery examples/gallery/main.cpp)
     add_dependencies(parallel-mater-gallery
@@ -1156,8 +1129,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             PARALLEL_MATER_SMOKE_WATER_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeWater.glb"
             PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeSoftbody.glb"
             PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeCloth.glb"
-            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb"
-            PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}")
+            PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/SmokeRope.glb")
     add_custom_command(
         TARGET parallel-mater-gallery POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory

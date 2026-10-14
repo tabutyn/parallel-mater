@@ -9,13 +9,13 @@
 #include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/physics_frame_budget.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 
 #include <GLFW/glfw3.h>
-#include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <array>
@@ -38,9 +38,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#if defined(__linux__)
-#include <sys/utsname.h>
-#endif
 
 namespace {
 
@@ -76,7 +73,7 @@ using parallel_mater::gallery::is_soft_body_context;
 using parallel_mater::gallery::is_smoke_context;
 using parallel_mater::gallery::toggles_constraint;
 using parallel_mater::gallery::uses_rigid_gravity;
-using parallel_mater::gallery::OptixRenderer;
+using parallel_mater::gallery::RendererHandle;
 using parallel_mater::gallery::SmokeDebugMode;
 using parallel_mater::gallery::SceneDefinition;
 using parallel_mater::gallery::CommandScene;
@@ -245,7 +242,7 @@ struct GalleryRuntime {
     CommandSceneInstance instance{};
     CommandSceneFrame frame{};
     RenderSceneFrame render_frame{};
-    OptixRenderer renderer{};
+    RendererHandle renderer{};
     FixedContactCollector fixed_collector{};
     parallel_mater::gallery::ArrowForces arrow_forces{};
     parallel_mater::gallery::DumpTruckBed dump_bed{};
@@ -1004,11 +1001,12 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
         }
     }
     if (context == GalleryContext::rigid_body) {
-        std::size_t free_bytes = 0U, total_bytes = 0U;
-        if (cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess &&
-            parallel_mater::gallery::estimated_metal_contact_bytes(
+        const std::uint64_t free_bytes =
+            parallel_mater::gallery::platform_available_device_memory();
+        if (free_bytes != 0U &&
+            parallel_mater::gallery::estimated_rigid_contact_bytes(
                 static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
-                static_cast<std::uint64_t>(free_bytes) * 7U / 10U) {
+                free_bytes * 7U / 10U) {
             error = "brick scene exceeds the available GPU memory budget";
             return false;
         }
@@ -1057,10 +1055,9 @@ void character_input(GLFWwindow *window, unsigned int codepoint) {
                           << body.arrow_force
                           << " N (camera-relative ground plane; gravity stays vertical)\n";
     }
-    if (!OptixRenderer::create(next.scene, next.instance,
-                               PARALLEL_MATER_OPTIX_PTX_PATH,
-                               options.width, options.height, next.renderer,
-                               error)) {
+    if (!parallel_mater::gallery::create_renderer(
+            next.scene, next.instance, options.width, options.height,
+            next.renderer, error)) {
         error = "renderer creation failed: " + error;
         return false;
     }
@@ -1116,71 +1113,6 @@ struct CalibrationResult {
     parallel_mater::gallery::CalibrationMetrics metrics{};
     parallel_mater::gallery::HardwareIdentity hardware{};
 };
-
-parallel_mater::gallery::HardwareIdentity cuda_hardware_identity() {
-    cudaDeviceProp properties{};
-    int device = 0;
-    int driver = 0;
-    if (cudaGetDevice(&device) != cudaSuccess ||
-        cudaGetDeviceProperties(&properties, device) != cudaSuccess) return {};
-    cudaDriverGetVersion(&driver);
-    parallel_mater::gallery::HardwareIdentity result;
-    const char *machine = std::getenv("COMPUTERNAME");
-    if (machine == nullptr) machine = std::getenv("HOSTNAME");
-    result.machine_model = machine != nullptr ? machine : "";
-    result.cpu_model = "unknown CPU";
-#if defined(__linux__)
-    {
-        std::ifstream product_name("/sys/devices/virtual/dmi/id/product_name");
-        std::string value;
-        if (std::getline(product_name, value)) {
-            const auto last = value.find_last_not_of(" \t\r\n");
-            if (last != std::string::npos)
-                result.machine_model = value.substr(0U, last + 1U);
-        }
-    }
-    struct utsname system{};
-    const bool have_system_identity = uname(&system) == 0;
-    if (result.machine_model.empty() && have_system_identity)
-        result.machine_model = system.nodename;
-    {
-        std::ifstream cpuinfo("/proc/cpuinfo");
-        std::string line;
-        while (std::getline(cpuinfo, line)) {
-            const std::string prefix = "model name";
-            if (!line.starts_with(prefix)) continue;
-            const auto separator = line.find(':');
-            if (separator != std::string::npos) {
-                result.cpu_model = line.substr(separator + 1U);
-                result.cpu_model.erase(0U, result.cpu_model.find_first_not_of(" \t"));
-            }
-            break;
-        }
-    }
-#elif defined(_WIN32)
-    if (const char *processor = std::getenv("PROCESSOR_IDENTIFIER"))
-        result.cpu_model = processor;
-#endif
-    if (result.machine_model.empty()) result.machine_model = properties.name;
-    result.gpu_model = properties.name;
-    result.gpu_variant = std::to_string(properties.multiProcessorCount) +
-        " SM, compute " + std::to_string(properties.major) + '.' +
-        std::to_string(properties.minor);
-    result.memory_bytes = properties.totalGlobalMem;
-    result.backend = "cuda";
-#if defined(_WIN32)
-    result.operating_system = "Windows";
-#elif defined(__linux__)
-    result.operating_system = have_system_identity
-        ? std::string(system.sysname) + ' ' + system.release
-        : "Linux";
-#else
-    result.operating_system = "unknown";
-#endif
-    result.driver = "CUDA driver " + std::to_string(driver);
-    result.power_mode = "driver-default";
-    return result;
-}
 
 std::filesystem::path device_profiles_path(const Options &options) {
     if (options.profiles_file_overridden) return options.profiles_file;
@@ -1358,7 +1290,8 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
                   << metrics.collision_maximum_milliseconds << " ms\n";
         if (index == 0U) {
             output = {.config = presets[index], .metrics = metrics,
-                      .hardware = cuda_hardware_identity()};
+                      .hardware =
+                          parallel_mater::gallery::platform_hardware_identity()};
         }
         if (!parallel_mater::gallery::calibration_passes(metrics)) {
             if (index == 0U) {
@@ -1400,7 +1333,8 @@ bool calibrate_bricks(Options &options, GLFWwindow *window,
         if (parallel_mater::gallery::calibration_passes(metrics)) {
             options.bricks = presets[index];
             output = {.config = presets[index], .metrics = metrics,
-                      .hardware = cuda_hardware_identity()};
+                      .hardware =
+                          parallel_mater::gallery::platform_hardware_identity()};
             glfwSwapInterval(1);
             return true;
         }
@@ -1420,7 +1354,8 @@ void save_local_calibration(const CalibrationResult &result) {
     const auto temporary = path.string() + ".tmp";
     std::ofstream output(temporary, std::ios::trunc);
     if (!output) return;
-    output << "{\n  \"verified\": false,\n  \"backend\": \"cuda\",\n"
+    output << "{\n  \"verified\": false,\n  \"backend\": \""
+           << result.hardware.backend << "\",\n"
            << "  \"gpu_model\": \"" << result.hardware.gpu_model << "\",\n"
            << "  \"gpu_variant\": \"" << result.hardware.gpu_variant << "\",\n"
            << "  \"machine_model\": \"" << result.hardware.machine_model << "\",\n"
@@ -1435,7 +1370,7 @@ void save_local_calibration(const CalibrationResult &result) {
            << "  \"scene_version\": "
            << parallel_mater::gallery::brick_scene_version << ",\n"
            << "  \"solver_version\": \""
-           << parallel_mater::gallery::cuda_rigid_solver_version << "\",\n"
+           << parallel_mater::gallery::slang_solver_version << "\",\n"
            << "  \"build_revision\": \""
            << PARALLEL_MATER_GALLERY_GIT_COMMIT << "\",\n"
            << "  \"brick_count\": " << result.config.brick_count << ",\n"
@@ -1469,7 +1404,7 @@ bool verify_and_save_profile(const Options &options,
     parallel_mater::gallery::VerifiedBrickProfile profile;
     profile.hardware = result.hardware;
     profile.scene = result.config;
-    profile.solver_version = parallel_mater::gallery::cuda_rigid_solver_version;
+    profile.solver_version = parallel_mater::gallery::slang_solver_version;
     profile.build_revision = PARALLEL_MATER_GALLERY_GIT_COMMIT;
     profile.metrics = result.metrics;
     const std::time_t now = std::time(nullptr);
@@ -1518,9 +1453,9 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         return 2;
     }
     if (options.headless_output.empty()) {
-        const HardwareIdentity hardware = cuda_hardware_identity();
+        const HardwareIdentity hardware = platform_hardware_identity();
         if (hardware.gpu_model.empty()) {
-            std::cerr << "Could not identify the current CUDA device\n";
+            std::cerr << "Could not identify the current Parallel Mater device\n";
             return 1;
         }
         DeviceProfileCatalog catalog;
@@ -1532,7 +1467,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 catalog = {};
             }
             const auto selection = select_startup_bricks(
-                catalog, hardware, cuda_rigid_solver_version, options.width, options.height);
+                catalog, hardware, slang_solver_version, options.width, options.height);
             options.bricks = selection.scene;
             selection_label = brick_selection_label(selection.source);
         }

@@ -80,10 +80,10 @@ system/driver, power mode, 1080p dimensions, scene version, and solver version.
 An incompatible verified profile is skipped; measurements or the modest startup
 fallback above supply the interactive configuration instead.
 
-The AVBD migration uses `cuda-avbd-v1` and `metal-avbd-v1` solver keys for
+The AVBD migration uses the shared `slang-avbd-v1` solver key for
 both profile matching and new calibration results. Earlier `*-rigid-v1`
 profiles remain on disk but are not reused; recalibrate before verifying a
-profile for the new solver. This does not change D3D12's solver.
+profile for the shared solver.
 
 Metal's verify action asks for a destination, which can be the tracked catalog
 or a standalone export when no checkout is present. CUDA writes a standalone

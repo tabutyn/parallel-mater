@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -24,11 +25,31 @@ namespace {
 
 enum class ManifestKind { driver, layer };
 
-void *open_library(const char *path) noexcept {
+using NativeString = std::filesystem::path::string_type;
+
+void *open_library(const std::filesystem::path &path) noexcept {
 #if defined(_WIN32)
-    return reinterpret_cast<void *>(LoadLibraryA(path));
+    std::error_code error;
+    const std::filesystem::path absolute = std::filesystem::absolute(path, error);
+    const std::filesystem::path &load_path = error ? path : absolute;
+    return reinterpret_cast<void *>(LoadLibraryExW(
+        load_path.c_str(), nullptr,
+        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS));
 #else
-    return dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    return dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+#endif
+}
+
+std::string library_error(const char *fallback) {
+#if defined(_WIN32)
+    const DWORD code = GetLastError();
+    if (code != ERROR_SUCCESS)
+        return std::error_code(static_cast<int>(code), std::system_category())
+            .message();
+    return fallback;
+#else
+    const char *message = dlerror();
+    return message == nullptr ? fallback : message;
 #endif
 }
 
@@ -49,8 +70,8 @@ void *symbol(void *library, const char *name) noexcept {
 #endif
 }
 
-std::string library_from_manifest(const std::filesystem::path &manifest,
-                                  ManifestKind kind) {
+std::filesystem::path library_from_manifest(
+    const std::filesystem::path &manifest, ManifestKind kind) {
     std::ifstream input(manifest);
     if (!input) return {};
     std::ostringstream contents;
@@ -88,18 +109,18 @@ std::string library_from_manifest(const std::filesystem::path &manifest,
     if (!std::regex_search(text, match,
             std::regex(R"re("library_path"\s*:\s*"([^"]+)")re")))
         return {};
-    std::filesystem::path path(match[1].str());
+    std::filesystem::path path = std::filesystem::u8path(match[1].str());
     if (path.is_relative()) path = manifest.parent_path() / path;
-    return path.lexically_normal().string();
+    return path.lexically_normal();
 }
 
-void append_manifest(std::vector<std::string> &paths,
+void append_manifest(std::vector<std::filesystem::path> &paths,
                      const std::filesystem::path &path, ManifestKind kind) {
-    const std::string library = library_from_manifest(path, kind);
+    const std::filesystem::path library = library_from_manifest(path, kind);
     if (!library.empty()) paths.push_back(library);
 }
 
-void append_directory(std::vector<std::string> &paths,
+void append_directory(std::vector<std::filesystem::path> &paths,
                       const std::filesystem::path &directory,
                       ManifestKind kind) {
     std::error_code error;
@@ -114,16 +135,18 @@ void append_directory(std::vector<std::string> &paths,
         append_manifest(paths, manifest, kind);
 }
 
-void append_list(std::vector<std::string> &paths, const char *value,
+void append_list(std::vector<std::filesystem::path> &paths,
+                 const NativeString &value,
                  bool manifests, ManifestKind kind) {
-    if (value == nullptr) return;
 #if defined(_WIN32)
-    constexpr char separator = ';';
+    constexpr wchar_t separator = L';';
+    std::wstringstream stream(value);
+    std::wstring item;
 #else
     constexpr char separator = ':';
-#endif
     std::stringstream stream(value);
     std::string item;
+#endif
     while (std::getline(stream, item, separator)) {
         if (item.empty()) continue;
         if (manifests) append_manifest(paths, item, kind);
@@ -131,18 +154,40 @@ void append_list(std::vector<std::string> &paths, const char *value,
     }
 }
 
-void append_user_directory(std::vector<std::string> &paths,
+std::optional<NativeString> environment_value(
+#if defined(_WIN32)
+    const wchar_t *name
+#else
+    const char *name
+#endif
+) {
+#if defined(_WIN32)
+    const DWORD required = GetEnvironmentVariableW(name, nullptr, 0U);
+    if (required == 0U) return std::nullopt;
+    std::wstring value(required, L'\0');
+    const DWORD written = GetEnvironmentVariableW(name, value.data(), required);
+    if (written == 0U || written >= required) return std::nullopt;
+    value.resize(written);
+    return value;
+#else
+    const char *value = std::getenv(name);
+    if (value == nullptr) return std::nullopt;
+    return std::string(value);
+#endif
+}
+
+void append_user_directory(std::vector<std::filesystem::path> &paths,
                            const char *leaf, ManifestKind kind) {
 #if defined(_WIN32)
-    if (const char *root = std::getenv("LOCALAPPDATA"))
-        append_directory(paths, std::filesystem::path(root) /
+    if (const auto root = environment_value(L"LOCALAPPDATA"))
+        append_directory(paths, std::filesystem::path(*root) /
              "ParallelMater" / leaf, kind);
 #else
-    if (const char *root = std::getenv("XDG_DATA_HOME"))
-        append_directory(paths, std::filesystem::path(root) /
+    if (const auto root = environment_value("XDG_DATA_HOME"))
+        append_directory(paths, std::filesystem::path(*root) /
              "parallel-mater" / leaf, kind);
-    else if (const char *home = std::getenv("HOME"))
-        append_directory(paths, std::filesystem::path(home) /
+    else if (const auto home = environment_value("HOME"))
+        append_directory(paths, std::filesystem::path(*home) /
              ".local/share/parallel-mater" / leaf, kind);
 #endif
 }
@@ -150,17 +195,17 @@ void append_user_directory(std::vector<std::string> &paths,
 std::filesystem::path loader_directory() {
 #if defined(_WIN32)
     HMODULE module{};
-    if (!GetModuleHandleExA(
+    if (!GetModuleHandleExW(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            reinterpret_cast<LPCSTR>(&loader_dispatch), &module))
+            reinterpret_cast<LPCWSTR>(&loader_dispatch), &module))
         return {};
-    std::vector<char> path(MAX_PATH);
+    std::vector<wchar_t> path(MAX_PATH);
     for (;;) {
-        const DWORD written = GetModuleFileNameA(
+        const DWORD written = GetModuleFileNameW(
             module, path.data(), static_cast<DWORD>(path.size()));
         if (written == 0U) return {};
-        if (written < path.size() - 1U)
+        if (written < path.size())
             return std::filesystem::path(path.data()).parent_path();
         path.resize(path.size() * 2U);
     }
@@ -174,9 +219,9 @@ std::filesystem::path loader_directory() {
 #endif
 }
 
-void append_loader_relative_directories(std::vector<std::string> &paths,
-                                        const char *leaf,
-                                        ManifestKind kind) {
+void append_loader_relative_directories(
+    std::vector<std::filesystem::path> &paths, const char *leaf,
+    ManifestKind kind) {
     const std::filesystem::path directory = loader_directory();
     if (directory.empty()) return;
     // Build trees place manifests beside the loader. Installed trees place
@@ -193,13 +238,13 @@ Driver::~Driver() { close_library(library); }
 
 Layer::~Layer() { close_library(library); }
 
-std::shared_ptr<Layer> Layer::open(const std::string &filename,
+std::shared_ptr<Layer> Layer::open(const std::filesystem::path &filename,
                                    std::string &error) {
     auto layer = std::shared_ptr<Layer>(new Layer);
     layer->path = filename;
-    layer->library = open_library(filename.c_str());
+    layer->library = open_library(filename);
     if (layer->library == nullptr) {
-        error = "unable to load layer";
+        error = library_error("unable to load layer");
         return {};
     }
     auto negotiate = reinterpret_cast<PFN_pmLayerNegotiateLoaderInterfaceVersion>(
@@ -228,18 +273,13 @@ void Layer::post(const char *command, const void *handle, PmResult result) const
     post_call(&call, result);
 }
 
-std::shared_ptr<Driver> Driver::open(const std::string &filename,
+std::shared_ptr<Driver> Driver::open(const std::filesystem::path &filename,
                                      std::string &error) {
     auto driver = std::shared_ptr<Driver>(new Driver);
     driver->path = filename;
-    driver->library = open_library(filename.c_str());
+    driver->library = open_library(filename);
     if (driver->library == nullptr) {
-#if !defined(_WIN32)
-        const char *message = dlerror();
-        error = message == nullptr ? "unable to load driver" : message;
-#else
-        error = "unable to load driver";
-#endif
+        error = library_error("unable to load driver");
         return {};
     }
     auto negotiate = reinterpret_cast<PFN_pmDriverNegotiateLoaderInterfaceVersion>(
@@ -288,12 +328,22 @@ PFN_pmVoidFunction Driver::resolve(const Route &route, const char *name) const {
 }
 
 std::vector<std::shared_ptr<Driver>> discover_drivers() {
-    std::vector<std::string> paths;
-    if (const char *files = std::getenv("PM_DRIVER_FILES"))
-        append_list(paths, files, true, ManifestKind::driver);
+    std::vector<std::filesystem::path> paths;
+#if defined(_WIN32)
+    const auto files = environment_value(L"PM_DRIVER_FILES");
+#else
+    const auto files = environment_value("PM_DRIVER_FILES");
+#endif
+    if (files)
+        append_list(paths, *files, true, ManifestKind::driver);
     else {
-        append_list(paths, std::getenv("PM_DRIVER_PATH"), false,
-                    ManifestKind::driver);
+#if defined(_WIN32)
+        const auto driver_path = environment_value(L"PM_DRIVER_PATH");
+#else
+        const auto driver_path = environment_value("PM_DRIVER_PATH");
+#endif
+        if (driver_path)
+            append_list(paths, *driver_path, false, ManifestKind::driver);
         append_user_directory(paths, "drivers.d", ManifestKind::driver);
 #if defined(PARALLEL_MATER_SYSTEM_DRIVER_MANIFEST_DIR)
         append_directory(paths, PARALLEL_MATER_SYSTEM_DRIVER_MANIFEST_DIR,
@@ -311,12 +361,12 @@ std::vector<std::shared_ptr<Driver>> discover_drivers() {
                                            ManifestKind::driver);
     }
     std::vector<std::shared_ptr<Driver>> result;
-    std::set<std::string> unique;
-    for (const std::string &path : paths) {
+    std::set<std::filesystem::path> unique;
+    for (const std::filesystem::path &path : paths) {
         std::error_code error_code;
-        const std::string canonical =
-            std::filesystem::weakly_canonical(path, error_code).string();
-        const std::string key = error_code ? path : canonical;
+        const std::filesystem::path canonical =
+            std::filesystem::weakly_canonical(path, error_code);
+        const std::filesystem::path &key = error_code ? path : canonical;
         if (!unique.insert(key).second) continue;
         std::string error;
         if (auto driver = Driver::open(path, error)) result.push_back(std::move(driver));
@@ -327,12 +377,22 @@ std::vector<std::shared_ptr<Driver>> discover_drivers() {
 std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
     auto result = std::make_shared<LayerChain>();
     if (!enabled) return result;
-    std::vector<std::string> paths;
-    if (const char *files = std::getenv("PM_LAYER_FILES"))
-        append_list(paths, files, true, ManifestKind::layer);
+    std::vector<std::filesystem::path> paths;
+#if defined(_WIN32)
+    const auto files = environment_value(L"PM_LAYER_FILES");
+#else
+    const auto files = environment_value("PM_LAYER_FILES");
+#endif
+    if (files)
+        append_list(paths, *files, true, ManifestKind::layer);
     else {
-        append_list(paths, std::getenv("PM_LAYER_PATH"), false,
-                    ManifestKind::layer);
+#if defined(_WIN32)
+        const auto layer_path = environment_value(L"PM_LAYER_PATH");
+#else
+        const auto layer_path = environment_value("PM_LAYER_PATH");
+#endif
+        if (layer_path)
+            append_list(paths, *layer_path, false, ManifestKind::layer);
         append_user_directory(paths, "layers.d", ManifestKind::layer);
 #if defined(PARALLEL_MATER_SYSTEM_LAYER_MANIFEST_DIR)
         append_directory(paths, PARALLEL_MATER_SYSTEM_LAYER_MANIFEST_DIR,
@@ -349,7 +409,7 @@ std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
         append_loader_relative_directories(paths, "layers.d",
                                            ManifestKind::layer);
     }
-    for (const std::string &path : paths) {
+    for (const std::filesystem::path &path : paths) {
         std::string error;
         if (auto layer = Layer::open(path, error)) result->push_back(std::move(layer));
     }
