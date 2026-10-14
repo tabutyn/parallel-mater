@@ -37,6 +37,10 @@ if "append_loader_relative_directories" not in loader_driver:
     failures.append("src/loader/driver.cpp: relocatable manifest discovery missing")
 if "ManifestKind::driver" not in loader_driver or "ManifestKind::layer" not in loader_driver:
     failures.append("src/loader/driver.cpp: driver/layer manifests are not separated")
+for ansi_loader_call in ("LoadLibraryA", "GetModuleHandleExA", "GetModuleFileNameA"):
+    if ansi_loader_call in loader_driver:
+        failures.append(
+            f"src/loader/driver.cpp: Windows loader is not Unicode-safe: {ansi_loader_call}")
 if "pm_driverNegotiateLoaderInterfaceVersion" not in (
         ROOT / "include" / "parallel_mater" / "pm_driver.h").read_text():
     failures.append("pm_driver.h: loader/driver ABI negotiation missing")
@@ -199,6 +203,32 @@ for path in consumer_paths:
         r"\bWorld(?:Options|StepTimings|Statistics)?\b", path.read_text()
     ):
         failures.append(f"{path.relative_to(ROOT)}: legacy World dependency")
+
+gallery_application = (ROOT / "examples" / "gallery" / "application.cpp").read_text()
+for platform_detail in (
+    "cuda_runtime_api.h", "cudaMemGetInfo", "cudaGetDevice",
+    "OptixRenderer",
+):
+    if platform_detail in gallery_application:
+        failures.append(
+            "examples/gallery/application.cpp: shared application owns "
+            f"platform detail {platform_detail}")
+renderer_interface = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "renderer.hpp"
+).read_text()
+if "OptixRenderer" in renderer_interface:
+    failures.append(
+        "examples/support/include/parallel_mater_gallery/renderer.hpp: "
+        "drawing interface exposes the OptiX adapter")
+for removed_vulkan_executor in (
+    ROOT / "src" / "api" / "interop_vulkan.cpp",
+    ROOT / "src" / "device" / "vulkan_executor.cpp",
+    ROOT / "src" / "device" / "vulkan_executor.hpp",
+):
+    if removed_vulkan_executor.exists():
+        failures.append(
+            f"{removed_vulkan_executor.relative_to(ROOT)}: unused partial backend remains")
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.

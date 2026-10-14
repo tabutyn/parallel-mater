@@ -20,5 +20,5 @@ than cropping them. Windows contains 16, 24, 32, 48, 64, 128 and 256 pixel
 images; macOS includes standard and Retina sizes through 1024 pixels.
 
 Deploy macOS with `cmake --build build-metal-gallery --target deploy-metal-gallery`.
-Deploy Windows with `cmake --build build-d3d12-full --config Release --target install-d3d12-gallery`.
+Deploy Windows with `scripts/Install-WindowsGallery.ps1 -BuildDirectory <build>\\Release` after building `parallel-mater-gallery`.
 Reopen a running gallery after deployment to load the updated resources.

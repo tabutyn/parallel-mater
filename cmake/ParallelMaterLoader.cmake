@@ -47,6 +47,9 @@ set(PARALLEL_MATER_BUILD_MANIFEST_DIR
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+file(GENERATE
+    OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/validation.json"
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     add_library(parallel-mater-mock-driver SHARED tests/api/mock_driver.cpp)
@@ -63,6 +66,11 @@ if(BUILD_TESTING)
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json"
         CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    set(PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR
+        "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-drivers-unicode/物理")
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR}/mock.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     add_executable(parallel-mater-loader-driver-discovery-tests
         tests/api/loader_driver_discovery_tests.cpp)
     target_compile_features(parallel-mater-loader-driver-discovery-tests
@@ -77,4 +85,11 @@ if(BUILD_TESTING)
         LABELS "api;loader;driver"
         ENVIRONMENT
             "PM_DRIVER_PATH=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}")
+    add_test(NAME parallel-mater-loader-unicode-driver-discovery-tests
+        COMMAND parallel-mater-loader-driver-discovery-tests)
+    set_tests_properties(
+        parallel-mater-loader-unicode-driver-discovery-tests PROPERTIES
+        LABELS "api;loader;driver;windows"
+        ENVIRONMENT
+            "PM_DRIVER_PATH=${PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR}")
 endif()

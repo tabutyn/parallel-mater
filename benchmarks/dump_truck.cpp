@@ -2,7 +2,7 @@
 #include "support.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/optix_renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 #include <cuda_profiler_api.h>

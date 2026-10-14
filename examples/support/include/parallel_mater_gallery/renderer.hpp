@@ -5,7 +5,6 @@
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,47 +42,83 @@ enum class SmokeDebugMode : std::uint8_t {
     divergence,
 };
 
-#if !defined(PARALLEL_MATER_GALLERY_METAL)
-class OptixRenderer {
+class Renderer {
   public:
-    OptixRenderer() noexcept;
-    ~OptixRenderer();
-    OptixRenderer(OptixRenderer &&) noexcept;
-    OptixRenderer &operator=(OptixRenderer &&) noexcept;
-    OptixRenderer(const OptixRenderer &) = delete;
-    OptixRenderer &operator=(const OptixRenderer &) = delete;
+    virtual ~Renderer() = default;
+    [[nodiscard]] virtual bool render(
+        const RenderSceneFrame &frame, Camera camera,
+        std::vector<std::uint32_t> &rgba, std::string &error,
+        RendererTimings *timings, FluidRenderMode fluid_mode,
+        bool show_smoke_particles, float rigid_interpolation_alpha) = 0;
+    [[nodiscard]] virtual bool advance_visuals(
+        const RenderSceneFrame &frame, std::string &error) = 0;
+    [[nodiscard]] virtual bool paint_coverage(
+        std::uint64_t &painted_texels, std::string &error) const = 0;
+    [[nodiscard]] virtual std::uint32_t width() const noexcept = 0;
+    [[nodiscard]] virtual std::uint32_t height() const noexcept = 0;
+};
 
-    [[nodiscard]] static bool create(const SceneDefinition &scene,
-                                     const CommandSceneInstance &instance,
-                                     const std::filesystem::path &ptx_path,
-                                     std::uint32_t width,
-                                     std::uint32_t height,
-                                     OptixRenderer &output,
-                                     std::string &error);
+class RendererHandle {
+  public:
+    RendererHandle() noexcept = default;
+    ~RendererHandle() = default;
+    RendererHandle(RendererHandle &&) noexcept = default;
+    RendererHandle &operator=(RendererHandle &&) noexcept = default;
+    RendererHandle(const RendererHandle &) = delete;
+    RendererHandle &operator=(const RendererHandle &) = delete;
 
-    [[nodiscard]] bool render(const RenderSceneFrame &frame,
-                              Camera camera,
-                              std::vector<std::uint32_t> &rgba,
-                              std::string &error,
-                              RendererTimings *timings = nullptr,
-                              FluidRenderMode fluid_mode =
-                                  FluidRenderMode::surface,
-                              bool show_smoke_particles = true,
-                              float rigid_interpolation_alpha = 1.0F);
-
-    // Advance render-only foam during unrendered headless steps.
+    [[nodiscard]] bool render(
+        const RenderSceneFrame &frame, Camera camera,
+        std::vector<std::uint32_t> &rgba, std::string &error,
+        RendererTimings *timings = nullptr,
+        FluidRenderMode fluid_mode = FluidRenderMode::surface,
+        bool show_smoke_particles = true,
+        float rigid_interpolation_alpha = 1.0F) {
+        if (!implementation_) {
+            error = "renderer is not initialized";
+            return false;
+        }
+        return implementation_->render(frame, camera, rgba, error, timings,
+                                       fluid_mode, show_smoke_particles,
+                                       rigid_interpolation_alpha);
+    }
     [[nodiscard]] bool advance_visuals(const RenderSceneFrame &frame,
-                                       std::string &error);
+                                       std::string &error) {
+        if (!implementation_) {
+            error = "renderer is not initialized";
+            return false;
+        }
+        return implementation_->advance_visuals(frame, error);
+    }
     [[nodiscard]] bool paint_coverage(std::uint64_t &painted_texels,
-                                      std::string &error) const;
-
-    [[nodiscard]] std::uint32_t width() const noexcept;
-    [[nodiscard]] std::uint32_t height() const noexcept;
+                                      std::string &error) const {
+        if (!implementation_) {
+            error = "renderer is not initialized";
+            return false;
+        }
+        return implementation_->paint_coverage(painted_texels, error);
+    }
+    [[nodiscard]] std::uint32_t width() const noexcept {
+        return implementation_ ? implementation_->width() : 0U;
+    }
+    [[nodiscard]] std::uint32_t height() const noexcept {
+        return implementation_ ? implementation_->height() : 0U;
+    }
 
   private:
-    struct Impl;
-    std::unique_ptr<Impl> impl_;
+    friend bool create_renderer(const SceneDefinition &,
+                                const CommandSceneInstance &,
+                                std::uint32_t, std::uint32_t,
+                                RendererHandle &, std::string &);
+    std::unique_ptr<Renderer> implementation_;
 };
-#endif
+
+// Implemented by the renderer adapter selected by the gallery target.
+[[nodiscard]] bool create_renderer(const SceneDefinition &scene,
+                                   const CommandSceneInstance &instance,
+                                   std::uint32_t width,
+                                   std::uint32_t height,
+                                   RendererHandle &output,
+                                   std::string &error);
 
 } // namespace parallel_mater::gallery

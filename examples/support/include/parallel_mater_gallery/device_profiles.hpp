@@ -12,9 +12,7 @@ namespace parallel_mater::gallery {
 
 inline constexpr std::uint32_t brick_profile_schema_version = 1U;
 inline constexpr std::uint32_t brick_scene_version = 1U;
-inline constexpr std::string_view cuda_rigid_solver_version = "cuda-avbd-v1";
-inline constexpr std::string_view metal_rigid_solver_version = "metal-avbd-v1";
-inline constexpr std::string_view d3d12_rigid_solver_version = "d3d12-slang-avbd-v1";
+inline constexpr std::string_view slang_solver_version = "slang-avbd-v1";
 inline constexpr std::uint32_t brick_minimum_count = 1U;
 inline constexpr std::uint32_t brick_maximum_count = 4'096U;
 inline constexpr float brick_minimum_scale = 0.5F;
@@ -116,7 +114,7 @@ struct CalibrationSample {
 
 [[nodiscard]] bool validate_brick_config(const BrickSceneConfig &config,
                                          std::string &error) noexcept;
-[[nodiscard]] std::uint64_t estimated_metal_contact_bytes(
+[[nodiscard]] std::uint64_t estimated_rigid_contact_bytes(
     std::uint32_t rigid_body_count) noexcept;
 [[nodiscard]] const std::array<BrickSceneConfig, 12> &brick_calibration_presets() noexcept;
 [[nodiscard]] CalibrationMetrics summarize_calibration(

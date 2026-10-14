@@ -1247,7 +1247,7 @@ bool build_runtime(const Options &options, GalleryContext context,
         const std::uint64_t available = recommended > allocated
             ? recommended - allocated : recommended;
         if (available != 0U &&
-            parallel_mater::gallery::estimated_metal_contact_bytes(
+            parallel_mater::gallery::estimated_rigid_contact_bytes(
                 static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
                 available * 7U / 10U) {
             error = "brick scene exceeds the available Metal memory budget";
@@ -3118,7 +3118,7 @@ void save_local_calibration(const CalibrationResult &result) {
            << "  \"scene_version\": "
            << parallel_mater::gallery::brick_scene_version << ",\n"
            << "  \"solver_version\": \""
-           << parallel_mater::gallery::metal_rigid_solver_version << "\",\n"
+           << parallel_mater::gallery::slang_solver_version << "\",\n"
            << "  \"build_revision\": \"" << build_label() << "\",\n"
            << "  \"brick_count\": " << result.config.brick_count << ",\n"
            << "  \"brick_scale\": " << result.config.brick_scale << ",\n"
@@ -3189,7 +3189,7 @@ bool verify_and_save_profile(const Options &options,
         parallel_mater::gallery::VerifiedBrickProfile profile;
         profile.hardware = result.hardware;
         profile.scene = result.config;
-        profile.solver_version = parallel_mater::gallery::metal_rigid_solver_version;
+        profile.solver_version = parallel_mater::gallery::slang_solver_version;
         profile.build_revision = build_label();
         profile.metrics = result.metrics;
         NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
@@ -3897,7 +3897,7 @@ int main(int argc, char **argv) {
             }
             const auto hardware = metal_hardware_identity(device);
             const auto selection = parallel_mater::gallery::select_startup_bricks(
-                catalog, hardware, parallel_mater::gallery::metal_rigid_solver_version,
+                catalog, hardware, parallel_mater::gallery::slang_solver_version,
                 options.width, options.height);
             options.bricks = selection.scene;
             std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend

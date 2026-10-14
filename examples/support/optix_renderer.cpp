@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/optix_renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
@@ -1171,6 +1171,18 @@ bool OptixRenderer::create(const SceneDefinition &scene,
         error = exception.what();
         return false;
     }
+}
+
+bool create_renderer(const SceneDefinition &scene,
+                     const CommandSceneInstance &instance,
+                     std::uint32_t width, std::uint32_t height,
+                     RendererHandle &output, std::string &error) {
+    auto renderer = std::make_unique<OptixRenderer>();
+    if (!OptixRenderer::create(scene, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
+                               width, height, *renderer, error))
+        return false;
+    output.implementation_ = std::move(renderer);
+    return true;
 }
 
 bool OptixRenderer::render(const RenderSceneFrame &frame,

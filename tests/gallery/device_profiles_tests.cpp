@@ -64,8 +64,8 @@ int main() {
               brick_calibration_presets().back() ==
                   BrickSceneConfig{3'840U, 0.5F, 5U},
           "calibration ladder must retain its version-one endpoints");
-    check(estimated_metal_contact_bytes(400U) >
-              estimated_metal_contact_bytes(200U),
+    check(estimated_rigid_contact_bytes(400U) >
+              estimated_rigid_contact_bytes(200U),
           "contact memory estimate must grow with body count");
 
     DeviceProfileCatalog catalog;
@@ -94,7 +94,7 @@ int main() {
         });
     check(measured != catalog.measurements.end(), "RTX 3050 Ti must have a measured startup point");
     if (measured == catalog.measurements.end()) return 1;
-    const auto chosen = select_startup_bricks(catalog, measured->hardware, cuda_rigid_solver_version);
+    const auto chosen = select_startup_bricks(catalog, measured->hardware, slang_solver_version);
     check(chosen.source == BrickSelectionSource::measured &&
               chosen.scene == BrickSceneConfig{24U, 2.0F, 1U},
           "startup must select the largest measured 60/30 configuration, not the first sample");
@@ -103,35 +103,35 @@ int main() {
     changed_device.operating_system = "Linux 6.2.0";
     changed_device.machine_model = "different hostname";
     changed_device.memory_bytes += 16U * 1024U * 1024U;
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).scene == chosen.scene,
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).scene == chosen.scene,
           "GPU recommendations survive driver/kernel updates and small VRAM reservation changes");
     changed_device.gpu_model = "unmeasured GPU";
-    const auto unknown = select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version);
+    const auto unknown = select_startup_bricks(catalog, changed_device, slang_solver_version);
     check(unknown.source == BrickSelectionSource::fallback && unknown.scene.brick_count == 8U,
           "unknown GPUs use a modest fallback, not another GPU's measured capacity");
     changed_device = measured->hardware;
     changed_device.backend = "metal";
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).source ==
               BrickSelectionSource::fallback,
           "startup cannot borrow measurements from a different backend");
     changed_device = measured->hardware;
     changed_device.memory_bytes /= 2U;
-    check(select_startup_bricks(catalog, changed_device, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(catalog, changed_device, slang_solver_version).source ==
               BrickSelectionSource::fallback,
           "startup cannot borrow measurements from a different memory variant");
     check(select_startup_bricks(catalog, measured->hardware, "cuda-rigid-v1").source ==
               BrickSelectionSource::fallback &&
-          select_startup_bricks(catalog, measured->hardware, cuda_rigid_solver_version,
+          select_startup_bricks(catalog, measured->hardware, slang_solver_version,
                                1280U, 720U).source == BrickSelectionSource::fallback,
           "startup measurements must match the solver and render resolution");
     DeviceProfileCatalog unsuitable;
     unsuitable.measurements.push_back(*measured);
     unsuitable.measurements.front().stable = false;
-    check(select_startup_bricks(unsuitable, measured->hardware, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(unsuitable, measured->hardware, slang_solver_version).source ==
               BrickSelectionSource::fallback, "unstable measurements cannot prescribe startup counts");
     unsuitable.measurements.front().stable = true;
     unsuitable.measurements.front().collision_p95_milliseconds = 34.0;
-    check(select_startup_bricks(unsuitable, measured->hardware, cuda_rigid_solver_version).source ==
+    check(select_startup_bricks(unsuitable, measured->hardware, slang_solver_version).source ==
               BrickSelectionSource::fallback, "impacts below 30 FPS cannot prescribe startup counts");
 
     SceneDefinition authored, generated;
@@ -409,10 +409,10 @@ int main() {
     auto verified_catalog = catalog;
     auto preferred = profile;
     preferred.hardware = measured->hardware;
-    preferred.solver_version = cuda_rigid_solver_version;
+    preferred.solver_version = slang_solver_version;
     verified_catalog.verified_profiles.push_back(preferred);
     const auto verified_choice = select_startup_bricks(
-        verified_catalog, measured->hardware, cuda_rigid_solver_version);
+        verified_catalog, measured->hardware, slang_solver_version);
     check(verified_choice.source == BrickSelectionSource::verified &&
               verified_choice.scene == preferred.scene,
           "an exact verified profile takes precedence over short measured recommendations");
@@ -424,7 +424,7 @@ int main() {
               find_matching_profile(saved, profile.hardware) != nullptr,
           "saved verified profile must round-trip and match");
     const auto saved_choice = select_startup_bricks(
-        saved, measured->hardware, cuda_rigid_solver_version);
+        saved, measured->hardware, slang_solver_version);
     check(saved.measurements.size() == catalog.measurements.size() &&
               saved_choice.source == BrickSelectionSource::measured &&
               saved_choice.scene == chosen.scene &&
@@ -444,19 +444,19 @@ int main() {
     if (legacy_profile == legacy_profiles.verified_profiles.end()) return 1;
     legacy_profile->solver_version = "cuda-rigid-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, cuda_rigid_solver_version) == nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) == nullptr,
           "AVBD must reject pre-migration CUDA calibration");
-    legacy_profile->solver_version = cuda_rigid_solver_version;
+    legacy_profile->solver_version = slang_solver_version;
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, cuda_rigid_solver_version) != nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) != nullptr,
           "AVBD must accept matching CUDA calibration");
     legacy_profile->solver_version = "metal-rigid-v1";
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, metal_rigid_solver_version) == nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) == nullptr,
           "AVBD must reject pre-migration Metal calibration");
-    legacy_profile->solver_version = metal_rigid_solver_version;
+    legacy_profile->solver_version = slang_solver_version;
     check(find_matching_profile(legacy_profiles, profile.hardware,
-              brick_render_width, brick_render_height, metal_rigid_solver_version) != nullptr,
+              brick_render_width, brick_render_height, slang_solver_version) != nullptr,
           "AVBD must accept matching Metal calibration");
     auto mismatched_hardware = profile.hardware;
     mismatched_hardware.power_mode = "low-power";

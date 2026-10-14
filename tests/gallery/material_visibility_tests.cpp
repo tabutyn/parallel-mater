@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/optix_renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
