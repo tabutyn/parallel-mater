@@ -70,14 +70,15 @@ def check_dxil(path_text, entry_name, group_size):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (4, 6):
+    if len(sys.argv) not in (5, 7):
         raise SystemExit(
             "usage: check_slang_reflection.py CUDA_JSON METAL_JSON HLSL_JSON "
+            "WGSL_JSON "
             "[PREPARE_DXIL_JSON SOLVE_DXIL_JSON]"
         )
-    for argument in sys.argv[1:4]:
+    for argument in sys.argv[1:5]:
         check(argument)
-    if len(sys.argv) == 6:
-        check_dxil(sys.argv[4], "prepare_avbd_kernel", 128)
-        check_dxil(sys.argv[5], "solve_avbd_kernel", 32)
-    print("Slang AVBD CUDA/Metal/HLSL/DXIL reflection contracts passed")
+    if len(sys.argv) == 7:
+        check_dxil(sys.argv[5], "prepare_avbd_kernel", 128)
+        check_dxil(sys.argv[6], "solve_avbd_kernel", 32)
+    print("Slang AVBD CUDA/Metal/HLSL/WGSL/DXIL reflection contracts passed")

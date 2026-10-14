@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Scalar normal/tangent block shared by CUDA, Metal, and CPU fixtures.
-#if defined(__METAL_VERSION__)
-#define PM_CONTACT_FRICTION_INLINE inline
-#define PM_CONTACT_FRICTION_NOEXCEPT
-#elif defined(__CUDACC__)
+// Scalar normal/tangent reference used by CPU and CUDA conformance fixtures.
+#if defined(__CUDACC__)
 #define PM_CONTACT_FRICTION_INLINE __host__ __device__ __forceinline__
 #define PM_CONTACT_FRICTION_NOEXCEPT noexcept
 #else

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 // Canonical numerical fixtures for the rigid constraint implementation.
-#include <simulation/solver/geometry_constraints.hpp>
-#include <simulation/solver/halfspace.hpp>
+#include "reference/geometry_constraints.hpp"
+#include "reference/halfspace.hpp"
 #include <cmath>
 
 #if defined(__CUDACC__)

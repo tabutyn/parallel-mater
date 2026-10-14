@@ -596,7 +596,11 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 cloth_pixels += blue > red + 25U && blue > green + 20U;
             }
             std::cout << "Visible cloth pixels=" << cloth_pixels << '\n';
-            if (cloth_pixels < pixels.size() / 50U) {
+            const auto short_edge = std::min(runtime.renderer.width(),
+                                             runtime.renderer.height());
+            const auto projected_area = static_cast<std::size_t>(short_edge) *
+                                        static_cast<std::size_t>(short_edge);
+            if (cloth_pixels < projected_area / 50U) {
                 std::cerr << "Cloth Tear render lost the sheet\n";
                 return 1;
             }

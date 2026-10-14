@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+// Test-only CPU/CUDA reference for halfspace projection in shared Slang.
 #if defined(__CUDACC__)
 #define PM_HALFSPACE_INLINE __host__ __device__ __forceinline__
 #else

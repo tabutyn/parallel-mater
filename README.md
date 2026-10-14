@@ -105,8 +105,10 @@ modules are also compiled to Vulkan SPIR-V as a portability check, but there is
 no Vulkan driver until a complete shared schedule passes the same conformance
 and gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule
 and core transfer API but advertises no physics domains; Metal and WebGPU have
-no drivers. Retired backend-specific physics targets are absent rather than
-available as fallbacks. Native
+no drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
+as a WebGPU portability gate; the complete pointer-based domain schedules do
+not yet have WebGPU resource wrappers. Retired backend-specific physics targets
+are absent rather than available as fallbacks. Native
 API names remain in
 interoperability enums because applications may query support and receive
 `PM_ERROR_FEATURE_NOT_PRESENT` explicitly.

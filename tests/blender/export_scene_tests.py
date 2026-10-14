@@ -662,6 +662,28 @@ class ExportSceneTests(unittest.TestCase):
                 bpy.data.objects.remove(obj, do_unlink=True)
         self.check_export(Counter(cloth=1))
 
+    def test_cloth_collision_walls_are_authored_invisible(self):
+        bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "Cloth.blend"))
+        walls = bpy.data.objects["Plane.001"]
+        self.assertEqual(walls.rigid_body.type, "PASSIVE")
+        self.assertEqual(len(walls.data.materials), 1)
+        material = walls.data.materials[0]
+        self.assertEqual(material.diffuse_color[3], 0.0)
+        self.assertEqual(material.node_tree.nodes[
+            "Principled BSDF"].inputs["Alpha"].default_value, 0.0)
+
+        for document in (
+            self.check_export(Counter(rigid_body=2, cloth=1)),
+            read_glb(ASSETS / "Cloth.glb"),
+        ):
+            node = next(node for node in document["nodes"]
+                        if node.get("extras", {}).get("pm_source_name") ==
+                        "Plane.001")
+            primitive = document["meshes"][node["mesh"]]["primitives"][0]
+            material = document["materials"][primitive["material"]]
+            self.assertEqual(
+                material["pbrMetallicRoughness"]["baseColorFactor"][3], 0.0)
+
     def test_soft_cloth_materials_are_independent(self):
         bpy.ops.wm.open_mainfile(filepath=str(ASSETS / "SoftbodyCloth.blend"))
         document = self.check_export(Counter(rigid_body=2, cloth=2, soft_body=1))

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <simulation/runtime.hpp>
-#include "solver/geometry_constraints.hpp"
+#include "constraint_layout.hpp"
 
 #include <cuda_runtime_api.h>
 

@@ -60,10 +60,38 @@ if "install(DIRECTORY include/" in build_contract:
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
 if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
-if (ROOT / "src" / "simulation" / "solver" / "contact.hpp").exists():
+solver_root = ROOT / "src" / "simulation" / "solver"
+if solver_root.exists():
+    for solver_source in sorted(solver_root.rglob("*")):
+        if solver_source.is_file():
+            failures.append(
+                f"{solver_source.relative_to(ROOT)}: production solver mirror remains"
+            )
+constraint_layout_path = ROOT / "src" / "simulation" / "constraint_layout.hpp"
+if not constraint_layout_path.exists():
     failures.append(
-        "src/simulation/solver/contact.hpp: alternate contact solver remains"
+        "src/simulation/constraint_layout.hpp: shared constraint layout missing"
     )
+else:
+    constraint_layout = constraint_layout_path.read_text()
+    for algorithm in ("warm_start(", "update_dual(", "project_contact(", "solve("):
+        if algorithm in constraint_layout:
+            failures.append(
+                "src/simulation/constraint_layout.hpp: solver algorithm leaked "
+                f"into production host layout: {algorithm}"
+            )
+for runtime_source in runtime_paths:
+    runtime_text = runtime_source.read_text()
+    if '"solver/' in runtime_text or '<simulation/solver/' in runtime_text:
+        failures.append(
+            f"{runtime_source.relative_to(ROOT)}: production solver mirror included"
+        )
+    for device_only_token in ("__host__", "__device__", "cooperative_groups"):
+        if device_only_token in runtime_text:
+            failures.append(
+                f"{runtime_source.relative_to(ROOT)}: host schedule owns "
+                f"device-only helper token {device_only_token}"
+            )
 if re.search(r"\bclass\s+World\b", runtime_header):
     failures.append("src/simulation/runtime.hpp: legacy World class remains")
 if re.search(r"\busing\s+World\s*=", runtime_header):
@@ -394,6 +422,7 @@ slang_constraints_cmake = (
 ).read_text()
 for required in (
     "-target dxil",
+    "-target wgsl",
     "-DPM_TARGET_D3D12=1",
     "parallel-mater-slang-avbd-dxil",
 ):
