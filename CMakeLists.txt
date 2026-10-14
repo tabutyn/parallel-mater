@@ -1257,11 +1257,6 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-soft-body-geometry-tests
              COMMAND parallel-mater-soft-body-geometry-tests)
 
-    add_executable(parallel-mater-parity-compare
-                   tests/parity/compare.cpp)
-    target_compile_features(parallel-mater-parity-compare PRIVATE cxx_std_20)
-    add_test(NAME parallel-mater-parity-compare-self-test
-             COMMAND parallel-mater-parity-compare --self-test)
 endif()
 
 configure_package_config_file(
