@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Public CUDA physics API. Implementation milestones are tracked in
-// docs/ROADMAP.md; a declaration may precede its solver implementation.
+// Private runtime used by the current Slang CUDA driver implementation.
 
 #include <cuda_runtime_api.h>
 
@@ -450,9 +449,5 @@ class SimulationRuntime {
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
-
-// Transitional name used only by the reference-runtime regression corpus.
-// Production consumers use the public pm* command API.
-using World = SimulationRuntime;
 
 } // namespace parallel_mater

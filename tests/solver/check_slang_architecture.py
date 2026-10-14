@@ -58,11 +58,41 @@ if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
 if re.search(r"\bclass\s+World\b", runtime_header):
     failures.append("src/simulation/runtime.hpp: legacy World class remains")
+if re.search(r"\busing\s+World\s*=", runtime_header):
+    failures.append("src/simulation/runtime.hpp: legacy World alias remains")
+for boundary_header in (
+    ROOT / "src" / "api" / "internal.hpp",
+    ROOT / "src" / "device" / "device.hpp",
+):
+    boundary_text = boundary_header.read_text()
+    for cuda_type in ("cudaStream_t", "cudaEvent_t", "cuda_runtime_api.h"):
+        if cuda_type in boundary_text:
+            failures.append(
+                f"{boundary_header.relative_to(ROOT)}: device boundary "
+                f"exposes {cuda_type}")
 for api_source in sorted((ROOT / "src" / "api").glob("*")):
     if api_source.is_file() and re.search(
             r"parallel_mater::World\b", api_source.read_text()):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
+for legacy_root in (ROOT / "tests", ROOT / "benchmarks"):
+    for source in sorted(legacy_root.rglob("*")):
+        if not source.is_file() or "metal" in source.parts:
+            continue
+        if source == ROOT / "tests" / "parity" / "capture_scenario.hpp":
+            # Shared by the separately retired Metal implementation until its
+            # platform migration lands.
+            continue
+        if source.suffix not in {".cpp", ".cu", ".hpp", ".h"}:
+            continue
+        source_text = source.read_text()
+        if re.search(
+            r"\busing\s+World\s*=|\bWorld::|"
+            r"\b(?:create_scene_world|instantiate_scene|scene_world_options)\b",
+            source_text,
+        ):
+            failures.append(
+                f"{source.relative_to(ROOT)}: legacy World test path remains")
 if "Backend-specific physics implementations are retired" not in cmake:
     failures.append("CMakeLists.txt: retired native physics builds are not rejected")
 retired_headers = {

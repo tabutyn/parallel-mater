@@ -1808,7 +1808,7 @@ SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
     return result;
 }
 
-#if !defined(PARALLEL_MATER_COMMAND_GALLERY_ONLY)
+#if defined(PARALLEL_MATER_GALLERY_METAL)
 Status scene_world_options(const SceneDefinition &scene, WorldOptions &output,
                            PhysicsDebugOptions physics_debug) noexcept {
     std::size_t triangle_meshes = 0U;

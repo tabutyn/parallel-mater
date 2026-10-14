@@ -11,8 +11,6 @@
 #include "../device/device.hpp"
 #include "../simulation/memory_arena.hpp"
 
-#include <cuda_runtime_api.h>
-
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -147,8 +145,8 @@ struct PmCommandBuffer_T {
     PmQueryPool statistics_pool{};
     std::uint32_t statistics_query{};
     PmSimulation statistics_simulation{};
-    cudaEvent_t completion{};
-    std::vector<std::function<PmResult(cudaStream_t)>> commands;
+    parallel_mater::device::Event completion{};
+    std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
 };
 
 struct PmCommandPool_T {
@@ -163,20 +161,20 @@ struct PmSemaphore_T {
     std::mutex mutex;
     std::condition_variable changed;
     std::uint64_t value{};
-    std::map<std::uint64_t, cudaEvent_t> events;
+    std::map<std::uint64_t, parallel_mater::device::Event> events;
     bool imported{};
     PmNativeHandle native{};
 };
 
 struct PmFence_T {
     PmDevice_T *device{};
-    cudaEvent_t event{};
+    parallel_mater::device::Event event{};
     bool submitted{};
     bool initially_signaled{};
 };
 
 struct PmQuerySlot {
-    cudaEvent_t event{};
+    parallel_mater::device::Event event{};
     bool available{};
     PmStepStatistics statistics{};
 };
@@ -241,11 +239,12 @@ void destroy_object(PmDevice_T *device, T *value) noexcept {
 
 inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
     if (buffer == nullptr || buffer->state != PmCommandState::pending ||
-        buffer->completion == nullptr)
+        !buffer->completion)
         return;
-    const cudaError_t status = cudaEventQuery(buffer->completion);
-    if (status == cudaSuccess) buffer->state = PmCommandState::executable;
-    else if (status != cudaErrorNotReady) (void)cudaGetLastError();
+    bool ready = false;
+    if (buffer->device->services->query_event(buffer->completion, ready) == PM_SUCCESS &&
+        ready)
+        buffer->state = PmCommandState::executable;
 }
 
 [[nodiscard]] inline PmResult from_status(
@@ -259,15 +258,16 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
     case StatusCode::capacity_exceeded: return PM_ERROR_CAPACITY_EXCEEDED;
     case StatusCode::busy: return PM_ERROR_INVALID_STATE;
     case StatusCode::out_of_memory: return PM_ERROR_OUT_OF_DEVICE_MEMORY;
-    case StatusCode::cuda_failure: return parallel_mater::device::from_cuda(
-        status.cuda_error);
+    case StatusCode::cuda_failure: return parallel_mater::device::from_driver_error(
+        static_cast<std::int32_t>(status.cuda_error));
     case StatusCode::internal_error: return PM_ERROR_INVALID_STATE;
     }
     return PM_ERROR_INVALID_STATE;
 }
 
 inline PmResult record(PmCommandBuffer buffer,
-                       std::function<PmResult(cudaStream_t)> command) noexcept {
+                       std::function<PmResult(
+                           parallel_mater::device::Services &)> command) noexcept {
     const PmResult state = require_recording(buffer);
     if (state != PM_SUCCESS) return state;
     try {
@@ -284,7 +284,8 @@ inline PmResult record(PmCommandBuffer buffer,
 [[nodiscard]] PmResult initialize_couplings(
     PmSimulation simulation, PmPhysicsPipeline pipeline) noexcept;
 [[nodiscard]] PmResult register_geometry(
-    PmSimulation simulation, PmGeometry geometry, cudaStream_t stream,
+    PmSimulation simulation, PmGeometry geometry,
+    parallel_mater::device::Services &services,
     parallel_mater::TriangleMeshId &output) noexcept;
 
 } // namespace parallel_mater::api

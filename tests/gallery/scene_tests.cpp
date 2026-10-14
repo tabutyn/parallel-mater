@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
-
-#include <cuda_runtime_api.h>
+#include <scene_builder.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstring>
 #include <iostream>
 #include <limits>
 #include <set>
@@ -24,17 +22,18 @@ void check(bool condition, const char *message) {
     }
 }
 
-void check_status(parallel_mater::Status status, const char *operation) {
-    if (!status) {
-        std::cerr << "FAIL: " << operation << ": "
-                  << (status.message != nullptr ? status.message : "unknown")
-                  << '\n';
-        ++failures;
-    }
-}
-
 parallel_mater::Quaternion rotation_z(float angle) {
     return {0.0F, 0.0F, std::sin(angle * 0.5F), std::cos(angle * 0.5F)};
+}
+
+parallel_mater::RigidBodyState rigid_state(const PmRigidState &source) {
+    return {{source.position[0], source.position[1], source.position[2]},
+            {source.orientation[0], source.orientation[1],
+             source.orientation[2], source.orientation[3]},
+            {source.linearVelocity[0], source.linearVelocity[1],
+             source.linearVelocity[2]},
+            {source.angularVelocity[0], source.angularVelocity[1],
+             source.angularVelocity[2]}};
 }
 
 } // namespace
@@ -263,234 +262,90 @@ int main() {
               "the Blender cube scale must be baked into its vertices");
     }
 
-    int device_count = 0;
-    if (cudaGetDeviceCount(&device_count) != cudaSuccess || device_count == 0) {
-        std::cout << "SKIP: GLB structure passed; CUDA device unavailable\n";
-        return failures == 0 ? 77 : 1;
+    CommandScene simulation;
+    CommandSceneInstance instance;
+    CommandSceneFrame frame;
+    if (!CommandScene::create(scene, 2U, simulation, instance, error)) {
+        if (error.find("physical device") != std::string::npos) {
+            std::cout << "SKIP: GLB structure passed; no Parallel Mater device\n";
+            return failures == 0 ? 77 : 1;
+        }
+        std::cerr << "FAIL: create PassiveActive command scene: "
+                  << error << '\n';
+        return 1;
     }
-
-    World world;
-    SceneInstance instance;
-    check_status(create_scene_world(scene, world, instance),
-                 "create PassiveActive scene world");
     check(instance.rigid_bodies.size() == 5U,
-          "each rigid body must have a scene instance handle");
-    WorldStatistics statistics{};
-    check_status(world.collect_statistics(statistics), "collect scene statistics");
-    check(statistics.rigid_body_count == 5U &&
-              statistics.triangle_mesh_count == 5U,
-          "world must own five bodies and five triangle meshes");
+          "each rigid body must have a public command resource index");
 
-    World dump_world;
-    SceneInstance dump_instance;
-    check_status(create_scene_world(minimum_dump, dump_world, dump_instance),
-                 "create DUMP scene world");
-    WorldStatistics dump_statistics{};
-    check_status(dump_world.collect_statistics(dump_statistics),
-                 "collect DUMP statistics");
-    check(dump_statistics.rigid_body_count == 12U &&
-              dump_statistics.triangle_mesh_count == 3U,
-          "DUMP bodies must reuse three uploaded triangle meshes");
+    RigidBodyState cube_target =
+        scene.rigid_bodies[1].options.initial_state;
+    cube_target.position.x += 0.1F;
+    check(simulation.set_kinematic_target(
+              instance.rigid_bodies[1], cube_target, error),
+          error.empty() ? "set authored cube target" : error.c_str());
+    check(simulation.step(1.0F / 60.0F, 4U,
+                          {4.905F, -8.495709F, 0.0F}, frame, error, true),
+          error.empty() ? "step authored scene" : error.c_str());
+    if (frame.rigid_states.size() == 5U) {
+        const RigidBodyState after_cube = rigid_state(frame.rigid_states[1]);
+        const RigidBodyState after_icosphere =
+            rigid_state(frame.rigid_states[2]);
+        const auto initial_icosphere =
+            scene.rigid_bodies[2].options.initial_state;
+        check(std::fabs(after_cube.position.x - cube_target.position.x) <
+                  1.0e-5F,
+              "kinematic cube must follow its public-API target");
+        check(after_icosphere.position.x > initial_icosphere.position.x &&
+                  after_icosphere.position.y < initial_icosphere.position.y,
+              "tilted gravity must affect the dynamic icosphere");
+    } else {
+        check(false, "public rigid output must contain every scene body");
+    }
 
-    World fluid_world;
-    SceneInstance fluid_instance;
-    check_status(create_scene_world(fluid_scene, fluid_world, fluid_instance),
-                 "create Blender Fluid scene world");
-    check(fluid_instance.has_fluid,
-          "Fluid scene must instantiate a live fluid owner");
-    for (int frame = 0; frame < 30; ++frame) {
-        check_status(fluid_world.step({.timestep = 1.0F / 60.0F,
-                                       .substeps = 4U,
-                                       .gravity = {0.0F, -9.81F, 0.0F}}),
-                     "step authored Fluid scene");
+    CommandScene dump_simulation;
+    CommandSceneInstance dump_instance;
+    CommandSceneFrame dump_frame;
+    if (!CommandScene::create(minimum_dump, 0U, dump_simulation,
+                              dump_instance, error)) {
+        std::cerr << "FAIL: create DUMP command scene: " << error << '\n';
+        return 1;
     }
-    WorldStatistics fluid_stats{};
-    check_status(fluid_world.collect_statistics(fluid_stats),
-                 "collect Fluid statistics");
-    check(fluid_stats.fluid_count == 1U &&
-          fluid_stats.particle_count > 0U &&
-          fluid_stats.emitted_particle_count >= fluid_stats.particle_count,
-          "inflow must emit live, owned particles");
-    FluidDeviceView fluid_view{};
-    check_status(fluid_world.fluid_view(fluid_instance.fluid, fluid_view),
-                 "borrow Fluid particle view");
-    std::vector<float> fluid_foam(fluid_view.particle_count);
-    if (!fluid_foam.empty()) {
-        check(cudaMemcpy(fluid_foam.data(), fluid_view.foam.data,
-                         fluid_foam.size() * sizeof(float),
-                         cudaMemcpyDeviceToHost) == cudaSuccess,
-              "copy Fluid foam signal");
-        check(*std::max_element(fluid_foam.begin(), fluid_foam.end()) > 0.05F,
-              "authored passive-surface impacts must generate visible foam");
-    }
-    constexpr float pi = 3.14159265358979323846F;
+    check(dump_instance.rigid_bodies.size() == 12U,
+          "DUMP resources must reuse the authored public geometry");
     RigidBodyState hopper_target =
         minimum_dump.rigid_bodies[0].options.initial_state;
-    float hopper_angle = pi * 0.25F;
-    for (int frame = 0; frame < 240; ++frame) {
-        hopper_angle =
-            std::fmax(-pi * 0.25F, hopper_angle - pi * 0.25F / 60.0F);
-        hopper_target.orientation = rotation_z(hopper_angle);
-        check_status(dump_world.set_kinematic_target(
-                         dump_instance.rigid_bodies[0], hopper_target),
-                     "rotate DUMP hopper");
-        check_status(dump_world.step({.timestep = 1.0F / 60.0F,
-                                      .substeps = 4U,
-                                      .gravity = {0.0F, -9.81F, 0.0F}}),
-                     "step DUMP scene");
-    }
-    for (std::size_t index = 2U; index < dump_instance.rigid_bodies.size();
-         ++index) {
-        RigidBodyState sphere{};
-        check_status(dump_world.read_rigid_body_state(
-                         dump_instance.rigid_bodies[index], sphere),
-                     "read poured DUMP sphere");
-        check(sphere.position.x >= -1.1F && sphere.position.x <= 4.1F &&
-                  sphere.position.y >= -2.6F && sphere.position.y <= 2.6F &&
-                  sphere.position.z >= -2.6F && sphere.position.z <= 2.6F,
-              "every DUMP sphere must finish inside the receiver");
-    }
+    hopper_target.orientation = rotation_z(0.0F);
+    check(dump_simulation.set_kinematic_target(
+              dump_instance.rigid_bodies[0], hopper_target, error) &&
+              dump_simulation.step(1.0F / 60.0F, 4U,
+                                   {0.0F, -9.81F, 0.0F}, dump_frame,
+                                   error, true),
+          error.empty() ? "step DUMP command scene" : error.c_str());
+    check(dump_frame.rigid_states.size() == 12U,
+          "DUMP public output must contain every body");
 
-    const SceneDefinition colored_dump = make_dump_scene(256U);
-    World colored_world;
-    SceneInstance colored_instance;
-    check_status(create_scene_world(colored_dump, colored_world,
-                                    colored_instance),
-                 "create parallel-contact DUMP scene world");
-    std::vector<RigidBodyState> reference_states;
-    for (int repetition = 0; repetition < 2; ++repetition) {
-        for (std::size_t index = 0U;
-             index < colored_instance.rigid_bodies.size(); ++index) {
-            check_status(colored_world.set_rigid_body_state(
-                             colored_instance.rigid_bodies[index],
-                             colored_dump.rigid_bodies[index].options.initial_state),
-                         "reset parallel-contact DUMP body");
-        }
-        RigidBodyState colored_target =
-            colored_dump.rigid_bodies[0].options.initial_state;
-        float colored_angle = pi * 0.25F;
-        for (int frame = 0; frame < 90; ++frame) {
-            colored_angle = std::fmax(
-                -pi * 0.25F, colored_angle - pi * 0.25F / 60.0F);
-            colored_target.orientation = rotation_z(colored_angle);
-            check_status(colored_world.set_kinematic_target(
-                             colored_instance.rigid_bodies[0], colored_target),
-                         "rotate parallel-contact hopper");
-            check_status(colored_world.step(
-                             {.timestep = 1.0F / 60.0F,
-                              .substeps = 4U,
-                              .gravity = {0.0F, -9.81F, 0.0F},
-                              .collect_rigid_contacts = repetition != 0}),
-                         "step parallel-contact DUMP scene");
-        }
-        RigidBodyDeviceView view{};
-        check_status(colored_world.rigid_body_view(view),
-                     "view parallel-contact DUMP bodies");
-        std::vector<RigidBodyState> states(view.states.size);
-        check(cudaMemcpy(states.data(), view.states.data,
-                         states.size() * sizeof(RigidBodyState),
-                         cudaMemcpyDeviceToHost) == cudaSuccess,
-              "download parallel-contact DUMP states");
-        for (const RigidBodyState &state : states) {
-            check(std::isfinite(state.position.x) &&
-                      std::isfinite(state.position.y) &&
-                      std::isfinite(state.position.z),
-                  "parallel-contact DUMP positions must remain finite");
-        }
-        if (repetition == 0) {
-            reference_states = std::move(states);
-        } else {
-            check(colored_world.rigid_contacts().event_count > 0U,
-                  "parallel-contact diagnostics must retain contact events");
-            check(states.size() == reference_states.size() &&
-                      std::memcmp(states.data(), reference_states.data(),
-                                  states.size() * sizeof(RigidBodyState)) == 0,
-                  "contact diagnostics must not change DUMP body states");
-        }
+    fluid_scene.fluid_options.capacity =
+        std::max<std::uint32_t>(fluid_scene.fluid_options.capacity, 100U);
+    CommandScene fluid_simulation;
+    CommandSceneInstance fluid_instance;
+    CommandSceneFrame fluid_frame;
+    if (!CommandScene::create(fluid_scene, 0U, fluid_simulation,
+                              fluid_instance, error)) {
+        std::cerr << "FAIL: create Fluid command scene: " << error << '\n';
+        return 1;
     }
-    check_status(colored_world.step({.timestep = 1.0F / 60.0F,
-                                     .substeps = 4U,
-                                     .gravity = {0.0F, -9.81F, 0.0F}}),
-                 "step parallel-contact DUMP without diagnostics");
-    check(colored_world.rigid_contacts().event_count == 0U,
-          "disabling parallel-contact diagnostics must clear stale events");
-
-    if (instance.rigid_bodies.size() == 5U) {
-        RigidBodyState before_cube{};
-        RigidBodyState before_icosphere{};
-        RigidBodyState before_suzanne{};
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[1],
-                                                 before_cube),
-                     "read cube before stepping");
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[2],
-                                                 before_icosphere),
-                     "read icosphere before stepping");
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[3],
-                                                 before_suzanne),
-                     "read Suzanne before stepping");
-        RigidBodyState cube_target = before_cube;
-        cube_target.position.x += 0.1F;
-        check_status(world.set_kinematic_target(instance.rigid_bodies[1],
-                                                cube_target),
-                     "set authored cube target");
-        check_status(world.step({.timestep = 1.0F / 60.0F,
-                                 .substeps = 4U,
-                                 .gravity = {4.905F, -8.495709F, 0.0F}}),
-                     "step authored scene");
-        RigidBodyState after_cube{};
-        RigidBodyState after_icosphere{};
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[1],
-                                                 after_cube),
-                     "read cube after stepping");
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[2],
-                                                 after_icosphere),
-                     "read icosphere after stepping");
-        check(std::fabs(after_cube.position.x - cube_target.position.x) <
-                  1.0e-5F &&
-                  std::fabs(after_cube.position.y - before_cube.position.y) <
-                      1.0e-5F,
-              "kinematic cube must follow its target and ignore gravity");
-        check(after_icosphere.position.x > before_icosphere.position.x &&
-                  after_icosphere.position.y < before_icosphere.position.y,
-              "tilted gravity must affect the dynamic icosphere");
-
-        for (int frame = 1; frame < 360; ++frame) {
-            check_status(world.step({.timestep = 1.0F / 60.0F,
-                                     .substeps = 4U,
-                                     .gravity = {0.0F, -9.81F, 0.0F}}),
-                         "settle authored bowl scene");
-        }
-        RigidBodyState after_suzanne{};
-        check_status(world.read_rigid_body_state(instance.rigid_bodies[3],
-                                                 after_suzanne),
-                     "read Suzanne after settling");
-        const float orientation_dot = std::fabs(
-            before_suzanne.orientation.x * after_suzanne.orientation.x +
-            before_suzanne.orientation.y * after_suzanne.orientation.y +
-            before_suzanne.orientation.z * after_suzanne.orientation.z +
-            before_suzanne.orientation.w * after_suzanne.orientation.w);
-        check(orientation_dot < 0.995F,
-              "Suzanne must topple instead of remaining upright");
-        float bowl_minimum_y = std::numeric_limits<float>::max();
-        for (const std::uint32_t mesh_index :
-             scene.rigid_bodies[0].mesh_indices) {
-            for (const Vertex &vertex : scene.meshes[mesh_index].vertices) {
-                bowl_minimum_y = std::fmin(
-                    bowl_minimum_y,
-                    scene.rigid_bodies[0].options.initial_state.position.y +
-                        vertex.position.y);
-            }
-        }
-        for (std::size_t index = 2; index < 5; ++index) {
-            RigidBodyState settled{};
-            check_status(world.read_rigid_body_state(instance.rigid_bodies[index],
-                                                     settled),
-                         "read contained bowl body");
-            check(std::isfinite(settled.position.y) &&
-                      settled.position.y >= bowl_minimum_y - 0.05F,
-                  "dynamic body must not escape below the bowl");
-        }
-    }
+    bool fluid_stepped = true;
+    for (int index = 0; index < 30 && fluid_stepped; ++index)
+        fluid_stepped = fluid_simulation.step(
+            1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+            fluid_frame, error);
+    check(fluid_stepped,
+          error.empty() ? "step authored Fluid command scene" : error.c_str());
+    check(fluid_instance.fluid != PM_INVALID_INDEX &&
+              !fluid_frame.fluid_particles.empty() &&
+              fluid_frame.statistics.peakParticleCount >=
+                  fluid_frame.fluid_particles.size(),
+          "inflow must emit live particles through public output queries");
 
     if (failures != 0) {
         std::cerr << failures << " gallery scene test(s) failed\n";

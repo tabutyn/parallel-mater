@@ -4,7 +4,7 @@
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 #include <parallel_mater/metal.hpp>
 #else
-#include <simulation/runtime.hpp>
+#include <parallel_mater/types.hpp>
 #endif
 
 #include <parallel_mater_gallery/device_profiles.hpp>
@@ -162,6 +162,7 @@ struct SceneDefinition {
     bool has_smoke{};
 };
 
+#if defined(PARALLEL_MATER_GALLERY_METAL)
 struct SceneInstance {
     struct PaintBinding {
         std::uint32_t body_index{};
@@ -190,6 +191,7 @@ struct SceneInstance {
     std::vector<SmokeRopeCouplingId> smoke_rope_couplings{};
     std::vector<SmokeRigidCouplingId> smoke_rigid_couplings{};
 };
+#endif
 
 [[nodiscard]] bool load_glb_scene(const std::filesystem::path &path,
                                   SceneDefinition &output,
@@ -208,9 +210,7 @@ struct SceneInstance {
                                     SceneDefinition &output,
                                     std::string &error);
 
-// Derives the capacities needed by the shared scene instantiator. Gallery
-// clients, tests, and benchmarks should use this instead of mirroring its
-// mesh/paint/cloth accounting.
+#if defined(PARALLEL_MATER_GALLERY_METAL)
 [[nodiscard]] Status scene_world_options(
     const SceneDefinition &scene, WorldOptions &output,
     PhysicsDebugOptions physics_debug = {}) noexcept;
@@ -222,6 +222,7 @@ struct SceneInstance {
 [[nodiscard]] Status instantiate_scene(const SceneDefinition &scene,
                                        World &world,
                                        SceneInstance &output) noexcept;
+#endif
 
 #if defined(PARALLEL_MATER_GALLERY_METAL)
 } // namespace parallel_mater::metal::gallery
