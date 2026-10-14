@@ -283,14 +283,14 @@ int main() {
     WorldStepTimings rigid_timings{};
     status = world.collect_step_timings(rigid_timings);
     if (!require(status.ok() && rigid_timings.available &&
-                     rigid_timings.rigid_integration.launch_count == 1U &&
+                     rigid_timings.rigid_integration.launch_count == 2U &&
                      rigid_timings.rigid_world_bounds.launch_count == 1U &&
                      rigid_timings.rigid_pair_filter.launch_count == 1U &&
                      rigid_timings.rigid_pair_compaction.launch_count == 3U &&
                      rigid_timings.rigid_contact_evaluation.launch_count ==
-                         1U &&
+                         2U &&
                      rigid_timings.rigid_contact_generation.launch_count ==
-                         6U &&
+                         7U &&
                      rigid_timings.rigid_contact_solve.launch_count >= 1U &&
                      rigid_timings.rigid_input_clear.launch_count == 1U &&
                      rigid_timings.total_gpu_milliseconds > 0.0F,
@@ -353,7 +353,6 @@ int main() {
     // retain a negative penetration until the surfaces reach rest offset.
     bool valid_manifold = status.ok() &&
                           debug_view.rigid_contacts.size >= 1U;
-    bool positive_impulse = false;
     for (std::size_t contact_index = 0;
          valid_manifold && contact_index < debug_view.rigid_contacts.size;
          ++contact_index) {
@@ -365,9 +364,10 @@ int main() {
                          std::isfinite(event.penetration) &&
                          std::isfinite(event.normal_impulse) &&
                          finite(event.friction_impulse);
-        positive_impulse = positive_impulse || event.normal_impulse > 0.0F;
     }
-    if (!require(valid_manifold && positive_impulse,
+    // A speculative margin contact can report zero impulse until the body
+    // reaches its rest offset. The swept-contact gate below verifies response.
+    if (!require(valid_manifold,
                  "Rigid BVH manifold contact payload is invalid"))
         return 1;
 

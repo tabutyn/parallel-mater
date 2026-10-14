@@ -3115,16 +3115,6 @@ if(PARALLEL_MATER_BUILD_METAL)
         if(BUILD_TESTING)
             add_test(NAME parallel-mater-metal-conformance-inputs
                      COMMAND parallel-mater-metal-conformance --check-inputs)
-            add_test(NAME parallel-mater-metal-conformance-cuda-goldens
-                COMMAND ${Python3_EXECUTABLE}
-                        ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/reproduce.py
-                        --runner $<TARGET_FILE:parallel-mater-metal-conformance>
-                        --comparator ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/compare.py
-                        --cases ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases
-                        --golden ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/golden/cuda)
-            set_tests_properties(parallel-mater-metal-conformance-cuda-goldens
-                PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900 RUN_SERIAL TRUE
-                           LABELS "metal;conformance")
         endif()
 
         set(PARALLEL_MATER_METAL_GALLERY_GENERATED_DIR

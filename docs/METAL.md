@@ -23,10 +23,10 @@ graph preparation caches 512 bodies/contacts and 64 joints in 22,016 bytes of
 threadgroup storage; overflow uses the same graph algorithm in device memory.
 
 On Apple Metal 4, the generated MSL, AIR, metallib, first-context test, and all
-gallery contexts pass. The non-gallery suite passes 27 of 30 tests. The three
-remaining failures predate this source migration: rigid per-phase timing
-availability, compound-weld momentum/pose preservation, and brick-wall static
-support. CUDA goldens remain retired and are not a Metal acceptance gate.
+gallery contexts pass. Rigid timing telemetry and fixed-weld coverage now
+match the AVBD runtime contract. Brick-wall static support remains the sole
+known Metal suite failure. CUDA goldens remain retired and are not registered
+as a Metal acceptance gate.
 
 ## Historical opening gallery scene status (pre-AVBD)
 
@@ -38,9 +38,9 @@ CUDA expanded-wall reference still fails its own stability gate.
 
 `parallel-mater-metal-rigid-wall-tests` checks first-frame support, ten seconds
 of wall stability, ball-only gravity steering, support impulses, independent
-brick impact, cache invalidation, compensated-load sleeping, and wake behavior.
-It also audits every frame of a six-second ball impact with sleeping enabled
-and disabled, rejecting finite energy explosions. The corrected 2026-10-08
+brick impact, and cache invalidation. It also audits every frame of a six-second
+ball impact, rejecting finite energy explosions. Sleeping coverage is deferred
+until the AVBD graph-wide sleep/wake policy is restored. The corrected 2026-10-08
 Metal run retains the unchanged quiet-wall thresholds and reports 0.00197983 m
 maximum drop, 0.00305891 m displacement, 0.000976562 rad rotation, 0.103747 m/s
 peak speed, 0.00441963 m/s late speed, and 0.000647023 m minimum clearance.
@@ -623,8 +623,8 @@ performance parity.
    parity, including implicit fluid surfaces, paint textures, transparent
    skins, foam, smoke-grid debug maps, CUDA-gallery overlays, and the remaining
    advanced camera/debug controls.
-4. Close the remaining canonical CUDA/Metal physics differences reported by
-   `parallel-mater-metal-conformance-cuda-goldens`; then add render references,
+4. Close any remaining canonical CUDA/Metal physics differences with the
+   manual conformance reproduction tool; then add render references,
    validation captures, and named-chip performance baselines.
 
 The Metal tests require access to a physical Metal device. Sandboxed runners

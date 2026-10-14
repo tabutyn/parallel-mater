@@ -854,8 +854,6 @@ struct World::Impl {
     std::uint32_t triangle_mesh_count{};
     std::uint64_t revision{};
     std::uint64_t rigid_contact_epoch{1U};
-    std::vector<Vec3> sleep_accelerations{};
-    std::vector<Vec3> sleep_torques{};
     std::uint64_t rigid_contact_revision{
         std::numeric_limits<std::uint64_t>::max()};
     detail::MetalSystems systems{};
@@ -1236,10 +1234,6 @@ Status World::create(WorldOptions options, NativeContext context,
             impl->options = options;
             impl->rigid_slots.resize(options.rigid_body_capacity);
             impl->rigid_meshes.resize(options.rigid_body_capacity);
-            if (options.rigid_sleeping) {
-                impl->sleep_accelerations.resize(options.rigid_body_capacity);
-                impl->sleep_torques.resize(options.rigid_body_capacity);
-            }
             impl->pending_impulses.resize(options.rigid_body_capacity);
             impl->pending_angular_impulses.resize(options.rigid_body_capacity);
             impl->meshes.resize(options.triangle_mesh_capacity);
@@ -2894,45 +2888,11 @@ Status World::step_async(StepOptions options, FrameToken &completion) noexcept {
                 impl_->rigid_parameters.contents);
             auto *sleep_states = static_cast<RigidSleepState *>(
                 impl_->rigid_sleep_states.contents);
-            const auto *input_forces =
-                static_cast<const Vec3 *>(impl_->rigid_forces.contents);
-            const auto *input_torques =
-                static_cast<const Vec3 *>(impl_->rigid_torques.contents);
             for (std::uint32_t index = 0; index < impl_->rigid_body_count;
                  ++index) {
-                const Vec3 impulse = impl_->pending_impulses[index];
-                const Vec3 angular_impulse =
-                    impl_->pending_angular_impulses[index];
                 // Conservative migration policy: no body remains asleep while
                 // AVBD's graph-wide sleep/wake policy is not implemented yet.
                 sleep_states[index] = {};
-                if (impl_->options.rigid_sleeping) {
-                    // A steady supported load may sleep. Wake on changes in
-                    // net acceleration, not on repeated gravity compensation.
-                    const Vec3 acceleration = add(
-                        options.gravity, multiply(input_forces[index],
-                                                  parameters[index].inverse_mass));
-                    const Vec3 prior = impl_->sleep_accelerations[index];
-                    const Vec3 torque = input_torques[index];
-                    const Vec3 prior_torque = impl_->sleep_torques[index];
-                    if (std::fabs(acceleration.x - prior.x) > 1.0e-5F ||
-                        std::fabs(acceleration.y - prior.y) > 1.0e-5F ||
-                        std::fabs(acceleration.z - prior.z) > 1.0e-5F ||
-                        torque.x != prior_torque.x ||
-                        torque.y != prior_torque.y ||
-                        torque.z != prior_torque.z ||
-                        impulse.x != 0.0F || impulse.y != 0.0F ||
-                        impulse.z != 0.0F ||
-                        angular_impulse.x != 0.0F || angular_impulse.y != 0.0F ||
-                        angular_impulse.z != 0.0F)
-                        sleep_states[index] = {};
-                    // Keep the sleep reference fixed: many sub-threshold
-                    // load changes must eventually accumulate into a wake.
-                    if (sleep_states[index].asleep == 0U) {
-                        impl_->sleep_accelerations[index] = acceleration;
-                        impl_->sleep_torques[index] = torque;
-                    }
-                }
                 states[index].linear_velocity = add(
                     states[index].linear_velocity,
                     multiply(impl_->pending_impulses[index],
@@ -3545,8 +3505,6 @@ Status World::collect_statistics(WorldStatistics &output) const noexcept {
         impl_->rigid_contact_count_buffer.length +
         impl_->systems.allocated_bytes());
     output.allocated_bytes +=
-        impl_->sleep_accelerations.capacity() * sizeof(Vec3) +
-        impl_->sleep_torques.capacity() * sizeof(Vec3) +
         impl_->debug_input_forces.capacity() * sizeof(Vec3) +
         impl_->debug_input_torques.capacity() * sizeof(Vec3) +
         impl_->debug_frames.capacity() * sizeof(PhysicsDebugFrame);

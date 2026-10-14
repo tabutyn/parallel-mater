@@ -1,5 +1,8 @@
 # Slang unification validation
 
+> Historical CUDA migration snapshot. Metal was subsequently qualified as a
+> Slang-backed compatibility adapter; see `METAL.md` for current status.
+
 Status updated 2026-10-12 on source baseline
 `b3cb3d0fac068890771c5effe29dc30f916c298d` plus the uncommitted command-runtime
 migration.

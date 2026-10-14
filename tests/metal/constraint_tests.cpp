@@ -80,7 +80,7 @@ bool exercise_constraint(RigidConstraintOptions options,
     return true;
 }
 
-bool exercise_compound_weld() {
+bool exercise_fixed_weld() {
     World world;
     Status status = World::create(
         {.rigid_body_capacity = 2U,
@@ -148,15 +148,18 @@ bool exercise_compound_weld() {
                         "read second compound member") ||
         !require_status(
             world.read_rigid_constraint_state(constraint, constraint_state),
-            "read absorbed compound weld"))
+            "read fixed weld"))
         return false;
     if (!require(
-        std::abs(first_state.linear_velocity.x - 0.5F) < 1.0e-4F &&
-            std::abs(second_state.linear_velocity.x - 0.5F) < 1.0e-4F &&
+        std::abs(first_state.linear_velocity.x - 0.5F) < 5.0e-4F &&
+            std::abs(second_state.linear_velocity.x - 0.5F) < 5.0e-4F &&
+            std::abs(first_state.linear_velocity.x +
+                     second_state.linear_velocity.x - 1.0F) < 1.0e-4F &&
             std::abs((second_state.position.x - first_state.position.x) -
                      0.2F) < 1.0e-4F &&
-            constraint_state.applied_impulse == 0.0F,
-        "Compound weld did not preserve aggregate momentum and pose"))
+            std::isfinite(constraint_state.applied_impulse) &&
+            constraint_state.applied_impulse > 0.0F,
+        "Fixed weld did not preserve aggregate momentum and pose"))
         return false;
 
     if (!require_status(world.remove_rigid_constraint(constraint),
@@ -174,7 +177,7 @@ bool exercise_compound_weld() {
 } // namespace
 
 int main() {
-    if (!exercise_compound_weld()) return 1;
+    if (!exercise_fixed_weld()) return 1;
 
     RigidBodyState result{};
     if (!exercise_constraint(

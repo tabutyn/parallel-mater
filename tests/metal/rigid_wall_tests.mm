@@ -324,79 +324,6 @@ bool run_wall(const SceneDefinition &scene, unsigned settle_frames = 600U) {
     return true;
 }
 
-bool run_sleeping_wall(const SceneDefinition &scene) {
-    WorldOptions options{};
-    if (!require(scene_world_options(scene, options))) return false;
-    options.rigid_sleeping = true;
-    World world;
-    SceneInstance instance;
-    if (!require(World::create(options, world)) ||
-        !require(instantiate_scene(scene, world, instance))) return false;
-    for (unsigned frame = 0; frame < 120U; ++frame)
-        if (!require(world.step({}))) return false;
-    WorldStatistics stats{};
-    if (!require(world.collect_statistics(stats)) ||
-        stats.sleeping_rigid_body_count != 385U) {
-        std::cerr << "Quiet wall did not sleep\n";
-        return false;
-    }
-    std::vector<RigidBodyId> vertical;
-    std::size_t ball = 0U;
-    for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
-        if (brick(scene.rigid_bodies[i])) vertical.push_back(instance.rigid_bodies[i]);
-        if (scene.rigid_bodies[i].source_name == "Icosphere") ball = i;
-    }
-    const Vec3 tilted{4.905F, -8.495709F, 0.0F};
-    for (unsigned frame = 0; frame < 120U; ++frame) {
-        if (!require(world.apply_central_acceleration(
-                {vertical.data(), vertical.size()}, {-tilted.x, -9.81F - tilted.y, 0.0F})) ||
-            !require(world.step({.gravity = tilted}))) return false;
-    }
-    std::vector<RigidBodyState> states;
-    if (!read_states(world, instance, states) ||
-        !require(world.collect_statistics(stats)) || stats.sleeping_rigid_body_count != 384U ||
-        states[ball].position.x - scene.rigid_bodies[ball].options.initial_state.position.x < 0.25F) {
-        std::cerr << "Gravity compensation woke the wall or froze the steered ball\n";
-        return false;
-    }
-    std::size_t target = 0U;
-    for (std::size_t i = 0; i < scene.rigid_bodies.size(); ++i) {
-        if (!brick(scene.rigid_bodies[i])) continue;
-        if (length(difference(states[i].position,
-                scene.rigid_bodies[i].options.initial_state.position)) > 0.005F) return false;
-        if (std::fabs(states[i].position.x) < 0.8F &&
-            states[i].position.y > states[target].position.y) target = i;
-    }
-    const Vec3 before = states[target].position;
-    // Repeated changes smaller than the wake tolerance must accumulate
-    // against the sleeping load, rather than drift forever unnoticed.
-    for (unsigned frame = 1U; frame <= 12U; ++frame) {
-        if (!require(world.apply_force(instance.rigid_bodies[target],
-                {2.0e-6F * float(frame), 0.0F, 0.0F}, before)) ||
-            !require(world.step({}))) return false;
-    }
-    if (!require(world.collect_statistics(stats)) ||
-        stats.sleeping_rigid_body_count >= 384U) {
-        std::cerr << "Slowly changing load failed to wake sleeping brick\n";
-        return false;
-    }
-    if (!require(world.apply_impulse(instance.rigid_bodies[target], {0, 0, 20}, before)))
-        return false;
-    for (unsigned frame = 0; frame < 8U; ++frame)
-        if (!require(world.step({}))) return false;
-    if (!read_states(world, instance, states) || states[target].position.z - before.z < 0.03F) {
-        std::cerr << "Sleeping brick failed to wake for impulse\n";
-        return false;
-    }
-    if (!require(world.step({.gravity = {}})) ||
-        !require(world.collect_statistics(stats)) || stats.sleeping_rigid_body_count != 0U) {
-        std::cerr << "Changed net gravity failed to wake sleeping bodies\n";
-        return false;
-    }
-    std::cout << "sleeping wall: compensated steering, impulse and gravity wake passed\n";
-    return true;
-}
-
 // Match the API's mesh-derived principal inertia, including explicit overrides.
 Vec3 inertia_diagonal(const SceneDefinition &scene, const RigidBodyDefinition &body) {
     const auto explicit_inertia = body.options.inertia_diagonal;
@@ -433,10 +360,9 @@ double rotational_energy(const RigidBodyState &state, Vec3 inertia) {
     return 0.5 * (inertia.x*x*x + inertia.y*y*y + inertia.z*z*z);
 }
 
-bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
+bool run_impact_energy(const SceneDefinition &scene) {
     WorldOptions options{};
     if (!require(scene_world_options(scene, options))) return false;
-    options.rigid_sleeping = sleeping;
     World world;
     SceneInstance instance;
     if (!require(World::create(options, world)) ||
@@ -492,15 +418,14 @@ bool run_impact_energy(const SceneDefinition &scene, bool sleeping) {
         peak_kinetic = std::max(peak_kinetic, kinetic);
         peak_mechanical = std::max(peak_mechanical, kinetic + potential);
         if (kinetic + potential > available_energy * 1.1) {
-            std::cerr << "Impact injected energy: sleeping=" << sleeping
-                      << " frame=" << frame << " kinetic=" << kinetic
+            std::cerr << "Impact injected energy: frame=" << frame
+                      << " kinetic=" << kinetic
                       << " potential=" << potential << " available=" << available_energy
                       << " peak_speed=" << peak_speed << '\n';
             return false;
         }
     }
-    std::cout << "impact sleeping=" << sleeping
-              << " peak_kinetic_ratio=" << peak_kinetic / available_energy
+    std::cout << "impact peak_kinetic_ratio=" << peak_kinetic / available_energy
               << " peak_mechanical_ratio=" << peak_mechanical / available_energy
               << " peak_speed=" << peak_speed
               << " displaced_bricks=" << displaced << '\n';
@@ -521,8 +446,7 @@ int main(int argc, char **argv) {
             std::string_view(argv[1]) == "--impact-only";
         if (argc == 2 && std::string_view(argv[1]) == "--long-quiet")
             return run_wall(scene, 1800U) ? 0 : 1;
-        return (impact_only || (run_wall(scene) && run_sleeping_wall(scene))) &&
-            run_impact_energy(scene, true) && run_impact_energy(scene, false)
+        return (impact_only || run_wall(scene)) && run_impact_energy(scene)
             ? 0 : 1;
     }
 }

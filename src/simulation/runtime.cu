@@ -455,10 +455,7 @@ template <typename T>
                   "bound scratch simulation memory exhausted");
 }
 
-constexpr int k_fluid_cell_bias = 1 << 20;
 constexpr std::uint32_t k_fluid_body_buckets = 4096U;
-
-#include "fluid_spatial.cuh"
 
 struct FluidBodyImpulse {
     Vec3 linear{};

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-// Included by the transitional scheduler after public coupling types and
-// managed-allocation helpers are in scope. Execution lives in Slang dispatch.
+// Private runtime storage. Execution lives in the Slang dispatch module.
 struct FluidSmokeCouplingStorage {
     FluidSmokeCouplingOptions options{};
     std::uint32_t generation{1U};
