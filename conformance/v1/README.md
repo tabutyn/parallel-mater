@@ -113,9 +113,7 @@ corpus capture. Inspect all numerical diffs and rerun the complete CTest suite.
 Retain its log and lossless gallery images alongside the package. Do not call
 a non-repeatable capture a golden.
 
-See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
-for conditional first-divergent-phase instrumentation and the separate visual
-and performance handoffs. A future adapter must run this same case registry
-through the shared command API and compare the complete result directory.
-Backend-specific physics APIs, capture executables, and duplicate scene runners
-are not part of the canonical conformance contract.
+A future adapter must run this same case registry through the shared command
+API and compare the complete result directory. First-divergence instrumentation
+belongs in that driver path; backend-specific physics APIs, capture executables,
+and duplicate scene runners are not part of the canonical conformance contract.
