@@ -245,14 +245,16 @@ class FlatJson {
 }
 
 [[nodiscard]] bool material_visible(const cgltf_material *material) {
-    if (material == nullptr || !material->has_pbr_metallic_roughness ||
-        material->alpha_mode == cgltf_alpha_mode_opaque) {
+    if (material == nullptr || !material->has_pbr_metallic_roughness) {
         return true;
     }
     const float alpha = material->pbr_metallic_roughness.base_color_factor[3];
+    // Blender can retain an opaque alpha mode for a zero-alpha material.
+    // Parallel Mater uses that authored zero for collision-only geometry.
+    if (alpha <= 0.0F) return false;
     if (material->alpha_mode == cgltf_alpha_mode_mask)
         return alpha >= material->alpha_cutoff;
-    return alpha > 0.0F;
+    return true;
 }
 
 [[nodiscard]] bool append_primitive(const cgltf_primitive &primitive,

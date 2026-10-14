@@ -171,6 +171,39 @@ int main() {
           pegs_scene.fluid_options.normal_damping > 0.0F,
           "authored Geometry flow carries scale-aware generic fluid settings");
 
+    SceneDefinition material_scene;
+    std::string material_error;
+    check(load_glb_scene(PARALLEL_MATER_ALPHA_SCENE_PATH,
+                         material_scene, material_error),
+          material_error.empty() ? "load material visibility fixture"
+                                 : material_error.c_str());
+    constexpr std::array expected_visibility{false, false, true, false,
+                                             true, false, true, true};
+    check(material_scene.meshes.size() == expected_visibility.size(),
+          "material fixture must preserve all collision primitives");
+    if (material_scene.meshes.size() == expected_visibility.size())
+        for (std::size_t index = 0U; index < expected_visibility.size(); ++index)
+            check(material_scene.meshes[index].visible ==
+                      expected_visibility[index],
+                  "zero-alpha material visibility must ignore opaque mode");
+
+    SceneDefinition cloth_scene;
+    std::string cloth_error;
+    check(load_glb_scene(PARALLEL_MATER_CLOTH_SCENE_PATH,
+                         cloth_scene, cloth_error),
+          cloth_error.empty() ? "load Cloth GLB scene" : cloth_error.c_str());
+    std::size_t invisible_cloth_colliders = 0U;
+    for (const auto &body : cloth_scene.rigid_bodies)
+        for (const std::uint32_t mesh : body.mesh_indices)
+            if (!cloth_scene.meshes[mesh].visible) {
+                ++invisible_cloth_colliders;
+                check(body.options.motion == MotionType::static_body &&
+                          !cloth_scene.meshes[mesh].indices.empty(),
+                      "invisible Cloth walls must retain passive collision triangles");
+            }
+    check(invisible_cloth_colliders == 1U,
+          "Cloth must import one alpha-zero wall collider as invisible");
+
     SceneDefinition rigid_body_scene;
     std::string rigid_body_error;
     check(load_glb_scene(PARALLEL_MATER_RIGID_BODY_SCENE_PATH,
