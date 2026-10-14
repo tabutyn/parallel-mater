@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Shared rope endpoint and cloth vertex coupling kernels.
+// Shared cloth/rope coupling kernels.
 
 import types;
 import math;

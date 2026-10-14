@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Shared soft-body and cloth coupling kernels.
+// Shared soft-body/cloth coupling kernels.
 
 import types;
 import math;

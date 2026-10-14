@@ -5,7 +5,8 @@ domains rather than native APIs or solver experiments.
 
 - `types.slang` contains shared resource and value layouts.
 - `math.slang` contains numerical helpers.
-- `device_intrinsics.slang` contains dispatch, barrier, and atomic operations.
+- `device_intrinsics.slang` contains portable dispatch, barrier, and atomic
+  operations.
 - `geometry.slang` contains rigid triangle/BVH contact generation.
 - `geometry_constraints.slang` contains AVBD contact and joint solving.
 - `fluid.slang`, `cloth.slang`, `rope.slang`, `soft_body.slang`, and the smoke
@@ -13,9 +14,13 @@ domains rather than native APIs or solver experiments.
 - Domain-pair files contain coupling kernels.
 - `queries.slang` contains scene-query kernels.
 
-`fluid.slang` is the single fluid implementation. Device adapters allocate,
-transfer, synchronize, and dispatch generated kernels; they contain no fluid,
-collision, constraint, or coupling equations.
+The command-API CUDA driver dispatches generated Slang kernels. Its device and
+simulation adapters allocate, transfer, synchronize, and dispatch; they do not
+contain alternate physics equations.
+
+No Metal device adapter is shipped. Cross-target generation of the shared AVBD
+module remains a compiler and reflection portability check; it does not expose
+a backend-specific runtime or advertise Metal execution.
 
 ## Compiler toolchain
 
@@ -33,10 +38,10 @@ in the build tree.
 ## Validation
 
 The portable AVBD test executes 38 fixtures against the host reference. The
-full mirror target compiles every shared entry point to CUDA and PTX. The
-architecture test rejects native physics kernels, direct physics launches,
-legacy consumer `World` dependencies, and dispatch adapters that are not backed
-by generated Slang.
+full mirror target compiles every shared command-runtime entry point to CUDA,
+PTX when available, and SPIR-V. The architecture test rejects native CUDA
+physics kernels, direct physics launches, legacy command-runtime `World`
+dependencies, and dispatch adapters that are not backed by generated Slang.
 
 ```sh
 cmake --build build --target parallel-mater-slang-geometry-constraints
@@ -45,8 +50,7 @@ ctest --test-dir build --output-on-failure \
   -R 'parallel-mater-(avbd|slang-kernel)'
 ```
 
-Compilation alone does not qualify runtime dispatch. A target becomes an
-advertised command-API capability after its schedule uses the shared Slang
-kernels, passes API and architecture checks, and completes gallery review on
-that target. Historical backend goldens and performance comparisons remain
-diagnostic data, not target-acceptance gates.
+Compilation alone does not qualify a command-API target. Its schedule must use
+the shared Slang kernels, pass API and architecture checks, and complete gallery
+review on that target. Retired backend-specific adapters are rejected by the
+architecture test.

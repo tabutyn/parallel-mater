@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Shared fluid/smoke coupling kernels.
+// Shared fluid-smoke coupling kernels.
 
 import types;
 import math;

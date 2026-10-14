@@ -123,6 +123,9 @@ After qualification, explicitly run `--update-goldens`, inspect all numerical
 diffs, and rerun the complete CTest suite. Retain its log and lossless gallery
 images alongside the package. Do not call a non-repeatable capture a golden.
 
-A future backend qualifies by running this same case registry through its
-loader driver and comparing the complete result directory. Backend-specific
-physics APIs and duplicate scene runners are not part of the contract.
+See [CUDA reference requirements](../../docs/CUDA_REFERENCE_REQUIREMENTS.md)
+for conditional first-divergent-phase instrumentation and the separate visual
+and performance handoffs. A future adapter must run this same case registry
+through the shared command API and compare the complete result directory.
+Backend-specific physics APIs, capture executables, and duplicate scene runners
+are not part of the canonical conformance contract.

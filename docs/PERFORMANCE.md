@@ -283,6 +283,9 @@ These focused passes do not override the wall-stability failures above.
 
 ## Historical Metal integration with main (2026-10-09; pre-AVBD)
 
+> The backend-specific Metal adapter, gallery, tests, and benchmarks described
+> below have been retired. Measurements are retained only as historical data.
+
 Merged upstream `85384f0` (PR #39) into the Metal optimization branch. The
 shared CPU/CUDA contact core, diagnostics, scene updates, and backend-specific
 gallery registries are retained. The documentation conflict preserved both
@@ -937,14 +940,9 @@ by narrow-phase evaluation (20 ms). Future work should improve utilization of
 that connected solve and reuse contact response calculations while continuing
 to pass the strict wall gate; previous prepared-response probes did not.
 
-Reproduce all three workloads:
-
-```bash
-cmake --build build-metal-gallery --target parallel-mater-metal-rigid-scene-benchmark
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario steering --mode sleep
-./build-metal-gallery/parallel-mater-metal-rigid-scene-benchmark --scenario impact --mode sleep
-```
+The former three-workload Metal benchmark executable has been removed with the
+compatibility adapter; these measurements are not reproducible from the current
+tree.
 
 ## Metal expanded-wall contact scheduling (Apple M4, 2026-10-08)
 

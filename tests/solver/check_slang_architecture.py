@@ -75,6 +75,24 @@ for api_source in sorted((ROOT / "src" / "api").glob("*")):
             r"parallel_mater::World\b", api_source.read_text()):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
+for retired_metal_path in (
+    "cmake/BuildMetalPhysics.cmake",
+    "include/parallel_mater/metal.hpp",
+    "src/metal",
+    "tests/metal",
+    "examples/metal_gallery",
+):
+    if (ROOT / retired_metal_path).exists():
+        failures.append(f"{retired_metal_path}: retired Metal adapter remains")
+for retired_metal_build_token in (
+    "option(PARALLEL_MATER_BUILD_METAL",
+    "ParallelMater::metal",
+    "parallel-mater-metal",
+):
+    if retired_metal_build_token in build_contract:
+        failures.append(
+            f"CMakeLists.txt: retired Metal adapter token {retired_metal_build_token}"
+        )
 for legacy_root in (ROOT / "tests", ROOT / "benchmarks"):
     for source in sorted(legacy_root.rglob("*")):
         if not source.is_file() or "metal" in source.parts:
@@ -180,6 +198,12 @@ for shader in sorted((ROOT / "src" / "slang").rglob("*.slang")):
     if shader.name == "device_intrinsics.slang":
         continue
     text = shader.read_text()
+    for retired_metal_token in ("PM_TARGET_METAL", "import metal_common"):
+        if retired_metal_token in text:
+            failures.append(
+                f"{shader.relative_to(ROOT)}: retired Metal adapter token "
+                f"{retired_metal_token}"
+            )
     for intrinsic in ("cudaBlockIdx()", "cudaThreadIdx()", "cudaBlockDim()"):
         if intrinsic in text:
             failures.append(

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Shared fluid and rope coupling kernels.
+// Shared fluid/rope coupling kernels.
 
 import types;
 import math;

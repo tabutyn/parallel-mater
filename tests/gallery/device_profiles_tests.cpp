@@ -444,7 +444,7 @@ int main() {
     legacy_profile->solver_version = slang_solver_version;
     check(find_matching_profile(legacy_profiles, profile.hardware,
               brick_render_width, brick_render_height, slang_solver_version) != nullptr,
-          "AVBD must accept matching Metal calibration");
+          "AVBD must accept matching shared solver calibration");
     auto mismatched_hardware = profile.hardware;
     mismatched_hardware.power_mode = "low-power";
     check(find_matching_profile(saved, mismatched_hardware) == nullptr,

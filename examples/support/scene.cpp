@@ -1800,5 +1800,4 @@ SceneDefinition make_dump_scene(std::uint32_t sphere_count) {
     return result;
 }
 
-
 } // namespace parallel_mater::gallery

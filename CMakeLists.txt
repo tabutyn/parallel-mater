@@ -55,6 +55,11 @@ option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Build the optional OptiX and glTF gallery" OFF)
 option(PARALLEL_MATER_BUILD_BENCHMARKS
        "Build local performance benchmark executables" OFF)
+if(PARALLEL_MATER_BUILD_METAL OR PARALLEL_MATER_BUILD_METAL_GALLERY)
+    message(FATAL_ERROR
+        "Backend-specific physics implementations are retired. Use the shared command API "
+        "with a validated Slang device adapter.")
+endif()
 if(DEFINED PARALLEL_MATER_BUILD_SLANG_AVBD AND
    NOT DEFINED PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
@@ -236,7 +241,7 @@ add_custom_command(
             ${PARALLEL_MATER_SLANG_GENERATED_DIR}
     COMMAND ${PARALLEL_MATER_SLANGC_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/slang/fluid.slang
-            -DPM_TARGET_METAL=0 -DPM_TARGET_CUDA=1
+            -DPM_TARGET_CUDA=1
             -entry pm_fluid_cell_keys
             -entry pm_fluid_forces
             -entry pm_fluid_integrate
@@ -1175,7 +1180,6 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
 endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
-
 
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
     include(cmake/SlangGeometryConstraints.cmake)

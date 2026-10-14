@@ -59,7 +59,7 @@ function(parallel_mater_add_slang_geometry_constraints)
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
             -target dxil -profile sm_6_6 -fp-mode precise -O2
             -warnings-as-errors all
-            -DPM_TARGET_D3D12=1 -DPM_TARGET_CUDA=0 -DPM_TARGET_METAL=0
+            -DPM_TARGET_D3D12=1 -DPM_TARGET_CUDA=0
             -DPM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
         add_custom_command(
             OUTPUT "${dxil_prepare}" "${dxil_prepare_reflection}"

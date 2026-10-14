@@ -1,6 +1,6 @@
 # Unified rigid AVBD solver
 
-The qualified CUDA driver consumes the numerical core generated from
+The production CUDA adapter consumes the numerical core generated from
 [one Slang implementation](SLANG.md); the same source is compiled for DXIL and
 MSL validation. The portable C++ header is the host reference used by equation
 fixtures. Collision geometry, graph construction, storage, synchronization,
@@ -20,8 +20,8 @@ native APIs provide execution and presentation rather than separate physics.
 ## Shared numerical core
 
 [geometry_constraints.slang](../src/slang/geometry_constraints.slang) is
-compiled into the production CUDA kernels and validation artifacts for other
-targets. It owns both the shared
+compiled into the production CUDA runtime and cross-target validation outputs.
+It owns both the shared
 AVBD numerical core and the migrating rigid contact/joint solver entry points.
 [geometry_constraints.hpp](../include/parallel_mater/solver/geometry_constraints.hpp)
 preserves
@@ -35,8 +35,8 @@ shared numerical core owns:
 - Corrective-phase reference forces, so total motor/friction bounds are not
   accidentally applied twice.
 
-Device adapters own geometry, persistent state, adjacency, vertex
-coloring and GPU synchronization. Static/kinematic endpoints are read-only.
+Device adapters own geometry, persistent state, adjacency, vertex coloring and
+GPU synchronization. Static/kinematic endpoints are read-only.
 Dynamic contact and joint edges connect islands; sharing a floor does not.
 CPU fixtures exercise the portable reference, while Slang reflection and PTX
 fixtures exercise generated code from the production source.
