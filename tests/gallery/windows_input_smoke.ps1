@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 param(
-    [string]$Executable = "$PSScriptRoot\..\..\build\Release\parallel-mater-gallery.exe",
+    [string]$Executable = "$PSScriptRoot\..\..\build\Release\Parallel-Mater.exe",
     [string]$Output = "$PSScriptRoot\..\..\build\input-smoke"
 )
 $ErrorActionPreference = 'Stop'

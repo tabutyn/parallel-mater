@@ -744,25 +744,6 @@ add_library(
     src/fluid_source.cpp
     src/soft_body_geometry.cpp
     src/rope_geometry.cpp)
-if(Vulkan_FOUND)
-    add_library(parallel-mater-vulkan-executor STATIC
-        src/device/vulkan_executor.cpp)
-    set_target_properties(parallel-mater-vulkan-executor PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        CXX_STANDARD 20
-        CXX_STANDARD_REQUIRED YES)
-    target_include_directories(parallel-mater-vulkan-executor
-        PUBLIC src include ${Vulkan_INCLUDE_DIRS})
-    target_link_libraries(parallel-mater-vulkan-executor PUBLIC Vulkan::Vulkan)
-    parallel_mater_enable_warnings(parallel-mater-vulkan-executor)
-    target_sources(parallel-mater-driver-slang-cuda PRIVATE
-        src/api/interop_vulkan.cpp)
-    target_include_directories(parallel-mater-driver-slang-cuda PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
-        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
-    target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
-        parallel-mater-vulkan-executor)
-endif()
 set_source_files_properties(
     ${PARALLEL_MATER_FLUID_CUDA_SOURCE}
     ${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CUDA_SOURCE}
@@ -862,19 +843,6 @@ file(GENERATE
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
-    if(Vulkan_FOUND)
-        add_executable(parallel-mater-vulkan-executor-tests
-            tests/vulkan_executor_tests.cpp)
-        target_compile_features(parallel-mater-vulkan-executor-tests
-            PRIVATE cxx_std_20)
-        target_link_libraries(parallel-mater-vulkan-executor-tests
-            PRIVATE parallel-mater-vulkan-executor)
-        add_test(NAME parallel-mater-vulkan-executor-tests
-            COMMAND parallel-mater-vulkan-executor-tests)
-        set_tests_properties(parallel-mater-vulkan-executor-tests PROPERTIES
-            LABELS "device;vulkan" SKIP_RETURN_CODE 77)
-    endif()
-
     add_executable(parallel-mater-driver-abi-tests
         tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-driver-abi-tests PRIVATE include)
@@ -1005,14 +973,11 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     endif()
 
     FetchContent_Declare(
-        parallel_mater_optix_dev
+        pm_optix
         GIT_REPOSITORY https://github.com/NVIDIA/optix-dev.git
         GIT_TAG fff65c2a7c592f1ea5f1661ad7d2381cf965f9bd
         GIT_SHALLOW TRUE)
-    FetchContent_GetProperties(parallel_mater_optix_dev)
-    if(NOT parallel_mater_optix_dev_POPULATED)
-        FetchContent_Populate(parallel_mater_optix_dev)
-    endif()
+    FetchContent_MakeAvailable(pm_optix)
 
     find_package(OpenGL REQUIRED)
     find_package(glfw3 3.3 QUIET)
@@ -1052,7 +1017,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
             --gpu-architecture=compute_${parallel_mater_optix_architecture}
             --use_fast_math
             --generate-line-info
-            -I${parallel_mater_optix_dev_SOURCE_DIR}/include
+            -I${pm_optix_SOURCE_DIR}/include
             -I${CMAKE_CURRENT_SOURCE_DIR}/examples/support
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/support/optix_device.cu
             -o ${PARALLEL_MATER_OPTIX_PTX}
@@ -1076,7 +1041,7 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
         PUBLIC examples/support/include
         PRIVATE
             examples/support
-            ${parallel_mater_optix_dev_SOURCE_DIR}/include)
+            ${pm_optix_SOURCE_DIR}/include)
     target_link_libraries(
         parallel-mater-gallery-renderer
         PUBLIC parallel-mater-gallery-scene
@@ -1116,6 +1081,8 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
     if(WIN32)
         target_sources(parallel-mater-gallery PRIVATE
                        "${PARALLEL_MATER_GALLERY_ICON_RESOURCE}")
+        set_target_properties(parallel-mater-gallery PROPERTIES
+            OUTPUT_NAME "Parallel-Mater")
     endif()
     set(PARALLEL_MATER_GALLERY_PROFILE_CATALOG
         "${CMAKE_CURRENT_BINARY_DIR}/config/device-profiles.json")
@@ -1166,6 +1133,17 @@ if(PARALLEL_MATER_BUILD_OPTIX_GALLERY)
                 "${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
                 "$<TARGET_FILE_DIR:parallel-mater-gallery>/config/device-profiles.json"
         VERBATIM)
+    if(WIN32)
+        add_custom_target(install-windows-gallery
+            COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+                -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1"
+                -BuildDirectory "$<TARGET_FILE_DIR:parallel-mater-gallery>"
+                -Version "${PROJECT_VERSION}"
+            DEPENDS parallel-mater-gallery
+            COMMENT "Installing Parallel-Mater for the current user"
+            USES_TERMINAL
+            VERBATIM)
+    endif()
 endif()
 
 if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
@@ -1644,7 +1622,7 @@ if(BUILD_TESTING AND PARALLEL_MATER_BUILD_REFERENCE_RUNTIME_TESTS)
         add_executable(parallel-mater-fluid-surface-tests
                        tests/gallery/fluid_surface_tests.cpp)
         target_include_directories(parallel-mater-fluid-surface-tests PRIVATE
-            examples/support ${parallel_mater_optix_dev_SOURCE_DIR}/include)
+            examples/support ${pm_optix_SOURCE_DIR}/include)
         target_link_libraries(parallel-mater-fluid-surface-tests PRIVATE
             parallel-mater-gallery-renderer CUDA::cudart)
         target_compile_definitions(parallel-mater-fluid-surface-tests PRIVATE
