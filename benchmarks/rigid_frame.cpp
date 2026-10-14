@@ -2,7 +2,7 @@
 #include "support.hpp"
 
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/optix_renderer.hpp>
+#include <parallel_mater_gallery/renderer.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
@@ -49,15 +49,14 @@ int main(int argc, char **argv) {
     CommandScene simulation;
     CommandSceneFrame simulation_frame;
     RenderSceneFrame render_frame;
-    OptixRenderer renderer;
+    RendererHandle renderer;
     std::string error;
     // Match the interactive gallery's capture ring, but keep kernel profiling
     // and overlays disabled. Time one fixed physics step plus a complete
     // 960x720 render/readback; window upload/presentation is excluded.
     if (!load_glb_scene(argv[1], scene, error) ||
         !CommandScene::create(scene, 30U, simulation, instance, error) ||
-        !OptixRenderer::create(scene, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
-                              960U, 720U, renderer, error)) {
+        !create_renderer(scene, instance, 960U, 720U, renderer, error)) {
         std::cerr << error << '\n';
         return 1;
     }

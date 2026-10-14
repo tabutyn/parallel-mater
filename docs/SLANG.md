@@ -18,6 +18,13 @@ The command-API CUDA driver dispatches generated Slang kernels. Its device and
 simulation adapters allocate, transfer, synchronize, and dispatch; they do not
 contain alternate physics equations.
 
+The Windows D3D12 driver embeds the DXIL generated from the same AVBD prepare
+and solve entries. Device creation builds both compute pipelines, binds every
+reflected UAV/constant resource, dispatches a zero-body schedule, inserts a UAV
+barrier, fences, reads the schedule back, and validates its counters. Its public
+command path currently exposes only core transfer services, so it does not
+advertise rigid-body or other physics features yet.
+
 No Metal device adapter is shipped. Cross-target generation of the shared AVBD
 module remains a compiler and reflection portability check; it does not expose
 a backend-specific runtime or advertise Metal execution.
