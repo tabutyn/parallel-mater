@@ -59,8 +59,27 @@ for api_source in sorted((ROOT / "src" / "api").glob("*")):
             r"parallel_mater::World\b", api_source.read_text()):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
-if "Backend-specific physics implementations are retired" not in cmake:
-    failures.append("CMakeLists.txt: retired native physics builds are not rejected")
+for required_metal_slang in (
+    "src/slang/rigid_narrowphase.slang",
+    "src/slang/rigid_constraints.slang",
+    "src/slang/particle_rigid.slang",
+    "src/slang/cloth_rigid.slang",
+    "src/slang/rope_step.slang",
+):
+    if required_metal_slang not in cmake:
+        failures.append(
+            f"CMakeLists.txt: Metal compatibility build omits {required_metal_slang}"
+        )
+for native_metal in sorted((ROOT / "src" / "metal").glob("*.metal")):
+    failures.append(
+        f"{native_metal.relative_to(ROOT)}: native Metal source remains"
+    )
+for retired_metal in (
+    "src/metal/kernels.metal",
+    "src/metal/geometry_constraints.metal",
+):
+    if retired_metal in cmake:
+        failures.append(f"CMakeLists.txt: retired native Metal source {retired_metal}")
 retired_headers = {
     "cloth.cuh",
     "cloth_rope.cuh",

@@ -3,7 +3,7 @@
 
 import types;
 
-#ifdef PM_TARGET_VULKAN
+#if defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL)
 public in uint3 pmVulkanGroupId : SV_GroupID;
 public in uint3 pmVulkanGroupThreadId : SV_GroupThreadID;
 public in uint3 pmVulkanDispatchThreadId : SV_DispatchThreadID;
@@ -121,7 +121,7 @@ public void pmGridBarrier()
 }
 #endif
 
-#ifdef PM_TARGET_VULKAN
+#if defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL)
 public uint pmThreadIndex() { return pmVulkanDispatchThreadId.x; }
 #endif
 

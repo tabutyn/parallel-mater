@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Shared soft-body and deformable simulation kernels.
 
+#ifdef PM_TARGET_METAL
+import metal_common;
+#else
 import types;
 import math;
 import device_intrinsics;
+#endif
 
+#ifndef PM_TARGET_METAL
 static const uint kSoftReductionThreads = 128u;
 groupshared Vec3 softValuesA[kSoftReductionThreads];
 groupshared Vec3 softValuesB[kSoftReductionThreads];
@@ -587,3 +592,413 @@ void soft_body_update_surface(
     }
     surface_positions[vertex] = add(surface_rest_positions[vertex], delta);
 }
+#endif
+
+#ifdef PM_TARGET_METAL
+groupshared float metalSoftScalarTerms[128];
+groupshared float3 metalSoftCurrentTerms[128];
+groupshared float3 metalSoftRestTerms[128];
+groupshared float metalSoftMovableMass;
+groupshared float3 metalSoftCurrentCenter;
+groupshared float3 metalSoftRestCenter;
+groupshared float3 metalSoftRestCovariance[3];
+groupshared float3 metalSoftCovariance[3];
+groupshared MetalQuaternion metalSoftOrientation;
+groupshared float3 metalSoftCenterCorrection;
+groupshared float metalSoftMaximumProjection;
+groupshared uint metalSoftValid;
+
+[[vk::binding(0, 0)]] RWStructuredBuffer<MetalPackedVec3>
+    metalSoftPositions : register(u0);
+[[vk::binding(1, 0)]] RWStructuredBuffer<MetalPackedVec3>
+    metalSoftPrevious : register(u1);
+[[vk::binding(2, 0)]] RWStructuredBuffer<MetalPackedVec3>
+    metalSoftVelocities : register(u2);
+[[vk::binding(3, 0)]] StructuredBuffer<float>
+    metalSoftInverseMasses : register(t3);
+[[vk::binding(4, 0)]] StructuredBuffer<MetalBond>
+    metalSoftBonds : register(t4);
+[[vk::binding(5, 0)]] RWStructuredBuffer<MetalPackedVec3>
+    metalSoftSurfacePositions : register(u5);
+[[vk::binding(6, 0)]] StructuredBuffer<MetalPackedVec3>
+    metalSoftSurfaceRest : register(t6);
+[[vk::binding(7, 0)]] StructuredBuffer<MetalSurfaceBinding>
+    metalSoftSurfaceBindings : register(t7);
+[[vk::binding(8, 0)]] ConstantBuffer<MetalDeformableConstants>
+    metalSoftConstants : register(b8);
+[[vk::binding(9, 0)]] StructuredBuffer<MetalPackedVec3>
+    metalSoftRestPositions : register(t9);
+[[vk::binding(10, 0)]] RWStructuredBuffer<MetalPackedVec3>
+    metalSoftCorrections : register(u10);
+[[vk::binding(11, 0)]] RWStructuredBuffer<MetalQuaternion>
+    metalSoftStoredOrientation : register(u11);
+[[vk::binding(12, 0)]] StructuredBuffer<MetalSoftContactState>
+    metalSoftContactState : register(t12);
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_predict(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    metalIntegrateDeformableNode(
+        metalSoftPositions, metalSoftPrevious, metalSoftVelocities,
+        metalSoftInverseMasses, metalSoftConstants, dispatchThreadId.x);
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_project_bonds(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint node = dispatchThreadId.x;
+    MetalDeformableConstants constants = metalSoftConstants;
+    if (node >= constants.count) return;
+    float3 position = metalLoad(metalSoftPositions[node]);
+    float selfInverse = metalSoftInverseMasses[node];
+    if (selfInverse <= 0.0f)
+    {
+        metalSoftCorrections[node] = metalSoftPositions[node];
+        return;
+    }
+    float3 correction = float3(0.0f);
+    float shortestRestLength = 3.402823466e+38f;
+    uint degree = 0u;
+    for (uint index = 0u; index < constants.bond_count; ++index)
+    {
+        MetalBond bond = metalSoftBonds[index];
+        uint other = constants.count;
+        if (bond.first == node) other = bond.second;
+        else if (bond.second == node) other = bond.first;
+        if (other >= constants.count) continue;
+        ++degree;
+        if (bond.active == 0u) continue;
+        shortestRestLength = min(shortestRestLength, bond.rest_length);
+        float3 difference =
+            position - metalLoad(metalSoftPositions[other]);
+        float currentLength = length(difference);
+        if (currentLength <= 1.0e-7f) continue;
+        float denominator = selfInverse + metalSoftInverseMasses[other] +
+            bond.compliance /
+                max(constants.timestep * constants.timestep, 1.0e-12f);
+        if (denominator <= 0.0f) continue;
+        correction += difference *
+            (-selfInverse * (currentLength - bond.rest_length) /
+             (denominator * currentLength));
+    }
+    float3 proposal = correction / float(max(degree, 1u));
+    if (constants.maximum_projection_fraction > 0.0f &&
+        shortestRestLength < 3.402823466e+38f)
+        proposal = metalLimit(proposal,
+            constants.maximum_projection_fraction * shortestRestLength);
+    metalSoftCorrections[node] = metalStore(position + proposal);
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_apply_bonds(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint node = dispatchThreadId.x;
+    if (node < metalSoftConstants.count)
+        metalSoftPositions[node] = metalSoftCorrections[node];
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+public void pm_soft_body_shape_matching(uint groupIndex : SV_GroupIndex)
+{
+    if (metalSoftContactState[0].dynamic_contact_flag != 0u) return;
+    uint lane = groupIndex;
+    MetalDeformableConstants constants = metalSoftConstants;
+    if (lane == 0u)
+    {
+        metalSoftMovableMass = 0.0f;
+        metalSoftCurrentCenter = float3(0.0f);
+        metalSoftRestCenter = float3(0.0f);
+        metalSoftCenterCorrection = float3(0.0f);
+        metalSoftMaximumProjection = 3.402823466e+38f;
+    }
+    pmGroupBarrier();
+    for (uint wave = 0u; wave < constants.count; wave += 128u)
+    {
+        uint node = wave + lane;
+        float mass = 0.0f;
+        float3 current = float3(0.0f);
+        float3 rest = float3(0.0f);
+        if (node < constants.count && metalSoftInverseMasses[node] > 0.0f)
+        {
+            mass = 1.0f / metalSoftInverseMasses[node];
+            current = metalLoad(metalSoftPositions[node]) * mass;
+            rest = metalLoad(metalSoftRestPositions[node]) * mass;
+        }
+        metalSoftScalarTerms[lane] = mass;
+        metalSoftCurrentTerms[lane] = current;
+        metalSoftRestTerms[lane] = rest;
+        pmGroupBarrier();
+        if (lane == 0u)
+        {
+            uint count = min(128u, constants.count - wave);
+            for (uint item = 0u; item < count; ++item)
+            {
+                metalSoftMovableMass += metalSoftScalarTerms[item];
+                metalSoftCurrentCenter += metalSoftCurrentTerms[item];
+                metalSoftRestCenter += metalSoftRestTerms[item];
+            }
+        }
+        pmGroupBarrier();
+    }
+    if (lane == 0u)
+    {
+        metalSoftValid = metalSoftMovableMass > 0.0f ? 1u : 0u;
+        if (metalSoftValid != 0u)
+        {
+            metalSoftCurrentCenter /= metalSoftMovableMass;
+            metalSoftRestCenter /= metalSoftMovableMass;
+        }
+        for (uint column = 0u; column < 3u; ++column)
+        {
+            metalSoftRestCovariance[column] = float3(0.0f);
+            metalSoftCovariance[column] = float3(0.0f);
+        }
+    }
+    pmGroupBarrier();
+
+    for (uint column = 0u; column < 3u; ++column)
+    {
+        for (uint wave = 0u; wave < constants.count; wave += 128u)
+        {
+            uint node = wave + lane;
+            float3 restTerm = float3(0.0f);
+            float3 currentTerm = float3(0.0f);
+            if (metalSoftValid != 0u && node < constants.count &&
+                metalSoftInverseMasses[node] > 0.0f)
+            {
+                float mass = 1.0f / metalSoftInverseMasses[node];
+                float3 rest = metalLoad(metalSoftRestPositions[node]) -
+                    metalSoftRestCenter;
+                float3 current = metalLoad(metalSoftPositions[node]) -
+                    metalSoftCurrentCenter;
+                restTerm = rest * (mass * rest[column]);
+                currentTerm = current * (mass * rest[column]);
+            }
+            metalSoftRestTerms[lane] = restTerm;
+            metalSoftCurrentTerms[lane] = currentTerm;
+            pmGroupBarrier();
+            if (lane == 0u)
+            {
+                uint count = min(128u, constants.count - wave);
+                for (uint item = 0u; item < count; ++item)
+                {
+                    metalSoftRestCovariance[column] +=
+                        metalSoftRestTerms[item];
+                    metalSoftCovariance[column] +=
+                        metalSoftCurrentTerms[item];
+                }
+            }
+            pmGroupBarrier();
+        }
+    }
+    if (lane == 0u && metalSoftValid != 0u)
+    {
+        float3 inverseRow0 = cross(
+            metalSoftRestCovariance[1], metalSoftRestCovariance[2]);
+        float3 inverseRow1 = cross(
+            metalSoftRestCovariance[2], metalSoftRestCovariance[0]);
+        float3 inverseRow2 = cross(
+            metalSoftRestCovariance[0], metalSoftRestCovariance[1]);
+        float determinant = dot(metalSoftRestCovariance[0], inverseRow0);
+        metalSoftValid = abs(determinant) > 1.0e-10f ? 1u : 0u;
+        if (metalSoftValid != 0u)
+        {
+            float inverseDeterminant = 1.0f / determinant;
+            float3 inverseRest0 = float3(
+                inverseRow0.x, inverseRow1.x, inverseRow2.x) *
+                inverseDeterminant;
+            float3 inverseRest1 = float3(
+                inverseRow0.y, inverseRow1.y, inverseRow2.y) *
+                inverseDeterminant;
+            float3 inverseRest2 = float3(
+                inverseRow0.z, inverseRow1.z, inverseRow2.z) *
+                inverseDeterminant;
+            float3 deformation0 =
+                metalSoftCovariance[0] * inverseRest0.x +
+                metalSoftCovariance[1] * inverseRest0.y +
+                metalSoftCovariance[2] * inverseRest0.z;
+            float3 deformation1 =
+                metalSoftCovariance[0] * inverseRest1.x +
+                metalSoftCovariance[1] * inverseRest1.y +
+                metalSoftCovariance[2] * inverseRest1.z;
+            float3 deformation2 =
+                metalSoftCovariance[0] * inverseRest2.x +
+                metalSoftCovariance[1] * inverseRest2.y +
+                metalSoftCovariance[2] * inverseRest2.z;
+            MetalQuaternion orientation = metalQuaternionNormalize(
+                metalSoftStoredOrientation[0]);
+            if (orientation.x == 0.0f && orientation.y == 0.0f &&
+                orientation.z == 0.0f && orientation.w == 0.0f)
+            {
+                orientation.x = 0.0f;
+                orientation.y = 0.0f;
+                orientation.z = 0.0f;
+                orientation.w = 1.0f;
+            }
+            for (uint iteration = 0u; iteration < 12u; ++iteration)
+            {
+                float3 axis0 = metalRotate(
+                    orientation, float3(1.0f, 0.0f, 0.0f));
+                float3 axis1 = metalRotate(
+                    orientation, float3(0.0f, 1.0f, 0.0f));
+                float3 axis2 = metalRotate(
+                    orientation, float3(0.0f, 0.0f, 1.0f));
+                float3 angular = cross(axis0, deformation0) +
+                    cross(axis1, deformation1) +
+                    cross(axis2, deformation2);
+                float denominator = abs(dot(axis0, deformation0) +
+                    dot(axis1, deformation1) +
+                    dot(axis2, deformation2)) + 1.0e-9f;
+                angular /= denominator;
+                float magnitude = length(angular);
+                if (magnitude < 1.0e-6f) break;
+                float angle = min(magnitude, 0.5f);
+                float halfAngle = 0.5f * angle;
+                float3 axis = angular / magnitude;
+                MetalQuaternion delta;
+                delta.x = axis.x * sin(halfAngle);
+                delta.y = axis.y * sin(halfAngle);
+                delta.z = axis.z * sin(halfAngle);
+                delta.w = cos(halfAngle);
+                orientation = metalQuaternionNormalize(
+                    metalQuaternionMultiply(delta, orientation));
+            }
+            metalSoftStoredOrientation[0] = orientation;
+            metalSoftOrientation = orientation;
+            float shortest = 3.402823466e+38f;
+            for (uint bond = 0u; bond < constants.bond_count; ++bond)
+                shortest = min(shortest, metalSoftBonds[bond].rest_length);
+            metalSoftMaximumProjection =
+                shortest * constants.maximum_projection_fraction;
+        }
+    }
+    pmGroupBarrier();
+
+    for (uint wave = 0u; wave < constants.count; wave += 128u)
+    {
+        uint node = wave + lane;
+        float3 weighted = float3(0.0f);
+        if (node < constants.count)
+        {
+            float3 correction = float3(0.0f);
+            if (metalSoftValid != 0u &&
+                metalSoftInverseMasses[node] > 0.0f)
+            {
+                float3 target = metalSoftCurrentCenter + metalRotate(
+                    metalSoftOrientation,
+                    metalLoad(metalSoftRestPositions[node]) -
+                        metalSoftRestCenter);
+                correction = metalLimit(
+                    (target - metalLoad(metalSoftPositions[node])) *
+                        constants.shape_matching_stiffness,
+                    metalSoftMaximumProjection);
+                weighted = correction / metalSoftInverseMasses[node];
+            }
+            metalSoftCorrections[node] = metalStore(correction);
+        }
+        metalSoftCurrentTerms[lane] = weighted;
+        AllMemoryBarrierWithGroupSync();
+        if (lane == 0u)
+        {
+            uint count = min(128u, constants.count - wave);
+            for (uint item = 0u; item < count; ++item)
+                metalSoftCenterCorrection += metalSoftCurrentTerms[item];
+        }
+        pmGroupBarrier();
+    }
+    if (lane == 0u && metalSoftValid != 0u)
+        metalSoftCenterCorrection /= metalSoftMovableMass;
+    pmGroupBarrier();
+    if (metalSoftValid == 0u) return;
+    for (uint node = lane; node < constants.count; node += 128u)
+        if (metalSoftInverseMasses[node] > 0.0f)
+            metalSoftPositions[node] = metalStore(
+                metalLoad(metalSoftPositions[node]) +
+                metalLoad(metalSoftCorrections[node]) -
+                metalSoftCenterCorrection);
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_finalize(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    metalFinalizeDeformableNode(
+        metalSoftPositions, metalSoftPrevious, metalSoftVelocities,
+        metalSoftInverseMasses, metalSoftConstants, dispatchThreadId.x);
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_damping_prepare(
+    uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint node = dispatchThreadId.x;
+    MetalDeformableConstants constants = metalSoftConstants;
+    if (node >= constants.count || constants.spring_damping <= 0.0f) return;
+    if (metalSoftInverseMasses[node] <= 0.0f)
+    {
+        metalSoftCorrections[node] = metalStore(float3(0.0f));
+        return;
+    }
+    float3 correction = float3(0.0f);
+    uint activeCount = 0u;
+    for (uint bondIndex = 0u; bondIndex < constants.bond_count; ++bondIndex)
+    {
+        MetalBond bond = metalSoftBonds[bondIndex];
+        uint other = constants.count;
+        if (bond.first == node) other = bond.second;
+        if (bond.second == node) other = bond.first;
+        if (other >= constants.count || bond.active == 0u) continue;
+        float3 difference = metalLoad(metalSoftPositions[other]) -
+            metalLoad(metalSoftPositions[node]);
+        if (dot(difference, difference) <= 1.0e-12f) continue;
+        float3 axis = normalize(difference);
+        correction += axis * dot(
+            metalLoad(metalSoftVelocities[other]) -
+                metalLoad(metalSoftVelocities[node]), axis);
+        ++activeCount;
+    }
+    if (activeCount != 0u)
+        correction *= 0.5f * constants.spring_damping / float(activeCount);
+    metalSoftCorrections[node] = metalStore(metalLimit(
+        metalLoad(metalSoftVelocities[node]) + correction,
+        constants.maximum_speed));
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_damping_apply(
+    uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint node = dispatchThreadId.x;
+    MetalDeformableConstants constants = metalSoftConstants;
+    if (node >= constants.count || constants.spring_damping <= 0.0f) return;
+    metalSoftVelocities[node] = metalSoftCorrections[node];
+}
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+public void pm_soft_body_surface_update(
+    uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint surfaceIndex = dispatchThreadId.x;
+    MetalDeformableConstants constants = metalSoftConstants;
+    if (surfaceIndex >= constants.surface_count) return;
+    float3 delta = float3(0.0f);
+    MetalSurfaceBinding binding = metalSoftSurfaceBindings[surfaceIndex];
+    for (uint index = 0u; index < 4u; ++index)
+    {
+        uint node = binding.nodes[index];
+        if (node < constants.count)
+            delta += (metalLoad(metalSoftPositions[node]) -
+                metalLoad(metalSoftRestPositions[node])) *
+                binding.weights[index];
+    }
+    metalSoftSurfacePositions[surfaceIndex] = metalStore(
+        metalLoad(metalSoftSurfaceRest[surfaceIndex]) + delta);
+}
+#endif

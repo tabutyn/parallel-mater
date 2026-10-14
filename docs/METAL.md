@@ -4,13 +4,17 @@ The Metal backend is additive. The CUDA API, `ParallelMater::parallel_mater`
 target, OptiX gallery, and CUDA implementation remain unchanged when
 `PARALLEL_MATER_BUILD_CUDA=ON`.
 
-## AVBD migration status (2026-10-09)
+## Slang migration status (2026-10-13)
 
-Rigid contacts and joints now use the same numerical AVBD header as CUDA,
-with a Metal geometry/scheduling adapter. The former contact-row, compound
-and guided-projection solve paths are removed. The automatic budget starts at
-ten iterations per phase and can be raised by active authored joints; impact
-correction uses the same body blocks in a second phase. See
+Every Metal physics kernel is now generated from Slang. The compatibility
+runtime retains its packed buffer ABI and Objective-C++ scheduler, while rigid
+broad phase, narrow phase, AVBD constraints, particles, cloth, rope, fluids,
+smoke, soft bodies, paint, and coupling passes are authored as Slang modules.
+The old native `kernels.metal` and `geometry_constraints.metal` sources are
+removed. Rigid contacts and joints use the shared numerical AVBD core. The
+automatic budget starts at ten iterations per phase and can be raised by
+active authored joints; impact correction uses the same body blocks in a
+second phase. See
 [CONTACT_SOLVER.md](CONTACT_SOLVER.md) for equations, diagnostics and limits.
 
 Rigid sleeping is conservatively disabled while its previous state machinery
@@ -18,12 +22,11 @@ is replaced: sleep options remain accepted, but bodies stay awake. Shared
 graph preparation caches 512 bodies/contacts and 64 joints in 22,016 bytes of
 threadgroup storage; overflow uses the same graph algorithm in device memory.
 
-Linux translated shader syntax, host/shader layouts and graph-cache boundary
-checks pass. These are not native Metal compiler or device tests. The wall,
-sleeping, performance and 29-scene acceptance results below are **historical
-pre-AVBD results** and must be rerun on an Apple host. CUDA numerical tests
-alone do not establish Metal parity; the existing guided-contact collision
-adapter differences also remain.
+On Apple Metal 4, the generated MSL, AIR, metallib, first-context test, and all
+gallery contexts pass. The non-gallery suite passes 27 of 30 tests. The three
+remaining failures predate this source migration: rigid per-phase timing
+availability, compound-weld momentum/pose preservation, and brick-wall static
+support. CUDA goldens remain retired and are not a Metal acceptance gate.
 
 ## Historical opening gallery scene status (pre-AVBD)
 

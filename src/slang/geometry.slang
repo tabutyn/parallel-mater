@@ -378,15 +378,15 @@ bool constrained_collision_disabled(
 {
     for (uint index = 0u; index < capacity; ++index)
     {
-        RigidConstraintResource* constraint = &constraints[index];
-        if (!constraint->alive || !constraint->options.enabled ||
-            constraint->state.broken ||
-            !constraint->options.disable_collisions)
+        RigidConstraintResource constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken ||
+            !constraint.options.disable_collisions)
             continue;
-        if ((same_id(constraint->options.body_a, a) &&
-             same_id(constraint->options.body_b, b)) ||
-            (same_id(constraint->options.body_a, b) &&
-             same_id(constraint->options.body_b, a))) return true;
+        if ((same_id(constraint.options.body_a, a) &&
+             same_id(constraint.options.body_b, b)) ||
+            (same_id(constraint.options.body_a, b) &&
+             same_id(constraint.options.body_b, a))) return true;
     }
     return false;
 }
@@ -1841,9 +1841,7 @@ void pm_evaluate_rigid_leaf_pairs(
              wave += pmGroupSize().x * blocks_per_pair)
         {
             uint candidate = wave + lane;
-            ContactManifold* local = &rigidLeafWorkerManifolds[lane];
-            local->count = 0u;
-            local->face_patch = false;
+            ContactManifold local = {};
             if (candidate < candidateCount)
             {
                 LeafPair range = leaf_pairs[
@@ -1857,7 +1855,7 @@ void pm_evaluate_rigid_leaf_pairs(
                     previous_states[b], states[b],
                     rigidLeafColliderHinge, range.collider_first,
                     range.collider_count, rigidLeafMargin, timestep,
-                    *local);
+                    local);
                 if (rigidLeafSwept != 0u)
                     rigid_collide_triangle_ranges_swept(
                         previous_states[a], states[a],
@@ -1869,10 +1867,11 @@ void pm_evaluate_rigid_leaf_pairs(
                         meshes[parameters[b].mesh.index],
                         range.collider_first, range.collider_count,
                         rigidLeafColliderHinge, rigidLeafMargin,
-                        timestep, *local);
+                        timestep, local);
+                rigidLeafWorkerManifolds[lane] = local;
                 if (leaf_manifolds != nullptr)
                     leaf_manifolds[
-                        activeIndex * leaf_pairs_per_slot + candidate] = *local;
+                        activeIndex * leaf_pairs_per_slot + candidate] = local;
             }
             pmGroupBarrier();
             if (leaf_manifolds == nullptr && lane == 0u)
@@ -1915,10 +1914,10 @@ void pm_reduce_rigid_leaf_manifolds(
     ContactManifold result = {};
     for (uint candidate = 0u; candidate < candidates; ++candidate)
     {
-        ContactManifold* local = &leaf_manifolds[
+        ContactManifold local = leaf_manifolds[
             activeIndex * leaf_pairs_per_slot + candidate];
-        for (uint contact = 0u; contact < local->count; ++contact)
-            rigid_add_contact(result, local->contacts[contact], spacing);
+        for (uint contact = 0u; contact < local.count; ++contact)
+            rigid_add_contact(result, local.contacts[contact], spacing);
     }
     manifolds[activeIndex] = result;
 }
@@ -2094,27 +2093,27 @@ void pm_load_rigid_contact_cache(
     uint pair = active_pairs[active], slot = slots[pair];
     uint body = pair / body_count, collider = pair % body_count;
     if (slot >= capacity) return;
-    CachedContactPair* saved = &cache[slot];
-    if (saved->pair != pair || saved->epoch + 1ull != epoch ||
-        !same_id(saved->body, ids[body]) ||
-        !same_id(saved->collider, ids[collider]) ||
-        abs(saved->timestep - timestep) > 1.0e-7f) return;
-    ContactManifold* manifold = &manifolds[active];
+    CachedContactPair saved = cache[slot];
+    if (saved.pair != pair || saved.epoch + 1ull != epoch ||
+        !same_id(saved.body, ids[body]) ||
+        !same_id(saved.collider, ids[collider]) ||
+        abs(saved.timestep - timestep) > 1.0e-7f) return;
+    ContactManifold manifold = manifolds[active];
     uint used = 0u;
-    for (uint point = 0u; point < manifold->count; ++point)
+    for (uint point = 0u; point < manifold.count; ++point)
     {
-        Contact contact = manifold->contacts[point];
+        Contact contact = manifold.contacts[point];
         Vec3 local = inverse_rotate(states[body].orientation,
             subtract(contact.point, states[body].position));
         float nearest = 0.02f * 0.02f;
         uint match = 8u;
-        for (uint previous = 0u; previous < saved->count; ++previous)
+        for (uint previous = 0u; previous < saved.count; ++previous)
         {
             if ((used & (1u << previous)) != 0u ||
-                dot(contact.normal, saved->contacts[previous].normal) < 0.99f)
+                dot(contact.normal, saved.contacts[previous].normal) < 0.99f)
                 continue;
             float distance = length_squared(subtract(
-                local, saved->contacts[previous].local_point));
+                local, saved.contacts[previous].local_point));
             if (distance < nearest)
             {
                 nearest = distance;
@@ -2123,7 +2122,7 @@ void pm_load_rigid_contact_cache(
         }
         if (match == 8u) continue;
         used |= 1u << match;
-        CachedContact previous = saved->contacts[match];
+        CachedContact previous = saved.contacts[match];
         for (uint axis = 0u; axis < 3u; ++axis)
             contact.avbd_dual[axis] = previous.avbd_dual[axis];
         Vec3 tangent0 = normalized_or(cross(contact.normal,
@@ -2143,8 +2142,9 @@ void pm_load_rigid_contact_cache(
         contact.accumulated_friction_impulse = subtract(
             previous.friction_impulse, multiply(contact.normal,
                 dot(previous.friction_impulse, contact.normal)));
-        manifold->contacts[point] = contact;
+        manifold.contacts[point] = contact;
     }
+    manifolds[active] = manifold;
 }
 
 [shader("compute")]
@@ -2162,15 +2162,15 @@ void pm_save_rigid_contact_cache(
     if (active >= *active_count) return;
     uint pair = active_pairs[active];
     uint body = pair / body_count, collider = pair % body_count;
-    ContactManifold* manifold = &manifolds[active];
+    ContactManifold manifold = manifolds[active];
     if (event_capacity > 0u)
     {
         uint offset = event_offsets[active];
-        for (uint point = 0u; point < manifold->count &&
+        for (uint point = 0u; point < manifold.count &&
              offset < event_capacity && point < event_capacity - offset;
              ++point)
         {
-            Contact contact = manifold->contacts[point];
+            Contact contact = manifold.contacts[point];
             events[offset + point].normal_impulse = contact.persistent
                 ? contact.accumulated_normal_impulse
                 : contact.reported_normal_impulse;
@@ -2179,31 +2179,32 @@ void pm_save_rigid_contact_cache(
                 : contact.reported_friction_impulse;
         }
     }
-    if (manifold->response_slot >= capacity) return;
-    CachedContactPair* saved = &cache[manifold->response_slot];
-    saved->pair = pair;
-    saved->body = ids[body];
-    saved->collider = ids[collider];
-    saved->epoch = epoch;
-    saved->timestep = timestep;
-    saved->count = manifold->count;
-    for (uint point = 0u; point < saved->count; ++point)
+    if (manifold.response_slot >= capacity) return;
+    CachedContactPair saved = {};
+    saved.pair = pair;
+    saved.body = ids[body];
+    saved.collider = ids[collider];
+    saved.epoch = epoch;
+    saved.timestep = timestep;
+    saved.count = manifold.count;
+    for (uint point = 0u; point < saved.count; ++point)
     {
-        Contact contact = manifold->contacts[point];
-        saved->contacts[point].local_point = inverse_rotate(
+        Contact contact = manifold.contacts[point];
+        saved.contacts[point].local_point = inverse_rotate(
             states[body].orientation,
             subtract(contact.point, states[body].position));
-        saved->contacts[point].normal = contact.normal;
-        saved->contacts[point].normal_impulse =
+        saved.contacts[point].normal = contact.normal;
+        saved.contacts[point].normal_impulse =
             contact.accumulated_normal_impulse;
-        saved->contacts[point].friction_impulse =
+        saved.contacts[point].friction_impulse =
             contact.accumulated_friction_impulse;
         for (uint axis = 0u; axis < 3u; ++axis)
-            saved->contacts[point].avbd_dual[axis] = contact.avbd_dual[axis];
-        saved->contacts[point].avbd_anchor_a = contact.avbd_anchor_a;
-        saved->contacts[point].avbd_anchor_b = contact.avbd_anchor_b;
+            saved.contacts[point].avbd_dual[axis] = contact.avbd_dual[axis];
+        saved.contacts[point].avbd_anchor_a = contact.avbd_anchor_a;
+        saved.contacts[point].avbd_anchor_b = contact.avbd_anchor_b;
     }
-    slots[pair] = manifold->response_slot;
+    cache[manifold.response_slot] = saved;
+    slots[pair] = manifold.response_slot;
 }
 
 [shader("compute")]
@@ -2249,15 +2250,15 @@ void pm_build_fixed_collision_groups(
     for (uint body = 0u; body < count; ++body) groups[body].root = body;
     for (uint index = 0u; index < capacity; ++index)
     {
-        RigidConstraintResource* constraint = &constraints[index];
-        if (!constraint->alive || !constraint->options.enabled ||
-            constraint->state.broken ||
-            !constraint->options.disable_collisions ||
-            constraint->options.type != RigidConstraintType.fixed) continue;
+        RigidConstraintResource constraint = constraints[index];
+        if (!constraint.alive || !constraint.options.enabled ||
+            constraint.state.broken ||
+            !constraint.options.disable_collisions ||
+            constraint.options.type != RigidConstraintType.fixed) continue;
         uint a = find_rigid_body_dense(
-            constraint->options.body_a, ids, count);
+            constraint.options.body_a, ids, count);
         uint b = find_rigid_body_dense(
-            constraint->options.body_b, ids, count);
+            constraint.options.body_b, ids, count);
         if (a == kInvalidDense || b == kInvalidDense) continue;
         a = fixed_projection_root(groups, a);
         b = fixed_projection_root(groups, b);

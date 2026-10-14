@@ -98,7 +98,6 @@ constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
 constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
 constexpr float k_collector_gravity_tilt_degrees =
     parallel_mater::gallery::collector_gravity_tilt_degrees;
-constexpr float k_pi = 3.14159265358979323846F;
 constexpr float k_motor_speed = 8.0F;
 constexpr std::uint32_t k_default_dump_spheres = 100U;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
@@ -467,11 +466,6 @@ Quaternion multiply(Quaternion left, Quaternion right) {
             left.z * right.w,
         left.w * right.w - left.x * right.x - left.y * right.y -
             left.z * right.z};
-}
-
-Quaternion rotation_z(float radians) {
-    return {0.0F, 0.0F, std::sin(radians * 0.5F),
-            std::cos(radians * 0.5F)};
 }
 
 Vec3 midpoint(Vec3 left, Vec3 right) {
