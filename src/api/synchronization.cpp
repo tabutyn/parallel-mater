@@ -169,14 +169,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
         const auto &wait = info->pWaits[index];
         if (wait.semaphore == nullptr || wait.semaphore->device != queue->device)
             return PM_ERROR_INVALID_ARGUMENT;
-        // A submission cannot be its own future timeline producer.
+        // An unresolved wait cannot precede a signal on the same timeline.
+        // Even a smaller signal value would prevent its future producer from
+        // satisfying strict signal ordering.
         std::lock_guard lock(wait.semaphore->mutex);
         const bool submitted = wait.semaphore->value >= wait.value ||
             wait.semaphore->signals.lower_bound(wait.value) != wait.semaphore->signals.end();
         if (!submitted)
             for (std::uint32_t signal = 0U; signal < info->signalCount; ++signal)
-                if (info->pSignals[signal].semaphore == wait.semaphore &&
-                    info->pSignals[signal].value >= wait.value)
+                if (info->pSignals[signal].semaphore == wait.semaphore)
                     return PM_ERROR_INVALID_ARGUMENT;
     }
     for (std::uint32_t index = 0U; index < info->signalCount; ++index) {

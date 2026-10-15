@@ -144,6 +144,17 @@ int main() {
     submit.pWaits = &wait;
     submit.commandBufferCount = 1U;
     submit.pCommandBuffers = &commands[0];
+    {
+        // Waiting for 2 while publishing 1 on the same timeline is also a
+        // cycle: producer 2 cannot finish before the pending signal of 1.
+        PmSemaphoreSubmitInfo future_wait{timeline, 2U, PM_STAGE_ALL_COMMANDS_BIT};
+        PmSemaphoreSubmitInfo lower_signal{timeline, 1U, PM_STAGE_ALL_COMMANDS_BIT};
+        PmSubmitInfo cyclic = submit;
+        cyclic.pWaits = &future_wait;
+        cyclic.signalCount = 1U;
+        cyclic.pSignals = &lower_signal;
+        CHECK(pmQueueSubmit(queue, &cyclic, fences[0]) == PM_ERROR_INVALID_ARGUMENT);
+    }
     CHECK(pmQueueSubmit(queue, &submit, fences[0]) == PM_SUCCESS);
     CHECK(pmGetFenceStatus(device, fences[0]) == PM_NOT_READY);
     CHECK(pmResetCommandBuffer(commands[0]) == PM_ERROR_INVALID_STATE);
