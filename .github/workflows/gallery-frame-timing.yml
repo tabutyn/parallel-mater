@@ -1,0 +1,33 @@
+name: Shared Gallery frame timing
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  portable-timing:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Configure without native physics or presentation dependencies
+        run: >-
+          cmake -S . -B build
+          -DBUILD_TESTING=ON
+          -DPARALLEL_MATER_BUILD_CUDA=OFF
+          -DPARALLEL_MATER_BUILD_D3D12=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=OFF
+          -DPARALLEL_MATER_BUILD_GALLERY=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=OFF
+      - name: Build shared timing and input tests
+        run: cmake --build build --config Release --target parallel-mater-gallery-frame-timing-tests parallel-mater-gallery-input-tests
+      - name: Test same implementation on every OS
+        run: ctest --test-dir build -C Release --output-on-failure -R "parallel-mater-gallery-(frame-timing|input)-tests"

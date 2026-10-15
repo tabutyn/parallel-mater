@@ -3,6 +3,7 @@
 #include <parallel_mater_gallery/arrow_forces.hpp>
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
+#include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/gallery_input.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
@@ -127,6 +128,7 @@ struct Options {
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
     std::filesystem::path physics_capture_output{};
+    std::filesystem::path frame_timings_output{};
     int frames{240};
     std::uint32_t width{brick_render_width};
     std::uint32_t height{brick_render_height};
@@ -244,7 +246,8 @@ class KeyEdges {
 
 #include "application_calibration.cpp.inc"
 
-int parallel_mater_gallery_application(int argc, char **argv) {
+static int run_gallery_application(
+    int argc, char **argv, parallel_mater::gallery::FrameTimingCsv &timing_csv) {
     using namespace parallel_mater;
     using namespace parallel_mater::gallery;
 
@@ -290,6 +293,12 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     }
     if (options.print_brick_profile) return 0;
     std::string error;
+    if (!options.frame_timings_output.empty() &&
+        !timing_csv.open(options.frame_timings_output, error)) {
+        std::cerr << error << '\n';
+        return 1;
+    }
+    FrameTimingCollector frame_timings;
     GallerySession session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,
                          options.fluid_particles, error)) {
@@ -301,9 +310,6 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     std::uint32_t &fluid_particles = session.fluid_particles;
     Vec3 &peg_gravity = session.peg_gravity;
     Vec3 &cloth_gravity = session.cloth_gravity;
-    auto &timings = session.timings;
-    auto &statistics = session.statistics;
-    RendererTimings &renderer_timings = session.renderer_timings;
     std::optional<CalibrationResult> last_calibration;
 
     const StepOptions step_options{.timestep = k_timestep,
@@ -319,6 +325,16 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     input_state.shared.camera.set_preset(
         camera_preset_for(runtime.context, options.bricks));
     if (!options.headless_output.empty()) {
+        const bool measure_frames = !options.frame_timings_output.empty();
+        RendererTimings headless_render_timings{};
+        const auto render_headless = [&] {
+            return runtime.renderer.render(
+                runtime.render_frame, input_state.shared.camera.camera(),
+                pixels, error, &headless_render_timings,
+                options.cloth_debug ? FluidRenderMode::wireframe :
+                options.fluid_particle_view ? FluidRenderMode::particles :
+                                             FluidRenderMode::surface);
+        };
         StepOptions headless_step = step_options;
         const bool fixed_collection = runtime.fixed_collector.active();
         headless_step.collect_rigid_contacts = fixed_collection;
@@ -382,6 +398,10 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             }
         }
         for (int frame = 0; frame < options.frames; ++frame) {
+            if (measure_frames) {
+                frame_timings.begin_frame();
+                frame_timings.begin_phase(FramePhase::physics);
+            }
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
                     options.headless_constraint_action_after_frames)) {
@@ -447,7 +467,23 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 std::cerr << "collect fixed contacts failed: " << error << '\n';
                 return 1;
             }
-            if (runtime.instance.fluid != PM_INVALID_INDEX &&
+            if (measure_frames) {
+                frame_timings.end_phase();
+                frame_timings.begin_phase(FramePhase::render);
+                if (!render_headless()) {
+                    std::cerr << "Render failed: " << error << '\n';
+                    return 1;
+                }
+                const auto rendered = FrameTimingCollector::Clock::now();
+                frame_timings.end_phase(rendered);
+                frame_timings.finish_frame(rendered);
+                if (!timing_csv.write(*frame_timings.latest(),
+                                     gallery_entry(runtime.context).name,
+                                     "headless", error)) {
+                    std::cerr << error << '\n';
+                    return 1;
+                }
+            } else if (runtime.instance.fluid != PM_INVALID_INDEX &&
                 frame + 1 < options.frames &&
                 !runtime.renderer.advance_visuals(runtime.render_frame, error)) {
                 std::cerr << "Visual update failed: " << error << '\n';
@@ -519,15 +555,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             std::cout << "Physics capture "
                       << options.physics_capture_output << '\n';
         }
-        RendererTimings headless_render_timings{};
-        if (!runtime.renderer.render(runtime.render_frame,
-                                     input_state.shared.camera.camera(),
-                                     pixels, error, &headless_render_timings,
-                                     options.cloth_debug
-                                         ? FluidRenderMode::wireframe
-                                         : options.fluid_particle_view
-                                         ? FluidRenderMode::particles
-                                         : FluidRenderMode::surface)) {
+        if (!measure_frames && !render_headless()) {
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
@@ -647,10 +675,9 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     }
 
     KeyEdges keys;
-    bool timing_visible = false;
     GalleryDebugState debug;
     debug.reset(options.fluid_particle_view);
-    using FrameClock = std::chrono::steady_clock;
+    using FrameClock = FrameTimingCollector::Clock;
     bool capture_requested = false;
     std::string capture_status;
     bool capture_status_failure = false;
@@ -661,6 +688,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     float rigid_interpolation_alpha = 1.0F;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         const auto frame_time = FrameClock::now();
+        frame_timings.begin_frame(frame_time);
         const double frame_delta = std::min(
             k_maximum_frame_delta,
             std::chrono::duration<double>(
@@ -668,6 +696,8 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         previous_frame_time = frame_time;
         glfwPollEvents();
         keys.update(window);
+        if (keys.pressed(KeyAction::timing))
+            input_state.shared.key(GalleryKey::fps);
 
         if (input_state.shared.parameters_visible) {
             if (input_state.brick_dialog &&
@@ -700,6 +730,12 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                     std::cerr << error << '\n';
                     break;
                 }
+                // Calibration has its own collector. Do not report its entire
+                // run as a playback frame or catch up that elapsed time.
+                frame_timings.clear_history();
+                previous_frame_time = FrameClock::now();
+                frame_timings.begin_frame(previous_frame_time);
+                physics_accumulator = 0.0;
             }
             if (input_state.brick_dialog &&
                 keys.pressed(KeyAction::primary_debug)) {
@@ -850,9 +886,6 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                 else if (toggles_constraint(gallery_entry(runtime.context).controls) &&
                          !toggle_constraints(runtime)) break;
             }
-            if (keys.pressed(KeyAction::timing)) {
-                timing_visible = !timing_visible;
-            }
             const bool smoke_debug = is_smoke_context(runtime.context);
             if (keys.pressed(KeyAction::primary_debug)) {
                 if (smoke_debug)
@@ -886,6 +919,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
 
         if (session.revision != observed_session_revision) {
             observed_session_revision = session.revision;
+            frame_timings.clear_history();
             physics_accumulator = 0.0;
             rigid_interpolation_alpha = 1.0F;
         } else if (input_state.shared.parameters_visible ||
@@ -903,12 +937,11 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             // simultaneously tilt gravity or drive an unrelated kinematic body.
             const DirectionalInput steering = runtime.arrow_forces.active()
                 ? DirectionalInput{} : directional;
-            std::uint32_t physics_steps = 0U;
             parallel_mater::gallery::PhysicsFrameBudget physics_budget(k_maximum_catch_up_steps);
             bool step_failed = false;
             while (physics_accumulator >= k_timestep &&
                    physics_budget.can_step()) {
-                const auto physics_started = FrameClock::now();
+                frame_timings.begin_phase(FramePhase::physics);
                 if (entry.controls == GalleryControlPolicy::motor_drive &&
                     (!drive_motors(runtime, steering) ||
                      !steer_motor_suspension(runtime, steering.x))) {
@@ -995,12 +1028,11 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                     step_failed = true;
                     break;
                 }
-                interactive_step.collect_kernel_timings = timing_visible;
                 interactive_step.collect_rigid_contacts =
                     interactive_step.collect_rigid_contacts ||
-                    debug.rigid_contacts || timing_visible;
+                    debug.rigid_contacts;
                 interactive_step.collect_fluid_contacts =
-                    debug.rigid_contacts || timing_visible;
+                    debug.rigid_contacts;
                 if (!runtime.arrow_forces.apply(
                         runtime.simulation,
                         input_state.shared.camera.camera(), directional.x,
@@ -1026,9 +1058,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                     break;
                 }
                 physics_accumulator -= k_timestep;
-                ++physics_steps;
-                physics_budget.record_step(std::chrono::duration<double>(
-                    FrameClock::now() - physics_started).count());
+                physics_budget.record_step(frame_timings.end_phase() / 1000.0);
             }
             if (step_failed) break;
             if (!physics_budget.can_step() &&
@@ -1039,27 +1069,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             rigid_interpolation_alpha = static_cast<float>(std::clamp(
                 physics_accumulator / static_cast<double>(k_timestep),
                 0.0, 1.0));
-            if (physics_steps != 0U && timing_visible) {
-                // Per-stage timestamp queries will replace this compatibility
-                // presentation as command-query coverage is expanded.
-                timings = {};
-                statistics = {};
-                statistics.frame_index = runtime.frame.statistics.stepCount;
-                statistics.particle_count = static_cast<std::uint32_t>(
-                    runtime.frame.fluid_particles.size());
-                statistics.smoke_particle_count = static_cast<std::uint32_t>(
-                    runtime.frame.smoke_particles.size());
-                statistics.rigid_body_count = static_cast<std::uint32_t>(
-                    runtime.frame.rigid_states.size());
-                statistics.contact_count = static_cast<std::uint32_t>(
-                    runtime.frame.contacts.size());
-                statistics.rigid_contact_maximum_passes =
-                    static_cast<std::uint32_t>(
-                        runtime.frame.statistics.poseIterations +
-                        runtime.frame.statistics.impactIterations);
-                statistics.contact_overflow_count = static_cast<std::uint32_t>(
-                    runtime.frame.statistics.overflowCount);
-            }
+
         }
 
         const bool capture_frame_ready = runtime.frame.revision != 0U ||
@@ -1087,15 +1097,17 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         }
 
         const Camera current_camera = input_state.shared.camera.camera();
+        frame_timings.begin_phase(FramePhase::render);
         if (!runtime.renderer.render(runtime.render_frame,
                                      current_camera, pixels, error,
-                                     timing_visible ? &renderer_timings : nullptr,
+                                     nullptr,
                                      debug.fluid_render_mode(runtime.context),
                                      debug.smoke_mode == SmokeDebugMode::none,
                                      rigid_interpolation_alpha)) {
             std::cerr << "Render failed: " << error << '\n';
             break;
         }
+        frame_timings.end_phase();
         if (is_smoke_context(runtime.context) &&
             debug.smoke_mode != SmokeDebugMode::none) {
             if (!draw_smoke_debug_overlay(
@@ -1174,27 +1186,9 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             std::cerr << "Rigid contact overlay failed: " << error << '\n';
             break;
         }
-        if (timing_visible) {
-            if (runtime.context == GalleryContext::smoke)
-                draw_smoke_timing_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    timings, renderer_timings, statistics,
-                    runtime.scene.smoke_options.capacity);
-            else if (is_fluid_context(runtime.context))
-                draw_fluid_timing_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    timings, renderer_timings, statistics, fluid_particles);
-            else if (is_soft_body_context(runtime.context))
-                draw_soft_body_timing_overlay(
-                    pixels, runtime.renderer.width(),
-                    runtime.renderer.height(), timings);
-            else if (is_cloth_context(runtime.context))
-                draw_cloth_timing_overlay(pixels, runtime.renderer.width(),
-                                          runtime.renderer.height(), timings);
-            else
-                draw_timing_overlay(pixels, runtime.renderer.width(),
-                                    runtime.renderer.height(), timings, statistics);
-        }
+        if (input_state.shared.show_fps)
+            draw_frame_timing_overlay(pixels, runtime.renderer.width(),
+                                      runtime.renderer.height(), frame_timings);
         if (input_state.shared.catalog_visible) {
             draw_context_overlay(pixels, runtime.renderer.width(),
                                  runtime.renderer.height(),
@@ -1217,10 +1211,31 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                                 runtime.renderer.height(), capture_status,
                                 capture_status_failure);
 
+        frame_timings.begin_phase(FramePhase::present);
         if (!presentation.present(pixels, error)) {
             std::cerr << "Presentation failed: " << error << '\n';
             return 1;
         }
+        const auto presented = FrameClock::now();
+        frame_timings.end_phase(presented);
+        frame_timings.finish_frame(presented);
+        if (!timing_csv.write(*frame_timings.latest(),
+                             gallery_entry(runtime.context).name,
+                             "interactive", error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
     }
     return 0;
+}
+
+int parallel_mater_gallery_application(int argc, char **argv) {
+    parallel_mater::gallery::FrameTimingCsv timing_csv;
+    const int result = run_gallery_application(argc, argv, timing_csv);
+    std::string error;
+    if (!timing_csv.close(error)) {
+        std::cerr << error << '\n';
+        return 1;
+    }
+    return result;
 }

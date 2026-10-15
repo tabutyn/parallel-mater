@@ -69,7 +69,7 @@ try {
             $bitmap.Save((Join-Path $Output "$name.png"), [Drawing.Imaging.ImageFormat]::Png)
         } finally { $graphics.Dispose(); $bitmap.Dispose() }
     }
-    Send-Key 0x46 # F: enable live timing/contact collection.
+    Send-Key 0x46 # F: show the shared frame timing panel; physics work is unchanged.
     Start-Sleep -Milliseconds 1500
     $process.Refresh()
     if ($process.HasExited) { throw 'Viewer exited after enabling timing with F' }

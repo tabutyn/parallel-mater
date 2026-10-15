@@ -177,8 +177,8 @@ iterations per pose/impact phase for both contacts and joints. Impacted islands
 may therefore report twice that value;
 integration substeps are unchanged. Low budgets can destabilize stacks. Check
 quality with `parallel-mater-command-gallery-tests`, not only timing.
-The overlay labels `X` as GPU launches and reports total AVBD iterations in
-the last substep separately.
+`F` shows shared host wall-clock frame timing, not GPU kernel launches or
+solver iterations. Physics time includes every catch-up step in that frame.
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, six Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
@@ -201,8 +201,11 @@ is available as a non-colliding hit-box query volume. In
 DUMP, arrows drive and steer the suspended dump truck; Space tips its open-top
 rear bucket 100 degrees, and another press lowers it. Press `P` to edit its
 10–1,000 sphere load centered on the Blender Empty `SphereCluster`; applying a
-count restarts DUMP. `F` toggles per-kernel
-GPU timings. Fluid uses the supplied
+count restarts DUMP. `F` toggles the same frame-time/FPS panel in every scene.
+Use `--frame-timings output.csv` for per-frame measurements; with `--headless`,
+this renders each simulated frame instead of only the final image. See
+[Gallery timing](docs/GALLERY.md#frame-timing) for measurement boundaries.
+Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene

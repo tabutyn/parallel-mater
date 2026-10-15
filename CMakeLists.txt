@@ -27,6 +27,14 @@ function(parallel_mater_enable_warnings target)
     endif()
 endfunction()
 
+# One portable wall-clock collector and CSV serializer for all Gallery paths.
+add_library(parallel-mater-gallery-frame-timing STATIC
+    examples/support/frame_timing.cpp)
+target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
+target_include_directories(parallel-mater-gallery-frame-timing
+    PUBLIC examples/support/include)
+parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing)
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(PARALLEL_MATER_LIBRARY_ARCH 64)
 else()
@@ -673,7 +681,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw parallel-mater-gallery-window)
+        PRIVATE glfw parallel-mater-gallery-window
+                parallel-mater-gallery-frame-timing)
 
     if(APPLE)
         include(cmake/ParallelMaterMacOSGallery.cmake)
@@ -871,6 +880,31 @@ endif()
 
 if(BUILD_TESTING)
     add_subdirectory(tests/solver)
+    add_executable(parallel-mater-gallery-frame-timing-tests
+        tests/gallery/frame_timing_tests.cpp)
+    target_link_libraries(parallel-mater-gallery-frame-timing-tests PRIVATE
+        parallel-mater-gallery-frame-timing)
+    parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-tests)
+    add_test(NAME parallel-mater-gallery-frame-timing-tests
+        COMMAND parallel-mater-gallery-frame-timing-tests)
+    if(TARGET parallel-mater-gallery-application)
+        add_executable(parallel-mater-gallery-frame-timing-overlay-tests
+            tests/gallery/frame_timing_overlay_tests.cpp)
+        target_link_libraries(parallel-mater-gallery-frame-timing-overlay-tests PRIVATE
+            parallel-mater-gallery-application parallel-mater-gallery-frame-timing)
+        parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-overlay-tests)
+        add_test(NAME parallel-mater-gallery-frame-timing-overlay-tests
+            COMMAND parallel-mater-gallery-frame-timing-overlay-tests)
+    endif()
+    if(TARGET parallel-mater-gallery AND
+       (TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-cuda))
+        add_test(NAME parallel-mater-gallery-frame-timing-headless
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/frame_timing_headless.py"
+                $<TARGET_FILE:parallel-mater-gallery>)
+        set_tests_properties(parallel-mater-gallery-frame-timing-headless PROPERTIES
+            LABELS "gallery;timing;runtime" TIMEOUT 180)
+    endif()
     add_executable(parallel-mater-camera-controller-tests
         tests/gallery/camera_controller_tests.cpp)
     target_compile_features(parallel-mater-camera-controller-tests

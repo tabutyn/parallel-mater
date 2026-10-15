@@ -11,7 +11,6 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
-#include <span>
 #include <string_view>
 #include <type_traits>
 
@@ -210,243 +209,39 @@ void arrow(std::vector<std::uint32_t> &rgba, std::uint32_t width,
     line(rgba, width, height, end.x, end.y, right_x, right_y, color);
 }
 
-void timing_row(std::vector<std::uint32_t> &rgba, std::uint32_t width,
-                std::uint32_t height, int y, const char *label,
-                GalleryKernelTiming timing) {
-    char value[96]{};
-    std::snprintf(value, sizeof(value), "%-12s %7.3f MS  %u X", label,
-                  timing.total_milliseconds, timing.launch_count);
-    text(rgba, width, height, 32, y, value, {225, 235, 242, 255}, 2);
-}
-
-struct TimingRow {
-    const char *label{};
-    GalleryKernelTiming timing{};
-};
-
-void timing_panel(std::vector<std::uint32_t> &rgba, std::uint32_t width,
-                  std::uint32_t height, int right, int bottom,
-                  std::string_view title, bool available,
-                  std::span<const TimingRow> rows, int row_step, int total_y,
-                  float total_milliseconds) {
-    rectangle(rgba, width, height, 18, 18, right, bottom, {5, 12, 18, 215});
-    text(rgba, width, height, 32, 30, title, {80, 220, 255, 255}, 2);
-    if (!available) {
-        text(rgba, width, height, 32, 58, "NO TIMING SAMPLE",
-             {255, 190, 70, 255}, 2);
-        return;
-    }
-    int y = 58;
-    for (const TimingRow &row : rows) {
-        timing_row(rgba, width, height, y, row.label, row.timing);
-        y += row_step;
-    }
-    char total[96]{};
-    std::snprintf(total, sizeof(total), "TOTAL        %7.3f MS",
-                  total_milliseconds);
-    text(rgba, width, height, 32, total_y, total, {100, 255, 155, 255}, 2);
-}
-
 } // namespace
 
-void draw_timing_overlay(std::vector<std::uint32_t> &rgba,
-                         std::uint32_t width, std::uint32_t height,
-                         const GalleryStepTimings &timings,
-                         const GalleryStatistics &statistics) {
-    const std::array rows{
-        TimingRow{"INTEGRATE", timings.rigid_integration},
-        TimingRow{"BOUNDS", timings.rigid_world_bounds},
-        TimingRow{"PAIR FILTER", timings.rigid_pair_filter},
-        TimingRow{"PAIR COMPACT", timings.rigid_pair_compaction},
-        TimingRow{"LEAF PAIRS", timings.rigid_leaf_pair_generation},
-        TimingRow{"TRI CONTACT", timings.rigid_contact_evaluation},
-        TimingRow{"SOLVE", timings.rigid_contact_solve},
-        TimingRow{"CLEAR", timings.rigid_input_clear},
-        TimingRow{"ROPE", timings.rope_solve}};
-    timing_panel(rgba, width, height, 420, 326, "GPU TIMINGS / X: LAUNCHES",
-                 timings.available, rows, 20, 244,
-                 timings.total_gpu_milliseconds);
-    if (timings.available) {
-        char passes[64]{};
-        std::snprintf(passes, sizeof(passes), "AVBD ITERATIONS MAX: %u",
-                      statistics.rigid_contact_maximum_passes);
-        text(rgba, width, height, 32, 274, passes, {225, 235, 242, 255}, 2);
-        text(rgba, width, height, 32, 298, "LAST SUBSTEP / NO WARM START",
-             {225, 235, 242, 255}, 2);
-    }
-}
-
-void draw_smoke_timing_overlay(std::vector<std::uint32_t> &rgba,
+void draw_frame_timing_overlay(std::vector<std::uint32_t> &rgba,
                                std::uint32_t width, std::uint32_t height,
-                               const GalleryStepTimings &physics,
-                               const RendererTimings &renderer,
-                               const GalleryStatistics &statistics,
-                               std::uint32_t capacity) {
-    const std::array rows{
-        TimingRow{"AIR GRID", physics.smoke_grid},
-        TimingRow{"ADVECT + WAKE", physics.smoke_advection},
-        TimingRow{"EMIT", physics.smoke_emission}};
-    timing_panel(rgba, width, height, 465, 270, "SMOKE GPU KERNELS",
-                 physics.available, rows, 24, 138,
-                 physics.total_gpu_milliseconds);
-    if (!physics.available) return;
-    char line[128]{};
-    std::snprintf(line, sizeof(line), "RENDER WALL   %7.3f MS",
-                  renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, 166, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "SMOKE SPLATS  %7.3f MS",
-                  renderer.foam_wall_milliseconds);
-    text(rgba, width, height, 32, 188, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "SLOTS %u / MAX %u",
-                  statistics.smoke_particle_count, capacity);
-    text(rgba, width, height, 32, 210, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "EMITTED %llu",
-                  static_cast<unsigned long long>(
-                      statistics.emitted_smoke_particle_count));
-    text(rgba, width, height, 32, 232, line, {225, 235, 242, 255}, 2);
-}
-
-void draw_cloth_timing_overlay(std::vector<std::uint32_t> &rgba,
-                               std::uint32_t width, std::uint32_t height,
-                               const GalleryStepTimings &timings) {
-    const std::array rows{
-        TimingRow{"RIGID STEP",
-            {timings.rigid_integration.total_milliseconds +
-             timings.rigid_contact_generation.total_milliseconds +
-             timings.rigid_contact_solve.total_milliseconds,
-             timings.rigid_integration.launch_count +
-             timings.rigid_contact_generation.launch_count +
-             timings.rigid_contact_solve.launch_count}},
-        TimingRow{"PREDICT", timings.cloth_prediction},
-        TimingRow{"LINKS", timings.cloth_constraints},
-        TimingRow{"CONTACTS", timings.cloth_contacts}};
-    timing_panel(rgba, width, height, 410, 230, "CLOTH GPU KERNELS",
-                 timings.available, rows, 26, 177,
-                 timings.total_gpu_milliseconds);
-}
-
-void draw_soft_body_timing_overlay(std::vector<std::uint32_t> &rgba,
-                                   std::uint32_t width, std::uint32_t height,
-                                   const GalleryStepTimings &timings) {
-    const std::array rows{
-        TimingRow{"RIGID STEP",
-            {timings.rigid_integration.total_milliseconds +
-             timings.rigid_contact_generation.total_milliseconds +
-             timings.rigid_contact_solve.total_milliseconds,
-             timings.rigid_integration.launch_count +
-             timings.rigid_contact_generation.launch_count +
-             timings.rigid_contact_solve.launch_count}},
-        TimingRow{"PREDICT", timings.soft_body_prediction},
-        TimingRow{"SPRINGS", timings.soft_body_constraints},
-        TimingRow{"CONTACTS", timings.soft_body_contacts},
-        TimingRow{"CLOTH STEP",
-            {timings.cloth_prediction.total_milliseconds +
-             timings.cloth_constraints.total_milliseconds +
-             timings.cloth_contacts.total_milliseconds,
-             timings.cloth_prediction.launch_count +
-             timings.cloth_constraints.launch_count +
-             timings.cloth_contacts.launch_count}},
-        TimingRow{"SOFT CLOTH", timings.soft_body_cloth_contacts}};
-    timing_panel(rgba, width, height, 430, 282, "SOFT BODY GPU KERNELS",
-                 timings.available, rows, 26, 229,
-                 timings.total_gpu_milliseconds);
-}
-
-void draw_fluid_timing_overlay(std::vector<std::uint32_t> &rgba,
-                               std::uint32_t width, std::uint32_t height,
-                               const GalleryStepTimings &physics,
-                               const RendererTimings &renderer,
-                               const GalleryStatistics &statistics,
-                               std::uint32_t capacity) {
-    const std::array rows{
-        TimingRow{"SPAWN", physics.fluid_spawn},
-        TimingRow{"CELL SORT", physics.fluid_neighbor_sort},
-        TimingRow{"NEIGHBORS", physics.fluid_neighbor_forces},
-        TimingRow{"INTEGRATE", physics.fluid_integration},
-        TimingRow{"TRI COLLIDE", physics.fluid_static_contacts},
-        TimingRow{"BODY INDEX", physics.fluid_body_index},
-        TimingRow{"MOVING TRI", physics.fluid_moving_contacts},
-        TimingRow{"FLUID CLOTH", physics.fluid_cloth_contacts},
-        TimingRow{"FLUID SOFT BODY", physics.fluid_soft_body_contacts},
-        TimingRow{"FLUID ROPE", physics.fluid_rope_contacts},
-        TimingRow{"SOFT CLOTH", physics.soft_body_cloth_contacts},
-        TimingRow{"SOFT PREDICT", physics.soft_body_prediction},
-        TimingRow{"SOFT SPRINGS", physics.soft_body_constraints},
-        TimingRow{"SOFT RIGID", physics.soft_body_contacts},
-        TimingRow{"EVENTS", physics.fluid_contact_events},
-        TimingRow{"OUTFLOW", physics.fluid_outflow_compaction},
-        TimingRow{"SMOKE HEAT", physics.fluid_smoke_exchange}};
-    const int total_y = 58 + static_cast<int>(rows.size()) * 18 + 8;
-    const int details_y = total_y + 24;
-    timing_panel(rgba, width, height, 480, details_y + 238,
-                 renderer.particle_view ? "FLUID PARTICLE TIMINGS"
-                                        : "FLUID SURFACE TIMINGS",
-                 physics.available, rows, 18, total_y,
-                 physics.total_gpu_milliseconds);
-    if (!physics.available) return;
-    char line[128]{};
-    if (renderer.particle_view)
-        std::snprintf(line, sizeof(line), "SURFACE GPU       OFF");
-    else
-        std::snprintf(line, sizeof(line), "SURFACE GPU    %7.3f MS",
-                      renderer.surface_gpu_milliseconds);
-    text(rgba, width, height, 32, details_y, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "OPTIX + COPY   %7.3f MS",
-                  renderer.raytrace_wall_milliseconds);
-    text(rgba, width, height, 32, details_y + 20, line, {225, 235, 242, 255}, 2);
-    if (renderer.particle_view)
-        std::snprintf(line, sizeof(line), "SPRITES CPU   %7.3f MS",
-                      renderer.foam_wall_milliseconds);
-    else
-        std::snprintf(line, sizeof(line), "FOAM CPU      %7.3f MS  %u PATCHES",
-                      renderer.foam_wall_milliseconds,
-                      renderer.foam_patch_count);
-    text(rgba, width, height, 32, details_y + 40, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "RENDER WALL    %7.3f MS",
-                  renderer.total_wall_milliseconds);
-    text(rgba, width, height, 32, details_y + 64, line, {100, 255, 155, 255}, 2);
-    std::snprintf(line, sizeof(line), "LIVE %u / MAX %u",
-                  statistics.particle_count, capacity);
-    text(rgba, width, height, 32, details_y + 96, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "EMITTED %llu  OUTFLOW %llu",
-                  static_cast<unsigned long long>(statistics.emitted_particle_count),
-                  static_cast<unsigned long long>(
-                      statistics.destroyed_particle_count -
-                      statistics.boiled_particle_count));
-    text(rgba, width, height, 32, details_y + 116, line, {225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "CAPACITY MISSED %llu",
-                  static_cast<unsigned long long>(statistics.spawn_capacity_miss_count));
-    text(rgba, width, height, 32, details_y + 136, line,
-         statistics.spawn_capacity_miss_count
-             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
-    if (statistics.boiled_particle_count != 0U) {
-        std::snprintf(line, sizeof(line), "BOILED TO SMOKE %llu",
-                      static_cast<unsigned long long>(statistics.boiled_particle_count));
-        text(rgba, width, height, 32, details_y + 208, line,
-             {255, 190, 70, 255}, 2);
+                               const FrameTimingCollector &timings) {
+    const MenuScale ui = menu_scale(width, height);
+    rectangle(rgba, width, height, ui.pixels(18), ui.pixels(18),
+              ui.pixels(490), ui.pixels(245), {5, 12, 18, 215});
+    const auto label = [&](int y, std::string_view value, Color tint) {
+        text(rgba, width, height, ui.pixels(32), ui.pixels(y), value,
+             tint, ui.font(2));
+    };
+    label(30, "FRAME WALL TIME / F: HIDE", {80, 220, 255, 255});
+    if (!timings.latest()) {
+        label(58, "NO FRAME SAMPLE", {255, 190, 70, 255});
+        return;
     }
-    std::snprintf(line, sizeof(line), "SURFACE OUTLIERS %u",
-                  renderer.surface_excluded_particle_count);
-    text(rgba, width, height, 32, details_y + 160, line,
-         renderer.surface_excluded_particle_count
-             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
-    std::snprintf(line, sizeof(line), "CONTACTS %u  OVERFLOW %u",
-                  statistics.contact_count, statistics.contact_overflow_count);
-    text(rgba, width, height, 32, details_y + 184, line,
-         statistics.contact_overflow_count
-             ? Color{255, 190, 70, 255} : Color{225, 235, 242, 255}, 2);
-    if (statistics.soft_body_count != 0U) {
-        std::snprintf(line, sizeof(line), "WATER SOFT %u  MAX DEPTH %.4f",
-            statistics.fluid_soft_body_contact_count,
-            statistics.maximum_fluid_soft_body_penetration);
-        text(rgba, width, height, 32, details_y + 208, line, {225, 235, 242, 255}, 2);
-    }
-    if (statistics.rope_count != 0U) {
-        std::snprintf(line, sizeof(line), "WATER ROPE %u  MAX DEPTH %.4f",
-            statistics.fluid_rope_contact_count,
-            statistics.maximum_fluid_rope_penetration);
-        text(rgba, width, height, 32, details_y + 228, line, {225, 235, 242, 255}, 2);
-    }
+    const auto &sample = *timings.latest();
+    char value[96]{};
+    const auto metric = [&](int y, const char *name, double ms) {
+        std::snprintf(value, sizeof(value), "%-12s %9.3f MS", name, ms);
+        label(y, value, {225, 235, 242, 255});
+    };
+    metric(58, "TOTAL", sample.total_ms);
+    std::snprintf(value, sizeof(value), "FPS (1S)     %9.1f", timings.fps());
+    label(82, value, {100, 255, 155, 255});
+    metric(106, "PHYSICS", sample.physics_ms);
+    metric(130, "RENDER", sample.render_ms);
+    if (sample.present_ms) metric(154, "PRESENT", *sample.present_ms);
+    else label(154, "PRESENT      N/A", {225, 235, 242, 255});
+    metric(178, "OTHER", sample.other_ms);
+    std::snprintf(value, sizeof(value), "PHYSICS STEPS %u", sample.physics_steps);
+    label(210, value, {225, 235, 242, 255});
 }
 
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
