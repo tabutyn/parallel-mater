@@ -99,6 +99,7 @@ add_custom_command(
             -o "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
     DEPENDS src/slang/geometry_constraints.slang
             src/slang/geometry_constraints_solve.slang
+            src/slang/avbd_stages.inc
             src/slang/constraint_math.slang src/slang/geometry.slang
             src/slang/types.slang src/slang/math.slang
             src/slang/device_intrinsics.slang

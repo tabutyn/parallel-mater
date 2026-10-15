@@ -11,7 +11,8 @@ function(parallel_mater_add_slang_kernel_mirrors)
 
     set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/slang/mirrors")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
-         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
     set(outputs)
 
     set(nvrtc_path)

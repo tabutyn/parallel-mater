@@ -30,8 +30,11 @@ No Metal command-API device adapter is shipped. The CPU
 driver advertises only the rigid capabilities that its shared Slang schedule
 currently executes; other domains remain unavailable. All existing domain and
 coupling entries now compile separately to Metal. Native kernel tests use actual
-Apple GPU buffers and dispatch; they do not connect the Gallery to a Metal
-physics driver or qualify complete simulation schedules. See the
+Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
+boundary. AVBD now has shared staged dispatches for adapters without cooperative
+grid barriers; the original cooperative entry uses the same stage equations.
+Tests do not connect the Gallery to a Metal physics driver or qualify complete
+simulation schedules. See the
 [Metal qualification checklist](METAL-QUALIFICATION.md) for the release gate.
 
 The AVBD numerical core also compiles to WGSL and its reflection contract is

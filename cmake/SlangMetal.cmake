@@ -8,7 +8,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
 function(parallel_mater_add_slang_metal_kernels)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/metal")
     file(GLOB_RECURSE dependencies CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
     if(APPLE)
         find_program(PARALLEL_MATER_XCRUN_EXECUTABLE xcrun REQUIRED)
     endif()
@@ -18,7 +19,7 @@ function(parallel_mater_add_slang_metal_kernels)
     if(BUILD_TESTING)
         list(APPEND modules metal_device_contract)
         set(PARALLEL_MATER_SLANG_metal_device_contract_ENTRIES
-            metal_device_contract)
+            metal_device_contract metal_record_contract)
     endif()
     foreach(module IN LISTS modules)
         set(source "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang")
@@ -35,7 +36,7 @@ function(parallel_mater_add_slang_metal_kernels)
                     -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                     ${definitions} -DPM_TARGET_METAL=1
                     -DPM_DEVICE_LEAF_MANIFOLDS=1
-                    -DPM_AVBD_PREPARE_SMALL_CACHE=1
+                    -DPM_AVBD_PREPARE_CACHE_SIZE=256
                     -DPM_SOFT_NEIGHBOR_GROUP_SIZE=32
                     -entry "${entry}" -stage compute -target metal
                     -fp-mode precise -warnings-as-errors all

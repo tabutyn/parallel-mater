@@ -1,30 +1,13 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <simulation/runtime.hpp>
-#include "constraint_layout.hpp"
+#include "geometry_storage.hpp"
 
 #include <cuda_runtime_api.h>
 
 #include <cstdint>
 
 namespace parallel_mater::simulation {
-
-// Host storage mirrored by AvbdBody in shaders/geometry_constraints.slang.
-// It is scheduling state only; the constraint equations live in Slang.
-struct GeometryConstraintBody {
-    RigidBodyState target{};
-    Quaternion current_orientation{};
-    avbd::Vector6 displacement{};
-    avbd::Block inertia{};
-    std::uint32_t contact_head{UINT32_MAX};
-    std::uint32_t joint_head{UINT32_MAX};
-    std::uint32_t color{UINT32_MAX};
-    std::uint32_t parent{};
-    std::uint32_t impact{};
-    Vec3 previous_velocity{};
-    std::uint32_t history_valid{};
-};
 
 cudaError_t geometry_constraints_occupancy(
     int *resident_blocks, std::uint32_t block_size) noexcept;

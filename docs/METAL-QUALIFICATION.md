@@ -17,12 +17,54 @@ The current macOS Gallery still uses the existing serial Slang CPU driver.
 This branch does not install a Metal driver, change feature reporting, or
 deploy a replacement app.
 
+## Runtime foundation implemented
+
+`src/device/compute.hpp` defines a private C++ execution boundary with buffers,
+reflected arguments, resource-record relocation, command lists and asynchronous
+completion tokens. `src/device/metal_compute.mm` implements it with native Metal:
+
+- Shared and private GPU allocations, upload snapshots, copies and fills.
+- Separate tracked-resource encoders establish device-wide dependencies.
+- Submission does not wait; callers explicitly wait or query completion.
+  Native execution errors are reported by completion operations.
+- Referenced allocations survive until GPU completion, even if the caller
+  drops both the command list and its completion token.
+- Embedded pointers, including arrays of pointers, are explicitly relocated
+  to GPU addresses. Unrelocated records and raw host-pointer arguments are
+  rejected. Host records remain unchanged. Consumers must declare every
+  indirectly referenced allocation for residency and hazard tracking.
+- Native Metal reflection supplies record layouts. Slang 2026.18 reports
+  incorrect four-byte storage for some nested booleans; its pointee sizes
+  must not determine native buffer strides. Native pointer-array reflection
+  also needs normalization of `metal::array` wrappers and zero pointer strides.
+
+This is reusable device code, not a test-only dispatcher. The public command
+API and existing domain resource manager are **not connected to it yet**.
+Full runtime migration, ABI error translation, native interop/import, and
+Gallery packaging remain pending. There is still no installable Metal driver.
+
+### AVBD dispatch schedule
+
+The shared Slang solver now exposes `solve_avbd_stage_kernel`. Its equations
+are also used by the original cooperative entry: there is no Metal solver copy.
+`src/simulation/avbd_schedule.hpp` orders impact preparation, body colors,
+dual updates, island translation correction, state application and finishing.
+Cross-workgroup dependencies are dispatch boundaries, never group barriers.
+
+The encoder accepts proven upper bounds for iteration/color counts and guards
+unused work on the GPU, avoiding a readback between prepare and solve. It is a
+correctness foundation, **not a performance-qualified schedule**: using body
+count as the color bound can enqueue many empty stages. Optimized indirect work
+and integration into the complete runtime remain required. The cooperative
+`solve_avbd_kernel` entry is still invalid for multi-workgroup Metal dispatch;
+Metal must use the staged entry instead.
+
 ## Shader foundation
 
 `PARALLEL_MATER_BUILD_SLANG_MIRRORS=ON` builds every canonical kernel entry to
 Metal on all host platforms and native `.metallib` files on macOS. The manifest
-currently contains 135 production entries across 23 modules. Tests add one
-device-operation contract kernel. Generated files remain in the build tree.
+currently contains 136 production entries across 23 modules. Tests add two
+device-operation/record contract kernels. Generated files remain in the build tree.
 
 - Compile one entry per invocation. Slang 2026.18 multi-entry Metal output can
   omit builtin thread inputs from later kernels without a compilation error.
@@ -31,7 +73,8 @@ device-operation contract kernel. Generated files remain in the build tree.
   uniforms trigger an internal error in the pinned Metal compiler target.
 - Encode `MTLBuffer.gpuAddress`, never the CPU `contents` pointer. Declare
   indirect-buffer residency and validate native versus Slang argument offsets.
-  Nested resource-record pointers still need relocation in the runtime driver.
+  Record relocation is implemented and GPU-tested; domain resource management
+  still needs to use it throughout the runtime.
 - 64-bit mask/counter reductions use two atomic 32-bit words on Metal. They
   have no fetch return value and permit reads only after producer completion;
   they are not general atomic 64-bit load/store operations. Device tests cover
@@ -39,16 +82,17 @@ device-operation contract kernel. Generated files remain in the build tree.
 - Group barriers cover device and threadgroup memory. Metal soft-body neighbor
   batches use a full 32-lane SIMD group (four nodes per 128-thread dispatch), not
   CUDA's masked 16-lane half-warps. The adapter must validate SIMD width.
-- Use the existing smaller AVBD metadata caches with device-memory tails.
+- Use 256-entry AVBD body/contact metadata caches with device-memory tails,
+  leaving room for native shader-validation instrumentation.
   Leaf contact evaluation requires per-leaf device scratch followed by the
   existing reduction kernel, avoiding oversized inline threadgroup manifolds.
 
 ## Required before merge
 
 - [ ] Backend-neutral asynchronous schedule and resource lifetime management.
-- [ ] Correct multi-dispatch replacement for AVBD's CUDA grid barrier. The
-      current graphics group barrier is **not** a cross-threadgroup barrier;
-      compiling the solve entry does not qualify multi-group execution.
+- [x] Shared multi-dispatch AVBD replacement, tested across workgroups against
+      the original single-workgroup solve, including pre-refactor binaries.
+- [ ] Integrate and performance-qualify staged AVBD in the complete runtime.
 - [ ] All domain dispatch bindings, nested address relocation, transfers,
       deferred failures, capacity reporting, queries and native GPU interop.
 - [ ] Mutable coupling graph, pipeline rebind behavior, parameter units,
@@ -66,23 +110,34 @@ device-operation contract kernel. Generated files remain in the build tree.
       readback, physical quality and performance evidence on identified hardware.
 
 The present GPU tests create every native pipeline and verify its argument
-layout and resource limits. They execute dispatch/atomic contracts, multi-group
-rigid integration, and soft-body projection/damping comparisons between shared
-GPU entries. These are focused kernel tests, not all-domain physics conformance.
+layout and resource limits. They execute through the reusable device adapter:
+dispatch/atomic contracts; private-memory transfers and resource lifetimes;
+nested pointer records; multi-group rigid integration; soft-body scalar/SIMD
+projection and damping; and staged AVBD contacts/joints. These are focused
+kernel/runtime-service tests, not all-domain public-API physics conformance.
 
 ## Local evidence (2026-10-15)
 
 Apple M4, Slang 2026.18, native Metal 3.0 libraries:
 
-- 135 production entries plus one device-contract entry compile and link.
-- All 136 native pipeline creations and argument layouts pass on the M4.
-- The isolated host/reflection/GPU suite passes 18/18 tests.
-- The existing CPU Gallery configuration passes 24/24 tests, including its
+- 136 production entries plus two device-contract entries compile and link.
+- All 138 native pipeline creations and argument layouts pass on the M4.
+- The isolated host/reflection/GPU suite passes 19/19 tests, with no GPU skip.
+- The existing CPU Gallery configuration passes 25/25 tests, including its
   headless timing regression and the new Metal tests. Auto-deploy stays off.
-- The six executed kernels pass with Metal API and GPU shader validation
-  enabled, using the runner's `--execution-only` mode. Full-manifest shader
-  instrumentation is not qualified: instrumentation raises AVBD prepare's
-  threadgroup storage to 47,104 bytes, above the M4's 32,768-byte limit.
+- All ten executed kernels pass with Metal API and GPU shader validation
+  enabled, using the runner's `--execution-only` mode. This now includes AVBD
+  prepare, cooperative and staged solving, plus nested-pointer records.
+- AVBD tests use 97/545 bodies, cross-workgroup contacts, all eight joint types
+  with active rows, limits, a motor, springs, disabled/broken/breaking joints,
+  both impact phases, device-memory cache tails and over-dispatched bounds.
+  States, impulses and joint outputs match within the test tolerances. The
+  same cases also pass against the original solver compiled from `d9ba088`.
+- Full-manifest shader instrumentation remains unqualified: instrumented
+  `pm_generate_rigid_leaf_pairs` exceeds the M4's 32,768-byte threadgroup limit.
+  AVBD prepare's previous instrumentation limit has been fixed. This limitation
+  does not affect normal native pipeline creation, and that leaf kernel is not
+  among the currently executed physics tests.
 
 Native shader compilation disables fast math and implicit floating-point
 contraction, preserving Slang's precise mode and explicit `fma` operations.

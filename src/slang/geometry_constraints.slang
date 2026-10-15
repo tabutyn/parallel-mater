@@ -637,15 +637,17 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
 #ifndef PM_AVBD_PREPARE_SMALL_CACHE
 #define PM_AVBD_PREPARE_SMALL_CACHE PM_TARGET_D3D12
 #endif
+#ifndef PM_AVBD_PREPARE_CACHE_SIZE
 #if PM_AVBD_PREPARE_SMALL_CACHE
-// The tail already uses device memory; only the fast cache is smaller.
-// Keep threadgroup scratch below the portable 32 KiB device limit.
-static const uint kAvbdPrepareBodyCacheSize = 512u;
-static const uint kAvbdPrepareContactCacheSize = 512u;
+#define PM_AVBD_PREPARE_CACHE_SIZE 512
 #else
-static const uint kAvbdPrepareBodyCacheSize = 1024u;
-static const uint kAvbdPrepareContactCacheSize = 1024u;
+#define PM_AVBD_PREPARE_CACHE_SIZE 1024
 #endif
+#endif
+// The tail already uses device memory; only the fast cache is smaller.
+// Adapters budget scratch for native validation instrumentation as well.
+static const uint kAvbdPrepareBodyCacheSize = PM_AVBD_PREPARE_CACHE_SIZE;
+static const uint kAvbdPrepareContactCacheSize = PM_AVBD_PREPARE_CACHE_SIZE;
 static const uint kAvbdPrepareJointCacheSize = 128u;
 
 struct AvbdPrepareBodyMetadata

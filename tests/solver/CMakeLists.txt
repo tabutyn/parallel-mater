@@ -6,13 +6,18 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(CTest)
 endif()
 
+add_executable(parallel-mater-compute-contract-tests compute_contract_tests.cpp)
+target_compile_features(parallel-mater-compute-contract-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-compute-contract-tests PRIVATE ../../src)
+add_test(NAME parallel-mater-compute-contract-tests COMMAND parallel-mater-compute-contract-tests)
+
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
-    add_executable(parallel-mater-slang-metal-kernel-tests metal_kernel_tests.mm)
+    add_executable(parallel-mater-slang-metal-kernel-tests metal_kernel_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-kernel-tests PRIVATE cxx_std_20)
     target_include_directories(parallel-mater-slang-metal-kernel-tests PRIVATE ../../src ../../include)
-    target_compile_options(parallel-mater-slang-metal-kernel-tests PRIVATE -fobjc-arc -Wall -Wextra)
+    target_compile_options(parallel-mater-slang-metal-kernel-tests PRIVATE -Wall -Wextra)
     target_link_libraries(parallel-mater-slang-metal-kernel-tests PRIVATE
-        "-framework Metal" "-framework Foundation")
+        parallel-mater-device-metal)
     add_dependencies(parallel-mater-slang-metal-kernel-tests parallel-mater-slang-metal-kernels)
     add_test(NAME parallel-mater-slang-metal-kernel-tests
         COMMAND parallel-mater-slang-metal-kernel-tests "${PARALLEL_MATER_SLANG_METAL_MANIFEST}")

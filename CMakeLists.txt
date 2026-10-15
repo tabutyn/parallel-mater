@@ -155,6 +155,16 @@ if(APPLE AND (PARALLEL_MATER_BUILD_GALLERY OR
     enable_language(OBJCXX)
 endif()
 
+# Native compute services only: this is not yet an installable physics driver.
+# Runtime schedules consume the C++ compute boundary, never Objective-C types.
+if(APPLE AND BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS)
+    add_library(parallel-mater-device-metal STATIC src/device/metal_compute.mm)
+    target_compile_features(parallel-mater-device-metal PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-device-metal PUBLIC src)
+    target_compile_options(parallel-mater-device-metal PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+    target_link_libraries(parallel-mater-device-metal PRIVATE "-framework Metal" "-framework Foundation")
+endif()
+
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
    PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR

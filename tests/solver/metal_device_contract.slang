@@ -22,3 +22,30 @@ void metal_device_contract(
     pmAtomicMaxPositiveFloat(maximum, float(index + 1u));
     pmAtomicMinPositiveFloat(minimum, float(index + 1u));
 }
+
+struct MetalRecordContract
+{
+    bool enabled;
+    bool negate;
+    Vec3 gain;
+    float* inputs[2];
+    float* output;
+    uint count;
+};
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void metal_record_contract(
+    uniform MetalRecordContract inline_record,
+    uniform MetalRecordContract* records)
+{
+    uint index = pmThreadIndex();
+    if (index < inline_record.count && inline_record.enabled)
+        inline_record.output[index] = (inline_record.negate ? -1.0f : 1.0f) *
+            (inline_record.inputs[0][index] * inline_record.gain.x +
+             inline_record.inputs[1][index] * inline_record.gain.y);
+    if (index < records[0].count && records[0].enabled)
+        records[0].output[index] = (records[0].negate ? -1.0f : 1.0f) *
+            (records[0].inputs[0][index] * records[0].gain.x +
+             records[0].inputs[1][index] * records[0].gain.y);
+}

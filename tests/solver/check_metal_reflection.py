@@ -26,6 +26,10 @@ def check(manifest: Path) -> None:
         kernels = re.findall(r"\[\[kernel\]\]\s+void\s+(\w+)", source)
         if kernels != [entry]:
             raise ValueError(f"{module}.{entry}: expected isolated native entry")
+        if entry == "solve_avbd_stage_kernel" and re.search(
+            r"\b(?:threadgroup_barrier|simdgroup_barrier|pmGridBarrier\w*)\s*\(", source
+        ):
+            raise ValueError("staged AVBD must synchronize at dispatch boundaries only")
         # Regression for Slang's multi-entry global-input lowering failure:
         # helper reads must have a native input at the kernel boundary.
         for helper, semantic in (
