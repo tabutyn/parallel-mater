@@ -91,7 +91,7 @@ Fences and timeline waits report deferred execution failures as negative
 Queue/device idle returns the first deferred failure since the preceding idle
 call; fences retain their result until reset. Simulation status returns
 `PM_NOT_READY` while its submissions remain pending, then exposes the last
-execution result. Query results remain unavailable while their pool has pending
+execution result. Query results remain unavailable while their slot has pending
 writes; `PM_QUERY_RESULT_WAIT_BIT` waits for those writes, and failed submissions
 return their execution error. Resource destruction drains pending submissions.
 

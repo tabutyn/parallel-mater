@@ -100,14 +100,14 @@ int main() {
     pool_info.flags = PM_COMMAND_POOL_RESET_BUFFER_BIT;
     PmCommandPool pool{};
     CHECK(pmCreateCommandPool(device, &pool_info, &pool) == PM_SUCCESS);
-    std::array<PmCommandBuffer, 4> commands{};
+    std::array<PmCommandBuffer, 5> commands{};
     CHECK(pmAllocateCommandBuffers(device, pool, commands.size(), commands.data()) == PM_SUCCESS);
-    std::array<PmFence, 4> fences{};
+    std::array<PmFence, 5> fences{};
     for (auto &fence : fences) CHECK(pmCreateFence(device, 0U, &fence) == PM_SUCCESS);
     PmQueryPoolCreateInfo query_info{};
     query_info.sType = PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     query_info.queryType = PM_QUERY_STEP_STATISTICS;
-    query_info.queryCount = 1U;
+    query_info.queryCount = 2U;
     PmQueryPool query{};
     CHECK(pmCreateQueryPool(device, &query_info, &query) == PM_SUCCESS);
     PmSemaphoreCreateInfo semaphore_info{};
@@ -197,10 +197,30 @@ int main() {
     CHECK(pmCmdEndStatisticsQuery(commands[3], query, 0U) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands[3]) == PM_SUCCESS);
     submit.pCommandBuffers = &commands[3];
+    wait.value = 2U;
+    submit.waitCount = 1U;
     CHECK(pmQueueSubmit(queue, &submit, fences[3]) == PM_SUCCESS);
+    // Both query writes are accepted before either executes. Failure in slot
+    // zero must not poison the successful frame recorded into slot one.
+    CHECK(pmBeginCommandBuffer(commands[4], &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands[4], pipeline) == PM_SUCCESS);
+    CHECK(pmCmdBeginStatisticsQuery(commands[4], query, 1U) == PM_SUCCESS);
+    step.substeps = 2U;
+    CHECK(pmCmdStepSimulation(commands[4], simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdEndStatisticsQuery(commands[4], query, 1U) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands[4]) == PM_SUCCESS);
+    submit.pCommandBuffers = &commands[4];
+    CHECK(pmQueueSubmit(queue, &submit, fences[4]) == PM_SUCCESS);
+    signal.value = 2U;
+    CHECK(pmQueueSubmit(queue, &producer, nullptr) == PM_SUCCESS);
     CHECK(pmWaitForFences(device, 1U, &fences[3], PM_TRUE, PM_TIMEOUT_INFINITE) == PM_ERROR_INVALID_ARGUMENT);
+    CHECK(pmWaitForFences(device, 1U, &fences[4], PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
     CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_SUCCESS);
-    CHECK(execution == PM_ERROR_INVALID_ARGUMENT);
+    CHECK(execution == PM_SUCCESS);
+    CHECK(pmGetQueryPoolResults(device, query, 1U, 1U, sizeof statistics, &statistics,
+                               sizeof statistics, 0U) == PM_SUCCESS);
+    CHECK(statistics.executionResult == PM_SUCCESS);
+    CHECK(statistics.stepCount == 4U);
     CHECK(pmGetQueryPoolResults(device, query, 0U, 1U, sizeof statistics, &statistics,
                                sizeof statistics, 0U) == PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmQueueWaitIdle(queue) == PM_ERROR_INVALID_ARGUMENT);

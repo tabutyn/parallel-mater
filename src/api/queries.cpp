@@ -2,7 +2,6 @@
 #include "internal.hpp"
 
 #include <cstring>
-#include <thread>
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
     PmDevice device, const PmQueryPoolCreateInfo *info, PmQueryPool *pool) {
@@ -60,7 +59,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetQueryPool(
         first > pool->slots.size() || count > pool->slots.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record_query(
-        command_buffer, pool, [pool, first, count](
+        command_buffer, pool, first, count, [pool, first, count](
                             parallel_mater::device::Services &) noexcept {
             std::lock_guard lock(pool->mutex);
             for (std::uint32_t index = first; index < first + count; ++index) {
@@ -81,7 +80,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteTimestamp(
         pool->type != PM_QUERY_TIMESTAMP || query >= pool->slots.size())
         return PM_ERROR_INVALID_ARGUMENT;
     return parallel_mater::api::record_query(
-        command_buffer, pool, [pool, query](
+        command_buffer, pool, query, 1U, [pool, query](
                             parallel_mater::device::Services &services) noexcept {
             std::lock_guard lock(pool->mutex);
             const PmResult result = services.record_event(pool->slots[query].event);
@@ -104,7 +103,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
     command_buffer->statistics_query = query;
     command_buffer->statistics_simulation = nullptr;
     return parallel_mater::api::record_query(
-        command_buffer, pool, [pool, query](
+        command_buffer, pool, query, 1U, [pool, query](
                             parallel_mater::device::Services &) noexcept {
             std::lock_guard lock(pool->mutex);
             pool->slots[query].statistics = {};
@@ -129,7 +128,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
     command_buffer->statistics_pool = nullptr;
     command_buffer->statistics_simulation = nullptr;
     return parallel_mater::api::record_query(
-        command_buffer, pool, [pool, query, simulation](
+        command_buffer, pool, query, 1U, [pool, query, simulation](
                             parallel_mater::device::Services &services) noexcept {
             std::lock_guard lock(pool->mutex);
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
@@ -181,20 +180,27 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
     };
     std::unique_lock lock(pool->mutex, std::defer_lock);
     if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
-        while (pool->pending_submissions.load(std::memory_order_acquire) != 0U)
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         lock.lock();
-    } else if (pool->pending_submissions.load(std::memory_order_acquire) != 0U ||
-               !lock.try_lock()) {
+    } else if (!lock.try_lock()) {
         return unavailable();
     }
-    const bool pending = pool->pending_submissions.load(std::memory_order_acquire) != 0U;
-    if (!pending && pool->execution_result.load() != PM_SUCCESS)
-        return pool->execution_result.load();
     bool incomplete = false;
     for (std::uint32_t offset = 0U; offset < count; ++offset) {
         PmQuerySlot &slot = pool->slots[first + offset];
-        bool available = !pending && slot.available;
+        // Completion belongs to each slot, so a failed or pending write to
+        // another slot cannot hide this result. Recheck after an unlocked wait
+        // in case a later submission replaced this slot's pending write.
+        auto completion = std::atomic_load(&slot.completion);
+        while (completion && completion->status() == PM_NOT_READY &&
+               (flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
+            lock.unlock();
+            (void)completion->wait();
+            lock.lock();
+            completion = std::atomic_load(&slot.completion);
+        }
+        const auto result = completion ? completion->status() : PM_SUCCESS;
+        if (result < PM_SUCCESS) return result;
+        bool available = result == PM_SUCCESS && slot.available;
         if (available && pool->type == PM_QUERY_TIMESTAMP) {
             if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
                 const PmResult result = device->services->wait_event(slot.event);

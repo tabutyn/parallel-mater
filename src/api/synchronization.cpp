@@ -49,7 +49,7 @@ struct Submission {
     std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
     std::vector<PmSemaphoreSubmitInfo> waits;
     std::vector<CompletionPtr> signal_dependencies;
-    std::vector<PmQueryPool> queries;
+    std::vector<PmQueryWrite> queries;
     std::vector<PmSimulation> simulations;
 
     [[nodiscard]] bool ready() const noexcept {
@@ -85,10 +85,6 @@ struct Submission {
         for (PmSimulation simulation : simulations) {
             if (result != PM_SUCCESS) simulation->execution_result.store(result);
             simulation->pending_submissions.fetch_sub(1U, std::memory_order_release);
-        }
-        for (PmQueryPool pool : queries) {
-            if (result != PM_SUCCESS) pool->execution_result.store(result);
-            pool->pending_submissions.fetch_sub(1U, std::memory_order_release);
         }
         return result;
     }
@@ -207,9 +203,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
             const auto buffer = info->pCommandBuffers[index];
             submission->commands.insert(submission->commands.end(),
                 buffer->commands.begin(), buffer->commands.end());
-            for (auto pool : buffer->query_writes)
-                if (std::find(submission->queries.begin(), submission->queries.end(), pool) ==
-                    submission->queries.end()) submission->queries.push_back(pool);
+            submission->queries.insert(submission->queries.end(),
+                buffer->query_writes.begin(), buffer->query_writes.end());
             for (auto simulation : buffer->simulation_resources)
                 if (std::find(submission->simulations.begin(), submission->simulations.end(), simulation) ==
                     submission->simulations.end()) submission->simulations.push_back(simulation);
@@ -238,9 +233,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
                 }
                 for (auto simulation : submission->simulations)
                     simulation->pending_submissions.fetch_add(1U);
-                for (auto pool : submission->queries) {
-                    pool->pending_submissions.fetch_add(1U);
-                    pool->execution_result.store(PM_SUCCESS);
+                for (const auto &write : submission->queries) {
+                    for (std::uint32_t slot = write.first; slot < write.first + write.count; ++slot)
+                        std::atomic_store(&write.pool->slots[slot].completion, completion);
                 }
                 for (auto &signal : prepared) {
                     std::lock_guard lock(signal.semaphore->mutex);

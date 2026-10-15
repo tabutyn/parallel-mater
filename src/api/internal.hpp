@@ -138,6 +138,12 @@ struct PmPhysicsPipeline_T {
     std::vector<PmSmokeMaterialState> smokes;
 };
 
+struct PmQueryWrite {
+    PmQueryPool pool{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+};
+
 enum class PmCommandState : std::uint8_t { initial, recording, executable, pending };
 
 struct PmCommandBuffer_T {
@@ -152,7 +158,7 @@ struct PmCommandBuffer_T {
     std::uint32_t statistics_query{};
     PmSimulation statistics_simulation{};
     std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
-    std::vector<PmQueryPool> query_writes;
+    std::vector<PmQueryWrite> query_writes;
     std::vector<PmSimulation> simulation_resources;
     std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
 };
@@ -181,6 +187,7 @@ struct PmFence_T {
 };
 
 struct PmQuerySlot {
+    std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
     parallel_mater::device::Event event{};
     bool available{};
     PmStepStatistics statistics{};
@@ -188,8 +195,6 @@ struct PmQuerySlot {
 
 struct PmQueryPool_T {
     std::mutex mutex;
-    std::atomic<std::uint32_t> pending_submissions{};
-    std::atomic<PmResult> execution_result{PM_SUCCESS};
     PmDevice_T *device{};
     PmQueryType type{};
     std::vector<PmQuerySlot> slots;
@@ -305,9 +310,10 @@ inline PmResult record_simulation(PmCommandBuffer buffer, PmSimulation simulatio
 }
 
 inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
+    std::uint32_t first, std::uint32_t count,
     std::function<PmResult(device::Services &)> command) noexcept {
     try {
-        buffer->query_writes.push_back(pool);
+        buffer->query_writes.push_back({pool, first, count});
     } catch (const std::bad_alloc &) {
         return buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
     }
