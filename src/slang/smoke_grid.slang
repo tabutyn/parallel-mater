@@ -303,9 +303,9 @@ void smoke_grid_splat_particles(
                 uint cell = smoke_grid_index(
                     x, y, z, int(grid.n), int(grid.height));
                 static const float scale = 16777216.0f;
-                pmAtomicAdd(density_accumulator + cell,
+                pmAccumulateU64(density_accumulator + cell,
                     uint64_t(w * scale + 0.5f));
-                pmAtomicAdd(temperature_accumulator + cell, uint64_t(
+                pmAccumulateU64(temperature_accumulator + cell, uint64_t(
                     w * clamp_scalar(thermal_lift[particle], 0.0f,
                         options.maximum_speed) * scale + 0.5f));
             }

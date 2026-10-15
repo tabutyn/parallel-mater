@@ -101,7 +101,7 @@ option(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
        "Build and validate the portable Slang rigid constraint core"
        ${BUILD_TESTING})
 option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
-       "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
+       "Build and validate the shared Slang kernel compiler gates" ${BUILD_TESTING})
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
@@ -115,7 +115,7 @@ if(PARALLEL_MATER_SLANG_TEST_BUILD)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
         "Build and validate the portable Slang rigid constraint core" FORCE)
     set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL
-        "Build and validate every CUDA physics kernel mirror" FORCE)
+        "Build and validate the shared Slang kernel compiler gates" FORCE)
     add_compile_definitions(PARALLEL_MATER_SLANG_TEST_BUILD=1)
 endif()
 
@@ -145,6 +145,14 @@ endif()
 if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
     message(FATAL_ERROR
         "The current profiler-backed benchmarks require PARALLEL_MATER_BUILD_CUDA")
+endif()
+
+# Enable at the common parent scope: the Gallery and native shader tests both
+# contain Objective-C++ sources. Subdirectory-only enablement breaks generation
+# when both targets are present.
+if(APPLE AND (PARALLEL_MATER_BUILD_GALLERY OR
+              (BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS)))
+    enable_language(OBJCXX)
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
@@ -872,6 +880,10 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/SlangKernelMirrors.cmake)
     parallel_mater_add_slang_kernel_mirrors()
+    include(cmake/SlangMetal.cmake)
+    parallel_mater_add_slang_metal_kernels()
+    add_dependencies(parallel-mater-slang-kernel-mirrors
+        parallel-mater-slang-metal-kernels)
     if(PARALLEL_MATER_SLANG_TEST_BUILD AND TARGET parallel-mater-gallery)
         add_dependencies(parallel-mater-gallery
                          parallel-mater-slang-kernel-mirrors)

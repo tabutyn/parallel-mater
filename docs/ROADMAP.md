@@ -175,6 +175,12 @@ runtime code or copying the reference solver's exact trajectories.
 
 Status: pending.
 
+Metal implementation work is isolated behind the
+[all-domain qualification gate](METAL-QUALIFICATION.md). Full existing-kernel
+Metal compilation and focused native GPU tests do not satisfy this milestone:
+the execution adapter, complete schedule and missing interaction physics must
+also pass before merging that work into `main`.
+
 - Qualify all declared domains and interaction modes on CUDA, D3D12, Vulkan,
   and Metal; add full shader/resource-wrapper coverage as adapters mature.
 - Ship Unity native-plugin/C# integration, Unreal RHI/RDG integration, and

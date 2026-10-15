@@ -88,7 +88,7 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
 public void pmSyncWarp(uint) {}
 public void pmGridBarrier() {}
 public void pmGroupBarrier() {}
-#elif defined(PM_TARGET_VULKAN)
+#elif defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL)
 public in uint3 pmGroupId : SV_GroupID;
 public in uint3 pmGroupThreadId : SV_GroupThreadID;
 public in uint3 pmDispatchThreadId : SV_DispatchThreadID;
@@ -109,13 +109,33 @@ public void pmSetD3D12ThreadIndices(uint3 groupId, uint3 groupThreadId,
 #if defined(PM_TARGET_CPU)
 // The host adapter supplies dispatch indices through the C++ target intrinsics
 // above and executes kernels serially, so no second implementation is needed.
-#elif defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
+#elif defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL) || PM_TARGET_D3D12
+#if defined(PM_TARGET_METAL)
+// A named constant buffer avoids Slang 2026.18's Metal lowering failure for
+// free global uniforms. Scalar fields also avoid uint3's Metal padding.
+struct PMMetalDispatchParameters
+{
+    uint groupCountX;
+    uint groupCountY;
+    uint groupCountZ;
+    uint groupSizeX;
+};
+ConstantBuffer<PMMetalDispatchParameters> pmMetalDispatch;
+#else
 uniform uint3 pmDispatchGroupCount;
 uniform uint pmDispatchGroupSizeX;
+#endif
 
 public uint3 pmBlockIndex() { return pmGroupId; }
 public uint3 pmGroupThreadIndex() { return pmGroupThreadId; }
-public uint3 pmGroupSize() { return uint3(pmDispatchGroupSizeX, 1u, 1u); }
+public uint3 pmGroupSize()
+{
+#if defined(PM_TARGET_METAL)
+    return uint3(pmMetalDispatch.groupSizeX, 1u, 1u);
+#else
+    return uint3(pmDispatchGroupSizeX, 1u, 1u);
+#endif
+}
 
 public uint pmAtomicAdd(uint* value, uint addend)
 {
@@ -275,23 +295,58 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
     return original;
 }
 #else
+#if defined(PM_TARGET_METAL)
+// Native pointer casts avoid the compiler's integer-vector bitcast lowering.
+__target_intrinsic(metal, "((device float*)($0))")
+public float* pmMetalFloatComponents(PMBuffer<Vec3> value);
+__target_intrinsic(metal, "((device uint*)($0))")
+public uint* pmMetalFloatBits(PMBuffer<float> value);
+#endif
 public void pmAtomicAddVec3(PMBuffer<Vec3> value, Vec3 addend)
 {
+#if defined(PM_TARGET_METAL)
+    // Taking the address of a struct member through a raw pointer is not
+    // supported by Slang's Metal target. Vec3 is three contiguous scalars.
+    float* components = pmMetalFloatComponents(value);
+    pmAtomicAdd(components, addend.x);
+    pmAtomicAdd(components + 1, addend.y);
+    pmAtomicAdd(components + 2, addend.z);
+#else
     pmAtomicAdd(&value[0].x, addend.x);
     pmAtomicAdd(&value[0].y, addend.y);
     pmAtomicAdd(&value[0].z, addend.z);
+#endif
 }
 public uint pmAtomicMaxPositiveFloat(PMBuffer<float> value, float candidate)
 {
+#if defined(PM_TARGET_METAL)
+    return pmAtomicMax(pmMetalFloatBits(value), asuint(candidate));
+#else
     return pmAtomicMax(reinterpret<uint*>(value), asuint(candidate));
+#endif
 }
 public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
 {
+#if defined(PM_TARGET_METAL)
+    return pmAtomicMin(pmMetalFloatBits(value), asuint(candidate));
+#else
     return pmAtomicMin(reinterpret<uint*>(value), asuint(candidate));
+#endif
 }
 #endif
+#if defined(PM_TARGET_METAL)
+__target_intrinsic(metal,
+    "simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)")
+public void pmSyncWarp(uint mask);
+public uint3 pmGridDim()
+{
+    return uint3(pmMetalDispatch.groupCountX, pmMetalDispatch.groupCountY,
+        pmMetalDispatch.groupCountZ);
+}
+#else
 public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
 public uint3 pmGridDim() { return pmDispatchGroupCount; }
+#endif
 
 // Graphics APIs have no in-dispatch grid barrier. Their thin device adapters
 // split logical schedules at each grid dependency; this remains a group
@@ -367,10 +422,50 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
 }
 #endif
 
-#if defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
+#if defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL) || PM_TARGET_D3D12
 public uint pmThreadIndex() { return pmDispatchThreadId.x; }
 #endif
 
 #if !defined(PM_TARGET_CPU)
-public void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
+public void pmGroupBarrier()
+{
+#if defined(PM_TARGET_METAL)
+    // These schedules exchange both device and threadgroup memory.
+    AllMemoryBarrierWithGroupSync();
+#else
+    GroupMemoryBarrierWithGroupSync();
 #endif
+}
+#endif
+
+// These reductions are only read after their producer dispatch completes.
+// They deliberately have no fetch result: Metal's two-word updates do not
+// provide an atomic 64-bit snapshot to concurrent readers.
+#if defined(PM_TARGET_METAL)
+__target_intrinsic(metal, "((device uint*)($0))")
+public uint* pmMetalCounterWords(PMBuffer<uint64_t> value);
+#endif
+
+public void pmAccumulateU64(PMBuffer<uint64_t> value, uint64_t addend)
+{
+#if defined(PM_TARGET_METAL)
+    uint* words = pmMetalCounterWords(value);
+    uint low = uint(addend);
+    uint previous = pmAtomicAdd(words, low);
+    uint carry = previous > (0xffffffffu - low) ? 1u : 0u;
+    pmAtomicAdd(words + 1, uint(addend >> 32u) + carry);
+#else
+    pmAtomicAdd(value, addend);
+#endif
+}
+
+public void pmAccumulateMaskU64(PMBuffer<uint64_t> value, uint64_t mask)
+{
+#if defined(PM_TARGET_METAL)
+    uint* words = pmMetalCounterWords(value);
+    pmAtomicOr(words, uint(mask));
+    pmAtomicOr(words + 1, uint(mask >> 32u));
+#else
+    pmAtomicOr(value, mask);
+#endif
+}

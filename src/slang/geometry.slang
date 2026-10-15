@@ -1781,7 +1781,13 @@ void pm_generate_rigid_leaf_pairs(
 #endif
 
 #if !PM_TARGET_D3D12 || defined(PM_DXIL_ENTRY_pm_evaluate_rigid_leaf_pairs)
-#if !PM_TARGET_D3D12
+// Graphics adapters supply per-leaf device scratch and dispatch the shared
+// reduction entry afterwards. The optional inline CUDA cache exceeds Metal's
+// threadgroup memory limit; this does not change candidate/reduction order.
+#ifndef PM_DEVICE_LEAF_MANIFOLDS
+#define PM_DEVICE_LEAF_MANIFOLDS PM_TARGET_D3D12
+#endif
+#if !PM_DEVICE_LEAF_MANIFOLDS
 groupshared ContactManifold rigidLeafWorkerManifolds[16];
 groupshared ContactManifold rigidLeafReducedManifold;
 #endif
@@ -1849,7 +1855,7 @@ void pm_evaluate_rigid_leaf_pairs(
                     meshes[parameters[a].mesh.index], previous_states[b],
                     states[b], meshes[parameters[b].mesh.index],
                     rigidLeafMargin)) ? 1u : 0u;
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
             rigidLeafReducedManifold.count = 0u;
             rigidLeafReducedManifold.face_patch = false;
 #endif
@@ -1887,7 +1893,7 @@ void pm_evaluate_rigid_leaf_pairs(
                         range.collider_first, range.collider_count,
                         rigidLeafColliderHinge, rigidLeafMargin,
                         timestep, local);
-#if PM_TARGET_D3D12
+#if PM_DEVICE_LEAF_MANIFOLDS
                 leaf_manifolds[
                     activeIndex * leaf_pairs_per_slot + candidate] = local;
 #else
@@ -1898,7 +1904,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
             }
             pmGroupBarrier();
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
             if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             {
                 float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
@@ -1915,7 +1921,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
             pmGroupBarrier();
         }
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
         if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             manifolds[activeIndex] = rigidLeafReducedManifold;
 #endif

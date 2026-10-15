@@ -634,7 +634,12 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
     return impulse;
 }
 
-#if PM_TARGET_D3D12
+#ifndef PM_AVBD_PREPARE_SMALL_CACHE
+#define PM_AVBD_PREPARE_SMALL_CACHE PM_TARGET_D3D12
+#endif
+#if PM_AVBD_PREPARE_SMALL_CACHE
+// The tail already uses device memory; only the fast cache is smaller.
+// Keep threadgroup scratch below the portable 32 KiB device limit.
 static const uint kAvbdPrepareBodyCacheSize = 512u;
 static const uint kAvbdPrepareContactCacheSize = 512u;
 #else

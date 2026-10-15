@@ -48,8 +48,9 @@ jobs:
           -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON
           -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON
       # ALL includes the full manifest's CUDA/SPIR-V entries, the portable
-      # AVBD core and reflection, Windows DXIL schedules, and native Metal
-      # core compilation on macOS. No GPU is required for these gates.
+      # AVBD core and reflection, Windows DXIL schedules, and every Metal
+      # entry (including native compilation on macOS). Runtime Metal tests
+      # skip explicitly when the runner has no GPU.
       - name: Compile shaders and host contracts
         run: cmake --build build --config Release --parallel 2
       - name: Validate reflection and host contracts

@@ -405,13 +405,13 @@ void fluid_index_body_cells(
         int64_t(y1) - int64_t(y0) > 3 ||
         int64_t(z1) - int64_t(z0) > 3)
     {
-        pmAtomicOr(global_masks + word, bit);
+        pmAccumulateMaskU64(global_masks + word, bit);
         return;
     }
     for (int z = z0; z <= z1; ++z)
         for (int y = y0; y <= y1; ++y)
             for (int x = x0; x <= x1; ++x)
-                pmAtomicOr(masks + fluid_body_bucket(x, y, z) * words + word,
+                pmAccumulateMaskU64(masks + fluid_body_bucket(x, y, z) * words + word,
                     bit);
 }
 
