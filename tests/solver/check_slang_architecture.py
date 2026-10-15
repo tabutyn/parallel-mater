@@ -10,16 +10,16 @@ CUDA_KERNEL = re.compile(r"__global__\s+void\s+([A-Za-z0-9_]+)")
 
 failures: list[str] = []
 
-cmake = (ROOT / "CMakeLists.txt").read_text()
-loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text()
+cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text(encoding="utf-8")
 build_contract = cmake + "\n" + loader_cmake
 runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
 runtime_paths = [runtime_path]
 runtime_paths.extend(sorted(
     (ROOT / "src" / "simulation").glob("runtime_*.cu.inc")
 ))
-runtime = "\n".join(path.read_text() for path in runtime_paths)
-runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text()
+runtime = "\n".join(path.read_text(encoding="utf-8") for path in runtime_paths)
+runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text(encoding="utf-8")
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():
     failures.append("registry/pm.xml: canonical API registry missing")
@@ -29,7 +29,7 @@ cpu_driver_cmake_path = ROOT / "cmake" / "ParallelMaterSlangCpu.cmake"
 if not cpu_driver_cmake_path.exists():
     failures.append("cmake/ParallelMaterSlangCpu.cmake: macOS Slang driver missing")
 else:
-    cpu_driver_cmake = cpu_driver_cmake_path.read_text()
+    cpu_driver_cmake = cpu_driver_cmake_path.read_text(encoding="utf-8")
     for required in (
         "parallel-mater-driver-slang-cpu SHARED",
         "-target cpp",
@@ -51,7 +51,7 @@ else:
             "parallel_mater_queries_runtime.cpp",
     }
     for relative, generated_source in cpu_dispatch_contracts.items():
-        dispatch_text = (ROOT / relative).read_text()
+        dispatch_text = (ROOT / relative).read_text(encoding="utf-8")
         if generated_source not in dispatch_text:
             failures.append(
                 f"{relative}: not backed by generated Slang C++"
@@ -72,7 +72,7 @@ for embedded_path in (
         failures.append(
             f"CMakeLists.txt: loader embeds non-relocatable {embedded_path}"
         )
-loader_driver = (ROOT / "src" / "loader" / "driver.cpp").read_text()
+loader_driver = (ROOT / "src" / "loader" / "driver.cpp").read_text(encoding="utf-8")
 if "append_loader_relative_directories" not in loader_driver:
     failures.append("src/loader/driver.cpp: relocatable manifest discovery missing")
 if "ManifestKind::driver" not in loader_driver or "ManifestKind::layer" not in loader_driver:
@@ -82,12 +82,12 @@ for ansi_loader_call in ("LoadLibraryA", "GetModuleHandleExA", "GetModuleFileNam
         failures.append(
             f"src/loader/driver.cpp: Windows loader is not Unicode-safe: {ansi_loader_call}")
 if "pm_driverNegotiateLoaderInterfaceVersion" not in (
-        ROOT / "include" / "parallel_mater" / "pm_driver.h").read_text():
+        ROOT / "include" / "parallel_mater" / "pm_driver.h").read_text(encoding="utf-8"):
     failures.append("pm_driver.h: loader/driver ABI negotiation missing")
 for loader_source in sorted((ROOT / "src" / "loader").glob("*")):
     if not loader_source.is_file():
         continue
-    loader_text = loader_source.read_text()
+    loader_text = loader_source.read_text(encoding="utf-8")
     for forbidden in ("cudaStream", "cudaEvent", "parallel_mater::World", ".slang"):
         if forbidden in loader_text:
             failures.append(
@@ -109,7 +109,7 @@ if not constraint_layout_path.exists():
         "src/simulation/constraint_layout.hpp: shared constraint layout missing"
     )
 else:
-    constraint_layout = constraint_layout_path.read_text()
+    constraint_layout = constraint_layout_path.read_text(encoding="utf-8")
     for algorithm in ("warm_start(", "update_dual(", "project_contact(", "solve("):
         if algorithm in constraint_layout:
             failures.append(
@@ -117,7 +117,7 @@ else:
                 f"into production host layout: {algorithm}"
             )
 for runtime_source in runtime_paths:
-    runtime_text = runtime_source.read_text()
+    runtime_text = runtime_source.read_text(encoding="utf-8")
     if '"solver/' in runtime_text or '<simulation/solver/' in runtime_text:
         failures.append(
             f"{runtime_source.relative_to(ROOT)}: production solver mirror included"
@@ -138,7 +138,7 @@ for boundary_header in (
     ROOT / "src" / "simulation" / "runtime.hpp",
     ROOT / "src" / "simulation" / "exports.hpp",
 ):
-    boundary_text = boundary_header.read_text()
+    boundary_text = boundary_header.read_text(encoding="utf-8")
     for cuda_type in ("cudaStream_t", "cudaEvent_t", "cuda_runtime_api.h"):
         if cuda_type in boundary_text:
             failures.append(
@@ -147,7 +147,7 @@ for boundary_header in (
 for api_source in sorted((ROOT / "src" / "api").glob("*")):
     if not api_source.is_file():
         continue
-    api_text = api_source.read_text()
+    api_text = api_source.read_text(encoding="utf-8")
     if re.search(r"parallel_mater::World\b", api_text):
         failures.append(
             f"{api_source.relative_to(ROOT)}: command API uses legacy World type")
@@ -203,7 +203,7 @@ for legacy_root in (
             continue
         if source.suffix not in {".cpp", ".cu", ".hpp", ".h"}:
             continue
-        source_text = source.read_text()
+        source_text = source.read_text(encoding="utf-8")
         if re.search(
             r"\busing\s+World\s*=|\bWorld::|"
             r"\b(?:create_scene_world|instantiate_scene|scene_world_options)\b",
@@ -270,13 +270,13 @@ for module in (
     dispatch = ROOT / "src" / "simulation" / f"{module}_dispatch.cu"
     if not dispatch.exists():
         failures.append(f"missing {dispatch.relative_to(ROOT)}")
-    elif f'parallel_mater_{module}_runtime.cu' not in dispatch.read_text():
+    elif f'parallel_mater_{module}_runtime.cu' not in dispatch.read_text(encoding="utf-8"):
         failures.append(f"{dispatch.relative_to(ROOT)}: not backed by generated Slang")
 
 for shader in sorted((ROOT / "src" / "slang").rglob("*.slang")):
     if shader.name == "device_intrinsics.slang":
         continue
-    text = shader.read_text()
+    text = shader.read_text(encoding="utf-8")
     for retired_metal_token in ("PM_TARGET_METAL", "import metal_common"):
         if retired_metal_token in text:
             failures.append(
@@ -354,7 +354,7 @@ for path in consumer_paths:
     if not path.is_file():
         continue
     if re.search(
-        r"\bWorld(?:Options|StepTimings|Statistics)?\b", path.read_text()
+        r"\bWorld(?:Options|StepTimings|Statistics)?\b", path.read_text(encoding="utf-8")
     ):
         failures.append(f"{path.relative_to(ROOT)}: legacy World dependency")
 
@@ -370,7 +370,7 @@ backend_neutral_sources += tuple(sorted(
     (ROOT / "examples" / "gallery").glob("scene_builder*")
 ))
 for path in backend_neutral_sources:
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     for backend_detail in (
         "simulation/runtime.hpp", "cuda_runtime", "cudaSuccess", "cudaError_t",
     ):
@@ -383,7 +383,7 @@ if "parallel-mater-asset-preparation" in cmake:
     failures.append("CMakeLists.txt: duplicate gallery asset-preparation target remains")
 
 gallery_application = "\n".join(
-    path.read_text()
+    path.read_text(encoding="utf-8")
     for path in sorted((ROOT / "examples" / "gallery").glob("application*"))
     if path.is_file()
 )
@@ -399,19 +399,19 @@ for platform_detail in (
 macos_gallery_main = ROOT / "examples" / "gallery" / "macos_main.mm"
 macos_gallery_cmake = ROOT / "cmake" / "ParallelMaterMacOSGallery.cmake"
 for path in (macos_gallery_main, macos_gallery_cmake):
-    if path.exists() and "PARALLEL_MATER_DEVELOPMENT_DRIVER_PATH" in path.read_text():
+    if path.exists() and "PARALLEL_MATER_DEVELOPMENT_DRIVER_PATH" in path.read_text(encoding="utf-8"):
         failures.append(
             f"{path.relative_to(ROOT)}: installed app embeds a development "
             "driver path")
 if macos_gallery_cmake.exists() and \
-        "BUILD_WITH_INSTALL_RPATH YES" not in macos_gallery_cmake.read_text():
+        "BUILD_WITH_INSTALL_RPATH YES" not in macos_gallery_cmake.read_text(encoding="utf-8"):
     failures.append(
         "cmake/ParallelMaterMacOSGallery.cmake: installed app can retain "
         "build-tree runtime search paths")
 renderer_interface = (
     ROOT / "examples" / "support" / "include" /
     "parallel_mater_gallery" / "renderer.hpp"
-).read_text()
+).read_text(encoding="utf-8")
 if "OptixRenderer" in renderer_interface:
     failures.append(
         "examples/support/include/parallel_mater_gallery/renderer.hpp: "
@@ -431,7 +431,7 @@ for common_gallery_path in (
         failures.append(
             f"{common_gallery_path.relative_to(ROOT)}: common gallery adapter missing")
         continue
-    common_gallery_text = common_gallery_path.read_text()
+    common_gallery_text = common_gallery_path.read_text(encoding="utf-8")
     for backend_detail in (
         "cuda_runtime", "CUdevice", "Optix", "optixLaunch",
     ):
@@ -452,7 +452,7 @@ d3d12_window_path = ROOT / "examples" / "support" / "d3d12_window.cpp"
 if not d3d12_window_path.exists():
     failures.append("examples/support/d3d12_window.cpp: adapter missing")
 else:
-    d3d12_window = d3d12_window_path.read_text()
+    d3d12_window = d3d12_window_path.read_text(encoding="utf-8")
     for required in ("D3D12CreateDevice", "CreateSwapChainForHwnd"):
         if required not in d3d12_window:
             failures.append(
@@ -467,7 +467,7 @@ else:
 
 slang_constraints_cmake = (
     ROOT / "cmake" / "SlangGeometryConstraints.cmake"
-).read_text()
+).read_text(encoding="utf-8")
 for required in (
     "-target dxil",
     "-target wgsl",
@@ -487,8 +487,8 @@ if not d3d12_driver_path.exists() or not d3d12_command_path.exists():
     failures.append("src/driver/d3d12: thin Slang command adapter missing")
 else:
     d3d12_driver = (
-        d3d12_driver_path.read_text() + "\n" +
-        d3d12_command_path.read_text()
+        d3d12_driver_path.read_text(encoding="utf-8") + "\n" +
+        d3d12_command_path.read_text(encoding="utf-8")
     )
     for required in (
         "parallel_mater_slang_dxil.hpp", "record_dispatch",
@@ -513,7 +513,7 @@ native_sources.extend(
     path for path in sorted((ROOT / "src").glob("*.cuh"))
 )
 for native in native_sources:
-    kernels = set(CUDA_KERNEL.findall(native.read_text()))
+    kernels = set(CUDA_KERNEL.findall(native.read_text(encoding="utf-8")))
     if kernels:
         failures.append(
             f"{native.relative_to(ROOT)}: native CUDA physics kernels remain: "

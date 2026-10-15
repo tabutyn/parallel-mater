@@ -54,6 +54,23 @@ function(parallel_mater_add_slang_geometry_constraints)
         "${hlsl_source}" "${hlsl_reflection}"
         "${wgsl_source}" "${wgsl_reflection}")
 
+    if(APPLE)
+        find_program(PARALLEL_MATER_XCRUN_EXECUTABLE xcrun REQUIRED)
+        set(metal_air "${generated_dir}/parallel_mater_geometry_constraints.air")
+        set(metal_library
+            "${generated_dir}/parallel_mater_geometry_constraints.metallib")
+        add_custom_command(
+            OUTPUT "${metal_air}" "${metal_library}"
+            COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk macosx metal
+                -std=metal3.0 -Werror -c "${metal_source}" -o "${metal_air}"
+            COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk macosx metallib
+                "${metal_air}" -o "${metal_library}"
+            DEPENDS "${metal_source}" "${PARALLEL_MATER_XCRUN_EXECUTABLE}"
+            COMMENT "Validating generated AVBD MSL with the native Metal compiler"
+            VERBATIM)
+        list(APPEND slang_outputs "${metal_air}" "${metal_library}")
+    endif()
+
     if(WIN32)
         set(dxil_prepare
             "${generated_dir}/parallel_mater_avbd_prepare.dxil")

@@ -20,12 +20,11 @@ kernels to C++ and dispatches them serially as a correctness-first development
 path. Their device and simulation adapters allocate, transfer, synchronize,
 and dispatch; they do not contain alternate physics equations.
 
-The Windows D3D12 driver embeds the DXIL generated from the same AVBD prepare
-and solve entries. Device creation builds both compute pipelines, binds every
-reflected UAV/constant resource, dispatches a zero-body schedule, inserts a UAV
-barrier, fences, reads the schedule back, and validates its counters. Its public
-command path currently exposes only core transfer services, so it does not
-advertise rigid-body or other physics features yet.
+The Windows D3D12 driver embeds DXIL generated from the common kernel manifest,
+including AVBD prepare and solve. Device creation qualifies descriptor binding,
+dispatch, barriers, and readback with the shared `pm_clear_rigid_inputs` kernel.
+Its public command path currently exposes only core transfer services, so it
+does not advertise rigid-body or other physics features yet.
 
 No Metal device adapter or Metal physics implementation is shipped. The CPU
 driver advertises only the rigid capabilities that its shared Slang schedule
@@ -63,8 +62,30 @@ dependencies, and dispatch adapters that are not backed by generated Slang.
 cmake --build build --target parallel-mater-slang-geometry-constraints
 cmake --build build --target parallel-mater-slang-kernel-mirrors
 ctest --test-dir build --output-on-failure \
-  -R 'parallel-mater-(avbd|slang-kernel)'
+  -R 'parallel-mater-(avbd|slang)'
 ```
+
+The [Shader portability workflow](../.github/workflows/shader-portability.yml)
+runs without path filters on pull requests, branch pushes, and merge queues.
+Its `Shader portability required` check fails unless every platform job passes:
+
+- Linux, Windows, and macOS compile every manifest module to CUDA source and
+  SPIR-V, plus the AVBD numerical core to CUDA, Metal, HLSL, and WGSL. CPU tests
+  and reflection checks run on each platform.
+- Windows also compiles every manifest entry to DXIL and builds the D3D12
+  driver against those outputs. Device-dependent execution tests are excluded
+  from this compiler workflow and remain separate runtime qualification.
+- macOS additionally compiles the generated AVBD MSL with Apple's `metal`
+  compiler and links a `.metallib`. Xcode's Metal toolchain must be installed.
+
+All gates use the pinned Slang toolchain and treat shader compiler warnings as
+errors. They require neither a CUDA toolkit nor a GPU; CUDA source generation
+does not replace NVCC/PTX compilation or device execution in CUDA qualification.
+The existing optional PTX gate still runs when NVRTC is available. Full Metal
+domain schedules and a Metal driver remain unimplemented; the native Metal gate
+covers only the AVBD core. Reflection and test logs are retained as CI artifacts.
+Repository branch rules should require the stable `Shader portability required`
+check; the workflow itself does not modify repository protection settings.
 
 Compilation alone does not qualify a command-API target. Its schedule must use
 the shared Slang kernels, pass API and architecture checks, and complete gallery
