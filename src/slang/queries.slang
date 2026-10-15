@@ -4,6 +4,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 Vec3 hit_box_local_point(HitBox box, Vec3 point)
 {
@@ -62,9 +63,9 @@ bool hit_box_overlaps_triangle(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void query_rigid_hit_box_kernel(
-    uniform HitBox box, uniform BodyParameters* parameters,
-    uniform RigidBodyState* states, uniform TriangleMeshResource* meshes,
-    uniform uint body_count, uniform uint8_t* matches)
+    uniform HitBox box, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform uint body_count, uniform PMBuffer<PMResourceUint8> matches)
 {
     uint body = pmThreadIndex();
     if (body >= body_count) return;
@@ -85,7 +86,7 @@ void query_rigid_hit_box_kernel(
             break;
         }
     }
-    if (!overlap && mesh.solid_planes != nullptr)
+    if (!overlap && pmBufferPresent(mesh.solid_planes))
     {
         Vec3 center = inverse_rotate(state.orientation,
             subtract(box.center, state.position));
@@ -100,30 +101,30 @@ void query_rigid_hit_box_kernel(
             }
         }
     }
-    matches[body] = overlap ? uint8_t(1u) : uint8_t(0u);
+    matches[body] = overlap ? PMResourceUint8(1u) : PMResourceUint8(0u);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void query_particle_hit_box_kernel(
-    uniform HitBox box, uniform Vec3* positions,
-    uniform uint particle_count, uniform uint8_t* matches)
+    uniform HitBox box, uniform PMBuffer<Vec3> positions,
+    uniform uint particle_count, uniform PMBuffer<PMResourceUint8> matches)
 {
     uint particle = pmThreadIndex();
     if (particle >= particle_count) return;
     matches[particle] = hit_box_contains_point(box, positions[particle])
-        ? uint8_t(1u) : uint8_t(0u);
+        ? PMResourceUint8(1u) : PMResourceUint8(0u);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_fluid_particles(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* accelerations, uniform float* temperatures,
-    uniform float* foam, uniform uint* stable_ids,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> accelerations, uniform PMBuffer<float> temperatures,
+    uniform PMBuffer<float> foam, uniform PMBuffer<uint> stable_ids,
     uniform uint particle_count, uniform uint capacity, uniform uint64_t revision,
-    uniform PortableDomainOutputHeader* header,
-    uniform PortableParticleState* destination)
+    uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<PortableParticleState> destination)
 {
     uint particle = pmThreadIndex();
     if (particle == 0u)
@@ -132,7 +133,7 @@ void export_fluid_particles(
         outputHeader.active_count = particle_count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (particle >= particle_count) return;
     PortableParticleState output;
@@ -148,12 +149,12 @@ void export_fluid_particles(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_cloth_vertices(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* rigid_forces, uniform Vec3* liquid_forces,
-    uniform Vec3* soft_body_forces, uniform Vec3* rope_forces,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> rigid_forces, uniform PMBuffer<Vec3> liquid_forces,
+    uniform PMBuffer<Vec3> soft_body_forces, uniform PMBuffer<Vec3> rope_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
-    uniform PortableDomainOutputHeader* header,
-    uniform PortableClothVertexState* destination)
+    uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<PortableClothVertexState> destination)
 {
     uint index = pmThreadIndex();
     if (index == 0u)
@@ -162,7 +163,7 @@ void export_cloth_vertices(
         outputHeader.active_count = count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (index >= count) return;
     PortableClothVertexState output;
@@ -178,9 +179,9 @@ void export_cloth_vertices(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_surface_positions(
-    uniform Vec3* positions, uniform uint count, uniform uint capacity,
-    uniform uint64_t revision, uniform PortableDomainOutputHeader* header,
-    uniform Vec3* destination)
+    uniform PMBuffer<Vec3> positions, uniform uint count, uniform uint capacity,
+    uniform uint64_t revision, uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<Vec3> destination)
 {
     uint index = pmThreadIndex();
     if (index == 0u)
@@ -189,7 +190,7 @@ void export_surface_positions(
         outputHeader.active_count = count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (index < count) destination[index] = positions[index];
 }
@@ -197,12 +198,12 @@ void export_surface_positions(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_rope_nodes(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* constraint_forces, uniform Vec3* contact_forces,
-    uniform Vec3* liquid_forces, uniform Vec3* soft_body_forces,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> constraint_forces, uniform PMBuffer<Vec3> contact_forces,
+    uniform PMBuffer<Vec3> liquid_forces, uniform PMBuffer<Vec3> soft_body_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
-    uniform PortableDomainOutputHeader* header,
-    uniform PortableRopeNodeState* destination)
+    uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<PortableRopeNodeState> destination)
 {
     uint index = pmThreadIndex();
     if (index == 0u)
@@ -211,7 +212,7 @@ void export_rope_nodes(
         outputHeader.active_count = count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (index >= count) return;
     PortableRopeNodeState output;
@@ -227,12 +228,12 @@ void export_rope_nodes(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_soft_body_nodes(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* rigid_forces, uniform Vec3* cloth_forces,
-    uniform Vec3* liquid_forces, uniform Vec3* rope_forces,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> rigid_forces, uniform PMBuffer<Vec3> cloth_forces,
+    uniform PMBuffer<Vec3> liquid_forces, uniform PMBuffer<Vec3> rope_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
-    uniform PortableDomainOutputHeader* header,
-    uniform PortableSoftBodyNodeState* destination)
+    uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<PortableSoftBodyNodeState> destination)
 {
     uint index = pmThreadIndex();
     if (index == 0u)
@@ -241,7 +242,7 @@ void export_soft_body_nodes(
         outputHeader.active_count = count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (index >= count) return;
     PortableSoftBodyNodeState output;
@@ -257,12 +258,12 @@ void export_soft_body_nodes(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void export_smoke_particles(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* ages, uniform float* number_densities,
-    uniform float* pressures, uniform Vec3* vorticities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> ages, uniform PMBuffer<float> number_densities,
+    uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> vorticities,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
-    uniform PortableDomainOutputHeader* header,
-    uniform PortableSmokeParticleState* destination)
+    uniform PMBuffer<PortableDomainOutputHeader> header,
+    uniform PMBuffer<PortableSmokeParticleState> destination)
 {
     uint index = pmThreadIndex();
     if (index == 0u)
@@ -271,7 +272,7 @@ void export_smoke_particles(
         outputHeader.active_count = count;
         outputHeader.capacity = capacity;
         outputHeader.revision = revision;
-        *header = outputHeader;
+        header[0] = outputHeader;
     }
     if (index >= count) return;
     PortableSmokeParticleState output;

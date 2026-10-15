@@ -4,16 +4,17 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void rope_cloth_sample_anchor(
-    uniform Vec3* soft_anchor_positions,
-    uniform Vec3* soft_anchor_velocities,
-    uniform Vec3* soft_anchor_impulses,
-    uniform float* soft_anchor_inverse_masses, uniform uint end,
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform uint vertex,
+    uniform PMBuffer<Vec3> soft_anchor_positions,
+    uniform PMBuffer<Vec3> soft_anchor_velocities,
+    uniform PMBuffer<Vec3> soft_anchor_impulses,
+    uniform PMBuffer<float> soft_anchor_inverse_masses, uniform uint end,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform uint vertex,
     uniform float effective_mass)
 {
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
@@ -27,11 +28,11 @@ void rope_cloth_sample_anchor(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void rope_cloth_apply_anchor(
-    uniform Vec3* rope_positions, uniform Vec3* rope_velocities,
-    uniform uint rope_count, uniform Vec3* soft_anchor_positions,
-    uniform Vec3* soft_anchor_velocities, uniform uint end,
-    uniform Vec3* positions, uniform Vec3* velocities, uniform Vec3* forces,
-    uniform float* inverse_masses, uniform uint vertex,
+    uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
+    uniform uint rope_count, uniform PMBuffer<Vec3> soft_anchor_positions,
+    uniform PMBuffer<Vec3> soft_anchor_velocities, uniform uint end,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<Vec3> forces,
+    uniform PMBuffer<float> inverse_masses, uniform uint vertex,
     uniform float maximum_acceleration, uniform float dt,
     uniform float frame_inverse_dt)
 {

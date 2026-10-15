@@ -2,6 +2,7 @@
 // Stable four-bit LSD radix sort for 64-bit keys and 32-bit values.
 
 import device_intrinsics;
+import graphics_resources;
 
 static const uint kPmRadix = 16u;
 groupshared uint pmRadixCounts[16];
@@ -10,8 +11,8 @@ groupshared uint pmRadixDigits[256];
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_radix_histogram_u64(
-    uniform uint64_t* keys, uniform uint count, uniform uint tile_size,
-    uniform uint shift, uniform uint block_count, uniform uint* histograms)
+    uniform PMBuffer<uint64_t> keys, uniform uint count, uniform uint tile_size,
+    uniform uint shift, uniform uint block_count, uniform PMBuffer<uint> histograms)
 {
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
@@ -22,7 +23,8 @@ public void pm_radix_histogram_u64(
     if (index < count)
     {
         uint digit = uint((keys[index] >> shift) & 15ull);
-        pmAtomicAdd(&pmRadixCounts[digit], 1u);
+        uint ignored;
+        InterlockedAdd(pmRadixCounts[digit], 1u, ignored);
     }
     pmGroupBarrier();
     if (thread < kPmRadix)
@@ -32,8 +34,8 @@ public void pm_radix_histogram_u64(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 public void pm_radix_prefix_u32(
-    uniform uint* histograms, uniform uint block_count,
-    uniform uint* offsets)
+    uniform PMBuffer<uint> histograms, uniform uint block_count,
+    uniform PMBuffer<uint> offsets)
 {
     if (pmThreadIndex() != 0u) return;
     uint base = 0u;
@@ -53,10 +55,10 @@ public void pm_radix_prefix_u32(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_radix_scatter_u64_u32(
-    uniform uint64_t* input_keys, uniform uint* input_values,
+    uniform PMBuffer<uint64_t> input_keys, uniform PMBuffer<uint> input_values,
     uniform uint count, uniform uint tile_size, uniform uint shift,
-    uniform uint block_count, uniform uint* offsets,
-    uniform uint64_t* output_keys, uniform uint* output_values)
+    uniform uint block_count, uniform PMBuffer<uint> offsets,
+    uniform PMBuffer<uint64_t> output_keys, uniform PMBuffer<uint> output_values)
 {
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;

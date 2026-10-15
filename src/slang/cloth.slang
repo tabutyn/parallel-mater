@@ -4,6 +4,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 static const uint kClothVolumeThreads = 128u;
 groupshared float clothScalarTerms[kClothVolumeThreads];
@@ -15,19 +16,19 @@ groupshared uint clothChanged;
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void cloth_project_volume(
-    uniform Vec3* positions, uniform float* inverse_masses,
-    uniform uint* indices, uniform uint vertex_count,
-    uniform uint triangle_count, uniform uint* corner_offsets,
-    uniform uint* corner_indices, uniform Vec3* gradients,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<uint> indices, uniform uint vertex_count,
+    uniform uint triangle_count, uniform PMBuffer<uint> corner_offsets,
+    uniform PMBuffer<uint> corner_indices, uniform PMBuffer<Vec3> gradients,
     uniform float target_volume, uniform float orientation,
-    uniform float compliance, uniform float dt, uniform float* lambda,
+    uniform float compliance, uniform float dt, uniform PMBuffer<float> lambda,
     uniform bool reset_lambda)
 {
     if (pmBlockIndex().x != 0u) return;
     uint thread = pmGroupThreadIndex().x;
     if (thread == 0u)
     {
-        if (reset_lambda) *lambda = 0.0f;
+        if (reset_lambda) lambda[0] = 0.0f;
         clothSignedVolume = 0.0f;
     }
     pmGroupBarrier();
@@ -101,7 +102,7 @@ void cloth_project_volume(
                 orientation * clothSignedVolume - target_volume;
             clothDeltaLambda =
                 (-constraint - alpha * (*lambda)) / (inverseMassSum + alpha);
-            *lambda += clothDeltaLambda;
+            lambda[0] += clothDeltaLambda;
         }
     }
     pmGroupBarrier();
@@ -118,16 +119,16 @@ void cloth_project_volume(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_break_bonds(
-    uniform Vec3* positions, uniform ClothBond* bonds,
-    uniform uint8_t* active, uniform uint8_t* damage, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<ClothBond> bonds,
+    uniform PMBuffer<PMResourceUint8> active, uniform PMBuffer<PMResourceUint8> damage, uniform uint count,
     uniform float break_strain, uniform uint persistence,
-    uniform FluidBodyImpulse* contact_impulses,
+    uniform PMBuffer<FluidBodyImpulse> contact_impulses,
     uniform float impact_threshold)
 {
     uint edgeIndex = pmThreadIndex();
     if (edgeIndex >= count || active[edgeIndex] == 0u) return;
     ClothBond bond = bonds[edgeIndex];
-    if (impact_threshold > 0.0f && contact_impulses != nullptr &&
+    if (impact_threshold > 0.0f && pmBufferPresent(contact_impulses) &&
         vector_length(contact_impulses[bond.first].linear) +
         vector_length(contact_impulses[bond.second].linear) > impact_threshold)
     {
@@ -145,7 +146,7 @@ void cloth_break_bonds(
         return;
     }
     uint next = min(persistence, uint(damage[edgeIndex]) + 1u);
-    damage[edgeIndex] = uint8_t(next);
+    damage[edgeIndex] = PMResourceUint8(next);
     if (next >= persistence)
     {
         active[edgeIndex] = 0u;
@@ -156,9 +157,9 @@ void cloth_break_bonds(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_limit_strain(
-    uniform Vec3* positions, uniform Vec3* scratch,
-    uniform float* inverse_masses, uniform uint* offsets,
-    uniform DeformableNeighbor* neighbors, uniform uint8_t* free_nodes,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> scratch,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> offsets,
+    uniform PMBuffer<DeformableNeighbor> neighbors, uniform PMBuffer<PMResourceUint8> free_nodes,
     uniform uint count)
 {
     uint thread = pmGroupThreadIndex().x;
@@ -208,8 +209,8 @@ void cloth_limit_strain(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_update_surface(
-    uniform Vec3* positions, uniform uint* source_indices,
-    uniform Vec3* surface_positions, uniform uint triangle_count)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> source_indices,
+    uniform PMBuffer<Vec3> surface_positions, uniform uint triangle_count)
 {
     uint triangle = pmThreadIndex();
     if (triangle >= triangle_count) return;

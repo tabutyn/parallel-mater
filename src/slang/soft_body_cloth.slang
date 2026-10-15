@@ -5,18 +5,19 @@ import types;
 import math;
 import device_intrinsics;
 import geometry_fluid;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_cloth_detect(
-    uniform Vec3* positions, uniform Vec3* previous,
-    uniform Vec3* velocities, uniform float* inverse_masses,
-    uniform uint count, uniform Vec3* cloth_positions,
-    uniform Vec3* cloth_previous, uniform Vec3* cloth_velocities,
-    uniform float* cloth_inverse_masses, uniform uint* indices,
-    uniform Vec3* surface, uniform uint triangle_count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
+    uniform uint count, uniform PMBuffer<Vec3> cloth_positions,
+    uniform PMBuffer<Vec3> cloth_previous, uniform PMBuffer<Vec3> cloth_velocities,
+    uniform PMBuffer<float> cloth_inverse_masses, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<Vec3> surface, uniform uint triangle_count,
     uniform float distance, uniform float friction,
-    uniform SoftClothContact* contacts, uniform uint* contact_counts)
+    uniform PMBuffer<SoftClothContact> contacts, uniform PMBuffer<uint> contact_counts)
 {
     uint node = pmThreadIndex();
     if (node >= count) return;
@@ -32,11 +33,11 @@ void soft_cloth_detect(
     for (uint triangle = 0u; triangle < triangle_count; ++triangle)
     {
         uint base = triangle * 3u;
-        Vec3 a = surface != nullptr ? surface[base] :
+        Vec3 a = pmBufferPresent(surface) ? surface[base] :
             cloth_positions[indices[base]];
-        Vec3 b = surface != nullptr ? surface[base + 1u] :
+        Vec3 b = pmBufferPresent(surface) ? surface[base + 1u] :
             cloth_positions[indices[base + 1u]];
-        Vec3 c = surface != nullptr ? surface[base + 2u] :
+        Vec3 c = pmBufferPresent(surface) ? surface[base + 2u] :
             cloth_positions[indices[base + 2u]];
         Vec3 oldA = cloth_previous[indices[base]];
         Vec3 oldB = cloth_previous[indices[base + 1u]];
@@ -95,7 +96,7 @@ void soft_cloth_detect(
         clothVelocity = add(clothVelocity,
             multiply(cloth_velocities[vertex], weight));
         if (weight > 1.0e-6f && cloth_inverse_masses[vertex] > 0.0f)
-            pmAtomicAdd(&contact_counts[vertex], 1u);
+            pmAtomicAdd(contact_counts + vertex, 1u);
     }
     contact.position_impulse = multiply(bestNormal,
         min(penetration, 2.0f * distance) / denominator);
@@ -111,7 +112,7 @@ void soft_cloth_detect(
     contacts[node] = contact;
 }
 
-float soft_cloth_relaxation(SoftClothContact contact, uint* counts)
+float soft_cloth_relaxation(SoftClothContact contact, PMBuffer<uint> counts)
 {
     uint degree = 1u;
     for (uint corner = 0u; corner < 3u; ++corner)
@@ -125,10 +126,10 @@ float soft_cloth_relaxation(SoftClothContact contact, uint* counts)
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_cloth_apply_soft(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* forces, uniform float* inverse_masses,
-    uniform uint count, uniform SoftClothContact* contacts,
-    uniform uint* counts, uniform float dt, uniform float maximum_speed)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
+    uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
+    uniform PMBuffer<uint> counts, uniform float dt, uniform float maximum_speed)
 {
     uint node = pmThreadIndex();
     if (node >= count || !contacts[node].active) return;
@@ -145,10 +146,10 @@ void soft_cloth_apply_soft(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_cloth_apply_cloth(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* forces, uniform float* inverse_masses,
-    uniform uint count, uniform SoftClothContact* contacts,
-    uniform uint contact_count, uniform uint* counts, uniform float dt)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
+    uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
+    uniform uint contact_count, uniform PMBuffer<uint> counts, uniform float dt)
 {
     uint vertex = pmThreadIndex();
     if (vertex >= count) return;

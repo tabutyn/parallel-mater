@@ -51,8 +51,8 @@ int main() {
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
     PmDevice device{};
-    // Device creation compiles both embedded Slang DXIL entry points into
-    // D3D12 PSOs, dispatches prepare/solve, fences, and validates the schedule.
+    // Device creation loads the embedded common Slang schedule library,
+    // dispatches a descriptor-backed rigid-input kernel, and validates it.
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);
@@ -174,6 +174,6 @@ int main() {
     pmFreeMemory(device, upload);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: loader D3D12 transfer API and shared Slang AVBD DXIL dispatch");
+    std::puts("PASS: D3D12 transfer API and common Slang command dispatch");
     return 0;
 }

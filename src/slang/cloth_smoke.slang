@@ -7,15 +7,16 @@ import device_intrinsics;
 import geometry_fluid;
 import geometry_smoke;
 import smoke_grid;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_cloth_wind(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform uint vertex_count,
-    uniform SmokeOptions smoke, uniform Vec3* smoke_positions,
-    uniform Vec3* smoke_velocities, uniform uint64_t* keys,
-    uniform uint* indices, uniform SmokeGridField grid, uniform float drag,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform uint vertex_count,
+    uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> keys,
+    uniform PMBuffer<uint> indices, uniform SmokeGridField grid, uniform float drag,
     uniform float maximum_acceleration, uniform float dt)
 {
     uint vertex = pmThreadIndex();
@@ -29,12 +30,12 @@ void smoke_cloth_wind(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_cloth_contact(
-    uniform Vec3* positions, uniform Vec3* previous_positions,
-    uniform Vec3* velocities, uniform float* ages, uniform float* pressures,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform PMBuffer<float> pressures,
     uniform uint count, uniform float lifetime,
-    uniform Vec3* cloth_positions, uniform Vec3* cloth_velocities,
-    uniform uint* indices, uniform uint index_count, uniform Vec3* minimum,
-    uniform Vec3* maximum, uniform float clearance,
+    uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
+    uniform PMBuffer<uint> indices, uniform uint index_count, uniform PMBuffer<Vec3> minimum,
+    uniform PMBuffer<Vec3> maximum, uniform float clearance,
     uniform float pressure_stiffness, uniform float maximum_speed,
     uniform SmokeGridField grid)
 {

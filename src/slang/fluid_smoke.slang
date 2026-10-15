@@ -6,15 +6,16 @@ import math;
 import device_intrinsics;
 import geometry_smoke;
 import smoke_grid;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_smoke_drag(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform uint* water_count, uniform FluidSmokeCouplingOptions coupling,
-    uniform SmokeOptions smoke, uniform Vec3* smoke_positions,
-    uniform Vec3* smoke_velocities, uniform uint64_t* smoke_keys,
-    uniform uint* smoke_indices, uniform float dt)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
+    uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> smoke_keys,
+    uniform PMBuffer<uint> smoke_indices, uniform float dt)
 {
     uint index = pmThreadIndex();
     if (index >= *water_count) return;
@@ -33,8 +34,8 @@ void fluid_smoke_drag(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_smoke_grid_drag(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform uint* water_count, uniform FluidSmokeCouplingOptions coupling,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
     uniform SmokeOptions smoke, uniform SmokeGridField grid, uniform float dt)
 {
     uint index = pmThreadIndex();
@@ -55,15 +56,15 @@ void fluid_smoke_grid_drag(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_smoke_exchange(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* temperatures, uniform uint* water_count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> temperatures, uniform PMBuffer<uint> water_count,
     uniform float water_radius, uniform FluidSmokeCouplingOptions coupling,
-    uniform SmokeOptions smoke, uniform Vec3* smoke_positions,
-    uniform Vec3* smoke_velocities, uniform float* smoke_ages,
-    uniform float* smoke_thermal_lift, uniform float* smoke_densities,
-    uniform float* smoke_pressures, uniform Vec3* smoke_vorticities,
-    uniform uint first_smoke_slot, uniform uint* converted,
-    uniform uint8_t* keep, uniform float dt, uniform Vec3 gravity)
+    uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<float> smoke_ages,
+    uniform PMBuffer<float> smoke_thermal_lift, uniform PMBuffer<float> smoke_densities,
+    uniform PMBuffer<float> smoke_pressures, uniform PMBuffer<Vec3> smoke_vorticities,
+    uniform uint first_smoke_slot, uniform PMBuffer<uint> converted,
+    uniform PMBuffer<PMResourceUint8> keep, uniform float dt, uniform Vec3 gravity)
 {
     uint index = pmThreadIndex();
     if (index >= *water_count) return;
@@ -100,7 +101,7 @@ void fluid_smoke_exchange(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_clear_inactive_keep(
-    uniform uint8_t* keep, uniform uint* count, uniform uint capacity)
+    uniform PMBuffer<PMResourceUint8> keep, uniform PMBuffer<uint> count, uniform uint capacity)
 {
     uint index = pmThreadIndex();
     if (index >= capacity) return;

@@ -7,36 +7,37 @@ import math;
 import device_intrinsics;
 import geometry_fluid;
 import geometry;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void deformable_collide(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* previous, uniform float* inverse_masses,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform float thickness, uniform float dt,
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform uint body_count,
-    uniform FluidBodyImpulse* impulses, uniform Vec3* contact_forces,
-    uniform Vec3* contact_normals, uniform Vec3* contact_arms,
-    uniform Vec3* contact_momentum_delta,
-    uniform float* accumulated_normal_delta,
-    uniform uint* deformable_contact_count,
-    uniform uint* dynamic_contact_flag, uniform uint* contact_flags,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform PMBuffer<FluidBodyImpulse> impulses, uniform PMBuffer<Vec3> contact_forces,
+    uniform PMBuffer<Vec3> contact_normals, uniform PMBuffer<Vec3> contact_arms,
+    uniform PMBuffer<Vec3> contact_momentum_delta,
+    uniform PMBuffer<float> accumulated_normal_delta,
+    uniform PMBuffer<uint> deformable_contact_count,
+    uniform PMBuffer<uint> dynamic_contact_flag, uniform PMBuffer<uint> contact_flags,
     uniform bool couple_dynamic, uniform bool position_only,
     uniform bool static_only, uniform bool reconstruct_free_velocities,
-    uniform float maximum_speed, uniform Vec3* body_position_corrections)
+    uniform float maximum_speed, uniform PMBuffer<Vec3> body_position_corrections)
 {
     uint vertex = pmThreadIndex();
     if (vertex >= count) return;
     if (!position_only)
     {
-        if (body_position_corrections != nullptr)
+        if (pmBufferPresent(body_position_corrections))
             body_position_corrections[vertex] = {};
         impulses[vertex] = {};
         contact_forces[vertex] = {};
-        if (contact_normals != nullptr) contact_normals[vertex] = {};
-        if (couple_dynamic && contact_arms != nullptr)
+        if (pmBufferPresent(contact_normals)) contact_normals[vertex] = {};
+        if (couple_dynamic && pmBufferPresent(contact_arms))
             contact_arms[vertex] = {};
     }
     if (inverse_masses[vertex] == 0.0f) return;
@@ -49,7 +50,7 @@ void deformable_collide(
         BodyParameters body = parameters[bodyIndex];
         if (static_only && body.motion != MotionType.static_body) continue;
         RigidBodyState state = states[bodyIndex];
-        RigidBodyState previousState = previous_states != nullptr
+        RigidBodyState previousState = pmBufferPresent(previous_states)
             ? previous_states[bodyIndex] : state;
         TriangleMeshResource mesh = meshes[body.mesh.index];
         if (mesh.bvh_node_count == 0u) continue;
@@ -60,7 +61,7 @@ void deformable_collide(
         float margin = thickness + body.collision_margin;
         if (!fluid_segment_bounds(
             localStart, localEnd, mesh.bvh_nodes[0], margin)) continue;
-        if (couple_dynamic && mesh.solid_planes != nullptr)
+        if (couple_dynamic && pmBufferPresent(mesh.solid_planes))
         {
             float nearestSide = -3.402823466e+38f;
             CollisionPlane nearestPlane = {};
@@ -113,7 +114,7 @@ void deformable_collide(
                 Vec3 nearest = fluid_closest_triangle(localEnd, a, b, c);
                 Vec3 delta = subtract(localEnd, nearest);
                 float distance = vector_length(delta);
-                bool solid = couple_dynamic && mesh.solid_planes != nullptr;
+                bool solid = couple_dynamic && pmBufferPresent(mesh.solid_planes);
                 Vec3 face = solid ? mesh.solid_planes[base / 3u].normal :
                     normalized_or(cross(subtract(b, a), subtract(c, a)),
                         {0.0f, 1.0f, 0.0f});
@@ -163,10 +164,10 @@ void deformable_collide(
     RigidBodyState state = states[bestBody];
     if (couple_dynamic && body.motion == MotionType.dynamic)
         pmAtomicExchange(dynamic_contact_flag, 1u);
-    if (contact_normals != nullptr) contact_normals[vertex] = bestNormal;
-    if (accumulated_normal_delta != nullptr)
+    if (pmBufferPresent(contact_normals)) contact_normals[vertex] = bestNormal;
+    if (pmBufferPresent(accumulated_normal_delta))
         accumulated_normal_delta[vertex] += bestPenetration;
-    if (deformable_contact_count != nullptr)
+    if (pmBufferPresent(deformable_contact_count))
         pmAtomicAdd(deformable_contact_count, 1u);
     Vec3 velocity = multiply(subtract(end, start), 1.0f / dt);
     float nodeShare = couple_dynamic
@@ -178,8 +179,8 @@ void deformable_collide(
     if (couple_dynamic)
     {
         impulses[vertex].body = bestBody;
-        if (contact_arms != nullptr) contact_arms[vertex] = arm;
-        pmAtomicExchange(&contact_flags[bestBody], 1u);
+        if (pmBufferPresent(contact_arms)) contact_arms[vertex] = arm;
+        pmAtomicExchange(contact_flags + bestBody, 1u);
     }
     Vec3 bodyVelocity = add(state.linear_velocity,
         cross(state.angular_velocity, arm));
@@ -197,7 +198,7 @@ void deformable_collide(
                 -(1.0f + body.restitution) * incoming / denominator);
             Vec3 velocityDelta = multiply(impulse, 1.0f / mass);
             velocity = add(velocity, velocityDelta);
-            if (contact_momentum_delta != nullptr)
+            if (pmBufferPresent(contact_momentum_delta))
                 contact_momentum_delta[vertex] = add(
                     contact_momentum_delta[vertex], impulse);
             if (couple_dynamic && body.motion == MotionType.dynamic)
@@ -206,10 +207,10 @@ void deformable_collide(
                 multiply(cross(arm, impulse), -1.0f), bestBody};
             contact_forces[vertex] = multiply(impulse, 1.0f / dt);
             if (!couple_dynamic)
-                pmAtomicExchange(&contact_flags[bestBody], 1u);
+                pmAtomicExchange(contact_flags + bestBody, 1u);
         }
     }
-    if (couple_dynamic && body_position_corrections != nullptr)
+    if (couple_dynamic && pmBufferPresent(body_position_corrections))
         body_position_corrections[vertex] = multiply(bestNormal,
             -bestPenetration * body.inverse_mass /
             (inverse_masses[vertex] + body.inverse_mass));
@@ -416,10 +417,10 @@ bool soft_project_convex_pair_triangle(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_surface_contacts(
-    uniform Vec3* surface, uniform uint* indices,
-    uniform uint triangle_count, uniform BodyParameters* parameters,
-    uniform RigidBodyState* states, uniform TriangleMeshResource* meshes,
-    uniform uint body_count, uniform Vec3* corrections)
+    uniform PMBuffer<Vec3> surface, uniform PMBuffer<uint> indices,
+    uniform uint triangle_count, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform uint body_count, uniform PMBuffer<Vec3> corrections)
 {
     uint triangle = pmThreadIndex();
     if (triangle >= triangle_count) return;
@@ -436,7 +437,7 @@ void soft_body_surface_contacts(
     for (uint body = 0u; body < body_count; ++body)
     {
         TriangleMeshResource mesh = meshes[parameters[body].mesh.index];
-        if (mesh.solid_planes == nullptr) continue;
+        if (!pmBufferPresent(mesh.solid_planes)) continue;
         RigidBodyState state = states[body];
         Vec3 point[3];
         for (uint corner = 0u; corner < 3u; ++corner)
@@ -547,8 +548,8 @@ void soft_body_surface_contacts(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_apply_surface_contacts(
-    uniform Vec3* positions, uniform Vec3* corrections,
-    uniform uint* offsets, uniform SoftSurfaceInfluence* influences,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> corrections,
+    uniform PMBuffer<uint> offsets, uniform PMBuffer<SoftSurfaceInfluence> influences,
     uniform uint node_count)
 {
     uint node = pmThreadIndex();

@@ -2,6 +2,7 @@
 // Portable dispatch and atomic operations used by shared physics kernels.
 
 import types;
+import graphics_resources;
 
 #ifndef PM_TARGET_D3D12
 #define PM_TARGET_D3D12 0
@@ -81,6 +82,114 @@ public uint pmAtomicExchange(uint* value, uint replacement)
     InterlockedExchange(*value, replacement, original);
     return original;
 }
+
+public uint pmAtomicAdd(PMBuffer<uint> value, uint addend)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedAdd(value.offset * sizeof(uint), addend, original);
+    return original;
+}
+public uint64_t pmAtomicAdd(PMBuffer<uint64_t> value, uint64_t addend)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint64_t original;
+    resource.InterlockedAdd64(
+        value.offset * sizeof(uint64_t), addend, original);
+    return original;
+}
+public float pmAtomicAdd(PMBuffer<float> value, float addend)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint address = value.offset * sizeof(float);
+    uint expected = resource.Load<uint>(address);
+    for (;;)
+    {
+        uint replacement = asuint(asfloat(expected) + addend);
+        uint original;
+        resource.InterlockedCompareExchange(
+            address, expected, replacement, original);
+        if (original == expected) return asfloat(original);
+        expected = original;
+    }
+}
+public uint pmAtomicMax(PMBuffer<uint> value, uint candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedMax(value.offset * sizeof(uint), candidate, original);
+    return original;
+}
+public uint pmAtomicMin(PMBuffer<uint> value, uint candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedMin(value.offset * sizeof(uint), candidate, original);
+    return original;
+}
+public uint pmAtomicOr(PMBuffer<uint> value, uint candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedOr(value.offset * sizeof(uint), candidate, original);
+    return original;
+}
+public uint64_t pmAtomicOr(PMBuffer<uint64_t> value, uint64_t candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    return resource.InterlockedOrU64(
+        value.offset * sizeof(uint64_t), candidate);
+}
+public uint pmAtomicExchange(PMBuffer<uint> value, uint replacement)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedExchange(
+        value.offset * sizeof(uint), replacement, original);
+    return original;
+}
+
+public float pmAtomicAddRawFloat(
+    RWByteAddressBuffer resource, uint address, float addend)
+{
+    uint expected = resource.Load<uint>(address);
+    for (;;)
+    {
+        uint replacement = asuint(asfloat(expected) + addend);
+        uint original;
+        resource.InterlockedCompareExchange(
+            address, expected, replacement, original);
+        if (original == expected) return asfloat(original);
+        expected = original;
+    }
+}
+
+public void pmAtomicAddVec3(PMBuffer<Vec3> value, Vec3 addend)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint address = value.offset * sizeof(Vec3);
+    pmAtomicAddRawFloat(resource, address, addend.x);
+    pmAtomicAddRawFloat(resource, address + sizeof(float), addend.y);
+    pmAtomicAddRawFloat(resource, address + 2u * sizeof(float), addend.z);
+}
+
+public uint pmAtomicMaxPositiveFloat(PMBuffer<float> value, float candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedMax(
+        value.offset * sizeof(float), asuint(candidate), original);
+    return original;
+}
+
+public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
+{
+    RWByteAddressBuffer resource = pmGraphicsResource(value);
+    uint original;
+    resource.InterlockedMin(
+        value.offset * sizeof(float), asuint(candidate), original);
+    return original;
+}
 public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
 public uint3 pmGridDim() { return pmDispatchGroupCount; }
 
@@ -138,6 +247,23 @@ public void pmGridBarrier()
         "  __syncthreads();\n"
         "}\n");
     pmNativeGridBarrier();
+}
+
+public void pmAtomicAddVec3(PMBuffer<Vec3> value, Vec3 addend)
+{
+    pmAtomicAdd(&value[0].x, addend.x);
+    pmAtomicAdd(&value[0].y, addend.y);
+    pmAtomicAdd(&value[0].z, addend.z);
+}
+
+public uint pmAtomicMaxPositiveFloat(PMBuffer<float> value, float candidate)
+{
+    return pmAtomicMax(reinterpret<uint*>(value), asuint(candidate));
+}
+
+public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
+{
+    return pmAtomicMin(reinterpret<uint*>(value), asuint(candidate));
 }
 #endif
 

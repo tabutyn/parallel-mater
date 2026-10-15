@@ -5,6 +5,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 #ifndef PM_TARGET_D3D12
 #define PM_TARGET_D3D12 0
@@ -244,7 +245,7 @@ struct PhysicsDebugRigidSample
     Vec3 applied_torque;
 };
 
-uint find_rigid_body_dense(RigidBodyId id, RigidBodyId* ids, uint count)
+uint find_rigid_body_dense(RigidBodyId id, PMBuffer<RigidBodyId> ids, uint count)
 {
     for (uint index = 0u; index < count; ++index)
         if (ids[index].index == id.index &&
@@ -257,7 +258,7 @@ bool same_id(RigidBodyId a, RigidBodyId b)
     return a.index == b.index && a.generation == b.generation;
 }
 
-uint rigid_find_dense(RigidBodyId id, RigidBodyId* ids, uint count)
+uint rigid_find_dense(RigidBodyId id, PMBuffer<RigidBodyId> ids, uint count)
 {
     for (uint index = 0u; index < count; ++index)
         if (same_id(ids[index], id)) return index;
@@ -295,9 +296,9 @@ float rigid_fixed_hinge_inverse_moment(BodyParameters parameters,
 }
 
 HingeContactFrame rigid_hinge_contact_frame(
-    BodyParameters* parameters, RigidBodyId* ids, uint bodyCount,
-    uint dense, RigidBodyState* states, __constref RigidBodyState state,
-    RigidConstraintResource* constraints, uint constraintCapacity,
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyId> ids, uint bodyCount,
+    uint dense, PMBuffer<RigidBodyState> states, __constref RigidBodyState state,
+    PMBuffer<RigidConstraintResource> constraints, uint constraintCapacity,
     out Vec3 reference)
 {
     HingeContactFrame result = {};
@@ -384,7 +385,7 @@ HingeContactFrame rigid_hinge_contact_frame(
 }
 
 bool constrained_collision_disabled(
-    RigidBodyId a, RigidBodyId b, RigidConstraintResource* constraints,
+    RigidBodyId a, RigidBodyId b, PMBuffer<RigidConstraintResource> constraints,
     uint capacity)
 {
     for (uint index = 0u; index < capacity; ++index)
@@ -405,9 +406,9 @@ bool constrained_collision_disabled(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_integrate_rigid_bodies(
-    uniform BodyParameters* parameters, uniform BodyAccumulator* accumulators,
-    uniform KinematicTarget* targets, uniform RigidBodyState* input,
-    uniform RigidBodyState* output, uniform uint count, uniform Vec3 gravity,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<BodyAccumulator> accumulators,
+    uniform PMBuffer<KinematicTarget> targets, uniform PMBuffer<RigidBodyState> input,
+    uniform PMBuffer<RigidBodyState> output, uniform uint count, uniform Vec3 gravity,
     uniform float timestep, uniform uint remaining_substeps,
     uniform bool apply_impulses)
 {
@@ -494,10 +495,10 @@ void pm_integrate_rigid_bodies(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_compute_rigid_world_bounds(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform WorldAabb* world_bounds)
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<WorldAabb> world_bounds)
 {
     uint index = pmThreadIndex();
     if (index >= count) return;
@@ -551,13 +552,13 @@ bool rigid_bounding_spheres_may_contact(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_broad_phase_rigid_pairs(
-    uniform BodyParameters* parameters, uniform WorldAabb* world_bounds,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform RigidBodyId* ids,
-    uniform RigidConstraintResource* constraints,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<WorldAabb> world_bounds,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<RigidBodyId> ids,
+    uniform PMBuffer<RigidConstraintResource> constraints,
     uniform uint constraint_capacity,
-    uniform FixedContactProjection* fixed_groups, uniform uint count,
-    uniform uint8_t* active_flags)
+    uniform PMBuffer<FixedContactProjection> fixed_groups, uniform uint count,
+    uniform PMBuffer<PMResourceUint8> active_flags)
 {
     uint pair = pmThreadIndex();
     if (pair >= count * count) return;
@@ -566,7 +567,7 @@ void pm_broad_phase_rigid_pairs(
         bodyIndex != colliderIndex;
     if (active && parameters[colliderIndex].motion == MotionType.dynamic &&
         colliderIndex < bodyIndex) active = false;
-    if (active && fixed_groups != nullptr &&
+    if (active && pmBufferPresent(fixed_groups) &&
         fixed_groups[bodyIndex].root == fixed_groups[colliderIndex].root)
         active = false;
     if (active && constrained_collision_disabled(ids[bodyIndex],
@@ -587,7 +588,7 @@ void pm_broad_phase_rigid_pairs(
                 previous_states[colliderIndex], states[colliderIndex],
                 meshes[parameters[colliderIndex].mesh.index], margin);
     }
-    active_flags[pair] = active ? uint8_t(1u) : uint8_t(0u);
+    active_flags[pair] = active ? PMResourceUint8(1u) : PMResourceUint8(0u);
 }
 
 void rigid_closest_segments(Vec3 p0, Vec3 p1, Vec3 q0, Vec3 q1,
@@ -909,7 +910,7 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             bool onTriangleFace = length_squared(subtract(planeProjection,
                 rigid_closest_triangle(planeProjection, b0, b1, b2, false))) <=
                 1.0e-10f;
-            bool smallConvex = aMesh.solid_planes != nullptr &&
+            bool smallConvex = pmBufferPresent(aMesh.solid_planes) &&
                                aMesh.index_count <= 96u;
             Vec3 normal = (distance <= 1.0e-5f ||
                 (smallConvex && onTriangleFace))
@@ -920,8 +921,8 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             // allocation order and cannot recover further into the cavity.
             bool convexSurfaceFace = false;
             float faceSeparation = 0.0f;
-            bool convexA = aMesh.solid_planes != nullptr;
-            bool convexB = bMesh.solid_planes != nullptr;
+            bool convexA = pmBufferPresent(aMesh.solid_planes);
+            bool convexB = pmBufferPresent(bMesh.solid_planes);
             if (convexA != convexB && distance <= 1.0e-5f)
             {
                 Vec3 face0 = convexA ? b0 : a0;
@@ -1020,8 +1021,8 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
     out ContactManifold output)
 {
     output = {};
-    if (bodyMesh.solid_planes == nullptr ||
-        colliderMesh.solid_planes == nullptr ||
+    if (!pmBufferPresent(bodyMesh.solid_planes) ||
+        !pmBufferPresent(colliderMesh.solid_planes) ||
         bodyMesh.index_count > 96u || colliderMesh.index_count > 96u)
         return false;
     float bestSeparation = -3.402823466e+38f;
@@ -1361,10 +1362,10 @@ void rigid_collide_triangle_ranges_swept(
                             subtract(reference, pointB)) >= 0.0f
                             ? colliderNormal : multiply(colliderNormal, -1.0f);
                     }
-                    Vec3 outwardA = aMesh.shell_normals != nullptr
+                    Vec3 outwardA = pmBufferPresent(aMesh.shell_normals)
                         ? rotate(aState.orientation, aMesh.shell_normals[at])
                         : Vec3();
-                    Vec3 outwardB = bMesh.shell_normals != nullptr
+                    Vec3 outwardB = pmBufferPresent(bMesh.shell_normals)
                         ? rotate(bState.orientation, bMesh.shell_normals[bt])
                         : Vec3();
                     if (guided && length_squared(outwardB) > 0.5f)
@@ -1377,7 +1378,7 @@ void rigid_collide_triangle_ranges_swept(
                     bool onFace = length_squared(subtract(planeProjection,
                         rigid_closest_triangle(planeProjection, b[0], b[1],
                             b[2], false))) <= 1.0e-10f;
-                    bool smallConvex = aMesh.solid_planes != nullptr &&
+                    bool smallConvex = pmBufferPresent(aMesh.solid_planes) &&
                         aMesh.index_count <= 96u;
                     Vec3 normal = guided
                         ? rigid_guided_triangle_normal(a[0], a[1], a[2],
@@ -1577,6 +1578,7 @@ ContactManifold rigid_collide_meshes(
 // Keep the native candidate traversal width. Candidate order determines
 // which eight contacts survive manifold reduction, so changing this width is
 // a physics change rather than a launch-only tuning choice.
+#if !PM_TARGET_D3D12 || defined(PM_DXIL_ENTRY_pm_generate_rigid_leaf_pairs)
 groupshared uint rigidLeafOffsets[128];
 groupshared uint rigidLeafCandidateCount;
 // Match the native broad/narrow-phase handoff exactly. Reusing one transformed
@@ -1587,12 +1589,12 @@ groupshared WorldAabb rigidLeafCachedBounds[1024];
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void pm_generate_rigid_leaf_pairs(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform uint mesh_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform LeafPair* leaf_pairs,
-    uniform uint* leaf_pair_counts,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform uint mesh_capacity, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<LeafPair> leaf_pairs,
+    uniform PMBuffer<uint> leaf_pair_counts,
     uniform uint leaf_pair_cache_slot_capacity,
     uniform uint leaf_pairs_per_slot, uniform uint shared_leaf_capacity)
 {
@@ -1776,9 +1778,13 @@ void pm_generate_rigid_leaf_pairs(
         pmGroupBarrier();
     }
 }
+#endif
 
+#if !PM_TARGET_D3D12 || defined(PM_DXIL_ENTRY_pm_evaluate_rigid_leaf_pairs)
+#if !PM_TARGET_D3D12
 groupshared ContactManifold rigidLeafWorkerManifolds[16];
 groupshared ContactManifold rigidLeafReducedManifold;
+#endif
 groupshared HingeContactFrame rigidLeafPreviousBodyHinge;
 groupshared HingeContactFrame rigidLeafBodyHinge;
 groupshared HingeContactFrame rigidLeafColliderHinge;
@@ -1790,15 +1796,15 @@ groupshared uint rigidLeafSwept;
 [shader("compute")]
 [numthreads(16, 1, 1)]
 void pm_evaluate_rigid_leaf_pairs(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform RigidBodyId* ids, uniform RigidConstraintResource* constraints,
-    uniform uint constraint_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform LeafPair* leaf_pairs,
-    uniform uint* leaf_pair_counts, uniform uint leaf_pairs_per_slot,
-    uniform ContactManifold* leaf_manifolds, uniform uint blocks_per_pair,
-    uniform float timestep, uniform ContactManifold* manifolds)
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidConstraintResource> constraints,
+    uniform uint constraint_capacity, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<LeafPair> leaf_pairs,
+    uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
+    uniform PMBuffer<ContactManifold> leaf_manifolds, uniform uint blocks_per_pair,
+    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds)
 {
     uint lane = pmGroupThreadIndex().x;
     uint pairBlock = pmBlockIndex().x % blocks_per_pair;
@@ -1843,8 +1849,10 @@ void pm_evaluate_rigid_leaf_pairs(
                     meshes[parameters[a].mesh.index], previous_states[b],
                     states[b], meshes[parameters[b].mesh.index],
                     rigidLeafMargin)) ? 1u : 0u;
+#if !PM_TARGET_D3D12
             rigidLeafReducedManifold.count = 0u;
             rigidLeafReducedManifold.face_patch = false;
+#endif
         }
         pmGroupBarrier();
         for (uint wave = pairBlock * pmGroupSize().x;
@@ -1879,13 +1887,19 @@ void pm_evaluate_rigid_leaf_pairs(
                         range.collider_first, range.collider_count,
                         rigidLeafColliderHinge, rigidLeafMargin,
                         timestep, local);
+#if PM_TARGET_D3D12
+                leaf_manifolds[
+                    activeIndex * leaf_pairs_per_slot + candidate] = local;
+#else
                 rigidLeafWorkerManifolds[lane] = local;
-                if (leaf_manifolds != nullptr)
+                if (pmBufferPresent(leaf_manifolds))
                     leaf_manifolds[
                         activeIndex * leaf_pairs_per_slot + candidate] = local;
+#endif
             }
             pmGroupBarrier();
-            if (leaf_manifolds == nullptr && lane == 0u)
+#if !PM_TARGET_D3D12
+            if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             {
                 float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
                 uint waveCount = min(pmGroupSize().x,
@@ -1898,22 +1912,26 @@ void pm_evaluate_rigid_leaf_pairs(
                             partial.contacts[point], spacing);
                 }
             }
+#endif
             pmGroupBarrier();
         }
-        if (leaf_manifolds == nullptr && lane == 0u)
+#if !PM_TARGET_D3D12
+        if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             manifolds[activeIndex] = rigidLeafReducedManifold;
+#endif
         pmGroupBarrier();
     }
 }
+#endif
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_reduce_rigid_leaf_manifolds(
-    uniform BodyParameters* parameters, uniform uint count,
-    uniform uint* active_pairs, uniform uint* active_pair_count,
-    uniform uint* leaf_pair_counts, uniform uint leaf_pairs_per_slot,
-    uniform ContactManifold* leaf_manifolds,
-    uniform ContactManifold* manifolds)
+    uniform PMBuffer<BodyParameters> parameters, uniform uint count,
+    uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
+    uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
+    uniform PMBuffer<ContactManifold> leaf_manifolds,
+    uniform PMBuffer<ContactManifold> manifolds)
 {
     uint activeIndex = pmThreadIndex();
     if (activeIndex >= *active_pair_count) return;
@@ -1936,13 +1954,13 @@ void pm_reduce_rigid_leaf_manifolds(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_finalize_rigid_contact_manifolds(
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform uint count, uniform TriangleMeshResource* meshes,
-    uniform RigidBodyId* ids, uniform RigidConstraintResource* constraints,
-    uniform uint constraint_capacity, uniform uint* active_pairs,
-    uniform uint* active_pair_count, uniform uint* leaf_pair_counts,
-    uniform float timestep, uniform ContactManifold* manifolds,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidConstraintResource> constraints,
+    uniform uint constraint_capacity, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<uint> leaf_pair_counts,
+    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds,
     uniform bool prepare_faces)
 {
     uint activeIndex = pmThreadIndex();
@@ -1956,8 +1974,8 @@ void pm_finalize_rigid_contact_manifolds(
                    parameters[b].collision_margin;
     if (prepare_faces)
     {
-        bool facePair = bodyMesh.solid_planes != nullptr &&
-            colliderMesh.solid_planes != nullptr &&
+        bool facePair = pmBufferPresent(bodyMesh.solid_planes) &&
+            pmBufferPresent(colliderMesh.solid_planes) &&
             bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u &&
             !rigid_requires_swept_pair_contact(previous_states[a], states[a],
                 bodyMesh, previous_states[b], states[b], colliderMesh, margin);
@@ -1980,10 +1998,10 @@ void pm_finalize_rigid_contact_manifolds(
         }
         return;
     }
-    bool persistent = bodyMesh.solid_planes != nullptr &&
+    bool persistent = pmBufferPresent(bodyMesh.solid_planes) &&
         bodyMesh.index_count <= 96u &&
         (parameters[b].motion != MotionType.dynamic ||
-         (colliderMesh.solid_planes != nullptr &&
+         (pmBufferPresent(colliderMesh.solid_planes) &&
           colliderMesh.index_count <= 96u));
     ContactManifold manifold = manifolds[activeIndex];
     if (leaf_pair_counts[pair] == 0xffffffffu)
@@ -2031,7 +2049,7 @@ void pm_finalize_rigid_contact_manifolds(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_clear_rigid_inputs(
-    uniform BodyAccumulator* accumulators, uniform KinematicTarget* targets,
+    uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<KinematicTarget> targets,
     uniform uint count)
 {
     uint index = pmThreadIndex();
@@ -2043,8 +2061,8 @@ void pm_clear_rigid_inputs(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_capture_rigid_inputs(
-    uniform BodyAccumulator* accumulators, uniform Vec3* forces,
-    uniform Vec3* torques, uniform uint count)
+    uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<Vec3> forces,
+    uniform PMBuffer<Vec3> torques, uniform uint count)
 {
     uint index = pmThreadIndex();
     if (index >= count) return;
@@ -2055,14 +2073,14 @@ void pm_capture_rigid_inputs(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void pm_prepare_parallel_contact_events(
-    uniform uint count, uniform ContactManifold* manifolds,
-    uniform uint* active_pairs, uniform uint* active_pair_count,
-    uniform RigidBodyId* ids, uniform uint* event_offsets,
-    uniform RigidContactEvent* events, uniform uint event_capacity,
-    uniform uint* event_count, uniform bool collect_events,
+    uniform uint count, uniform PMBuffer<ContactManifold> manifolds,
+    uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
+    uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<uint> event_offsets,
+    uniform PMBuffer<RigidContactEvent> events, uniform uint event_capacity,
+    uniform PMBuffer<uint> event_count, uniform bool collect_events,
     uniform bool reset_events)
 {
-    if (reset_events) *event_count = 0u;
+    if (reset_events) event_count[0] = 0u;
     uint cursor = 0u;
     uint responseSlot = 0u;
     for (uint active = 0u; active < *active_pair_count; ++active)
@@ -2087,16 +2105,16 @@ void pm_prepare_parallel_contact_events(
         }
         cursor += manifoldCount;
     }
-    if (cursor > 0u) *event_count = min(cursor, event_capacity);
+    if (cursor > 0u) event_count[0] = min(cursor, event_capacity);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_load_rigid_contact_cache(
-    uniform ContactManifold* manifolds, uniform uint* active_pairs,
-    uniform uint* active_count, uniform RigidBodyState* states,
-    uniform RigidBodyId* ids, uniform uint body_count,
-    uniform CachedContactPair* cache, uniform uint* slots,
+    uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<RigidBodyId> ids, uniform uint body_count,
+    uniform PMBuffer<CachedContactPair> cache, uniform PMBuffer<uint> slots,
     uniform uint capacity, uniform uint64_t epoch, uniform float timestep)
 {
     uint active = pmThreadIndex();
@@ -2161,12 +2179,12 @@ void pm_load_rigid_contact_cache(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_save_rigid_contact_cache(
-    uniform ContactManifold* manifolds, uniform uint* active_pairs,
-    uniform uint* active_count, uniform RigidBodyState* states,
-    uniform RigidBodyId* ids, uniform uint body_count,
-    uniform CachedContactPair* cache, uniform uint* slots,
+    uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<RigidBodyId> ids, uniform uint body_count,
+    uniform PMBuffer<CachedContactPair> cache, uniform PMBuffer<uint> slots,
     uniform uint capacity, uniform uint64_t epoch, uniform float timestep,
-    uniform uint* event_offsets, uniform RigidContactEvent* events,
+    uniform PMBuffer<uint> event_offsets, uniform PMBuffer<RigidContactEvent> events,
     uniform uint event_capacity)
 {
     uint active = pmThreadIndex();
@@ -2221,9 +2239,9 @@ void pm_save_rigid_contact_cache(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_gather_rigid_debug_samples(
-    uniform RigidBodyId* ids, uniform RigidBodyState* states,
-    uniform Vec3* forces, uniform Vec3* torques, uniform uint count,
-    uniform PhysicsDebugRigidSample* samples)
+    uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<Vec3> forces, uniform PMBuffer<Vec3> torques, uniform uint count,
+    uniform PMBuffer<PhysicsDebugRigidSample> samples)
 {
     uint index = pmThreadIndex();
     if (index < count)
@@ -2233,7 +2251,7 @@ void pm_gather_rigid_debug_samples(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void pm_clamp_rigid_speeds(
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform uint count)
 {
     uint index = pmThreadIndex();
@@ -2245,7 +2263,7 @@ void pm_clamp_rigid_speeds(
         states[index].angular_velocity, parameters[index].maximum_angular_speed);
 }
 
-uint fixed_projection_root(FixedContactProjection* groups, uint body)
+uint fixed_projection_root(PMBuffer<FixedContactProjection> groups, uint body)
 {
     while (groups[body].root != body) body = groups[body].root;
     return body;
@@ -2254,9 +2272,9 @@ uint fixed_projection_root(FixedContactProjection* groups, uint body)
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void pm_build_fixed_collision_groups(
-    uniform RigidConstraintResource* constraints, uniform uint capacity,
-    uniform RigidBodyId* ids, uniform uint count,
-    uniform FixedContactProjection* groups)
+    uniform PMBuffer<RigidConstraintResource> constraints, uniform uint capacity,
+    uniform PMBuffer<RigidBodyId> ids, uniform uint count,
+    uniform PMBuffer<FixedContactProjection> groups)
 {
     for (uint body = 0u; body < count; ++body) groups[body].root = body;
     for (uint index = 0u; index < capacity; ++index)

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+include_guard(GLOBAL)
+
 # One inventory drives the production CUDA adapter and every compile mirror.
 # Module-specific CUDA entries exist only where the generated CUDA ABI uses a
 # thin adapter entry point instead of the backend-neutral compute entry point.
@@ -219,4 +221,56 @@ function(parallel_mater_compile_slang_cuda output_variable)
     set_source_files_properties(${outputs}
         PROPERTIES GENERATED TRUE HEADER_FILE_ONLY TRUE)
     set(${output_variable} "${outputs}" PARENT_SCOPE)
+endfunction()
+
+function(parallel_mater_compile_slang_dxil output_variable)
+    if(NOT WIN32)
+        set(${output_variable} "" PARENT_SCOPE)
+        set(${output_variable}_DXIL "" PARENT_SCOPE)
+        set(${output_variable}_RECORDS "" PARENT_SCOPE)
+        return()
+    endif()
+    set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil")
+    file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+    set(outputs)
+    set(dxil_outputs)
+    set(records)
+    foreach(module IN LISTS PARALLEL_MATER_SLANG_KERNEL_MODULES)
+        set(entries "${PARALLEL_MATER_SLANG_${module}_ENTRIES}")
+        parallel_mater_slang_definition_arguments(
+            "${module}" DXIL definition_arguments)
+        set(optimization "${PARALLEL_MATER_SLANG_${module}_OPTIMIZATION}")
+        if(NOT optimization)
+            set(optimization 2)
+        endif()
+        set(source "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang")
+        foreach(entry IN LISTS entries)
+            set(generated "${generated_dir}/${module}/${entry}.dxil")
+            set(reflection "${generated_dir}/${module}/${entry}.json")
+            add_custom_command(
+                OUTPUT "${generated}" "${reflection}"
+                COMMAND ${CMAKE_COMMAND} -E make_directory
+                        "${generated_dir}/${module}"
+                COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}" "${source}"
+                    -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
+                    ${definition_arguments}
+                    -DPM_TARGET_D3D12=1 -DPM_TARGET_CUDA=0
+                    "-DPM_DXIL_ENTRY_${entry}=1"
+                    -entry "${entry}" -stage compute
+                    -target dxil -profile sm_6_6 -fp-mode precise
+                    "-O${optimization}" -warnings-as-errors all
+                    -o "${generated}" -reflection-json "${reflection}"
+                DEPENDS ${slang_dependencies}
+                        "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
+                COMMENT "Compiling ${module}.${entry} shared schedule to DXIL"
+                COMMAND_EXPAND_LISTS VERBATIM)
+            list(APPEND outputs "${generated}" "${reflection}")
+            list(APPEND dxil_outputs "${generated}")
+            list(APPEND records "${module}|${entry}|${generated}")
+        endforeach()
+    endforeach()
+    set(${output_variable} "${outputs}" PARENT_SCOPE)
+    set(${output_variable}_DXIL "${dxil_outputs}" PARENT_SCOPE)
+    set(${output_variable}_RECORDS "${records}" PARENT_SCOPE)
 endfunction()

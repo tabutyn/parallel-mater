@@ -33,23 +33,14 @@ def check(path_text):
         raise RuntimeError(f"{path.name}: unexpected thread-group size")
 
 
-DXIL_RESOURCES = {
-    "parameters": ("unorderedAccess", 0),
-    "previous": ("unorderedAccess", 1),
-    "states": ("unorderedAccess", 2),
-    "manifoldContacts": ("unorderedAccess", 3),
-    "pairs": ("unorderedAccess", 4),
-    "pair_count": ("unorderedAccess", 5),
-    "joints": ("unorderedAccess", 6),
-    "ids": ("unorderedAccess", 7),
-    "bodies": ("unorderedAccess", 8),
-    "schedule": ("unorderedAccess", 9),
-    "manifoldMetadata": ("unorderedAccess", 10),
-    "avbdConstants": ("constantBuffer", 0),
+DXIL_PREPARE_BUFFERS = {
+    "parameters", "previous", "states", "manifolds", "pairs",
+    "pair_count", "joints", "ids", "bodies", "schedule",
 }
+DXIL_SOLVE_BUFFERS = DXIL_PREPARE_BUFFERS - {"ids"}
 
 
-def check_dxil(path_text, entry_name, group_size):
+def check_dxil(path_text, entry_name, group_size, expected_buffers):
     path = pathlib.Path(path_text)
     reflection = json.loads(path.read_text(encoding="utf-8"))
     entry_points = reflection.get("entryPoints", [])
@@ -58,15 +49,40 @@ def check_dxil(path_text, entry_name, group_size):
     entry = entry_points[0]
     if entry.get("threadGroupSize") != [group_size, 1, 1]:
         raise RuntimeError(f"{path.name}: unexpected thread-group size")
-    actual = {
-        item["name"]: (item["binding"]["kind"], item["binding"].get("index"))
-        for item in entry.get("bindings", [])
-        if item["name"] in DXIL_RESOURCES
+    if reflection.get("bindlessSpaceIndex") != 1:
+        raise RuntimeError(f"{path.name}: bindless resource space missing")
+    global_scope = reflection.get("globalScope", {})
+    if global_scope.get("kind") != "constantBuffer" or \
+            global_scope.get("binding", {}).get("index") != 0:
+        raise RuntimeError(f"{path.name}: common dispatch constants not at b0")
+    scope = entry.get("scope", {})
+    if scope.get("kind") != "constantBuffer":
+        raise RuntimeError(f"{path.name}: entry constants are not packed")
+    parameters = {item["name"]: item
+                  for item in scope.get("parameters", [])}
+    actual_buffers = {
+        name for name, item in parameters.items()
+        if item.get("type", {}).get("name") == "PMGraphicsBuffer"
     }
-    if actual != DXIL_RESOURCES:
+    if actual_buffers != expected_buffers:
         raise RuntimeError(
-            f"{path.name}: D3D12 binding ABI {actual}, expected {DXIL_RESOURCES}"
+            f"{path.name}: buffer ABI {actual_buffers}, "
+            f"expected {expected_buffers}"
         )
+    for name in expected_buffers:
+        item = parameters[name]
+        buffer_type = item["type"]
+        fields = [field["name"] for field in buffer_type.get("fields", [])]
+        size = buffer_type.get("sizes", [{}])[0].get("value")
+        if item.get("binding", {}).get("kind") != "uniform" or \
+                fields != ["descriptor_index", "offset", "available"] or \
+                size != 12:
+            raise RuntimeError(
+                f"{path.name}: {name} is not a 12-byte PMGraphicsBuffer"
+            )
+    retired = {"manifoldContacts", "manifoldMetadata", "avbdConstants"}
+    if retired.intersection(parameters):
+        raise RuntimeError(f"{path.name}: legacy D3D12 AVBD resources remain")
 
 
 if __name__ == "__main__":
@@ -79,6 +95,8 @@ if __name__ == "__main__":
     for argument in sys.argv[1:5]:
         check(argument)
     if len(sys.argv) == 7:
-        check_dxil(sys.argv[5], "prepare_avbd_kernel", 128)
-        check_dxil(sys.argv[6], "solve_avbd_kernel", 32)
+        check_dxil(sys.argv[5], "prepare_avbd_kernel", 128,
+                   DXIL_PREPARE_BUFFERS)
+        check_dxil(sys.argv[6], "solve_avbd_kernel", 32,
+                   DXIL_SOLVE_BUFFERS)
     print("Slang AVBD CUDA/Metal/HLSL/WGSL/DXIL reflection contracts passed")

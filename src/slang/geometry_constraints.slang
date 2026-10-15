@@ -9,31 +9,18 @@
 #define PM_TARGET_D3D12 0
 #endif
 
-#if PM_TARGET_D3D12
-#define PM_AVBD_BUFFER(T) RWStructuredBuffer<T>
-// A full eight-contact manifold is larger than D3D12's 2 KiB structured
-// element limit. The adapter binds contacts densely and metadata separately;
-// every target still executes the same contact and constraint equations.
-#define PM_AVBD_MANIFOLD_BUFFER uint
-#define PM_AVBD_MANIFOLD_COUNT(buffer, index) manifoldMetadata[index].x
-#define PM_AVBD_MANIFOLD_NEXT_A(buffer, index) manifoldMetadata[index].y
-#define PM_AVBD_MANIFOLD_NEXT_B(buffer, index) manifoldMetadata[index].z
-#define PM_AVBD_MANIFOLD_CONTACT(buffer, index, point) \
-    manifoldContacts[index * 8u + point]
-#else
-#define PM_AVBD_BUFFER(T) T*
-#define PM_AVBD_MANIFOLD_BUFFER ContactManifold*
+#include "constraint_math.slang"
+
+#if PM_GEOMETRY_CONSTRAINTS_ADAPTER
+#include "geometry.slang"
+
+#define PM_AVBD_BUFFER(T) PMBuffer<T>
+#define PM_AVBD_MANIFOLD_BUFFER PMBuffer<ContactManifold>
 #define PM_AVBD_MANIFOLD_COUNT(buffer, index) buffer[index].count
 #define PM_AVBD_MANIFOLD_NEXT_A(buffer, index) buffer[index].avbd_next_a
 #define PM_AVBD_MANIFOLD_NEXT_B(buffer, index) buffer[index].avbd_next_b
 #define PM_AVBD_MANIFOLD_CONTACT(buffer, index, point) \
     buffer[index].contacts[point]
-#endif
-
-#include "constraint_math.slang"
-
-#if PM_GEOMETRY_CONSTRAINTS_ADAPTER
-#include "geometry.slang"
 
 static const float kRigidSurfaceTolerance = 1.0e-5f;
 static const float kRigidRestOffset = 1.0e-3f;
@@ -59,33 +46,6 @@ struct AvbdBody
     Vec3 previous_velocity;
     uint history_valid;
 };
-
-#if PM_TARGET_D3D12
-struct PMAvbdDispatchConstants
-{
-    uint count;
-    uint joint_capacity;
-    float dt;
-    Vec3 gravity;
-    uint base_iterations;
-    uint requested_iterations;
-    uint grid_blocks;
-};
-
-RWStructuredBuffer<BodyParameters> parameters : register(u0);
-RWStructuredBuffer<RigidBodyState> previous : register(u1);
-RWStructuredBuffer<RigidBodyState> states : register(u2);
-RWStructuredBuffer<Contact> manifoldContacts : register(u3);
-RWStructuredBuffer<uint> pairs : register(u4);
-RWStructuredBuffer<uint> pair_count : register(u5);
-RWStructuredBuffer<RigidConstraintResource> joints : register(u6);
-RWStructuredBuffer<RigidBodyId> ids : register(u7);
-RWStructuredBuffer<AvbdBody> bodies : register(u8);
-RWStructuredBuffer<ContactSchedule> schedule : register(u9);
-RWStructuredBuffer<uint4> manifoldMetadata : register(u10);
-ConstantBuffer<PMAvbdDispatchConstants> avbdConstants : register(b0);
-static const uint manifolds = 0u;
-#endif
 
 float rigid_avbd_component(Vec3 value, uint axis)
 {
@@ -951,37 +911,21 @@ void rigid_avbd_graph_set_joint_next(uint index, bool first, uint value,
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void prepare_avbd_kernel(
-#if !PM_TARGET_D3D12
-    PM_AVBD_BUFFER(BodyParameters) parameters,
-    PM_AVBD_BUFFER(RigidBodyState) previous,
-    PM_AVBD_BUFFER(RigidBodyState) states, uniform uint count,
-    PM_AVBD_MANIFOLD_BUFFER manifolds,
-    PM_AVBD_BUFFER(uint) pairs,
-    PM_AVBD_BUFFER(uint) pair_count,
-    PM_AVBD_BUFFER(RigidConstraintResource) joints,
+    uniform PM_AVBD_BUFFER(BodyParameters) parameters,
+    uniform PM_AVBD_BUFFER(RigidBodyState) previous,
+    uniform PM_AVBD_BUFFER(RigidBodyState) states, uniform uint count,
+    uniform PM_AVBD_MANIFOLD_BUFFER manifolds,
+    uniform PM_AVBD_BUFFER(uint) pairs,
+    uniform PM_AVBD_BUFFER(uint) pair_count,
+    uniform PM_AVBD_BUFFER(RigidConstraintResource) joints,
     uniform uint joint_capacity,
-    PM_AVBD_BUFFER(RigidBodyId) ids,
-    PM_AVBD_BUFFER(AvbdBody) bodies,
-    PM_AVBD_BUFFER(ContactSchedule) schedule,
+    uniform PM_AVBD_BUFFER(RigidBodyId) ids,
+    uniform PM_AVBD_BUFFER(AvbdBody) bodies,
+    uniform PM_AVBD_BUFFER(ContactSchedule) schedule,
     uniform float dt, uniform Vec3 gravity,
     uniform uint base_iterations, uniform uint requested_iterations,
     uniform uint grid_blocks)
-#else
-    uint3 groupId : SV_GroupID,
-    uint3 groupThreadId : SV_GroupThreadID,
-    uint3 dispatchThreadId : SV_DispatchThreadID)
-#endif
 {
-#if PM_TARGET_D3D12
-    pmSetD3D12ThreadIndices(groupId, groupThreadId, dispatchThreadId);
-    uint count = avbdConstants.count;
-    uint joint_capacity = avbdConstants.joint_capacity;
-    float dt = avbdConstants.dt;
-    Vec3 gravity = avbdConstants.gravity;
-    uint base_iterations = avbdConstants.base_iterations;
-    uint requested_iterations = avbdConstants.requested_iterations;
-    uint grid_blocks = avbdConstants.grid_blocks;
-#endif
     uint lane = pmGroupThreadIndex().x;
     for (uint bodyIndex = lane; bodyIndex < count;
          bodyIndex += pmGroupSize().x)
@@ -1051,11 +995,10 @@ void prepare_avbd_kernel(
         uint b = pairs[active] % count;
         float penalty = rigid_avbd_pair_stiffness(
             parameters[a], parameters[b], dt);
-        for (uint point = 0u;
-             point < PM_AVBD_MANIFOLD_COUNT(manifolds, active); ++point)
+        ContactManifold manifold = manifolds[active];
+        for (uint point = 0u; point < manifold.count; ++point)
         {
-            Contact contact = PM_AVBD_MANIFOLD_CONTACT(
-                manifolds, active, point);
+            Contact contact = manifold.contacts[point];
             if (!contact.avbd_cached)
             {
                 contact.avbd_anchor_a = inverse_rotate(
@@ -1108,8 +1051,9 @@ void prepare_avbd_kernel(
                 dual = avbdWarmStart(dual, kAvbdMaximumPenalty);
                 contact.avbd_dual[axis] = {dual.lambda, dual.penalty};
             }
-            PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point) = contact;
+            manifold.contacts[point] = contact;
         }
+        manifolds[active] = manifold;
         if (active < kAvbdPrepareContactCacheSize)
         {
             AvbdPrepareContactMetadata metadata;
@@ -1231,7 +1175,9 @@ void prepare_avbd_kernel(
                 if (rigid_avbd_graph_dynamic(b, bodies, parameters))
                     rigid_avbd_graph_set_impact(
                         rigid_avbd_graph_parent(b, bodies), 1u, bodies);
-                schedule[0].counts[0] = 1u;
+                ContactSchedule value = schedule[0];
+                value.counts[0] = 1u;
+                schedule[0] = value;
             }
         }
         for (uint bodyIndex = 0u; bodyIndex < count; ++bodyIndex)

@@ -5,17 +5,18 @@ import types;
 import math;
 import device_intrinsics;
 import geometry_fluid;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_cloth_containment_forces(
-    uniform Vec3* particle_positions, uniform Vec3* particle_velocities,
-    uniform uint* particle_count, uniform Vec3* particle_accelerations,
-    uniform float* foam_source, uniform float particle_mass,
-    uniform Vec3* cloth_positions, uniform Vec3* cloth_velocities,
-    uniform uint* cloth_indices, uniform uint triangle_count,
+    uniform PMBuffer<Vec3> particle_positions, uniform PMBuffer<Vec3> particle_velocities,
+    uniform PMBuffer<uint> particle_count, uniform PMBuffer<Vec3> particle_accelerations,
+    uniform PMBuffer<float> foam_source, uniform float particle_mass,
+    uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
+    uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
     uniform float cloth_orientation,
-    uniform FluidClothCouplingOptions options, uniform Vec3* cloth_forces)
+    uniform FluidClothCouplingOptions options, uniform PMBuffer<Vec3> cloth_forces)
 {
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
@@ -86,8 +87,8 @@ void fluid_cloth_containment_forces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_apply_fluid_forces(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform Vec3* forces,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> forces,
     uniform uint count, uniform float dt)
 {
     uint vertex = pmThreadIndex();
@@ -103,10 +104,10 @@ void cloth_apply_fluid_forces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_project_inside_cloth(
-    uniform Vec3* particle_positions, uniform Vec3* particle_velocities,
-    uniform uint* particle_count, uniform float contact_distance,
-    uniform Vec3* cloth_positions, uniform Vec3* cloth_velocities,
-    uniform uint* cloth_indices, uniform uint triangle_count,
+    uniform PMBuffer<Vec3> particle_positions, uniform PMBuffer<Vec3> particle_velocities,
+    uniform PMBuffer<uint> particle_count, uniform float contact_distance,
+    uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
+    uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
     uniform float cloth_orientation)
 {
     uint particle = pmThreadIndex();

@@ -432,15 +432,21 @@ for required in (
         )
 
 d3d12_driver_path = ROOT / "src" / "driver" / "d3d12" / "entry.cpp"
+d3d12_command_path = ROOT / "src" / "driver" / "d3d12" / "slang_command.cpp"
 if "parallel-mater-driver-slang-d3d12 SHARED" not in cmake:
     failures.append("CMakeLists.txt: D3D12 loader driver target missing")
-if not d3d12_driver_path.exists():
-    failures.append("src/driver/d3d12/entry.cpp: thin D3D12 driver missing")
+if not d3d12_driver_path.exists() or not d3d12_command_path.exists():
+    failures.append("src/driver/d3d12: thin Slang command adapter missing")
 else:
-    d3d12_driver = d3d12_driver_path.read_text()
+    d3d12_driver = (
+        d3d12_driver_path.read_text() + "\n" +
+        d3d12_command_path.read_text()
+    )
     for required in (
-        "generated::avbd_prepare", "generated::avbd_solve",
-        "SetComputeRootDescriptorTable", "Dispatch", "ResourceBarrier",
+        "parallel_mater_slang_dxil.hpp", "record_dispatch",
+        "SetComputeRootConstantBufferView",
+        "D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED",
+        "Dispatch", "ResourceBarrier",
     ):
         if required not in d3d12_driver:
             failures.append(

@@ -4,6 +4,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 static const uint kSoftReductionThreads = 128u;
 groupshared Vec3 softValuesA[kSoftReductionThreads];
@@ -16,8 +17,8 @@ groupshared Quaternion softOrientation;
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void deformable_predict(
-    uniform Vec3* positions, uniform Vec3* previous,
-    uniform Vec3* velocities, uniform float* inverse_masses,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform Vec3 gravity, uniform float dt,
     uniform float damping)
 {
@@ -40,8 +41,8 @@ void deformable_predict(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void soft_body_measure_momentum(
-    uniform Vec3* velocities, uniform float* inverse_masses,
-    uniform uint count, uniform Vec3* output)
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
+    uniform uint count, uniform PMBuffer<Vec3> output)
 {
     uint thread = pmGroupThreadIndex().x;
     Vec3 local = {};
@@ -60,16 +61,16 @@ void soft_body_measure_momentum(
                 softValuesA[thread], softValuesA[thread + stride]);
         pmGroupBarrier();
     }
-    if (thread == 0u) *output = softValuesA[0];
+    if (thread == 0u) output[0] = softValuesA[0];
 }
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void soft_body_restore_momentum(
-    uniform Vec3* velocities, uniform float* inverse_masses,
-    uniform Vec3* contact_momentum_delta, uniform uint count,
-    uniform float movable_mass, uniform Vec3* predicted_momentum,
-    uniform uint* dynamic_contact_flag, uniform float maximum_speed)
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<Vec3> contact_momentum_delta, uniform uint count,
+    uniform float movable_mass, uniform PMBuffer<Vec3> predicted_momentum,
+    uniform PMBuffer<uint> dynamic_contact_flag, uniform float maximum_speed)
 {
     if (*dynamic_contact_flag == 0u) return;
     uint thread = pmGroupThreadIndex().x;
@@ -127,13 +128,13 @@ ShapeMatrix shape_matrix_multiply(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void soft_body_project_rest_shape(
-    uniform Vec3* positions, uniform Vec3* corrections,
-    uniform Vec3* rest_positions, uniform float* inverse_masses,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> corrections,
+    uniform PMBuffer<Vec3> rest_positions, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform float movable_mass,
     uniform Vec3 rest_center, uniform ShapeMatrix inverse_rest,
-    uniform Quaternion* stored_orientation, uniform float stiffness,
+    uniform PMBuffer<Quaternion> stored_orientation, uniform float stiffness,
     uniform float maximum_projection,
-    uniform uint* dynamic_contact_flag)
+    uniform PMBuffer<uint> dynamic_contact_flag)
 {
     if (pmBlockIndex().x != 0u || stiffness <= 0.0f ||
         *dynamic_contact_flag != 0u) return;
@@ -231,7 +232,7 @@ void soft_body_project_rest_shape(
             orientation = normalized_quaternion(
                 quaternion_multiply(delta, orientation));
         }
-        *stored_orientation = orientation;
+        stored_orientation[0] = orientation;
         softOrientation = orientation;
     }
     pmGroupBarrier();
@@ -281,9 +282,9 @@ void soft_body_project_rest_shape(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void deformable_project_links(
-    uniform Vec3* positions, uniform Vec3* scratch,
-    uniform float* inverse_masses, uniform uint* offsets,
-    uniform DeformableNeighbor* neighbors, uniform uint8_t* bond_active,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> scratch,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> offsets,
+    uniform PMBuffer<DeformableNeighbor> neighbors, uniform PMBuffer<PMResourceUint8> bond_active,
     uniform uint count, uniform float dt,
     uniform float maximum_projection_fraction)
 {
@@ -303,7 +304,7 @@ void deformable_project_links(
     for (uint edge = first; edge < last; ++edge)
     {
         DeformableNeighbor neighbor = neighbors[edge];
-        if (bond_active != nullptr && neighbor.bond != kInvalidDense &&
+        if (pmBufferPresent(bond_active) && neighbor.bond != kInvalidDense &&
             bond_active[neighbor.bond] == 0u) continue;
         shortestRestLength = min(shortestRestLength, neighbor.rest_length);
         Vec3 difference = subtract(position, positions[neighbor.index]);
@@ -327,10 +328,10 @@ void deformable_project_links(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void deformable_project_links_warp(
-    uniform Vec3* positions, uniform Vec3* scratch,
-    uniform float* inverse_masses, uniform uint* offsets,
-    uniform SoftBodyNeighbor* neighbors,
-    uniform float* minimum_rest_lengths, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> scratch,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> offsets,
+    uniform PMBuffer<SoftBodyNeighbor> neighbors,
+    uniform PMBuffer<float> minimum_rest_lengths, uniform uint count,
     uniform float compliance, uniform float dt,
     uniform float maximum_projection_fraction)
 {
@@ -392,8 +393,8 @@ void deformable_project_links_warp(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_finalize_velocities(
-    uniform Vec3* positions, uniform Vec3* previous,
-    uniform Vec3* velocities, uniform float* inverse_masses,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform float inverse_dt,
     uniform float projection_response, uniform float maximum_speed)
 {
@@ -414,15 +415,15 @@ void soft_body_finalize_velocities(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_apply_contact_friction(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform Vec3* contact_forces,
-    uniform Vec3* contact_normals, uniform Vec3* contact_arms,
-    uniform FluidBodyImpulse* body_impulses,
-    uniform BodyParameters* body_parameters,
-    uniform Vec3* contact_momentum_delta,
-    uniform Vec3* accumulated_friction_delta,
-    uniform float* accumulated_normal_delta,
-    uniform uint* contact_count, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> contact_forces,
+    uniform PMBuffer<Vec3> contact_normals, uniform PMBuffer<Vec3> contact_arms,
+    uniform PMBuffer<FluidBodyImpulse> body_impulses,
+    uniform PMBuffer<BodyParameters> body_parameters,
+    uniform PMBuffer<Vec3> contact_momentum_delta,
+    uniform PMBuffer<Vec3> accumulated_friction_delta,
+    uniform PMBuffer<float> accumulated_normal_delta,
+    uniform PMBuffer<uint> contact_count, uniform uint count,
     uniform float movable_mass, uniform Vec3 gravity, uniform float dt,
     uniform float contact_friction, uniform float maximum_speed)
 {
@@ -448,7 +449,7 @@ void soft_body_apply_contact_friction(
         movable_mass * inverse_masses[node] / float(supportedNodes);
     float normalAcceleration = max(
         impulseAcceleration, supportedAcceleration);
-    float constraintDelta = accumulated_normal_delta != nullptr
+    float constraintDelta = pmBufferPresent(accumulated_normal_delta)
         ? accumulated_normal_delta[node] / dt : 0.0f;
     BodyParameters body = body_parameters[bodyIndex];
     float friction = body.motion == MotionType.dynamic
@@ -481,10 +482,10 @@ void soft_body_apply_contact_friction(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_damp_springs(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* output, uniform float* inverse_masses,
-    uniform uint* offsets, uniform DeformableNeighbor* neighbors,
-    uniform uint8_t* bond_active, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> output, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<uint> offsets, uniform PMBuffer<DeformableNeighbor> neighbors,
+    uniform PMBuffer<PMResourceUint8> bond_active, uniform uint count,
     uniform float damping, uniform float maximum_speed)
 {
     uint node = pmThreadIndex();
@@ -515,9 +516,9 @@ void soft_body_damp_springs(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void soft_body_damp_springs_warp(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* output, uniform float* inverse_masses,
-    uniform uint* offsets, uniform SoftBodyNeighbor* neighbors,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> output, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<uint> offsets, uniform PMBuffer<SoftBodyNeighbor> neighbors,
     uniform uint count, uniform float damping, uniform float maximum_speed)
 {
     const uint groupSize = 16u;
@@ -569,10 +570,10 @@ void soft_body_damp_springs_warp(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void soft_body_update_surface(
-    uniform Vec3* positions, uniform Vec3* rest_positions,
-    uniform Vec3* surface_rest_positions,
-    uniform SoftBodySurfaceBinding* bindings,
-    uniform Vec3* surface_positions, uniform uint surface_vertex_count)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> rest_positions,
+    uniform PMBuffer<Vec3> surface_rest_positions,
+    uniform PMBuffer<SoftBodySurfaceBinding> bindings,
+    uniform PMBuffer<Vec3> surface_positions, uniform uint surface_vertex_count)
 {
     uint vertex = pmThreadIndex();
     if (vertex >= surface_vertex_count) return;
