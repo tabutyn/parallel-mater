@@ -2,6 +2,7 @@
 #include "internal.hpp"
 
 #include <cstring>
+#include <thread>
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
     PmDevice device, const PmQueryPoolCreateInfo *info, PmQueryPool *pool) {
@@ -44,7 +45,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyQueryPool(
     PmDevice device, PmQueryPool pool) {
     if (device == nullptr || pool == nullptr || pool->device != device) return;
-    (void)device->services->wait_idle();
+    (void)pmDeviceWaitIdle(device);
     for (PmQuerySlot &slot : pool->slots)
         if (slot.event) device->services->destroy_event(slot.event);
     parallel_mater::api::destroy_object(device, pool);
@@ -58,9 +59,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetQueryPool(
     if (pool == nullptr || pool->device != command_buffer->device || count == 0U ||
         first > pool->slots.size() || count > pool->slots.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(
-        command_buffer, [pool, first, count](
+    return parallel_mater::api::record_query(
+        command_buffer, pool, [pool, first, count](
                             parallel_mater::device::Services &) noexcept {
+            std::lock_guard lock(pool->mutex);
             for (std::uint32_t index = first; index < first + count; ++index) {
                 pool->slots[index].available = false;
                 pool->slots[index].statistics = {};
@@ -78,9 +80,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteTimestamp(
     if (pool == nullptr || pool->device != command_buffer->device ||
         pool->type != PM_QUERY_TIMESTAMP || query >= pool->slots.size())
         return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(
-        command_buffer, [pool, query](
+    return parallel_mater::api::record_query(
+        command_buffer, pool, [pool, query](
                             parallel_mater::device::Services &services) noexcept {
+            std::lock_guard lock(pool->mutex);
             const PmResult result = services.record_event(pool->slots[query].event);
             if (result != PM_SUCCESS) return result;
             pool->slots[query].available = true;
@@ -100,9 +103,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
     command_buffer->statistics_pool = pool;
     command_buffer->statistics_query = query;
     command_buffer->statistics_simulation = nullptr;
-    return parallel_mater::api::record(
-        command_buffer, [pool, query](
+    return parallel_mater::api::record_query(
+        command_buffer, pool, [pool, query](
                             parallel_mater::device::Services &) noexcept {
+            std::lock_guard lock(pool->mutex);
             pool->slots[query].statistics = {};
             pool->slots[query].available = false;
             return PM_SUCCESS;
@@ -124,9 +128,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
     command_buffer->statistics_open = false;
     command_buffer->statistics_pool = nullptr;
     command_buffer->statistics_simulation = nullptr;
-    return parallel_mater::api::record(
-        command_buffer, [pool, query, simulation](
+    return parallel_mater::api::record_query(
+        command_buffer, pool, [pool, query, simulation](
                             parallel_mater::device::Services &services) noexcept {
+            std::lock_guard lock(pool->mutex);
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SimulationStatistics source{};
             const PmResult result = parallel_mater::api::from_status(
@@ -169,10 +174,28 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
              ? sizeof(std::uint64_t) : 0U);
     if (stride < record_size || data_size < record_size + (count - 1U) * stride)
         return PM_ERROR_INVALID_ARGUMENT;
+    const auto unavailable = [&]() noexcept {
+        for (std::uint32_t offset = 0U; offset < count; ++offset)
+            std::memset(static_cast<std::byte *>(data) + offset * stride, 0, record_size);
+        return PM_NOT_READY;
+    };
+    std::unique_lock lock(pool->mutex, std::defer_lock);
+    if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
+        while (pool->pending_submissions.load(std::memory_order_acquire) != 0U)
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+        lock.lock();
+    } else if (pool->pending_submissions.load(std::memory_order_acquire) != 0U ||
+               !lock.try_lock()) {
+        return unavailable();
+    }
+    const bool pending = pool->pending_submissions.load(std::memory_order_acquire) != 0U;
+    if (!pending && pool->execution_result.load() != PM_SUCCESS)
+        return pool->execution_result.load();
     bool incomplete = false;
     for (std::uint32_t offset = 0U; offset < count; ++offset) {
         PmQuerySlot &slot = pool->slots[first + offset];
-        if (slot.available && pool->type == PM_QUERY_TIMESTAMP) {
+        bool available = !pending && slot.available;
+        if (available && pool->type == PM_QUERY_TIMESTAMP) {
             if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
                 const PmResult result = device->services->wait_event(slot.event);
                 if (result != PM_SUCCESS) return result;
@@ -181,11 +204,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
                 const PmResult result = device->services->query_event(
                     slot.event, ready);
                 if (result != PM_SUCCESS) return result;
-                if (!ready) slot.available = false;
+                if (!ready) available = false;
             }
         }
         auto *destination = static_cast<std::byte *>(data) + offset * stride;
-        if (slot.available) {
+        if (available) {
             if (pool->type == PM_QUERY_TIMESTAMP) {
                 float milliseconds = 0.0F;
                 const PmResult result = device->services->elapsed_time(
@@ -202,8 +225,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
             incomplete = true;
         }
         if ((flags & PM_QUERY_RESULT_WITH_AVAILABILITY_BIT) != 0U) {
-            const std::uint64_t available = slot.available ? 1U : 0U;
-            std::memcpy(destination + value_size, &available, sizeof available);
+            const std::uint64_t availability = available ? 1U : 0U;
+            std::memcpy(destination + value_size, &availability, sizeof availability);
         }
     }
     return incomplete ? PM_NOT_READY : PM_SUCCESS;

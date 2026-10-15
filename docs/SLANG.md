@@ -14,11 +14,38 @@ domains rather than native APIs or solver experiments.
 - Domain-pair files contain coupling kernels.
 - `queries.slang` contains scene-query kernels.
 
-The command-API CUDA driver dispatches generated Slang kernels. The macOS Slang
+The command-API CUDA driver dispatches generated Slang kernels. The Linux/macOS Slang
 CPU driver compiles the same rigid-body, constraint, contact, debug, and query
 kernels to C++ and dispatches them serially as a correctness-first development
 path. Their device and simulation adapters allocate, transfer, synchronize,
 and dispatch; they do not contain alternate physics equations.
+
+## Reference scheduling and submission
+
+[`reference_schedule.hpp`](../src/simulation/reference_schedule.hpp) contains
+the shared domain and coupling order as ordinary C++. Its state parameter owns
+resource descriptions and bookkeeping; its backend parameter supplies typed
+Slang dispatch, copy/clear, timing, readback, error checks, and queue waits.
+The header compiles without a native SDK. The private
+[`native_schedule_backend.cu.inc`](../src/simulation/native_schedule_backend.cu.inc)
+binds those operations to the existing CUDA and serial Slang CPU adapters.
+Dispatches on the backend queue must preserve write/read ordering and insert
+the native barriers required by that backend.
+
+The command API copies each accepted submission into a queue-owned worker.
+The worker activates the device, runs ready submissions, retains frame tokens
+through completion, drains partially issued work on failure, and publishes a
+completion shared by fences, command buffers, and timeline signals. Unresolved
+timeline waits leave the worker free to run their producers. Ready submissions
+remain FIFO; explicit dependencies must order access to shared resources.
+
+This removes physics execution and readbacks from the submitting thread.
+The reference implementation still waits on its worker between frames and
+performs explicit readbacks for emission, phase transfer, diagnostics, and
+some resource metadata. It does not yet overlap independent GPU schedules.
+Current storage remains pointer-oriented; descriptor resource mapping and
+full native adapters for other graphics APIs remain separate work. This change
+does not advertise new physics capabilities on D3D12, Vulkan, or Metal.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest,
 including AVBD prepare and solve. Device creation qualifies descriptor binding,
@@ -77,6 +104,9 @@ Its `Shader portability required` check fails unless every platform job passes:
   from this compiler workflow and remain separate runtime qualification.
 - macOS additionally compiles the generated AVBD MSL with Apple's `metal`
   compiler and links a `.metallib`. Xcode's Metal toolchain must be installed.
+- Linux and macOS build the Slang CPU driver and execute public-API asynchronous
+  submission tests, including actual rigid integration. All platforms test
+  submission lifetime, dependency scheduling, and deferred failures without a GPU.
 
 All gates use the pinned Slang toolchain and treat shader compiler warnings as
 errors. They require neither a CUDA toolkit nor a GPU; CUDA source generation

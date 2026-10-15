@@ -24,9 +24,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateCommandPool(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyCommandPool(
     PmDevice device, PmCommandPool pool) {
     if (device == nullptr || pool == nullptr || pool->device != device) return;
-    for (PmCommandBuffer buffer : pool->buffers)
-        if (buffer->completion)
-            device->services->destroy_event(buffer->completion);
+    (void)pmDeviceWaitIdle(device);
     for (PmCommandBuffer buffer : pool->buffers)
         parallel_mater::api::destroy_object(device, buffer);
     pool->buffers.clear();
@@ -45,6 +43,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetCommandPool(
     }
     for (PmCommandBuffer buffer : pool->buffers) {
         buffer->commands.clear();
+        buffer->query_writes.clear();
+        buffer->simulation_resources.clear();
         buffer->latched_error = PM_SUCCESS;
         buffer->bound_pipeline = nullptr;
         buffer->statistics_open = false;
@@ -78,21 +78,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmAllocateCommandBuffers(
         }
         created->device = device;
         created->pool = pool;
-        const PmResult event_result = device->services->create_event(
-            false, created->completion);
-        if (event_result != PM_SUCCESS) {
-            parallel_mater::api::destroy_object(device, created);
-            for (std::size_t rollback = previous;
-                 rollback < pool->buffers.size(); ++rollback) {
-                if (pool->buffers[rollback]->completion)
-                    device->services->destroy_event(
-                        pool->buffers[rollback]->completion);
-                parallel_mater::api::destroy_object(device,
-                                                    pool->buffers[rollback]);
-            }
-            pool->buffers.resize(previous);
-            return event_result;
-        }
         pool->buffers.push_back(created);
         buffers[index] = created;
     }
@@ -113,8 +98,6 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmFreeCommandBuffers(
             continue;
         const auto found = std::find(pool->buffers.begin(), pool->buffers.end(), buffer);
         if (found == pool->buffers.end()) continue;
-        if (buffer->completion)
-            device->services->destroy_event(buffer->completion);
         parallel_mater::api::destroy_object(device, buffer);
         pool->buffers.erase(found);
     }
@@ -130,6 +113,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBeginCommandBuffer(
         buffer->state == PmCommandState::pending)
         return PM_ERROR_INVALID_STATE;
     buffer->commands.clear();
+    buffer->query_writes.clear();
+    buffer->simulation_resources.clear();
     buffer->latched_error = PM_SUCCESS;
     buffer->bound_pipeline = nullptr;
     buffer->statistics_open = false;
@@ -158,6 +143,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetCommandBuffer(
         buffer->state == PmCommandState::pending)
         return PM_ERROR_INVALID_STATE;
     buffer->commands.clear();
+    buffer->query_writes.clear();
+    buffer->simulation_resources.clear();
     buffer->latched_error = PM_SUCCESS;
     buffer->bound_pipeline = nullptr;
     buffer->statistics_open = false;

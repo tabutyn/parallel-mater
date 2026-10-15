@@ -46,6 +46,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
     created->physical = physical;
     created->enabled = info->enabledFeatures;
     created->services = std::move(services);
+    try {
+        created->queue.submissions =
+            std::make_unique<parallel_mater::device::SubmissionQueue>();
+    } catch (...) {
+        delete created;
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
     created->queue.device = created;
     created->queue.family = 0U;
     created->queue.index = 0U;
@@ -56,7 +63,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
 
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyDevice(PmDevice device) {
     if (device == nullptr) return;
-    (void)device->services->wait_idle();
+    (void)pmDeviceWaitIdle(device);
     delete device;
 }
 

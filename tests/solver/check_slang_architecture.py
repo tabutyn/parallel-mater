@@ -19,6 +19,13 @@ runtime_paths.extend(sorted(
     (ROOT / "src" / "simulation").glob("runtime_*.cu.inc")
 ))
 runtime = "\n".join(path.read_text(encoding="utf-8") for path in runtime_paths)
+schedule_path = ROOT / "src" / "simulation" / "reference_schedule.hpp"
+schedule_text = schedule_path.read_text(encoding="utf-8")
+for native_token in ("cuda_runtime", "cudaStream", "cudaEvent", "cudaMemcpy", "cudaError", "<<<"):
+    if native_token in schedule_text:
+        failures.append(f"{schedule_path.relative_to(ROOT)}: portable schedule contains {native_token}")
+if "simulation::schedule_frame(*impl_, backend, options)" not in runtime:
+    failures.append("runtime_schedule.cu.inc: runtime bypasses the shared reference schedule")
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text(encoding="utf-8")
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():

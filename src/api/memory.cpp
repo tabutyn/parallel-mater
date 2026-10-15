@@ -31,6 +31,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmAllocateMemory(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmFreeMemory(
     PmDevice device, PmDeviceMemory memory) {
     if (device == nullptr || memory == nullptr || memory->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     device->services->free(memory->allocation);
     device->application_bytes.fetch_sub(memory->size, std::memory_order_relaxed);
     parallel_mater::api::destroy_object(device, memory);
@@ -101,6 +102,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateBuffer(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyBuffer(
     PmDevice device, PmBuffer buffer) {
     if (device == nullptr || buffer == nullptr || buffer->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     parallel_mater::api::destroy_object(device, buffer);
 }
 

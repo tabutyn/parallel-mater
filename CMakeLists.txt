@@ -203,6 +203,8 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
     parallel_mater_enable_warnings(parallel-mater-host-preparation)
 endif()
 
+find_package(Threads REQUIRED)
+
 if(PARALLEL_MATER_BUILD_CUDA)
 check_language(CUDA)
 if(NOT CMAKE_CUDA_COMPILER)
@@ -235,6 +237,7 @@ add_library(
     src/api/interop.cpp
     src/driver/slang/entry.cpp
     src/device/cuda_device.cpp
+    src/device/submission.cpp
     src/simulation/exports.cu
     src/simulation/geometry_dispatch.cu
     src/simulation/geometry_constraints_dispatch.cu
@@ -264,6 +267,8 @@ add_library(
     src/simulation/runtime_deformables.cu.inc
     src/simulation/runtime_rigid.cu.inc
     src/simulation/runtime_schedule.cu.inc
+    src/simulation/reference_schedule.hpp
+    src/simulation/native_schedule_backend.cu.inc
     src/simulation/runtime_diagnostics.cu.inc
     src/simulation/geometry_storage.hpp
     src/simulation/rope_storage.hpp
@@ -287,6 +292,7 @@ set_target_properties(
         VISIBILITY_INLINES_HIDDEN YES
         POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET parallel-mater-driver-slang-cuda PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_20)
+target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE Threads::Threads)
 target_include_directories(
     parallel-mater-driver-slang-cuda
     PUBLIC
@@ -374,9 +380,9 @@ endif()
 endif() # PARALLEL_MATER_BUILD_CUDA
 
 if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
-    if(NOT APPLE)
+    if(WIN32)
         message(FATAL_ERROR
-            "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires macOS")
+            "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires a POSIX host")
     endif()
     include(cmake/ParallelMaterSlangCpu.cmake)
 endif()
@@ -870,6 +876,15 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-submission-queue-tests
+        tests/api/submission_queue_tests.cpp src/device/submission.cpp)
+    target_compile_features(parallel-mater-submission-queue-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-submission-queue-tests PRIVATE include src)
+    target_link_libraries(parallel-mater-submission-queue-tests PRIVATE Threads::Threads)
+    parallel_mater_enable_warnings(parallel-mater-submission-queue-tests)
+    add_test(NAME parallel-mater-submission-queue-tests
+        COMMAND parallel-mater-submission-queue-tests)
+    set_tests_properties(parallel-mater-submission-queue-tests PROPERTIES TIMEOUT 30)
     add_subdirectory(tests/solver)
     add_executable(parallel-mater-camera-controller-tests
         tests/gallery/camera_controller_tests.cpp)

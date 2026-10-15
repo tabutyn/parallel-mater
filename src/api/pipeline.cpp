@@ -80,6 +80,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyPhysicsPipeline(
     PmDevice device, PmPhysicsPipeline pipeline) {
     if (device == nullptr || pipeline == nullptr || pipeline->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     parallel_mater::api::destroy_object(device, pipeline);
 }
 

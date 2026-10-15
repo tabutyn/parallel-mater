@@ -18,10 +18,13 @@ jobs:
         include:
           - os: ubuntu-latest
             d3d12: 'OFF'
+            cpu: 'ON'
           - os: windows-latest
             d3d12: 'ON'
+            cpu: 'OFF'
           - os: macos-15
             d3d12: 'OFF'
+            cpu: 'ON'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -42,7 +45,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DBUILD_TESTING=ON
           -DPARALLEL_MATER_BUILD_CUDA=OFF
-          -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=OFF
+          -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=${{ matrix.cpu }}
           -DPARALLEL_MATER_BUILD_D3D12=${{ matrix.d3d12 }}
           -DPARALLEL_MATER_BUILD_GALLERY=OFF
           -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON

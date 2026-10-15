@@ -313,6 +313,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateGeometry(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyGeometry(
     PmDevice device, PmGeometry geometry) {
     if (device == nullptr || geometry == nullptr || geometry->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     parallel_mater::api::destroy_object(device, geometry);
 }
 
@@ -533,6 +534,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroySimulation(
     PmDevice device, PmSimulation simulation) {
     if (device == nullptr || simulation == nullptr || simulation->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     {
         parallel_mater::simulation::ScopedMemoryArena scope(
             simulation->arena.get());
@@ -639,9 +641,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
              body.motionType > PM_MOTION_DYNAMIC))
             return PM_ERROR_INVALID_ARGUMENT;
     }
-    return parallel_mater::api::record(
-        command_buffer,
-        [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &services) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -700,8 +701,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdApplyRigidInputs(
     for (const auto &input : copied)
         if (input.bodyIndex >= simulation->rigid_bodies.size())
             return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(
-        command_buffer, [simulation, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, copied = std::move(copied)](
                             parallel_mater::device::Services &) noexcept {
             for (const auto &input : copied) {
                 if (!simulation->rigid_bodies[input.bodyIndex].has_value())
@@ -730,8 +731,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetRigidStates(
     std::vector<PmRigidState> copied;
     try { copied.assign(states, states + count); }
     catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
-    return parallel_mater::api::record(
-        command_buffer, [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
                             parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 const auto &slot = simulation->rigid_bodies[first + offset];
@@ -761,8 +762,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetKinematicTargets(
     catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
     for (const PmRigidState &target : copied)
         if (!finite(target)) return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(
-        command_buffer, [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
                             parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 const auto &slot = simulation->rigid_bodies[first + offset];
@@ -790,8 +791,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidConstraints(
     std::vector<PmRigidConstraintInfo> copied;
     try { copied.assign(constraints, constraints + count); }
     catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
-    return parallel_mater::api::record(
-        command_buffer, [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
                             parallel_mater::device::Services &) noexcept {
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 auto &slot = simulation->constraints[first + offset];
@@ -850,8 +851,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
     PmCommandBuffer command_buffer, PmSimulation simulation) {
     if (simulation == nullptr || simulation->device != command_buffer->device)
         return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(
-        command_buffer, [simulation](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation](
                             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             PmResult result = validate_bound(simulation);
@@ -926,8 +927,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
     const PmBufferView copied = *particles;
     const PmLiquidMaterialState material =
         command_buffer->bound_pipeline->fluids[fluid];
-    return parallel_mater::api::record(
-        command_buffer, [simulation, fluid, copied, material](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, fluid, copied, material](
                             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(
@@ -979,6 +980,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
     PmCommandBuffer command_buffer, PmSimulation simulation,
     const PmStepInfo *step) {
+    const PmResult record_state = parallel_mater::api::require_recording(command_buffer);
+    if (record_state != PM_SUCCESS) return record_state;
     if (simulation == nullptr || step == nullptr || step->timestep <= 0.0F ||
         step->substeps == 0U || simulation->device != command_buffer->device ||
         command_buffer->bound_pipeline == nullptr ||
@@ -988,8 +991,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
     if (command_buffer->statistics_open)
         command_buffer->statistics_simulation = simulation;
-    return parallel_mater::api::record(
-        command_buffer, [simulation, copied, pipeline](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, copied, pipeline](
                             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
@@ -1008,8 +1011,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
                 (copied.flags & PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U;
             options.collect_rigid_contacts = collect_contacts;
             options.collect_fluid_contacts = collect_contacts;
+            // This closure runs on the ordered submission worker. Retain the
+            // frame through GPU completion and deferred overflow validation.
+            parallel_mater::FrameToken frame;
             result = parallel_mater::api::from_status(
-                simulation->runtime->step(options, queue));
+                simulation->runtime->step_async(options, frame, queue));
+            if (result == PM_SUCCESS)
+                result = parallel_mater::api::from_status(frame.wait());
             simulation->execution_result = result;
             if (result == PM_SUCCESS) {
                 ++simulation->submitted_steps;
@@ -1038,8 +1046,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(
                                          destination->buffer->size))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(
-        command_buffer, [simulation, first, count, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, count, copied](
                             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -1125,8 +1133,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyFluidParticles(
                                          destination->buffer->size))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(
-        command_buffer, [simulation, fluid, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, fluid, copied](
                             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -1157,6 +1165,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetSimulationStatus(
     *execution = PM_ERROR_FEATURE_NOT_PRESENT;
     if (device == nullptr || simulation == nullptr || simulation->device != device)
         return PM_ERROR_INVALID_ARGUMENT;
-    *execution = simulation->execution_result;
+    if (simulation->pending_submissions.load(std::memory_order_acquire) != 0U)
+        return PM_NOT_READY;
+    *execution = simulation->execution_result.load();
     return PM_SUCCESS;
 }

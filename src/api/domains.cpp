@@ -209,8 +209,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
         if (result != PM_SUCCESS) return result;
     }
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, pipeline, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -284,8 +284,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRopes(
         if (result != PM_SUCCESS) return result;
     }
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, pipeline, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -389,8 +389,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSoftBodies(
         if (result != PM_SUCCESS) return result;
     }
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, pipeline, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -478,8 +478,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSmoke(
             grid_cells > capacity.gridCellCapacity)
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
-    return parallel_mater::api::record(command_buffer,
-        [simulation, pipeline, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -552,8 +552,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleEmitters(
                 emitters[index].triangleIndexCount, copied[index].indices);
         if (result != PM_SUCCESS) return result;
     }
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -603,8 +603,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleDestroyers(
         count > simulation->destroyers.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
     std::vector<PmParticleDestroyerInfo> copied(destroyers, destroyers + count);
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -681,8 +681,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
             fields[index].vertexCount, copied[index].uvs);
         if (result != PM_SUCCESS) return result;
     }
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
@@ -759,8 +759,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintRules(
         count > simulation->paint_rules.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
     std::vector<PmPaintRuleInfo> copied(rules, rules + count);
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, copied = std::move(copied)](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
@@ -809,8 +809,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdClearPaintFields(
         count == 0U || first > simulation->paint_fields.size() ||
         count > simulation->paint_fields.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, count](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, count](
             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             for (std::uint32_t offset = 0U; offset < count; ++offset) {
@@ -836,8 +836,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothState(
         cloth >= simulation->cloths.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, cloth, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, cloth, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -881,8 +881,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyClothSurface(
         cloth >= simulation->cloths.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, cloth, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, cloth, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -927,8 +927,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRopeState(
         rope_index >= simulation->ropes.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, rope_index, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, rope_index, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -973,8 +973,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodyState(
         soft_body >= simulation->soft_bodies.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, soft_body, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, soft_body, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -1017,8 +1017,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySoftBodySurface(
         soft_body >= simulation->soft_bodies.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, soft_body, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, soft_body, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -1060,8 +1060,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopySmokeState(
         smoke_index >= simulation->smokes.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, smoke_index, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, smoke_index, copied](
             parallel_mater::device::Services &services) noexcept {
             const PmResult ownership =
                 parallel_mater::api::require_device_ownership(copied.buffer);
@@ -1104,8 +1104,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyPaintField(
         field >= simulation->paint_fields.size())
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, field, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, field, copied](
             parallel_mater::device::Services &services) noexcept {
             parallel_mater::PaintFieldId id{};
             PmResult result = require_slot(simulation->paint_fields, field, id);
@@ -1138,8 +1138,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyConstraintStates(
         count > simulation->constraints.size() - first)
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, first, count, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, first, count, copied](
             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             std::vector<PmConstraintState> states(count);
@@ -1183,9 +1183,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdQueryHitBox(
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmHitBox copied_box = *box;
     const PmBufferRange copied_destination = *destination;
-    return parallel_mater::api::record(
-        command_buffer,
-        [simulation, copied_box, copied_destination](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, copied_box, copied_destination](
             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::HitBox query{};
@@ -1242,8 +1241,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyContactEvents(
         simulation->device != command_buffer->device)
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, copied](
             parallel_mater::device::Services &services) noexcept {
             const auto rigid_view = simulation->runtime->rigid_contacts();
             const auto liquid_view = simulation->runtime->contacts();
@@ -1298,8 +1297,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyDebugData(
         simulation->device != command_buffer->device)
         return result != PM_SUCCESS ? result : PM_ERROR_INVALID_ARGUMENT;
     const PmBufferRange copied = *destination;
-    return parallel_mater::api::record(command_buffer,
-        [simulation, copied](
+    return parallel_mater::api::record_simulation(
+        command_buffer, simulation, [simulation, copied](
             parallel_mater::device::Services &services) noexcept {
             parallel_mater::PhysicsDebugFrameView frame{};
             PmResult result = parallel_mater::api::from_status(

@@ -7,25 +7,41 @@
 #include <limits>
 #include <new>
 #include <string>
+#if defined(__APPLE__)
 #include <sys/sysctl.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace parallel_mater::device {
 namespace {
 
 [[nodiscard]] std::uint64_t installed_memory() noexcept {
+#if defined(__APPLE__)
     std::uint64_t bytes{};
     std::size_t size = sizeof(bytes);
     return sysctlbyname("hw.memsize", &bytes, &size, nullptr, 0) == 0
         ? bytes : (8ULL << 30U);
+#else
+    const long pages = sysconf(_SC_PHYS_PAGES);
+    const long page_size = sysconf(_SC_PAGESIZE);
+    return pages > 0 && page_size > 0
+        ? static_cast<std::uint64_t>(pages) * static_cast<std::uint64_t>(page_size)
+        : (8ULL << 30U);
+#endif
 }
 
 [[nodiscard]] std::string processor_name() {
+#if defined(__APPLE__)
     std::array<char, 256> name{};
     std::size_t size = name.size();
     if (sysctlbyname("machdep.cpu.brand_string", name.data(), &size,
                      nullptr, 0) == 0 && name.front() != '\0')
         return name.data();
     return "Apple Silicon";
+#else
+    return "Slang CPU reference";
+#endif
 }
 
 class CpuServices final : public Services {

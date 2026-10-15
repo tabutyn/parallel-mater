@@ -79,6 +79,22 @@ buffers, waits, and signals. `pmCmdPipelineBarrier` expresses in-command-buffer
 memory dependencies. Queue and device idle calls are available for teardown,
 not required for ordinary frame scheduling.
 
+For the reference CUDA and Slang CPU drivers, `pmQueueSubmit` validates and
+enqueues owned command copies, then returns without executing physics or
+waiting for device completion. A timeline producer may be submitted after its
+consumer; a submission cannot satisfy its own unresolved wait. Retain every
+referenced resource until its completion, and use distinct command buffers and
+output slots for frames in flight.
+
+Fences and timeline waits report deferred execution failures as negative
+`PmResult` values. Failed work drains before its handles become reusable.
+Queue/device idle returns the first deferred failure since the preceding idle
+call; fences retain their result until reset. Simulation status returns
+`PM_NOT_READY` while its submissions remain pending, then exposes the last
+execution result. Query results remain unavailable while their pool has pending
+writes; `PM_QUERY_RESULT_WAIT_BIT` waits for those writes, and failed submissions
+return their execution error. Resource destruction drains pending submissions.
+
 Native interoperability is capability- and extension-gated. Import/export
 calls retain explicit ownership; applications must obey both APIs' memory and
 synchronization rules.
