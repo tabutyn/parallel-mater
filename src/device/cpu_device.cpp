@@ -191,13 +191,21 @@ PmResult enumerate(std::uint32_t *count, Description *descriptions) noexcept {
     Description &output = descriptions[0];
     output.ordinal = 0;
     output.driver_version = 202618U;
+#if defined(__APPLE__)
     output.vendor_id = 0x106bU;
+#else
+    output.vendor_id = 0U; // Software reference adapter; no hardware vendor claim.
+#endif
     output.device_id = 0U;
     output.name = "Parallel Mater Slang CPU (" + processor_name() + ")";
     output.total_memory = installed_memory();
     constexpr std::array<std::uint8_t, 16> uuid{
         0x50, 0x4d, 0x53, 0x4c, 0x41, 0x4e, 0x47, 0x43,
+#if defined(__APPLE__)
         0x50, 0x55, 0x4d, 0x41, 0x43, 0x4f, 0x53, 0x01};
+#else
+        0x50, 0x55, 0x4c, 0x49, 0x4e, 0x55, 0x58, 0x01};
+#endif
     std::copy(uuid.begin(), uuid.end(), output.uuid);
     *count = 1U;
     return PM_SUCCESS;
