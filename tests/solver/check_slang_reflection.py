@@ -75,7 +75,7 @@ def check_dxil(path_text, entry_name, group_size, expected_buffers):
         fields = [field["name"] for field in buffer_type.get("fields", [])]
         size = buffer_type.get("sizes", [{}])[0].get("value")
         if item.get("binding", {}).get("kind") != "uniform" or \
-                fields != ["descriptor_index", "offset", "available"] or \
+                fields != ["descriptor_index", "byte_offset", "available"] or \
                 size != 12:
             raise RuntimeError(
                 f"{path.name}: {name} is not a 12-byte PMGraphicsBuffer"

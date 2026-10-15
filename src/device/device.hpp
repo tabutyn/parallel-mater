@@ -55,6 +55,13 @@ class Services {
     [[nodiscard]] virtual int ordinal() const noexcept = 0;
     [[nodiscard]] virtual void *native_device_handle() const noexcept = 0;
     [[nodiscard]] virtual void *native_queue_handle() const noexcept = 0;
+    [[nodiscard]] virtual void *native_allocation_handle(
+        const void *allocation) const noexcept {
+        return const_cast<void *>(allocation);
+    }
+    [[nodiscard]] virtual std::uint64_t native_allocation_usage() const noexcept {
+        return 0U;
+    }
     [[nodiscard]] virtual Event epoch() const noexcept = 0;
     [[nodiscard]] virtual PmResult create_event(
         bool enable_timing, Event &output) noexcept = 0;
@@ -96,6 +103,8 @@ class Services {
 [[nodiscard]] std::unique_ptr<Services> create_cuda(
     int ordinal, PmResult &result) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_cpu(
+    int ordinal, PmResult &result) noexcept;
+[[nodiscard]] std::unique_ptr<Services> create_d3d12(
     int ordinal, PmResult &result) noexcept;
 
 } // namespace parallel_mater::device

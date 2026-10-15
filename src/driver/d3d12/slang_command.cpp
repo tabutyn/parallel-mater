@@ -67,6 +67,8 @@ HRESULT SlangCommandPath::initialize(
     }
     device_ = device;
     descriptor_capacity_ = descriptor_capacity;
+    descriptor_stride_ = device_->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     return S_OK;
 }
 
@@ -104,9 +106,7 @@ HRESULT SlangCommandPath::create_raw_buffer_view(
     view.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
     D3D12_CPU_DESCRIPTOR_HANDLE handle =
         descriptors_->GetCPUDescriptorHandleForHeapStart();
-    handle.ptr += static_cast<SIZE_T>(index) *
-        device_->GetDescriptorHandleIncrementSize(
-            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    handle.ptr += static_cast<SIZE_T>(index) * descriptor_stride_;
     device_->CreateUnorderedAccessView(resource, nullptr, &view, handle);
     *descriptor = index;
     return S_OK;

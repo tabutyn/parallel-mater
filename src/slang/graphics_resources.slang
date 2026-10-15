@@ -17,7 +17,7 @@ public struct PMGraphicsBuffer<T>
     // native adapter owns the shader-visible heap and supplies the descriptor
     // index; physics code only sees pointer-shaped storage.
     public uint descriptor_index;
-    public uint offset;
+    public uint byte_offset;
     public uint available;
 
     public __subscript(uint index) -> T
@@ -27,14 +27,14 @@ public struct PMGraphicsBuffer<T>
         {
             RWByteAddressBuffer resource =
                 ResourceDescriptorHeap[descriptor_index];
-            return resource.Load<T>((offset + index) * sizeof(T));
+            return resource.Load<T>(byte_offset + index * sizeof(T));
         }
         [mutating]
         set
         {
             RWByteAddressBuffer resource =
                 ResourceDescriptorHeap[descriptor_index];
-            resource.Store<T>((offset + index) * sizeof(T), newValue);
+            resource.Store<T>(byte_offset + index * sizeof(T), newValue);
         }
     }
 };
@@ -54,14 +54,14 @@ public __prefix T operator*<T>(PMGraphicsBuffer<T> value)
 public PMGraphicsBuffer<T> operator+<T>(PMGraphicsBuffer<T> value,
     uint elements)
 {
-    value.offset += elements;
+    value.byte_offset += elements * sizeof(T);
     return value;
 }
 
 public PMGraphicsBuffer<T> operator+<T>(PMGraphicsBuffer<T> value,
     int elements)
 {
-    value.offset = uint(int(value.offset) + elements);
+    value.byte_offset = uint(int(value.byte_offset) + elements * int(sizeof(T)));
     return value;
 }
 
@@ -72,7 +72,7 @@ public bool pmBufferPresent<T>(PMBuffer<T> value)
 
 public PMBuffer<T> pmBufferOffset<T>(PMBuffer<T> value, uint elements)
 {
-    value.offset += elements;
+    value.byte_offset += elements * sizeof(T);
     return value;
 }
 #else

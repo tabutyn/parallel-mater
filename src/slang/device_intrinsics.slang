@@ -171,7 +171,7 @@ public uint pmAtomicAdd(PMBuffer<uint> value, uint addend)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
-    resource.InterlockedAdd(value.offset * sizeof(uint), addend, original);
+    resource.InterlockedAdd(value.byte_offset, addend, original);
     return original;
 }
 public uint64_t pmAtomicAdd(PMBuffer<uint64_t> value, uint64_t addend)
@@ -179,13 +179,13 @@ public uint64_t pmAtomicAdd(PMBuffer<uint64_t> value, uint64_t addend)
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint64_t original;
     resource.InterlockedAdd64(
-        value.offset * sizeof(uint64_t), addend, original);
+        value.byte_offset, addend, original);
     return original;
 }
 public float pmAtomicAdd(PMBuffer<float> value, float addend)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
-    uint address = value.offset * sizeof(float);
+    uint address = value.byte_offset;
     uint expected = resource.Load<uint>(address);
     for (;;)
     {
@@ -201,35 +201,35 @@ public uint pmAtomicMax(PMBuffer<uint> value, uint candidate)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
-    resource.InterlockedMax(value.offset * sizeof(uint), candidate, original);
+    resource.InterlockedMax(value.byte_offset, candidate, original);
     return original;
 }
 public uint pmAtomicMin(PMBuffer<uint> value, uint candidate)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
-    resource.InterlockedMin(value.offset * sizeof(uint), candidate, original);
+    resource.InterlockedMin(value.byte_offset, candidate, original);
     return original;
 }
 public uint pmAtomicOr(PMBuffer<uint> value, uint candidate)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
-    resource.InterlockedOr(value.offset * sizeof(uint), candidate, original);
+    resource.InterlockedOr(value.byte_offset, candidate, original);
     return original;
 }
 public uint64_t pmAtomicOr(PMBuffer<uint64_t> value, uint64_t candidate)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     return resource.InterlockedOrU64(
-        value.offset * sizeof(uint64_t), candidate);
+        value.byte_offset, candidate);
 }
 public uint pmAtomicExchange(PMBuffer<uint> value, uint replacement)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
     resource.InterlockedExchange(
-        value.offset * sizeof(uint), replacement, original);
+        value.byte_offset, replacement, original);
     return original;
 }
 
@@ -251,7 +251,7 @@ public float pmAtomicAddRawFloat(
 public void pmAtomicAddVec3(PMBuffer<Vec3> value, Vec3 addend)
 {
     RWByteAddressBuffer resource = pmGraphicsResource(value);
-    uint address = value.offset * sizeof(Vec3);
+    uint address = value.byte_offset;
     pmAtomicAddRawFloat(resource, address, addend.x);
     pmAtomicAddRawFloat(resource, address + sizeof(float), addend.y);
     pmAtomicAddRawFloat(resource, address + 2u * sizeof(float), addend.z);
@@ -262,7 +262,7 @@ public uint pmAtomicMaxPositiveFloat(PMBuffer<float> value, float candidate)
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
     resource.InterlockedMax(
-        value.offset * sizeof(float), asuint(candidate), original);
+        value.byte_offset, asuint(candidate), original);
     return original;
 }
 
@@ -271,7 +271,7 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
     RWByteAddressBuffer resource = pmGraphicsResource(value);
     uint original;
     resource.InterlockedMin(
-        value.offset * sizeof(float), asuint(candidate), original);
+        value.byte_offset, asuint(candidate), original);
     return original;
 }
 #else

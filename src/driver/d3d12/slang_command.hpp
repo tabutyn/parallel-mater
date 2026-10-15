@@ -20,7 +20,7 @@ inline constexpr std::uint32_t invalid_descriptor =
 // schedule constants; the native adapter supplies only descriptor ownership.
 struct GraphicsBufferAddress {
     std::uint32_t descriptor_index{invalid_descriptor};
-    std::uint32_t offset{};
+    std::uint32_t byte_offset{};
     std::uint32_t available{};
 };
 static_assert(sizeof(GraphicsBufferAddress) == 12U);
@@ -72,6 +72,7 @@ private:
     std::mutex descriptor_mutex_;
     std::uint32_t descriptor_capacity_{};
     std::uint32_t next_descriptor_{};
+    std::uint32_t descriptor_stride_{};
 };
 
 } // namespace parallel_mater::d3d12

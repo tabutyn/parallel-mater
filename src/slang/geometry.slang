@@ -46,10 +46,10 @@ struct BodyAccumulator
 struct KinematicTarget
 {
     RigidBodyState state;
-    bool active;
+    uint active;
 };
 
-enum RigidConstraintType : PM_GEOMETRY_UINT8
+enum RigidConstraintType : uint
 {
     fixed,
     point,
@@ -63,22 +63,22 @@ enum RigidConstraintType : PM_GEOMETRY_UINT8
 
 struct RigidConstraintLimitOptions
 {
-    PM_GEOMETRY_UINT8 axes;
+    uint axes;
     Vec3 lower;
     Vec3 upper;
 };
 
 struct RigidConstraintSpringOptions
 {
-    PM_GEOMETRY_UINT8 axes;
+    uint axes;
     Vec3 stiffness;
     Vec3 damping;
 };
 
 struct RigidConstraintMotorOptions
 {
-    bool linear_enabled;
-    bool angular_enabled;
+    uint linear_enabled;
+    uint angular_enabled;
     float linear_target_velocity;
     float linear_maximum_impulse;
     float angular_target_velocity;
@@ -99,16 +99,16 @@ struct RigidConstraintOptions
     RigidConstraintSpringOptions linear_springs;
     RigidConstraintSpringOptions angular_springs;
     RigidConstraintMotorOptions motor;
-    bool enabled;
-    bool disable_collisions;
+    uint enabled;
+    uint disable_collisions;
     float breaking_impulse_threshold;
     uint solver_iterations;
 };
 
 struct RigidConstraintState
 {
-    bool enabled;
-    bool broken;
+    uint enabled;
+    uint broken;
     float applied_impulse;
 };
 
@@ -123,7 +123,7 @@ struct RigidConstraintResource
     RigidConstraintOptions options;
     RigidConstraintState state;
     uint generation;
-    bool alive;
+    uint alive;
     RigidConstraintGeometry geometry;
     RigidAvbdRow avbd_rows[18];
     uint avbd_count;
@@ -140,13 +140,13 @@ struct HingeContactFrame
     Vec3 local_anchor;
     float inverse_mass;
     float inverse_moment;
-    bool present;
-    bool fixed;
-    bool axial;
-    bool axial_rotation;
-    bool fixed_member;
-    bool point_member;
-    bool static_body;
+    uint present;
+    uint fixed;
+    uint axial;
+    uint axial_rotation;
+    uint fixed_member;
+    uint point_member;
+    uint static_body;
 };
 
 struct Contact
@@ -159,8 +159,8 @@ struct Contact
     float accumulated_normal_impulse;
     Vec3 accumulated_friction_impulse;
     float initial_normal_speed;
-    bool warm_started;
-    bool persistent;
+    uint warm_started;
+    uint persistent;
     float impact_fraction;
     float reported_normal_impulse;
     Vec3 reported_friction_impulse;
@@ -168,7 +168,7 @@ struct Contact
     Vec3 avbd_error;
     Vec3 avbd_anchor_a;
     Vec3 avbd_anchor_b;
-    bool avbd_cached;
+    uint avbd_cached;
 };
 
 struct ContactManifold
@@ -176,7 +176,7 @@ struct ContactManifold
     Contact contacts[8];
     uint count;
     Vec3 initial_relative_position;
-    bool face_patch;
+    uint face_patch;
     uint response_slot;
     uint avbd_next_a;
     uint avbd_next_b;
@@ -267,7 +267,8 @@ uint rigid_find_dense(RigidBodyId id, PMBuffer<RigidBodyId> ids, uint count)
 
 bool rigid_guided_pair(HingeContactFrame a, HingeContactFrame b)
 {
-    return (a.axial && b.static_body) || (b.axial && a.static_body);
+    return (a.axial != 0u && b.static_body != 0u) ||
+        (b.axial != 0u && a.static_body != 0u);
 }
 
 bool rigid_guided_contact(Contact contact)
@@ -278,7 +279,7 @@ bool rigid_guided_contact(Contact contact)
 float rigid_fixed_hinge_inverse_moment(BodyParameters parameters,
     RigidBodyState state, HingeContactFrame frame)
 {
-    if ((!frame.fixed && !frame.axial_rotation) ||
+    if ((frame.fixed == 0u && frame.axial_rotation == 0u) ||
         parameters.inverse_mass <= kEpsilon) return 0.0f;
     Vec3 localAxis = inverse_rotate(state.orientation, frame.axis);
     float centerMoment = localAxis.x * localAxis.x /
@@ -312,9 +313,9 @@ HingeContactFrame rigid_hinge_contact_frame(
     uint incidentCount = 0u;
     for (uint index = 0u; index < constraintCapacity; ++index)
     {
-        if (!constraints[index].alive ||
-            !constraints[index].options.enabled ||
-            constraints[index].state.broken) continue;
+        if (constraints[index].alive == 0u ||
+            constraints[index].options.enabled == 0u ||
+            constraints[index].state.broken != 0u) continue;
         bool isA = same_id(constraints[index].options.body_a, body);
         bool isB = same_id(constraints[index].options.body_b, body);
         if (!isA && !isB) continue;
@@ -331,7 +332,7 @@ HingeContactFrame rigid_hinge_contact_frame(
         uint otherDense = rigid_find_dense(other, ids, bodyCount);
         bool staticAnchor = otherDense != kInvalidDense &&
             parameters[otherDense].motion == MotionType.static_body;
-        if (result.present || (type != RigidConstraintType.hinge &&
+        if (result.present != 0u || (type != RigidConstraintType.hinge &&
             !(axial && staticAnchor &&
               constraints[index].options.breaking_impulse_threshold <= 0.0f)))
             continue;
@@ -350,7 +351,7 @@ HingeContactFrame rigid_hinge_contact_frame(
         result.present = true;
         result.fixed = staticAnchor && !axial;
         result.axial = staticAnchor && axial;
-        result.axial_rotation = result.axial &&
+        result.axial_rotation = result.axial != 0u &&
             type == RigidConstraintType.piston;
         if (staticAnchor)
         {
@@ -368,19 +369,20 @@ HingeContactFrame rigid_hinge_contact_frame(
                 result.axis);
         }
     }
-    if (result.axial && incidentCount != 1u)
+    if (result.axial != 0u && incidentCount != 1u)
     {
         result.axial = false;
         result.axial_rotation = false;
         result.present = false;
     }
-    if (result.axial)
+    if (result.axial != 0u)
     {
         result.inverse_mass = parameters[dense].inverse_mass;
         result.inverse_moment = rigid_fixed_hinge_inverse_moment(
             parameters[dense], state, result);
     }
-    reference = result.present && !result.axial ? result.anchor : state.position;
+    reference = result.present != 0u && result.axial == 0u
+        ? result.anchor : state.position;
     return result;
 }
 
@@ -391,9 +393,9 @@ bool constrained_collision_disabled(
     for (uint index = 0u; index < capacity; ++index)
     {
         RigidConstraintResource constraint = constraints[index];
-        if (!constraint.alive || !constraint.options.enabled ||
-            constraint.state.broken ||
-            !constraint.options.disable_collisions)
+        if (constraint.alive == 0u || constraint.options.enabled == 0u ||
+            constraint.state.broken != 0u ||
+            constraint.options.disable_collisions == 0u)
             continue;
         if ((same_id(constraint.options.body_a, a) &&
              same_id(constraint.options.body_b, b)) ||
@@ -425,7 +427,7 @@ void pm_integrate_rigid_bodies(
     }
     if (body.motion == MotionType.kinematic)
     {
-        if (targets[index].active)
+        if (targets[index].active != 0u)
         {
             float fraction = 1.0f / float(remaining_substeps);
             next.position = add(previous.position, multiply(subtract(
@@ -769,10 +771,10 @@ public bool rigid_triangle_bounds_overlap(Vec3 a0, Vec3 a1, Vec3 a2,
 
 Vec3 rigid_guide_direction(Contact contact)
 {
-    HingeContactFrame frame = contact.body_hinge.axial
+    HingeContactFrame frame = contact.body_hinge.axial != 0u
         ? contact.body_hinge : contact.collider_hinge;
     return {dot(contact.normal, frame.axis) * sqrt(frame.inverse_mass),
-        frame.axial_rotation ? dot(frame.axis,
+        frame.axial_rotation != 0u ? dot(frame.axis,
             cross(subtract(contact.point, frame.anchor), contact.normal)) *
             sqrt(frame.inverse_moment) : 0.0f,
         0.0f};
@@ -979,7 +981,8 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             }
             else if (distance <= 1.0e-5f)
             {
-                if (bodyHinge.fixed_member || colliderHinge.fixed_member ||
+                if (bodyHinge.fixed_member != 0u ||
+                    colliderHinge.fixed_member != 0u ||
                     smallConvex)
                 {
                     float intersectionDepth = max(0.0f, -min(
@@ -1330,7 +1333,7 @@ void rigid_collide_triangle_ranges_swept(
                 float contactOffset = restOffset;
                 if (guided && !rigid_triangle_pair_face_contact(a, b, delta))
                 {
-                    HingeContactFrame guide = bodyHinge.axial
+                    HingeContactFrame guide = bodyHinge.axial != 0u
                         ? bodyHinge : colliderHinge;
                     Vec3 direction = normalized_or(delta, {});
                     float axial = dot(direction, guide.axis);
@@ -1353,7 +1356,7 @@ void rigid_collide_triangle_ranges_swept(
                     Vec3 fallback = dot(colliderNormal,
                         subtract(center, pointB)) >= 0.0f
                         ? colliderNormal : multiply(colliderNormal, -1.0f);
-                    if (bodyHinge.present)
+                    if (bodyHinge.present != 0u)
                     {
                         Vec3 reference = add(previousBodyReference,
                             multiply(subtract(bodyReference,
@@ -1623,8 +1626,8 @@ void pm_generate_rigid_leaf_pairs(
         }
         TriangleMeshResource aMesh = meshes[aId.index];
         TriangleMeshResource bMesh = meshes[bId.index];
-        if (!aMesh.alive || aMesh.generation != aId.generation ||
-            !bMesh.alive || bMesh.generation != bId.generation)
+        if (aMesh.alive == 0u || aMesh.generation != aId.generation ||
+            bMesh.alive == 0u || bMesh.generation != bId.generation)
         {
             pmGroupBarrier();
             continue;
@@ -2030,10 +2033,11 @@ void pm_finalize_rigid_contact_manifolds(
     {
         manifold.contacts[point].persistent =
             rigid_guided_contact(manifold.contacts[point]) ||
-            (persistent && !manifold.contacts[point].body_hinge.present &&
-             !manifold.contacts[point].collider_hinge.present &&
-             !manifold.contacts[point].body_hinge.fixed_member &&
-             !manifold.contacts[point].collider_hinge.fixed_member);
+            (persistent &&
+             manifold.contacts[point].body_hinge.present == 0u &&
+             manifold.contacts[point].collider_hinge.present == 0u &&
+             manifold.contacts[point].body_hinge.fixed_member == 0u &&
+             manifold.contacts[point].collider_hinge.fixed_member == 0u);
         manifold.contacts[point].initial_normal_speed =
             rigid_contact_normal_speed(states[a], states[b],
                 manifold.contacts[point].point,
@@ -2200,10 +2204,10 @@ void pm_save_rigid_contact_cache(
              ++point)
         {
             Contact contact = manifold.contacts[point];
-            events[offset + point].normal_impulse = contact.persistent
+            events[offset + point].normal_impulse = contact.persistent != 0u
                 ? contact.accumulated_normal_impulse
                 : contact.reported_normal_impulse;
-            events[offset + point].friction_impulse = contact.persistent
+            events[offset + point].friction_impulse = contact.persistent != 0u
                 ? contact.accumulated_friction_impulse
                 : contact.reported_friction_impulse;
         }
@@ -2280,9 +2284,9 @@ void pm_build_fixed_collision_groups(
     for (uint index = 0u; index < capacity; ++index)
     {
         RigidConstraintResource constraint = constraints[index];
-        if (!constraint.alive || !constraint.options.enabled ||
-            constraint.state.broken ||
-            !constraint.options.disable_collisions ||
+        if (constraint.alive == 0u || constraint.options.enabled == 0u ||
+            constraint.state.broken != 0u ||
+            constraint.options.disable_collisions == 0u ||
             constraint.options.type != RigidConstraintType.fixed) continue;
         uint a = find_rigid_body_dense(
             constraint.options.body_a, ids, count);

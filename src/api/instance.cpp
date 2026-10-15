@@ -14,7 +14,8 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     PmPhysicalDeviceFeatures features{};
     features.rigidBodies = PM_TRUE;
     features.rigidConstraints = PM_TRUE;
-#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
+    defined(PARALLEL_MATER_D3D12_DRIVER)
     features.contactEvents = PM_TRUE;
     features.debugData = PM_TRUE;
     features.timelineSemaphores = PM_TRUE;

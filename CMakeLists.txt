@@ -187,6 +187,7 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
+   PARALLEL_MATER_BUILD_D3D12 OR
    PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
@@ -813,23 +814,79 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
         COMMENT "Embedding common Slang DXIL schedules in the D3D12 driver"
         VERBATIM)
+    set(PARALLEL_MATER_D3D12_STUB_SOURCE
+        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_unadvertised_dispatch.cpp")
+    set(PARALLEL_MATER_D3D12_STUB_HEADERS
+        src/simulation/cloth_dispatch.hpp
+        src/simulation/fluid_cloth_dispatch.hpp
+        src/simulation/fluid_dispatch.hpp
+        src/simulation/fluid_rope_dispatch.hpp
+        src/simulation/fluid_smoke_dispatch.hpp
+        src/simulation/fluid_soft_body_dispatch.hpp
+        src/simulation/geometry_cloth_dispatch.hpp
+        src/simulation/geometry_fluid_dispatch.hpp
+        src/simulation/geometry_smoke_dispatch.hpp
+        src/simulation/geometry_soft_body_dispatch.hpp
+        src/simulation/rope_coupling_dispatch.hpp
+        src/simulation/rope_dispatch.hpp
+        src/simulation/smoke_coupling_dispatch.hpp
+        src/simulation/smoke_grid_dispatch.hpp
+        src/simulation/soft_body_cloth_dispatch.hpp
+        src/simulation/soft_body_dispatch.hpp)
+    add_custom_command(
+        OUTPUT "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
+                --output "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
+                ${PARALLEL_MATER_D3D12_STUB_HEADERS}
+        DEPENDS tools/generate_cpu_dispatch_stubs.py
+                ${PARALLEL_MATER_D3D12_STUB_HEADERS}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Generating guarded stubs for unadvertised D3D12 domains"
+        VERBATIM)
+    set_source_files_properties("${PARALLEL_MATER_D3D12_STUB_SOURCE}"
+        PROPERTIES GENERATED TRUE COMPILE_OPTIONS "/w")
     add_library(parallel-mater-driver-slang-d3d12 SHARED
-        src/driver/d3d12/entry.cpp
+        src/api/instance.cpp
+        src/api/device.cpp
+        src/api/memory.cpp
+        src/api/resources.cpp
+        src/api/domains.cpp
+        src/api/pipeline.cpp
+        src/api/commands.cpp
+        src/api/synchronization.cpp
+        src/api/queries.cpp
+        src/api/interop.cpp
+        src/driver/slang/entry.cpp
         src/driver/d3d12/slang_command.cpp
+        src/driver/d3d12/schedule_context.cpp
+        src/device/d3d12_device.cpp
+        src/device/submission.cpp
+        src/simulation/d3d12_runtime.cpp
+        src/simulation/d3d12_geometry_dispatch.cpp
+        src/simulation/d3d12_exports.cpp
+        src/simulation/memory_arena.cpp
+        "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
         "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}")
     add_dependencies(parallel-mater-driver-slang-d3d12
                      parallel-mater-slang-dxil-schedules)
     target_compile_features(parallel-mater-driver-slang-d3d12 PRIVATE cxx_std_20)
     target_compile_definitions(parallel-mater-driver-slang-d3d12 PRIVATE
         PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
+        PARALLEL_MATER_D3D12_DRIVER=1
         NOMINMAX
         WIN32_LEAN_AND_MEAN)
     target_include_directories(parallel-mater-driver-slang-d3d12
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        PRIVATE "${PARALLEL_MATER_D3D12_GENERATED_DIR}")
-    target_link_libraries(parallel-mater-driver-slang-d3d12 PRIVATE d3d12 dxgi)
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/device/d3d12_compat
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${PARALLEL_MATER_API_GENERATED_DIR}
+            "${PARALLEL_MATER_D3D12_GENERATED_DIR}")
+    target_link_libraries(parallel-mater-driver-slang-d3d12 PRIVATE
+        parallel-mater-host-preparation Threads::Threads d3d12 dxgi)
     parallel_mater_enable_warnings(parallel-mater-driver-slang-d3d12)
     set_target_properties(parallel-mater-driver-slang-d3d12 PROPERTIES
         OUTPUT_NAME parallel_mater_driver_slang_d3d12

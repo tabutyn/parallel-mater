@@ -486,16 +486,18 @@ for required in (
             f"cmake/SlangGeometryConstraints.cmake: missing DXIL contract {required}"
         )
 
-d3d12_driver_path = ROOT / "src" / "driver" / "d3d12" / "entry.cpp"
-d3d12_command_path = ROOT / "src" / "driver" / "d3d12" / "slang_command.cpp"
+d3d12_driver_paths = (
+    ROOT / "src" / "driver" / "d3d12" / "slang_command.cpp",
+    ROOT / "src" / "driver" / "d3d12" / "schedule_context.cpp",
+    ROOT / "src" / "device" / "d3d12_device.cpp",
+)
 if "parallel-mater-driver-slang-d3d12 SHARED" not in cmake:
     failures.append("CMakeLists.txt: D3D12 loader driver target missing")
-if not d3d12_driver_path.exists() or not d3d12_command_path.exists():
+if any(not path.exists() for path in d3d12_driver_paths):
     failures.append("src/driver/d3d12: thin Slang command adapter missing")
 else:
-    d3d12_driver = (
-        d3d12_driver_path.read_text(encoding="utf-8") + "\n" +
-        d3d12_command_path.read_text(encoding="utf-8")
+    d3d12_driver = "\n".join(
+        path.read_text(encoding="utf-8") for path in d3d12_driver_paths
     )
     for required in (
         "parallel_mater_slang_dxil.hpp", "record_dispatch",
@@ -505,12 +507,12 @@ else:
     ):
         if required not in d3d12_driver:
             failures.append(
-                f"src/driver/d3d12/entry.cpp: missing shared DXIL driver "
+                f"src/driver/d3d12: missing shared DXIL driver "
                 f"contract {required}")
     for forbidden in ("simulation/runtime.hpp", "cuda_runtime", ".cu\""):
         if forbidden in d3d12_driver:
             failures.append(
-                f"src/driver/d3d12/entry.cpp: physics/backend implementation "
+                f"src/driver/d3d12: physics/backend implementation "
                 f"leaked into thin driver: {forbidden}")
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host

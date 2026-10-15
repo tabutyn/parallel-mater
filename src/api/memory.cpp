@@ -128,8 +128,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindBufferMemory(
     buffer->memory = memory;
     buffer->memory_offset = offset;
     buffer->native_buffer = static_cast<PmNativeHandle>(
-        reinterpret_cast<std::uintptr_t>(memory->allocation));
+        reinterpret_cast<std::uintptr_t>(
+            device->services->native_allocation_handle(memory->allocation)));
     buffer->native_offset = offset;
+    buffer->native_usage = device->services->native_allocation_usage();
     buffer->native_pointer = static_cast<std::byte *>(memory->allocation) + offset;
     return PM_SUCCESS;
 }

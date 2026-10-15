@@ -277,14 +277,14 @@ using simulation::k_soft_contact_cleanup_passes;
     return success();
 }
 
-[[nodiscard]] bool valid_constraint_mask(std::uint8_t axes) noexcept {
+[[nodiscard]] bool valid_constraint_mask(std::uint32_t axes) noexcept {
     return (axes & ~rigid_constraint_all_axes) == 0U;
 }
 
 [[nodiscard]] Status validate_constraint_options(
     const RigidConstraintOptions &options) noexcept {
-    if (static_cast<std::uint8_t>(options.type) >
-        static_cast<std::uint8_t>(RigidConstraintType::motor))
+    if (static_cast<std::uint32_t>(options.type) >
+        static_cast<std::uint32_t>(RigidConstraintType::motor))
         return failure(StatusCode::invalid_argument,
                        "rigid constraint type is invalid");
     if (options.body_a == options.body_b)
