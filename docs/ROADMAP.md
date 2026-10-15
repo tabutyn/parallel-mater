@@ -71,15 +71,18 @@ balance, and energy behavior with external forces and dissipation accounted for.
 
 ### 1. Restore shader portability and require compiler gates
 
-Status: compiler gates implemented; cross-platform CI validation in progress.
+Status: complete (2026-10-15).
 
 The atomic target guards were supplied by upstream `7a724fe` before this
 milestone's implementation. The complete 23-module CUDA-source/SPIR-V mirror
 build and 15 host/reflection tests pass locally with Slang 2026.18. The
 [shader portability workflow](../.github/workflows/shader-portability.yml)
 now runs Linux, Windows, and macOS builds, including full Windows DXIL schedules
-and native compilation/linking of the AVBD Metal core. Runtime physics
-qualification remains separate.
+and native compilation/linking of the AVBD Metal core. All three platform jobs
+and the aggregate gate passed in [CI run 38763192659](https://github.com/tabutyn/parallel-mater/actions/runs/38763192659),
+with 15 host/reflection tests passing per platform. The Windows run also exposed
+and verified a fix for locale-dependent source decoding in the architecture
+checker. Runtime physics qualification remains separate.
 
 - Fix the SPIR-V atomic-overload regression introduced by the D3D12 resource
   wrappers. Pointer and descriptor-backed operations must compile only for
