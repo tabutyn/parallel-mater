@@ -778,30 +778,41 @@ if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
 endif()
 
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+    include(cmake/SlangKernelManifest.cmake)
+    parallel_mater_compile_slang_dxil(PARALLEL_MATER_SLANG_DXIL_SCHEDULES)
+    add_custom_target(parallel-mater-slang-dxil-schedules
+        DEPENDS ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES})
     set(PARALLEL_MATER_D3D12_GENERATED_DIR
         "${CMAKE_CURRENT_BINARY_DIR}/generated/d3d12")
-    set(PARALLEL_MATER_D3D12_DXIL_HEADER
-        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_avbd_dxil.hpp")
+    file(MAKE_DIRECTORY "${PARALLEL_MATER_D3D12_GENERATED_DIR}")
+    set(PARALLEL_MATER_D3D12_DXIL_MANIFEST
+        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/slang_dxil_manifest.txt")
+    string(REPLACE ";" "\n" PARALLEL_MATER_D3D12_DXIL_MANIFEST_CONTENT
+           "${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_RECORDS}")
+    file(GENERATE OUTPUT "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
+        CONTENT "${PARALLEL_MATER_D3D12_DXIL_MANIFEST_CONTENT}\n")
+    set(PARALLEL_MATER_D3D12_DXIL_LIBRARY
+        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_slang_dxil.hpp")
     add_custom_command(
-        OUTPUT "${PARALLEL_MATER_D3D12_DXIL_HEADER}"
+        OUTPUT "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 "${PARALLEL_MATER_D3D12_GENERATED_DIR}"
         COMMAND ${CMAKE_COMMAND}
-                "-DPREPARE_INPUT=${PARALLEL_MATER_SLANG_AVBD_PREPARE_DXIL}"
-                "-DSOLVE_INPUT=${PARALLEL_MATER_SLANG_AVBD_SOLVE_DXIL}"
-                "-DOUTPUT_FILE=${PARALLEL_MATER_D3D12_DXIL_HEADER}"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxil.cmake"
+                "-DMANIFEST_FILE=${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
+                "-DOUTPUT_FILE=${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
         DEPENDS
-            "${PARALLEL_MATER_SLANG_AVBD_PREPARE_DXIL}"
-            "${PARALLEL_MATER_SLANG_AVBD_SOLVE_DXIL}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxil.cmake"
-        COMMENT "Embedding shared AVBD DXIL in the D3D12 driver"
+            ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
+            "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
+        COMMENT "Embedding common Slang DXIL schedules in the D3D12 driver"
         VERBATIM)
     add_library(parallel-mater-driver-slang-d3d12 SHARED
         src/driver/d3d12/entry.cpp
-        "${PARALLEL_MATER_D3D12_DXIL_HEADER}")
+        src/driver/d3d12/slang_command.cpp
+        "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}")
     add_dependencies(parallel-mater-driver-slang-d3d12
-                     parallel-mater-slang-avbd-dxil)
+                     parallel-mater-slang-dxil-schedules)
     target_compile_features(parallel-mater-driver-slang-d3d12 PRIVATE cxx_std_20)
     target_compile_definitions(parallel-mater-driver-slang-d3d12 PRIVATE
         PARALLEL_MATER_DRIVER_IMPLEMENTATION=1

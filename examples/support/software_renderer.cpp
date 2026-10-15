@@ -69,7 +69,7 @@ Projected project(Vec3 point, const CameraBasis &camera,
     const float ndc_y = dot(relative, camera.up) /
         (depth * camera.vertical);
     return {(ndc_x * 0.5F + 0.5F) * static_cast<float>(width),
-            (0.5F - ndc_y * 0.5F) * static_cast<float>(height),
+            (ndc_y * 0.5F + 0.5F) * static_cast<float>(height),
             depth,
             std::fabs(ndc_x) <= 2.0F && std::fabs(ndc_y) <= 2.0F};
 }

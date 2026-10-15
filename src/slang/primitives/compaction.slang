@@ -2,6 +2,7 @@
 // Stable flagged-index compaction. One 256-thread workgroup owns one tile.
 
 import device_intrinsics;
+import graphics_resources;
 
 groupshared uint pmCompactionFlags[256];
 groupshared uint pmCompactionCount;
@@ -9,8 +10,8 @@ groupshared uint pmCompactionCount;
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_compact_count_blocks(
-    uniform uint8_t* flags, uniform uint count, uniform uint tile_size,
-    uniform uint* block_counts)
+    uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
+    uniform PMBuffer<uint> block_counts)
 {
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
@@ -18,7 +19,10 @@ public void pm_compact_count_blocks(
     if (thread == 0u) pmCompactionCount = 0u;
     pmGroupBarrier();
     if (index < count && flags[index] != 0u)
-        pmAtomicAdd(&pmCompactionCount, 1u);
+    {
+        uint ignored;
+        InterlockedAdd(pmCompactionCount, 1u, ignored);
+    }
     pmGroupBarrier();
     if (thread == 0u) block_counts[block] = pmCompactionCount;
 }
@@ -26,8 +30,8 @@ public void pm_compact_count_blocks(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_compact_scatter_indices(
-    uniform uint8_t* flags, uniform uint count, uniform uint tile_size,
-    uniform uint* block_offsets, uniform uint* output)
+    uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
+    uniform PMBuffer<uint> block_offsets, uniform PMBuffer<uint> output)
 {
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;

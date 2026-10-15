@@ -6,6 +6,7 @@ import types;
 import math;
 import device_intrinsics;
 import geometry_fluid;
+import graphics_resources;
 
 groupshared Vec3 smoke_grid_rigid_linear[128];
 groupshared Vec3 smoke_grid_rigid_angular[128];
@@ -71,9 +72,9 @@ public bool smoke_grid_contains(Vec3 point, SmokeGridField grid)
 }
 
 public float smoke_grid_sample_scalar(
-    float* values, Vec3 point, SmokeGridField grid)
+    PMBuffer<float> values, Vec3 point, SmokeGridField grid)
 {
-    if (values == nullptr) return 0.0f;
+    if (!pmBufferPresent(values)) return 0.0f;
     Vec3 p = subtract(multiply(subtract(point, grid.minimum),
         1.0f / grid.spacing), {0.5f, 0.5f, 0.5f});
     int x0 = int(floor(p.x));
@@ -100,9 +101,9 @@ public float smoke_grid_sample_scalar(
 }
 
 public Vec3 smoke_grid_sample_vector(
-    Vec3* values, Vec3 point, SmokeGridField grid)
+    PMBuffer<Vec3> values, Vec3 point, SmokeGridField grid)
 {
-    if (values == nullptr) return {};
+    if (!pmBufferPresent(values)) return {};
     Vec3 p = subtract(multiply(subtract(point, grid.minimum),
         1.0f / grid.spacing), {0.5f, 0.5f, 0.5f});
     int x0 = int(floor(p.x));
@@ -129,9 +130,9 @@ public Vec3 smoke_grid_sample_vector(
 }
 
 public float smoke_grid_sample_face_component(
-    int axis, float* values, Vec3 point, SmokeGridField grid)
+    int axis, PMBuffer<float> values, Vec3 point, SmokeGridField grid)
 {
-    if (values == nullptr) return 0.0f;
+    if (!pmBufferPresent(values)) return 0.0f;
     Vec3 p = multiply(subtract(point, grid.minimum), 1.0f / grid.spacing);
     int sx = int(grid.n);
     int sy = int(grid.height);
@@ -164,8 +165,8 @@ public float smoke_grid_sample_face_component(
 
 public Vec3 smoke_grid_sample_velocity(Vec3 point, SmokeGridField grid)
 {
-    if (grid.face[0] != nullptr && grid.face[1] != nullptr &&
-        grid.face[2] != nullptr)
+    if (pmBufferPresent(grid.face[0]) && pmBufferPresent(grid.face[1]) &&
+        pmBufferPresent(grid.face[2]))
         return {
             smoke_grid_sample_face_component(0, grid.face[0], point, grid),
             smoke_grid_sample_face_component(1, grid.face[1], point, grid),
@@ -186,7 +187,7 @@ public float smoke_grid_sample_pressure(Vec3 point, SmokeGridField grid)
 }
 
 public Vec3 smoke_soft_surface_velocity(
-    SoftBodySurfaceBinding binding, Vec3* velocities)
+    SoftBodySurfaceBinding binding, PMBuffer<Vec3> velocities)
 {
     Vec3 result = {};
     for (int i = 0; i < 4; ++i)
@@ -198,11 +199,11 @@ public Vec3 smoke_soft_surface_velocity(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_initialize_cells(
-    uniform Vec3* velocity, uniform float* density,
-    uniform float* temperature, uniform float* pressure,
-    uniform float* divergence, uniform Vec3* vorticity,
-    uniform float* strain, uniform Vec3* subgrid_force,
-    uniform uint* solid, uniform uint count, uniform Vec3 wind)
+    uniform PMBuffer<Vec3> velocity, uniform PMBuffer<float> density,
+    uniform PMBuffer<float> temperature, uniform PMBuffer<float> pressure,
+    uniform PMBuffer<float> divergence, uniform PMBuffer<Vec3> vorticity,
+    uniform PMBuffer<float> strain, uniform PMBuffer<Vec3> subgrid_force,
+    uniform PMBuffer<uint> solid, uniform uint count, uniform Vec3 wind)
 {
     uint cell = pmThreadIndex();
     if (cell >= count) return;
@@ -220,9 +221,9 @@ void smoke_grid_initialize_cells(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_initialize_faces(
-    uniform float* values, uniform float* reverse, uniform float* open,
-    uniform float* wall, uniform Vec3* normal,
-    uniform uint* nearest_triangle, uniform uint count, uniform float wind)
+    uniform PMBuffer<float> values, uniform PMBuffer<float> reverse, uniform PMBuffer<float> open,
+    uniform PMBuffer<float> wall, uniform PMBuffer<Vec3> normal,
+    uniform PMBuffer<uint> nearest_triangle, uniform uint count, uniform float wind)
 {
     uint face = pmThreadIndex();
     if (face >= count) return;
@@ -237,9 +238,9 @@ void smoke_grid_initialize_faces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_clear_obstacles(
-    uniform uint* solid, uniform uint cell_count, uniform float* open_x,
-    uniform float* open_y, uniform float* open_z, uniform float* wall_x,
-    uniform float* wall_y, uniform float* wall_z, uniform uint x_count,
+    uniform PMBuffer<uint> solid, uniform uint cell_count, uniform PMBuffer<float> open_x,
+    uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z, uniform PMBuffer<float> wall_x,
+    uniform PMBuffer<float> wall_y, uniform PMBuffer<float> wall_z, uniform uint x_count,
     uniform uint y_count, uniform uint z_count)
 {
     uint index = pmThreadIndex();
@@ -252,9 +253,9 @@ void smoke_grid_clear_obstacles(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_resolve_particle_fields(
-    uniform uint64_t* density_accumulator,
-    uniform uint64_t* temperature_accumulator, uniform float* density,
-    uniform float* temperature, uniform uint count)
+    uniform PMBuffer<uint64_t> density_accumulator,
+    uniform PMBuffer<uint64_t> temperature_accumulator, uniform PMBuffer<float> density,
+    uniform PMBuffer<float> temperature, uniform uint count)
 {
     uint cell = pmThreadIndex();
     if (cell >= count) return;
@@ -266,11 +267,11 @@ void smoke_grid_resolve_particle_fields(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_splat_particles(
-    uniform Vec3* positions, uniform float* ages,
-    uniform float* thermal_lift, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform uint count,
     uniform SmokeOptions options, uniform SmokeGridField grid,
-    uniform uint64_t* density_accumulator,
-    uniform uint64_t* temperature_accumulator)
+    uniform PMBuffer<uint64_t> density_accumulator,
+    uniform PMBuffer<uint64_t> temperature_accumulator)
 {
     uint particle = pmThreadIndex();
     if (particle >= count || ages[particle] >= options.lifetime) return;
@@ -302,9 +303,9 @@ void smoke_grid_splat_particles(
                 uint cell = smoke_grid_index(
                     x, y, z, int(grid.n), int(grid.height));
                 static const float scale = 16777216.0f;
-                pmAtomicAdd(&density_accumulator[cell],
+                pmAtomicAdd(density_accumulator + cell,
                     uint64_t(w * scale + 0.5f));
-                pmAtomicAdd(&temperature_accumulator[cell], uint64_t(
+                pmAtomicAdd(temperature_accumulator + cell, uint64_t(
                     w * clamp_scalar(thermal_lift[particle], 0.0f,
                         options.maximum_speed) * scale + 0.5f));
             }
@@ -313,8 +314,8 @@ void smoke_grid_splat_particles(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_advect_face(
-    uniform int axis, uniform SmokeGridField grid, uniform float* source,
-    uniform float* destination, uniform float dt)
+    uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> source,
+    uniform PMBuffer<float> destination, uniform float dt)
 {
     uint face = pmThreadIndex();
     uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
@@ -332,7 +333,7 @@ void smoke_grid_advect_face(
 }
 
 void smoke_grid_face_minmax(
-    int axis, float* values, Vec3 point, SmokeGridField grid,
+    int axis, PMBuffer<float> values, Vec3 point, SmokeGridField grid,
     out float low, out float high)
 {
     Vec3 p = multiply(subtract(point, grid.minimum), 1.0f / grid.spacing);
@@ -361,8 +362,8 @@ void smoke_grid_face_minmax(
 [numthreads(256, 1, 1)]
 void smoke_grid_correct_face(
     uniform int axis, uniform SmokeGridField original,
-    uniform float* source, uniform float* predicted,
-    uniform float* reversed, uniform float* corrected, uniform float dt)
+    uniform PMBuffer<float> source, uniform PMBuffer<float> predicted,
+    uniform PMBuffer<float> reversed, uniform PMBuffer<float> corrected, uniform float dt)
 {
     uint face = pmThreadIndex();
     uint count = smoke_grid_face_count(
@@ -410,9 +411,9 @@ float smoke_grid_read_face(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_cell_diagnostics(
-    uniform SmokeGridField grid, uniform Vec3* cell_velocity,
-    uniform Vec3* vorticity, uniform float* strain,
-    uniform float* divergence)
+    uniform SmokeGridField grid, uniform PMBuffer<Vec3> cell_velocity,
+    uniform PMBuffer<Vec3> vorticity, uniform PMBuffer<float> strain,
+    uniform PMBuffer<float> divergence)
 {
     uint cell = pmThreadIndex();
     if (cell >= grid.n * grid.height * grid.n) return;
@@ -455,7 +456,7 @@ void smoke_grid_cell_diagnostics(
         smoke_grid_read_face(grid, 2, x, y - 1, z) -
         smoke_grid_read_face(grid, 2, x, y - 1, z + 1)) * transverse;
     float dwz = (w1 - w0) * inverse;
-    if (cell_velocity != nullptr)
+    if (pmBufferPresent(cell_velocity))
         cell_velocity[cell] = {
             0.5f * (u0 + u1), 0.5f * (v0 + v1), 0.5f * (w0 + w1)};
     vorticity[cell] = {dwy - dvz, duz - dwx, dvx - duy};
@@ -463,11 +464,11 @@ void smoke_grid_cell_diagnostics(
     float syz = 0.5f * (dvz + dwy);
     strain[cell] = sqrt(2.0f * (dux * dux + dvy * dvy + dwz * dwz +
         2.0f * (sxy * sxy + sxz * sxz + syz * syz)));
-    if (divergence != nullptr) divergence[cell] = dux + dvy + dwz;
+    if (pmBufferPresent(divergence)) divergence[cell] = dux + dvy + dwz;
 }
 
 float smoke_grid_vorticity_magnitude(
-    Vec3* vorticity, int x, int y, int z, int n, int h)
+    PMBuffer<Vec3> vorticity, int x, int y, int z, int n, int h)
 {
     x = max(0, min(n - 1, x));
     y = max(0, min(h - 1, y));
@@ -478,8 +479,8 @@ float smoke_grid_vorticity_magnitude(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_subgrid_force(
-    uniform SmokeGridField grid, uniform Vec3* vorticity,
-    uniform Vec3* force, uniform float strength)
+    uniform SmokeGridField grid, uniform PMBuffer<Vec3> vorticity,
+    uniform PMBuffer<Vec3> force, uniform float strength)
 {
     uint cell = pmThreadIndex();
     if (cell >= grid.n * grid.height * grid.n) return;
@@ -506,7 +507,7 @@ void smoke_grid_subgrid_force(
 }
 
 float smoke_grid_source_face(
-    int axis, float* source, int x, int y, int z, SmokeGridField grid)
+    int axis, PMBuffer<float> source, int x, int y, int z, SmokeGridField grid)
 {
     int sx = int(grid.n) + (axis == 0 ? 1 : 0);
     int sy = int(grid.height) + (axis == 1 ? 1 : 0);
@@ -521,10 +522,10 @@ float smoke_grid_source_face(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_apply_face_forces(
-    uniform int axis, uniform SmokeGridField grid, uniform float* source,
-    uniform float* destination, uniform float* open, uniform float* wall,
-    uniform float* strain, uniform Vec3* subgrid,
-    uniform float* temperature, uniform SmokeOptions options,
+    uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> source,
+    uniform PMBuffer<float> destination, uniform PMBuffer<float> open, uniform PMBuffer<float> wall,
+    uniform PMBuffer<float> strain, uniform PMBuffer<Vec3> subgrid,
+    uniform PMBuffer<float> temperature, uniform SmokeOptions options,
     uniform float dt, uniform Vec3 gravity)
 {
     uint face = pmThreadIndex();
@@ -569,8 +570,8 @@ void smoke_grid_apply_face_forces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_apply_face_boundaries(
-    uniform int axis, uniform SmokeGridField grid, uniform float* values,
-    uniform float* open, uniform float* wall, uniform SmokeOptions options)
+    uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> values,
+    uniform PMBuffer<float> open, uniform PMBuffer<float> wall, uniform SmokeOptions options)
 {
     uint face = pmThreadIndex();
     uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
@@ -608,8 +609,8 @@ void smoke_grid_apply_face_boundaries(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_divergence(
-    uniform SmokeGridField grid, uniform float* divergence,
-    uniform float* rhs_max, uniform float dt)
+    uniform SmokeGridField grid, uniform PMBuffer<float> divergence,
+    uniform PMBuffer<float> rhs_max, uniform float dt)
 {
     uint cell = pmThreadIndex();
     if (cell >= grid.n * grid.height * grid.n) return;
@@ -623,12 +624,12 @@ void smoke_grid_divergence(
         grid.face[2][smoke_grid_face_index(2, x, y, z + 1, n, h)] -
         grid.face[2][smoke_grid_face_index(2, x, y, z, n, h)]) / grid.spacing;
     divergence[cell] = value / dt;
-    if (rhs_max != nullptr)
-        pmAtomicMax(reinterpret<uint*>(rhs_max), asuint(abs(value / dt)));
+    if (pmBufferPresent(rhs_max))
+        pmAtomicMaxPositiveFloat(rhs_max, abs(value / dt));
 }
 
 float smoke_pressure_open(
-    float* open_x, float* open_y, float* open_z, int direction,
+    PMBuffer<float> open_x, PMBuffer<float> open_y, PMBuffer<float> open_z, int direction,
     int x, int y, int z, int n, int h)
 {
     if (direction == 0) return open_x[smoke_grid_face_index(0, x, y, z, n, h)];
@@ -642,13 +643,13 @@ float smoke_pressure_open(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_pressure_smooth(
-    uniform int n, uniform int h, uniform float spacing, uniform float* rhs,
-    uniform float* pressure, uniform float* next, uniform float* open_x,
-    uniform float* open_y, uniform float* open_z, uniform uint* converged)
+    uniform int n, uniform int h, uniform float spacing, uniform PMBuffer<float> rhs,
+    uniform PMBuffer<float> pressure, uniform PMBuffer<float> next, uniform PMBuffer<float> open_x,
+    uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z, uniform PMBuffer<uint> converged)
 {
     uint cell = pmThreadIndex();
     if (cell >= uint(n * h * n) ||
-        (converged != nullptr && *converged != 0u)) return;
+        (pmBufferPresent(converged) && *converged != 0u)) return;
     int x = int(cell % uint(n));
     int y = int(cell / uint(n) % uint(h));
     int z = int(cell / uint(n * h));
@@ -676,14 +677,14 @@ void smoke_grid_pressure_smooth(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_pressure_residual(
-    uniform int n, uniform int h, uniform float spacing, uniform float* rhs,
-    uniform float* pressure, uniform float* residual, uniform float* open_x,
-    uniform float* open_y, uniform float* open_z, uniform float* maximum,
-    uniform uint* converged)
+    uniform int n, uniform int h, uniform float spacing, uniform PMBuffer<float> rhs,
+    uniform PMBuffer<float> pressure, uniform PMBuffer<float> residual, uniform PMBuffer<float> open_x,
+    uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z, uniform PMBuffer<float> maximum,
+    uniform PMBuffer<uint> converged)
 {
     uint cell = pmThreadIndex();
     if (cell >= uint(n * h * n) ||
-        (converged != nullptr && *converged != 0u)) return;
+        (pmBufferPresent(converged) && *converged != 0u)) return;
     int x = int(cell % uint(n));
     int y = int(cell / uint(n) % uint(h));
     int z = int(cell / uint(n * h));
@@ -705,15 +706,15 @@ void smoke_grid_pressure_residual(
     float laplacian = (sum - diagonal * pressure[cell]) /
         (spacing * spacing);
     residual[cell] = rhs[cell] - laplacian;
-    if (maximum != nullptr)
-        pmAtomicMax(reinterpret<uint*>(maximum), asuint(abs(residual[cell])));
+    if (pmBufferPresent(maximum))
+        pmAtomicMaxPositiveFloat(maximum, abs(residual[cell]));
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_restrict_residual(
-    uniform float* fine, uniform int fine_n, uniform int fine_h,
-    uniform float* coarse, uniform int coarse_n, uniform int coarse_h)
+    uniform PMBuffer<float> fine, uniform int fine_n, uniform int fine_h,
+    uniform PMBuffer<float> coarse, uniform int coarse_n, uniform int coarse_h)
 {
     uint cell = pmThreadIndex();
     if (cell >= uint(coarse_n * coarse_h * coarse_n)) return;
@@ -737,7 +738,7 @@ void smoke_grid_restrict_residual(
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void smoke_grid_clear_scalar(uniform float* values, uniform uint count)
+void smoke_grid_clear_scalar(uniform PMBuffer<float> values, uniform uint count)
 {
     uint index = pmThreadIndex();
     if (index < count) values[index] = 0.0f;
@@ -746,8 +747,8 @@ void smoke_grid_clear_scalar(uniform float* values, uniform uint count)
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_restrict_open(
-    uniform int axis, uniform float* fine, uniform int fine_n,
-    uniform int fine_h, uniform float* coarse, uniform int coarse_n,
+    uniform int axis, uniform PMBuffer<float> fine, uniform int fine_n,
+    uniform int fine_h, uniform PMBuffer<float> coarse, uniform int coarse_n,
     uniform int coarse_h)
 {
     uint face = pmThreadIndex();
@@ -777,8 +778,8 @@ void smoke_grid_restrict_open(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_mark_domain_boundaries(
-    uniform int axis, uniform SmokeGridField grid, uniform float* open,
-    uniform float* wall, uniform SmokeOptions options)
+    uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> open,
+    uniform PMBuffer<float> wall, uniform SmokeOptions options)
 {
     uint face = pmThreadIndex();
     uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
@@ -803,8 +804,8 @@ void smoke_grid_mark_domain_boundaries(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_prolong_add(
-    uniform float* coarse, uniform int coarse_n, uniform int coarse_h,
-    uniform float* fine, uniform int fine_n, uniform int fine_h)
+    uniform PMBuffer<float> coarse, uniform int coarse_n, uniform int coarse_h,
+    uniform PMBuffer<float> fine, uniform int fine_n, uniform int fine_h)
 {
     uint cell = pmThreadIndex();
     if (cell >= uint(fine_n * fine_h * fine_n)) return;
@@ -836,26 +837,26 @@ void smoke_grid_prolong_add(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_compare_residual(
-    uniform float* rhs_max, uniform float* residual_max,
-    uniform float tolerance, uniform uint* converged)
+    uniform PMBuffer<float> rhs_max, uniform PMBuffer<float> residual_max,
+    uniform float tolerance, uniform PMBuffer<uint> converged)
 {
     if (pmThreadIndex() != 0u) return;
-    *converged = *residual_max <= tolerance * max(*rhs_max, 1.0e-5f) ? 1u : 0u;
+    converged[0] = *residual_max <= tolerance * max(*rhs_max, 1.0e-5f) ? 1u : 0u;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_reset_residual(
-    uniform float* residual_max, uniform uint* converged)
+    uniform PMBuffer<float> residual_max, uniform PMBuffer<uint> converged)
 {
-    if (pmThreadIndex() == 0u && *converged == 0u) *residual_max = 0.0f;
+    if (pmThreadIndex() == 0u && *converged == 0u) residual_max[0] = 0.0f;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_project_face(
-    uniform int axis, uniform SmokeGridField grid, uniform float* pressure,
-    uniform float* velocity, uniform float* open, uniform float* wall,
+    uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> pressure,
+    uniform PMBuffer<float> velocity, uniform PMBuffer<float> open, uniform PMBuffer<float> wall,
     uniform float dt)
 {
     uint face = pmThreadIndex();
@@ -899,10 +900,10 @@ void smoke_grid_project_face(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_trace(
-    uniform Vec3* positions, uniform Vec3* previous_positions,
-    uniform Vec3* velocities, uniform float* ages,
-    uniform float* thermal_lift, uniform float* number_densities,
-    uniform float* pressures, uniform Vec3* particle_vorticities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform PMBuffer<float> number_densities,
+    uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> particle_vorticities,
     uniform uint count, uniform SmokeOptions options,
     uniform SmokeGridField grid, uniform float dt, uniform Vec3 gravity)
 {
@@ -932,10 +933,10 @@ void smoke_grid_trace(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_soft_body_force(
-    uniform Vec3* surface, uniform uint* indices, uniform uint index_count,
-    uniform SoftBodySurfaceBinding* bindings,
-    uniform Vec3* node_velocity_snapshot, uniform Vec3* node_velocities,
-    uniform float* inverse_masses, uniform SmokeGridField grid,
+    uniform PMBuffer<Vec3> surface, uniform PMBuffer<uint> indices, uniform uint index_count,
+    uniform PMBuffer<SoftBodySurfaceBinding> bindings,
+    uniform PMBuffer<Vec3> node_velocity_snapshot, uniform PMBuffer<Vec3> node_velocities,
+    uniform PMBuffer<float> inverse_masses, uniform SmokeGridField grid,
     uniform float drag_coefficient, uniform float density_scale,
     uniform float kinematic_viscosity, uniform float les_coefficient,
     uniform float maximum_acceleration, uniform float dt)
@@ -995,9 +996,7 @@ void smoke_grid_soft_body_force(
             Vec3 deltaVelocity = clamp_length(multiply(force,
                 dt * inverse_masses[node] * weight / 3.0f),
                 maximum_acceleration * dt * weight / 3.0f);
-            pmAtomicAdd(&node_velocities[node].x, deltaVelocity.x);
-            pmAtomicAdd(&node_velocities[node].y, deltaVelocity.y);
-            pmAtomicAdd(&node_velocities[node].z, deltaVelocity.z);
+            pmAtomicAddVec3(node_velocities + node, deltaVelocity);
         }
     }
 }
@@ -1005,12 +1004,12 @@ void smoke_grid_soft_body_force(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_cloth_force(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform uint* indices,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> indices,
     uniform uint index_count, uniform SmokeGridField grid,
     uniform float drag_coefficient, uniform float density_scale,
     uniform float kinematic_viscosity, uniform float les_coefficient,
-    uniform Vec3* forces)
+    uniform PMBuffer<Vec3> forces)
 {
     uint triangle = pmThreadIndex();
     if (triangle >= index_count / 3u) return;
@@ -1058,17 +1057,15 @@ void smoke_grid_cloth_force(
     for (int corner = 0; corner < 3; ++corner)
     {
         uint vertex = corners[corner];
-        pmAtomicAdd(&forces[vertex].x, cornerForce.x);
-        pmAtomicAdd(&forces[vertex].y, cornerForce.y);
-        pmAtomicAdd(&forces[vertex].z, cornerForce.z);
+        pmAtomicAddVec3(forces + vertex, cornerForce);
     }
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_apply_cloth_force(
-    uniform Vec3* velocities, uniform float* inverse_masses,
-    uniform Vec3* forces, uniform uint count,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<Vec3> forces, uniform uint count,
     uniform float maximum_acceleration, uniform float dt)
 {
     uint vertex = pmThreadIndex();
@@ -1080,11 +1077,11 @@ void smoke_grid_apply_cloth_force(
 
 void smoke_grid_raster_triangle(
     Vec3 a, Vec3 b, Vec3 c, Vec3 va, Vec3 vb, Vec3 vc,
-    SmokeGridField grid, uint* solid,
-    float* open_x, float* open_y, float* open_z,
-    float* wall_x, float* wall_y, float* wall_z,
-    Vec3* normal_x, Vec3* normal_y, Vec3* normal_z,
-    uint* triangle_x, uint* triangle_y, uint* triangle_z,
+    SmokeGridField grid, PMBuffer<uint> solid,
+    PMBuffer<float> open_x, PMBuffer<float> open_y, PMBuffer<float> open_z,
+    PMBuffer<float> wall_x, PMBuffer<float> wall_y, PMBuffer<float> wall_z,
+    PMBuffer<Vec3> normal_x, PMBuffer<Vec3> normal_y, PMBuffer<Vec3> normal_z,
+    PMBuffer<uint> triangle_x, PMBuffer<uint> triangle_y, PMBuffer<uint> triangle_z,
     uint triangle_id, bool resolve_metadata)
 {
     float radius = 0.55f * grid.spacing;
@@ -1118,8 +1115,8 @@ void smoke_grid_raster_triangle(
                         point, a, b, c, weights);
                     if (length_squared(subtract(point, nearest)) <=
                         radius * radius)
-                        pmAtomicExchange(&solid[smoke_grid_index(
-                            x, y, z, n, h)], 1u);
+                        pmAtomicExchange(solid + smoke_grid_index(
+                            x, y, z, n, h), 1u);
                 }
     }
     for (int axis = 0; axis < 3; ++axis)
@@ -1157,17 +1154,16 @@ void smoke_grid_raster_triangle(
                     if (distance > radius) continue;
                     float aperture = clamp_scalar(distance / radius, 0.0f, 1.0f);
                     uint face = smoke_grid_face_index(axis, x, y, z, n, h);
-                    float* open = axis == 0 ? open_x :
+                    PMBuffer<float> open = axis == 0 ? open_x :
                         (axis == 1 ? open_y : open_z);
-                    float* wall = axis == 0 ? wall_x :
+                    PMBuffer<float> wall = axis == 0 ? wall_x :
                         (axis == 1 ? wall_y : wall_z);
-                    Vec3* faceNormal = axis == 0 ? normal_x :
+                    PMBuffer<Vec3> faceNormal = axis == 0 ? normal_x :
                         (axis == 1 ? normal_y : normal_z);
-                    uint* nearestTriangle = axis == 0 ? triangle_x :
+                    PMBuffer<uint> nearestTriangle = axis == 0 ? triangle_x :
                         (axis == 1 ? triangle_y : triangle_z);
                     if (!resolve_metadata)
-                        pmAtomicMin(reinterpret<uint*>(&open[face]),
-                            asuint(aperture));
+                        pmAtomicMinPositiveFloat(open + face, aperture);
                     else if (aperture <= open[face] + 1.0e-7f)
                     {
                         Vec3 velocity = add(multiply(va, weights.x),
@@ -1185,13 +1181,13 @@ void smoke_grid_raster_triangle(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_raster_rigid(
-    uniform TriangleMeshResource mesh, uniform RigidBodyState* states,
-    uniform uint body, uniform SmokeGridField grid, uniform uint* solid,
-    uniform float* open_x, uniform float* open_y, uniform float* open_z,
-    uniform float* wall_x, uniform float* wall_y, uniform float* wall_z,
-    uniform Vec3* normal_x, uniform Vec3* normal_y, uniform Vec3* normal_z,
-    uniform uint* triangle_x, uniform uint* triangle_y,
-    uniform uint* triangle_z, uniform bool resolve_metadata)
+    uniform TriangleMeshResource mesh, uniform PMBuffer<RigidBodyState> states,
+    uniform uint body, uniform SmokeGridField grid, uniform PMBuffer<uint> solid,
+    uniform PMBuffer<float> open_x, uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z,
+    uniform PMBuffer<float> wall_x, uniform PMBuffer<float> wall_y, uniform PMBuffer<float> wall_z,
+    uniform PMBuffer<Vec3> normal_x, uniform PMBuffer<Vec3> normal_y, uniform PMBuffer<Vec3> normal_z,
+    uniform PMBuffer<uint> triangle_x, uniform PMBuffer<uint> triangle_y,
+    uniform PMBuffer<uint> triangle_z, uniform bool resolve_metadata)
 {
     uint triangle = pmThreadIndex();
     if (triangle >= mesh.index_count / 3u) return;
@@ -1215,14 +1211,14 @@ void smoke_grid_raster_rigid(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_raster_deformable(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform uint* indices, uniform uint index_count,
-    uniform SmokeGridField grid, uniform uint* solid,
-    uniform float* open_x, uniform float* open_y, uniform float* open_z,
-    uniform float* wall_x, uniform float* wall_y, uniform float* wall_z,
-    uniform Vec3* normal_x, uniform Vec3* normal_y, uniform Vec3* normal_z,
-    uniform uint* triangle_x, uniform uint* triangle_y,
-    uniform uint* triangle_z, uniform bool resolve_metadata)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> indices, uniform uint index_count,
+    uniform SmokeGridField grid, uniform PMBuffer<uint> solid,
+    uniform PMBuffer<float> open_x, uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z,
+    uniform PMBuffer<float> wall_x, uniform PMBuffer<float> wall_y, uniform PMBuffer<float> wall_z,
+    uniform PMBuffer<Vec3> normal_x, uniform PMBuffer<Vec3> normal_y, uniform PMBuffer<Vec3> normal_z,
+    uniform PMBuffer<uint> triangle_x, uniform PMBuffer<uint> triangle_y,
+    uniform PMBuffer<uint> triangle_z, uniform bool resolve_metadata)
 {
     uint triangle = pmThreadIndex();
     if (triangle >= index_count / 3u) return;
@@ -1231,9 +1227,9 @@ void smoke_grid_raster_deformable(
     Vec3 zero = {};
     smoke_grid_raster_triangle(
         positions[ia], positions[ib], positions[ic],
-        velocities != nullptr ? velocities[ia] : zero,
-        velocities != nullptr ? velocities[ib] : zero,
-        velocities != nullptr ? velocities[ic] : zero,
+        pmBufferPresent(velocities) ? velocities[ia] : zero,
+        pmBufferPresent(velocities) ? velocities[ib] : zero,
+        pmBufferPresent(velocities) ? velocities[ic] : zero,
         grid, solid, open_x, open_y, open_z, wall_x, wall_y, wall_z,
         normal_x, normal_y, normal_z, triangle_x, triangle_y, triangle_z,
         triangle, resolve_metadata);
@@ -1242,14 +1238,14 @@ void smoke_grid_raster_deformable(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_grid_raster_soft(
-    uniform Vec3* positions, uniform SoftBodySurfaceBinding* bindings,
-    uniform Vec3* node_velocities, uniform uint* indices,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<SoftBodySurfaceBinding> bindings,
+    uniform PMBuffer<Vec3> node_velocities, uniform PMBuffer<uint> indices,
     uniform uint index_count, uniform SmokeGridField grid,
-    uniform uint* solid, uniform float* open_x, uniform float* open_y,
-    uniform float* open_z, uniform float* wall_x, uniform float* wall_y,
-    uniform float* wall_z, uniform Vec3* normal_x, uniform Vec3* normal_y,
-    uniform Vec3* normal_z, uniform uint* triangle_x,
-    uniform uint* triangle_y, uniform uint* triangle_z,
+    uniform PMBuffer<uint> solid, uniform PMBuffer<float> open_x, uniform PMBuffer<float> open_y,
+    uniform PMBuffer<float> open_z, uniform PMBuffer<float> wall_x, uniform PMBuffer<float> wall_y,
+    uniform PMBuffer<float> wall_z, uniform PMBuffer<Vec3> normal_x, uniform PMBuffer<Vec3> normal_y,
+    uniform PMBuffer<Vec3> normal_z, uniform PMBuffer<uint> triangle_x,
+    uniform PMBuffer<uint> triangle_y, uniform PMBuffer<uint> triangle_z,
     uniform bool resolve_metadata)
 {
     uint triangle = pmThreadIndex();
@@ -1270,7 +1266,7 @@ void smoke_grid_raster_soft(
 [numthreads(128, 1, 1)]
 void smoke_grid_rigid_force(
     uniform TriangleMeshResource mesh, uniform uint body,
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform SmokeGridField grid, uniform float air_density,
     uniform float drag_coefficient, uniform float density_scale,
     uniform float kinematic_viscosity, uniform float les_coefficient,

@@ -23,7 +23,7 @@ kernels or direct launches in the runtime.
 - Release `parallel-mater` library build: pass.
 - Shared Slang CUDA source generation: pass.
 - Shared Slang direct PTX generation: pass.
-- AVBD cross-target bundle and reflection validation: pass.
+- AVBD CUDA/MSL/HLSL/WGSL/DXIL bundle and reflection validation: pass.
 - `parallel-mater-gallery` link through the command API: pass.
 - API declaration/runtime coverage generation: pass.
 - CPU contract, catalog, input, conformance registry/comparator, contact-friction,
@@ -65,4 +65,4 @@ command API.
 | Metal | Unavailable; no qualified Slang device adapter |
 | DirectX 12 | Core loader driver and AVBD DXIL schedule qualified; physics features intentionally unavailable |
 | Vulkan | Interoperability declarations only; physics unavailable |
-| WebGPU | Unavailable |
+| WebGPU | AVBD numerical core compiles to WGSL; full schedule and driver unavailable |

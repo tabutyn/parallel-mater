@@ -2,6 +2,8 @@
 // Shared physics resource and value layouts.
 // Keep aggregate fields scalar so their layouts match host-visible API records.
 
+import graphics_resources;
+
 #ifndef PM_TARGET_D3D12
 #define PM_TARGET_D3D12 0
 #endif
@@ -177,8 +179,8 @@ struct CollisionPlane
 
 struct TriangleMeshResource
 {
-    Vec3* vertices;
-    uint* indices;
+    PMBuffer<Vec3> vertices;
+    PMBuffer<uint> indices;
     uint vertex_count;
     uint index_count;
     uint generation;
@@ -188,13 +190,13 @@ struct TriangleMeshResource
     Vec3 bounding_center;
     float bounding_radius;
     Vec3 unit_inertia;
-    BvhNode* bvh_nodes;
+    PMBuffer<BvhNode> bvh_nodes;
     uint bvh_node_count;
-    uint* bvh_leaves;
+    PMBuffer<uint> bvh_leaves;
     uint bvh_leaf_count;
-    CollisionPlane* solid_planes;
+    PMBuffer<CollisionPlane> solid_planes;
     uint solid_unique_plane_count;
-    Vec3* shell_normals;
+    PMBuffer<Vec3> shell_normals;
 };
 
 struct WorldAabb
@@ -274,12 +276,12 @@ struct SmokeGridField
     uint height;
     Vec3 minimum;
     float spacing;
-    Vec3* velocity;
-    float* density;
-    float* pressure;
-    float* face[3];
-    Vec3* vorticity;
-    float* strain;
+    PMBuffer<Vec3> velocity;
+    PMBuffer<float> density;
+    PMBuffer<float> pressure;
+    PMBuffer<float> face[3];
+    PMBuffer<Vec3> vorticity;
+    PMBuffer<float> strain;
 };
 
 struct FluidClothCouplingOptions
@@ -314,7 +316,7 @@ struct FluidSmokeCouplingOptions
     float steam_rise_speed;
 };
 
-enum CrossingDirection : uint8_t
+enum CrossingDirection : PM_STORAGE_UINT8
 {
     along_normal,
     against_normal,
@@ -388,7 +390,7 @@ struct PaintFieldId
 
 struct DeviceVec2Span
 {
-    Vec2* data;
+    PMBuffer<Vec2> data;
     uint64_t size;
 };
 
@@ -415,8 +417,8 @@ struct PaintRuleOptions
 struct PaintFieldResource
 {
     PaintFieldOptions options;
-    Vec2* uvs;
-    uint* pixels;
+    PMBuffer<Vec2> uvs;
+    PMBuffer<uint> pixels;
     uint generation;
     bool alive;
 };
@@ -489,7 +491,7 @@ struct RopeAttachment
 
 struct HostVec3Span
 {
-    Vec3* data;
+    PMBuffer<Vec3> data;
     uint64_t size;
 };
 
@@ -514,28 +516,28 @@ struct RopeData
 {
     RopeOptions options;
     uint count;
-    Vec3* positions;
-    Vec3* previous;
-    Vec3* velocities;
-    Vec3* constraint_forces;
-    Vec3* contact_forces;
-    Vec3* fluid_contact_forces;
-    Vec3* soft_body_contact_forces;
-    Vec3* soft_anchor_positions;
-    Vec3* soft_anchor_velocities;
-    Vec3* soft_anchor_impulses;
-    float* soft_anchor_inverse_masses;
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> previous;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<Vec3> constraint_forces;
+    PMBuffer<Vec3> contact_forces;
+    PMBuffer<Vec3> fluid_contact_forces;
+    PMBuffer<Vec3> soft_body_contact_forces;
+    PMBuffer<Vec3> soft_anchor_positions;
+    PMBuffer<Vec3> soft_anchor_velocities;
+    PMBuffer<Vec3> soft_anchor_impulses;
+    PMBuffer<float> soft_anchor_inverse_masses;
     bool soft_first;
     bool soft_last;
-    Vec3* directions;
-    Vec3* scratch;
-    Vec3* body_translation;
-    Vec3* body_rotation;
-    Vec3* normals;
-    Vec3* normals2;
-    float* rest;
-    float* lambda;
-    uint* solid_hint;
+    PMBuffer<Vec3> directions;
+    PMBuffer<Vec3> scratch;
+    PMBuffer<Vec3> body_translation;
+    PMBuffer<Vec3> body_rotation;
+    PMBuffer<Vec3> normals;
+    PMBuffer<Vec3> normals2;
+    PMBuffer<float> rest;
+    PMBuffer<float> lambda;
+    PMBuffer<uint> solid_hint;
     uint body_capacity;
     uint first_attachment_contact_skip;
     uint last_attachment_contact_skip;
@@ -543,18 +545,18 @@ struct RopeData
 
 struct RopeSoftTarget
 {
-    Vec3* surface;
-    Vec3* previous_surface;
-    Vec3* velocities;
-    Vec3* bounds;
-    BvhNode* tree;
-    uint* order;
-    uint* indices;
-    SoftBodySurfaceBinding* bindings;
-    float* inverse_masses;
-    Vec3* node_impulses;
-    uint* contact_count;
-    float* maximum_penetration;
+    PMBuffer<Vec3> surface;
+    PMBuffer<Vec3> previous_surface;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<Vec3> bounds;
+    PMBuffer<BvhNode> tree;
+    PMBuffer<uint> order;
+    PMBuffer<uint> indices;
+    PMBuffer<SoftBodySurfaceBinding> bindings;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<Vec3> node_impulses;
+    PMBuffer<uint> contact_count;
+    PMBuffer<float> maximum_penetration;
     uint triangle_count;
     uint surface_vertex_count;
     float distance;

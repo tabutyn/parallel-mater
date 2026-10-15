@@ -5,19 +5,20 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 groupshared float ropeSoftSums[256];
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void rope_soft_sample_anchor(
-    uniform Vec3* soft_anchor_positions,
-    uniform Vec3* soft_anchor_velocities,
-    uniform Vec3* soft_anchor_impulses,
-    uniform float* soft_anchor_inverse_masses, uniform uint end,
-    uniform Vec3* surface,
-    uniform Vec3* velocities, uniform uint* indices,
-    uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
+    uniform PMBuffer<Vec3> soft_anchor_positions,
+    uniform PMBuffer<Vec3> soft_anchor_velocities,
+    uniform PMBuffer<Vec3> soft_anchor_impulses,
+    uniform PMBuffer<float> soft_anchor_inverse_masses, uniform uint end,
+    uniform PMBuffer<Vec3> surface,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform uint triangle,
     uniform Vec3 weights, uniform Vec3 offset)
 {
     if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
@@ -47,13 +48,13 @@ void rope_soft_sample_anchor(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void rope_soft_scatter_anchor(
-    uniform Vec3* soft_anchor_positions,
-    uniform Vec3* soft_anchor_impulses, uniform uint end,
-    uniform Vec3* node_positions, uniform uint node_count,
+    uniform PMBuffer<Vec3> soft_anchor_positions,
+    uniform PMBuffer<Vec3> soft_anchor_impulses, uniform uint end,
+    uniform PMBuffer<Vec3> node_positions, uniform uint node_count,
     uniform float support_radius, uniform float contact_support_radius,
-    uniform uint* contact_count, uniform uint* indices,
-    uniform SoftBodySurfaceBinding* bindings, uniform uint triangle,
-    uniform Vec3 weights, uniform Vec3* node_impulses)
+    uniform PMBuffer<uint> contact_count, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform uint triangle,
+    uniform Vec3 weights, uniform PMBuffer<Vec3> node_impulses)
 {
     if (pmBlockIndex().x != 0u) return;
     uint thread = pmGroupThreadIndex().x;
@@ -118,9 +119,9 @@ void rope_soft_scatter_anchor(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void rope_soft_apply(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* forces, uniform float* inverse_masses,
-    uniform Vec3* impulses, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<Vec3> impulses, uniform uint count,
     uniform float maximum_acceleration, uniform float maximum_speed,
     uniform float dt, uniform float frame_inverse_dt)
 {

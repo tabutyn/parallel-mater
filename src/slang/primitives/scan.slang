@@ -2,12 +2,13 @@
 // Shared small-array scans used by the simulation scheduler.
 
 import device_intrinsics;
+import graphics_resources;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 public void pm_exclusive_scan_u32(
-    uniform uint* input, uniform uint count, uniform uint* output,
-    uniform uint* total)
+    uniform PMBuffer<uint> input, uniform uint count, uniform PMBuffer<uint> output,
+    uniform PMBuffer<uint> total)
 {
     if (pmThreadIndex() != 0u) return;
     uint sum = 0u;
@@ -16,5 +17,5 @@ public void pm_exclusive_scan_u32(
         output[index] = sum;
         sum += input[index];
     }
-    *total = sum;
+    total[0] = sum;
 }

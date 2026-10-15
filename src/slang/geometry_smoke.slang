@@ -8,6 +8,7 @@ import device_intrinsics;
 import fluid;
 import geometry_fluid;
 import smoke_grid;
+import graphics_resources;
 
 groupshared Vec3 smoke_impulse_linear[128];
 groupshared Vec3 smoke_impulse_angular[128];
@@ -33,8 +34,8 @@ public struct SmokeFlowSample
 };
 
 public SmokeFlowSample smoke_sample_flow(
-    Vec3 point, Vec3* positions, Vec3* velocities,
-    uint64_t* keys, uint* indices, SmokeOptions options)
+    Vec3 point, PMBuffer<Vec3> positions, PMBuffer<Vec3> velocities,
+    PMBuffer<uint64_t> keys, PMBuffer<uint> indices, SmokeOptions options)
 {
     SmokeFlowSample sample = {};
     float support = 3.0f * options.particle_radius;
@@ -69,8 +70,8 @@ public SmokeFlowSample smoke_sample_flow(
 }
 
 public Vec3 smoke_wind_delta(
-    Vec3 position, Vec3 velocity, Vec3* smoke_positions,
-    Vec3* smoke_velocities, uint64_t* keys, uint* indices,
+    Vec3 position, Vec3 velocity, PMBuffer<Vec3> smoke_positions,
+    PMBuffer<Vec3> smoke_velocities, PMBuffer<uint64_t> keys, PMBuffer<uint> indices,
     SmokeOptions smoke, SmokeGridField grid, float drag,
     float maximum_acceleration, float dt)
 {
@@ -97,9 +98,9 @@ public Vec3 smoke_wind_delta(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_emit_cells(
-    uniform Vec3* positions, uniform float* ages, uniform uint count,
-    uniform SmokeOptions options, uniform uint64_t* keys,
-    uniform uint* indices)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
+    uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
+    uniform PMBuffer<uint> indices)
 {
     uint particle = pmThreadIndex();
     if (particle >= options.capacity) return;
@@ -119,10 +120,10 @@ void smoke_emit_cells(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_density_pressure(
-    uniform Vec3* positions, uniform float* ages, uniform uint count,
-    uniform SmokeOptions options, uniform uint64_t* keys,
-    uniform uint* indices, uniform float* densities,
-    uniform float* pressures, uniform float dt)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
+    uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
+    uniform PMBuffer<uint> indices, uniform PMBuffer<float> densities,
+    uniform PMBuffer<float> pressures, uniform float dt)
 {
     uint particle = pmThreadIndex();
     if (particle >= count) return;
@@ -144,12 +145,12 @@ void smoke_density_pressure(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_pair_forces(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* ages, uniform uint count, uniform SmokeOptions options,
-    uniform uint64_t* keys, uniform uint* indices,
-    uniform float* densities, uniform float* pressures,
-    uniform Vec3* vorticities, uniform float* vorticity_magnitudes,
-    uniform Vec3* accelerations)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> ages, uniform uint count, uniform SmokeOptions options,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<float> densities, uniform PMBuffer<float> pressures,
+    uniform PMBuffer<Vec3> vorticities, uniform PMBuffer<float> vorticity_magnitudes,
+    uniform PMBuffer<Vec3> accelerations)
 {
     uint particle = pmThreadIndex();
     if (particle >= count) return;
@@ -211,11 +212,11 @@ void smoke_pair_forces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_compute_vorticity(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* ages, uniform uint count, uniform SmokeOptions options,
-    uniform uint64_t* keys, uniform uint* indices,
-    uniform float* densities, uniform Vec3* vorticities,
-    uniform float* magnitudes)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> ages, uniform uint count, uniform SmokeOptions options,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<float> densities, uniform PMBuffer<Vec3> vorticities,
+    uniform PMBuffer<float> magnitudes)
 {
     uint particle = pmThreadIndex();
     if (particle >= count) return;
@@ -262,10 +263,10 @@ void smoke_compute_vorticity(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_advect(
-    uniform Vec3* positions, uniform Vec3* previous_positions,
-    uniform Vec3* velocities, uniform float* ages,
-    uniform float* thermal_lift, uniform uint count,
-    uniform SmokeOptions options, uniform Vec3* accelerations,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform uint count,
+    uniform SmokeOptions options, uniform PMBuffer<Vec3> accelerations,
     uniform float dt, uniform Vec3 gravity)
 {
     uint index = pmThreadIndex();
@@ -290,10 +291,10 @@ void smoke_advect(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_emit(
-    uniform Vec3* positions, uniform Vec3* previous_positions,
-    uniform Vec3* velocities, uniform float* ages,
-    uniform float* thermal_lift, uniform float* densities,
-    uniform float* pressures, uniform Vec3* vorticities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform PMBuffer<float> densities,
+    uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> vorticities,
     uniform SmokeOptions options, uniform uint first_slot,
     uniform uint count, uniform uint64_t first_serial)
 {
@@ -318,8 +319,8 @@ void smoke_emit(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void smoke_deformable_bounds(
-    uniform Vec3* surface, uniform uint count,
-    uniform Vec3* minimum, uniform Vec3* maximum)
+    uniform PMBuffer<Vec3> surface, uniform uint count,
+    uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum)
 {
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     Vec3 low = surface[0];
@@ -329,22 +330,22 @@ void smoke_deformable_bounds(
         low = component_min(low, surface[index]);
         high = component_max(high, surface[index]);
     }
-    *minimum = low;
-    *maximum = high;
+    minimum[0] = low;
+    maximum[0] = high;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void smoke_rigid_contact(
-    uniform Vec3* positions, uniform Vec3* previous_positions,
-    uniform Vec3* velocities, uniform float* ages, uniform float* pressures,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform PMBuffer<float> pressures,
     uniform uint count, uniform float lifetime,
-    uniform TriangleMeshResource mesh, uniform RigidBodyState* states,
-    uniform RigidBodyState* previous_states, uniform uint body,
+    uniform TriangleMeshResource mesh, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform uint body,
     uniform float clearance, uniform float particle_mass,
     uniform float wall_drag, uniform float pressure_stiffness,
     uniform float dt, uniform float maximum_speed,
-    uniform SmokeGridField grid, uniform FluidBodyImpulse* impulses)
+    uniform SmokeGridField grid, uniform PMBuffer<FluidBodyImpulse> impulses)
 {
     uint particle = pmThreadIndex();
     if (particle >= count) return;
@@ -477,9 +478,9 @@ void smoke_rigid_contact(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void smoke_apply_rigid_impulses(
-    uniform FluidBodyImpulse* impulses, uniform uint count,
-    uniform uint body, uniform BodyParameters* parameters,
-    uniform RigidBodyState* states)
+    uniform PMBuffer<FluidBodyImpulse> impulses, uniform uint count,
+    uniform uint body, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states)
 {
     if (pmBlockIndex().x != 0u ||
         parameters[body].motion != MotionType.dynamic) return;

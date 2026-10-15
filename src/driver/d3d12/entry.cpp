@@ -9,7 +9,7 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
-#include "parallel_mater_avbd_dxil.hpp"
+#include "slang_command.hpp"
 
 #include <algorithm>
 #include <array>
@@ -51,6 +51,7 @@ struct PmDevice_T {
     PmPhysicalDevice_T *physical{};
     ComPtr<ID3D12Device> native;
     ComPtr<ID3D12CommandQueue> command_queue;
+    parallel_mater::d3d12::SlangCommandPath slang;
     PmQueue_T queue{};
     std::mutex idle_mutex;
     std::mutex pending_mutex;
@@ -74,6 +75,8 @@ struct PmBuffer_T {
     std::uint32_t queue_family{};
     PmDeviceMemory memory{};
     PmDeviceSize offset{};
+    std::uint32_t descriptor_index{
+        parallel_mater::d3d12::invalid_descriptor};
 };
 
 enum class CommandState : std::uint8_t {
@@ -116,9 +119,6 @@ constexpr std::uint32_t k_memory_default = 0U;
 constexpr std::uint32_t k_memory_upload = 1U;
 constexpr std::uint32_t k_memory_readback = 2U;
 constexpr std::uint32_t k_memory_type_count = 3U;
-constexpr std::array<std::uint32_t, 11U> k_avbd_strides{
-    64U, 52U, 52U, 284U, 4U, 4U, 1852U, 8U, 296U, 264U, 16U};
-
 template <typename T, typename... Args>
 T *make(Args &&...args) noexcept {
     return new (std::nothrow) T(std::forward<Args>(args)...);
@@ -273,80 +273,40 @@ PmResult wait_idle(PmDevice device) noexcept {
     return waited;
 }
 
-bool supports_avbd_dxil(ID3D12Device *device) noexcept {
+bool supports_slang_dxil(ID3D12Device *device) noexcept {
     D3D12_FEATURE_DATA_SHADER_MODEL model{D3D_SHADER_MODEL_6_6};
+    D3D12_FEATURE_DATA_ROOT_SIGNATURE root{
+        D3D_ROOT_SIGNATURE_VERSION_1_1};
     return SUCCEEDED(device->CheckFeatureSupport(
-        D3D12_FEATURE_SHADER_MODEL, &model, sizeof(model))) &&
-        model.HighestShaderModel >= D3D_SHADER_MODEL_6_6;
+               D3D12_FEATURE_SHADER_MODEL, &model, sizeof(model))) &&
+        model.HighestShaderModel >= D3D_SHADER_MODEL_6_6 &&
+        SUCCEEDED(device->CheckFeatureSupport(
+            D3D12_FEATURE_ROOT_SIGNATURE, &root, sizeof(root))) &&
+        root.HighestVersion >= D3D_ROOT_SIGNATURE_VERSION_1_1;
 }
 
-PmResult qualify_avbd_schedule(PmDevice device) noexcept {
-    D3D12_DESCRIPTOR_RANGE range{};
-    range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-    range.NumDescriptors = static_cast<UINT>(k_avbd_strides.size());
-    range.BaseShaderRegister = 0U;
-    range.RegisterSpace = 0U;
-    range.OffsetInDescriptorsFromTableStart = 0U;
+struct ClearRigidInputsConstants {
+    parallel_mater::d3d12::GraphicsBufferAddress accumulators;
+    std::uint32_t accumulator_padding{};
+    parallel_mater::d3d12::GraphicsBufferAddress targets;
+    std::uint32_t count{};
+};
+static_assert(sizeof(ClearRigidInputsConstants) == 32U);
+static_assert(offsetof(ClearRigidInputsConstants, targets) == 16U);
+static_assert(offsetof(ClearRigidInputsConstants, count) == 28U);
 
-    std::array<D3D12_ROOT_PARAMETER, 3U> parameters{};
-    parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    parameters[0].DescriptorTable.NumDescriptorRanges = 1U;
-    parameters[0].DescriptorTable.pDescriptorRanges = &range;
-    parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-    parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    parameters[1].Descriptor.ShaderRegister = 0U;
-    parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-    parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    parameters[2].Descriptor.ShaderRegister = 1U;
-    parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+PmResult qualify_slang_command_path(PmDevice device) noexcept {
+    using parallel_mater::d3d12::DispatchConstants;
+    using parallel_mater::d3d12::invalid_descriptor;
 
-    D3D12_ROOT_SIGNATURE_DESC root_description{};
-    root_description.NumParameters = static_cast<UINT>(parameters.size());
-    root_description.pParameters = parameters.data();
+    if (device->slang.kernel_count() == 0U ||
+        !device->slang.contains("geometry", "pm_clear_rigid_inputs") ||
+        !device->slang.contains("cloth", "cloth_update_surface") ||
+        !device->slang.contains(
+            "geometry_constraints", "solve_avbd_kernel"))
+        return PM_ERROR_FEATURE_NOT_PRESENT;
 
-    ComPtr<ID3DBlob> signature_blob;
-    ComPtr<ID3DBlob> signature_error;
-    HRESULT result = D3D12SerializeRootSignature(
-        &root_description, D3D_ROOT_SIGNATURE_VERSION_1,
-        &signature_blob, &signature_error);
-    if (FAILED(result)) return result_from_hresult(result);
-
-    ComPtr<ID3D12RootSignature> root;
-    result = device->native->CreateRootSignature(
-        0U, signature_blob->GetBufferPointer(), signature_blob->GetBufferSize(),
-        IID_PPV_ARGS(&root));
-    if (FAILED(result)) return result_from_hresult(result);
-
-    const auto make_pipeline = [&](const std::uint8_t *code,
-                                   std::size_t size,
-                                   ComPtr<ID3D12PipelineState> &output) {
-        D3D12_COMPUTE_PIPELINE_STATE_DESC description{};
-        description.pRootSignature = root.Get();
-        description.CS = {code, size};
-        return device->native->CreateComputePipelineState(
-            &description, IID_PPV_ARGS(&output));
-    };
-    ComPtr<ID3D12PipelineState> prepare;
-    ComPtr<ID3D12PipelineState> solve;
-    result = make_pipeline(parallel_mater::d3d12::generated::avbd_prepare,
-                           parallel_mater::d3d12::generated::avbd_prepare_size,
-                           prepare);
-    if (FAILED(result)) return result_from_hresult(result);
-    result = make_pipeline(parallel_mater::d3d12::generated::avbd_solve,
-                           parallel_mater::d3d12::generated::avbd_solve_size,
-                           solve);
-    if (FAILED(result)) return result_from_hresult(result);
-
-    D3D12_DESCRIPTOR_HEAP_DESC heap_description{};
-    heap_description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heap_description.NumDescriptors = static_cast<UINT>(k_avbd_strides.size());
-    heap_description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    ComPtr<ID3D12DescriptorHeap> descriptors;
-    result = device->native->CreateDescriptorHeap(
-        &heap_description, IID_PPV_ARGS(&descriptors));
-    if (FAILED(result)) return result_from_hresult(result);
-
-    constexpr std::uint64_t storage_size = 4096U;
+    constexpr std::uint64_t storage_size = 512U;
     const D3D12_HEAP_PROPERTIES default_heap =
         heap_properties(D3D12_HEAP_TYPE_DEFAULT);
     const D3D12_HEAP_PROPERTIES upload_heap =
@@ -355,81 +315,65 @@ PmResult qualify_avbd_schedule(PmDevice device) noexcept {
         heap_properties(D3D12_HEAP_TYPE_READBACK);
     const D3D12_RESOURCE_DESC storage_description = buffer_description(
         storage_size, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    std::array<ComPtr<ID3D12Resource>, 11U> storage;
-    for (auto &resource : storage) {
-        result = device->native->CreateCommittedResource(
-            &default_heap, D3D12_HEAP_FLAG_NONE, &storage_description,
-            D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-            IID_PPV_ARGS(&resource));
-        if (FAILED(result)) return result_from_hresult(result);
-    }
+    const D3D12_RESOURCE_DESC staging_description = buffer_description(
+        storage_size, D3D12_RESOURCE_FLAG_NONE);
 
-    const D3D12_RESOURCE_DESC upload_description = buffer_description(
-        storage_size * storage.size(), D3D12_RESOURCE_FLAG_NONE);
-    ComPtr<ID3D12Resource> zero_upload;
-    result = device->native->CreateCommittedResource(
-        &upload_heap, D3D12_HEAP_FLAG_NONE, &upload_description,
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-        IID_PPV_ARGS(&zero_upload));
-    if (FAILED(result)) return result_from_hresult(result);
-    void *zero_data = nullptr;
-    D3D12_RANGE no_read{0U, 0U};
-    result = zero_upload->Map(0U, &no_read, &zero_data);
-    if (FAILED(result)) return result_from_hresult(result);
-    std::memset(zero_data, 0, static_cast<std::size_t>(upload_description.Width));
-    zero_upload->Unmap(0U, nullptr);
-
-    const D3D12_RESOURCE_DESC constants_description = buffer_description(
-        768U, D3D12_RESOURCE_FLAG_NONE);
+    ComPtr<ID3D12Resource> storage;
+    ComPtr<ID3D12Resource> upload;
+    ComPtr<ID3D12Resource> readback;
     ComPtr<ID3D12Resource> constants;
-    result = device->native->CreateCommittedResource(
-        &upload_heap, D3D12_HEAP_FLAG_NONE, &constants_description,
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-        IID_PPV_ARGS(&constants));
+    HRESULT result = device->native->CreateCommittedResource(
+        &default_heap, D3D12_HEAP_FLAG_NONE, &storage_description,
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&storage));
     if (FAILED(result)) return result_from_hresult(result);
+    result = device->native->CreateCommittedResource(
+        &upload_heap, D3D12_HEAP_FLAG_NONE, &staging_description,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&upload));
+    if (FAILED(result)) return result_from_hresult(result);
+    result = device->native->CreateCommittedResource(
+        &readback_heap, D3D12_HEAP_FLAG_NONE, &staging_description,
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&readback));
+    if (FAILED(result)) return result_from_hresult(result);
+    result = device->native->CreateCommittedResource(
+        &upload_heap, D3D12_HEAP_FLAG_NONE, &staging_description,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constants));
+    if (FAILED(result)) return result_from_hresult(result);
+
+    D3D12_RANGE no_read{0U, 0U};
+    void *mapped = nullptr;
+    result = upload->Map(0U, &no_read, &mapped);
+    if (FAILED(result)) return result_from_hresult(result);
+    std::memset(mapped, 0x7f, storage_size);
+    upload->Unmap(0U, nullptr);
+
+    struct DescriptorLease {
+        parallel_mater::d3d12::SlangCommandPath *path{};
+        std::uint32_t value{invalid_descriptor};
+        ~DescriptorLease() {
+            if (path != nullptr) path->release_descriptor(value);
+        }
+    };
+    DescriptorLease accumulators{&device->slang};
+    DescriptorLease targets{&device->slang};
+    result = device->slang.create_raw_buffer_view(
+        storage.Get(), 0U, 48U, &accumulators.value);
+    if (FAILED(result)) return result_from_hresult(result);
+    result = device->slang.create_raw_buffer_view(
+        storage.Get(), 256U, 56U, &targets.value);
+    if (FAILED(result)) return result_from_hresult(result);
+
     std::byte *constant_data = nullptr;
     result = constants->Map(
         0U, &no_read, reinterpret_cast<void **>(&constant_data));
     if (FAILED(result)) return result_from_hresult(result);
-    std::memset(constant_data, 0, 768U);
-    const float timestep = 1.0F / 60.0F;
-    const std::uint32_t base_iterations = 3U;
-    const std::uint32_t grid_blocks = 1U;
-    std::memcpy(constant_data + 8U, &timestep, sizeof(timestep));
-    std::memcpy(constant_data + 28U, &base_iterations,
-                sizeof(base_iterations));
-    std::memcpy(constant_data + 36U, &grid_blocks, sizeof(grid_blocks));
-    const std::array<std::uint32_t, 4U> prepare_dispatch{1U, 1U, 1U, 128U};
-    const std::array<std::uint32_t, 4U> solve_dispatch{1U, 1U, 1U, 32U};
-    std::memcpy(constant_data + 256U, prepare_dispatch.data(),
-                sizeof(prepare_dispatch));
-    std::memcpy(constant_data + 512U, solve_dispatch.data(),
-                sizeof(solve_dispatch));
+    std::memset(constant_data, 0, storage_size);
+    const DispatchConstants dispatch{1U, 1U, 1U, 256U};
+    const ClearRigidInputsConstants entry{
+        {accumulators.value, 0U, 1U}, 0U,
+        {targets.value, 0U, 1U}, 1U};
+    std::memcpy(constant_data, &dispatch, sizeof(dispatch));
+    std::memcpy(constant_data + 256U, &entry, sizeof(entry));
     constants->Unmap(0U, nullptr);
-
-    const D3D12_RESOURCE_DESC readback_description = buffer_description(
-        storage_size, D3D12_RESOURCE_FLAG_NONE);
-    ComPtr<ID3D12Resource> readback;
-    result = device->native->CreateCommittedResource(
-        &readback_heap, D3D12_HEAP_FLAG_NONE, &readback_description,
-        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&readback));
-    if (FAILED(result)) return result_from_hresult(result);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE descriptor =
-        descriptors->GetCPUDescriptorHandleForHeapStart();
-    const UINT increment = device->native->GetDescriptorHandleIncrementSize(
-        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    for (std::size_t index = 0U; index < storage.size(); ++index) {
-        D3D12_UNORDERED_ACCESS_VIEW_DESC view{};
-        view.Format = DXGI_FORMAT_UNKNOWN;
-        view.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-        view.Buffer.NumElements =
-            static_cast<UINT>(storage_size / k_avbd_strides[index]);
-        view.Buffer.StructureByteStride = k_avbd_strides[index];
-        device->native->CreateUnorderedAccessView(
-            storage[index].Get(), nullptr, &view, descriptor);
-        descriptor.ptr += increment;
-    }
 
     ComPtr<ID3D12CommandAllocator> allocator;
     result = device->native->CreateCommandAllocator(
@@ -441,47 +385,41 @@ PmResult qualify_avbd_schedule(PmDevice device) noexcept {
         IID_PPV_ARGS(&list));
     if (FAILED(result)) return result_from_hresult(result);
 
-    std::array<D3D12_RESOURCE_BARRIER, 11U> to_uav{};
-    for (std::size_t index = 0U; index < storage.size(); ++index) {
-        list->CopyBufferRegion(storage[index].Get(), 0U, zero_upload.Get(),
-                               index * storage_size, storage_size);
-        auto &barrier = to_uav[index];
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = storage[index].Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    }
-    list->ResourceBarrier(static_cast<UINT>(to_uav.size()), to_uav.data());
-    ID3D12DescriptorHeap *heaps[]{descriptors.Get()};
-    list->SetDescriptorHeaps(1U, heaps);
-    list->SetComputeRootSignature(root.Get());
-    list->SetComputeRootDescriptorTable(
-        0U, descriptors->GetGPUDescriptorHandleForHeapStart());
-    list->SetComputeRootConstantBufferView(
-        1U, constants->GetGPUVirtualAddress());
-    list->SetPipelineState(prepare.Get());
-    list->SetComputeRootConstantBufferView(
-        2U, constants->GetGPUVirtualAddress() + 256U);
-    list->Dispatch(1U, 1U, 1U);
-    D3D12_RESOURCE_BARRIER uav{};
-    uav.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-    list->ResourceBarrier(1U, &uav);
-    list->SetPipelineState(solve.Get());
-    list->SetComputeRootConstantBufferView(
-        2U, constants->GetGPUVirtualAddress() + 512U);
-    list->Dispatch(1U, 1U, 1U);
-    D3D12_RESOURCE_BARRIER schedule_copy{};
-    schedule_copy.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    schedule_copy.Transition.pResource = storage[9U].Get();
-    schedule_copy.Transition.Subresource =
+    list->CopyBufferRegion(
+        storage.Get(), 0U, upload.Get(), 0U, storage_size);
+    D3D12_RESOURCE_BARRIER to_uav{};
+    to_uav.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    to_uav.Transition.pResource = storage.Get();
+    to_uav.Transition.Subresource =
         D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    schedule_copy.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    schedule_copy.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    list->ResourceBarrier(1U, &schedule_copy);
-    list->CopyBufferRegion(readback.Get(), 0U, storage[9U].Get(), 0U, 264U);
+    to_uav.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    to_uav.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    list->ResourceBarrier(1U, &to_uav);
+
+    result = device->slang.record_dispatch(
+        list.Get(), "geometry", "pm_clear_rigid_inputs",
+        constants->GetGPUVirtualAddress(),
+        constants->GetGPUVirtualAddress() + 256U, 1U);
+    if (FAILED(result)) return result_from_hresult(result);
+
+    D3D12_RESOURCE_BARRIER visibility{};
+    visibility.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    visibility.UAV.pResource = storage.Get();
+    list->ResourceBarrier(1U, &visibility);
+    D3D12_RESOURCE_BARRIER to_copy{};
+    to_copy.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    to_copy.Transition.pResource = storage.Get();
+    to_copy.Transition.Subresource =
+        D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    to_copy.Transition.StateBefore =
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    to_copy.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1U, &to_copy);
+    list->CopyBufferRegion(
+        readback.Get(), 0U, storage.Get(), 0U, storage_size);
     result = list->Close();
     if (FAILED(result)) return result_from_hresult(result);
+
     ID3D12CommandList *lists[]{list.Get()};
     device->command_queue->ExecuteCommandLists(1U, lists);
     ComPtr<ID3D12Fence> fence;
@@ -491,27 +429,32 @@ PmResult qualify_avbd_schedule(PmDevice device) noexcept {
     HANDLE event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     if (event == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     result = device->command_queue->Signal(fence.Get(), 1U);
-    PmResult waited = FAILED(result)
+    const PmResult waited = FAILED(result)
         ? result_from_hresult(result)
-        : wait_native_fence(fence.Get(), 1U, event, PM_TIMEOUT_INFINITE);
+        : wait_native_fence(
+            fence.Get(), 1U, event, PM_TIMEOUT_INFINITE);
     CloseHandle(event);
     if (waited != PM_SUCCESS) return waited;
 
-    const std::uint32_t *schedule = nullptr;
-    D3D12_RANGE read_range{0U, 264U};
+    const std::uint8_t *bytes = nullptr;
+    D3D12_RANGE read_range{0U, storage_size};
     result = readback->Map(
-        0U, &read_range, reinterpret_cast<void **>(
-            const_cast<std::uint32_t **>(&schedule)));
+        0U, &read_range,
+        reinterpret_cast<void **>(const_cast<std::uint8_t **>(&bytes)));
     if (FAILED(result)) return result_from_hresult(result);
-    const bool valid = schedule[6U] == base_iterations &&
-        schedule[58U] == base_iterations && schedule[59U] == 0U &&
-        schedule[62U] == base_iterations && schedule[63U] == grid_blocks &&
-        schedule[64U] == 0U && schedule[65U] == 0U;
+    const bool accumulators_cleared = std::all_of(
+        bytes, bytes + 48U, [](std::uint8_t value) { return value == 0U; });
+    const bool target_preserved = std::all_of(
+        bytes + 256U, bytes + 308U,
+        [](std::uint8_t value) { return value == 0x7fU; });
+    const bool target_disabled = std::all_of(
+        bytes + 308U, bytes + 312U,
+        [](std::uint8_t value) { return value == 0U; });
     D3D12_RANGE no_write{0U, 0U};
     readback->Unmap(0U, &no_write);
-    return valid ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
+    return accumulators_cleared && target_preserved && target_disabled
+        ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
 }
-
 PmResult drv_enumerate_instance_version(std::uint32_t *version) noexcept {
     if (version == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *version = PM_API_VERSION_0_2;
@@ -554,7 +497,7 @@ PmResult drv_create_instance(const PmInstanceCreateInfo *info,
             ComPtr<ID3D12Device> probe;
             if (FAILED(D3D12CreateDevice(
                     adapter.Get(), D3D_FEATURE_LEVEL_11_0,
-                    IID_PPV_ARGS(&probe))) || !supports_avbd_dxil(probe.Get()))
+                    IID_PPV_ARGS(&probe))) || !supports_slang_dxil(probe.Get()))
                 continue;
             auto physical = std::make_unique<PmPhysicalDevice_T>();
             physical->instance = created.get();
@@ -671,7 +614,10 @@ PmResult drv_create_device(PmPhysicalDevice physical,
         &queue_description, IID_PPV_ARGS(&created->command_queue));
     if (FAILED(result)) return result_from_hresult(result);
     created->queue.device = created.get();
-    const PmResult qualification = qualify_avbd_schedule(created.get());
+    result = created->slang.initialize(created->native.Get());
+    if (FAILED(result)) return result_from_hresult(result);
+    const PmResult qualification =
+        qualify_slang_command_path(created.get());
     if (qualification != PM_SUCCESS) return qualification;
     *output = created.release();
     return PM_SUCCESS;
@@ -823,7 +769,9 @@ PmResult drv_create_buffer(PmDevice device, const PmBufferCreateInfo *info,
 }
 
 void drv_destroy_buffer(PmDevice device, PmBuffer buffer) noexcept {
-    if (valid_device_object(device, buffer)) delete buffer;
+    if (!valid_device_object(device, buffer)) return;
+    device->slang.release_descriptor(buffer->descriptor_index);
+    delete buffer;
 }
 
 void drv_get_buffer_requirements(PmDevice device, PmBuffer buffer,
@@ -844,6 +792,14 @@ PmResult drv_bind_buffer(PmDevice device, PmBuffer buffer,
         offset % 256U != 0U || !fits(offset, buffer->size, memory->size) ||
         (buffer_memory_bits(buffer->usage) & (1U << memory->type)) == 0U)
         return PM_ERROR_INVALID_ARGUMENT;
+    const PmFlags device_usage = buffer->usage &
+        ~(PM_BUFFER_TRANSFER_SRC_BIT | PM_BUFFER_TRANSFER_DST_BIT);
+    if (memory->type == k_memory_default && device_usage != 0U) {
+        const HRESULT result = device->slang.create_raw_buffer_view(
+            memory->resource.Get(), offset, buffer->size,
+            &buffer->descriptor_index);
+        if (FAILED(result)) return result_from_hresult(result);
+    }
     buffer->memory = memory;
     buffer->offset = offset;
     return PM_SUCCESS;

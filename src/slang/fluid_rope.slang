@@ -4,23 +4,22 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
-public void atomic_add(Vec3* destination, Vec3 value)
+public void atomic_add(PMBuffer<Vec3> destination, Vec3 value)
 {
-    pmAtomicAdd(&destination.x, value.x);
-    pmAtomicAdd(&destination.y, value.y);
-    pmAtomicAdd(&destination.z, value.z);
+    pmAtomicAddVec3(destination, value);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_rope_contacts(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform uint* particle_count, uniform float particle_mass,
-    uniform Vec3* rope_positions, uniform Vec3* rope_velocities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> particle_count, uniform float particle_mass,
+    uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform float distance, uniform float friction,
-    uniform Vec3* node_impulses, uniform uint* contact_count,
-    uniform float* maximum_penetration, uniform bool transfer_impulse)
+    uniform PMBuffer<Vec3> node_impulses, uniform PMBuffer<uint> contact_count,
+    uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse)
 {
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
@@ -69,8 +68,7 @@ void fluid_rope_contacts(
     velocities[particle] = add(velocities[particle], velocityChange);
     if (!transfer_impulse) return;
     pmAtomicAdd(contact_count, 1u);
-    uint* penetrationBits = reinterpret<uint*>(maximum_penetration);
-    pmAtomicMax(penetrationBits, asuint(penetration));
+    pmAtomicMaxPositiveFloat(maximum_penetration, penetration);
     Vec3 reaction = multiply(velocityChange, -particle_mass);
     atomic_add(node_impulses + segment,
         multiply(reaction, 1.0f - fraction));
@@ -81,11 +79,11 @@ void fluid_rope_contacts(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_rope_apply(
-    uniform Vec3* rope_velocities, uniform Vec3* fluid_contact_forces,
+    uniform PMBuffer<Vec3> rope_velocities, uniform PMBuffer<Vec3> fluid_contact_forces,
     uniform uint rope_count, uniform float rope_mass,
     uniform float rope_maximum_speed, uniform bool first_attached,
     uniform bool last_attached,
-    uniform Vec3* node_impulses, uniform float maximum_acceleration,
+    uniform PMBuffer<Vec3> node_impulses, uniform float maximum_acceleration,
     uniform float dt, uniform float frame_inverse_dt)
 {
     uint node = pmThreadIndex();

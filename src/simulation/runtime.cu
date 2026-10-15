@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include <simulation/runtime.hpp>
-#include "solver/contact_friction.hpp"
-#include "solver/geometry_constraints.hpp"
-#include "solver/halfspace.hpp"
 #include "convex_plane_dedup.hpp"
 #include "simulation/geometry_dispatch.hpp"
 #include "simulation/geometry_constraints_dispatch.hpp"
@@ -28,8 +25,6 @@
 #include "simulation/primitives.hpp"
 
 #include <cuda_runtime.h>
-#include <cuda/atomic>
-#include <cooperative_groups.h>
 
 
 #include <algorithm>
@@ -120,36 +115,36 @@ template <typename T>
     return read_device_value(stream, source, destination, message);
 }
 
-__host__ __device__ Vec3 add(Vec3 a, Vec3 b) noexcept {
+Vec3 add(Vec3 a, Vec3 b) noexcept {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-__host__ __device__ Vec3 subtract(Vec3 a, Vec3 b) noexcept {
+Vec3 subtract(Vec3 a, Vec3 b) noexcept {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
-__host__ __device__ Vec3 multiply(Vec3 value, float scalar) noexcept {
+Vec3 multiply(Vec3 value, float scalar) noexcept {
     return {value.x * scalar, value.y * scalar, value.z * scalar};
 }
 
-__host__ __device__ float dot(Vec3 a, Vec3 b) noexcept {
+float dot(Vec3 a, Vec3 b) noexcept {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-__host__ __device__ Vec3 cross(Vec3 a, Vec3 b) noexcept {
+Vec3 cross(Vec3 a, Vec3 b) noexcept {
     return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
             a.x * b.y - a.y * b.x};
 }
 
-__host__ __device__ float length_squared(Vec3 value) noexcept {
+float length_squared(Vec3 value) noexcept {
     return dot(value, value);
 }
 
-__host__ __device__ float vector_length(Vec3 value) noexcept {
+float vector_length(Vec3 value) noexcept {
     return sqrtf(length_squared(value));
 }
 
-__host__ __device__ Vec3 normalized_or(Vec3 value, Vec3 fallback) noexcept {
+Vec3 normalized_or(Vec3 value, Vec3 fallback) noexcept {
     const float squared = length_squared(value);
     if (squared <= k_epsilon * k_epsilon) {
         return fallback;
@@ -157,7 +152,7 @@ __host__ __device__ Vec3 normalized_or(Vec3 value, Vec3 fallback) noexcept {
     return multiply(value, rsqrtf(squared));
 }
 
-__host__ __device__ Quaternion normalized_quaternion(Quaternion value) noexcept {
+Quaternion normalized_quaternion(Quaternion value) noexcept {
     const float squared = value.x * value.x + value.y * value.y +
                           value.z * value.z + value.w * value.w;
     if (squared <= k_epsilon * k_epsilon) {

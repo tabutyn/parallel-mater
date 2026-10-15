@@ -5,12 +5,13 @@ import types;
 import math;
 import device_intrinsics;
 import geometry_fluid;
+import graphics_resources;
 
 void stamp_rigid_cloth_paint(
     RigidBodyId rigid_id, ClothId cloth_id, Vec3 center, Vec3 contact,
-    Vec3* positions, uint* indices, uint* vertex_sources,
-    uint triangle_count, PaintFieldResource* fields, uint field_capacity,
-    PaintRuleResource* rules, uint rule_capacity)
+    PMBuffer<Vec3> positions, PMBuffer<uint> indices, PMBuffer<uint> vertex_sources,
+    uint triangle_count, PMBuffer<PaintFieldResource> fields, uint field_capacity,
+    PMBuffer<PaintRuleResource> rules, uint rule_capacity)
 {
     for (uint ruleIndex = 0u; ruleIndex < rule_capacity; ++ruleIndex)
     {
@@ -36,9 +37,9 @@ void stamp_rigid_cloth_paint(
             if (length_squared(subtract(contact,
                 fluid_closest_triangle(contact, a, b, c))) > radiusSquared)
                 continue;
-            uint uaIndex = vertex_sources != nullptr ? vertex_sources[ia] : ia;
-            uint ubIndex = vertex_sources != nullptr ? vertex_sources[ib] : ib;
-            uint ucIndex = vertex_sources != nullptr ? vertex_sources[ic] : ic;
+            uint uaIndex = pmBufferPresent(vertex_sources) ? vertex_sources[ia] : ia;
+            uint ubIndex = pmBufferPresent(vertex_sources) ? vertex_sources[ib] : ib;
+            uint ucIndex = pmBufferPresent(vertex_sources) ? vertex_sources[ic] : ic;
             Vec2 ua = field.uvs[uaIndex], ub = field.uvs[ubIndex];
             Vec2 uc = field.uvs[ucIndex];
             float e0x = ub.x - ua.x, e0y = ub.y - ua.y;
@@ -66,7 +67,7 @@ void stamp_rigid_cloth_paint(
                     Vec3 point = add(multiply(a, u),
                         add(multiply(b, v), multiply(c, w)));
                     if (length_squared(subtract(point, contact)) <= radiusSquared)
-                        pmAtomicOr(&field.pixels[y * width + x], side);
+                        pmAtomicOr(field.pixels + uint(y * width + x), side);
                 }
         }
     }
@@ -75,19 +76,19 @@ void stamp_rigid_cloth_paint(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_constrain_bodies(
-    uniform Vec3* cloth_positions, uniform Vec3* cloth_velocities,
-    uniform uint* cloth_indices, uniform uint* vertex_sources,
-    uniform Vec3* surface_positions, uniform float* cloth_inverse_masses,
+    uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
+    uniform PMBuffer<uint> cloth_indices, uniform PMBuffer<uint> vertex_sources,
+    uniform PMBuffer<Vec3> surface_positions, uniform PMBuffer<float> cloth_inverse_masses,
     uniform uint vertex_count, uniform uint triangle_count,
     uniform float thickness, uniform float dt, uniform float contact_friction,
-    uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform RigidBodyId* body_ids,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<RigidBodyId> body_ids,
     uniform uint body_count, uniform uint cloth_index,
     uniform uint cloth_generation,
-    uniform PaintFieldResource* paint_fields, uniform uint field_capacity,
-    uniform PaintRuleResource* paint_rules, uniform uint rule_capacity,
-    uniform ClothBodyCorrection* corrections)
+    uniform PMBuffer<PaintFieldResource> paint_fields, uniform uint field_capacity,
+    uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity,
+    uniform PMBuffer<ClothBodyCorrection> corrections)
 {
     ClothId cloth_id = {cloth_index, cloth_generation};
     uint bodyIndex = pmThreadIndex();
@@ -107,11 +108,11 @@ void cloth_constrain_bodies(
     for (uint triangle = 0u; triangle < triangle_count; ++triangle)
     {
         uint base = triangle * 3u;
-        Vec3 a = surface_positions != nullptr ? surface_positions[base] :
+        Vec3 a = pmBufferPresent(surface_positions) ? surface_positions[base] :
             cloth_positions[cloth_indices[base]];
-        Vec3 b = surface_positions != nullptr ? surface_positions[base + 1u] :
+        Vec3 b = pmBufferPresent(surface_positions) ? surface_positions[base + 1u] :
             cloth_positions[cloth_indices[base + 1u]];
-        Vec3 c = surface_positions != nullptr ? surface_positions[base + 2u] :
+        Vec3 c = pmBufferPresent(surface_positions) ? surface_positions[base + 2u] :
             cloth_positions[cloth_indices[base + 2u]];
         Vec3 face = cross(subtract(b, a), subtract(c, a));
         if (length_squared(face) < 1.0e-12f) continue;
@@ -157,7 +158,7 @@ void cloth_constrain_bodies(
             bestContact, cloth_positions, cloth_indices, vertex_sources,
             triangle_count, paint_fields, field_capacity,
             paint_rules, rule_capacity);
-    if (surface_positions != nullptr) return;
+    if (pmBufferPresent(surface_positions)) return;
     float freeFraction = ((cloth_inverse_masses[a] > 0.0f ? 1.0f : 0.0f) +
         (cloth_inverse_masses[b] > 0.0f ? 1.0f : 0.0f) +
         (cloth_inverse_masses[c] > 0.0f ? 1.0f : 0.0f)) / 3.0f;
@@ -260,9 +261,9 @@ void cloth_constrain_bodies(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void cloth_apply_body_corrections(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform uint count,
-    uniform ClothBodyCorrection* corrections, uniform uint body_count)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform uint count,
+    uniform PMBuffer<ClothBodyCorrection> corrections, uniform uint body_count)
 {
     uint vertex = pmThreadIndex();
     if (vertex >= count || inverse_masses[vertex] == 0.0f) return;

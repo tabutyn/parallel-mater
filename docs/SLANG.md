@@ -33,6 +33,11 @@ currently executes; other domains remain unavailable. Cross-target generation
 of the shared AVBD module remains a compiler and reflection portability check;
 it does not expose a backend-specific runtime or advertise Metal execution.
 
+The AVBD numerical core also compiles to WGSL and its reflection contract is
+tested. This qualifies the shared equations for WebGPU code generation only;
+the full domain modules still need graphics-resource entry wrappers before a
+WebGPU driver can execute the common schedule.
+
 ## Compiler toolchain
 
 CMake resolves Slang through `cmake/Slang.cmake` and pins version 2026.18. An
@@ -43,8 +48,8 @@ cmake -S . -B build \
   -DPARALLEL_MATER_SLANGC_EXECUTABLE=/opt/slang-2026.18/bin/slangc
 ```
 
-Generated CUDA, C++, PTX, MSL, HLSL, DXIL, SPIR-V, and reflection records
-remain in the build tree.
+Generated CUDA, C++, PTX, MSL, HLSL, DXIL, SPIR-V, WGSL, and reflection
+records remain in the build tree.
 
 ## Validation
 

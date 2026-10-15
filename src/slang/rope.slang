@@ -7,8 +7,9 @@ import device_intrinsics;
 import geometry;
 import geometry_fluid;
 import fluid_soft_body;
+import graphics_resources;
 
-groupshared float ropeMaximum;
+groupshared uint ropeMaximumBits;
 groupshared float ropeDiagonal[1024];
 groupshared float ropeUpper[1024];
 groupshared float ropeRhs[1024];
@@ -64,7 +65,7 @@ Vec3 rope_mass(RopeData rope, uint node, Vec3 value, int first, int last)
 }
 
 float rope_direction_weight(RopeData rope, uint node, Vec3 direction,
-    int first, int last, BodyParameters* parameters, RigidBodyState* states)
+    int first, int last, PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     int body = rope_anchor_body(rope, node, first, last);
     if (body < 0)
@@ -94,7 +95,7 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
 }
 
 void rope_sync_anchors(
-    RopeData rope, int first, int last, RigidBodyState* states)
+    RopeData rope, int first, int last, PMBuffer<RigidBodyState> states)
 {
     if (first >= 0)
         rope.positions[0] = transform_point(
@@ -124,11 +125,11 @@ void rope_solve_tridiagonal(uint edges)
 }
 
 void rope_project_stretch(RopeData rope, float dt, int first, int last,
-    BodyParameters* parameters, RigidBodyState* states)
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     uint lane = pmGroupThreadIndex().x;
     uint edges = rope.count - 1u;
-    if (lane == 0u) ropeMaximum = 0.0f;
+    if (lane == 0u) ropeMaximumBits = 0u;
     float alpha = max(rope.options.stretch_compliance / (dt * dt),
         1.0e-5f * float(rope.count) / rope.options.mass);
     for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
@@ -173,12 +174,14 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
                 if (dot(impulse, rope.normals[node]) > releaseImpulse)
                 {
                     rope.normals[node] = {};
-                    pmAtomicExchange(&ropeReleased, 1u);
+                    uint ignored;
+                    InterlockedExchange(ropeReleased, 1u, ignored);
                 }
                 if (dot(impulse, rope.normals2[node]) > releaseImpulse)
                 {
                     rope.normals2[node] = {};
-                    pmAtomicExchange(&ropeReleased, 1u);
+                    uint ignored;
+                    InterlockedExchange(ropeReleased, 1u, ignored);
                 }
             }
         }
@@ -200,12 +203,13 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
                 cross(inverse_inertia_world(parameters[body], states[body],
                     cross(arm, impulse)), arm));
         }
-        pmAtomicMax(reinterpret<uint*>(&ropeMaximum),
-            asuint(vector_length(movement)));
+        uint ignored;
+        InterlockedMax(ropeMaximumBits,
+            asuint(vector_length(movement)), ignored);
     }
     pmGroupBarrier();
     float scale = min(1.0f,
-        rope.options.radius / max(ropeMaximum, 1.0e-10f));
+        rope.options.radius / max(asfloat(ropeMaximumBits), 1.0e-10f));
     for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
         rope.lambda[edge] += scale * ropeRhs[edge];
     for (uint node = lane; node < rope.count; node += pmGroupSize().x)
@@ -335,8 +339,8 @@ void rope_closest_segment_triangle(Vec3 a, Vec3 b, Vec3 x, Vec3 y,
 }
 
 RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
-    int first, int last, BodyParameters* parameters, RigidBodyState* states,
-    RigidBodyState* old_states, TriangleMeshResource* meshes, uint body_count)
+    int first, int last, PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states,
+    PMBuffer<RigidBodyState> old_states, PMBuffer<TriangleMeshResource> meshes, uint body_count)
 {
     RopeHit best = {};
     best.body = -1;
@@ -349,7 +353,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
                 other + rope.last_attachment_contact_skip >= rope.count))
             continue;
         RigidBodyState state = states[bodyIndex];
-        RigidBodyState oldState = old_states != nullptr
+        RigidBodyState oldState = pmBufferPresent(old_states)
             ? old_states[bodyIndex] : state;
         TriangleMeshResource mesh = meshes[parameters[bodyIndex].mesh.index];
         float radius = rope.options.radius +
@@ -365,7 +369,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
         Vec3 high = add(component_max(a, segment ? b : origin), margin);
         if (!bounds_overlap(low, high, mesh.minimum, mesh.maximum)) continue;
 
-        if (mesh.solid_planes != nullptr)
+        if (pmBufferPresent(mesh.solid_planes))
         {
             uint hintIndex = index * rope.body_capacity + bodyIndex;
             uint hint = rope.solid_hint[hintIndex];
@@ -487,7 +491,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
                 float distance = vector_length(delta);
                 Vec3 face = normalized_or(cross(subtract(y, x),
                     subtract(z, x)), {0.0f, 1.0f, 0.0f});
-                if (mesh.solid_planes != nullptr)
+                if (pmBufferPresent(mesh.solid_planes))
                     face = mesh.solid_planes[triangle].normal;
                 float before = dot(subtract(origin, x), face);
                 float after = dot(subtract(a, x), face);
@@ -495,7 +499,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
                     ? multiply(delta, 1.0f / distance)
                     : multiply(face, before >= 0.0f ? 1.0f : -1.0f);
                 float depth = radius - distance;
-                if (segment && mesh.solid_planes != nullptr &&
+                if (segment && pmBufferPresent(mesh.solid_planes) &&
                     distance < radius && dot(delta, face) <= 1.0e-7f)
                 {
                     normal = face;
@@ -534,17 +538,17 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
 }
 
 void rope_accumulate_body(RopeData rope, uint body, Vec3 impulse, Vec3 arm,
-    BodyParameters* parameters, RigidBodyState* states)
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     Vec3 translation = multiply(impulse, parameters[body].inverse_mass);
     Vec3 rotation = inverse_inertia_world(parameters[body], states[body],
         cross(arm, impulse));
-    atomic_add(&rope.body_translation[body], translation);
-    atomic_add(&rope.body_rotation[body], rotation);
+    atomic_add(rope.body_translation + body, translation);
+    atomic_add(rope.body_rotation + body, rotation);
 }
 
 float rope_contact_weight(RopeData rope, uint node, Vec3 direction,
-    int first, int last, BodyParameters* parameters, RigidBodyState* states)
+    int first, int last, PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     return rope_anchor_body(rope, node, first, last) < 0
         ? rope_node_weight(rope, node, first, last)
@@ -553,7 +557,7 @@ float rope_contact_weight(RopeData rope, uint node, Vec3 direction,
 }
 
 void rope_contact_move(RopeData rope, uint node, Vec3 impulse,
-    int first, int last, BodyParameters* parameters, RigidBodyState* states)
+    int first, int last, PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     int body = rope_anchor_body(rope, node, first, last);
     if (body < 0)
@@ -589,8 +593,8 @@ Vec3 rope_contact_project(RopeData rope, uint node, Vec3 value, uint support)
 }
 
 float rope_position_contact_weight(RopeData rope, uint node, Vec3 direction,
-    uint support, int first, int last, BodyParameters* parameters,
-    RigidBodyState* states)
+    uint support, int first, int last, PMBuffer<BodyParameters> parameters,
+    PMBuffer<RigidBodyState> states)
 {
     if (support == 0u || rope_anchor_body(rope, node, first, last) >= 0)
         return rope_contact_weight(rope, node, direction, first, last,
@@ -601,8 +605,8 @@ float rope_position_contact_weight(RopeData rope, uint node, Vec3 direction,
 }
 
 Vec3 rope_position_contact_response(RopeData rope, uint node, Vec3 direction,
-    uint support, int first, int last, BodyParameters* parameters,
-    RigidBodyState* states)
+    uint support, int first, int last, PMBuffer<BodyParameters> parameters,
+    PMBuffer<RigidBodyState> states)
 {
     int body = rope_anchor_body(rope, node, first, last);
     if (body < 0)
@@ -617,7 +621,7 @@ Vec3 rope_position_contact_response(RopeData rope, uint node, Vec3 direction,
 Vec3 rope_contact_pair_response(RopeData rope, uint firstNode, uint lastNode,
     Vec3 direction, uint firstSupport, uint lastSupport, float firstWeight,
     float lastWeight, Vec3 arm, uint collider, int first, int last,
-    BodyParameters* parameters, RigidBodyState* states)
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     Vec3 response = multiply(rope_position_contact_response(rope, firstNode,
         direction, firstSupport, first, last, parameters, states),
@@ -633,8 +637,8 @@ Vec3 rope_contact_pair_response(RopeData rope, uint firstNode, uint lastNode,
 }
 
 void rope_position_contact_move(RopeData rope, uint node, Vec3 impulse,
-    uint support, int first, int last, BodyParameters* parameters,
-    RigidBodyState* states)
+    uint support, int first, int last, PMBuffer<BodyParameters> parameters,
+    PMBuffer<RigidBodyState> states)
 {
     if (rope_anchor_body(rope, node, first, last) >= 0)
         rope_contact_move(rope, node, impulse, first, last, parameters, states);
@@ -673,8 +677,8 @@ RopeFriction rope_coupled_contact_friction(float normalImpulse,
 }
 
 void rope_contact(RopeData rope, uint index, bool segment, float dt,
-    int first, int last, BodyParameters* parameters, RigidBodyState* states,
-    RigidBodyState* old_states, TriangleMeshResource* meshes, uint body_count)
+    int first, int last, PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states,
+    PMBuffer<RigidBodyState> old_states, PMBuffer<TriangleMeshResource> meshes, uint body_count)
 {
     RopeHit hit = rope_find_contact(rope, index, segment, first, last,
         parameters, states, old_states, meshes, body_count);
@@ -799,7 +803,7 @@ RopeSoftHit rope_soft_find_contact(RopeData rope, RopeSoftTarget target,
 {
     RopeSoftHit best = {};
     best.triangle = kInvalidDense;
-    if (target.surface == nullptr ||
+    if (!pmBufferPresent(target.surface) ||
         (target.first_anchor && index == 0u) ||
         (target.last_anchor &&
             index + (segment ? 2u : 1u) == rope.count)) return best;
@@ -914,7 +918,7 @@ RopeSoftHit rope_soft_find_contact(RopeData rope, RopeSoftTarget target,
 
 void rope_soft_contact(RopeData rope, RopeSoftTarget target, uint index,
     bool segment, float dt, int first, int last,
-    BodyParameters* parameters, RigidBodyState* states)
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     RopeSoftHit hit = rope_soft_find_contact(rope, target, index, segment);
     if (hit.triangle == kInvalidDense) return;
@@ -998,17 +1002,16 @@ void rope_soft_contact(RopeData rope, RopeSoftTarget target, uint index,
         {
             float weight = weights[corner] * binding.weights[slot];
             if (weight > 0.0f)
-                atomic_add(&target.node_impulses[binding.nodes[slot]],
+                atomic_add(target.node_impulses + binding.nodes[slot],
                     multiply(impulse, -weight / dt));
         }
     }
     pmAtomicAdd(target.contact_count, 1u);
-    pmAtomicMax(reinterpret<uint*>(target.maximum_penetration),
-        asuint(hit.depth));
+    pmAtomicMaxPositiveFloat(target.maximum_penetration, hit.depth);
 }
 
 void rope_project_velocities(RopeData rope, float dt, int first, int last,
-    BodyParameters* parameters, RigidBodyState* states)
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
 {
     uint lane = pmGroupThreadIndex().x;
     uint edges = rope.count - 1u;
@@ -1091,9 +1094,9 @@ void rope_project_velocities(RopeData rope, float dt, int first, int last,
 [numthreads(128, 1, 1)]
 void rope_advance(
     uniform RopeData rope, uniform float dt, uniform Vec3 gravity,
-    uniform int first, uniform int last, uniform BodyParameters* parameters,
-    uniform RigidBodyState* states, uniform RigidBodyState* old_states,
-    uniform TriangleMeshResource* meshes, uniform uint body_count,
+    uniform int first, uniform int last, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
     uniform bool first_substep, uniform RopeSoftTarget soft_a,
     uniform RopeSoftTarget soft_b)
 {
@@ -1101,7 +1104,7 @@ void rope_advance(
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)
         rope_sync_anchors(rope, first, last,
-            old_states != nullptr ? old_states : states);
+            pmBufferPresent(old_states) ? old_states : states);
     pmGroupBarrier();
     for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {

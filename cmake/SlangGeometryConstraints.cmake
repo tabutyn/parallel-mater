@@ -15,6 +15,8 @@ function(parallel_mater_add_slang_geometry_constraints)
     set(metal_reflection "${generated_dir}/parallel_mater_geometry_constraints.metal.json")
     set(hlsl_source "${generated_dir}/parallel_mater_geometry_constraints.hlsl")
     set(hlsl_reflection "${generated_dir}/parallel_mater_geometry_constraints.hlsl.json")
+    set(wgsl_source "${generated_dir}/parallel_mater_geometry_constraints.wgsl")
+    set(wgsl_reflection "${generated_dir}/parallel_mater_geometry_constraints.wgsl.json")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
 
@@ -23,6 +25,7 @@ function(parallel_mater_add_slang_geometry_constraints)
             "${cuda_source}" "${cuda_reflection}"
             "${metal_source}" "${metal_reflection}"
             "${hlsl_source}" "${hlsl_reflection}"
+            "${wgsl_source}" "${wgsl_reflection}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${generated_dir}"
         COMMAND "${slangc}" "${source}"
             -entry avbdConformanceMain -stage compute
@@ -37,6 +40,10 @@ function(parallel_mater_add_slang_geometry_constraints)
             -target hlsl -profile sm_5_1 -fp-mode precise
             -warnings-as-errors all
             -o "${hlsl_source}" -reflection-json "${hlsl_reflection}"
+        COMMAND "${slangc}" "${source}"
+            -entry avbdConformanceMain -stage compute
+            -target wgsl -fp-mode precise -warnings-as-errors all
+            -o "${wgsl_source}" -reflection-json "${wgsl_reflection}"
         DEPENDS ${slang_dependencies} "${slangc}"
         COMMENT "Compiling the rigid constraint numerical core with Slang ${PARALLEL_MATER_SLANG_VERSION}"
         VERBATIM)
@@ -44,7 +51,8 @@ function(parallel_mater_add_slang_geometry_constraints)
     set(slang_outputs
         "${cuda_source}" "${cuda_reflection}"
         "${metal_source}" "${metal_reflection}"
-        "${hlsl_source}" "${hlsl_reflection}")
+        "${hlsl_source}" "${hlsl_reflection}"
+        "${wgsl_source}" "${wgsl_reflection}")
 
     if(WIN32)
         set(dxil_prepare
@@ -138,4 +146,8 @@ function(parallel_mater_add_slang_geometry_constraints)
         "${hlsl_source}" PARENT_SCOPE)
     set(PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_HLSL_REFLECTION
         "${hlsl_reflection}" PARENT_SCOPE)
+    set(PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_WGSL_SOURCE
+        "${wgsl_source}" PARENT_SCOPE)
+    set(PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_WGSL_REFLECTION
+        "${wgsl_reflection}" PARENT_SCOPE)
 endfunction()

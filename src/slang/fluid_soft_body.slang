@@ -5,6 +5,7 @@ import types;
 import math;
 import device_intrinsics;
 import geometry_fluid;
+import graphics_resources;
 
 public struct FluidSoftNearest
 {
@@ -23,8 +24,8 @@ float fluid_soft_bounds_distance(Vec3 point, BvhNode node)
 }
 
 bool fluid_soft_inside(
-    Vec3 point, Vec3* surface, uint* indices, uint index_count,
-    BvhNode* tree, uint* order)
+    Vec3 point, PMBuffer<Vec3> surface, PMBuffer<uint> indices, uint index_count,
+    PMBuffer<BvhNode> tree, PMBuffer<uint> order)
 {
     Vec3 direction = {1.0f, 0.371f, 0.173f};
     uint stack[64] = {};
@@ -83,9 +84,9 @@ bool fluid_soft_inside(
 }
 
 public FluidSoftNearest fluid_soft_nearest(
-    Vec3 point, Vec3 start, Vec3* surface, Vec3* previous,
-    uint* indices, uint index_count, float orientation, float distance,
-    Vec3* bounds, bool sweep, BvhNode* tree, uint* order)
+    Vec3 point, Vec3 start, PMBuffer<Vec3> surface, PMBuffer<Vec3> previous,
+    PMBuffer<uint> indices, uint index_count, float orientation, float distance,
+    PMBuffer<Vec3> bounds, bool sweep, PMBuffer<BvhNode> tree, PMBuffer<uint> order)
 {
     FluidSoftNearest result = {};
     result.triangle = kInvalidDense;
@@ -181,9 +182,9 @@ public FluidSoftNearest fluid_soft_nearest(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_soft_refit(
-    uniform Vec3* surface, uniform Vec3* previous, uniform uint* indices,
-    uniform uint* order, uniform BvhNode* tree, uniform uint* parents,
-    uniform uint* ready, uniform uint tree_count, uniform Vec3* bounds)
+    uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> indices,
+    uniform PMBuffer<uint> order, uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> parents,
+    uniform PMBuffer<uint> ready, uniform uint tree_count, uniform PMBuffer<Vec3> bounds)
 {
     uint index = pmThreadIndex();
     if (index >= tree_count || tree[index].triangle_count == 0u) return;
@@ -206,7 +207,7 @@ void fluid_soft_refit(
     while (parents[index] != kInvalidDense)
     {
         index = parents[index];
-        if (pmAtomicAdd(&ready[index], 1u) == 0u) return;
+        if (pmAtomicAdd(ready + index, 1u) == 0u) return;
         uint left = tree[index].left, right = tree[index].right;
         tree[index].minimum = component_min(
             tree[left].minimum, tree[right].minimum);
@@ -220,15 +221,15 @@ void fluid_soft_refit(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_soft_detect(
-    uniform Vec3* positions, uniform Vec3* previous,
-    uniform Vec3* velocities, uniform uint* count, uniform Vec3* surface,
-    uniform Vec3* old_surface, uniform uint* indices,
-    uniform uint index_count, uniform SoftBodySurfaceBinding* bindings,
-    uniform Vec3* soft_velocities, uniform float orientation,
-    uniform float distance, uniform Vec3* bounds, uniform bool sweep,
-    uniform BvhNode* tree, uniform uint* order,
-    uniform FluidSoftContact* contacts, uniform uint* counts,
-    uniform uint* contact_count, uniform float* maximum_penetration)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> count, uniform PMBuffer<Vec3> surface,
+    uniform PMBuffer<Vec3> old_surface, uniform PMBuffer<uint> indices,
+    uniform uint index_count, uniform PMBuffer<SoftBodySurfaceBinding> bindings,
+    uniform PMBuffer<Vec3> soft_velocities, uniform float orientation,
+    uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
+    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order,
+    uniform PMBuffer<FluidSoftContact> contacts, uniform PMBuffer<uint> counts,
+    uniform PMBuffer<uint> contact_count, uniform PMBuffer<float> maximum_penetration)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
@@ -259,7 +260,7 @@ void fluid_soft_detect(
         Vec3 surfaceVelocity = {};
         for (uint index = 0u; index < contact.count; ++index)
         {
-            pmAtomicAdd(&counts[contact.nodes[index]], 1u);
+            pmAtomicAdd(counts + contact.nodes[index], 1u);
             surfaceVelocity = add(surfaceVelocity, multiply(
                 soft_velocities[contact.nodes[index]], contact.weights[index]));
         }
@@ -268,8 +269,7 @@ void fluid_soft_detect(
             velocities[particle], surfaceVelocity);
         contact.penetration = hit.penetration;
         pmAtomicAdd(contact_count, 1u);
-        pmAtomicMax(reinterpret<uint*>(maximum_penetration),
-            asuint(hit.penetration));
+        pmAtomicMaxPositiveFloat(maximum_penetration, hit.penetration);
     }
     contacts[particle] = contact;
 }
@@ -277,14 +277,14 @@ void fluid_soft_detect(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_soft_solve(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* accelerations, uniform float* foam, uniform uint* count,
-    uniform FluidSoftContact* contacts, uniform uint* counts,
-    uniform float* inverse_masses, uniform Vec3* soft_velocities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> accelerations, uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
+    uniform PMBuffer<FluidSoftContact> contacts, uniform PMBuffer<uint> counts,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> soft_velocities,
     uniform float maximum_soft_speed, uniform float inverse_particle_mass,
     uniform float friction, uniform float maximum_projection,
-    uniform float dt, uniform Vec3* node_positions,
-    uniform Vec3* node_impulses)
+    uniform float dt, uniform PMBuffer<Vec3> node_positions,
+    uniform PMBuffer<Vec3> node_impulses)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
@@ -332,9 +332,9 @@ void fluid_soft_solve(
     for (uint index = 0u; index < contact.count; ++index)
     {
         uint node = contact.nodes[index];
-        atomic_add(&node_positions[node], multiply(contact.normal,
+        atomic_add(node_positions + node, multiply(contact.normal,
             -contact.weights[index] * inverse_masses[node] * lambda));
-        atomic_add(&node_impulses[node],
+        atomic_add(node_impulses + node,
             multiply(impulse, -contact.weights[index]));
     }
 }
@@ -342,9 +342,9 @@ void fluid_soft_solve(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_soft_apply(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform float* inverse_masses, uniform Vec3* position_deltas,
-    uniform Vec3* impulses, uniform Vec3* forces, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<Vec3> impulses, uniform PMBuffer<Vec3> forces, uniform uint count,
     uniform float inverse_frame_dt)
 {
     uint node = pmThreadIndex();
@@ -359,11 +359,11 @@ void fluid_soft_apply(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_soft_recover(
-    uniform Vec3* positions, uniform Vec3* previous, uniform uint* count,
-    uniform Vec3* surface, uniform Vec3* old_surface,
-    uniform uint* indices, uniform uint index_count, uniform float orientation,
-    uniform float distance, uniform Vec3* bounds, uniform bool sweep,
-    uniform BvhNode* tree, uniform uint* order)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
+    uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> old_surface,
+    uniform PMBuffer<uint> indices, uniform uint index_count, uniform float orientation,
+    uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
+    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;

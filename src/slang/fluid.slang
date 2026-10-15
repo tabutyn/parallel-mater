@@ -4,6 +4,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 #ifndef PM_TARGET_CUDA
 #define PM_TARGET_CUDA 1
@@ -22,7 +23,7 @@ public uint64_t fluid_cell_key(int x, int y, int z)
            uint64_t(z + kFluidCellBias);
 }
 
-public uint fluid_lower_bound(uint64_t* keys, uint size, uint64_t key)
+public uint fluid_lower_bound(PMBuffer<uint64_t> keys, uint size, uint64_t key)
 {
     uint lo = 0u;
     uint hi = size;
@@ -38,9 +39,9 @@ public uint fluid_lower_bound(uint64_t* keys, uint size, uint64_t key)
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_emit_cells(
-    uniform Vec3* positions, uniform uint* count, uniform uint capacity,
-    uniform float inverse_radius, uniform uint64_t* keys,
-    uniform uint* indices)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform float inverse_radius, uniform PMBuffer<uint64_t> keys,
+    uniform PMBuffer<uint> indices)
 {
     uint index = pmThreadIndex();
     if (index >= capacity) return;
@@ -60,11 +61,11 @@ void fluid_emit_cells(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_compute_forces(
-    uniform Vec3* positions, uniform Vec3* velocities, uniform uint* count,
-    uniform uint64_t* keys, uniform uint* indices, uniform float* foam,
-    uniform FluidOptions options, uniform Vec3 up, uniform Vec3* forces,
-    uniform float* foam_source, uniform uint* overflow,
-    uniform uint* maximum_neighbor_count)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> count,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices, uniform PMBuffer<float> foam,
+    uniform FluidOptions options, uniform Vec3 up, uniform PMBuffer<Vec3> forces,
+    uniform PMBuffer<float> foam_source, uniform PMBuffer<uint> overflow,
+    uniform PMBuffer<uint> maximum_neighbor_count)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
@@ -141,9 +142,9 @@ void fluid_compute_forces(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_integrate(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* previous, uniform float* foam, uniform Vec3* forces,
-    uniform float* foam_source, uniform uint* count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> foam, uniform PMBuffer<Vec3> forces,
+    uniform PMBuffer<float> foam_source, uniform PMBuffer<uint> count,
     uniform FluidOptions options, uniform Vec3 gravity, uniform float dt)
 {
     uint index = pmThreadIndex();
@@ -168,26 +169,26 @@ void fluid_integrate(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void fluid_reserve_contact_events(
-    uniform uint* selected_count, uniform uint* offset,
-    uniform uint* world_count, uniform uint* overflow,
+    uniform PMBuffer<uint> selected_count, uniform PMBuffer<uint> offset,
+    uniform PMBuffer<uint> world_count, uniform PMBuffer<uint> overflow,
     uniform uint capacity)
 {
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     uint used = *world_count;
     uint available = capacity - used;
     uint retained = min(*selected_count, available);
-    *offset = used;
-    *world_count = used + retained;
-    *overflow += *selected_count - retained;
+    offset[0] = used;
+    world_count[0] = used + retained;
+    overflow[0] += *selected_count - retained;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_gather_contact_events(
-    uniform uint* selected, uniform uint* selected_count,
-    uniform uint* offset, uniform FluidContactSample* samples,
-    uniform uint* stable_ids, uniform RigidBodyId* body_ids,
-    uniform FluidId fluid, uniform ContactEvent* events,
+    uniform PMBuffer<uint> selected, uniform PMBuffer<uint> selected_count,
+    uniform PMBuffer<uint> offset, uniform PMBuffer<FluidContactSample> samples,
+    uniform PMBuffer<uint> stable_ids, uniform PMBuffer<RigidBodyId> body_ids,
+    uniform FluidId fluid, uniform PMBuffer<ContactEvent> events,
     uniform uint capacity)
 {
     uint item = pmThreadIndex();
@@ -207,10 +208,10 @@ void fluid_gather_contact_events(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_source_vacancies(
-    uniform Vec3* points, uniform uint amount, uniform float spacing,
-    uniform Vec3* positions, uniform uint64_t* keys, uniform uint* indices,
+    uniform PMBuffer<Vec3> points, uniform uint amount, uniform float spacing,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
     uniform uint capacity, uniform float inverse_cell_size,
-    uniform uint8_t* vacant)
+    uniform PMBuffer<PMResourceUint8> vacant)
 {
     uint item = pmThreadIndex();
     if (item >= amount) return;
@@ -238,15 +239,15 @@ void fluid_source_vacancies(
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void fluid_source_emit(
-    uniform Vec3* points, uniform uint8_t* vacant, uniform uint amount,
-    uniform float spacing, uniform Vec3 velocity, uniform Vec3* positions,
-    uniform Vec3* velocities, uniform uint* ids, uniform float* foam,
-    uniform float* temperatures, uniform float initial_temperature,
-    uniform uint* count, uniform uint capacity, uniform uint first_spawned,
-    uniform uint first_id, uniform uint* misses)
+    uniform PMBuffer<Vec3> points, uniform PMBuffer<PMResourceUint8> vacant, uniform uint amount,
+    uniform float spacing, uniform Vec3 velocity, uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> ids, uniform PMBuffer<float> foam,
+    uniform PMBuffer<float> temperatures, uniform float initial_temperature,
+    uniform PMBuffer<uint> count, uniform uint capacity, uniform uint first_spawned,
+    uniform uint first_id, uniform PMBuffer<uint> misses)
 {
     if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
-    *misses = 0u;
+    misses[0] = 0u;
     uint previousCount = *count;
     for (uint item = 0u; item < amount; ++item)
     {
@@ -264,10 +265,10 @@ void fluid_source_emit(
         if (occupied) continue;
         if (*count == capacity)
         {
-            ++*misses;
+            ++misses[0];
             continue;
         }
-        uint index = (*count)++;
+        uint index = count[0]++;
         positions[index] = p;
         velocities[index] = velocity;
         ids[index] = first_id + index - first_spawned;
@@ -279,9 +280,9 @@ void fluid_source_emit(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_destroy_flags(
-    uniform Vec3* positions, uniform Vec3* previous, uniform uint* count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform uint capacity, uniform ParticleDestroyPlaneOptions plane,
-    uniform bool combine, uniform uint8_t* keep)
+    uniform bool combine, uniform PMBuffer<PMResourceUint8> keep)
 {
     uint item = pmThreadIndex();
     if (item >= capacity) return;
@@ -303,23 +304,23 @@ void fluid_destroy_flags(
     Vec3 crossing = add(before, multiply(subtract(after, before), fraction));
     bool inBounds = abs(crossing.x) <= plane.plane.half_extents.x &&
                     abs(crossing.z) <= plane.plane.half_extents.y;
-    uint8_t survives = uint8_t(!direction || !inBounds);
+    PMResourceUint8 survives = PMResourceUint8(!direction || !inBounds);
     keep[item] = combine ? keep[item] & survives : survives;
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_gather(
-    uniform Vec3* positions, uniform Vec3* velocities, uniform uint* ids,
-    uniform float* foam, uniform float* temperatures,
-    uniform FluidContactSample* contact_samples,
-    uniform uint8_t* contact_flags, uniform bool copy_contacts,
-    uniform uint* selected, uniform uint* count, uniform uint capacity,
-    uniform Vec3* next_positions, uniform Vec3* next_velocities,
-    uniform uint* next_ids, uniform float* next_foam,
-    uniform float* next_temperatures,
-    uniform FluidContactSample* next_contact_samples,
-    uniform uint8_t* next_contact_flags)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> ids,
+    uniform PMBuffer<float> foam, uniform PMBuffer<float> temperatures,
+    uniform PMBuffer<FluidContactSample> contact_samples,
+    uniform PMBuffer<PMResourceUint8> contact_flags, uniform bool copy_contacts,
+    uniform PMBuffer<uint> selected, uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform PMBuffer<Vec3> next_positions, uniform PMBuffer<Vec3> next_velocities,
+    uniform PMBuffer<uint> next_ids, uniform PMBuffer<float> next_foam,
+    uniform PMBuffer<float> next_temperatures,
+    uniform PMBuffer<FluidContactSample> next_contact_samples,
+    uniform PMBuffer<PMResourceUint8> next_contact_flags)
 {
     uint item = pmThreadIndex();
     if (item >= capacity || item >= *count) return;
@@ -339,10 +340,10 @@ void fluid_gather(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_copy_initial(
-    uniform FluidParticle* input, uniform uint count,
-    uniform Vec3* positions, uniform Vec3* velocities, uniform uint* ids,
-    uniform float* foam, uniform float* temperatures,
-    uniform uint* invalid)
+    uniform PMBuffer<FluidParticle> input, uniform uint count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> ids,
+    uniform PMBuffer<float> foam, uniform PMBuffer<float> temperatures,
+    uniform PMBuffer<uint> invalid)
 {
     uint index = pmThreadIndex();
     if (index >= count) return;
@@ -375,6 +376,7 @@ struct PMPackedVec3
     float z;
 };
 
+#if PM_TARGET_CUDA
 struct PMFluidConstants
 {
     float timestep;
@@ -467,8 +469,8 @@ void pm_fluid_cell_keys(
     , uniform Ptr<uint, Access.Read> countBuffer
     , uniform uint capacity
     , uniform float inverseRadius
-    , uniform uint64_t* cellKeys
-    , uniform uint* sortedIndices
+    , uniform PMBuffer<uint64_t> cellKeys
+    , uniform PMBuffer<uint> sortedIndices
 #endif
 )
 {
@@ -499,16 +501,16 @@ void pm_fluid_forces(
 #if PM_TARGET_CUDA
     , uniform Ptr<PMPackedVec3, Access.Read> positions
     , uniform Ptr<PMPackedVec3, Access.Read> velocities
-    , uniform PMPackedVec3* accelerations
+    , uniform PMBuffer<PMPackedVec3> accelerations
     , uniform Ptr<float, Access.Read> foam
     , uniform Ptr<uint, Access.Read> countBuffer
     , uniform PMFluidConstants constants
     , uniform PMPackedVec3 upValue
-    , uniform float* foamSources
+    , uniform PMBuffer<float> foamSources
     , uniform Ptr<uint64_t, Access.Read> cellKeys
     , uniform Ptr<uint, Access.Read> sortedIndices
-    , uniform uint* neighborOverflow
-    , uniform uint* maximumNeighborCount
+    , uniform PMBuffer<uint> neighborOverflow
+    , uniform PMBuffer<uint> maximumNeighborCount
 #endif
 )
 {
@@ -604,13 +606,13 @@ void pm_fluid_forces(
 void pm_fluid_integrate(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
-    , uniform PMPackedVec3* positions
-    , uniform PMPackedVec3* velocities
+    , uniform PMBuffer<PMPackedVec3> positions
+    , uniform PMBuffer<PMPackedVec3> velocities
     , uniform Ptr<PMPackedVec3, Access.Read> accelerations
-    , uniform float* foam
+    , uniform PMBuffer<float> foam
     , uniform Ptr<uint, Access.Read> countBuffer
     , uniform PMFluidConstants constants
-    , uniform PMPackedVec3* previous
+    , uniform PMBuffer<PMPackedVec3> previous
     , uniform Ptr<float, Access.Read> foamSources
 #endif
 )
@@ -635,3 +637,4 @@ void pm_fluid_integrate(
     foam[index] = max(max(0.0f, foam[index] - constants.timestep * 0.7f),
                       foamSources[index]);
 }
+#endif

@@ -5,6 +5,7 @@
 import types;
 import math;
 import device_intrinsics;
+import graphics_resources;
 
 groupshared Vec3 fluid_impulse_linear[128];
 groupshared Vec3 fluid_impulse_angular[128];
@@ -142,18 +143,16 @@ public Vec3 fluid_closest_triangle_barycentric(
     return add(a, add(multiply(ab, v), multiply(ac, w)));
 }
 
-public void atomic_add(Vec3* destination, Vec3 value)
+public void atomic_add(PMBuffer<Vec3> destination, Vec3 value)
 {
-    pmAtomicAdd(&destination.x, value.x);
-    pmAtomicAdd(&destination.y, value.y);
-    pmAtomicAdd(&destination.z, value.z);
+    pmAtomicAddVec3(destination, value);
 }
 
 void stamp_paint_at_contact(
     Vec3 local_particle, float particle_radius, FluidId source,
-    RigidBodyId target, TriangleMeshResource* meshes,
-    PaintFieldResource* fields, uint field_capacity,
-    PaintRuleResource* rules, uint rule_capacity)
+    RigidBodyId target, PMBuffer<TriangleMeshResource> meshes,
+    PMBuffer<PaintFieldResource> fields, uint field_capacity,
+    PMBuffer<PaintRuleResource> rules, uint rule_capacity)
 {
     for (uint ruleIndex = 0u; ruleIndex < rule_capacity; ++ruleIndex)
     {
@@ -223,25 +222,25 @@ void stamp_paint_at_contact(
         if (x < 0) x += width;
         int y = max(0, min(height - 1,
             int(floor(bestUv.y * float(height)))));
-        pmAtomicOr(&field.pixels[y * width + x], bestSide);
+        pmAtomicOr(field.pixels + uint(y * width + x), bestSide);
     }
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_static_contacts(
-    uniform Vec3* positions, uniform Vec3* velocities,
-    uniform Vec3* previous, uniform float* foam, uniform uint* count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
     uniform float radius, uniform float spawn_clearance,
     uniform uint first_spawned, uniform bool recover_spawn, uniform Vec3 up,
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform RigidBodyId* body_ids,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<RigidBodyId> body_ids,
     uniform uint body_index,
     uniform float particle_mass, uniform bool collect_contacts,
-    uniform FluidContactSample* samples, uniform uint8_t* contact_flags,
+    uniform PMBuffer<FluidContactSample> samples, uniform PMBuffer<PMResourceUint8> contact_flags,
     uniform FluidId fluid_id,
-    uniform bool apply_paint, uniform PaintFieldResource* paint_fields,
-    uniform uint field_capacity, uniform PaintRuleResource* paint_rules,
+    uniform bool apply_paint, uniform PMBuffer<PaintFieldResource> paint_fields,
+    uniform uint field_capacity, uniform PMBuffer<PaintRuleResource> paint_rules,
     uniform uint rule_capacity)
 {
     uint particle = pmThreadIndex();
@@ -365,9 +364,9 @@ void fluid_static_contacts(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_body_bounds_kernel(
-    uniform BodyParameters* parameters, uniform RigidBodyState* previous,
-    uniform RigidBodyState* current, uniform TriangleMeshResource* meshes,
-    uniform uint count, uniform WorldAabb* bounds)
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> previous,
+    uniform PMBuffer<RigidBodyState> current, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform uint count, uniform PMBuffer<WorldAabb> bounds)
 {
     uint body = pmThreadIndex();
     if (body >= count || parameters[body].motion == MotionType.static_body)
@@ -386,9 +385,9 @@ void fluid_body_bounds_kernel(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_index_body_cells(
-    uniform BodyParameters* parameters, uniform WorldAabb* bounds,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<WorldAabb> bounds,
     uniform uint body_count, uniform uint words, uniform float padding,
-    uniform uint64_t* masks, uniform uint64_t* global_masks)
+    uniform PMBuffer<uint64_t> masks, uniform PMBuffer<uint64_t> global_masks)
 {
     uint body = pmThreadIndex();
     if (body >= body_count ||
@@ -406,26 +405,27 @@ void fluid_index_body_cells(
         int64_t(y1) - int64_t(y0) > 3 ||
         int64_t(z1) - int64_t(z0) > 3)
     {
-        pmAtomicOr(&global_masks[word], bit);
+        pmAtomicOr(global_masks + word, bit);
         return;
     }
     for (int z = z0; z <= z1; ++z)
         for (int y = y0; y <= y1; ++y)
             for (int x = x0; x <= x1; ++x)
-                pmAtomicOr(&masks[fluid_body_bucket(x, y, z) * words + word], bit);
+                pmAtomicOr(masks + fluid_body_bucket(x, y, z) * words + word,
+                    bit);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_detect_moving_contacts(
-    uniform Vec3* positions, uniform Vec3* previous, uniform uint* count,
-    uniform float radius, uniform BodyParameters* parameters,
-    uniform RigidBodyState* previous_states, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes, uniform WorldAabb* bounds,
-    uniform uint body_count, uniform uint64_t* masks,
-    uniform uint64_t* global_masks, uniform uint words,
-    uniform bool first_iteration, uniform FluidMovingContact* contacts,
-    uniform uint* contact_counts)
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
+    uniform float radius, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<WorldAabb> bounds,
+    uniform uint body_count, uniform PMBuffer<uint64_t> masks,
+    uniform PMBuffer<uint64_t> global_masks, uniform uint words,
+    uniform bool first_iteration, uniform PMBuffer<FluidMovingContact> contacts,
+    uniform PMBuffer<uint> contact_counts)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
@@ -524,24 +524,24 @@ void fluid_detect_moving_contacts(
     if (bestBody == kInvalidDense) return;
     contacts[particle] = {
         bestNormal, bestContact, bestPenetration, bestBody};
-    pmAtomicAdd(&contact_counts[bestBody], 1u);
+    pmAtomicAdd(contact_counts + bestBody, 1u);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_resolve_moving_contacts(
-    uniform Vec3* positions, uniform Vec3* velocities, uniform float* foam,
-    uniform uint* count, uniform float radius, uniform float particle_mass,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> foam,
+    uniform PMBuffer<uint> count, uniform float radius, uniform float particle_mass,
     uniform float timestep, uniform float maximum_speed,
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
-    uniform TriangleMeshResource* meshes,
-    uniform FluidMovingContact* contacts, uniform uint* contact_counts,
-    uniform FluidBodyImpulse* impulses, uniform bool collect_contacts,
-    uniform FluidContactSample* samples,
-    uniform uint8_t* particle_contact_flags, uniform FluidId fluid_id,
-    uniform RigidBodyId* body_ids, uniform bool apply_paint,
-    uniform PaintFieldResource* paint_fields, uniform uint field_capacity,
-    uniform PaintRuleResource* paint_rules, uniform uint rule_capacity)
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<FluidMovingContact> contacts, uniform PMBuffer<uint> contact_counts,
+    uniform PMBuffer<FluidBodyImpulse> impulses, uniform bool collect_contacts,
+    uniform PMBuffer<FluidContactSample> samples,
+    uniform PMBuffer<PMResourceUint8> particle_contact_flags, uniform FluidId fluid_id,
+    uniform PMBuffer<RigidBodyId> body_ids, uniform bool apply_paint,
+    uniform PMBuffer<PaintFieldResource> paint_fields, uniform uint field_capacity,
+    uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity)
 {
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
@@ -625,10 +625,10 @@ void fluid_resolve_moving_contacts(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void reduce_point_body_impulses(
-    uniform FluidBodyImpulse* impulses, uniform uint* particle_count,
-    uniform BodyParameters* parameters, uniform RigidBodyState* states,
-    uniform uint* contact_flags, uniform uint body_count,
-    uniform Vec3* position_corrections)
+    uniform PMBuffer<FluidBodyImpulse> impulses, uniform PMBuffer<uint> particle_count,
+    uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<uint> contact_flags, uniform uint body_count,
+    uniform PMBuffer<Vec3> position_corrections)
 {
     uint body = pmBlockIndex().x;
     if (body >= body_count || contact_flags[body] == 0u ||
@@ -642,7 +642,7 @@ void reduce_point_body_impulses(
         if (impulse.body != body) continue;
         localLinear = add(localLinear, impulse.linear);
         localAngular = add(localAngular, impulse.angular);
-        if (position_corrections != nullptr)
+        if (pmBufferPresent(position_corrections))
             localPosition = add(localPosition, position_corrections[particle]);
     }
     fluid_impulse_linear[lane] = localLinear;

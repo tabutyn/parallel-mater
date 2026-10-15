@@ -14,6 +14,7 @@ public static class GalleryInputSmoke {
     [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint key, uint mapType);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rect);
+    [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr window, IntPtr deviceContext, uint flags);
     [DllImport("kernel32.dll")] public static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
 }
 '@
@@ -57,7 +58,14 @@ try {
         $bitmap = New-Object Drawing.Bitmap ($rect.Right-$rect.Left), ($rect.Bottom-$rect.Top)
         $graphics = [Drawing.Graphics]::FromImage($bitmap)
         try {
-            $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+            $deviceContext = $graphics.GetHdc()
+            try {
+                # PW_RENDERFULLCONTENT captures this HWND even if another
+                # process takes the foreground while the smoke test runs.
+                if (![GalleryInputSmoke]::PrintWindow($window, $deviceContext, 2)) {
+                    throw "Could not capture gallery window $name"
+                }
+            } finally { $graphics.ReleaseHdc($deviceContext) }
             $bitmap.Save((Join-Path $Output "$name.png"), [Drawing.Imaging.ImageFormat]::Png)
         } finally { $graphics.Dispose(); $bitmap.Dispose() }
     }

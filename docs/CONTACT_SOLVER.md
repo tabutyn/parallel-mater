@@ -1,8 +1,9 @@
 # Unified rigid AVBD solver
 
 The production CUDA adapter consumes the numerical core generated from
-[one Slang implementation](SLANG.md); the same source is compiled for DXIL and
-MSL validation. The portable C++ header is the host reference used by equation
+[one Slang implementation](SLANG.md); the same numerical core is compiled for
+DXIL, MSL, HLSL, and WGSL validation. The portable C++ header is the test-only
+host reference used by equation
 fixtures. Collision geometry, graph construction, storage, synchronization,
 and dispatch remain device-adapter responsibilities.
 
@@ -23,9 +24,8 @@ native APIs provide execution and presentation rather than separate physics.
 compiled into the production CUDA runtime and cross-target validation outputs.
 It owns both the shared
 AVBD numerical core and the migrating rigid contact/joint solver entry points.
-[geometry_constraints.hpp](../src/simulation/solver/geometry_constraints.hpp)
-preserves
-the matching C++17 reference contract and thin generated-code adapters. The
+[geometry_constraints.hpp](../tests/solver/reference/geometry_constraints.hpp)
+preserves the matching C++17 test reference contract. The
 shared numerical core owns:
 
 - Coupled six-degree-of-freedom body blocks and an SPD LDLᵀ solve.
