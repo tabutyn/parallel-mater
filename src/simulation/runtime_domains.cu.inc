@@ -39,45 +39,10 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
     catch (...) { return failure(StatusCode::out_of_memory, "fluid owner allocation failed"); }
     fluid->generation = impl_->fluids[slot] ? impl_->fluids[slot]->generation : 1U;
     fluid->options = options;
-    const std::size_t capacity = options.capacity;
-    if (!(status = allocate_managed(fluid->count, 1U)) ||
-        !(status = allocate_managed(fluid->positions, capacity)) ||
-        !(status = allocate_managed(fluid->velocities, capacity)) ||
-        !(status = allocate_managed(fluid->previous, capacity)) ||
-        !(status = allocate_managed(fluid->ids, capacity)) ||
-        !(status = allocate_managed(fluid->foam, capacity)) ||
-        !(status = allocate_managed(fluid->temperatures, capacity)) ||
-        !(status = allocate_managed(fluid->foam_source, capacity)) ||
-        !(status = allocate_managed(fluid->next_positions, capacity)) ||
-        !(status = allocate_managed(fluid->next_velocities, capacity)) ||
-        !(status = allocate_managed(fluid->next_ids, capacity)) ||
-        !(status = allocate_managed(fluid->next_foam, capacity)) ||
-        !(status = allocate_managed(fluid->next_temperatures, capacity)) ||
-        !(status = allocate_managed(fluid->keep, capacity)) ||
-        !(status = allocate_managed(fluid->selected, capacity)) ||
-        !(status = allocate_managed(fluid->keys[0], capacity)) ||
-        !(status = allocate_managed(fluid->keys[1], capacity)) ||
-        !(status = allocate_managed(fluid->indices[0], capacity)) ||
-        !(status = allocate_managed(fluid->indices[1], capacity)) ||
-        !(status = allocate_managed(fluid->forces, capacity)) ||
-        !(status = allocate_managed(fluid->body_impulses, capacity)) ||
-        !(status = allocate_managed(fluid->moving_contacts, capacity)) ||
-        !(status = allocate_managed(fluid->contact_samples, capacity)) ||
-        !(status = allocate_managed(fluid->contact_flags, capacity)) ||
-        !(status = allocate_managed(fluid->hit_box_flags, capacity)) ||
-        !(status = allocate_managed(fluid->next_contact_samples, capacity)) ||
-        !(status = allocate_managed(fluid->next_contact_flags, capacity)) ||
-        !(status = allocate_managed(fluid->contact_count, 1U)) ||
-        !(status = allocate_managed(fluid->contact_offset, 1U))) return status;
-    fluid->sort_workspace_size =
-        simulation::radix_sort_scratch_bytes(options.capacity);
-    fluid->select_workspace_size =
-        simulation::compaction_scratch_bytes(options.capacity);
+    StorageAllocator allocator;
+    status = simulation::visit_fluid_storage(*fluid, options.capacity, allocator);
+    if (!status) return status;
     PmResult error = PM_SUCCESS;
-    if (!(status = allocate_scratch(fluid->sort_workspace,
-                                    fluid->sort_workspace_size)) ||
-        !(status = allocate_scratch(fluid->select_workspace,
-                                    fluid->select_workspace_size))) return status;
     *fluid->count = static_cast<std::uint32_t>(initial_particles.size);
     fluid->next_id = static_cast<std::uint32_t>(initial_particles.size);
     fluid->initial_count = initial_particles.size;

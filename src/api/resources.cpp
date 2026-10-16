@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "simulation/resource_plan.hpp"
 #include "../simulation/exports.hpp"
 #include "../simulation/geometry_constraints_dispatch.hpp"
 #include "../simulation/geometry_storage.hpp"
@@ -83,52 +84,52 @@ using parallel_mater::Vec3;
                                          view.range.buffer->size);
 }
 
+[[nodiscard]] parallel_mater::SimulationOptions simulation_options(
+    const PmSimulationCreateInfo &info) noexcept {
+    parallel_mater::SimulationOptions options{};
+    options.rigid_body_capacity = std::max(1U, info.rigidBodyCapacity);
+    options.rigid_constraint_capacity = std::max(1U, info.constraintCapacity);
+    options.triangle_mesh_capacity = std::max(16U, info.rigidBodyCapacity);
+    options.contact_capacity = std::max(1U, info.contactCapacity);
+    options.fluid_capacity = std::max(1U, info.fluidCount);
+    options.cloth_capacity = std::max(1U, info.clothCount);
+    options.rope_capacity = std::max(1U, info.ropeCount);
+    options.soft_body_capacity = std::max(1U, info.softBodyCount);
+    options.smoke_capacity = std::max(1U, info.smokeCount);
+    options.particle_source_capacity = std::max(1U, info.emitterCapacity);
+    options.particle_destroy_plane_capacity = std::max(1U, info.destroyerCapacity);
+    options.paint_field_capacity = std::max(1U, info.paintFieldCount);
+    options.paint_rule_capacity = std::max(1U, info.paintRuleCapacity);
+    const std::uint32_t coupling_capacity = std::max(1U, info.couplingCapacity);
+    options.fluid_smoke_coupling_capacity = coupling_capacity;
+    options.smoke_soft_body_coupling_capacity = coupling_capacity;
+    options.smoke_cloth_coupling_capacity = coupling_capacity;
+    options.smoke_rope_coupling_capacity = coupling_capacity;
+    options.smoke_rigid_coupling_capacity = coupling_capacity;
+    options.fluid_cloth_coupling_capacity = coupling_capacity;
+    options.soft_body_cloth_coupling_capacity = coupling_capacity;
+    options.fluid_soft_body_coupling_capacity = coupling_capacity;
+    options.fluid_rope_coupling_capacity = coupling_capacity;
+    options.rope_soft_body_coupling_capacity = coupling_capacity;
+    options.rope_cloth_coupling_capacity = coupling_capacity;
+    options.physics_debug.frame_capacity = info.debugFrameCapacity;
+    options.rigid_sleeping = true;
+    return options;
+}
+
 [[nodiscard]] bool simulation_requirements(
     const PmSimulationCreateInfo &info,
     PmSimulationMemoryRequirements &output) noexcept {
-    PmDeviceSize persistent = 65536U;
-    PmDeviceSize scratch = 4096U;
+    parallel_mater::simulation::StorageRequirements base{};
+    if (!parallel_mater::SimulationRuntime::base_memory_requirements(
+            simulation_options(info), base)) return false;
+    PmDeviceSize persistent = base.persistent;
+    PmDeviceSize scratch = base.scratch;
     const PmDeviceSize rigid = info.rigidBodyCapacity;
-    const PmDeviceSize pairs = rigid * rigid;
-    const PmDeviceSize manifolds = rigid > 1U ? rigid * (rigid - 1U) / 2U : 0U;
-    const PmDeviceSize requested_leaf_pair_slots = std::max<PmDeviceSize>(
-        parallel_mater::simulation::k_minimum_leaf_pair_cache_slots,
-        rigid * parallel_mater::simulation::k_leaf_pair_cache_slots_per_body);
-    const PmDeviceSize leaf_pair_slots =
-        std::min(manifolds, requested_leaf_pair_slots);
-    const PmDeviceSize leaf_pairs_per_slot =
-        rigid <= parallel_mater::simulation::k_small_rigid_leaf_body_capacity
-            ? parallel_mater::simulation::k_small_rigid_leaf_pair_capacity
-            : parallel_mater::simulation::k_max_leaf_pairs_per_body_pair;
-    if (leaf_pair_slots != 0U &&
-        leaf_pairs_per_slot >
-            std::numeric_limits<PmDeviceSize>::max() / leaf_pair_slots)
-        return false;
-    const PmDeviceSize leaf_pairs = leaf_pair_slots * leaf_pairs_per_slot;
-    if (!add_bytes(persistent, rigid, 4096U) ||
-        !add_bytes(persistent, pairs, 16U) ||
-        !add_bytes(persistent, manifolds,
-                   sizeof(parallel_mater::simulation::ContactManifold)) ||
-        !add_bytes(persistent, leaf_pair_slots,
-                   sizeof(parallel_mater::simulation::CachedContactPair)) ||
-        !add_bytes(persistent, leaf_pairs,
-                   sizeof(parallel_mater::simulation::LeafPair)) ||
-        (rigid <= parallel_mater::simulation::k_small_rigid_leaf_body_capacity &&
-         !add_bytes(persistent, leaf_pairs,
-                    sizeof(parallel_mater::simulation::ContactManifold))) ||
-        !add_bytes(persistent, std::max(1U, info.constraintCapacity),
-                   sizeof(parallel_mater::simulation::RigidConstraintResource)) ||
-        !add_bytes(persistent, info.contactCapacity, 128U) ||
-        !add_bytes(scratch, pairs, 16U) ||
-        !add_bytes(scratch, rigid, 2048U))
-        return false;
-    for (const PmFluidCapacity capacity :
-         std::span(info.pFluidCapacities, info.fluidCount)) {
-        if (!add_bytes(persistent, capacity.particleCapacity, 512U) ||
-            !add_bytes(persistent,
-                static_cast<PmDeviceSize>(capacity.particleCapacity) *
-                    capacity.neighborCapacityPerParticle, 4U) ||
-            !add_bytes(scratch, capacity.particleCapacity, 128U))
+    for (const PmFluidCapacity capacity : std::span(info.pFluidCapacities, info.fluidCount)) {
+        parallel_mater::simulation::StorageRequirements fluid{};
+        if (!parallel_mater::SimulationRuntime::fluid_memory_requirements(capacity.particleCapacity, fluid) ||
+            !add_bytes(persistent, 1, fluid.persistent) || !add_bytes(scratch, 1, fluid.scratch))
             return false;
     }
     for (const PmClothCapacity capacity :
@@ -178,6 +179,8 @@ using parallel_mater::Vec3;
             return false;
     }
     constexpr PmDeviceSize alignment = 256U;
+    if (persistent > std::numeric_limits<PmDeviceSize>::max() - (alignment - 1U) ||
+        scratch > std::numeric_limits<PmDeviceSize>::max() - (alignment - 1U)) return false;
     persistent = (persistent + alignment - 1U) & ~(alignment - 1U);
     scratch = (scratch + alignment - 1U) & ~(alignment - 1U);
     output.persistent = {persistent, alignment, 0x2U, PM_FALSE};
@@ -499,35 +502,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    parallel_mater::SimulationOptions options{};
-    options.rigid_body_capacity = std::max(1U, info->rigidBodyCapacity);
-    options.rigid_constraint_capacity = std::max(1U, info->constraintCapacity);
-    options.triangle_mesh_capacity = std::max(16U, info->rigidBodyCapacity);
-    options.contact_capacity = std::max(1U, info->contactCapacity);
-    options.fluid_capacity = std::max(1U, info->fluidCount);
-    options.cloth_capacity = std::max(1U, info->clothCount);
-    options.rope_capacity = std::max(1U, info->ropeCount);
-    options.soft_body_capacity = std::max(1U, info->softBodyCount);
-    options.smoke_capacity = std::max(1U, info->smokeCount);
-    options.particle_source_capacity = std::max(1U, info->emitterCapacity);
-    options.particle_destroy_plane_capacity = std::max(1U, info->destroyerCapacity);
-    options.paint_field_capacity = std::max(1U, info->paintFieldCount);
-    options.paint_rule_capacity = std::max(1U, info->paintRuleCapacity);
-    const std::uint32_t coupling_capacity = std::max(1U, info->couplingCapacity);
-    options.fluid_smoke_coupling_capacity = coupling_capacity;
-    options.smoke_soft_body_coupling_capacity = coupling_capacity;
-    options.smoke_cloth_coupling_capacity = coupling_capacity;
-    options.smoke_rope_coupling_capacity = coupling_capacity;
-    options.smoke_rigid_coupling_capacity = coupling_capacity;
-    options.fluid_cloth_coupling_capacity = coupling_capacity;
-    options.soft_body_cloth_coupling_capacity = coupling_capacity;
-    options.fluid_soft_body_coupling_capacity = coupling_capacity;
-    options.fluid_rope_coupling_capacity = coupling_capacity;
-    options.rope_soft_body_coupling_capacity = coupling_capacity;
-    options.rope_cloth_coupling_capacity = coupling_capacity;
-    options.physics_debug.frame_capacity = info->debugFrameCapacity;
-    options.rigid_sleeping = true;
-    created->simulation_options = options;
+    created->simulation_options = simulation_options(*info);
     *simulation = created;
     return PM_SUCCESS;
 }

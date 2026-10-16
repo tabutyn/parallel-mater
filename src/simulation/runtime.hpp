@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace parallel_mater {
+namespace simulation { struct StorageRequirements; }
 
 template <typename T> struct DeviceSpan {
     T *data{};
@@ -192,6 +193,11 @@ class SimulationRuntime {
     SimulationRuntime &operator=(SimulationRuntime &&) noexcept;
     SimulationRuntime(const SimulationRuntime &) = delete;
     SimulationRuntime &operator=(const SimulationRuntime &) = delete;
+
+    [[nodiscard]] static Status base_memory_requirements(SimulationOptions options,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status fluid_memory_requirements(std::uint32_t capacity,
+        simulation::StorageRequirements &output) noexcept;
 
     [[nodiscard]] static Status create(SimulationOptions options, SimulationRuntime &output,
                                        device::ExecutionQueue queue = {}) noexcept;
