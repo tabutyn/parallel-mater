@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: mobile-gallery-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   ipad:
     runs-on: macos-26
@@ -39,6 +42,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
       - run: bash scripts/Build-AndroidGallery.sh -Pqualification=true
       - uses: actions/upload-artifact@v4
