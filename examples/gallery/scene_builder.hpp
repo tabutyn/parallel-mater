@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -63,7 +64,9 @@ class CommandScene {
                                      std::uint32_t debug_frame_capacity,
                                      CommandScene &output,
                                      CommandSceneInstance &instance,
-                                     std::string &error);
+                                     std::string &error,
+                                     std::optional<PmNativeBackend> backend =
+                                         std::nullopt);
 
     [[nodiscard]] bool step(float timestep, std::uint32_t substeps,
                             Vec3 gravity, CommandSceneFrame &frame,

@@ -747,6 +747,11 @@ cudaError_t ScheduleContext::error(bool take) noexcept {
     return result;
 }
 
+ScheduleContext *context(cudaStream_t stream) noexcept {
+    return stream == nullptr ? active_context
+                             : static_cast<ScheduleContext *>(stream);
+}
+
 } // namespace parallel_mater::d3d12
 
 cudaError_t pmD3D12MemcpyAsync(

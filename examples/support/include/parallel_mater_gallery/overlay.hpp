@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -162,7 +163,13 @@ void draw_physics_debug_overlay(
 // examples, not the simulation runtime.
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
-                          GalleryContext selection);
+                          GalleryContext selection,
+                          const PmPhysicalDeviceFeatures *features = nullptr);
+
+void draw_backend_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, std::span<const std::string> names,
+    std::span<const std::string> details, std::size_t selection);
 
 void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,

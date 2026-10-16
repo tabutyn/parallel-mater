@@ -4,7 +4,7 @@
 `parallel_mater_driver_slang_vulkan` library and its `slang-vulkan.json`
 manifest. The public loader and Gallery remain backend independent. CUDA,
 Vulkan, and D3D12 are selected by manifest; the desktop Gallery also accepts
-`--backend cuda|vulkan|d3d12|cpu` for drivers built beside it.
+`--backend cuda|vulkan|d3d12|metal` for discovered drivers.
 
 The initial Vulkan qualification scope is rigid bodies, rigid constraints,
 liquids, liquid–rigid coupling, emitters, queries, and asynchronous public
@@ -35,7 +35,9 @@ Requirements: Vulkan 1.3, maintenance4, buffer device address, scalar block
 layout, 8-bit storage and arithmetic, 64-bit integer and buffer atomics,
 timestamp support, coherent host-visible memory, and 256-byte push constants.
 The first enumerated supported discrete GPU is preferred; software adapters
-are excluded. Native import is not advertised.
+are excluded. Native import is not advertised. Memory-budget reporting currently
+uses total device-local heap capacity minus this context's allocations; it does
+not yet account for other applications' GPU memory use.
 
 This is a correctness and integration preview. Mapped host preparation,
 single-workgroup solving, and synchronization boundaries still need performance
@@ -55,8 +57,8 @@ parallel-mater-gallery --parallel 1` on memory-constrained workstations.
 ./scripts/Install-DesktopTest.sh
 ```
 
-The Linux picker uses Zenity. The application menu entry is **Parallel Mater
-Backend Test**. It launches the built executable without triggering a build.
+Linux uses the same in-app backend picker as Windows. Use Up/Down, then Enter.
+The application menu entry is **Parallel Mater Backend Test**. It launches the built executable without triggering a build.
 `PM_GALLERY_BUILD_DIR` can override the script's build directory.
 The launcher opts into a Vulkan pipeline cache under that build directory.
 Library users may set `PM_VULKAN_CACHE_DIR` to their own cache directory; the
@@ -72,6 +74,6 @@ VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation \
   ctest --test-dir build-desktop-switch -R vulkan --output-on-failure -j1
 ```
 
-Tests exercise transfers, overlapping-body contact, GPU timestamps,
+Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
 bounded Fluid and FluidRigid gallery scenes, and reset.

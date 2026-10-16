@@ -28,6 +28,30 @@ optional OptiX adapter ray traces the same scene/frame contract and is isolated
 in its own target. Headless physics builds remain free of window and renderer
 dependencies.
 
+## Backend selection
+
+The interactive gallery opens with a backend selector before it creates the
+simulation. It lists the loader-visible drivers that can run the initial rigid
+scene; on a Windows installation containing both reference drivers this means
+CUDA and Direct3D 12. Up/Down changes the selection and Enter starts the same
+shared gallery with that physical device. The selected backend remains fixed
+across reset and scene changes. A scene whose required capabilities are not
+advertised by that backend is rejected instead of falling back to another
+driver.
+
+Automated and headless runs bypass the prompt with `--backend cuda` or
+`--backend d3d12`. Without an explicit backend, non-interactive runs retain the
+loader's normal compatible-device selection.
+
+On Windows, each successful `parallel-mater-gallery` build refreshes the
+current user's single canonical Start Menu installation. Its package manifest
+records the Git revision, configuration, executable hash, and all installed
+file hashes; `Parallel-Mater.exe --version` prints the embedded revision and
+per-build timestamp. Both
+the CUDA and Direct3D 12 portable manifests are installed when those drivers
+were built, so this installed executable presents the same backend selection
+that was tested in the build tree.
+
 ## First gallery sequence
 
 The same ordered catalog, scene construction, controls, and simulation path are

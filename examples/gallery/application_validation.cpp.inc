@@ -160,7 +160,8 @@
     }
     if (context == GalleryContext::rigid_body) {
         const std::uint64_t free_bytes =
-            parallel_mater::gallery::platform_available_device_memory();
+            parallel_mater::gallery::platform_available_device_memory(
+                options.backend);
         if (free_bytes != 0U &&
             parallel_mater::gallery::estimated_rigid_contact_bytes(
                 static_cast<std::uint32_t>(next.scene.rigid_bodies.size())) >
@@ -172,7 +173,8 @@
     const std::uint32_t debug_frames =
         context == GalleryContext::constraint_fixed ? 300U : 30U;
     bool created = CommandScene::create(next.scene, debug_frames,
-                                        next.simulation, next.instance, error);
+                                        next.simulation, next.instance, error,
+                                        options.backend);
     if (created)
         created = next.arrow_forces.initialize(next.scene, next.instance, error);
     if (created) {

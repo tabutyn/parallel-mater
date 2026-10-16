@@ -11,8 +11,9 @@ groupshared uint pmCompactionCount;
 [numthreads(256, 1, 1)]
 public void pm_compact_count_blocks(
     uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
-    uniform PMBuffer<uint> block_counts)
+    uniform PMBuffer<uint> block_counts PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
     uint index = block * tile_size + thread;
@@ -31,8 +32,10 @@ public void pm_compact_count_blocks(
 [numthreads(256, 1, 1)]
 public void pm_compact_scatter_indices(
     uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
-    uniform PMBuffer<uint> block_offsets, uniform PMBuffer<uint> output)
+    uniform PMBuffer<uint> block_offsets, uniform PMBuffer<uint> output
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
     uint index = block * tile_size + thread;

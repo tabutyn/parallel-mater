@@ -925,8 +925,9 @@ void prepare_avbd_kernel(
     uniform PM_AVBD_BUFFER(ContactSchedule) schedule,
     uniform float dt, uniform Vec3 gravity,
     uniform uint base_iterations, uniform uint requested_iterations,
-    uniform uint grid_blocks)
+    uniform uint grid_blocks PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint lane = pmGroupThreadIndex().x;
     for (uint bodyIndex = lane; bodyIndex < count;
          bodyIndex += pmGroupSize().x)

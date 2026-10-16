@@ -86,14 +86,6 @@ public in uint3 pmDispatchThreadId : SV_DispatchThreadID;
 static uint3 pmGroupId;
 static uint3 pmGroupThreadId;
 static uint3 pmDispatchThreadId;
-
-public void pmSetD3D12ThreadIndices(uint3 groupId, uint3 groupThreadId,
-    uint3 dispatchThreadId)
-{
-    pmGroupId = groupId;
-    pmGroupThreadId = groupThreadId;
-    pmDispatchThreadId = dispatchThreadId;
-}
 #endif
 
 #if defined(PM_TARGET_CPU)
@@ -102,6 +94,16 @@ public void pmSetD3D12ThreadIndices(uint3 groupId, uint3 groupThreadId,
 #elif defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
 uniform uint3 pmDispatchGroupCount;
 uniform uint pmDispatchGroupSizeX;
+
+#if PM_TARGET_D3D12
+public void pmSetD3D12DispatchThreadId(uint3 dispatchThreadId)
+{
+    pmDispatchThreadId = dispatchThreadId;
+    pmGroupId = uint3(dispatchThreadId.x / pmDispatchGroupSizeX, 0u, 0u);
+    pmGroupThreadId = uint3(
+        dispatchThreadId.x % pmDispatchGroupSizeX, 0u, 0u);
+}
+#endif
 
 public uint3 pmBlockIndex() { return pmGroupId; }
 public uint3 pmGroupThreadIndex() { return pmGroupThreadId; }

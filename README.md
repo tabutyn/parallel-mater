@@ -67,10 +67,10 @@ shared Slang schedule is present.
 
 On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
 implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
-and memory budgets, and qualifies device creation by dispatching the embedded
-shared AVBD DXIL prepare/solve schedule. It deliberately does not advertise
-physics features until the remaining shared domain schedules are wired through
-the command API.
+and memory budgets. Its command path dispatches the common rigid-body,
+rigid-constraint, contact, debug, and query schedules compiled to DXIL. It
+advertises those tested rigid capabilities while the remaining simulation
+domains stay unavailable.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -157,6 +157,23 @@ CPU liquid adapter. Its hardware-profile resource selects small rigid/fluid
 workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
 rigid and liquid scenes only; Android GPU execution and other domains remain
 future work. See [build, install and controls](examples/android/README.md).
+
+### Windows Gallery application
+
+Windows gallery builds automatically refresh the current user's canonical
+Start Menu installation at
+`%LOCALAPPDATA%\Programs\Parallel-Mater\Parallel-Mater.exe`. This is enabled by
+default with `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=ON`, so building the
+`parallel-mater-gallery` target cannot leave the Start Menu shortcut pointing
+at an older tested build. The deployment packages every built portable driver
+manifest, excludes test-only drivers, atomically replaces files, and verifies
+their SHA-256 hashes and the executable's reported build identity.
+
+Use `Parallel-Mater.exe --version` to identify the installed revision and exact
+build timestamp. To
+repair the installation explicitly, build the `install-windows-gallery`
+target. Set `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=OFF` only for build
+directories that must never update the current user's application.
 
 ### macOS Gallery application
 
@@ -262,7 +279,7 @@ same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
-  --headless /tmp/parallel-mater-gallery.ppm --frames 120
+  --backend cuda --headless /tmp/parallel-mater-gallery.ppm --frames 120
 
 ./build-gallery/parallel-mater-gallery \
   --dump-spheres 100 \

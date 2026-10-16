@@ -41,6 +41,7 @@ class ScheduleContext {
     cudaError_t error(bool take) noexcept;
     cudaError_t elapsed(cudaEvent_t begin, cudaEvent_t end, float *ms) noexcept;
     PmResult memory_budget(PmDeviceSize &available, PmDeviceSize &total) noexcept;
+    int ordinal() const noexcept;
     VkDevice device() const noexcept;
     VkInstance instance() const noexcept;
     VkPhysicalDevice physical() const noexcept;

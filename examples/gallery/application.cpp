@@ -40,6 +40,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(_WIN32)
+extern "C" const char *parallel_mater_windows_gallery_build_stamp() noexcept;
+#endif
+
 namespace {
 
 using parallel_mater::RigidBodyState;
@@ -123,7 +127,6 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
 }
 
 struct Options {
-    std::string backend;
     std::optional<parallel_mater::gallery::GalleryWorkloadLimits> workload_limits;
     bool fluid_particles_overridden{};
     std::filesystem::path executable_path{};
@@ -152,6 +155,7 @@ struct Options {
     bool bricks_overridden{};
     bool profiles_file_overridden{};
     bool print_brick_profile{};
+    std::optional<PmNativeBackend> backend{};
 };
 
 struct InputState {
@@ -239,6 +243,95 @@ class KeyEdges {
     std::array<bool, action_count> previous_{};
 };
 
+[[nodiscard]] std::string backend_title(PmNativeBackend backend) {
+    switch (backend) {
+    case PM_NATIVE_BACKEND_CUDA: return "CUDA";
+    case PM_NATIVE_BACKEND_D3D12: return "DIRECT3D 12";
+    case PM_NATIVE_BACKEND_VULKAN: return "VULKAN";
+    case PM_NATIVE_BACKEND_METAL: return "METAL";
+    }
+    return "UNKNOWN";
+}
+
+[[nodiscard]] std::string build_revision_label() {
+    std::string revision = PARALLEL_MATER_GALLERY_GIT_COMMIT;
+    if (revision.size() > 12U) revision.resize(12U);
+#if defined(_WIN32)
+    revision += "; ";
+    revision += parallel_mater_windows_gallery_build_stamp();
+#endif
+    return revision;
+}
+
+[[nodiscard]] std::string build_identity_label() {
+    std::string identity = PARALLEL_MATER_GALLERY_GIT_COMMIT;
+#if defined(_WIN32)
+    identity += "; built ";
+    identity += parallel_mater_windows_gallery_build_stamp();
+#endif
+    return identity;
+}
+
+[[nodiscard]] bool choose_backend(
+    GalleryWindow &presentation, std::uint32_t width, std::uint32_t height,
+    const std::vector<parallel_mater::gallery::GalleryBackendOption> &backends,
+    PmNativeBackend &selected_backend, std::string &error) {
+    if (backends.empty()) {
+        error = "no gallery-capable Parallel Mater backend was found";
+        return false;
+    }
+    std::vector<std::string> names;
+    std::vector<std::string> details;
+    std::vector<std::uint32_t> pixels;
+    try {
+        names.reserve(backends.size());
+        details.reserve(backends.size());
+        for (const auto &backend : backends) {
+            names.push_back(backend_title(backend.backend));
+            details.push_back(
+                backend.device_name + " / " +
+                (backend.features.cloth == PM_TRUE &&
+                 backend.features.rope == PM_TRUE &&
+                 backend.features.softBodies == PM_TRUE &&
+                 backend.features.smoke == PM_TRUE
+                     ? "FULL GALLERY"
+                     : backend.features.particleLiquids == PM_TRUE
+                         ? "RIGID + LIQUID PREVIEW"
+                         : "RIGID + CONSTRAINTS"));
+        }
+        pixels.assign(static_cast<std::size_t>(width) * height,
+                      0xff120d08U);
+    } catch (const std::bad_alloc &) {
+        error = "backend menu allocation failed";
+        return false;
+    }
+    std::size_t selection{};
+    KeyEdges keys;
+    GLFWwindow *window = presentation.native_handle();
+    while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        glfwPollEvents();
+        keys.update(window);
+        if (keys.pressed(KeyAction::up))
+            selection = (selection + backends.size() - 1U) % backends.size();
+        if (keys.pressed(KeyAction::down))
+            selection = (selection + 1U) % backends.size();
+        if (keys.pressed(KeyAction::escape)) {
+            error = "backend selection cancelled";
+            return false;
+        }
+        if (keys.pressed(KeyAction::enter)) {
+            selected_backend = backends[selection].backend;
+            return true;
+        }
+        std::fill(pixels.begin(), pixels.end(), 0xff120d08U);
+        parallel_mater::gallery::draw_backend_overlay(
+            pixels, width, height, names, details, selection);
+        if (!presentation.present(pixels, error)) return false;
+    }
+    error = "backend selection window closed";
+    return false;
+}
+
 #include "application_runtime.cpp.inc"
 
 #include "application_input.cpp.inc"
@@ -263,30 +356,63 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
     }
-    if (!options.backend.empty()) {
-        const auto manifest = std::filesystem::path(PARALLEL_MATER_GALLERY_MANIFEST_DIR) /
-            ("slang-" + options.backend + ".json");
-        std::error_code manifest_error;
-        if (!std::filesystem::is_regular_file(manifest, manifest_error)) {
-            std::cerr << "Backend is not built: " << options.backend << " (" << manifest << ")\n";
-            return 1;
-        }
-#if defined(_WIN32)
-        _putenv_s("PM_DRIVER_FILES", manifest.string().c_str());
-        if (!std::getenv("PM_LAYER_FILES") && !std::getenv("PM_LAYER_PATH"))
-            _putenv_s("PM_LAYER_FILES", (manifest.parent_path() / "validation.json").string().c_str());
-#else
-        setenv("PM_DRIVER_FILES", manifest.string().c_str(), 1);
-        if (!std::getenv("PM_LAYER_FILES") && !std::getenv("PM_LAYER_PATH"))
-            setenv("PM_LAYER_FILES", (manifest.parent_path() / "validation.json").string().c_str(), 1);
-#endif
-    }
     if (options.calibrate && !options.headless_output.empty()) {
         std::cerr << "--calibrate requires the interactive gallery path\n";
         return 2;
     }
+    std::string error;
+    std::string window_title =
+#ifdef PARALLEL_MATER_SLANG_TEST_BUILD
+        "ParallelMater Gallery - Slang Production Test";
+#else
+        "ParallelMater Gallery";
+#endif
+    window_title += " " PARALLEL_MATER_GALLERY_VERSION " [" +
+        build_revision_label() + "]";
+    const auto backends = platform_gallery_backends();
+    if (options.backend &&
+        std::none_of(backends.begin(), backends.end(), [&](const auto &item) {
+            return item.backend == *options.backend;
+        })) {
+        std::cerr << "Requested backend "
+                  << gallery_backend_name(*options.backend)
+                  << " is not available\n";
+        return 1;
+    }
+    GalleryWindow presentation;
+    const bool interactive = options.headless_output.empty() &&
+        !options.print_brick_profile;
+    if (interactive) {
+        if (!GalleryWindow::create(1280U, 720U, options.width, options.height,
+                                   window_title.c_str(), presentation, error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
+        if (!options.backend && !backends.empty()) {
+            PmNativeBackend selected{};
+            if (!choose_backend(presentation, options.width, options.height,
+                                backends, selected, error)) {
+                std::cerr << error << '\n';
+                return 1;
+            }
+            options.backend = selected;
+        }
+        if (options.backend) {
+            const std::string title = window_title + " - " +
+                backend_title(*options.backend);
+            glfwSetWindowTitle(presentation.native_handle(), title.c_str());
+        }
+    }
+    const PmPhysicalDeviceFeatures *selected_features = nullptr;
+    for (const auto &backend : backends) {
+        if (options.backend && backend.backend == *options.backend) {
+            selected_features = &backend.features;
+            break;
+        }
+    }
     if (options.headless_output.empty()) {
-        const HardwareIdentity hardware = platform_hardware_identity();
+        const HardwareIdentity hardware =
+            platform_hardware_identity(options.backend);
         if (hardware.gpu_model.empty()) {
             std::cerr << "Could not identify the current Parallel Mater device\n";
             return 1;
@@ -328,7 +454,6 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                   << " walls [" << selection_label << "]\n";
     }
     if (options.print_brick_profile) return 0;
-    std::string error;
     GallerySession session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,
                          options.fluid_particles, error)) {
@@ -653,23 +778,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         return 0;
     }
 
-    const char *window_title =
-#ifdef PARALLEL_MATER_SLANG_TEST_BUILD
-        "ParallelMater Gallery - Slang Production Test";
-#else
-        "ParallelMater Gallery";
-#endif
-    GalleryWindow presentation;
-    if (!GalleryWindow::create(1280U, 720U, options.width, options.height,
-                               window_title, presentation, error)) {
-        std::cerr << error << '\n';
-        return 1;
-    }
     GLFWwindow *window = presentation.native_handle();
-    if (!options.backend.empty()) {
-        const auto title = std::string(window_title) + " — " + options.backend;
-        glfwSetWindowTitle(window, title.c_str());
-    }
     glfwSetWindowUserPointer(window, &input_state);
     glfwSetMouseButtonCallback(window, &mouse_button);
     glfwSetCursorPosCallback(window, &cursor_position);
@@ -848,9 +957,12 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                         gallery_entries[selected].context;
                     const bool context_changed =
                         context_selection != runtime.context;
-                    if (!context_changed ||
-                        session.rebuild(options, context_selection, dump_spheres,
-                                        fluid_particles, error)) {
+                    if (selected_features &&
+                        !gallery_backend_supports(context_selection, *selected_features)) {
+                        // The catalog explains why this row is disabled.
+                    } else if (!context_changed ||
+                               session.rebuild(options, context_selection, dump_spheres,
+                                               fluid_particles, error)) {
                         if (context_changed) {
                             debug.reset(options.fluid_particle_view);
                             input_state.shared.current = selected;
@@ -1241,7 +1353,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         if (input_state.shared.catalog_visible) {
             draw_context_overlay(pixels, runtime.renderer.width(),
                                  runtime.renderer.height(),
-                                 gallery_entries[input_state.shared.selected].context);
+                                 gallery_entries[input_state.shared.selected].context, selected_features);
         }
         if (input_state.shared.parameters_visible) {
             if (input_state.brick_dialog)

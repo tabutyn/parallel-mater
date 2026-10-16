@@ -33,10 +33,10 @@ kernels or direct launches in the runtime.
 - Command API, API contract, gallery catalog/input, Slang architecture, and
   Slang reflection tests pass on the CUDA host.
 - All 105 AVBD fixtures and the CPU/CUDA/Slang AVBD-core tests pass.
-- The loader-visible D3D12 adapter creates both shared AVBD DXIL pipelines,
-  binds and dispatches their schedule, validates readback, and passes public
-  memory/buffer/barrier/fence/native-handle tests. It advertises no physics
-  feature until the remaining domain schedules are command-wired.
+- The loader-visible D3D12 adapter executes the shared rigid-body,
+  rigid-constraint, contact, debug, and query schedules compiled to DXIL. Its
+  command and installed-gallery tests verify that dynamic bodies advance, and
+  it advertises only those tested rigid capabilities.
 - The common gallery builds with OptiX disabled, uses the software renderer and
   thin D3D12 presentation window, and passes the real-window F/Tab/scene-switch
   harness while physics is supplied by the selected full-feature driver.

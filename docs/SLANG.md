@@ -44,14 +44,14 @@ The reference implementation still waits on its worker between frames and
 performs explicit readbacks for emission, phase transfer, diagnostics, and
 some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
-full native adapters for other graphics APIs remain separate work. This change
-does not advertise new physics capabilities on D3D12, Vulkan, or Metal.
+full native adapters for other graphics APIs remain separate work. Vulkan and
+Metal do not advertise new physics capabilities from this change.
 
-The Windows D3D12 driver embeds DXIL generated from the common kernel manifest,
-including AVBD prepare and solve. Device creation qualifies descriptor binding,
-dispatch, barriers, and readback with the shared `pm_clear_rigid_inputs` kernel.
-Its public command path currently exposes only core transfer services, so it
-does not advertise rigid-body or other physics features yet.
+The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
+Its public command path binds and dispatches the shared rigid-body,
+rigid-constraint, contact, debug, and query schedules and advertises those
+tested capabilities. Fluid, cloth, rope, soft-body, smoke, and their couplings
+remain unadvertised.
 
 No Metal device adapter or Metal physics implementation is shipped. The CPU
 driver advertises only the rigid capabilities that its shared Slang schedule

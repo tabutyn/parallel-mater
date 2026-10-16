@@ -41,6 +41,7 @@ struct Adapter {
     VkPhysicalDeviceProperties properties;
     std::uint32_t family;
     std::uint32_t timestamp_bits;
+    std::array<std::uint8_t, VK_UUID_SIZE> uuid;
 };
 std::vector<Adapter> adapters(VkInstance instance) {
     std::uint32_t count{};
@@ -51,7 +52,12 @@ std::vector<Adapter> adapters(VkInstance instance) {
     std::vector<Adapter> result;
     for (auto physical : devices) {
         VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(physical, &properties);
+        VkPhysicalDeviceIDProperties id{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES};
+        VkPhysicalDeviceProperties2 properties2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, &id};
+        vkGetPhysicalDeviceProperties2(physical, &properties2);
+        properties = properties2.properties;
+        std::array<std::uint8_t, VK_UUID_SIZE> uuid{};
+        std::memcpy(uuid.data(), id.deviceUUID, uuid.size());
         if (properties.apiVersion < VK_API_VERSION_1_3 ||
             properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU ||
             properties.limits.maxPushConstantsSize < 256U)
@@ -72,8 +78,7 @@ std::vector<Adapter> adapters(VkInstance instance) {
         if (std::any_of(result.begin(), result.end(), [&](const Adapter &a) {
                 return a.properties.vendorID == properties.vendorID &&
                        a.properties.deviceID == properties.deviceID &&
-                       std::memcmp(a.properties.pipelineCacheUUID,
-                                   properties.pipelineCacheUUID, VK_UUID_SIZE) == 0;
+                       a.uuid == uuid;
             }))
             continue;
         std::uint32_t families{};
@@ -83,7 +88,7 @@ std::vector<Adapter> adapters(VkInstance instance) {
         for (std::uint32_t i = 0; i < families; ++i)
             if ((queues[i].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
                 queues[i].timestampValidBits) {
-                result.push_back({physical, properties, i, queues[i].timestampValidBits});
+                result.push_back({physical, properties, i, queues[i].timestampValidBits, uuid});
                 break;
             }
     }
@@ -109,6 +114,7 @@ struct ScheduleContext::Impl {
     };
     Instance instance;
     Adapter adapter{};
+    int ordinal{};
     VkDevice device{};
     VkQueue queue{};
     VkPhysicalDeviceMemoryProperties memory{};
@@ -368,6 +374,7 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
             return PM_ERROR_INVALID_ARGUMENT;
         auto &i = *impl_;
         i.adapter = available[ordinal];
+        i.ordinal = ordinal;
         vkGetPhysicalDeviceMemoryProperties(i.adapter.handle, &i.memory);
         float priority = 1;
         VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
@@ -775,6 +782,7 @@ VkInstance ScheduleContext::instance() const noexcept { return impl_->instance.h
 VkPhysicalDevice ScheduleContext::physical() const noexcept {
     return impl_->adapter.handle;
 }
+int ScheduleContext::ordinal() const noexcept { return impl_->ordinal; }
 VkDevice ScheduleContext::device() const noexcept { return impl_->device; }
 VkBuffer ScheduleContext::buffer(const void *pointer) const noexcept {
     auto b = impl_->find(pointer);
@@ -782,6 +790,7 @@ VkBuffer ScheduleContext::buffer(const void *pointer) const noexcept {
 }
 PmResult ScheduleContext::memory_budget(PmDeviceSize &available,
                                         PmDeviceSize &total) noexcept {
+    std::lock_guard lock(impl_->mutex);
     total = 0;
     for (std::uint32_t n = 0; n < impl_->memory.memoryHeapCount; ++n)
         if (impl_->memory.memoryHeaps[n].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
@@ -885,4 +894,11 @@ cudaError_t cudaEventDestroy(cudaEvent_t e) noexcept {
 cudaError_t cudaEventElapsedTime(float *ms, cudaEvent_t begin, cudaEvent_t end) noexcept {
     auto c = begin ? context(begin->stream) : nullptr;
     return c ? c->elapsed(begin, end, ms) : cudaErrorInvalidResourceHandle;
+}
+
+cudaError_t cudaGetDevice(int *device) noexcept {
+    auto c = context();
+    if (!device || !c) return cudaErrorInvalidValue;
+    *device = c->ordinal();
+    return cudaSuccess;
 }

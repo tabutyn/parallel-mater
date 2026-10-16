@@ -12,8 +12,10 @@ groupshared uint pmRadixDigits[256];
 [numthreads(256, 1, 1)]
 public void pm_radix_histogram_u64(
     uniform PMBuffer<uint64_t> keys, uniform uint count, uniform uint tile_size,
-    uniform uint shift, uniform uint block_count, uniform PMBuffer<uint> histograms)
+    uniform uint shift, uniform uint block_count, uniform PMBuffer<uint> histograms
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
     if (block >= block_count) return;
@@ -35,8 +37,9 @@ public void pm_radix_histogram_u64(
 [numthreads(1, 1, 1)]
 public void pm_radix_prefix_u32(
     uniform PMBuffer<uint> histograms, uniform uint block_count,
-    uniform PMBuffer<uint> offsets)
+    uniform PMBuffer<uint> offsets PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmThreadIndex() != 0u) return;
     uint base = 0u;
     for (uint digit = 0u; digit < kPmRadix; ++digit)
@@ -58,8 +61,10 @@ public void pm_radix_scatter_u64_u32(
     uniform PMBuffer<uint64_t> input_keys, uniform PMBuffer<uint> input_values,
     uniform uint count, uniform uint tile_size, uniform uint shift,
     uniform uint block_count, uniform PMBuffer<uint> offsets,
-    uniform PMBuffer<uint64_t> output_keys, uniform PMBuffer<uint> output_values)
+    uniform PMBuffer<uint64_t> output_keys, uniform PMBuffer<uint> output_values
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint block = pmBlockIndex().x;
     uint thread = pmGroupThreadIndex().x;
     if (block >= block_count) return;

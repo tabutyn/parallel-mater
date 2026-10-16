@@ -122,12 +122,7 @@ inline cudaError_t cudaDeviceSynchronize() noexcept {
     return pmVulkanStreamSynchronize(nullptr);
 }
 
-inline cudaError_t cudaGetDevice(int *device) noexcept {
-    if (device == nullptr)
-        return cudaErrorInvalidValue;
-    *device = 0;
-    return cudaSuccess;
-}
+cudaError_t cudaGetDevice(int *device) noexcept;
 
 inline cudaError_t cudaDeviceGetAttribute(int *value, cudaDeviceAttr attribute,
                                           int) noexcept {
