@@ -14,7 +14,12 @@ Checkpoints `368dfe5`, `76bbfe8` and `4eaf42b` add arena reclamation, common
 allocation planning and tested fluid replacement/recovery. Continuing domain
 planning and qualification are recorded in [RESOURCE-LIFETIME.md](RESOURCE-LIFETIME.md)
 and the roadmap. Findings below describe the audited revisions; they are not
-an assertion that those fixes remain absent.
+an assertion that those fixes remain absent. `7677ea9` isolates domain storage;
+`1fde50c` adds simulation-owned graph updates and endpoint replacement recovery.
+`4449b74` fixes negotiation and the layer namespace. The following F3 checkpoint
+adds typed layer ABI 2, memory/buffer state validation, cross-device dispatch
+rejection, and searchable-spec consistency checks. See
+[API-CONTRACT.md](API-CONTRACT.md) for executable evidence and coverage limits.
 
 ## Assessment
 

@@ -38,6 +38,11 @@ def guarded(command, body):
     return body
 
 
+def write_changed(path, text):
+    if not path.exists() or path.read_text() != text:
+        path.write_text(text)
+
+
 def emit(output: Path):
     output.mkdir(parents=True, exist_ok=True)
     commands = declarations()
@@ -46,6 +51,13 @@ def emit(output: Path):
     unmap = ["// Generated from registry/pm.xml.\n"]
     lookup = ["// Generated from registry/pm.xml.\n"]
     loader_lookup = ["// Generated from registry/pm.xml.\n"]
+    layer_args = ['// Generated from registry/pm.xml. Do not edit.\n'
+                  '#ifndef PARALLEL_MATER_LAYER_ARGS_H\n'
+                  '#define PARALLEL_MATER_LAYER_ARGS_H\n'
+                  '#include <parallel_mater/parallel_mater.h>\n'
+                  '#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)\n'
+                  '#include <parallel_mater/interop_vulkan.h>\n#endif\n']
+    layer_dispatch = ['// Generated typed validation dispatch.\n']
     forwards = ["// Generated from registry/pm.xml.\n"]
 
     for command in commands:
@@ -58,6 +70,15 @@ def emit(output: Path):
         loader_lookup.append(guarded(command,
             f'PM_LOADER_LOOKUP({name});\n'))
 
+        fields = "".join(f"    {kind} {param};\n" for kind, param in command["params"])
+        layer_args.append(guarded(command,
+            f"typedef struct PmLayerArgs_{name} {{\n{fields}}} PmLayerArgs_{name};\n"))
+        layer_dispatch.append(guarded(command, f'''    if (std::strcmp(call.pCommandName, "{name}") == 0) {{
+        if (call.argumentSize != sizeof(PmLayerArgs_{name}))
+            return PM_ERROR_INVALID_ARGUMENT;
+        return function(*static_cast<const PmLayerArgs_{name} *>(call.pArguments));
+    }}
+'''))
         if name in SPECIAL:
             continue
         first_type, first_name = command["params"][0]
@@ -69,16 +90,16 @@ def emit(output: Path):
             f"reinterpret_cast<{first_type}>(route.native)", *args[1:]
         ]
         if command["returns"] == "PmResult":
-            invocation = f'''    const PmResult validation = parallel_mater::loader::pre_call(route, "{name}");
+            invocation = f'''    const PmResult validation = parallel_mater::loader::pre_call(route, "{name}", arguments);
     if (validation != PM_SUCCESS) return validation;
     const PmResult result = function({", ".join(native_args)});
-    parallel_mater::loader::post_call(route, "{name}", result);
+    parallel_mater::loader::post_call(route, "{name}", result, arguments);
     return result;'''
         elif command["returns"] == "void":
-            invocation = f'''    if (parallel_mater::loader::pre_call(route, "{name}") != PM_SUCCESS)
+            invocation = f'''    if (parallel_mater::loader::pre_call(route, "{name}", arguments) != PM_SUCCESS)
         return;
     function({", ".join(native_args)});
-    parallel_mater::loader::post_call(route, "{name}", PM_SUCCESS);
+    parallel_mater::loader::post_call(route, "{name}", PM_SUCCESS, arguments);
     return;'''
         else:
             invocation = f'''    return function({", ".join(native_args)});'''
@@ -90,16 +111,21 @@ def emit(output: Path):
         route.driver->resolve(route, "{name}"));
     if (function == nullptr)
         return parallel_mater::loader::unsupported<{command["returns"]}>();
+    const PmLayerArgs_{name} arguments{{{", ".join(args)}}};
 {invocation}
 }}
 '''
         forwards.append(guarded(command, body))
 
-    (output / "driver_remap.h").write_text("".join(remap))
-    (output / "driver_unmap.h").write_text("".join(unmap))
-    (output / "driver_lookup.inc").write_text("".join(lookup))
-    (output / "loader_lookup.inc").write_text("".join(loader_lookup))
-    (output / "loader_forward.inc").write_text("".join(forwards))
+    layer_args.append("#endif\n")
+    (output / "parallel_mater").mkdir(exist_ok=True)
+    write_changed(output / "parallel_mater/pm_layer_args.h", "".join(layer_args))
+    write_changed(output / "layer_dispatch.inc", "".join(layer_dispatch))
+    write_changed(output / "driver_remap.h", "".join(remap))
+    write_changed(output / "driver_unmap.h", "".join(unmap))
+    write_changed(output / "driver_lookup.inc", "".join(lookup))
+    write_changed(output / "loader_lookup.inc", "".join(loader_lookup))
+    write_changed(output / "loader_forward.inc", "".join(forwards))
 
 
 def main():

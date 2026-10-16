@@ -37,6 +37,7 @@ Header and runtime coverage generation does not require the PDF dependencies:
 
 ```sh
 python3 tools/reference/build.py --headers-only
+python3 tools/reference/build.py --text-only
 ```
 
 `registry/pm.xml` is the declaration and ABI source of truth, including stable
@@ -45,3 +46,7 @@ and `tools/reference/model.py` owns section numbering. Generation writes
 headers, the two documents, Markdown, and routing inventories; it never writes
 runtime implementation files. Diagrams are vector drawing instructions. The
 transparent wordmark is the only raster asset.
+
+`--text-only` updates searchable specification text and coverage as well as the
+headers. CI checks that the text and headers match their sources. PDF artifacts
+are release snapshots; regenerate both PDFs with the full command for a release.

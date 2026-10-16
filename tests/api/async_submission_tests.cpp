@@ -119,6 +119,19 @@ int main() {
     CHECK(pmCreateCommandPool(device, &pool_info, &pool) == PM_SUCCESS);
     std::array<PmCommandBuffer, 5> commands{};
     CHECK(pmAllocateCommandBuffers(device, pool, commands.size(), commands.data()) == PM_SUCCESS);
+    // Same driver is insufficient: dispatchable children belong to one device.
+    PmDevice other_device{};
+    CHECK(pmCreateDevice(physical, &device_info, &other_device) == PM_SUCCESS);
+    PmQueue other_queue{};
+    pmGetDeviceQueue(other_device, 0, 0, &other_queue);
+    PmSubmitInfo foreign_submit{};
+    foreign_submit.sType = PM_STRUCTURE_TYPE_SUBMIT_INFO;
+    foreign_submit.commandBufferCount = 1;
+    foreign_submit.pCommandBuffers = commands.data();
+    CHECK(pmQueueSubmit(other_queue, &foreign_submit, nullptr) == PM_ERROR_INVALID_ARGUMENT);
+    // A wrong-device free must leave the wrapper intact for its actual owner.
+    pmFreeCommandBuffers(other_device, pool, 1, commands.data());
+    pmDestroyDevice(other_device);
     std::array<PmFence, 5> fences{};
     for (auto &fence : fences) CHECK(pmCreateFence(device, 0U, &fence) == PM_SUCCESS);
     PmQueryPoolCreateInfo query_info{};

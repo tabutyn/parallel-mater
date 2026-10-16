@@ -82,7 +82,7 @@ Set sType to its matching PM_STRUCTURE_TYPE_* value; pNext = NULL in core 0.2. U
 
 ### 1.5 Units & lifetime
 
-Right-handed; +Y up; meters, seconds, kilograms, radians, kelvin. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order after GPU completion; destruction does not wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects.
+Right-handed; +Y up; meters, seconds, kilograms, radians, kelvin. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order. Destruction may wait for pending device work; explicit completion before destruction avoids this implicit wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects.
 
 <a id="spec-return_codes"></a>
 
@@ -193,7 +193,7 @@ PmResult pmCreateInstance(
 void pmDestroyInstance(PmInstance instance);
 ```
 
-pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.
+pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference; zero selects 0.2. Other versions are unsupported, including older pre-stable versions. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.
 
 Related sections: [3.3](#spec-allocator), [4](#spec-discovery).
 
@@ -1007,7 +1007,7 @@ typedef struct PmRigidSolverState {
 } PmRigidSolverState;
 ```
 
-One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled.
+One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled. The current reference drivers require enableSleeping = PM_FALSE and reject enabled sleeping with FEATURE_NOT_PRESENT; omitted rigid state defaults to sleeping disabled.
 
 <a id="spec-liquid_material"></a>
 
@@ -1105,7 +1105,13 @@ typedef struct PmCouplingState {
 } PmCouplingState;
 ```
 
-first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid.
+```c
+PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingState *pCouplings);
+```
+
+first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph. The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair.
 
 <a id="spec-domain_materials"></a>
 
@@ -1608,7 +1614,7 @@ PmResult pmResetCommandBuffer(
     PmCommandBuffer commandBuffer);
 ```
 
-Primary buffers only. Begin requires Initial. End requires Recording and no latched error or open query. Individual reset requires RESET_BUFFER on the pool. No simultaneous submission of one command buffer. Host input arrays are copied at record time; no device work occurs while recording.
+Primary buffers only. Begin discards prior recording and starts from Initial, Executable or Invalid; Recording and Pending reject Begin. End requires Recording and no latched error or open query. Individual reset requires RESET_BUFFER on the pool. No simultaneous submission of one command buffer. Host input arrays are copied at record time; no device work occurs while recording.
 
 <a id="spec-lifecycle"></a>
 
@@ -1621,9 +1627,9 @@ Primary buffers only. Begin requires Initial. End requires Recording and no latc
 | Executable | QueueSubmit → Pending; may reset/free |
 | Pending | No edits, reset, free or resubmit |
 | Completion | Reusable → Executable; one-time → Invalid |
-| Invalid | Reset → Initial, or free |
+| Invalid | Begin → Recording; reset → Initial, or free |
 
-A recording failure makes End fail and leaves the buffer Invalid. Destroying a referenced nonpending resource invalidates dependent buffers. Destroying a pending resource is invalid usage. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.
+Rejected argument/state validation does not enqueue a command and recording may continue. A latched recording allocation failure makes End fail. Destruction drains pending work in the reference drivers, but does not rewrite recorded references. After destroying a referenced resource, reset or free every dependent command buffer before reuse. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.
 
 Related sections: [13.4](#spec-submission), [13.5](#spec-fences).
 
@@ -1921,14 +1927,6 @@ PmResult pmWaitForFences(PmDevice device,
 ```
 
 Submit requires an unsignaled fence not associated with pending work. Get returns SUCCESS or NOT_READY. Wait accepts zero for polling and PM_TIMEOUT_INFINITE for an unbounded wait; expiration returns TIMEOUT. Only reset a fence after its associated work completes. A fence synchronizes GPU completion with the CPU, not another GPU queue.
-
-A deferred submission failure may also be returned by fence status/wait,
-timeline wait, query-result retrieval, and queue/device idle. Such a failure
-must not make a completion observable until all partially issued work has
-finished accessing its resources. The reference drivers retain the fence's
-execution result until reset; idle returns the first failure since the preceding
-idle call. Simulation status remains NOT_READY while host scheduling or device
-execution is pending, including work accepted behind an unresolved timeline wait.
 
 <a id="spec-interop"></a>
 
@@ -2671,6 +2669,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdQueryHitBox | [7.6](#spec-hit_boxes) |
 | pmCmdResetQueryPool | [15.1](#spec-query_pool) |
 | pmCmdResetSimulation | [11.4](#spec-simulation_init) |
+| pmCmdSetCouplings | [9.3](#spec-coupling) |
 | pmCmdSetFluidParticles | [11.4](#spec-simulation_init) |
 | pmCmdSetKinematicTargets | [7.5](#spec-body_inputs) |
 | pmCmdSetRigidStates | [7.5](#spec-body_inputs) |

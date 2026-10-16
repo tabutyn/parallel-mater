@@ -267,13 +267,11 @@ std::shared_ptr<Layer> Layer::open(const std::filesystem::path &filename,
     return layer;
 }
 
-PmResult Layer::pre(const char *command, const void *handle) const {
-    const PmLayerCallInfo call{command, handle};
+PmResult Layer::pre(const PmLayerCallInfo &call) const {
     return pre_call(&call);
 }
 
-void Layer::post(const char *command, const void *handle, PmResult result) const {
-    const PmLayerCallInfo call{command, handle};
+void Layer::post(const PmLayerCallInfo &call, PmResult result) const {
     post_call(&call, result);
 }
 
@@ -421,19 +419,21 @@ std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
     return result;
 }
 
-PmResult pre_call(const Route &route, const char *command) noexcept {
+PmResult pre_call(const Route &route, const char *command,
+                  std::uint32_t size, const void *arguments) noexcept {
     if (route.layers == nullptr) return PM_SUCCESS;
     for (const auto &layer : *route.layers) {
-        const PmResult result = layer->pre(command, route.native);
+        const PmResult result = layer->pre({command, route.native, size, arguments});
         if (result != PM_SUCCESS) return result;
     }
     return PM_SUCCESS;
 }
 
-void post_call(const Route &route, const char *command, PmResult result) noexcept {
+void post_call(const Route &route, const char *command, PmResult result,
+               std::uint32_t size, const void *arguments) noexcept {
     if (route.layers == nullptr) return;
     for (auto layer = route.layers->rbegin(); layer != route.layers->rend(); ++layer)
-        (*layer)->post(command, route.native, result);
+        (*layer)->post({command, route.native, size, arguments}, result);
 }
 
 Route route(PmPhysicalDevice value) noexcept {

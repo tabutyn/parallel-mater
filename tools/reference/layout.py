@@ -19,7 +19,7 @@ from reportlab.platypus import Paragraph
 
 from content import SECTIONS, Card, Section
 from api_model import public_types
-from model import REFERENCE_NOTES, SPEC_NUMBERS, reference_sections
+from model import REFERENCE_NOTES, SPEC_NUMBERS, reference_sections, example_fragment, symbols
 
 ROOT = Path(__file__).resolve().parents[2]
 DEST = ROOT / "docs/reference"
@@ -112,22 +112,6 @@ def code_lines(source):
                 raise ValueError(f"Code token exceeds column: {value}")
         lines.extend(wrapped)
     return lines
-
-
-def example_fragment(key):
-    source = (DEST / "examples/record_frame.c").read_text()
-    return source.split(f"/* REF_BEGIN: {key} */\n")[1].split(f"/* REF_END: {key} */")[0].strip()
-
-
-def symbols():
-    found = {}
-    for section in SECTIONS:
-        for card in section.cards:
-            for name in re.findall(r"\b(pm\w+)\s*\(", card.functions):
-                found[name] = card.key
-            for name in public_types(card.types):
-                found[name] = card.key
-    return sorted(found.items(), key=lambda item: item[0].lower())
 
 
 def components(card):

@@ -53,8 +53,9 @@ def generate_headers(check=False):
                 if not path.exists() or path.read_text() != output:
                     stale.append(str(path.relative_to(ROOT)))
             continue
-        target.write_text(output)
-        installed.write_text(output)
+        for path in (target, installed):
+            if not path.exists() or path.read_text() != output:
+                path.write_text(output)
     if stale:
         raise RuntimeError(
             "generated API files are stale; run "
@@ -72,12 +73,22 @@ def main():
                         help="Regenerate headers and API coverage without PDF dependencies")
     parser.add_argument("--check-generated", action="store_true",
                         help="Fail if checked-in public headers differ from the registry")
+    parser.add_argument("--text-only", action="store_true",
+                        help="Regenerate headers, coverage and searchable spec without PDF packages")
     args = parser.parse_args()
     generate_headers(check=args.check_generated)
     if args.check_generated:
-        print("PASS: public headers match registry/pm.xml")
+        from specification_text import render_markdown
+        if (DEST / "parallel-mater-specification.md").read_text() != render_markdown():
+            raise RuntimeError("specification text is stale; run tools/reference/build.py --text-only")
+        print("PASS: public headers and specification text match canonical sources")
         return
     generate_coverage(ROOT, DEST)
+    if args.text_only:
+        from specification_text import render_markdown
+        (DEST / "parallel-mater-specification.md").write_text(render_markdown())
+        print("Built public headers, coverage and specification text")
+        return
     if args.headers_only:
         print("Built public headers and runtime API coverage")
         return

@@ -137,7 +137,10 @@ fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope
 Status: in progress. Invalid API/driver/layer version negotiation is rejected
 with independent mock-library tests. Validation uses the project-owned namespace
 with an old-name compatibility alias. Lifetime prose and stable contract-rule
-identifiers now describe tested behavior; typed state validation remains next.
+identifiers now describe tested behavior. Layer ABI 2 carries generated typed
+arguments, with stateful memory/buffer validation tested against a permissive
+external mock driver and no-layer controls. Command/synchronization state,
+all manual interception paths and structured diagnostics remain open.
 See [API contract rules](API-CONTRACT.md).
 
 - Resolve conflicting destruction/wait semantics and error codes; specify

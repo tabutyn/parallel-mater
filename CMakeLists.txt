@@ -1380,6 +1380,7 @@ install(
         include/parallel_mater/interop_vulkan.h
         include/parallel_mater/pm_driver.h
         include/parallel_mater/pm_layer.h
+        ${PARALLEL_MATER_API_GENERATED_DIR}/parallel_mater/pm_layer_args.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater)
 if(PARALLEL_MATER_BUILD_CUDA)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json

@@ -1,6 +1,5 @@
 """Readable, numbered API specification, separate from the declaration sheet."""
 import hashlib
-import html
 import io
 import re
 import textwrap
@@ -13,32 +12,15 @@ from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, PageBreak,
                                XPreformatted)
 from reportlab.platypus.tableofcontents import TableOfContents
 
-from content import PRELUDE, SECTIONS
+from content import SECTIONS
 from layout import (DEST, DIAGRAM_HEIGHTS, H, INNER, INK, MUTED, SPEC_PURPLE, W,
                     draw_diagram, example_fragment, paragraph, symbols, text_markup)
-from model import SPEC_NUMBERS
+
+from specification_text import NUMBERS, SCOPE, NORMATIVE, render_markdown
 
 MARGIN = 42
 WIDTH = W - 2 * MARGIN
 CODE_SIZE, CODE_LEADING = 8.2, 10.5
-NUMBERS = {**SPEC_NUMBERS, "symbol_index": "A"}
-SCOPE = (
-    "This specification defines the Parallel Mater 0.2 command API: object ownership, "
-    "device discovery, explicit storage, physics pipelines, command execution, and "
-    "synchronization. It is the behavioral contract for implementations and applications. "
-    "The companion reference guide lists declarations and points here by section number."
-)
-NORMATIVE = (
-    "Requirements stated as must, must not, required, or an imperative define valid usage "
-    "and required implementation behavior. Examples illustrate those requirements and "
-    "do not override them. The core domains and optional extension boundaries are "
-    f"specified in section {SPEC_NUMBERS['not_capabilities']}; the API-family overview is not a claim that every device "
-    "supports every physics domain."
-)
-
-
-def plain(text):
-    return html.unescape(text).replace("<br/><br/>", "\n\n").replace("<br/>", "\n")
 
 
 def code_block(source):
@@ -149,65 +131,44 @@ def build_specification(output):
     toc.levelStyles = [ParagraphStyle("contents", fontName="Body", fontSize=9.5,
         leading=13, textColor=INK, spaceBefore=2, leftIndent=0, firstLineIndent=0)]
     story.extend([toc, PageBreak()])
-    markdown = ["# Parallel Mater 0.2 — API Specification", SCOPE, NORMATIVE, "## Contents"]
-    markdown.extend(f"- [{NUMBERS[s.key]} {s.title}](#spec-{s.key})" for s in SECTIONS)
-    markdown.append("- [A Symbol index](#spec-symbol_index)")
     source_code = {}
     for section in SECTIONS:
         story.append(heading(section.key, section.title))
-        markdown.extend([f'<a id="spec-{section.key}"></a>',
-                         f"## {NUMBERS[section.key]} {section.title}"])
         if section.subtitle:
             story.append(prose(section.subtitle))
-            markdown.append(section.subtitle)
         if section.diagram:
             story.append(Diagram(section.diagram))
         for card in section.cards:
             story.append(heading(card.key, card.title, 1))
-            markdown.extend([f'<a id="spec-{card.key}"></a>',
-                             f"### {NUMBERS[card.key]} {card.title}"])
             for source in (card.types, card.functions):
                 if source:
                     story.append(code_block(source))
-                    markdown.append(f"```c\n{source}\n```")
             if card.rows:
                 story.append(table(card.rows))
-                rows = ["| Item | Definition |", "| --- | --- |"]
-                rows.extend("| " + a.replace("|", r"\|") + " | " + b.replace("|", r"\|") + " |"
-                            for a, b in card.rows)
-                markdown.append("\n".join(rows))
             if card.text:
                 for text in card.text.split("<br/><br/>"):
                     story.append(prose(text))
-                markdown.append(plain(card.text))
             if card.code:
                 source = example_fragment(card.code[1:]) if card.code.startswith("@") else card.code
                 source_code[card.key] = source
                 story.extend([small_heading("Example (informative)"), code_block(source)])
-                markdown.extend(["Example (informative):", f"```c\n{source}\n```"])
             if card.links:
                 links = ", ".join(f'<link href="#spec_{key}" color="{SPEC_PURPLE.hexval()}">'
                                   f'[{NUMBERS[key]}]</link>' for key in card.links)
                 story.append(Paragraph("Related sections: " + links, ParagraphStyle("related",
                     fontName="Body", fontSize=9, leading=12, spaceAfter=10)))
-                markdown.append("Related sections: " + ", ".join(
-                    f"[{NUMBERS[key]}](#spec-{key})" for key in card.links) + ".")
 
     story.append(heading("symbol_index", "Symbol index"))
-    markdown.extend(['<a id="spec-symbol_index"></a>', "## A Symbol index"])
-    index_rows = ["| Name | Section |", "| --- | --- |"]
     for name, key in symbols():
         story.append(Paragraph(text_markup(name) +
             f' — <link href="#spec_{key}" color="{SPEC_PURPLE.hexval()}">[{NUMBERS[key]}]</link>',
             ParagraphStyle("symbol", fontName="Body", fontSize=9, leading=12)))
-        index_rows.append(f"| {name} | [{NUMBERS[key]}](#spec-{key}) |")
-    markdown.append("\n".join(index_rows))
 
     stream = io.BytesIO()
     doc = SpecificationDoc(stream)
     doc.multiBuild(story)
     output.write_bytes(stream.getvalue())
-    output.with_suffix(".md").write_text("\n\n".join(markdown) + "\n")
+    output.with_suffix(".md").write_text(render_markdown())
     return {"version": "0.2", "page_count": doc.page_count, "page_map": doc.page_map,
             "numbers": NUMBERS, "symbols": dict(symbols()), "example_keys": list(source_code),
             "pdf_sha256": hashlib.sha256(stream.getvalue()).hexdigest()}
