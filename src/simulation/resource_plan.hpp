@@ -29,6 +29,66 @@ struct StoragePlanner {
     }
 };
 
+struct GeometryStoragePlan {
+    Vec3 *vertices{};
+    std::uint32_t *indices{};
+    BvhNode *bvh_nodes{};
+    std::uint32_t *bvh_leaves{};
+    CollisionPlane *solid_planes{};
+    Vec3 *shell_normals{};
+    std::size_t vertex_capacity{};
+    std::size_t index_capacity{};
+    std::size_t bvh_node_capacity{};
+    std::size_t bvh_leaf_capacity{};
+    std::size_t solid_plane_capacity{};
+    std::size_t shell_normal_capacity{};
+};
+
+// Geometry queries and allocation traverse this same typed plan. BVH nodes,
+// leaves and convex data use topology-derived upper bounds; actual counts are
+// retained separately in TriangleMeshResource after host preparation.
+template<class State, class Visitor>
+Status visit_geometry_storage(State &state, std::size_t vertices,
+                              std::size_t indices, Visitor &visit) noexcept {
+    if (vertices < 3U || indices < 3U || indices % 3U != 0U)
+        return {StatusCode::invalid_argument, 0,
+                "invalid triangle geometry topology"};
+    const std::size_t triangles = indices / 3U;
+    constexpr auto maximum = std::numeric_limits<std::size_t>::max();
+    if (triangles > maximum / 2U)
+        return {StatusCode::out_of_memory, 0,
+                "triangle geometry capacity overflow"};
+    state.vertex_capacity = vertices;
+    state.index_capacity = indices;
+    state.bvh_node_capacity = triangles * 2U - 1U;
+    state.bvh_leaf_capacity = triangles;
+    state.solid_plane_capacity = triangles * 2U;
+    state.shell_normal_capacity = triangles;
+#define PM_STORAGE(member, count) do { \
+    const auto result = visit(state.member, count, MemoryClass::persistent); \
+    if (!result) return result; \
+} while (false)
+    PM_STORAGE(vertices, state.vertex_capacity);
+    PM_STORAGE(indices, state.index_capacity);
+    PM_STORAGE(bvh_nodes, state.bvh_node_capacity);
+    PM_STORAGE(bvh_leaves, state.bvh_leaf_capacity);
+    PM_STORAGE(solid_planes, state.solid_plane_capacity);
+    PM_STORAGE(shell_normals, state.shell_normal_capacity);
+#undef PM_STORAGE
+    return {};
+}
+
+inline Status geometry_storage_requirements(
+    std::size_t vertices, std::size_t indices,
+    StorageRequirements &output) noexcept {
+    output = {};
+    GeometryStoragePlan state;
+    StoragePlanner planner;
+    const auto status = visit_geometry_storage(state, vertices, indices, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
 // One traversal drives both requirements and allocation. State contains typed
 // pointers, so element sizes and alignments cannot drift from runtime storage.
 template<class State, class Visitor>

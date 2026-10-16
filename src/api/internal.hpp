@@ -88,6 +88,7 @@ struct PmBuffer_T {
 struct PmGeometry_T {
     PmDevice_T *device{};
     PmGeometryCreateInfo info{};
+    PmMemoryRequirements requirements{};
     PmDeviceMemory memory{};
     PmDeviceSize memory_offset{};
     std::unique_ptr<parallel_mater::simulation::MemoryArena> arena;

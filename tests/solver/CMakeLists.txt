@@ -16,6 +16,14 @@ target_compile_features(parallel-mater-memory-arena-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-memory-arena-tests PRIVATE ../../src ../../include)
 add_test(NAME parallel-mater-memory-arena-tests COMMAND parallel-mater-memory-arena-tests)
 
+add_executable(parallel-mater-geometry-resource-plan-tests
+    geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
+target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-geometry-resource-plan-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-geometry-resource-plan-tests
+    COMMAND parallel-mater-geometry-resource-plan-tests)
+
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
     add_executable(parallel-mater-slang-metal-kernel-tests metal_kernel_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-kernel-tests PRIVATE cxx_std_20)

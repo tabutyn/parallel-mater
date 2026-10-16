@@ -38,19 +38,36 @@ Status SimulationRuntime::add_triangle_mesh(
                        "no free triangle mesh slot was found");
     }
 
-    Vec3 *owned_vertices = nullptr;
-    std::uint32_t *owned_indices = nullptr;
-    status = allocate_managed(owned_vertices,
-                              static_cast<std::size_t>(vertices.size));
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(owned_indices,
-                              static_cast<std::size_t>(triangle_indices.size));
-    if (!status) {
-        release_managed(owned_vertices);
-        return status;
-    }
+    struct GeometryStorageOwner {
+        simulation::GeometryStoragePlan plan{};
+        ~GeometryStorageOwner() {
+            release_managed(plan.shell_normals);
+            release_managed(plan.solid_planes);
+            release_managed(plan.bvh_leaves);
+            release_managed(plan.bvh_nodes);
+            release_managed(plan.indices);
+            release_managed(plan.vertices);
+        }
+        void disarm() noexcept {
+            plan.vertices = nullptr;
+            plan.indices = nullptr;
+            plan.bvh_nodes = nullptr;
+            plan.bvh_leaves = nullptr;
+            plan.solid_planes = nullptr;
+            plan.shell_normals = nullptr;
+        }
+    } owned;
+    StorageAllocator allocator;
+    status = simulation::visit_geometry_storage(
+        owned.plan, static_cast<std::size_t>(vertices.size),
+        static_cast<std::size_t>(triangle_indices.size), allocator);
+    if (!status) return status;
+    Vec3 *const owned_vertices = owned.plan.vertices;
+    std::uint32_t *const owned_indices = owned.plan.indices;
+    BvhNode *const owned_bvh_nodes = owned.plan.bvh_nodes;
+    std::uint32_t *const owned_bvh_leaves = owned.plan.bvh_leaves;
+    CollisionPlane *const owned_solid_planes = owned.plan.solid_planes;
+    Vec3 *const owned_shell_normals = owned.plan.shell_normals;
     PmResult error = copy_bytes(
         owned_vertices, vertices.data, sizeof(Vec3) * vertices.size,
         device::CopyDirection::automatic, stream);
@@ -67,8 +84,6 @@ Status SimulationRuntime::add_triangle_mesh(
     if (error == PM_SUCCESS)
         error = stream.services->read_host(owned_indices, sizeof(std::uint32_t) * triangle_indices.size);
     if (error != PM_SUCCESS) {
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
         return backend_failure(error, "triangle mesh upload failed");
     }
     // Native adapters may map uncached device-local memory. BVH and convex
@@ -83,15 +98,11 @@ Status SimulationRuntime::add_triangle_mesh(
         std::memcpy(host_indices.data(), owned_indices,
                     sizeof(std::uint32_t) * triangle_indices.size);
     } catch (...) {
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
         return failure(StatusCode::out_of_memory,
                        "failed to stage triangle mesh host preparation");
     }
     for (std::uint64_t index = 0; index < vertices.size; ++index) {
         if (!finite(host_vertices[index])) {
-            release_managed(owned_indices);
-            release_managed(owned_vertices);
             return failure(StatusCode::invalid_argument,
                            "triangle mesh contains a non-finite vertex");
         }
@@ -109,8 +120,6 @@ Status SimulationRuntime::add_triangle_mesh(
         const std::uint32_t third = host_indices[index + 2U];
         if (first >= vertices.size || second >= vertices.size ||
             third >= vertices.size) {
-            release_managed(owned_indices);
-            release_managed(owned_vertices);
             return failure(StatusCode::invalid_argument,
                            "triangle mesh index is outside the vertex buffer");
         }
@@ -119,8 +128,6 @@ Status SimulationRuntime::add_triangle_mesh(
                                 subtract(host_vertices[third],
                                          host_vertices[first]));
         if (length_squared(area) <= k_epsilon * k_epsilon) {
-            release_managed(owned_indices);
-            release_managed(owned_vertices);
             return failure(StatusCode::invalid_argument,
                            "triangle mesh contains a degenerate triangle");
         }
@@ -197,8 +204,6 @@ Status SimulationRuntime::add_triangle_mesh(
             reordered_indices[destination + 2U] = host_indices[source + 2U];
         }
     } catch (...) {
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
         return failure(StatusCode::out_of_memory,
                        "failed to build triangle mesh acceleration data");
     }
@@ -219,59 +224,31 @@ Status SimulationRuntime::add_triangle_mesh(
             }
         }
     } catch (...) {
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
         return failure(StatusCode::out_of_memory,
                        "failed to index triangle mesh BVH leaves");
     }
-
-    BvhNode *owned_bvh_nodes = nullptr;
-    status = allocate_managed(owned_bvh_nodes, bvh_nodes.size());
-    if (!status) {
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
-        return status;
-    }
-    std::uint32_t *owned_bvh_leaves = nullptr;
-    status = allocate_managed(owned_bvh_leaves, bvh_leaves.size());
-    if (!status) {
-        release_managed(owned_bvh_nodes);
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
-        return status;
-    }
+    if (bvh_nodes.size() > owned.plan.bvh_node_capacity ||
+        bvh_leaves.size() > owned.plan.bvh_leaf_capacity ||
+        solid_planes.size() + unique_solid_planes.size() >
+            owned.plan.solid_plane_capacity ||
+        shell_normals.size() > owned.plan.shell_normal_capacity)
+        return failure(StatusCode::internal_error,
+                       "triangle geometry plan capacity was exceeded");
     std::copy(reordered_indices.begin(), reordered_indices.end(), owned_indices);
     std::copy(bvh_nodes.begin(), bvh_nodes.end(), owned_bvh_nodes);
     std::copy(bvh_leaves.begin(), bvh_leaves.end(), owned_bvh_leaves);
-
-    CollisionPlane *owned_solid_planes = nullptr;
-    status = allocate_managed(owned_solid_planes,
-        solid_planes.size() + unique_solid_planes.size());
-    if (!status) {
-        release_managed(owned_bvh_leaves);
-        release_managed(owned_bvh_nodes);
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
-        return status;
-    }
     if (!solid_planes.empty())
         std::copy(solid_planes.begin(), solid_planes.end(), owned_solid_planes);
     if (!unique_solid_planes.empty())
         std::copy(unique_solid_planes.begin(), unique_solid_planes.end(),
                   owned_solid_planes + solid_planes.size());
+    else if (solid_planes.empty())
+        release_managed(owned.plan.solid_planes);
 
-    Vec3 *owned_shell_normals = nullptr;
-    status = allocate_managed(owned_shell_normals, shell_normals.size());
-    if (!status) {
-        release_managed(owned_solid_planes);
-        release_managed(owned_bvh_leaves);
-        release_managed(owned_bvh_nodes);
-        release_managed(owned_indices);
-        release_managed(owned_vertices);
-        return status;
-    }
     if (!shell_normals.empty())
         std::copy(shell_normals.begin(), shell_normals.end(), owned_shell_normals);
+    else
+        release_managed(owned.plan.shell_normals);
 
     TriangleMeshResource &mesh = impl_->meshes[slot];
     mesh.vertices = owned_vertices;
@@ -307,9 +284,10 @@ Status SimulationRuntime::add_triangle_mesh(
     mesh.bvh_node_count = static_cast<std::uint32_t>(bvh_nodes.size());
     mesh.bvh_leaves = owned_bvh_leaves;
     mesh.bvh_leaf_count = static_cast<std::uint32_t>(bvh_leaves.size());
-    mesh.solid_planes = owned_solid_planes;
+    mesh.solid_planes = owned.plan.solid_planes;
     mesh.solid_unique_plane_count = static_cast<std::uint32_t>(unique_solid_planes.size());
-    mesh.shell_normals = owned_shell_normals;
+    mesh.shell_normals = owned.plan.shell_normals;
+    owned.disarm();
     mesh.alive = true;
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
