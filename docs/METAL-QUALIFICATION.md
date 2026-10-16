@@ -1,9 +1,12 @@
 # Metal all-domain qualification
 
-Work branch: `codex/slang-metal-all-domains`. This work must not merge into
-`main` or replace the installed Gallery until all domains and interactions in
-[the roadmap](ROADMAP.md) pass, including currently missing interaction modes.
+Work branch: `codex/slang-metal-all-domains`. A fully qualified release still
+requires all domains and interactions in
+[the roadmap](ROADMAP.md) to pass, including currently missing interaction modes.
 Compiling existing shaders is necessary but does not meet that release gate.
+On 2026-10-16 the user explicitly authorized a limited, labeled Apple-GPU
+Gallery preview before full qualification. That exception is not completion
+of the all-domain roadmap or authorization to claim production qualification.
 
 ## Execution boundary
 
@@ -13,9 +16,12 @@ dispatch, dependencies, synchronization, and native interoperability. It must
 not execute CPU-generated Slang as a hidden fallback. Host scheduling is not
 host physics execution.
 
-The current macOS Gallery still uses the existing serial Slang CPU driver.
-This branch does not install a Metal driver, change feature reporting, or
-deploy a replacement app.
+The opt-in `PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=ON` Gallery bundles a
+loader-discovered Metal driver for rigid bodies and constraints. Its device
+name and window title identify the preview; other domains remain unadvertised
+and requests for them fail, without CPU fallback. The default build still uses
+the serial CPU driver. The preview starts on Point; its uncalibrated brick
+default is 16 rather than a production performance claim.
 
 ## Runtime foundation implemented
 
@@ -38,10 +44,19 @@ completion tokens. `src/device/metal_compute.mm` implements it with native Metal
   must not determine native buffer strides. Native pointer-array reflection
   also needs normalization of `metal::array` wrappers and zero pointer strides.
 
-This is reusable device code, not a test-only dispatcher. The public command
-API and existing domain resource manager are **not connected to it yet**.
-Full runtime migration, ABI error translation, native interop/import, and
-Gallery packaging remain pending. There is still no installable Metal driver.
+The preview connects the public command API and existing pointer-oriented
+resource manager to this compute boundary through `src/driver/metal` and a
+transitional scheduler vocabulary in `src/device/metal_compat`. All physics,
+including collision, compaction and constraints, dispatches shared Slang on
+the GPU. Mesh resource records are relocated explicitly; shared host addresses
+are never substituted for GPU addresses. Native borrowed device/buffer handles
+are exposed, but imports and timestamp queries remain unsupported.
+
+This is not the final asynchronous GPU-only architecture: the submission
+worker waits between frames, shared-memory transfers can synchronize, and
+AVBD reads prepared work counts before staged solving. Gallery still reads
+states back for its software renderer. Full domain integration, native engine
+handoff and performance qualification remain pending.
 
 ### AVBD dispatch schedule
 
@@ -84,10 +99,12 @@ device-operation/record contract kernels. Generated files remain in the build tr
   CUDA's masked 16-lane half-warps. The adapter must validate SIMD width.
 - Use 256-entry AVBD body/contact metadata caches with device-memory tails,
   leaving room for native shader-validation instrumentation.
-  Leaf contact evaluation requires per-leaf device scratch followed by the
-  existing reduction kernel, avoiding oversized inline threadgroup manifolds.
+  Metal uses four contact workers in the existing shared inline reduction,
+  or the existing per-leaf scratch/reduction path for small scenes. A 256-entry
+  transformed-leaf cache retains the existing uncached tail path without
+  changing the 128-lane candidate traversal. CUDA defaults are unchanged.
 
-## Required before merge
+## Required for full all-domain release
 
 - [ ] Backend-neutral asynchronous schedule and resource lifetime management.
 - [x] Shared multi-dispatch AVBD replacement, tested across workgroups against
@@ -149,8 +166,8 @@ for this branch. Nothing here establishes release readiness.
 Merged `origin/main` at `54d99ed`, including the shared reference schedule,
 asynchronous public submissions and D3D12 adapter work. Preserved staged AVBD
 while incorporating upstream's 32-bit resource flags and explicit flag tests.
-The Metal compute boundary still needs to be connected to that reference
-schedule and the public driver API; this merge alone does not supply it.
+At that merge, the Metal compute boundary was not yet connected to the reference
+schedule and public driver API; the subsequent preview integration supplies it.
 
 On Apple M4, the rebuilt Gallery test configuration passes all 27 tests,
 including asynchronous submission, headless Gallery timing, all 138 native
@@ -158,6 +175,60 @@ Metal pipeline/layout checks and the focused GPU execution fixtures. All
 canonical CUDA-source, SPIR-V and native Metal compiler gates rebuild cleanly.
 Auto-deployment remains disabled. No installed app or main-branch release is
 qualified by these development tests.
+
+## Limited Gallery preview (2026-10-16)
+
+On Apple M4, the opt-in preview configuration passes 30/30 CTest tests without
+GPU skips. This includes the public native-command/contact fixture, asynchronous
+submissions, shared frame timing, all 138 pipeline/layout checks, focused kernel
+execution and the new seven-scene Gallery preview smoke test.
+
+- Fixed, Point, Hinge/Slider, Piston, Generic, Motor/Spring and 16-brick scenes
+  each complete 120 GPU steps, with finite states, normalized rotations and a
+  rendered final image. At three steps their maximum component differences
+  from the serial Slang reference are below 0.00027 (test tolerance 0.005).
+- A separate two-cube public-API test checks contact settling position and
+  vertical speed, not just finiteness. It also verifies invalid allocation
+  recovery, transfers, native handles and memory budget reporting.
+- Public command and asynchronous tests, plus five-step Point, Hinge and
+  16-brick Gallery runs, pass Metal API and GPU shader validation. The smaller
+  transformed-leaf cache fixes the earlier instrumentation limit for these
+  exercised rigid paths; full-manifest instrumentation has not been rerun.
+- The preview rejects unsupported fluid selection without CPU fallback.
+  Its bundle contains only the Metal driver manifest and relative shader
+  resource paths. The CPU reference is built separately for comparison tests.
+- Long-horizon numerical agreement remains unqualified: an exploratory
+  120-step Point comparison had a maximum state-component difference of about
+  1.4 from the CPU reference. The smoke test does not hide this behind a
+  long-run trajectory-equivalence claim or establish its cause.
+
+The installed preview is a development exception, not completion of the
+all-domain release gate. No Windows/Linux runtime qualification was performed.
+Unsupported scene selection retains the current scene and reports a capability
+error. Native GPU rendering and zero-readback scheduling remain future work.
+
+Build, test and explicitly deploy the preview on macOS:
+
+```sh
+cmake -S . -B build-macos-metal-preview \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
+  -DPARALLEL_MATER_BUILD_CUDA=OFF \
+  -DPARALLEL_MATER_BUILD_D3D12=OFF \
+  -DPARALLEL_MATER_BUILD_GALLERY=ON \
+  -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON \
+  -DPARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=ON \
+  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=OFF
+cmake --build build-macos-metal-preview --parallel 6
+ctest --test-dir build-macos-metal-preview --output-on-failure
+cmake --build build-macos-metal-preview --target deploy-macos-gallery
+```
+
+The CPU-driver option supplies test comparisons, not an installed fallback.
+Normal full builds refresh bundled runtime libraries even when only the driver
+changes; the deploy target also refreshes them before atomically replacing and
+signing `/Applications/ParallelMater Gallery.app`. Quit an already-running
+Gallery before reopening it to load the new driver. Disable auto-deploy in
+older CPU build directories so they cannot silently replace the preview.
 
 ## Reproduce
 

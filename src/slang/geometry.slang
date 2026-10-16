@@ -1587,7 +1587,10 @@ groupshared uint rigidLeafCandidateCount;
 // Match the native broad/narrow-phase handoff exactly. Reusing one transformed
 // bound per leaf is both the dense-mesh fast path and part of deterministic
 // candidate selection near overlap boundaries.
-groupshared WorldAabb rigidLeafCachedBounds[1024];
+#ifndef PM_RIGID_LEAF_BOUNDS_CACHE_SIZE
+#define PM_RIGID_LEAF_BOUNDS_CACHE_SIZE 1024
+#endif
+groupshared WorldAabb rigidLeafCachedBounds[PM_RIGID_LEAF_BOUNDS_CACHE_SIZE];
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
@@ -1648,7 +1651,7 @@ void pm_generate_rigid_leaf_pairs(
         }
         uint totalLeaves = aMesh.bvh_leaf_count + bMesh.bvh_leaf_count;
         bool cacheBounds = totalLeaves <= shared_leaf_capacity &&
-            totalLeaves <= 1024u;
+            totalLeaves <= PM_RIGID_LEAF_BOUNDS_CACHE_SIZE;
         if (cacheBounds)
         {
             for (uint leaf = lane; leaf < totalLeaves;
@@ -1790,8 +1793,11 @@ void pm_generate_rigid_leaf_pairs(
 #ifndef PM_DEVICE_LEAF_MANIFOLDS
 #define PM_DEVICE_LEAF_MANIFOLDS PM_TARGET_D3D12
 #endif
+#ifndef PM_RIGID_CONTACT_WORKERS
+#define PM_RIGID_CONTACT_WORKERS 16
+#endif
 #if !PM_DEVICE_LEAF_MANIFOLDS
-groupshared ContactManifold rigidLeafWorkerManifolds[16];
+groupshared ContactManifold rigidLeafWorkerManifolds[PM_RIGID_CONTACT_WORKERS];
 groupshared ContactManifold rigidLeafReducedManifold;
 #endif
 groupshared HingeContactFrame rigidLeafPreviousBodyHinge;
@@ -1803,7 +1809,7 @@ groupshared float rigidLeafMargin;
 groupshared uint rigidLeafSwept;
 
 [shader("compute")]
-[numthreads(16, 1, 1)]
+[numthreads(PM_RIGID_CONTACT_WORKERS, 1, 1)]
 void pm_evaluate_rigid_leaf_pairs(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,

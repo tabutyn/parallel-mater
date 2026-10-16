@@ -36,6 +36,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
     auto services = parallel_mater::device::create_cpu(
         physical->description.ordinal, result);
+#elif defined(PARALLEL_MATER_METAL_DRIVER)
+    auto services = parallel_mater::device::create_metal(
+        physical->description.ordinal, result);
 #elif defined(PARALLEL_MATER_D3D12_DRIVER)
     auto services = parallel_mater::device::create_d3d12(
         physical->description.ordinal, result);

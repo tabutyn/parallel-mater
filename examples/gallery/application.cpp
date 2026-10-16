@@ -132,7 +132,11 @@ struct Options {
     int frames{240};
     std::uint32_t width{brick_render_width};
     std::uint32_t height{brick_render_height};
+#ifdef PARALLEL_MATER_METAL_PREVIEW
+    GalleryContext initial_context{GalleryContext::constraint_point};
+#else
     GalleryContext initial_context{GalleryContext::rigid_body};
+#endif
     BrickSceneConfig bricks{};
     std::filesystem::path profiles_file{PARALLEL_MATER_DEVICE_PROFILES_PATH};
     std::uint32_t dump_spheres{k_default_dump_spheres};
@@ -285,6 +289,12 @@ static int run_gallery_application(
                 catalog, hardware, slang_solver_version, options.width, options.height);
             options.bricks = selection.scene;
             selection_label = brick_selection_label(selection.source);
+#ifdef PARALLEL_MATER_METAL_PREVIEW
+            if (selection.source == BrickSelectionSource::fallback) {
+                options.bricks.brick_count = 16U;
+                selection_label = "preview default; not performance-qualified";
+            }
+#endif
         }
         std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend
                   << ") -> " << options.bricks.brick_count << " bricks, scale "
@@ -306,6 +316,9 @@ static int run_gallery_application(
         return 1;
     }
     GalleryRuntime &runtime = session.runtime;
+    PmPhysicalDeviceProperties physics_device{};
+    pmGetPhysicalDeviceProperties(runtime.simulation.physical_device(), &physics_device);
+    std::cout << "Physics device: " << physics_device.deviceName << '\n';
     std::uint32_t &dump_spheres = session.dump_spheres;
     std::uint32_t &fluid_particles = session.fluid_particles;
     Vec3 &peg_gravity = session.peg_gravity;
@@ -643,7 +656,9 @@ static int run_gallery_application(
     }
 
     const char *window_title =
-#ifdef PARALLEL_MATER_SLANG_TEST_BUILD
+#ifdef PARALLEL_MATER_METAL_PREVIEW
+        "ParallelMater Gallery - Apple GPU Preview (rigid only; software render)";
+#elif defined(PARALLEL_MATER_SLANG_TEST_BUILD)
         "ParallelMater Gallery - Slang Production Test";
 #else
         "ParallelMater Gallery";

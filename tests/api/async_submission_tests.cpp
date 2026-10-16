@@ -24,6 +24,16 @@ int main() {
     PmPhysicalDevice physical{};
     CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS);
     CHECK(count == 1U);
+#if defined(PM_TEST_METAL_PREVIEW)
+    PmPhysicalDeviceProperties properties{};
+    pmGetPhysicalDeviceProperties(physical, &properties);
+    CHECK(std::strstr(properties.deviceName, "Metal GPU preview") != nullptr);
+    PmPhysicalDeviceFeatures supported{};
+    pmGetPhysicalDeviceFeatures(physical, &supported);
+    CHECK(supported.rigidBodies && supported.rigidConstraints);
+    CHECK(!supported.particleLiquids && !supported.cloth && !supported.rope &&
+          !supported.softBodies && !supported.smoke && !supported.domainCouplings);
+#endif
     float priority = 1.0F;
     PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
     PmDeviceCreateInfo device_info{};
@@ -34,6 +44,11 @@ int main() {
     device_info.enabledFeatures.timelineSemaphores = PM_TRUE;
     PmDevice device{};
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
+#if defined(PM_TEST_METAL_PREVIEW)
+    PmNativeDeviceInfo native{};
+    CHECK(pmGetNativeDevice(device, &native) == PM_SUCCESS);
+    CHECK(native.backend == PM_NATIVE_BACKEND_METAL && native.device != 0);
+#endif
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);
     CHECK(queue != nullptr);

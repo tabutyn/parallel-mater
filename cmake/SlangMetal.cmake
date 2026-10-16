@@ -4,7 +4,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
 
 # Compile each entry separately. Slang 2026.18's Metal global-input lowering
 # can leave later entries' thread IDs uninitialized in multi-entry output.
-# These are shader gates, not an installable/qualified physics driver.
+# Shader gates also supply the opt-in rigid preview; not full qualification.
 function(parallel_mater_add_slang_metal_kernels)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/metal")
     file(GLOB_RECURSE dependencies CONFIGURE_DEPENDS
@@ -35,7 +35,9 @@ function(parallel_mater_add_slang_metal_kernels)
                 COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}" "${source}"
                     -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
                     ${definitions} -DPM_TARGET_METAL=1
-                    -DPM_DEVICE_LEAF_MANIFOLDS=1
+                    -DPM_DEVICE_LEAF_MANIFOLDS=0
+                    -DPM_RIGID_CONTACT_WORKERS=4
+                    -DPM_RIGID_LEAF_BOUNDS_CACHE_SIZE=256
                     -DPM_AVBD_PREPARE_CACHE_SIZE=256
                     -DPM_SOFT_NEIGHBOR_GROUP_SIZE=32
                     -entry "${entry}" -stage compute -target metal

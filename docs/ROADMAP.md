@@ -191,6 +191,12 @@ runtime code or copying the reference solver's exact trajectories.
 
 Status: pending.
 
+An explicitly authorized macOS development preview (2026-10-16) connects rigid
+bodies/constraints to the Apple GPU through shared Slang and the reference
+schedule. It is labeled, rejects unsupported domains, and retains software
+rendering/readbacks. It does not satisfy this all-domain milestone; evidence
+and remaining limits are in [Metal qualification](METAL-QUALIFICATION.md).
+
 Metal implementation work is isolated behind the
 [all-domain qualification gate](METAL-QUALIFICATION.md). Full existing-kernel
 Metal compilation, reusable asynchronous compute services, and focused native

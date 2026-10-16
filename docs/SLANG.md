@@ -44,8 +44,8 @@ The reference implementation still waits on its worker between frames and
 performs explicit readbacks for emission, phase transfer, diagnostics, and
 some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
-full native adapters for other graphics APIs remain separate work. Vulkan and
-Metal still have no loadable physics drivers.
+full native adapters for other graphics APIs remain separate work. Vulkan
+still has no loadable physics driver.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest,
 including AVBD prepare and solve. Device creation qualifies descriptor binding,
@@ -55,15 +55,18 @@ constraint dispatch and advertises those features. Other domains remain
 unadvertised; native Windows physics qualification is separate from the macOS
 compiler and regression checks.
 
-No Metal command-API device adapter is shipped. The CPU
-driver advertises only the rigid capabilities that its shared Slang schedule
-currently executes; other domains remain unavailable. All existing domain and
+The opt-in Metal preview connects the same public API and reference scheduler
+to native Apple-GPU dispatch, advertising only rigid bodies and constraints.
+It bundles generated Slang Metal libraries, not generated CPU physics. The CPU
+driver similarly advertises only its implemented rigid capabilities.
+All existing domain and
 coupling entries now compile separately to Metal. Native kernel tests use actual
 Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
 boundary. AVBD now has shared staged dispatches for adapters without cooperative
 grid barriers; the original cooperative entry uses the same stage equations.
-Tests do not connect the Gallery to a Metal physics driver or qualify complete
-simulation schedules. See the
+The preview Gallery uses the Metal driver for physics and software rendering
+for images. It still synchronizes for prepared solver counts and frame output;
+other domains, native import and GPU rendering handoff remain unfinished. See the
 [Metal qualification checklist](METAL-QUALIFICATION.md) for the release gate.
 
 The AVBD numerical core also compiles to WGSL and its reflection contract is

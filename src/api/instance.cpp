@@ -15,11 +15,14 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.rigidBodies = PM_TRUE;
     features.rigidConstraints = PM_TRUE;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
-    defined(PARALLEL_MATER_D3D12_DRIVER)
+    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_METAL_DRIVER)
     features.contactEvents = PM_TRUE;
     features.debugData = PM_TRUE;
     features.timelineSemaphores = PM_TRUE;
     features.timestampQueries = PM_TRUE;
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+    features.timestampQueries = PM_FALSE; // Native timestamp API not qualified by this preview.
+#endif
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
 #else

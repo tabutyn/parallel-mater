@@ -302,7 +302,7 @@ public:
                 throw std::invalid_argument("Metal allocation size outside device limits");
             id<MTLBuffer> buffer = [device_ newBufferWithLength:size options:
                 host_visible ? MTLResourceStorageModeShared : MTLResourceStorageModePrivate];
-            require(buffer != nil, "Metal buffer allocation failed");
+            if (buffer == nil) throw std::bad_alloc();
             return std::make_shared<MetalBuffer>(buffer);
         }
     }

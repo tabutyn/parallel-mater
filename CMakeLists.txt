@@ -71,6 +71,14 @@ option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
 option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
        "Build the serial Slang CPU reference driver" ${APPLE})
+option(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW
+       "Build the limited Apple-GPU Gallery development driver" OFF)
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    if(NOT APPLE)
+        message(FATAL_ERROR "The Metal preview requires macOS")
+    endif()
+    set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL "Compile shared shaders" FORCE)
+endif()
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Deprecated: build the gallery with the OptiX renderer" OFF)
 set(PARALLEL_MATER_GALLERY_RENDERER "SOFTWARE" CACHE STRING
@@ -150,14 +158,14 @@ endif()
 # Enable at the common parent scope: the Gallery and native shader tests both
 # contain Objective-C++ sources. Subdirectory-only enablement breaks generation
 # when both targets are present.
-if(APPLE AND (PARALLEL_MATER_BUILD_GALLERY OR
+if(APPLE AND (PARALLEL_MATER_BUILD_GALLERY OR PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW OR
               (BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS)))
     enable_language(OBJCXX)
 endif()
 
-# Native compute services only: this is not yet an installable physics driver.
+# Reusable native compute services for kernel tests and the opt-in preview.
 # Runtime schedules consume the C++ compute boundary, never Objective-C types.
-if(APPLE AND BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS)
+if(APPLE AND ((BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS) OR PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW))
     add_library(parallel-mater-device-metal STATIC src/device/metal_compute.mm)
     target_compile_features(parallel-mater-device-metal PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-device-metal PUBLIC src)
@@ -213,6 +221,7 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
+   PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW OR
    PARALLEL_MATER_BUILD_D3D12 OR
    PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
@@ -412,6 +421,9 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
             "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires a POSIX host")
     endif()
     include(cmake/ParallelMaterSlangCpu.cmake)
+endif()
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    include(cmake/ParallelMaterSlangMetal.cmake)
 endif()
 
 execute_process(
@@ -933,7 +945,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     if(BUILD_TESTING)
         add_executable(parallel-mater-d3d12-command-api-tests
-            tests/api/d3d12_command_api_tests.cpp)
+            tests/api/native_command_api_tests.cpp)
         target_compile_features(parallel-mater-d3d12-command-api-tests
             PRIVATE cxx_std_20)
         target_link_libraries(parallel-mater-d3d12-command-api-tests
@@ -957,6 +969,15 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     parallel_mater_add_slang_metal_kernels()
     add_dependencies(parallel-mater-slang-kernel-mirrors
         parallel-mater-slang-metal-kernels)
+    if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+        add_custom_target(parallel-mater-slang-metal-resources ALL
+            COMMAND ${CMAKE_COMMAND}
+                -DMANIFEST=${PARALLEL_MATER_SLANG_METAL_MANIFEST}
+                -DDESTINATION=$<TARGET_FILE_DIR:parallel-mater-driver-slang-metal>/slang-metal
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PackMetalKernels.cmake
+            DEPENDS parallel-mater-slang-metal-kernels VERBATIM)
+        add_dependencies(parallel-mater-driver-slang-metal parallel-mater-slang-metal-resources)
+    endif()
     if(PARALLEL_MATER_SLANG_TEST_BUILD AND TARGET parallel-mater-gallery)
         add_dependencies(parallel-mater-gallery
                          parallel-mater-slang-kernel-mirrors)
@@ -991,7 +1012,8 @@ if(BUILD_TESTING)
             COMMAND parallel-mater-gallery-frame-timing-overlay-tests)
     endif()
     if(TARGET parallel-mater-gallery AND
-       (TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-cuda))
+       (TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-cuda OR
+        TARGET parallel-mater-driver-slang-metal))
         add_test(NAME parallel-mater-gallery-frame-timing-headless
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/frame_timing_headless.py"

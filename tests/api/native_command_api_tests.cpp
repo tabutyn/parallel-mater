@@ -7,6 +7,10 @@
 #include <cmath>
 #include <vector>
 
+#ifndef PM_TEST_NATIVE_BACKEND
+#define PM_TEST_NATIVE_BACKEND PM_NATIVE_BACKEND_D3D12
+#endif
+
 #define CHECK(expression) do { if (!(expression)) {                         \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #expression);          \
     return 1;                                                               \
@@ -23,7 +27,7 @@ int main() {
           PM_SUCCESS);
     if (physical_count == 0U) {
         pmDestroyInstance(instance);
-        std::puts("SKIP: no D3D12 device with Shader Model 6.6");
+        std::puts("SKIP: no selected native GPU device");
         return 77;
     }
     std::vector<PmPhysicalDevice> physicals(physical_count);
@@ -54,8 +58,7 @@ int main() {
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
     PmDevice device{};
-    // Device creation loads the embedded common Slang schedule library,
-    // dispatches a descriptor-backed rigid-input kernel, and validates it.
+    // The same public command fixture runs against each selected native driver.
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);
@@ -67,6 +70,13 @@ int main() {
     allocation.allocationSize = byte_count;
     allocation.memoryTypeIndex = 1U;
     PmDeviceMemory upload{};
+#if defined(PM_TEST_METAL_PREVIEW)
+    // An invalid allocation is not a device-lost error; subsequent work works.
+    allocation.allocationSize = UINT64_MAX;
+    CHECK(pmAllocateMemory(device, &allocation, &upload) == PM_ERROR_INVALID_ARGUMENT);
+    CHECK(upload == nullptr);
+    allocation.allocationSize = byte_count;
+#endif
     CHECK(pmAllocateMemory(device, &allocation, &upload) == PM_SUCCESS);
     allocation.memoryTypeIndex = 1U;
     PmDeviceMemory readback{};
@@ -150,7 +160,7 @@ int main() {
     PmNativeDeviceInfo native_device{};
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
-    CHECK(native_device.backend == PM_NATIVE_BACKEND_D3D12);
+    CHECK(native_device.backend == PM_TEST_NATIVE_BACKEND);
     CHECK(native_device.device != 0U);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U);
@@ -249,6 +259,11 @@ int main() {
     CHECK(states[0].position[1] == -1.0F);
     CHECK(std::isfinite(states[1].position[1]));
     CHECK(states[1].position[1] > -0.5F);
+#if defined(PM_TEST_METAL_PREVIEW)
+    // Both cubes have half-height 0.5; the dynamic center settles near zero.
+    CHECK(states[1].position[1] > -0.025F && states[1].position[1] < 0.08F);
+    CHECK(std::abs(states[1].linearVelocity[1]) < 0.15F);
+#endif
 
     pmDestroyPhysicsPipeline(device, pipeline);
     pmDestroySimulation(device, simulation);
@@ -268,6 +283,6 @@ int main() {
     pmFreeMemory(device, upload);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: D3D12 transfer and shared Slang rigid schedule");
+    std::puts("PASS: native transfer, handles and shared Slang rigid contact schedule");
     return 0;
 }
