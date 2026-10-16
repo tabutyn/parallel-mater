@@ -1,7 +1,7 @@
 {
   "id": "F1-03",
   "title": "Retire geometry dependencies safely",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F1-01"
   ],
@@ -18,6 +18,14 @@
     "Pending work and recorded references follow documented lifetime rules."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "0b5fc516-552e-49e8-b5f8-64ab0b9ffad7",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-03/thomas-laptop",
+    "claimed_at": "2026-10-16T23:43:07Z",
+    "heartbeat_at": "2026-10-16T23:43:07Z",
+    "expires_at": "2026-10-17T23:43:07Z"
+  },
   "history": []
 }
