@@ -123,13 +123,41 @@ unavailable-scene labels. The desktop profile uses four moving liquid-coupled
 bodies and 256 particles. Both physics drivers are separate loadable libraries;
 the Vulkan library has no CUDA runtime dependency.
 
-Android Vulkan packaging now builds, including native public-API qualification
-executables. Pixel 7 reports the required features, but its first command/API
-run crashes inside the Mali shader compiler during pipeline creation. Phone GPU
-qualification remains open; the installed app retains the CPU preview. See
+Android Vulkan packaging builds, including native public-API qualification
+executables. Pixel 7 now passes command/API, asynchronous submission and bounded
+liquid/coupling/reset tests after the pointer declaration workaround below.
+Gallery scene/lifecycle and sustained performance qualification remain open. See
 [Android status and reproduction](../examples/android/README.md#vulkan-status-2026-10-16).
 
 For opt-in diagnostics, `PM_VULKAN_TRACE=1` prints each newly created pipeline's
 module, entry point, workgroup size and SPIR-V size. `PM_VULKAN_VALIDATION=1`
 explicitly requests `VK_LAYER_KHRONOS_validation`; it must already be available
 to the platform loader. A missing requested layer fails instance creation.
+
+### Mali pointer declaration workaround
+
+Slang 2026.18 emits forward pointer declarations for acyclic structures. On the
+Pixel 7 driver above, even a 1496-byte `pm_capture_rigid_inputs` shader crashes
+in `spir2lir::SPIR_MBS2Helper::apply_decorations`. Defining its pointer types
+before use removes the crash; the full geometry module also passes pipeline
+creation after the same transformation.
+
+`tools/normalize_vulkan_spirv.py` now orders type/constant dependencies before
+use and removes those redundant declarations before embedding each module.
+IDs, decorations, layouts and executable instructions are preserved. Recursive
+types or unfamiliar dependencies fail the build with a diagnostic. CMake keeps
+the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
+`*.spv`; validate the latter. All six modules pass SDK 1.4.341.0 validation.
+
+`tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the
+Parallel Mater loader, scheduler or physics dispatch. Build with a host or
+Android NDK C++ compiler using `-std=c++20 -O2 -lvulkan` (add
+`-static-libstdc++` for a standalone Android executable), then run:
+
+```sh
+./probe geometry.spv pm_capture_rigid_inputs 128
+```
+
+It requests the same device features, bindings and specialization constant as
+the Vulkan transport. `PIPELINE_OK` proves compilation only, not simulation
+correctness or phone qualification.
