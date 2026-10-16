@@ -609,8 +609,10 @@ static-body substitution is implied by an Array modifier.
 ## Collision behavior
 
 `pmCmdBuildGeometry` validates the bound vertex and index buffers and builds a
-deterministic private BVH. Mesh–mesh narrow phase uses exact
-edge/triangle closest features with a small two-sided shell. When motion over a
+deterministic private BVH. Mesh–mesh narrow phase uses convex face clipping and
+edge/triangle closest features. Exterior-face and interior-edge metadata
+exclude co-facing seams and tangent tessellation contacts; uncertified open
+surfaces retain a small two-sided shell. When motion over a
 substep exceeds that shell, conservative swept triangle-pair tests cover the
 linearized previous-to-current vertex paths before the discrete solve. This
 handles fast translation, rotation, open surfaces, and contacts from either

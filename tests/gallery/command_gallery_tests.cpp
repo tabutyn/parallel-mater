@@ -405,11 +405,26 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
     }
     // A truly flat open sheet has no certified inside. Keep collision from
     // both sides, irrespective of its authored triangle winding.
-    for (float side : {-1.0F, 1.0F}) {
+    for (unsigned probe = 0U; probe < 4U; ++probe) {
+        const float side = probe == 0U ? -1.0F : 1.0F;
         SceneDefinition sheet_scene;
         sheet_scene.meshes = {surface_box, floor};
-        sheet_scene.meshes[1].indices.resize(6U);
-        sheet_scene.meshes[1].vertices.resize(4U);
+        if (probe < 2U) {
+            sheet_scene.meshes[1].indices.resize(6U);
+            sheet_scene.meshes[1].vertices.resize(4U);
+        } else {
+            // A vertical open sheet must keep its real boundary-edge impact
+            // against the closed floor; only interior/tangent seams are culled.
+            // Also align with the floor's internal diagonal. Contact must
+            // depend on the whole collider, not its arbitrary triangulation.
+            const float diagonal = probe == 3U ? 0.1F : 0.0F;
+            sheet_scene.meshes[0].vertices = {
+                {{-diagonal, minimum_y_seam, -0.1F}},
+                {{-diagonal, maximum_y_seam, -0.1F}},
+                {{diagonal, maximum_y_seam, 0.1F}},
+                {{diagonal, minimum_y_seam, 0.1F}}};
+            sheet_scene.meshes[0].indices = {0U, 1U, 2U, 0U, 2U, 3U};
+        }
         body = {};
         body.name = "SheetProbe";
         body.mesh_indices = {0U};
@@ -440,16 +455,19 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
             const auto &state = frame.rigid_states[0];
             const Quaternion orientation{state.orientation[0], state.orientation[1],
                 state.orientation[2], state.orientation[3]};
-            for (const auto &vertex : surface_box.vertices) {
+            for (const auto &vertex : sheet_scene.meshes[0].vertices) {
                 const float height = state.position[1] +
                     rigid_mesh_checks::rotate(orientation, vertex.position).y;
                 if (height * side < -0.002F) {
-                    error = "body penetrated a two-sided sheet";
+                    error = "open-surface probe " + std::to_string(probe) +
+                        " penetration=" + std::to_string(-height * side) +
+                        " m at frame " + std::to_string(step);
                     return false;
                 }
             }
         }
         if (!saw_contact) { error = "two-sided sheet contact missing"; return false; }
+        std::cout << "Open-surface probe " << probe << " passed\n";
     }
     std::cout << "Two-sided open sheet contacts passed\n";
     return true;
@@ -712,12 +730,12 @@ int main(int argc, char **argv) {
             std::cerr << error << '\n';
             return 1;
         }
-        if (!brick_geometry.empty() && !validate_face_contact_normals(
-                scene.meshes.at(scene.rigid_bodies.back().mesh_indices.front()), backend, error)) {
+        if (!brick_geometry.empty() && !validate_swept_face_impact(backend, error)) {
             std::cerr << error << '\n';
             return 1;
         }
-        if (!brick_geometry.empty() && !validate_swept_face_impact(backend, error)) {
+        if (!brick_geometry.empty() && !validate_face_contact_normals(
+                scene.meshes.at(scene.rigid_bodies.back().mesh_indices.front()), backend, error)) {
             std::cerr << error << '\n';
             return 1;
         }

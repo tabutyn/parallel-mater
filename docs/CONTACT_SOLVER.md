@@ -141,6 +141,9 @@ Signed face separation is used only for certified exterior faces.
 Interior triangles of open surfaces reject tangent contact directions at
 their tessellation edges; boundary triangles retain edge contact. This
 normal-cone metadata does not assign an inside to an open surface.
+For an open boundary against a convex collider, the alternative separating
+plane uses the whole collider's support interval, not one triangle. This
+preserves real sheet-edge impacts along a floor's internal diagonal.
 
 ## Iterations and diagnostics
 
@@ -224,6 +227,13 @@ fluid/rope/cloth behavior. Do not regenerate goldens or loosen physical
 tolerances to conceal a solver regression. Future D3D12, Metal, Vulkan, and
 WebGPU adapters must execute these same cases through the loader; source
 cross-compilation alone is not device qualification.
+
+The command-gallery brick gate also checks torque-free rotation, independent
+floor clearance, closed/open concave seams, both sides of an open sheet, and
+vertical sheet-edge impacts across and along a floor's tessellation diagonal.
+Centered convex impacts cover four substeps, a complete one-step crossing,
+and a one-step crossing that starts already touching. No lateral velocity or
+spin may be invented by the contact manifold.
 
 The migration also repairs two coupled-contact cases exposed by changed rigid
 trajectories: opposing soft-surface planes use the two-halfspace projection

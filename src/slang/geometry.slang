@@ -964,6 +964,36 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             Vec3 normal = (distance <= 1.0e-5f || onTriangleFace)
                 ? fallback : normalized_or(delta, fallback);
             if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) continue;
+            if (onTriangleFace && length_squared(outwardA) < 0.01f &&
+                length_squared(outwardB) > 0.5f &&
+                pmBufferPresent(bMesh.solid_planes))
+            {
+                Vec3 faceA = normalized_or(cross(subtract(a1, a0),
+                    subtract(a2, a0)), {});
+                if (abs(dot(faceA, normal)) < 1.0e-3f)
+                {
+                    // At an open boundary, do not choose a deeply crossing
+                    // collider plane when the open face separates the whole
+                    // convex collider with a smaller displacement. Use all
+                    // collider vertices, not one triangle: a floor's internal
+                    // diagonal must not become an artificial separating axis.
+                    float depth = max(0.0f, -min(dot(subtract(a0, b0), normal),
+                        min(dot(subtract(a1, b0), normal),
+                            dot(subtract(a2, b0), normal))));
+                    Vec3 localAxis = inverse_rotate(bState.orientation, faceA);
+                    float offset = dot(subtract(bState.position, a0), faceA);
+                    float minimum = 3.402823466e+38f;
+                    float maximum = -3.402823466e+38f;
+                    for (uint vertex = 0u; vertex < bMesh.vertex_count; ++vertex)
+                    {
+                        float projection = dot(bMesh.vertices[vertex], localAxis) + offset;
+                        minimum = min(minimum, projection);
+                        maximum = max(maximum, projection);
+                    }
+                    float alternateDepth = max(0.0f, min(-minimum, maximum));
+                    if (alternateDepth + 1.0e-5f < depth) continue;
+                }
+            }
             // A face witness inside the collider has negative separation.
             // Using its unsigned distance turns growing overlap into an
             // increasingly inactive contact once side-wall seams are culled.
