@@ -1,10 +1,12 @@
 # Parallel Mater Gallery for Android
 
 This native APK uses the shared gallery scene builder, public command API,
-loader, validation layer, Slang CPU driver, and software renderer. Physics runs
-on the phone. It does not stream a desktop session and does not use Vulkan for
-physics. The CPU liquid adapter is experimental and opt-in; it uses the same
-Slang liquid and rigid-contact kernels as the CUDA adapter.
+loader, validation layer, and software renderer. The default build bundles the
+same loadable Vulkan driver and common Slang physics as the desktop preview.
+Vulkan physics runs on the phone; rendering currently copies results into the
+software renderer. This is not yet native GPU-renderer interoperability.
+An explicit `-PphysicsBackend=cpu` build retains the experimental Slang CPU
+preview. There is no silent CPU fallback when the Vulkan driver is unavailable.
 
 Available scenes: Rigid Body, Fixed/Collector, Point/Celestial, Hinge/Slider,
 Piston, Generic, Fluid, and Fluid + Rigid. Cloth, rope, soft bodies, smoke, and
@@ -41,6 +43,10 @@ physics or allowing unbounded queued frames.
 
 ## Build and install
 
+Vulkan requires Android 13/API 33 or newer and the GPU features listed in
+[the Vulkan driver documentation](../../docs/VULKAN.md). The CPU build supports
+API 29 or newer. Both install under the same app ID.
+
 Requirements: JDK 21, Android SDK platform 36, NDK 29.0.14206865, SDK CMake
 4.1.2, and host Python/CMake build tools. Gradle 9.1.0 and Android Gradle Plugin
 9.0.1 are pinned. Slang is the repository's pinned host compiler. The NDK build
@@ -60,7 +66,8 @@ export SLANGC=/path/to/slang/bin/slangc # optional; otherwise CMake fetches it
   -n org.parallelmater.gallery/.GalleryActivity
 ```
 
-The default build is ARM64. Set `ANDROID_ABIS=arm64-v8a,x86_64` to include an
+The default build is ARM64 with Vulkan physics. Use `-PphysicsBackend=cpu`
+for the CPU build. Set `ANDROID_ABIS=arm64-v8a,x86_64` to include an
 emulator binary. For an existing dependency checkout, pass
 `-PcgltfSource=/path/to/cgltf` to the script. Debug APKs are locally signed and
 include optimized native code. Builds default to one compile job, a 1 GiB Gradle
@@ -82,7 +89,62 @@ For diagnostic logs:
 "$ANDROID_HOME/platform-tools/adb" -d logcat -s ParallelMater AndroidRuntime
 ```
 
-## Validation
+## Device qualification
+
+Build existing public-API tests as Android executables alongside the APK:
+
+```sh
+./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true
+python3 scripts/Test-AndroidVulkan.py --serial PHONE_SERIAL \
+  --build-directory examples/android/app/.cxx/Debug/BUILD_HASH/arm64-v8a
+```
+
+Use the CMake directory whose cache has `PARALLEL_MATER_ANDROID_QUALIFICATION=ON`.
+The runner stages only these tests, their libraries, two scenes and profile data
+in `/data/local/tmp/parallel-mater-qualification`. Command/API, asynchronous
+submission and analytic/bounded liquid/reset checks execute on the phone.
+Logs and results are saved in ignored `out/android/native-vulkan-tests/`.
+These tests enable the Parallel Mater command validation layer; they do not
+implicitly install or enable the Khronos Vulkan validation layer.
+
+Debug APKs accept `pm_scene` (0–7) and `pm_action` (`reset`, `pause`, `resume`,
+`focus`, `info`) extras for repeatable UI testing. Release builds ignore them.
+They invoke the same worker commands as the visible controls:
+
+```sh
+adb -s PHONE_SERIAL shell am start -f 0x20000000 \
+  -n org.parallelmater.gallery/.GalleryActivity --ei pm_scene 7
+```
+
+Every 60 running frames, `FrameWindow` log records report mean/median/p95 frame
+work, mean physics and rendering work, observed frame-start cadence, population,
+scene and actual backend. These are measurements at the declared small workload,
+not quality-equivalent desktop benchmarks. Vulkan pipeline cache files live in
+the app's private cache directory and are checked against the device identity.
+
+## Vulkan status (2026-10-16)
+
+ARM64 packaging builds successfully with the same public loader and shared Slang
+Vulkan driver. APK inspection confirms Vulkan is the only bundled physics driver,
+with no CUDA runtime dependency. Pixel 7/Mali-G710 reports Vulkan 1.4.343 and the
+required features, including 256-byte push constants, `storagePushConstant8`,
+`maintenance4`, physical buffer addresses and 64-bit buffer atomics.
+
+The initial command/API test crashed inside Mali's SPIR-V compiler
+(`SPIR_MBS2Helper::apply_decorations`). A minimal 1496-byte shader reproduced
+the failure. Ordering acyclic pointer types before use resolves it without
+changing physics instructions or memory layouts; see the
+[Vulkan workaround](../../docs/VULKAN.md#mali-pointer-declaration-workaround).
+
+With normalized shaders, Pixel 7 now passes all three native suites: command/API,
+asynchronous submission, and analytic liquid free fall plus bounded Fluid and
+FluidRigid scenes/reset. All six modules pass SPIR-V validation. All eight mobile
+scenes now complete short Vulkan rendering/frame checks, and scene replacement
+releases the old GPU simulation first to avoid overlapping memory footprints.
+Performance remains below target; see the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
+for scene timings, memory observations and remaining gates.
+
+## Earlier CPU validation
 
 Host tests cover hardware-profile matching, malformed numeric limits,
 preservation of limits when saving a verified profile, analytic liquid free

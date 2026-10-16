@@ -3,6 +3,7 @@ package org.parallelmater.gallery;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Insets;
@@ -39,7 +40,8 @@ import java.nio.charset.StandardCharsets;
 /** Native gallery client. Physics, drawing and resource lifetime use one worker. */
 public final class GalleryActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("parallel_mater_gallery"); }
-    private static native long nativeCreate(String assets, String manifest, String profiles, String model);
+    private static native long nativeCreate(String assets, String manifest, String profiles,
+        String model, String cache);
     private static native void nativeDestroy(long handle);
     private static native void nativeSurface(long handle, Surface surface, int width, int height);
     private static native String nativeFrame(long handle);
@@ -159,7 +161,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         addButton(arrows, direction("↑", "Steer forward", 0, 1), 48);
         addButton(arrows, direction("↓", "Steer back", 0, -1), 48);
         addButton(arrows, direction("→", "Steer right", 1, 0), 48);
-        movement.addView(arrows);
+        // The wrapping column must measure the row's buttons, not only its label.
+        movement.addView(arrows, new LinearLayout.LayoutParams(-2, -2));
         overlay.addView(movement, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START));
 
         LinearLayout camera = row();
@@ -205,7 +208,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 copyAssets("config", new File(files, "config"));
                 JSONObject driver = new JSONObject();
                 driver.put("library_path", getApplicationInfo().nativeLibraryDir +
-                    "/libparallel_mater_driver_slang_cpu.so");
+                    "/libparallel_mater_driver_slang_" + BuildConfig.PHYSICS_BACKEND + ".so");
                 driver.put("api_version", "0.2.0");
                 driver.put("library_arch", "64");
                 JSONObject manifest = new JSONObject();
@@ -227,9 +230,13 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                     out.write(manifestBytes(layerManifest));
                 }
                 handle = nativeCreate(new File(files, "scenes").getPath(), manifestFile.getPath(),
-                    new File(files, "config/device-profiles.json").getPath(), Build.MODEL);
+                    new File(files, "config/device-profiles.json").getPath(), Build.MODEL,
+                    new File(getCacheDir(), "vulkan").getPath());
                 frameInterval = Math.max(1, 1000 / nativeTargetFps(handle));
-                runOnUiThread(() -> status.setText("Ready"));
+                runOnUiThread(() -> {
+                    status.setText("Ready");
+                    applyDebugRequest(getIntent());
+                });
                 restartFrames();
             } catch (Exception error) { showFailure(error); }
         });
@@ -274,14 +281,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 card.setContentDescription(NAMES[index] + ", " + DESCRIPTIONS[index]);
                 card.setFocusable(true);
                 card.setOnClickListener(view -> {
-                    selected = index;
-                    scenes.setText(NAMES[index] + "  ▾");
-                    scenes.setContentDescription("Choose scene: " + NAMES[index]);
-                    released = false;
-                    release.setText("Release");
-                    release.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
-                    status.setText("Loading scene…");
-                    command(0, index, 0);
+                    selectScene(index);
                     dialog.dismiss();
                 });
                 LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(0, dp(58), 1);
@@ -294,6 +294,38 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         styleDialog(dialog);
         dialog.getWindow().setLayout(Math.min(dp(620), getWindow().getDecorView().getWidth() - dp(48)),
             Math.min(dp(420), getWindow().getDecorView().getHeight() - dp(24)));
+    }
+    private void selectScene(int index) {
+        if (index < 0 || index >= NAMES.length) return;
+        selected = index;
+        scenes.setText(NAMES[index] + "  ▾");
+        scenes.setContentDescription("Choose scene: " + NAMES[index]);
+        released = false;
+        release.setText("Release");
+        release.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
+        status.setText("Loading scene…");
+        command(0, index, 0);
+    }
+    // Repeatable device qualification uses the same commands as the UI.
+    // Release builds ignore these diagnostic extras.
+    private void applyDebugRequest(Intent intent) {
+        if (!BuildConfig.DEBUG || intent == null) return;
+        if (intent.hasExtra("pm_scene")) selectScene(intent.getIntExtra("pm_scene", 0));
+        String action = intent.getStringExtra("pm_action");
+        if ("reset".equals(action)) resetScene();
+        else if ("pause".equals(action) || "resume".equals(action)) {
+            paused = "pause".equals(action);
+            pause.setText(paused ? "Resume" : "Pause");
+            command(2, paused ? 1 : 0, 0);
+        } else if ("focus".equals(action)) command(8, 0, 0);
+        else if ("info".equals(action)) showInfo();
+        intent.removeExtra("pm_scene");
+        intent.removeExtra("pm_action");
+    }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        applyDebugRequest(intent);
     }
     private void resetScene() {
         released = false;

@@ -3,6 +3,13 @@ plugins { id("com.android.application") }
 val slangCompiler = providers.gradleProperty("slangc")
     .orElse(providers.environmentVariable("SLANGC"))
 val cgltfSource = providers.gradleProperty("cgltfSource")
+val physicsBackend = providers.gradleProperty("physicsBackend").orElse("vulkan").get()
+require(physicsBackend in listOf("vulkan", "cpu")) {
+    "physicsBackend must be vulkan or cpu"
+}
+val useVulkan = physicsBackend == "vulkan"
+val qualification = providers.gradleProperty("qualification").orElse("false").get().toBoolean()
+require(!qualification || useVulkan) { "Android qualification targets currently require Vulkan" }
 
 android {
     namespace = "org.parallelmater.gallery"
@@ -10,10 +17,11 @@ android {
     ndkVersion = "29.0.14206865"
     defaultConfig {
         applicationId = "org.parallelmater.gallery"
-        minSdk = 29
+        minSdk = if (useVulkan) 33 else 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1-preview"
+        versionCode = 2
+        versionName = "0.1-$physicsBackend-preview"
+        buildConfigField("String", "PHYSICS_BACKEND", "\"$physicsBackend\"")
         ndk { abiFilters += providers.gradleProperty("abis")
             .orElse("arm64-v8a,x86_64").get().split(",") }
         externalNativeBuild {
@@ -23,8 +31,11 @@ android {
                     "-DBUILD_TESTING=OFF",
                     "-DPARALLEL_MATER_BUILD_CUDA=OFF",
                     "-DPARALLEL_MATER_BUILD_D3D12=OFF",
-                    "-DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON",
-                    "-DPARALLEL_MATER_SLANG_CPU_LIQUIDS=ON",
+                    "-DPARALLEL_MATER_BUILD_VULKAN=${if (useVulkan) "ON" else "OFF"}",
+                    "-DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=${if (useVulkan) "OFF" else "ON"}",
+                    "-DPARALLEL_MATER_SLANG_CPU_LIQUIDS=${if (useVulkan) "OFF" else "ON"}",
+                    "-DPARALLEL_MATER_ANDROID_BACKEND=$physicsBackend",
+                    "-DPARALLEL_MATER_ANDROID_QUALIFICATION=${if (qualification) "ON" else "OFF"}",
                     "-DPARALLEL_MATER_BUILD_GALLERY=ON",
                     "-DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=OFF",
                     "-DPARALLEL_MATER_BUILD_SLANG_MIRRORS=OFF",
@@ -37,6 +48,8 @@ android {
                 if (cgltfSource.isPresent)
                     arguments += "-DFETCHCONTENT_SOURCE_DIR_PARALLEL_MATER_CGLTF=${cgltfSource.get()}"
                 targets += "parallel-mater-gallery-android"
+                if (qualification) targets += listOf("pm-android-command-tests",
+                    "pm-android-async-tests", "pm-android-liquid-tests")
             }
         }
     }
@@ -50,6 +63,7 @@ android {
         debug { isJniDebuggable = true }
     }
     // The loader resolves the driver via a manifest in app-private storage.
+    buildFeatures { buildConfig = true }
     packaging { jniLibs { useLegacyPackaging = true } }
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("gallery-assets").get().asFile)
 }

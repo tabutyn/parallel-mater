@@ -226,10 +226,50 @@ Vulkan on Linux. Backend capabilities control scene availability, and the shared
 hardware-profile resource limits preview workloads. Details and checks are in
 [VULKAN.md](VULKAN.md).
 
-This does not complete the full-domain qualification milestone. Android still
-ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
-remaining particle domains/couplings, engine handoff, and sustained performance
-remain open.
+This does not complete the full-domain qualification milestone. Android Vulkan
+packaging and the three Pixel 7 native API/liquid suites now pass after a
+transport-only workaround for the Mali compiler's forward-pointer handling.
+All eight mobile scenes pass short runtime checks. Phone performance remains
+below target; the remaining particle domains/couplings and engine handoff are
+still open. Device evidence is in [ANDROID-QUALIFICATION.md](ANDROID-QUALIFICATION.md).
+
+## Linux/Android workstation checkpoint (2026-10-16)
+
+The Linux launcher now installs one canonical **Parallel Mater** entry pointing
+at the prepared CUDA/Vulkan build, with no build on application launch. Builds
+and qualification checks run serially on this memory-constrained laptop.
+Changed source in both older worktrees was archived and hash-verified before
+cleanup; those worktrees remain intact because they contain unmerged physics
+and scene work. Four stale worktree records and about 622 MiB of duplicate SDK
+and download files were removed. Local preservation records are under ignored
+`out/worktree-backups/2026-10-16/`.
+
+`scripts/Setup-VulkanValidation.sh` and `scripts/Test-Vulkan.sh` pin and verify
+the working desktop validator without changing system packages. Desktop
+CUDA/Vulkan checks pass 13/13 after the Android transport fixes. Both explicit
+Android CPU and Vulkan builds succeed. The Vulkan APK includes one loadable
+physics driver and no CUDA runtime dependency. Device-side public-API tests,
+debug scene/control requests, and frame-window measurements are available for
+repeatable phone qualification.
+
+Phone qualification is underway: command/API, asynchronous submission, and
+analytic/bounded liquid/coupling/reset suites pass on Pixel 7/Mali-G710. The
+initial compiler crash was isolated to unnecessary forward pointer declarations;
+normalizing type order resolves it while preserving Slang physics instructions.
+All eight mobile scenes now render and complete 120-frame checks. Releasing the
+old GPU scene before replacement prevents the observed Android memory kill;
+direction controls and hinge framing were corrected from device screenshots.
+Pause/reset/resume and background/foreground recovery pass. A five-minute
+fluid–rigid run completed without errors or restart, with stable sampled memory
+and thermal status 0; its frame rate remained below target.
+
+Next on this machine: reduce Mali shader-private memory and execution cost, add
+smaller representative constraint workloads through the hardware-profile
+resource, and reduce software rendering cost. Current scene samples run roughly
+2–16 FPS against a 30 FPS target and use around 3.2 GiB PSS. Keep startup budgets
+provisional and verified profiles empty until the performance gates pass. See
+[the device qualification record](ANDROID-QUALIFICATION.md) for exact scope and
+measurements.
 
 ## Windows shared-runtime cleanup (2026-10-16)
 

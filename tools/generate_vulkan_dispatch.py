@@ -93,6 +93,15 @@ def generate(args):
                  'auto *execution = parallel_mater::vulkan::context(stream);',
                  'if (!execution) return;', f'std::array<std::byte, {(size+3)&~3}> constants{{}};']
         if name == 'pm_evaluate_rigid_leaf_pairs': lines.append('block.x = 8U;')
+        if name in ('pm_reduce_rigid_leaf_manifolds', 'pm_finalize_rigid_contact_manifolds',
+                    'pm_load_rigid_contact_cache', 'pm_save_rigid_contact_cache'):
+            # These kernels assign one pair per thread, unlike the cooperative
+            # leaf kernels. Avoid launching mostly inactive workgroups: Mali
+            # reserves private scratch even for threads that immediately return.
+            count = lookup.get('body_count', lookup.get('count'))
+            if not count: raise ValueError(name + ': pair bounds missing')
+            lines.append(f'grid.x = static_cast<unsigned>(std::min<std::uint64_t>(grid.x, '
+                         f'(std::uint64_t({count}) * {count} + block.x - 1U) / block.x));')
         def pack(p, variable, base=0):
             binding, typ = p['binding'], p['type']
             if isinstance(typ, str): typ = reflected_types[typ]
