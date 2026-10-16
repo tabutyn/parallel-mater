@@ -1736,6 +1736,12 @@ Status SimulationRuntime::emitter_memory_requirements(simulation::StorageRequire
     if (status) output = planner.requirements;
     return status;
 }
+Status SimulationRuntime::paint_field_memory_requirements(
+    std::uint32_t vertices, std::uint32_t width, std::uint32_t height,
+    simulation::StorageRequirements &output) noexcept {
+    return simulation::paint_storage_requirements(
+        vertices, width, height, output);
+}
 
 Status SimulationRuntime::base_memory_requirements(SimulationOptions options,
     simulation::StorageRequirements &output) noexcept {

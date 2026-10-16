@@ -197,16 +197,17 @@ using parallel_mater::Vec3;
     if (!add_bytes(persistent, info.couplingCapacity, coupling.persistent) ||
         !add_bytes(persistent, info.emitterCapacity, emitter.persistent) ||
         !add_bytes(persistent, info.destroyerCapacity, 512U) ||
-        !add_bytes(persistent, info.paintRuleCapacity, 512U) ||
         !add_bytes(persistent, info.debugFrameCapacity,
                    std::max<PmDeviceSize>(1U, rigid) * 192U))
         return false;
     for (const PmPaintFieldCapacity capacity :
          std::span(info.pPaintFieldCapacities, info.paintFieldCount)) {
-        if (!add_bytes(persistent, capacity.vertexCapacity, sizeof(PmFloat2)) ||
-            !add_bytes(persistent,
-                static_cast<PmDeviceSize>(capacity.width) * capacity.height,
-                sizeof(std::uint32_t)))
+        parallel_mater::simulation::StorageRequirements plan{};
+        if (!parallel_mater::SimulationRuntime::paint_field_memory_requirements(
+                capacity.vertexCapacity, capacity.width, capacity.height,
+                plan) ||
+            !add_bytes(persistent, 1U, plan.persistent) ||
+            !add_bytes(scratch, 1U, plan.scratch))
             return false;
     }
     constexpr PmDeviceSize alignment = 256U;

@@ -24,6 +24,14 @@ target_include_directories(parallel-mater-geometry-resource-plan-tests
 add_test(NAME parallel-mater-geometry-resource-plan-tests
     COMMAND parallel-mater-geometry-resource-plan-tests)
 
+add_executable(parallel-mater-paint-resource-plan-tests
+    paint_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
+target_compile_features(parallel-mater-paint-resource-plan-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-paint-resource-plan-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-paint-resource-plan-tests
+    COMMAND parallel-mater-paint-resource-plan-tests)
+
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
     add_executable(parallel-mater-slang-metal-kernel-tests metal_kernel_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-kernel-tests PRIVATE cxx_std_20)

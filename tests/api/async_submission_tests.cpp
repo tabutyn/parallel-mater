@@ -24,12 +24,12 @@ int main() {
     PmPhysicalDevice physical{};
     CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS);
     CHECK(count == 1U);
+    PmPhysicalDeviceFeatures supported{};
+    pmGetPhysicalDeviceFeatures(physical, &supported);
 #if defined(PM_TEST_METAL_PREVIEW)
     PmPhysicalDeviceProperties properties{};
     pmGetPhysicalDeviceProperties(physical, &properties);
     CHECK(std::strstr(properties.deviceName, "Metal GPU preview") != nullptr);
-    PmPhysicalDeviceFeatures supported{};
-    pmGetPhysicalDeviceFeatures(physical, &supported);
     CHECK(supported.rigidBodies && supported.rigidConstraints);
     CHECK(supported.particleLiquids && supported.liquidRigidCoupling);
     CHECK(supported.cloth && supported.softBodies && supported.domainCouplings);
@@ -43,6 +43,7 @@ int main() {
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
+    device_info.enabledFeatures.paint = supported.paint;
     device_info.enabledFeatures.timelineSemaphores = PM_TRUE;
     PmDevice device{};
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
@@ -113,12 +114,25 @@ int main() {
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     simulation_info.rigidBodyCapacity = 2U;
     simulation_info.contactCapacity = 32U;
+    const PmPaintFieldCapacity paint_capacities[2]{{8U, 4U, 4U},
+                                                   {8U, 4U, 4U}};
+    if (supported.paint != PM_FALSE) {
+        simulation_info.paintFieldCount = 2U;
+        simulation_info.pPaintFieldCapacities = paint_capacities;
+        simulation_info.paintRuleCapacity = 1U;
+    }
     PmSimulation simulation{};
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) == PM_SUCCESS);
     PmSimulationMemoryRequirements requirements{};
     pmGetSimulationMemoryRequirements(device, simulation, &requirements);
+    CHECK(requirements.persistent.size > 1U);
+    const auto scratch_memory = allocate(requirements.scratch.size);
+    PmSimulationMemoryBinding undersized{
+        allocate(requirements.persistent.size - 1U), 0U, scratch_memory, 0U};
+    CHECK(pmBindSimulationMemory(device, simulation, &undersized) ==
+          PM_ERROR_INVALID_ARGUMENT);
     PmSimulationMemoryBinding binding{allocate(requirements.persistent.size), 0U,
-                                      allocate(requirements.scratch.size), 0U};
+                                      scratch_memory, 0U};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
@@ -171,6 +185,30 @@ int main() {
     body.inertiaDiagonal[0] = body.inertiaDiagonal[1] = body.inertiaDiagonal[2] = 1.0F / 6.0F;
     body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
     CHECK(pmCmdWriteRigidBodies(commands[0], simulation, 0U, 1U, &body) == PM_SUCCESS);
+    const PmFloat2 paint_uvs[8]{{0.0F, 0.0F}, {1.0F, 0.0F},
+                                {1.0F, 1.0F}, {0.0F, 1.0F},
+                                {0.0F, 0.0F}, {1.0F, 0.0F},
+                                {1.0F, 1.0F}, {0.0F, 1.0F}};
+    PmPaintFieldInfo paint_fields[2]{};
+    for (auto &field : paint_fields) {
+        field.active = PM_TRUE;
+        field.targetType = PM_PAINT_TARGET_RIGID;
+        field.targetIndex = 0U;
+        field.geometry = geometry;
+        field.vertexCount = 8U;
+        field.pVertexUvs = paint_uvs;
+        field.width = 4U;
+        field.height = 4U;
+    }
+    if (supported.paint != PM_FALSE) {
+        CHECK(pmCmdWritePaintFields(commands[0], simulation, 0U, 2U,
+                                    paint_fields) == PM_SUCCESS);
+        auto oversized_paint = paint_fields[0];
+        oversized_paint.vertexCount = 9U;
+        CHECK(pmCmdWritePaintFields(commands[0], simulation, 0U, 1U,
+                                    &oversized_paint) ==
+              PM_ERROR_CAPACITY_EXCEEDED);
+    }
     CHECK(pmCmdBindPhysicsPipeline(commands[0], pipeline) == PM_SUCCESS);
     CHECK(pmCmdBeginStatisticsQuery(commands[0], query, 0U) == PM_SUCCESS);
     PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F}, 0U};
@@ -223,6 +261,32 @@ int main() {
     CHECK(statistics.executionResult == PM_SUCCESS);
     CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_SUCCESS);
     CHECK(execution == PM_SUCCESS);
+    // A rejected write must not disturb the other live field. Copying it also
+    // proves exact queried persistent storage covered paint materialization.
+    if (supported.paint != PM_FALSE) {
+        CHECK(pmResetCommandBuffer(commands[3]) == PM_SUCCESS);
+        CHECK(pmResetFences(device, 1U, &fences[3]) == PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands[3], &begin) == PM_SUCCESS);
+        const PmBufferRange paint_output{
+            destination, 256U,
+            sizeof(PmDomainOutputHeader) + 16U * sizeof(std::uint32_t)};
+        CHECK(pmCmdCopyPaintField(commands[3], simulation, 1U, &paint_output) ==
+              PM_SUCCESS);
+        CHECK(pmEndCommandBuffer(commands[3]) == PM_SUCCESS);
+        submit.waitCount = 0U;
+        submit.pWaits = nullptr;
+        submit.pCommandBuffers = &commands[3];
+        CHECK(pmQueueSubmit(queue, &submit, fences[3]) == PM_SUCCESS);
+        CHECK(pmWaitForFences(device, 1U, &fences[3], PM_TRUE,
+                              PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+        const auto *paint_header =
+            reinterpret_cast<const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(output) + paint_output.offset);
+        CHECK(paint_header->activeCount == 16U);
+        CHECK(paint_header->capacity == 16U);
+        CHECK(pmResetCommandBuffer(commands[3]) == PM_SUCCESS);
+        CHECK(pmResetFences(device, 1U, &fences[3]) == PM_SUCCESS);
+    }
     // Several frames in flight retain distinct output slots and execute in order.
     for (std::uint32_t frame = 1U; frame < 3U; ++frame) {
         CHECK(pmBeginCommandBuffer(commands[frame], &begin) == PM_SUCCESS);
