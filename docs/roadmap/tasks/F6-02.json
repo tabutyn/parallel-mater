@@ -1,7 +1,7 @@
 {
   "id": "F6-02",
   "title": "Qualify macOS SDK installation",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "sdk-packaging"
@@ -15,6 +15,14 @@
     "Evidence identifies architecture/compiler/revision; add the same job to CI."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c3e4ec85-59db-4df2-86c1-a515582bbdc3",
+    "owner": "codex-macos-sdk",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F6-02/thomass-macbook-air",
+    "claimed_at": "2026-10-16T22:43:28Z",
+    "heartbeat_at": "2026-10-16T22:43:28Z",
+    "expires_at": "2026-10-17T22:43:28Z"
+  },
   "history": []
 }
