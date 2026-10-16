@@ -44,8 +44,9 @@ The reference implementation still waits on its worker between frames and
 performs explicit readbacks for emission, phase transfer, diagnostics, and
 some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
-full native adapters for other graphics APIs remain separate work. Vulkan and
-Metal do not advertise new physics capabilities from this change.
+full native adapters for other graphics APIs remain separate work. The
+[Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies, constraints,
+liquids, and liquid–rigid coupling. Metal remains unavailable.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
 Its public command path binds and dispatches the shared rigid-body,
@@ -55,7 +56,8 @@ remain unadvertised.
 
 No Metal device adapter or Metal physics implementation is shipped. The CPU
 driver advertises only the rigid capabilities that its shared Slang schedule
-currently executes; other domains remain unavailable. Cross-target generation
+currently executes, with experimental liquids explicitly enabled for the Android
+preview; other domains remain unavailable. Cross-target generation
 of the shared AVBD module remains a compiler and reflection portability check;
 it does not expose a backend-specific runtime or advertise Metal execution.
 

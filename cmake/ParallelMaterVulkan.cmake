@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 find_package(Vulkan REQUIRED)
+find_program(PARALLEL_MATER_SPIRV_VAL_EXECUTABLE NAMES spirv-val)
 include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
 set(vulkan_generated "${CMAKE_CURRENT_BINARY_DIR}/generated/vulkan")
 file(MAKE_DIRECTORY "${vulkan_generated}")
@@ -24,8 +25,8 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
         COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang"
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang" ${entries} ${definitions}
-            -DPM_TARGET_VULKAN=1 -DPM_VULKAN_VARIABLE_GROUP_SIZE=1 -target spirv -profile sm_6_5 -fp-mode precise
-            -fvk-use-scalar-layout -fvk-use-entrypoint-name
+            -DPM_TARGET_VULKAN=1 -DPM_VULKAN_VARIABLE_GROUP_SIZE=1 -target spirv -profile sm_6_5 -fp-mode precise -O2
+            -fvk-use-scalar-layout -fvk-use-entrypoint-name -separate-debug-info
             -reflection-json "${base}.json" -o "${base}.spv"
         DEPENDS ${vulkan_shader_dependencies} "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
         COMMENT "Compiling shared Slang ${module} for Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
@@ -36,6 +37,11 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
         DEPENDS "${base}.cu" "${base}.json" "${base}.spv" "${wrapper}" tools/generate_vulkan_dispatch.py
         COMMENT "Binding shared Slang ${module} to Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
     list(APPEND vulkan_sources "${base}.cpp")
+    if(BUILD_TESTING AND PARALLEL_MATER_SPIRV_VAL_EXECUTABLE)
+        add_test(NAME parallel-mater-vulkan-spirv-${module}
+            COMMAND "${PARALLEL_MATER_SPIRV_VAL_EXECUTABLE}"
+                --target-env vulkan1.3 --scalar-block-layout "${base}.spv")
+    endif()
 endforeach()
 set(vulkan_stub_headers
     src/simulation/cloth_dispatch.hpp src/simulation/fluid_cloth_dispatch.hpp
@@ -103,4 +109,14 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-vulkan-liquid-tests PROPERTIES TIMEOUT 180
             ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
     endif()
+endif()
+
+if(BUILD_TESTING)
+    foreach(test parallel-mater-vulkan-command-api-tests parallel-mater-vulkan-async-tests
+                 parallel-mater-vulkan-liquid-tests)
+        if(TEST ${test})
+            set_tests_properties(${test} PROPERTIES
+                FAIL_REGULAR_EXPRESSION "Validation Error;VUID-")
+        endif()
+    endforeach()
 endif()

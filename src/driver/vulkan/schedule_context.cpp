@@ -71,7 +71,7 @@ std::vector<Adapter> adapters(VkInstance instance) {
                                            &f12};
         vkGetPhysicalDeviceFeatures2(physical, &features);
         if (!f13.maintenance4 || !f12.bufferDeviceAddress || !f12.scalarBlockLayout ||
-            !f12.storageBuffer8BitAccess || !f12.shaderInt8 ||
+            !f12.storageBuffer8BitAccess || !f12.storagePushConstant8 || !f12.shaderInt8 ||
             !f12.shaderBufferInt64Atomics || !features.features.shaderInt64)
             continue;
         // Some installations expose the same adapter through multiple ICDs.
@@ -386,6 +386,7 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
         f12.bufferDeviceAddress = VK_TRUE;
         f12.scalarBlockLayout = VK_TRUE;
         f12.storageBuffer8BitAccess = VK_TRUE;
+        f12.storagePushConstant8 = VK_TRUE;
         f12.shaderInt8 = VK_TRUE;
         f12.shaderBufferInt64Atomics = VK_TRUE;
         VkPhysicalDeviceFeatures features{};
@@ -785,6 +786,7 @@ VkPhysicalDevice ScheduleContext::physical() const noexcept {
 int ScheduleContext::ordinal() const noexcept { return impl_->ordinal; }
 VkDevice ScheduleContext::device() const noexcept { return impl_->device; }
 VkBuffer ScheduleContext::buffer(const void *pointer) const noexcept {
+    std::lock_guard lock(impl_->mutex);
     auto b = impl_->find(pointer);
     return b ? b->buffer : VK_NULL_HANDLE;
 }

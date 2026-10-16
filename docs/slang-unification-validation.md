@@ -10,7 +10,8 @@ This page records the current validation contract for the unified runtime.
 - Device and simulation dispatch adapters contain platform services and
   generated-kernel launches only.
 - DirectCompute and Metal backend-specific implementations and galleries have
-  been removed; Vulkan and WebGPU physics are not advertised.
+  been removed. The loadable Vulkan preview runs shared rigid and liquid
+  schedules; WebGPU physics remains unavailable.
 - The retired hand-written CUDA physics kernels have been deleted. CUDA source
   produced by Slang, the thin CUDA device adapter, CUDA interoperability, and
   OptiX drawing remain.
@@ -63,6 +64,6 @@ command API.
 |---|---|
 | CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
-| DirectX 12 | Core loader driver and AVBD DXIL schedule qualified; physics features intentionally unavailable |
-| Vulkan | Interoperability declarations only; physics unavailable |
+| DirectX 12 | Shared Slang rigid-body and constraint schedules; other domains unavailable |
+| Vulkan | Shared rigid/constraint/liquid preview; focused GPU and shader validation, not full backend qualification. See [Vulkan](VULKAN.md) |
 | WebGPU | AVBD numerical core compiles to WGSL; full schedule and driver unavailable |

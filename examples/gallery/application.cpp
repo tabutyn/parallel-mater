@@ -129,6 +129,7 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
 struct Options {
     std::optional<parallel_mater::gallery::GalleryWorkloadLimits> workload_limits;
     bool fluid_particles_overridden{};
+    bool dump_spheres_overridden{};
     std::filesystem::path executable_path{};
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
@@ -382,27 +383,22 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     GalleryWindow presentation;
     const bool interactive = options.headless_output.empty() &&
         !options.print_brick_profile;
-    if (interactive) {
+    if (interactive && !options.backend && !backends.empty()) {
+        GalleryWindow selector;
         if (!GalleryWindow::create(1280U, 720U, options.width, options.height,
-                                   window_title.c_str(), presentation, error)) {
+                                   window_title.c_str(), selector, error)) {
             std::cerr << error << '\n';
             return 1;
         }
-        if (!options.backend && !backends.empty()) {
-            PmNativeBackend selected{};
-            if (!choose_backend(presentation, options.width, options.height,
-                                backends, selected, error)) {
-                std::cerr << error << '\n';
-                return 1;
-            }
-            options.backend = selected;
+        PmNativeBackend selected{};
+        if (!choose_backend(selector, options.width, options.height,
+                            backends, selected, error)) {
+            std::cerr << error << '\n';
+            return 1;
         }
-        if (options.backend) {
-            const std::string title = window_title + " - " +
-                backend_title(*options.backend);
-            glfwSetWindowTitle(presentation.native_handle(), title.c_str());
-        }
+        options.backend = selected;
     }
+    if (options.backend) window_title += " - " + backend_title(*options.backend);
     const PmPhysicalDeviceFeatures *selected_features = nullptr;
     for (const auto &backend : backends) {
         if (options.backend && backend.backend == *options.backend) {
@@ -436,6 +432,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             options.width = limits->render_width;
             options.height = limits->render_height;
             if (!options.fluid_particles_overridden) options.fluid_particles = limits->fluid_particles;
+            if (!options.dump_spheres_overridden) options.dump_spheres = limits->dump_spheres;
         }
         const char *selection_label = "command line";
         if (!options.bricks_overridden) {
@@ -454,6 +451,14 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                   << " walls [" << selection_label << "]\n";
     }
     if (options.print_brick_profile) return 0;
+    // Backend-specific workload profiles may change the render resolution.
+    // Create the simulation presentation after those limits are selected.
+    if (interactive &&
+        !GalleryWindow::create(1280U, 720U, options.width, options.height,
+                               window_title.c_str(), presentation, error)) {
+        std::cerr << error << '\n';
+        return 1;
+    }
     GallerySession session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,
                          options.fluid_particles, error)) {

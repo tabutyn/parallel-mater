@@ -33,14 +33,14 @@ dependencies.
 The interactive gallery opens with a backend selector before it creates the
 simulation. It lists the loader-visible drivers that can run the initial rigid
 scene; on a Windows installation containing both reference drivers this means
-CUDA and Direct3D 12. Up/Down changes the selection and Enter starts the same
+CUDA and Direct3D 12. The Linux desktop test build offers CUDA and Vulkan. Up/Down changes the selection and Enter starts the same
 shared gallery with that physical device. The selected backend remains fixed
 across reset and scene changes. A scene whose required capabilities are not
-advertised by that backend is rejected instead of falling back to another
-driver.
+advertised by that backend is labeled unavailable and cannot be selected.
+Explicit command-line requests still fail rather than falling back to another driver.
 
 Automated and headless runs bypass the prompt with `--backend cuda` or
-`--backend d3d12`. Without an explicit backend, non-interactive runs retain the
+`--backend d3d12` or `--backend vulkan`. Without an explicit backend, non-interactive runs retain the
 loader's normal compatible-device selection.
 
 On Windows, each successful `parallel-mater-gallery` build refreshes the
@@ -51,6 +51,13 @@ per-build timestamp. Both
 the CUDA and Direct3D 12 portable manifests are installed when those drivers
 were built, so this installed executable presents the same backend selection
 that was tested in the build tree.
+
+On Linux, `scripts/Run-DesktopGallery.sh` starts the prepared
+`build-desktop-switch` build with both driver manifests. Install its separate
+**Parallel Mater Backend Test** app entry with `scripts/Install-DesktopTest.sh`.
+It does not build at launch. Vulkan uses conservative startup limits from the
+shared device-profile resource and labels its smaller scene scope in the picker.
+See [Vulkan build and validation details](VULKAN.md).
 
 ## First gallery sequence
 
