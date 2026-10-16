@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Rigid triangle geometry, contact generation, and contact-cache kernels.
 // Backend-neutral constraint solving lives in geometry_constraints.slang.
 
@@ -412,7 +413,7 @@ bool constrained_collision_disabled(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_integrate_rigid_bodies(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<BodyAccumulator> accumulators,
     uniform PMBuffer<KinematicTarget> targets, uniform PMBuffer<RigidBodyState> input,
@@ -502,7 +503,7 @@ void pm_integrate_rigid_bodies(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_compute_rigid_world_bounds(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -560,7 +561,7 @@ bool rigid_bounding_spheres_may_contact(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_broad_phase_rigid_pairs(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<WorldAabb> world_bounds,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -1600,7 +1601,7 @@ groupshared uint rigidLeafCandidateCount;
 groupshared WorldAabb rigidLeafCachedBounds[1024];
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_generate_rigid_leaf_pairs(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -1797,7 +1798,13 @@ void pm_generate_rigid_leaf_pairs(
 
 #if !PM_TARGET_D3D12 || defined(PM_DXIL_ENTRY_pm_evaluate_rigid_leaf_pairs)
 #if !PM_TARGET_D3D12
+#if defined(PM_TARGET_VULKAN)
+// Eight workers keep this contact reduction within a 32 KiB mobile workgroup
+// budget. The adapter specializes the launch to the same number of workers.
+groupshared ContactManifold rigidLeafWorkerManifolds[8];
+#else
 groupshared ContactManifold rigidLeafWorkerManifolds[16];
+#endif
 groupshared ContactManifold rigidLeafReducedManifold;
 #endif
 groupshared HingeContactFrame rigidLeafPreviousBodyHinge;
@@ -1809,7 +1816,7 @@ groupshared float rigidLeafMargin;
 groupshared uint rigidLeafSwept;
 
 [shader("compute")]
-[numthreads(16, 1, 1)]
+[numthreads(PM_THREADS(16), 1, 1)]
 void pm_evaluate_rigid_leaf_pairs(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -1989,7 +1996,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_reduce_rigid_leaf_manifolds(
     uniform PMBuffer<BodyParameters> parameters, uniform uint count,
     uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
@@ -2017,7 +2024,7 @@ void pm_reduce_rigid_leaf_manifolds(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_finalize_rigid_contact_manifolds(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -2114,7 +2121,7 @@ void pm_finalize_rigid_contact_manifolds(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_clear_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<KinematicTarget> targets,
     uniform uint count PM_D3D12_DISPATCH_PARAMETER)
@@ -2127,7 +2134,7 @@ void pm_clear_rigid_inputs(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_capture_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<Vec3> forces,
     uniform PMBuffer<Vec3> torques, uniform uint count
@@ -2141,7 +2148,7 @@ void pm_capture_rigid_inputs(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void pm_prepare_parallel_contact_events(
     uniform uint count, uniform PMBuffer<ContactManifold> manifolds,
     uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
@@ -2180,7 +2187,7 @@ void pm_prepare_parallel_contact_events(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_load_rigid_contact_cache(
     uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
     uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
@@ -2250,7 +2257,7 @@ void pm_load_rigid_contact_cache(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_save_rigid_contact_cache(
     uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
     uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
@@ -2311,7 +2318,7 @@ void pm_save_rigid_contact_cache(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_gather_rigid_debug_samples(
     uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<Vec3> torques, uniform uint count,
@@ -2325,7 +2332,7 @@ void pm_gather_rigid_debug_samples(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_clamp_rigid_speeds(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform uint count PM_D3D12_DISPATCH_PARAMETER)
@@ -2347,7 +2354,7 @@ uint fixed_projection_root(PMBuffer<FixedContactProjection> groups, uint body)
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void pm_build_fixed_collision_groups(
     uniform PMBuffer<RigidConstraintResource> constraints, uniform uint capacity,
     uniform PMBuffer<RigidBodyId> ids, uniform uint count,

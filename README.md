@@ -105,13 +105,15 @@ macOS also builds a loader-native Slang CPU driver: its serial host adapter
 executes the shared generated rigid-body, constraint, contact, debug, and query
 kernels. It is a correctness and development path, not yet a performance
 replacement for a native Apple GPU adapter, and it does not advertise fluid,
-cloth, rope, soft-body, smoke, or paint capabilities. All shared Slang modules
-are also compiled to Vulkan SPIR-V as a portability check, but there is no
-Vulkan driver until a complete shared schedule passes the same conformance and
-gallery gates. The D3D12 driver advertises the shared rigid-body and
-rigid-constraint DXIL schedules, but no fluid, cloth, rope, soft-body, smoke,
-or coupling domains; Metal and WebGPU have no drivers. The backend-neutral AVBD
-numerical core is also compiled to WGSL
+cloth, rope, soft-body, smoke, or paint capabilities by default. The Android
+preview explicitly enables experimental shared Slang CPU liquids. All shared
+Slang modules also compile to SPIR-V as a portability check. A loadable
+[Vulkan preview driver](docs/VULKAN.md) now executes shared rigid-body,
+constraint, liquid, and liquid–rigid schedules; other domains remain
+unadvertised. The Linux desktop test launcher offers CUDA or Vulkan and the
+Gallery accepts `--backend`. The D3D12 driver exposes shared Slang rigid bodies
+and constraints through the portable schedule. Metal and WebGPU have no
+drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
 as a WebGPU portability gate; the complete pointer-based domain schedules do
 not yet have WebGPU resource wrappers. Retired backend-specific physics targets
 are absent rather than available as fallbacks. Native
@@ -147,6 +149,14 @@ cmake --build build-gallery
 ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
+
+### Android Gallery preview
+
+An ARM64 native Android preview reuses the shared gallery and an optional Slang
+CPU liquid adapter. Its hardware-profile resource selects small rigid/fluid
+workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
+rigid and liquid scenes only; Android GPU execution and other domains remain
+future work. See [build, install and controls](examples/android/README.md).
 
 ### Windows Gallery application
 

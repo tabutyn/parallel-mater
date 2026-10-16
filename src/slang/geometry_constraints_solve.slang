@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Included by geometry_constraints.slang after the shared AVBD data and
 // joint/contact helpers are defined.
 
@@ -147,7 +148,7 @@ void rigid_avbd_project_hinge_anchors(
 }
 
 [shader("compute")]
-[numthreads(32, 1, 1)]
+[numthreads(PM_THREADS(32), 1, 1)]
 void solve_avbd_kernel(
     uniform PM_AVBD_BUFFER(BodyParameters) parameters,
     uniform PM_AVBD_BUFFER(RigidBodyState) previous,

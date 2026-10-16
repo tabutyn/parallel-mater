@@ -127,6 +127,9 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
 }
 
 struct Options {
+    std::optional<parallel_mater::gallery::GalleryWorkloadLimits> workload_limits;
+    bool fluid_particles_overridden{};
+    bool dump_spheres_overridden{};
     std::filesystem::path executable_path{};
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
@@ -288,9 +291,14 @@ class KeyEdges {
             names.push_back(backend_title(backend.backend));
             details.push_back(
                 backend.device_name + " / " +
-                (backend.features.particleLiquids == PM_TRUE
-                     ? "ALL ADVERTISED SCENES"
-                     : "RIGID AND CONSTRAINT SCENES"));
+                (backend.features.cloth == PM_TRUE &&
+                 backend.features.rope == PM_TRUE &&
+                 backend.features.softBodies == PM_TRUE &&
+                 backend.features.smoke == PM_TRUE
+                     ? "FULL GALLERY"
+                     : backend.features.particleLiquids == PM_TRUE
+                         ? "RIGID + LIQUID PREVIEW"
+                         : "RIGID + CONSTRAINTS"));
         }
         pixels.assign(static_cast<std::size_t>(width) * height,
                       0xff120d08U);
@@ -375,25 +383,27 @@ int parallel_mater_gallery_application(int argc, char **argv) {
     GalleryWindow presentation;
     const bool interactive = options.headless_output.empty() &&
         !options.print_brick_profile;
-    if (interactive) {
+    if (interactive && !options.backend && !backends.empty()) {
+        GalleryWindow selector;
         if (!GalleryWindow::create(1280U, 720U, options.width, options.height,
-                                   window_title.c_str(), presentation, error)) {
+                                   window_title.c_str(), selector, error)) {
             std::cerr << error << '\n';
             return 1;
         }
-        if (!options.backend && !backends.empty()) {
-            PmNativeBackend selected{};
-            if (!choose_backend(presentation, options.width, options.height,
-                                backends, selected, error)) {
-                std::cerr << error << '\n';
-                return 1;
-            }
-            options.backend = selected;
+        PmNativeBackend selected{};
+        if (!choose_backend(selector, options.width, options.height,
+                            backends, selected, error)) {
+            std::cerr << error << '\n';
+            return 1;
         }
-        if (options.backend) {
-            const std::string title = window_title + " - " +
-                backend_title(*options.backend);
-            glfwSetWindowTitle(presentation.native_handle(), title.c_str());
+        options.backend = selected;
+    }
+    if (options.backend) window_title += " - " + backend_title(*options.backend);
+    const PmPhysicalDeviceFeatures *selected_features = nullptr;
+    for (const auto &backend : backends) {
+        if (options.backend && backend.backend == *options.backend) {
+            selected_features = &backend.features;
+            break;
         }
     }
     if (options.headless_output.empty()) {
@@ -404,17 +414,36 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             return 1;
         }
         DeviceProfileCatalog catalog;
+        std::string profile_error;
+        if (!load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
+            std::cerr << "Device profile catalog unavailable: " << profile_error << '\n';
+        }
+        const char *platform =
+#if defined(_WIN32)
+            "Windows";
+#elif defined(__APPLE__)
+            "macOS";
+#else
+            "Linux";
+#endif
+        if (const auto *limits = select_workload_limits(catalog, platform,
+                hardware.machine_model, hardware.backend)) {
+            options.workload_limits = *limits;
+            options.width = limits->render_width;
+            options.height = limits->render_height;
+            if (!options.fluid_particles_overridden) options.fluid_particles = limits->fluid_particles;
+            if (!options.dump_spheres_overridden) options.dump_spheres = limits->dump_spheres;
+        }
         const char *selection_label = "command line";
         if (!options.bricks_overridden) {
-            std::string profile_error;
-            if (!load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
-                std::cerr << "Device profile catalog unavailable: " << profile_error << '\n';
-                catalog = {};
-            }
             const auto selection = select_startup_bricks(
                 catalog, hardware, slang_solver_version, options.width, options.height);
             options.bricks = selection.scene;
             selection_label = brick_selection_label(selection.source);
+            if (options.workload_limits) {
+                options.bricks.brick_count = options.workload_limits->brick_count;
+                selection_label = options.workload_limits->name.c_str();
+            }
         }
         std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend
                   << ") -> " << options.bricks.brick_count << " bricks, scale "
@@ -422,6 +451,14 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                   << " walls [" << selection_label << "]\n";
     }
     if (options.print_brick_profile) return 0;
+    // Backend-specific workload profiles may change the render resolution.
+    // Create the simulation presentation after those limits are selected.
+    if (interactive &&
+        !GalleryWindow::create(1280U, 720U, options.width, options.height,
+                               window_title.c_str(), presentation, error)) {
+        std::cerr << error << '\n';
+        return 1;
+    }
     GallerySession session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,
                          options.fluid_particles, error)) {
@@ -925,9 +962,12 @@ int parallel_mater_gallery_application(int argc, char **argv) {
                         gallery_entries[selected].context;
                     const bool context_changed =
                         context_selection != runtime.context;
-                    if (!context_changed ||
-                        session.rebuild(options, context_selection, dump_spheres,
-                                        fluid_particles, error)) {
+                    if (selected_features &&
+                        !gallery_backend_supports(context_selection, *selected_features)) {
+                        // The catalog explains why this row is disabled.
+                    } else if (!context_changed ||
+                               session.rebuild(options, context_selection, dump_spheres,
+                                               fluid_particles, error)) {
                         if (context_changed) {
                             debug.reset(options.fluid_particle_view);
                             input_state.shared.current = selected;
@@ -1318,7 +1358,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         if (input_state.shared.catalog_visible) {
             draw_context_overlay(pixels, runtime.renderer.width(),
                                  runtime.renderer.height(),
-                                 gallery_entries[input_state.shared.selected].context);
+                                 gallery_entries[input_state.shared.selected].context, selected_features);
         }
         if (input_state.shared.parameters_visible) {
             if (input_state.brick_dialog)

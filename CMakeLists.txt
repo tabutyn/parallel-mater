@@ -43,7 +43,7 @@ execute_process(
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMAND_ERROR_IS_FATAL ANY)
 
-if(NOT APPLE AND NOT WIN32)
+if(NOT APPLE AND NOT WIN32 AND NOT ANDROID)
     set(PARALLEL_MATER_CUDA_DEFAULT ON)
 else()
     set(PARALLEL_MATER_CUDA_DEFAULT OFF)
@@ -59,6 +59,8 @@ option(PARALLEL_MATER_BUILD_CUDA
 option(PARALLEL_MATER_BUILD_D3D12
        "Build the D3D12 loader and shared-Slang qualification adapter"
        ${PARALLEL_MATER_D3D12_DEFAULT})
+option(PARALLEL_MATER_BUILD_VULKAN
+       "Build the loadable shared-Slang Vulkan qualification driver" OFF)
 option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
 if(WIN32)
@@ -145,7 +147,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
         "The current profiler-backed benchmarks require PARALLEL_MATER_BUILD_CUDA")
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
    PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
@@ -193,7 +195,7 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
-   PARALLEL_MATER_BUILD_D3D12 OR
+   PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
    PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
@@ -448,6 +450,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 examples/gallery/render/render_scene.cpp
                 examples/support/scene.cpp
                 examples/support/brick_scene.cpp
+                examples/support/liquid_workload.cpp
                 examples/support/device_profiles.cpp
                 examples/support/physics_debug.cpp
                 examples/support/rope_render.cpp
@@ -593,6 +596,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         FetchContent_MakeAvailable(pm_optix)
     endif()
 
+    if(NOT ANDROID)
     if(NOT WIN32)
         find_package(OpenGL REQUIRED)
     endif()
@@ -608,6 +612,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             GIT_TAG 3.4
             GIT_SHALLOW TRUE)
         FetchContent_MakeAvailable(parallel_mater_glfw)
+    endif()
     endif()
 
     if(PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
@@ -677,6 +682,9 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
+    if(ANDROID)
+        add_subdirectory(examples/android/app/src/main/cpp)
+    else()
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-gallery-window
@@ -862,6 +870,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 VERBATIM)
         endif()
     endif()
+    endif() # Desktop gallery shell
 endif()
 
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
@@ -871,6 +880,10 @@ if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
         add_dependencies(parallel-mater-gallery-window
                          parallel-mater-slang-avbd-dxil)
     endif()
+endif()
+
+if(PARALLEL_MATER_BUILD_VULKAN)
+    include(cmake/ParallelMaterVulkan.cmake)
 endif()
 
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
@@ -1044,6 +1057,26 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-gallery-workload-tests
+        tests/gallery/workload_profile_tests.cpp examples/support/device_profiles.cpp)
+    target_compile_features(parallel-mater-gallery-workload-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-gallery-workload-tests PRIVATE examples/support/include)
+    target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
+        PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
+    add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
+    if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
+       PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+        add_executable(parallel-mater-mobile-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
+        target_link_libraries(parallel-mater-mobile-liquid-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-mobile-liquid-tests PRIVATE
+            PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+            PM_SCENE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+        add_dependencies(parallel-mater-mobile-liquid-tests
+            parallel-mater-driver-slang-cpu parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-mobile-liquid-tests COMMAND parallel-mater-mobile-liquid-tests)
+        set_tests_properties(parallel-mater-mobile-liquid-tests PROPERTIES TIMEOUT 120
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+    endif()
     add_executable(parallel-mater-submission-queue-tests
         tests/api/submission_queue_tests.cpp src/device/submission.cpp)
     target_compile_features(parallel-mater-submission-queue-tests PRIVATE cxx_std_20)
@@ -1142,6 +1175,15 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
         "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
+endif()
+
+if(PARALLEL_MATER_BUILD_VULKAN)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_vulkan${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
 endif()
 
 install(

@@ -115,6 +115,12 @@
         }
         if (entry.has_fluid)
             next.scene.fluid_options.capacity = fluid_particles;
+        if (options.workload_limits &&
+            (context == GalleryContext::fluid || context == GalleryContext::fluid_rigid)) {
+            auto limits = *options.workload_limits;
+            limits.fluid_particles = fluid_particles;
+            if (!parallel_mater::gallery::apply_liquid_workload_limits(next.scene, limits, error)) return false;
+        }
     }
     if (context == GalleryContext::dump) {
         if (!parallel_mater::gallery::configure_dump_payload(next.scene, dump_spheres, error)) return false;

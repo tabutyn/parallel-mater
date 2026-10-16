@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: MIT
+// CUDA supplies block size at launch. Vulkan specializes the identical shape
+// when creating a pipeline; fixed-shape mirrors retain the authored defaults.
+#ifndef PM_THREADS
+#if defined(PM_VULKAN_VARIABLE_GROUP_SIZE)
+#define PM_THREADS(default_size) pmVulkanWorkgroupSizeX
+#else
+#define PM_THREADS(default_size) default_size
+#endif
+#endif

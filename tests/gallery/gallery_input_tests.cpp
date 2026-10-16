@@ -30,6 +30,22 @@ int main() {
     require(!gallery::gallery_backend_from_name("directcompute"),
             "retired DirectCompute backend must not parse");
 
+    require(gallery::gallery_backend_from_name("vulkan") == PM_NATIVE_BACKEND_VULKAN,
+            "Vulkan backend option must parse");
+    PmPhysicalDeviceFeatures preview{};
+    preview.rigidBodies = preview.rigidConstraints = PM_TRUE;
+    preview.particleLiquids = preview.liquidRigidCoupling = PM_TRUE;
+    require(gallery::gallery_backend_supports(gallery::GalleryContext::fluid_rigid, preview),
+            "Liquid-rigid preview must remain selectable");
+    for (auto context : {gallery::GalleryContext::cloth, gallery::GalleryContext::rope,
+                         gallery::GalleryContext::soft_body, gallery::GalleryContext::smoke,
+                         gallery::GalleryContext::peg_paint, gallery::GalleryContext::water_cloth})
+        require(!gallery::gallery_backend_supports(context, preview),
+                "Unavailable preview domains must remain disabled");
+    preview.liquidRigidCoupling = PM_FALSE;
+    require(!gallery::gallery_backend_supports(gallery::GalleryContext::fluid_rigid, preview),
+            "Liquid-rigid scene requires its coupling feature");
+
     for (std::size_t current = 0; current < gallery::gallery_entries.size();
          ++current) {
         gallery::GalleryInputState input;
