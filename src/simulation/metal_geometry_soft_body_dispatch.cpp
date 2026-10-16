@@ -7,7 +7,7 @@
 
 namespace parallel_mater::simulation {
 void collide_deformable_with_rigid_geometry(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const void *previous, const float *inverse_masses,
     std::uint32_t count, float thickness, float timestep,
     const void *body_parameters, const void *previous_body_states,
@@ -21,7 +21,7 @@ void collide_deformable_with_rigid_geometry(
     bool reconstruct_free_velocities, float maximum_speed,
     void *body_position_corrections) noexcept {
     if (auto *execution = metal::context(stream)) {
-        if (execution->checked([&] { execution->meshes(meshes, body_parameters, body_count); }) != cudaSuccess) return;
+        if (execution->checked_result([&] { execution->meshes(meshes, body_parameters, body_count); }) != PM_SUCCESS) return;
     }
     (void)metal::launch(stream, "deformable_collide", grid,
         positions, velocities,
@@ -41,12 +41,12 @@ void collide_deformable_with_rigid_geometry(
 }
 
 void calculate_soft_body_surface_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     const std::uint32_t *indices, std::uint32_t triangle_count,
     const void *body_parameters, const void *body_states,
     const void *meshes, std::uint32_t body_count, void *corrections) noexcept {
     if (auto *execution = metal::context(stream)) {
-        if (execution->checked([&] { execution->meshes(meshes, body_parameters, body_count); }) != cudaSuccess) return;
+        if (execution->checked_result([&] { execution->meshes(meshes, body_parameters, body_count); }) != PM_SUCCESS) return;
     }
     (void)metal::launch(stream, "soft_body_surface_contacts", grid,
         surface,
@@ -58,7 +58,7 @@ void calculate_soft_body_surface_contacts(
 }
 
 void apply_soft_body_surface_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *corrections, const std::uint32_t *offsets,
     const void *influences, std::uint32_t node_count) noexcept {
     (void)metal::launch(stream, "soft_body_apply_surface_contacts", grid,

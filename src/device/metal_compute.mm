@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
+#if !__has_feature(objc_arc)
+#error "Metal compute requires ARC"
+#endif
 #include "compute.hpp"
 
 #import <Foundation/Foundation.h>
@@ -177,8 +180,13 @@ private:
 class MetalCommandList final : public CommandList {
 public:
     MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue)
-        : device_(device), command_([queue commandBuffer]) {
-        require(command_ != nil, "Metal command buffer allocation failed");
+        : device_(device) {
+        // A caller may run thousands of physics submissions inside one outer
+        // autorelease pool. Do not retain every completed command until then.
+        @autoreleasepool {
+            command_ = [queue commandBuffer];
+            require(command_ != nil, "Metal command buffer allocation failed");
+        }
     }
     void dispatch(const Arguments &arguments, Extent groups) override {
         @autoreleasepool {

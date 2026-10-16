@@ -12,7 +12,7 @@ Vec3 vector(const float value[3]) noexcept {
 
 } // namespace
 
-void sample_rope_soft_body_anchor(cudaStream_t stream,
+void sample_rope_soft_body_anchor(device::ExecutionQueue stream,
     void *anchor_positions, void *anchor_velocities, void *anchor_impulses,
     float *anchor_inverse_masses, std::uint32_t end, const void *surface,
     const void *velocities, const std::uint32_t *indices,
@@ -28,8 +28,8 @@ void sample_rope_soft_body_anchor(cudaStream_t stream,
         triangle, vector(weights), vector(offset));
 }
 
-void scatter_rope_soft_body_anchor(dim3 grid, dim3 block,
-    cudaStream_t stream, const void *anchor_positions,
+void scatter_rope_soft_body_anchor(device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *anchor_positions,
     const void *anchor_impulses, std::uint32_t end,
     const void *node_positions, std::uint32_t node_count,
     float support_radius, float contact_support_radius,
@@ -47,8 +47,8 @@ void scatter_rope_soft_body_anchor(dim3 grid, dim3 block,
         triangle, vector(weights), node_impulses);
 }
 
-void apply_rope_soft_body_impulses(dim3 grid, dim3 block,
-    cudaStream_t stream, void *positions, void *velocities, void *forces,
+void apply_rope_soft_body_impulses(device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities, void *forces,
     const float *inverse_masses, const void *impulses, std::uint32_t count,
     float maximum_acceleration, float maximum_speed, float timestep,
     float frame_inverse_timestep) noexcept {

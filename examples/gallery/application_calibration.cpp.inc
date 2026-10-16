@@ -22,6 +22,8 @@ struct GallerySession {
         peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);
         cloth_gravity = peg_gravity;
         ++revision;
+        std::cout << "Gallery scene ready index=" << gallery_context_index(context)
+                  << " revision=" << revision << '\n' << std::flush;
         return true;
     }
 };
@@ -135,7 +137,7 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
                                      camera.camera(), pixels, error)) return false;
         timings.end_phase();
         timings.begin_phase(FramePhase::present);
-        if (!window.present(pixels, error)) return false;
+        if (!window.present(pixels, error, runtime.renderer.native_image())) return false;
         const auto presented = parallel_mater::gallery::FrameTimingCollector::Clock::now();
         timings.end_phase(presented);
         timings.finish_frame(presented);

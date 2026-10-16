@@ -37,6 +37,9 @@ class CudaServices final : public Services {
         if (error != cudaSuccess) return from_cuda(error);
         if (cuCtxGetCurrent(&context_) != CUDA_SUCCESS || context_ == nullptr)
             return PM_ERROR_INVALID_STATE;
+        error = cudaDeviceGetAttribute(&concurrent_managed_access_,
+            cudaDevAttrConcurrentManagedAccess, ordinal_);
+        if (error != cudaSuccess) return from_cuda(error);
         return PM_SUCCESS;
     }
 
@@ -196,6 +199,38 @@ class CudaServices final : public Services {
         return from_cuda(cudaStreamSynchronize(stream_));
     }
 
+    [[nodiscard]] PmResult clear(void *destination, int value,
+                                 PmDeviceSize size) noexcept override {
+        return from_cuda(cudaMemsetAsync(destination, value,
+            static_cast<std::size_t>(size), stream_));
+    }
+    [[nodiscard]] PmResult read_host(void *, PmDeviceSize size) noexcept override {
+        if (!size) return PM_SUCCESS;
+        const auto current = activate();
+        if (current != PM_SUCCESS) return current;
+        // Windows/basic Unified Memory forbids any CPU managed access while
+        // the device is active, including unrelated queued buffer copies.
+        // Concurrent-UM systems need only the owning queue dependency.
+        return from_cuda(concurrent_managed_access_ ? cudaStreamSynchronize(stream_)
+                                                   : cudaDeviceSynchronize());
+    }
+    [[nodiscard]] PmResult map_host(void *pointer, PmDeviceSize size) noexcept override {
+        return read_host(pointer, size);
+    }
+    [[nodiscard]] PmResult last_error(bool take) noexcept override {
+        return from_cuda(take ? cudaGetLastError() : cudaPeekAtLastError());
+    }
+    [[nodiscard]] PmResult scheduling_units(std::uint32_t &units) noexcept override {
+        int cooperative{}, multiprocessors{};
+        auto result = cudaDeviceGetAttribute(&cooperative,
+            cudaDevAttrCooperativeLaunch, ordinal_);
+        if (result == cudaSuccess)
+            result = cudaDeviceGetAttribute(&multiprocessors,
+                cudaDevAttrMultiProcessorCount, ordinal_);
+        units = cooperative ? static_cast<std::uint32_t>(std::max(1, multiprocessors)) : 1U;
+        return from_cuda(result);
+    }
+
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept override {
         const PmResult current = activate();
@@ -219,6 +254,7 @@ class CudaServices final : public Services {
     }
 
     int ordinal_{};
+    int concurrent_managed_access_{};
     CUcontext context_{};
     cudaStream_t stream_{};
     cudaEvent_t epoch_{};

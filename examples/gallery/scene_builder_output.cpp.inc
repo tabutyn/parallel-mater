@@ -4,49 +4,75 @@
     return {buffer, region.offset, region.size};
 }
 
+struct OutputMapping {
+    PmDevice device{};
+    PmDeviceMemory memory{};
+    void *data{};
+    ~OutputMapping() { if (data) pmUnmapMemory(device, memory); }
+    bool open(PmDevice device_value, PmDeviceMemory memory_value,
+              PmDeviceSize offset, PmDeviceSize size, std::string &error) {
+        device = device_value; memory = memory_value;
+        return checked(pmMapMemory(device, memory, offset, size, &data),
+                       "map live simulation output", error);
+    }
+};
+
 template <typename T>
-[[nodiscard]] bool read_domain(const std::byte *base,
-                               auto region,
-                               std::vector<T> &records,
-                               std::uint64_t &revision,
-                               std::string &error) {
-    if (region.size < sizeof(PmDomainOutputHeader)) {
-        records.clear();
-        return true;
-    }
-    const auto *header = reinterpret_cast<const PmDomainOutputHeader *>(
-        base + region.offset);
-    const PmDeviceSize needed = sizeof(*header) +
-        static_cast<PmDeviceSize>(header->activeCount) * sizeof(T);
-    if (header->activeCount > header->capacity || needed > region.size) {
-        error = "simulation returned an invalid output header";
-        return false;
-    }
+[[nodiscard]] bool read_records(PmDevice device, PmDeviceMemory memory,
+    PmDeviceSize offset, std::size_t count, std::vector<T> &records,
+    std::string &error) {
+    records.clear();
+    if (count == 0U) return true;
+    OutputMapping mapping;
+    if (!mapping.open(device, memory, offset, count * sizeof(T), error)) return false;
     try {
-        const auto *begin = reinterpret_cast<const T *>(
-            base + region.offset + sizeof(*header));
-        records.assign(begin, begin + header->activeCount);
+        const auto *begin = static_cast<const T *>(mapping.data);
+        records.assign(begin, begin + count);
     } catch (const std::bad_alloc &) {
         error = "read simulation output: out of host memory";
         return false;
     }
-    revision = std::max(revision, header->revision);
     return true;
+}
+
+template <typename T>
+[[nodiscard]] bool read_domain(PmDevice device, PmDeviceMemory memory,
+    auto region, std::vector<T> &records, std::uint64_t &revision, std::string &error) {
+    if (region.size < sizeof(PmDomainOutputHeader)) { records.clear(); return true; }
+    PmDomainOutputHeader header{};
+    {
+        OutputMapping mapping;
+        if (!mapping.open(device, memory, region.offset, sizeof(header), error)) return false;
+        std::memcpy(&header, mapping.data, sizeof(header));
+    }
+    const PmDeviceSize needed = sizeof(header) + static_cast<PmDeviceSize>(header.activeCount) * sizeof(T);
+    if (header.activeCount > header.capacity || needed > region.size) {
+        error = "simulation returned an invalid output header";
+        return false;
+    }
+    revision = std::max(revision, header.revision);
+    return read_records(device, memory, region.offset + sizeof(header), header.activeCount, records, error);
 }
 
 } // namespace
 
 bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
                         CommandSceneFrame &frame, std::string &error,
-                        bool collect_contacts, bool readback) {
+                        bool collect_contacts, bool read_deformables, bool read_host) {
     error.clear();
     if (impl_ == nullptr || !(timestep > 0.0F) || substeps == 0U) {
         error = "step simulation: invalid argument";
         return false;
     }
     impl_->output_ready = false;
-    if (readback) frame.previous_rigid_states = frame.rigid_states;
+    if (read_host) frame.previous_rigid_states = frame.rigid_states;
     if (!impl_->begin(error)) return false;
+    if (impl_->rigid_count != 0U) {
+        const PmBufferCopy snapshot{impl_->rigid_output.offset,
+            impl_->previous_rigid_output.offset, impl_->rigid_output.size};
+        if (!checked(pmCmdCopyBuffer(impl_->commands, impl_->output.handle,
+                impl_->output.handle, 1U, &snapshot), "snapshot GPU rigid output", error)) return false;
+    }
     if (!checked(pmCmdResetQueryPool(impl_->commands, impl_->statistics_query,
                                      0U, 1U),
                  "reset statistics query", error) ||
@@ -153,114 +179,70 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
     if (!impl_->submit(error)) return false;
     impl_->output_ready = true;
 
-    // GPU rendering consumes this public output buffer directly. Readback is
-    // retained only for explicit validation/capture and CPU scene controllers.
-    if (!readback) return true;
-    return readback_frame(frame, error, collect_contacts);
+    // Native rendering borrows completed public exports. Host reads are explicit.
+    impl_->contacts_available = collect_contacts;
+    frame.full_host_output = false;
+    if (!read_host) return true;
+    return read_output(frame, error, read_deformables);
 }
 
-bool CommandScene::readback_frame(CommandSceneFrame &frame, std::string &error, bool collect_contacts) const {
+bool CommandScene::read_output(CommandSceneFrame &frame, std::string &error,
+                               bool read_deformables) {
     error.clear();
-    if (!impl_ || !impl_->output_ready) { error = "No completed frame to read"; return false; }
-
-    const auto *base = static_cast<const std::byte *>(impl_->output.mapped);
-    try {
-        const auto *rigid = reinterpret_cast<const PmRigidState *>(
-            base + impl_->rigid_output.offset);
-        frame.rigid_states.assign(rigid, rigid + impl_->rigid_count);
-        if (frame.previous_rigid_states.size() != frame.rigid_states.size())
-            frame.previous_rigid_states = frame.rigid_states;
-        frame.cloth_vertices.resize(impl_->cloth_outputs.size());
-        frame.cloth_surface_vertices.resize(
-            impl_->cloth_surface_outputs.size());
-        frame.rope_nodes.resize(impl_->rope_outputs.size());
-        frame.soft_body_nodes.resize(impl_->soft_body_outputs.size());
-        frame.soft_body_surface_vertices.resize(
-            impl_->soft_body_surface_outputs.size());
-        frame.paint_fields.resize(impl_->paint_outputs.size());
-    } catch (const std::bad_alloc &) {
-        error = "read rigid simulation output: out of host memory";
+    if (!impl_ || !impl_->output_ready) {
+        error = "read simulation output: no completed frame";
         return false;
     }
-    frame.revision = 0U;
-    if (!impl_->fluid_capacities.empty() &&
-        !read_domain(base, impl_->fluid_output, frame.fluid_particles,
-                     frame.revision, error))
-        return false;
-    for (std::size_t index = 0U; index < impl_->cloth_outputs.size(); ++index)
-    {
-        if (!read_domain(base, impl_->cloth_outputs[index],
-                         frame.cloth_vertices[index], frame.revision, error))
-            return false;
-        if (!read_domain(base, impl_->cloth_surface_outputs[index],
-                         frame.cloth_surface_vertices[index],
-                         frame.revision, error))
-            return false;
-    }
-    for (std::size_t index = 0U; index < impl_->rope_outputs.size(); ++index)
-        if (!read_domain(base, impl_->rope_outputs[index],
-                         frame.rope_nodes[index], frame.revision, error))
-            return false;
-    for (std::size_t index = 0U;
-         index < impl_->soft_body_outputs.size(); ++index)
-    {
-        if (!read_domain(base, impl_->soft_body_outputs[index],
-                         frame.soft_body_nodes[index], frame.revision, error))
-            return false;
-        if (!read_domain(base, impl_->soft_body_surface_outputs[index],
-                         frame.soft_body_surface_vertices[index],
-                         frame.revision, error))
-            return false;
-    }
-    if (!impl_->smoke_capacities.empty() &&
-        !read_domain(base, impl_->smoke_output, frame.smoke_particles,
-                     frame.revision, error))
-        return false;
-    for (std::size_t index = 0U; index < impl_->paint_outputs.size(); ++index)
-        if (!read_domain(base, impl_->paint_outputs[index],
-                         frame.paint_fields[index], frame.revision, error))
-            return false;
-    try {
-        const auto *constraints = reinterpret_cast<const PmConstraintState *>(
-            base + impl_->constraint_output.offset);
-        frame.constraint_states.assign(
-            constraints, constraints + impl_->constraints.size());
-    } catch (const std::bad_alloc &) {
-        error = "read constraint output: out of host memory";
-        return false;
-    }
-    if (collect_contacts) {
-        if (!read_domain(base, impl_->contact_output, frame.contacts,
-                         frame.revision, error))
-            return false;
+    const auto read = [&](auto region, auto &records) {
+        return read_domain(impl_->device, impl_->output.memory, region, records, frame.revision, error);
+    };
+    if (!read_records(impl_->device, impl_->output.memory, impl_->rigid_output.offset,
+            impl_->rigid_count, frame.rigid_states, error) ||
+        !read_records(impl_->device, impl_->output.memory, impl_->constraint_output.offset,
+            impl_->constraints.size(), frame.constraint_states, error)) return false;
+    if (frame.previous_rigid_states.size() != frame.rigid_states.size())
+        frame.previous_rigid_states = frame.rigid_states;
+    frame.full_host_output = false;
+    if (read_deformables) {
+        try {
+            frame.cloth_vertices.resize(impl_->cloth_outputs.size());
+            frame.cloth_surface_vertices.resize(impl_->cloth_surface_outputs.size());
+            frame.rope_nodes.resize(impl_->rope_outputs.size());
+            frame.soft_body_nodes.resize(impl_->soft_body_outputs.size());
+            frame.soft_body_surface_vertices.resize(impl_->soft_body_surface_outputs.size());
+            frame.paint_fields.resize(impl_->paint_outputs.size());
+        } catch (const std::bad_alloc &) {
+            error = "read simulation output: out of host memory"; return false;
+        }
+        if (!impl_->fluid_capacities.empty() && !read(impl_->fluid_output, frame.fluid_particles)) return false;
+        for (std::size_t index = 0; index < impl_->cloth_outputs.size(); ++index)
+            if (!read(impl_->cloth_outputs[index], frame.cloth_vertices[index]) ||
+                !read(impl_->cloth_surface_outputs[index], frame.cloth_surface_vertices[index])) return false;
+        for (std::size_t index = 0; index < impl_->rope_outputs.size(); ++index)
+            if (!read(impl_->rope_outputs[index], frame.rope_nodes[index])) return false;
+        for (std::size_t index = 0; index < impl_->soft_body_outputs.size(); ++index)
+            if (!read(impl_->soft_body_outputs[index], frame.soft_body_nodes[index]) ||
+                !read(impl_->soft_body_surface_outputs[index], frame.soft_body_surface_vertices[index])) return false;
+        if (!impl_->smoke_capacities.empty() && !read(impl_->smoke_output, frame.smoke_particles)) return false;
+        for (std::size_t index = 0; index < impl_->paint_outputs.size(); ++index)
+            if (!read(impl_->paint_outputs[index], frame.paint_fields[index])) return false;
+        if (impl_->debug_output.size && !read(impl_->debug_output, frame.debug_records)) return false;
+        frame.full_host_output = true;
     } else {
-        frame.contacts.clear();
+        frame.fluid_particles.clear(); frame.cloth_vertices.clear();
+        frame.cloth_surface_vertices.clear(); frame.rope_nodes.clear();
+        frame.soft_body_nodes.clear(); frame.soft_body_surface_vertices.clear();
+        frame.smoke_particles.clear(); frame.paint_fields.clear(); frame.debug_records.clear();
     }
-    if (impl_->debug_output.size != 0U &&
-        !read_domain(base, impl_->debug_output, frame.debug_records,
-                     frame.revision, error))
-        return false;
+    if (impl_->contacts_available) {
+        if (!read(impl_->contact_output, frame.contacts)) return false;
+    } else frame.contacts.clear();
     const PmResult query_result = pmGetQueryPoolResults(
         impl_->device, impl_->statistics_query, 0U, 1U,
         sizeof(frame.statistics), &frame.statistics,
         sizeof(frame.statistics), PM_QUERY_RESULT_WAIT_BIT);
-    return checked(query_result, "read statistics query", error);
-}
-
-bool CommandScene::gpu_frame(CommandSceneGpuFrame &frame, std::string &error) const {
-    error.clear();
-    frame = {};
-    if (!impl_ || !impl_->output_ready) { error = "GPU frame: no completed output"; return false; }
-    if (!checked(pmGetNativeBuffer(impl_->device, impl_->output.handle, &frame.buffer),
-        "export public render buffer", error)) return false;
-    const auto region = [](auto value) { return CommandSceneGpuFrame::Region{value.offset, value.size}; };
-    frame.rigid = region(impl_->rigid_output);
-    frame.fluid = region(impl_->fluid_output);
-    frame.smoke = region(impl_->smoke_output);
-    for (auto value : impl_->cloth_surface_outputs) frame.cloth_surfaces.push_back(region(value));
-    for (auto value : impl_->soft_body_surface_outputs) frame.soft_surfaces.push_back(region(value));
-    for (auto value : impl_->rope_outputs) frame.ropes.push_back(region(value));
-    for (auto value : impl_->paint_outputs) frame.paint.push_back(region(value));
+    if (!checked(query_result, "read statistics query", error)) return false;
+    frame.revision = std::max(frame.revision, frame.statistics.stepCount);
     return true;
 }
 
@@ -346,7 +328,7 @@ bool CommandScene::reset(std::string &error) {
     CommandScene replacement;
     CommandSceneInstance bindings;
     if (!create(impl_->original_scene, impl_->debug_frame_capacity,
-                replacement, bindings, error))
+                replacement, bindings, error, impl_->selected_backend))
         return false;
     impl_ = std::move(replacement.impl_);
     return true;

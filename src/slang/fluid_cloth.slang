@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared fluid and cloth coupling kernels.
 
@@ -8,7 +9,7 @@ import geometry_fluid;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_cloth_containment_forces(
     uniform PMBuffer<Vec3> particle_positions, uniform PMBuffer<Vec3> particle_velocities,
     uniform PMBuffer<uint> particle_count, uniform PMBuffer<Vec3> particle_accelerations,
@@ -16,8 +17,9 @@ void fluid_cloth_containment_forces(
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
     uniform float cloth_orientation,
-    uniform FluidClothCouplingOptions options, uniform PMBuffer<Vec3> cloth_forces)
+    uniform FluidClothCouplingOptions options, uniform PMBuffer<Vec3> cloth_forces PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
     Vec3 point = particle_positions[particle];
@@ -85,12 +87,13 @@ void fluid_cloth_containment_forces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_apply_fluid_forces(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> forces,
-    uniform uint count, uniform float dt)
+    uniform uint count, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= count || inverse_masses[vertex] == 0.0f) return;
     Vec3 velocityChange = clamp_length(
@@ -102,14 +105,15 @@ void cloth_apply_fluid_forces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_project_inside_cloth(
     uniform PMBuffer<Vec3> particle_positions, uniform PMBuffer<Vec3> particle_velocities,
     uniform PMBuffer<uint> particle_count, uniform float contact_distance,
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
-    uniform float cloth_orientation)
+    uniform float cloth_orientation PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
     Vec3 point = particle_positions[particle];

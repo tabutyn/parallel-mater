@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared soft-body/smoke coupling kernels.
 
@@ -18,8 +19,9 @@ void smoke_soft_body_wind(
     uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> keys,
     uniform PMBuffer<uint> indices, uniform SmokeGridField grid, uniform float drag,
     uniform float maximum_acceleration, uniform float dt,
-    uniform float maximum_speed)
+    uniform float maximum_speed PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= node_count || inverse_masses[node] == 0.0f) return;
     velocities[node] = clamp_length(add(velocities[node], smoke_wind_delta(
@@ -37,8 +39,9 @@ void smoke_soft_body_contact(
     uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform PMBuffer<uint> indices,
     uniform uint index_count, uniform PMBuffer<Vec3> node_velocities,
     uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum, uniform float clearance,
-    uniform SmokeGridField grid)
+    uniform SmokeGridField grid PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count || ages[particle] >= lifetime) return;
     Vec3 point = positions[particle];

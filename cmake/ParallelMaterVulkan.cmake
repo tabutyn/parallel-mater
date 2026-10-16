@@ -65,7 +65,7 @@ add_library(parallel-mater-driver-slang-vulkan SHARED
     src/api/domains.cpp src/api/pipeline.cpp src/api/commands.cpp src/api/synchronization.cpp
     src/api/queries.cpp src/api/interop.cpp src/driver/slang/entry.cpp
     src/driver/vulkan/schedule_context.cpp src/device/vulkan_device.cpp
-    src/device/submission.cpp src/simulation/vulkan_runtime.cpp src/simulation/memory_arena.cpp
+    src/device/submission.cpp src/simulation/runtime.cpp src/simulation/memory_arena.cpp
     ${vulkan_sources} "${vulkan_generated}/unadvertised.cpp")
 target_compile_features(parallel-mater-driver-slang-vulkan PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-vulkan PRIVATE

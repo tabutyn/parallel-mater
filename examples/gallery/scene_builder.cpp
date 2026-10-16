@@ -205,6 +205,7 @@ struct CommandScene::Impl {
     Buffer particle_input;
     Buffer output;
     Region rigid_output;
+    Region previous_rigid_output;
     Region fluid_output;
     std::vector<Region> cloth_outputs;
     std::vector<Region> cloth_surface_outputs;
@@ -228,9 +229,11 @@ struct CommandScene::Impl {
     std::uint32_t contact_capacity{};
     std::uint32_t debug_capacity{};
     SceneDefinition original_scene;
+    std::optional<PmNativeBackend> selected_backend;
     std::uint32_t debug_frame_capacity{};
     bool fence_submitted{};
     bool output_ready{};
+    bool contacts_available{};
 
     ~Impl() { release(); }
 

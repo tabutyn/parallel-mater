@@ -11,7 +11,7 @@ using metal_bindings::smoke_options;
 } // namespace
 
 void apply_smoke_wind_to_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t vertex_count,
     const SmokeDispatchOptions &smoke, const void *smoke_positions,
     const void *smoke_velocities, const std::uint64_t *keys,
@@ -28,7 +28,7 @@ void apply_smoke_wind_to_cloth(
 }
 
 void collide_smoke_with_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     float *pressures, std::uint32_t count,
     const SmokeDispatchOptions &smoke, const void *cloth_positions,

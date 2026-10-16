@@ -3,16 +3,16 @@
 
 #include "geometry_storage.hpp"
 
-#include <cuda_runtime_api.h>
+#include "device/device.hpp"
 
 #include <cstdint>
 
 namespace parallel_mater::simulation {
 
-cudaError_t geometry_constraints_occupancy(
+PmResult geometry_constraints_occupancy(
     int *resident_blocks, std::uint32_t block_size) noexcept;
 
-cudaError_t prepare_geometry_constraints(cudaStream_t stream,
+PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
     const void *parameters, const RigidBodyState *previous,
     RigidBodyState *predicted, std::uint32_t body_count, void *manifolds,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -22,7 +22,7 @@ cudaError_t prepare_geometry_constraints(cudaStream_t stream,
     std::uint32_t requested_iterations,
     std::uint32_t grid_blocks) noexcept;
 
-cudaError_t solve_geometry_constraints(cudaStream_t stream,
+PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     const void *parameters, const RigidBodyState *previous,
     RigidBodyState *states, std::uint32_t body_count, void *manifolds,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,

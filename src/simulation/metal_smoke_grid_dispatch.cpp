@@ -11,7 +11,7 @@ using metal_bindings::smoke_options;
 } // namespace
 
 void initialize_smoke_grid_cells(
-    dim3 grid, dim3 block, cudaStream_t stream, void *velocity,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *velocity,
     float *density, float *temperature, float *pressure, float *divergence,
     void *vorticity, float *strain, void *subgrid_force,
     std::uint32_t *solid, std::uint32_t count, const float wind[3]) noexcept {
@@ -22,7 +22,7 @@ void initialize_smoke_grid_cells(
 }
 
 void initialize_smoke_grid_faces(
-    dim3 grid, dim3 block, cudaStream_t stream, float *values,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, float *values,
     float *reverse, float *open, float *wall, void *normal,
     std::uint32_t *nearest_triangle, std::uint32_t count, float wind) noexcept {
     (void)metal::launch(stream, "smoke_grid_initialize_faces", grid,
@@ -31,7 +31,7 @@ void initialize_smoke_grid_faces(
 }
 
 void clear_smoke_grid_obstacles(
-    dim3 grid, dim3 block, cudaStream_t stream, std::uint32_t *solid,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, std::uint32_t *solid,
     std::uint32_t cell_count, float *open_x, float *open_y, float *open_z,
     float *wall_x, float *wall_y, float *wall_z, std::uint32_t x_count,
     std::uint32_t y_count, std::uint32_t z_count) noexcept {
@@ -41,7 +41,7 @@ void clear_smoke_grid_obstacles(
 }
 
 void raster_smoke_grid_rigid_body(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *mesh,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *mesh,
     const void *body_states, std::uint32_t body,
     const SmokeGridDispatchField &field,
     const SmokeGridBoundaryDispatch &boundary,
@@ -59,7 +59,7 @@ void raster_smoke_grid_rigid_body(
 }
 
 void raster_smoke_grid_deformable(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const std::uint32_t *indices,
     std::uint32_t index_count, const SmokeGridDispatchField &field,
     const SmokeGridBoundaryDispatch &boundary,
@@ -77,7 +77,7 @@ void raster_smoke_grid_deformable(
 }
 
 void raster_smoke_grid_soft_body(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *bindings, const void *node_velocities,
     const std::uint32_t *indices, std::uint32_t index_count,
     const SmokeGridDispatchField &field,
@@ -97,7 +97,7 @@ void raster_smoke_grid_soft_body(
 }
 
 void resolve_smoke_grid_particle_fields(
-    dim3 grid, dim3 block, cudaStream_t stream,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const std::uint64_t *density_accumulator,
     const std::uint64_t *temperature_accumulator, float *density,
     float *temperature, std::uint32_t count) noexcept {
@@ -110,7 +110,7 @@ void resolve_smoke_grid_particle_fields(
 }
 
 void splat_smoke_grid_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const float *ages, const float *thermal_lift, std::uint32_t count,
     const SmokeDomainDispatchOptions &options,
     const SmokeGridDispatchField &field, std::uint64_t *density_accumulator,
@@ -124,7 +124,7 @@ void splat_smoke_grid_particles(
 }
 
 void advect_smoke_grid_face(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &field, const float *source,
     float *destination, float timestep) noexcept {
     (void)metal::launch(stream, "smoke_grid_advect_face", grid,
@@ -133,7 +133,7 @@ void advect_smoke_grid_face(
 }
 
 void correct_smoke_grid_face(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &original, const float *source,
     const float *predicted, const float *reversed, float *corrected,
     float timestep) noexcept {
@@ -144,7 +144,7 @@ void correct_smoke_grid_face(
 }
 
 void calculate_smoke_grid_cell_diagnostics(
-    dim3 grid, dim3 block, cudaStream_t stream,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const SmokeGridDispatchField &field, void *cell_velocity,
     void *vorticity, float *strain, float *divergence) noexcept {
     (void)metal::launch(stream, "smoke_grid_cell_diagnostics", grid,
@@ -153,7 +153,7 @@ void calculate_smoke_grid_cell_diagnostics(
 }
 
 void calculate_smoke_grid_subgrid_force(
-    dim3 grid, dim3 block, cudaStream_t stream,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const SmokeGridDispatchField &field, const void *vorticity,
     void *force, float strength) noexcept {
     (void)metal::launch(stream, "smoke_grid_subgrid_force", grid,
@@ -162,7 +162,7 @@ void calculate_smoke_grid_subgrid_force(
 }
 
 void apply_smoke_grid_face_forces(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &field, const float *source,
     float *destination, const float *open, const float *wall,
     const float *strain, const void *subgrid, const float *temperature,
@@ -178,7 +178,7 @@ void apply_smoke_grid_face_forces(
 }
 
 void apply_smoke_grid_face_boundaries(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &field, float *values, const float *open,
     const float *wall, const SmokeDomainDispatchOptions &options) noexcept {
     (void)metal::launch(stream, "smoke_grid_apply_face_boundaries", grid,
@@ -187,7 +187,7 @@ void apply_smoke_grid_face_boundaries(
 }
 
 void calculate_smoke_grid_divergence(
-    dim3 grid, dim3 block, cudaStream_t stream,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const SmokeGridDispatchField &field, float *divergence, float *rhs_max,
     float timestep) noexcept {
     (void)metal::launch(stream, "smoke_grid_divergence", grid,
@@ -195,7 +195,7 @@ void calculate_smoke_grid_divergence(
 }
 
 void smooth_smoke_grid_pressure(
-    dim3 grid, dim3 block, cudaStream_t stream, int resolution, int height,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int resolution, int height,
     float spacing, const float *rhs, const float *pressure, float *next,
     const float *open_x, const float *open_y, const float *open_z,
     const std::uint32_t *converged) noexcept {
@@ -207,7 +207,7 @@ void smooth_smoke_grid_pressure(
 }
 
 void calculate_smoke_grid_pressure_residual(
-    dim3 grid, dim3 block, cudaStream_t stream, int resolution, int height,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int resolution, int height,
     float spacing, const float *rhs, const float *pressure, float *residual,
     const float *open_x, const float *open_y, const float *open_z,
     float *maximum, const std::uint32_t *converged) noexcept {
@@ -219,7 +219,7 @@ void calculate_smoke_grid_pressure_residual(
 }
 
 void restrict_smoke_grid_residual(
-    dim3 grid, dim3 block, cudaStream_t stream, const float *fine,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const float *fine,
     int fine_resolution, int fine_height, float *coarse,
     int coarse_resolution, int coarse_height) noexcept {
     (void)metal::launch(stream, "smoke_grid_restrict_residual", grid,
@@ -228,13 +228,13 @@ void restrict_smoke_grid_residual(
 }
 
 void clear_smoke_grid_scalar(
-    dim3 grid, dim3 block, cudaStream_t stream, float *values,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, float *values,
     std::uint32_t count) noexcept {
     (void)metal::launch(stream, "smoke_grid_clear_scalar", grid,values, count);
 }
 
 void restrict_smoke_grid_open_faces(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const float *fine, int fine_resolution, int fine_height, float *coarse,
     int coarse_resolution, int coarse_height) noexcept {
     (void)metal::launch(stream, "smoke_grid_restrict_open", grid,
@@ -243,7 +243,7 @@ void restrict_smoke_grid_open_faces(
 }
 
 void mark_smoke_grid_domain_boundaries(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &field, float *open, float *wall,
     const SmokeDomainDispatchOptions &options) noexcept {
     (void)metal::launch(stream, "smoke_grid_mark_domain_boundaries", grid,
@@ -251,7 +251,7 @@ void mark_smoke_grid_domain_boundaries(
 }
 
 void prolong_smoke_grid_pressure(
-    dim3 grid, dim3 block, cudaStream_t stream, const float *coarse,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const float *coarse,
     int coarse_resolution, int coarse_height, float *fine,
     int fine_resolution, int fine_height) noexcept {
     (void)metal::launch(stream, "smoke_grid_prolong_add", grid,
@@ -260,7 +260,7 @@ void prolong_smoke_grid_pressure(
 }
 
 void compare_smoke_grid_residual(
-    dim3 grid, dim3 block, cudaStream_t stream, const float *rhs_max,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const float *rhs_max,
     const float *residual_max, float tolerance,
     std::uint32_t *converged) noexcept {
     (void)metal::launch(stream, "smoke_grid_compare_residual", grid,
@@ -269,14 +269,14 @@ void compare_smoke_grid_residual(
 }
 
 void reset_smoke_grid_residual(
-    dim3 grid, dim3 block, cudaStream_t stream, float *residual_max,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, float *residual_max,
     const std::uint32_t *converged) noexcept {
     (void)metal::launch(stream, "smoke_grid_reset_residual", grid,
         residual_max, converged);
 }
 
 void project_smoke_grid_face(
-    dim3 grid, dim3 block, cudaStream_t stream, int axis,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, int axis,
     const SmokeGridDispatchField &field, const float *pressure,
     float *velocity, const float *open, const float *wall,
     float timestep) noexcept {
@@ -286,7 +286,7 @@ void project_smoke_grid_face(
 }
 
 void trace_smoke_grid_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, float *number_densities, float *pressures,
     void *vorticities, std::uint32_t count,
@@ -301,7 +301,7 @@ void trace_smoke_grid_particles(
 }
 
 void apply_smoke_grid_force_to_soft_body(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     const std::uint32_t *indices, std::uint32_t index_count,
     const void *bindings, const void *node_velocity_snapshot,
     void *node_velocities, const float *inverse_masses,
@@ -319,7 +319,7 @@ void apply_smoke_grid_force_to_soft_body(
 }
 
 void accumulate_smoke_grid_force_on_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const float *inverse_masses,
     const std::uint32_t *indices, std::uint32_t index_count,
     const SmokeGridDispatchField &field, float drag_coefficient,
@@ -335,7 +335,7 @@ void accumulate_smoke_grid_force_on_cloth(
 }
 
 void apply_smoke_grid_force_to_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, void *velocities,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *velocities,
     const float *inverse_masses, const void *forces, std::uint32_t count,
     float maximum_acceleration, float timestep) noexcept {
     (void)metal::launch(stream, "smoke_grid_apply_cloth_force", grid,
@@ -345,7 +345,7 @@ void apply_smoke_grid_force_to_cloth(
 }
 
 void apply_smoke_grid_force_to_rigid_body(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *mesh,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *mesh,
     std::uint32_t body, const void *body_parameters, void *body_states,
     const SmokeGridDispatchField &field, float air_density,
     float drag_coefficient, float density_scale, float kinematic_viscosity,

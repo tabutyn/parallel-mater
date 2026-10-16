@@ -11,7 +11,7 @@ using metal_bindings::smoke_options;
 } // namespace
 
 void apply_smoke_wind_to_rope(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *rope_positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count,
     float rope_maximum_speed, bool first_attached, bool last_attached,
     bool soft_first, bool soft_last, const SmokeDispatchOptions &smoke,
@@ -31,7 +31,7 @@ void apply_smoke_wind_to_rope(
 }
 
 void collide_smoke_with_rope(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     std::uint32_t count, const SmokeDispatchOptions &smoke,
     const void *rope_positions, const void *rope_velocities,

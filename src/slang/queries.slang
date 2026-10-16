@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 #include "dispatch_shape.slangh"
 // Shared scene-query kernels.
@@ -66,8 +67,9 @@ bool hit_box_overlaps_triangle(
 void query_rigid_hit_box_kernel(
     uniform HitBox box, uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<TriangleMeshResource> meshes,
-    uniform uint body_count, uniform PMBuffer<PMResourceUint8> matches)
+    uniform uint body_count, uniform PMByteBuffer matches PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint body = pmThreadIndex();
     if (body >= body_count) return;
     TriangleMeshResource mesh = meshes[parameters[body].mesh.index];
@@ -109,8 +111,9 @@ void query_rigid_hit_box_kernel(
 [numthreads(PM_THREADS(256), 1, 1)]
 void query_particle_hit_box_kernel(
     uniform HitBox box, uniform PMBuffer<Vec3> positions,
-    uniform uint particle_count, uniform PMBuffer<PMResourceUint8> matches)
+    uniform uint particle_count, uniform PMByteBuffer matches PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= particle_count) return;
     matches[particle] = hit_box_contains_point(box, positions[particle])
@@ -125,8 +128,9 @@ void export_fluid_particles(
     uniform PMBuffer<float> foam, uniform PMBuffer<uint> stable_ids,
     uniform uint particle_count, uniform uint capacity, uniform uint64_t revision,
     uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<PortableParticleState> destination)
+    uniform PMBuffer<PortableParticleState> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle == 0u)
     {
@@ -155,8 +159,9 @@ void export_cloth_vertices(
     uniform PMBuffer<Vec3> soft_body_forces, uniform PMBuffer<Vec3> rope_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
     uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<PortableClothVertexState> destination)
+    uniform PMBuffer<PortableClothVertexState> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index == 0u)
     {
@@ -182,8 +187,9 @@ void export_cloth_vertices(
 void export_surface_positions(
     uniform PMBuffer<Vec3> positions, uniform uint count, uniform uint capacity,
     uniform uint64_t revision, uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<Vec3> destination)
+    uniform PMBuffer<Vec3> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index == 0u)
     {
@@ -204,8 +210,9 @@ void export_rope_nodes(
     uniform PMBuffer<Vec3> liquid_forces, uniform PMBuffer<Vec3> soft_body_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
     uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<PortableRopeNodeState> destination)
+    uniform PMBuffer<PortableRopeNodeState> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index == 0u)
     {
@@ -234,8 +241,9 @@ void export_soft_body_nodes(
     uniform PMBuffer<Vec3> liquid_forces, uniform PMBuffer<Vec3> rope_forces,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
     uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<PortableSoftBodyNodeState> destination)
+    uniform PMBuffer<PortableSoftBodyNodeState> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index == 0u)
     {
@@ -264,8 +272,9 @@ void export_smoke_particles(
     uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> vorticities,
     uniform uint count, uniform uint capacity, uniform uint64_t revision,
     uniform PMBuffer<PortableDomainOutputHeader> header,
-    uniform PMBuffer<PortableSmokeParticleState> destination)
+    uniform PMBuffer<PortableSmokeParticleState> destination PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index == 0u)
     {

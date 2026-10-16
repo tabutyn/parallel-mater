@@ -185,4 +185,14 @@ HRESULT SlangCommandPath::record_dispatch(
     return S_OK;
 }
 
+bool SlangCommandPath::matches_group_size(std::string_view module,
+    std::string_view entry, std::uint32_t x, std::uint32_t y,
+    std::uint32_t z) const noexcept {
+    const auto index = find(module, entry);
+    if (index == no_kernel) return false;
+    const auto &kernel = generated::slang_kernels[index];
+    return kernel.threads_x == x && kernel.threads_y == y &&
+        kernel.threads_z == z;
+}
+
 } // namespace parallel_mater::d3d12

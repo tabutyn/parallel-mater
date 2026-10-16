@@ -5,7 +5,7 @@
 #include "driver/metal/resource_records.hpp"
 
 namespace parallel_mater::simulation {
-void sample_rope_cloth_anchor(cudaStream_t stream, void *anchor_positions,
+void sample_rope_cloth_anchor(device::ExecutionQueue stream, void *anchor_positions,
     void *anchor_velocities, void *anchor_impulses,
     float *anchor_inverse_masses, std::uint32_t end, const void *positions,
     const void *velocities, const float *inverse_masses,
@@ -18,7 +18,7 @@ void sample_rope_cloth_anchor(cudaStream_t stream, void *anchor_positions,
         inverse_masses, vertex, effective_mass);
 }
 
-void apply_rope_cloth_anchor(cudaStream_t stream, void *rope_positions,
+void apply_rope_cloth_anchor(device::ExecutionQueue stream, void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count, void *anchor_positions,
     void *anchor_velocities, std::uint32_t end, void *positions,
     void *velocities, void *forces, const float *inverse_masses,

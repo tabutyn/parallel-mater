@@ -9,7 +9,7 @@ import re
 
 
 DECLARATION = re.compile(
-    r"(?P<declaration>(?:\[\[nodiscard\]\]\s+)?(?:void|cudaError_t)\s+"
+    r"(?P<declaration>(?:\[\[nodiscard\]\]\s+)?(?:void|PmResult)\s+"
     r"[A-Za-z_][A-Za-z0-9_]*\s*\(.*?\)\s*noexcept)\s*;",
     re.DOTALL,
 )
@@ -32,7 +32,7 @@ def main() -> int:
             )
             return_type = declaration.replace("[[nodiscard]]", "", 1).lstrip()
             body = " {}" if return_type.startswith("void ") else (
-                " { return cudaErrorNotSupported; }")
+                " { return PM_ERROR_FEATURE_NOT_PRESENT; }")
             definitions.append(declaration + body)
 
     if not definitions:

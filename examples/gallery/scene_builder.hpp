@@ -4,6 +4,7 @@
 #include <parallel_mater/parallel_mater.h>
 #include <simulation/types.hpp>
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/gpu_frame.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -29,6 +30,7 @@ struct CommandSceneInstance {
     std::vector<PaintBinding> paint_bindings;
     std::uint32_t fluid{PM_INVALID_INDEX};
     std::uint32_t smoke{PM_INVALID_INDEX};
+    GpuSceneBuffers render_buffers;
 };
 
 struct CommandSceneFrame {
@@ -47,16 +49,7 @@ struct CommandSceneFrame {
     std::vector<PmDebugRecord> debug_records;
     PmStepStatistics statistics{};
     std::uint64_t revision{};
-};
-
-// Borrowed public output, never solver-private storage. step() completes the
-// physics fence before publishing it. Consumers must finish before another
-// step/reset/destruction reuses or frees the buffer. Offsets include headers.
-struct CommandSceneGpuFrame {
-    struct Region { PmDeviceSize offset{}, size{}; };
-    PmNativeBufferInfo buffer{};
-    Region rigid, fluid, smoke;
-    std::vector<Region> cloth_surfaces, soft_surfaces, ropes, paint;
+    bool full_host_output{};
 };
 
 // Gallery client for the public command API. It owns only pm* resources and
@@ -81,11 +74,11 @@ class CommandScene {
     [[nodiscard]] bool step(float timestep, std::uint32_t substeps,
                             Vec3 gravity, CommandSceneFrame &frame,
                             std::string &error,
-                            bool collect_contacts = false, bool readback = true);
-    [[nodiscard]] bool gpu_frame(CommandSceneGpuFrame &frame, std::string &error) const;
-    // Explicit diagnostic/control readback of the last completed output; never
-    // advances simulation or re-renders. Caller has already completed step().
-    [[nodiscard]] bool readback_frame(CommandSceneFrame &, std::string &error, bool collect_contacts = false) const;
+                            bool collect_contacts = false,
+                            bool read_deformables = true, bool read_host = true);
+    // Explicit diagnostics/capture readback, including while the viewer is paused.
+    [[nodiscard]] bool read_output(CommandSceneFrame &frame, std::string &error,
+                                   bool read_deformables = true);
     [[nodiscard]] bool set_rigid_state(std::uint32_t body,
                                        const RigidBodyState &state,
                                        std::string &error);

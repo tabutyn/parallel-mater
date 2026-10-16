@@ -413,7 +413,7 @@ bool constrained_collision_disabled(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_integrate_rigid_bodies(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<BodyAccumulator> accumulators,
     uniform PMBuffer<KinematicTarget> targets, uniform PMBuffer<RigidBodyState> input,
@@ -503,7 +503,7 @@ void pm_integrate_rigid_bodies(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_compute_rigid_world_bounds(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -561,7 +561,7 @@ bool rigid_bounding_spheres_may_contact(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_broad_phase_rigid_pairs(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<WorldAabb> world_bounds,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -569,7 +569,7 @@ void pm_broad_phase_rigid_pairs(
     uniform PMBuffer<RigidConstraintResource> constraints,
     uniform uint constraint_capacity,
     uniform PMBuffer<FixedContactProjection> fixed_groups, uniform uint count,
-    uniform PMBuffer<PMResourceUint8> active_flags
+    uniform PMByteBuffer active_flags
     PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -2006,7 +2006,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_reduce_rigid_leaf_manifolds(
     uniform PMBuffer<BodyParameters> parameters, uniform uint count,
     uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
@@ -2034,7 +2034,7 @@ void pm_reduce_rigid_leaf_manifolds(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_finalize_rigid_contact_manifolds(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -2131,7 +2131,7 @@ void pm_finalize_rigid_contact_manifolds(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_clear_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<KinematicTarget> targets,
     uniform uint count PM_D3D12_DISPATCH_PARAMETER)
@@ -2144,7 +2144,7 @@ void pm_clear_rigid_inputs(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_capture_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<Vec3> forces,
     uniform PMBuffer<Vec3> torques, uniform uint count
@@ -2197,7 +2197,7 @@ void pm_prepare_parallel_contact_events(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_load_rigid_contact_cache(
     uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
     uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
@@ -2267,7 +2267,7 @@ void pm_load_rigid_contact_cache(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_save_rigid_contact_cache(
     uniform PMBuffer<ContactManifold> manifolds, uniform PMBuffer<uint> active_pairs,
     uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
@@ -2328,7 +2328,7 @@ void pm_save_rigid_contact_cache(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_gather_rigid_debug_samples(
     uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<Vec3> torques, uniform uint count,
@@ -2342,7 +2342,7 @@ void pm_gather_rigid_debug_samples(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(256), 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void pm_clamp_rigid_speeds(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform uint count PM_D3D12_DISPATCH_PARAMETER)

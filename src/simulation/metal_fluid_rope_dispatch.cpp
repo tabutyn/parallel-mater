@@ -5,7 +5,7 @@
 #include "driver/metal/resource_records.hpp"
 
 namespace parallel_mater::simulation {
-void detect_fluid_rope_contacts(dim3 grid, dim3 block, cudaStream_t stream,
+void detect_fluid_rope_contacts(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *particle_positions, void *particle_velocities,
     const std::uint32_t *particle_count, float particle_mass,
     const void *rope_positions, const void *rope_velocities,
@@ -21,7 +21,7 @@ void detect_fluid_rope_contacts(dim3 grid, dim3 block, cudaStream_t stream,
         maximum_penetration, transfer_impulse);
 }
 
-void apply_fluid_rope_impulses(dim3 grid, dim3 block, cudaStream_t stream,
+void apply_fluid_rope_impulses(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *rope_velocities, void *fluid_contact_forces,
     std::uint32_t rope_count, float rope_mass, float rope_maximum_speed,
     bool first_attached, bool last_attached, const void *node_impulses,

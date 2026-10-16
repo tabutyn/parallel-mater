@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Included by runtime.cu; kept in one CUDA translation unit.
+// Included by runtime.cpp; shared backend-neutral runtime implementation.
 
 Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
                              RigidBodyId &output) noexcept {
@@ -60,7 +60,10 @@ Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
     ++impl_->rigid_body_count;
     ++impl_->revision;
     output = id;
-    return success();
+    return write_host_objects(impl_->execution, impl_->parameters + dense,
+        impl_->accumulators + dense, impl_->targets + dense, impl_->ids + dense,
+        impl_->avbd_bodies + dense, impl_->states[0] + dense, impl_->states[1] + dense,
+        impl_->render_previous_states + dense);
 }
 Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
     if (!impl_) {
@@ -108,6 +111,10 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
             return failure(StatusCode::invalid_argument,"rigid body is still referenced by a rope attachment");
     const std::uint32_t last = impl_->rigid_body_count - 1U;
     if (dense != last) {
+        status = read_host_objects(impl_->execution, impl_->accumulators + last,
+            impl_->targets + last, impl_->states[0] + last, impl_->states[1] + last,
+            impl_->avbd_bodies + last, impl_->render_previous_states + last);
+        if (!status) return status;
         impl_->parameters[dense] = impl_->parameters[last];
         impl_->accumulators[dense] = impl_->accumulators[last];
         impl_->targets[dense] = impl_->targets[last];
@@ -118,6 +125,11 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
         impl_->render_previous_states[dense] =
             impl_->render_previous_states[last];
         impl_->slots[impl_->ids[dense].index].dense_index = dense;
+        status = write_host_objects(impl_->execution, impl_->parameters + dense,
+            impl_->accumulators + dense, impl_->targets + dense, impl_->ids + dense,
+            impl_->states[0] + dense, impl_->states[1] + dense, impl_->avbd_bodies + dense,
+            impl_->render_previous_states + dense);
+        if (!status) return status;
     }
     --impl_->rigid_body_count;
     Impl::Slot &slot = impl_->slots[body.index];
@@ -166,14 +178,19 @@ Status SimulationRuntime::set_rigid_body_state(RigidBodyId body,
     impl_->targets[dense] = {};
     for (unsigned index = 0; index < impl_->options.rigid_constraint_capacity; ++index) {
         auto &joint = impl_->rigid_constraints[index];
-        if (joint.alive && (joint.options.body_a == body || joint.options.body_b == body))
+        if (joint.alive && (joint.options.body_a == body || joint.options.body_b == body)) {
             std::fill_n(joint.avbd_rows, 18U, avbd::Row{});
+            status = write_host_span(impl_->execution, joint.avbd_rows, 18U);
+            if (!status) return status;
+        }
     }
     for (auto &smoke : impl_->smokes)
         if (smoke && smoke->alive)
             smoke->grid.static_metadata_valid = false;
     ++impl_->revision;
-    return success();
+    return write_host_objects(impl_->execution, impl_->states[0] + dense,
+        impl_->states[1] + dense, impl_->render_previous_states + dense,
+        impl_->avbd_bodies + dense, impl_->accumulators + dense, impl_->targets + dense);
 }
 
 Status SimulationRuntime::set_kinematic_target(RigidBodyId body,
@@ -208,7 +225,7 @@ Status SimulationRuntime::set_kinematic_target(RigidBodyId body,
     }
     target.orientation = normalized_quaternion(target.orientation);
     impl_->targets[dense] = {target, true};
-    return success();
+    return write_host_objects(impl_->execution, impl_->targets + dense);
 }
 
 Status SimulationRuntime::apply_force(RigidBodyId body, Vec3 force,
@@ -233,12 +250,15 @@ Status SimulationRuntime::apply_force(RigidBodyId body, Vec3 force,
         return failure(StatusCode::invalid_argument,
                        "forces may only be applied to dynamic bodies");
     }
+    status = read_host_objects(impl_->execution, impl_->accumulators + dense,
+                               impl_->states[impl_->current_state] + dense);
+    if (!status) return status;
     BodyAccumulator &accumulator = impl_->accumulators[dense];
     accumulator.force = add(accumulator.force, force);
     const Vec3 arm = subtract(
         world_point, impl_->states[impl_->current_state][dense].position);
     accumulator.torque = add(accumulator.torque, cross(arm, force));
-    return success();
+    return write_host_objects(impl_->execution, &accumulator);
 }
 
 Status SimulationRuntime::apply_rigid_input(
@@ -261,13 +281,15 @@ Status SimulationRuntime::apply_rigid_input(
         return failure(StatusCode::invalid_argument,
                        "rigid inputs require a dynamic body");
     }
+    status = read_host_objects(impl_->execution, impl_->accumulators + dense);
+    if (!status) return status;
     BodyAccumulator &accumulator = impl_->accumulators[dense];
     accumulator.force = add(accumulator.force, force);
     accumulator.torque = add(accumulator.torque, torque);
     accumulator.impulse = add(accumulator.impulse, linear_impulse);
     accumulator.angular_impulse = add(accumulator.angular_impulse,
                                       angular_impulse);
-    return success();
+    return write_host_objects(impl_->execution, &accumulator);
 }
 
 Status SimulationRuntime::apply_central_acceleration(
@@ -299,9 +321,13 @@ Status SimulationRuntime::apply_central_acceleration(
         status = impl_->validate_handle(bodies.data[index], dense);
         if (!status) return status;
         const float mass = 1.0F / impl_->parameters[dense].inverse_mass;
+        status = read_host_objects(impl_->execution, impl_->accumulators + dense);
+        if (!status) return status;
         impl_->accumulators[dense].force = add(
             impl_->accumulators[dense].force,
             multiply(acceleration, mass));
+        status = write_host_objects(impl_->execution, impl_->accumulators + dense);
+        if (!status) return status;
     }
     return success();
 }
@@ -328,13 +354,16 @@ Status SimulationRuntime::apply_impulse(RigidBodyId body, Vec3 impulse,
         return failure(StatusCode::invalid_argument,
                        "impulses may only be applied to dynamic bodies");
     }
+    status = read_host_objects(impl_->execution, impl_->accumulators + dense,
+                               impl_->states[impl_->current_state] + dense);
+    if (!status) return status;
     BodyAccumulator &accumulator = impl_->accumulators[dense];
     accumulator.impulse = add(accumulator.impulse, impulse);
     const Vec3 arm = subtract(
         world_point, impl_->states[impl_->current_state][dense].position);
     accumulator.angular_impulse =
         add(accumulator.angular_impulse, cross(arm, impulse));
-    return success();
+    return write_host_objects(impl_->execution, &accumulator);
 }
 
 Status SimulationRuntime::rigid_body_view(RigidBodyDeviceView &output) const noexcept {
@@ -363,7 +392,7 @@ Status SimulationRuntime::rigid_body_view(RigidBodyDeviceView &output) const noe
 
 Status SimulationRuntime::read_rigid_body_state(RigidBodyId body, RigidBodyState &output,
                                     device::ExecutionQueue queue) const noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) {
         return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
@@ -383,15 +412,15 @@ Status SimulationRuntime::read_rigid_body_state(RigidBodyId body, RigidBodyState
         return status;
     }
     RigidBodyState temporary{};
-    cudaError_t error = cudaMemcpyAsync(
+    PmResult error = copy_bytes(
         &temporary, impl_->states[impl_->current_state] + dense,
-        sizeof(RigidBodyState), cudaMemcpyDeviceToHost, stream);
-    if (error != cudaSuccess) {
-        return cuda_failure(error, "rigid body state readback failed");
+        sizeof(RigidBodyState), device::CopyDirection::device_to_host, stream);
+    if (error != PM_SUCCESS) {
+        return backend_failure(error, "rigid body state readback failed");
     }
-    error = cudaStreamSynchronize(stream);
-    if (error != cudaSuccess) {
-        return cuda_failure(error, "rigid body state readback synchronization failed");
+    error = wait_queue(stream);
+    if (error != PM_SUCCESS) {
+        return backend_failure(error, "rigid body state readback synchronization failed");
     }
     output = temporary;
     return success();
@@ -399,7 +428,7 @@ Status SimulationRuntime::read_rigid_body_state(RigidBodyId body, RigidBodyState
 
 Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
                             device::ExecutionQueue queue) const noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_)
         return failure(StatusCode::invalid_argument,
                        "simulation is not initialized");
@@ -442,9 +471,9 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
             return failure(StatusCode::backend_failure,
                            "particle hit-box query launch failed");
     }
-    cudaError_t error = cudaStreamSynchronize(stream);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "hit-box query synchronization failed");
+    PmResult error = wait_queue(stream);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "hit-box query synchronization failed");
 
     HitBoxResult temporary;
     try {
@@ -533,7 +562,7 @@ Status SimulationRuntime::add_rigid_constraint(
     ++impl_->rigid_constraint_count;
     ++impl_->revision;
     output = {slot, resource.generation};
-    return success();
+    return write_host_objects(impl_->execution, &resource);
 }
 
 Status SimulationRuntime::update_rigid_constraint(
@@ -559,6 +588,8 @@ Status SimulationRuntime::update_rigid_constraint(
         options.local_orientation_a);
     options.local_orientation_b = normalized_quaternion(
         options.local_orientation_b);
+    status = read_host_objects(impl_->execution, &resource->state);
+    if (!status) return status;
     const bool contact_topology_changed = !(resource->options.body_a == options.body_a)
         || !(resource->options.body_b == options.body_b)
         || resource->options.enabled != options.enabled
@@ -572,7 +603,7 @@ Status SimulationRuntime::update_rigid_constraint(
     ++impl_->revision;
     if (!contact_topology_changed && contact_cache_current)
         impl_->rigid_contact_revision = impl_->revision;
-    return success();
+    return write_host_objects(impl_->execution, resource);
 }
 
 Status SimulationRuntime::remove_rigid_constraint(RigidConstraintId id) noexcept {
@@ -589,13 +620,13 @@ Status SimulationRuntime::remove_rigid_constraint(RigidConstraintId id) noexcept
     if (resource->generation == 0U) resource->generation = 1U;
     --impl_->rigid_constraint_count;
     ++impl_->revision;
-    return success();
+    return write_host_objects(impl_->execution, resource);
 }
 
 Status SimulationRuntime::read_rigid_constraint_state(
     RigidConstraintId id, RigidConstraintState &output,
     device::ExecutionQueue queue) const noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_)
         return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_current_device();
@@ -613,22 +644,22 @@ Status SimulationRuntime::read_rigid_constraint_state(
     RigidConstraintState temporary{};
     std::uint32_t generation = 0U;
     std::uint32_t alive = 0U;
-    cudaError_t error = cudaMemcpyAsync(
+    PmResult error = copy_bytes(
         &temporary, &resource->state, sizeof(temporary),
-        cudaMemcpyDeviceToHost, stream);
-    if (error == cudaSuccess) {
-        error = cudaMemcpyAsync(&generation, &resource->generation,
-                                sizeof(generation), cudaMemcpyDeviceToHost,
+        device::CopyDirection::device_to_host, stream);
+    if (error == PM_SUCCESS) {
+        error = copy_bytes(&generation, &resource->generation,
+                                sizeof(generation), device::CopyDirection::device_to_host,
                                 stream);
     }
-    if (error == cudaSuccess) {
-        error = cudaMemcpyAsync(&alive, &resource->alive, sizeof(alive),
-                                cudaMemcpyDeviceToHost, stream);
+    if (error == PM_SUCCESS) {
+        error = copy_bytes(&alive, &resource->alive, sizeof(alive),
+                                device::CopyDirection::device_to_host, stream);
     }
-    const cudaError_t synchronization_error = cudaStreamSynchronize(stream);
-    if (error == cudaSuccess) error = synchronization_error;
-    if (error != cudaSuccess)
-        return cuda_failure(error, "rigid constraint state readback failed");
+    const PmResult synchronization_error = wait_queue(stream);
+    if (error == PM_SUCCESS) error = synchronization_error;
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "rigid constraint state readback failed");
     if (alive == 0U || generation != id.generation) {
         return failure(StatusCode::invalid_handle,
                        "rigid constraint handle is stale");

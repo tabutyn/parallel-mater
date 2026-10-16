@@ -11,7 +11,7 @@ using metal_bindings::smoke_options;
 } // namespace
 
 void index_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, void *keys,
     std::uint32_t *indices) noexcept {
@@ -22,7 +22,7 @@ void index_smoke_particles(
 }
 
 void calculate_smoke_density_pressure(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, float *densities, float *pressures,
@@ -35,7 +35,7 @@ void calculate_smoke_density_pressure(
 }
 
 void calculate_smoke_vorticity(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, const float *densities,
@@ -50,7 +50,7 @@ void calculate_smoke_vorticity(
 }
 
 void calculate_smoke_pair_forces(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, const float *densities,
@@ -68,7 +68,7 @@ void calculate_smoke_pair_forces(
 }
 
 void advect_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *accelerations,
@@ -82,7 +82,7 @@ void advect_smoke_particles(
 }
 
 void emit_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, float *densities, float *pressures,
     void *vorticities, const SmokeDomainDispatchOptions &options,
@@ -96,7 +96,7 @@ void emit_smoke_particles(
 }
 
 void calculate_smoke_deformable_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     std::uint32_t count, void *minimum, void *maximum) noexcept {
     (void)metal::launch(stream, "smoke_deformable_bounds", grid,
         surface, count,
@@ -104,7 +104,7 @@ void calculate_smoke_deformable_bounds(
 }
 
 void collide_smoke_with_rigid_body(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     float *pressures, std::uint32_t count, float lifetime,
     const void *mesh, void *body_states, const void *previous_body_states,
@@ -125,7 +125,7 @@ void collide_smoke_with_rigid_body(
 }
 
 void apply_smoke_rigid_body_impulses(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *impulses,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *impulses,
     std::uint32_t count, std::uint32_t body, const void *body_parameters,
     void *body_states) noexcept {
     (void)metal::launch(stream, "smoke_apply_rigid_impulses", grid,

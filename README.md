@@ -68,9 +68,11 @@ shared Slang schedule is present.
 On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
 implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
 and memory budgets. Its command path dispatches the common rigid-body,
-rigid-constraint, contact, debug, and query schedules compiled to DXIL. It
-advertises those tested rigid capabilities while the remaining simulation
-domains stay unavailable.
+rigid-constraint, liquid, cloth, liquid–rigid, cloth–rigid and liquid–cloth
+schedules compiled to DXIL, including contact/debug/query exports. These are
+preview capabilities, not cross-driver conformance approval: strict contact,
+trajectory and tearing comparisons still have failures. Paint, ropes, soft
+bodies and smoke remain unavailable on this driver.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -111,8 +113,9 @@ Slang modules also compile to SPIR-V as a portability check. A loadable
 [Vulkan preview driver](docs/VULKAN.md) now executes shared rigid-body,
 constraint, liquid, and liquid–rigid schedules; other domains remain
 unadvertised. The Linux desktop test launcher offers CUDA or Vulkan and the
-Gallery accepts `--backend`. The D3D12 driver exposes shared Slang rigid bodies
-and constraints through the portable schedule. Metal and WebGPU have no
+Gallery accepts `--backend`. The D3D12 driver exposes the preview rigid,
+liquid and cloth slice through the same ordinary C++ runtime and portable
+schedule, without CUDA compatibility headers. Metal and WebGPU have no
 drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
 as a WebGPU portability gate; the complete pointer-based domain schedules do
 not yet have WebGPU resource wrappers. Retired backend-specific physics targets
@@ -126,9 +129,23 @@ interoperability enums because applications may query support and receive
 The optional gallery loads committed Blender-authored `.glb` files and creates
 every scene through the public command API. The default renderer is a portable
 software rasterizer feeding a thin native window/presentation adapter (D3D12 on
-Windows, OpenGL elsewhere). OptiX is an optional renderer adapter and is
+Windows, Metal for Apple previews, OpenGL elsewhere). OptiX is an optional renderer adapter and is
 deliberately separate from the common catalog, scene, input, and application
 targets.
+
+Apple previews use the same public `GpuSceneBuffers` handoff for direct Metal
+drawing on macOS and iPad. Physics finishes before graphics reads its outputs;
+graphics finishes before the next step reuses them. Diagnostics and CPU scene
+controllers explicitly retain host reads. This is fenced GPU-to-GPU drawing,
+not engine-owned devices or asynchronous frames in flight.
+
+Selecting D3D12 uses a thin native GPU drawing adapter instead of the software
+renderer. Shared Slang drawing shaders consume public rigid, cloth-surface and
+liquid output buffers; the window copies a shared GPU image and uploads only UI
+pixels. Liquid particle, surface and wireframe modes run on the GPU. Regular
+frames read only controller state; diagnostic views and lossless headless
+captures request CPU data explicitly. This raster path does not claim OptiX
+lighting/foam or pixel-identical rendering parity.
 
 All Blender scenes use one exporter,
 `tools/blender/export_parallel_mater_scene.py`: as a Blender File → Export menu
@@ -152,17 +169,17 @@ ctest --test-dir build-gallery --output-on-failure
 
 ### Android Gallery preview
 
-An ARM64 native Android preview reuses the shared gallery and an optional Slang
-CPU liquid adapter. Its hardware-profile resource selects small rigid/fluid
-workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
-rigid and liquid scenes only; Android GPU execution and other domains remain
-future work. See [build, install and controls](examples/android/README.md).
+An ARM64 native Android preview uses the shared Gallery session and timer with
+Vulkan GPU physics (an explicitly selected Slang CPU build remains available).
+Hardware profiles select bounded rigid/fluid workloads. The exposed Android
+catalog is eight scenes; shader availability does not establish full device
+physics qualification. See [build, install and controls](examples/android/README.md).
 
 ### iPad Gallery preview
 
 A native UIKit preview reuses the macOS Slang Metal driver for **Apple GPU
-physics**, the shared Gallery software renderer, and Android-style bounded
-mobile workloads. It exposes 27 existing scenes without CPU physics fallback.
+physics** and direct Metal drawing from public GPU output buffers. Android and
+iPad share one C++ session, timer, controls and bounded mobile workloads. It exposes 27 existing scenes without CPU physics fallback.
 Requires iPadOS 26+ and Apple GPU family 7 or newer; full physics and sustained
 performance qualification remain pending. See [build, install, controls and
 device diagnostics](examples/ios/README.md).

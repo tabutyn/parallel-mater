@@ -5,7 +5,8 @@
 
 #include <parallel_mater/parallel_mater.h>
 
-#include <cuda_runtime_api.h>
+#include "device/device.hpp"
+#include <chrono>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
@@ -16,6 +17,14 @@
 #include <string_view>
 
 namespace parallel_mater::d3d12 {
+
+struct FenceEvent {
+    void *stream{};
+    std::uint64_t fence_value{};
+    std::chrono::steady_clock::time_point recorded{};
+    bool ready{};
+    bool timing{};
+};
 
 class ScheduleContext {
   public:
@@ -30,6 +39,13 @@ class ScheduleContext {
 
     [[nodiscard]] PmResult copy_host(void *destination, const void *source,
                                      PmDeviceSize size) noexcept;
+    [[nodiscard]] PmResult copy(void *destination, const void *source,
+        PmDeviceSize size, device::CopyDirection direction) noexcept;
+    [[nodiscard]] PmResult read_host(void *pointer, PmDeviceSize size) noexcept;
+    [[nodiscard]] PmResult write_host(void *pointer, PmDeviceSize size) noexcept;
+    [[nodiscard]] PmResult map_host(void *pointer, PmDeviceSize size) noexcept;
+    void unmap_host(void *allocation) noexcept;
+    void prepare_host_access() noexcept;
     [[nodiscard]] PmResult wait_idle() noexcept;
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept;
@@ -41,32 +57,30 @@ class ScheduleContext {
 
     [[nodiscard]] GraphicsBufferAddress address(
         const void *pointer) noexcept;
-    [[nodiscard]] GraphicsBufferAddress widened_flags(
-        const std::uint8_t *pointer, std::uint32_t count) noexcept;
     [[nodiscard]] GraphicsBufferAddress translated_meshes(
         const void *meshes, const void *parameters,
         std::uint32_t body_count,
         std::uint32_t mesh_capacity = 0U) noexcept;
 
-    [[nodiscard]] cudaError_t dispatch(
+    [[nodiscard]] PmResult dispatch(
         std::string_view module, std::string_view entry,
-        dim3 grid, dim3 block,
+        device::DispatchSize grid, device::DispatchSize block,
         std::span<const std::byte> constants) noexcept;
-    [[nodiscard]] cudaError_t copy_device(
+    [[nodiscard]] PmResult copy_device(
         void *destination, const void *source, std::size_t size) noexcept;
-    [[nodiscard]] cudaError_t clear_device(
+    [[nodiscard]] PmResult clear_device(
         void *destination, int value, std::size_t size) noexcept;
-    [[nodiscard]] cudaError_t synchronize() noexcept;
-    [[nodiscard]] cudaError_t record(cudaEvent_t event) noexcept;
-    [[nodiscard]] cudaError_t wait(cudaEvent_t event) noexcept;
-    [[nodiscard]] cudaError_t query(cudaEvent_t event) noexcept;
-    [[nodiscard]] cudaError_t error(bool take) noexcept;
+    [[nodiscard]] PmResult synchronize() noexcept;
+    [[nodiscard]] PmResult record(FenceEvent *event) noexcept;
+    [[nodiscard]] PmResult wait(FenceEvent *event) noexcept;
+    [[nodiscard]] PmResult query(FenceEvent *event) noexcept;
+    [[nodiscard]] PmResult error(bool take) noexcept;
 
   private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 
-[[nodiscard]] ScheduleContext *context(cudaStream_t stream) noexcept;
+[[nodiscard]] ScheduleContext *context(void *stream) noexcept;
 
 } // namespace parallel_mater::d3d12

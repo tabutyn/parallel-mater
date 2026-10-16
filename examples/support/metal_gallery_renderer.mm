@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
+#if !__has_feature(objc_arc)
+#error "Metal Gallery rendering requires ARC (including mixed-language Xcode targets)"
+#endif
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include "scene_builder.hpp"
@@ -107,13 +110,15 @@ struct GpuGalleryRenderer::Impl {
         smoke_radius = std::max(scene.smoke_options.particle_radius, .03F);
         for (const auto &rope : scene.ropes) rope_radii.push_back(std::max(rope.options.radius, .025F));
     }
-    void render(const CommandSceneGpuFrame &frame, Camera camera, unsigned width, unsigned height,
+    void render(const GpuSceneBuffers &frame, Camera camera, unsigned width, unsigned height,
                 void *target, std::vector<std::uint32_t> *capture, FrameTimingCollector *timing,
                 std::span<const std::uint32_t> overlay) {
-        require(width && height && frame.buffer.buffer, "Invalid Metal render frame");
-        id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(reinterpret_cast<void *>(frame.buffer.buffer));
-        require(buffer.device == device && frame.buffer.offset <= buffer.length &&
-            frame.buffer.size <= buffer.length - frame.buffer.offset, "Foreign or out-of-bounds graphics buffer");
+        PmNativeBufferInfo native{};
+        require(width && height && pmGetNativeBuffer(frame.device, frame.output, &native) == PM_SUCCESS &&
+            native.buffer, "Invalid Metal render frame");
+        id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(reinterpret_cast<void *>(native.buffer));
+        require(buffer.device == device && native.offset <= buffer.length &&
+            native.size <= buffer.length - native.offset, "Foreign or out-of-bounds graphics buffer");
         CAMetalLayer *layer = (__bridge CAMetalLayer *)target;
         id<CAMetalDrawable> drawable = nil;
         if (layer) {
@@ -143,8 +148,8 @@ struct GpuGalleryRenderer::Impl {
         id<MTLRenderCommandEncoder> encoder = [command renderCommandEncoderWithDescriptor:pass];
         require(command && encoder, "Metal graphics command allocation failed");
         [encoder setDepthStencilState:depth_state]; [encoder setCullMode:MTLCullModeNone];
-        [encoder setVertexBuffer:buffer offset:frame.buffer.offset atIndex:1];
-        [encoder setFragmentBuffer:buffer offset:frame.buffer.offset atIndex:1];
+        [encoder setVertexBuffer:buffer offset:native.offset atIndex:1];
+        [encoder setFragmentBuffer:buffer offset:native.offset atIndex:1];
         using namespace math;
         const auto forward = normalize_or(subtract(camera.target, camera.eye), {0,0,-1});
         const auto right = normalize_or(cross(forward, camera.up), {1,0,0});
@@ -153,8 +158,8 @@ struct GpuGalleryRenderer::Impl {
         Uniforms u;
         u.eye = vector(camera.eye); u.forward = vector(forward);
         u.right = vector(right, vertical * float(width)/height); u.up = vector(up, vertical); u.height = height;
-        const auto region = [&](CommandSceneGpuFrame::Region r, unsigned stride, bool header) {
-            require(r.offset <= frame.buffer.size && r.size <= frame.buffer.size - r.offset &&
+        const auto region = [&](GpuSceneBuffers::Region r, unsigned stride, bool header) {
+            require(r.offset <= native.size && r.size <= native.size - r.offset &&
                 r.offset <= UINT32_MAX && r.size <= UINT32_MAX && (!header || r.size >= sizeof(PmDomainOutputHeader)),
                 "Invalid public graphics output region");
             u.offset = static_cast<unsigned>(r.offset); u.stride = stride;
@@ -170,8 +175,8 @@ struct GpuGalleryRenderer::Impl {
             u.kind = draw.domain == 0 ? 0 : 1; u.color = vector(draw.color, 1); u.paint_resolution = 0;
             if (draw.paint != PM_INVALID_INDEX) {
                 const auto paint = frame.paint.at(draw.paint);
-                require(paint.offset <= UINT32_MAX && paint.size >= 16 && paint.offset <= frame.buffer.size &&
-                    paint.size <= frame.buffer.size - paint.offset, "Invalid GPU paint region");
+                require(paint.offset <= UINT32_MAX && paint.size >= 16 && paint.offset <= native.size &&
+                    paint.size <= native.size - paint.offset, "Invalid GPU paint region");
                 u.paint_offset = static_cast<unsigned>(paint.offset); u.paint_resolution = draw.paint_resolution;
                 u.paint_count = static_cast<unsigned>((paint.size-16)/4);
             }
@@ -181,7 +186,7 @@ struct GpuGalleryRenderer::Impl {
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:draw.count];
         }
         [encoder setRenderPipelineState:particle_pipeline];
-        const auto particles = [&](CommandSceneGpuFrame::Region r, unsigned stride, Vec3 tint, float radius) {
+        const auto particles = [&](GpuSceneBuffers::Region r, unsigned stride, Vec3 tint, float radius) {
             if (!r.size) return;
             region(r, stride, true); u.radius = radius; u.color = vector(tint, 1);
             [encoder setVertexBytes:&u length:sizeof(u) atIndex:2];
@@ -238,9 +243,11 @@ struct GpuGalleryRenderer::Impl {
     }
 };
 GpuGalleryRenderer::GpuGalleryRenderer(PmDevice device, const SceneDefinition &scene, const CommandSceneInstance &instance)
-    : impl_(std::make_unique<Impl>(device, scene, instance)) {}
+{
+    @autoreleasepool { impl_ = std::make_unique<Impl>(device, scene, instance); }
+}
 GpuGalleryRenderer::~GpuGalleryRenderer() = default;
-void GpuGalleryRenderer::render(const CommandSceneGpuFrame &frame, Camera camera, unsigned width, unsigned height,
+void GpuGalleryRenderer::render(const GpuSceneBuffers &frame, Camera camera, unsigned width, unsigned height,
                                 void *layer, std::vector<std::uint32_t> *capture, FrameTimingCollector *timing,
                                 std::span<const std::uint32_t> overlay) {
     @autoreleasepool { impl_->render(frame, camera, width, height, layer, capture, timing, overlay); }

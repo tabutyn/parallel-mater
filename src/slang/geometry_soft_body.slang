@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Slang mirror of src/geometry_soft_body.cuh. The surface-contact gather is
 // independent of the rigid-mesh query helpers used by the other two entries.
@@ -10,7 +11,7 @@ import geometry;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void deformable_collide(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> inverse_masses,
@@ -26,8 +27,9 @@ void deformable_collide(
     uniform PMBuffer<uint> dynamic_contact_flag, uniform PMBuffer<uint> contact_flags,
     uniform bool couple_dynamic, uniform bool position_only,
     uniform bool static_only, uniform bool reconstruct_free_velocities,
-    uniform float maximum_speed, uniform PMBuffer<Vec3> body_position_corrections)
+    uniform float maximum_speed, uniform PMBuffer<Vec3> body_position_corrections PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= count) return;
     if (!position_only)
@@ -415,13 +417,14 @@ bool soft_project_convex_pair_triangle(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void soft_body_surface_contacts(
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<uint> indices,
     uniform uint triangle_count, uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<TriangleMeshResource> meshes,
-    uniform uint body_count, uniform PMBuffer<Vec3> corrections)
+    uniform uint body_count, uniform PMBuffer<Vec3> corrections PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint triangle = pmThreadIndex();
     if (triangle >= triangle_count) return;
     uint base = triangle * 3u;
@@ -546,12 +549,13 @@ void soft_body_surface_contacts(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void soft_body_apply_surface_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> corrections,
     uniform PMBuffer<uint> offsets, uniform PMBuffer<SoftSurfaceInfluence> influences,
-    uniform uint node_count)
+    uniform uint node_count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= node_count) return;
     Vec3 correction = {};

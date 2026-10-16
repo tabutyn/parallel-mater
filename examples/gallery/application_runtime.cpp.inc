@@ -60,16 +60,16 @@ struct GalleryRuntime {
 
 [[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
                                 const StepOptions &options,
-                                std::string &error, bool readback = true) {
+                                std::string &error, bool read_deformables = true, bool read_host = true) {
     if (!runtime.simulation.step(options.timestep, options.substeps,
                                  options.gravity, runtime.frame, error,
                                  options.collect_rigid_contacts ||
-                                     options.collect_fluid_contacts, readback))
+                                     options.collect_fluid_contacts, read_deformables, read_host))
         return false;
 #ifdef PM_GALLERY_METAL_RENDERER
     runtime.gpu_ready = true;
 #endif
-    if (!readback) return true;
+    if (!read_host) return true;
     return parallel_mater::gallery::make_render_scene_frame(
         runtime.scene, runtime.frame, runtime.render_frame, error);
 }

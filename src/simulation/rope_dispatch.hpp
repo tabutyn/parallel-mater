@@ -3,7 +3,7 @@
 
 #include <simulation/runtime.hpp>
 
-#include <cuda_runtime_api.h>
+#include "device/device.hpp"
 
 #include <cstdint>
 
@@ -46,7 +46,7 @@ struct RopeSoftTargetDispatch {
     bool first_anchor{}, last_anchor{};
 };
 
-void advance_rope(cudaStream_t stream, const RopeDispatchData &rope,
+void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     float timestep, Vec3 gravity, int first, int last,
     const void *body_parameters, void *body_states,
     const void *previous_body_states, const void *meshes,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <cuda_runtime_api.h>
+#include "device.hpp"
 #include <slang-cpp-prelude.h>
 
 #include <cstdint>
@@ -27,7 +27,7 @@ namespace parallel_mater::device {
 
 using CpuKernel = void (*)(ComputeThreadVaryingInput *, void *, void *);
 
-inline void dispatch_cpu(dim3 grid, dim3 block, CpuKernel kernel,
+inline void dispatch_cpu(DispatchSize grid, DispatchSize block, CpuKernel kernel,
                          void *parameters) noexcept {
     pm_cpu_grid = {grid.x, grid.y, grid.z};
     pm_cpu_block_size = {block.x, block.y, block.z};
@@ -50,13 +50,13 @@ inline void dispatch_cpu(dim3 grid, dim3 block, CpuKernel kernel,
 // Cooperative kernels are written so lane zero walks every item when the
 // group size is one.  Running one such lane per requested group makes barriers
 // ordinary sequencing points and retains the shared Slang schedule.
-inline void dispatch_cpu_serial_groups(dim3 grid, CpuKernel kernel,
+inline void dispatch_cpu_serial_groups(DispatchSize grid, CpuKernel kernel,
                                        void *parameters) noexcept {
-    dispatch_cpu(grid, dim3{1U}, kernel, parameters);
+    dispatch_cpu(grid, DispatchSize{1U}, kernel, parameters);
 }
 
 inline void dispatch_cpu_serial(CpuKernel kernel, void *parameters) noexcept {
-    dispatch_cpu(dim3{1U}, dim3{1U}, kernel, parameters);
+    dispatch_cpu(DispatchSize{1U}, DispatchSize{1U}, kernel, parameters);
 }
 
 } // namespace parallel_mater::device

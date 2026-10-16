@@ -350,7 +350,7 @@ public uint3 pmGridDim()
         pmMetalDispatch.groupCountZ);
 }
 #else
-public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
+public void pmSyncWarp(uint) { AllMemoryBarrierWithGroupSync(); }
 public uint3 pmGridDim() { return pmDispatchGroupCount; }
 #endif
 
@@ -435,7 +435,7 @@ public uint pmThreadIndex() { return pmDispatchThreadId.x; }
 #if !defined(PM_TARGET_CPU)
 public void pmGroupBarrier()
 {
-#if defined(PM_TARGET_METAL)
+#if defined(PM_TARGET_METAL) || defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
     // These schedules exchange both device and threadgroup memory.
     AllMemoryBarrierWithGroupSync();
 #else

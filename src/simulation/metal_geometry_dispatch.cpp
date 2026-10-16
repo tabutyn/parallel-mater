@@ -4,8 +4,8 @@
 #include "geometry_storage.hpp"
 #include "driver/metal/schedule_context.hpp"
 namespace parallel_mater::simulation {
-cudaError_t integrate_rigid_bodies(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult integrate_rigid_bodies(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *accumulators, void *targets, void *input, void *output,
     std::uint32_t count, const float gravity[3], float timestep,
     std::uint32_t remaining_substeps, bool apply_impulses) noexcept {
@@ -17,13 +17,13 @@ cudaError_t integrate_rigid_bodies(
         remaining_substeps, apply_impulses);
 }
 
-cudaError_t compute_rigid_world_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult compute_rigid_world_bounds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *previous_states, void *states, std::uint32_t count,
     void *meshes, void *world_bounds) noexcept {
     if (auto *execution = metal::context(stream)) {
-        const auto result = execution->checked([&] { execution->meshes(meshes, parameters, count); });
-        if (result != cudaSuccess) return result;
+        const auto result = execution->checked_result([&] { execution->meshes(meshes, parameters, count); });
+        if (result != PM_SUCCESS) return result;
     }
     return metal::launch(stream, "pm_compute_rigid_world_bounds", grid,
         parameters, previous_states,
@@ -31,8 +31,8 @@ cudaError_t compute_rigid_world_bounds(
         world_bounds);
 }
 
-cudaError_t broad_phase_rigid_pairs(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult broad_phase_rigid_pairs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *world_bounds, void *previous_states, void *states, void *meshes,
     void *ids, void *constraints, std::uint32_t constraint_capacity,
     void *fixed_groups, std::uint32_t count, std::uint8_t *active_flags) noexcept {
@@ -44,8 +44,8 @@ cudaError_t broad_phase_rigid_pairs(
         fixed_groups, count, active_flags);
 }
 
-cudaError_t generate_rigid_leaf_pairs(
-    dim3 grid, dim3 block, std::size_t shared_bytes, cudaStream_t stream,
+PmResult generate_rigid_leaf_pairs(
+    device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,
     std::uint32_t count, void *meshes, std::uint32_t mesh_capacity,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -61,8 +61,8 @@ cudaError_t generate_rigid_leaf_pairs(
         shared_leaf_capacity);
 }
 
-cudaError_t evaluate_rigid_leaf_pairs(
-    dim3 grid, dim3 block, std::size_t shared_bytes, cudaStream_t stream,
+PmResult evaluate_rigid_leaf_pairs(
+    device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,
     std::uint32_t count, void *meshes, void *ids, void *constraints,
     std::uint32_t constraint_capacity, std::uint32_t *active_pairs,
@@ -80,8 +80,8 @@ cudaError_t evaluate_rigid_leaf_pairs(
         manifolds);
 }
 
-cudaError_t reduce_rigid_leaf_manifolds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult reduce_rigid_leaf_manifolds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
@@ -92,8 +92,8 @@ cudaError_t reduce_rigid_leaf_manifolds(
         leaf_manifolds, manifolds);
 }
 
-cudaError_t finalize_rigid_contact_manifolds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult finalize_rigid_contact_manifolds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *previous_states, void *states, std::uint32_t count, void *meshes,
     void *ids, void *constraints, std::uint32_t constraint_capacity,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -107,24 +107,24 @@ cudaError_t finalize_rigid_contact_manifolds(
         timestep, manifolds, prepare_faces);
 }
 
-cudaError_t clear_rigid_inputs(
-    dim3 grid, dim3 block, cudaStream_t stream, void *accumulators,
+PmResult clear_rigid_inputs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *accumulators,
     void *targets, std::uint32_t count) noexcept {
     return metal::launch(stream, "pm_clear_rigid_inputs", grid,
         accumulators, targets,
         count);
 }
 
-cudaError_t capture_rigid_inputs(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *accumulators,
+PmResult capture_rigid_inputs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *accumulators,
     void *forces, void *torques, std::uint32_t count) noexcept {
     return metal::launch(stream, "pm_capture_rigid_inputs", grid,
         accumulators,
         forces, torques, count);
 }
 
-cudaError_t prepare_parallel_contact_events(
-    dim3 grid, dim3 block, cudaStream_t stream, std::uint32_t body_count,
+PmResult prepare_parallel_contact_events(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, std::uint32_t body_count,
     void *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_ids,
     std::uint32_t *event_offsets, void *events,
@@ -139,8 +139,8 @@ cudaError_t prepare_parallel_contact_events(
         event_count, collect_events, reset_events);
 }
 
-cudaError_t load_rigid_contact_cache(
-    dim3 grid, dim3 block, cudaStream_t stream, void *manifolds,
+PmResult load_rigid_contact_cache(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *manifolds,
     const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_states,
     const void *body_ids, std::uint32_t body_count, const void *cache,
@@ -157,8 +157,8 @@ cudaError_t load_rigid_contact_cache(
         static_cast<unsigned long long>(epoch), timestep);
 }
 
-cudaError_t save_rigid_contact_cache(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *manifolds,
+PmResult save_rigid_contact_cache(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *manifolds,
     const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_states,
     const void *body_ids, std::uint32_t body_count, void *cache,
@@ -177,8 +177,8 @@ cudaError_t save_rigid_contact_cache(
         events, event_capacity);
 }
 
-cudaError_t gather_rigid_debug_samples(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_ids,
+PmResult gather_rigid_debug_samples(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_ids,
     const void *body_states, const void *forces, const void *torques,
     std::uint32_t count, void *samples) noexcept {
     return metal::launch(stream, "pm_gather_rigid_debug_samples", grid,
@@ -189,16 +189,16 @@ cudaError_t gather_rigid_debug_samples(
         samples);
 }
 
-cudaError_t clamp_rigid_speeds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+PmResult clamp_rigid_speeds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     void *body_states, std::uint32_t count) noexcept {
     return metal::launch(stream, "pm_clamp_rigid_speeds", grid,
         body_parameters,
         body_states, count);
 }
 
-cudaError_t build_fixed_collision_groups(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *constraints,
+PmResult build_fixed_collision_groups(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *constraints,
     std::uint32_t constraint_capacity, const void *body_ids,
     std::uint32_t body_count, void *groups) noexcept {
     return metal::launch(stream, "pm_build_fixed_collision_groups", grid,

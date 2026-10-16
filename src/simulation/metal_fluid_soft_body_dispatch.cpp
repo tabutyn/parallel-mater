@@ -7,7 +7,7 @@
 
 namespace parallel_mater::simulation {
 void refit_fluid_soft_surface(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     const void *previous_surface, const std::uint32_t *surface_indices,
     const std::uint32_t *triangle_order, void *tree,
     const std::uint32_t *parents, std::uint32_t *ready,
@@ -22,7 +22,7 @@ void refit_fluid_soft_surface(
 }
 
 void detect_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const void *velocities,
     const std::uint32_t *particle_count, const void *surface,
     const void *previous_surface, const std::uint32_t *surface_indices,
@@ -50,7 +50,7 @@ void detect_fluid_soft_contacts(
 }
 
 void solve_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, void *accelerations, float *foam,
     const std::uint32_t *particle_count, const void *contacts,
     const std::uint32_t *node_contact_counts, const float *inverse_masses,
@@ -70,7 +70,7 @@ void solve_fluid_soft_contacts(
 }
 
 void apply_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const float *inverse_masses,
     const void *position_deltas, const void *impulses, void *forces,
     std::uint32_t node_count, float inverse_frame_timestep) noexcept {
@@ -83,7 +83,7 @@ void apply_fluid_soft_contacts(
 }
 
 void recover_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous, const std::uint32_t *particle_count,
     const void *surface, const void *previous_surface,
     const std::uint32_t *surface_indices, std::uint32_t surface_index_count,

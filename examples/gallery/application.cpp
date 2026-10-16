@@ -213,19 +213,30 @@ enum class KeyAction : std::size_t {
 
 class KeyEdges {
   public:
-    void update(GLFWwindow *window) noexcept {
-        previous_ = down_;
-        for (std::size_t index = 0U; index < bindings_.size(); ++index) {
-            const Binding binding = bindings_[index];
-            down_[index] = glfwGetKey(window, binding.first) == GLFW_PRESS ||
-                (binding.second != GLFW_KEY_UNKNOWN &&
-                 glfwGetKey(window, binding.second) == GLFW_PRESS);
+    explicit KeyEdges(GLFWwindow *window) noexcept : window_(window), previous_instance_(active_) {
+        active_ = this;
+        previous_callback_ = glfwSetKeyCallback(window, key_event);
+    }
+    ~KeyEdges() {
+        glfwSetKeyCallback(window_, previous_callback_);
+        active_ = previous_instance_;
+    }
+    KeyEdges(const KeyEdges &) = delete;
+    KeyEdges &operator=(const KeyEdges &) = delete;
+
+    void update() noexcept {
+        // Retain ordered press edges across a long GPU frame. Polling only the
+        // final key state loses a press and release received in the same poll.
+        current_ = KeyAction::action_count;
+        if (pending_count_ != 0U) {
+            current_ = pending_[pending_begin_];
+            pending_begin_ = (pending_begin_ + 1U) % pending_.size();
+            --pending_count_;
         }
     }
 
     [[nodiscard]] bool pressed(KeyAction action) const noexcept {
-        const std::size_t index = static_cast<std::size_t>(action);
-        return down_[index] && !previous_[index];
+        return current_ == action;
     }
 
   private:
@@ -250,8 +261,26 @@ class KeyEdges {
         Binding{GLFW_KEY_B, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_N, GLFW_KEY_UNKNOWN},
         Binding{GLFW_KEY_M, GLFW_KEY_UNKNOWN}};
-    std::array<bool, action_count> down_{};
-    std::array<bool, action_count> previous_{};
+    static void key_event(GLFWwindow *window, int key, int scan, int action, int modifiers) {
+        auto *self = active_;
+        if (self == nullptr || self->window_ != window) return;
+        if (action == GLFW_PRESS && self->pending_count_ < self->pending_.size()) {
+            for (std::size_t index = 0U; index < bindings_.size(); ++index) {
+                if (key != bindings_[index].first && key != bindings_[index].second) continue;
+                self->pending_[(self->pending_begin_ + self->pending_count_++) % self->pending_.size()] =
+                    static_cast<KeyAction>(index);
+                break;
+            }
+        }
+        if (self->previous_callback_) self->previous_callback_(window, key, scan, action, modifiers);
+    }
+    inline static thread_local KeyEdges *active_{};
+    GLFWwindow *window_{};
+    KeyEdges *previous_instance_{};
+    GLFWkeyfun previous_callback_{};
+    std::array<KeyAction, 256U> pending_{};
+    std::size_t pending_begin_{}, pending_count_{};
+    KeyAction current_{KeyAction::action_count};
 };
 
 [[nodiscard]] std::string backend_title(PmNativeBackend backend) {
@@ -317,11 +346,11 @@ class KeyEdges {
         return false;
     }
     std::size_t selection{};
-    KeyEdges keys;
     GLFWwindow *window = presentation.native_handle();
+    KeyEdges keys(window);
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
-        keys.update(window);
+        keys.update();
         if (keys.pressed(KeyAction::up))
             selection = (selection + backends.size() - 1U) % backends.size();
         if (keys.pressed(KeyAction::down))
@@ -755,6 +784,10 @@ static int run_gallery_application(
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
+        if (!runtime.renderer.read_image(pixels, error)) {
+            std::cerr << "Render capture failed: " << error << '\n';
+            return 1;
+        }
         if (options.cloth_debug) {
             if (runtime.instance.cloths.empty()) {
                 std::cerr << "Cloth debug overlay needs a cloth resource\n";
@@ -862,7 +895,7 @@ static int run_gallery_application(
         return 0;
     }
 
-    KeyEdges keys;
+    KeyEdges keys(window);
     GalleryDebugState debug;
     debug.reset(options.fluid_particle_view);
     using FrameClock = FrameTimingCollector::Clock;
@@ -884,7 +917,7 @@ static int run_gallery_application(
                 frame_time - previous_frame_time).count());
         previous_frame_time = frame_time;
         glfwPollEvents();
-        keys.update(window);
+        keys.update();
         if (!options.interactive_smoke_output.empty() && displayed_frames == 1)
             input_state.shared.key(GalleryKey::fps);
         if (keys.pressed(KeyAction::timing))
@@ -1236,13 +1269,15 @@ static int run_gallery_application(
                     step_failed = true;
                     break;
                 }
-                bool readback = true;
+                const bool host_diagnostics = capture_requested || debug.structure || debug.cloth_bonds ||
+                    debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
+                bool native_render = runtime.renderer.native_image().handle != 0U;
+                bool read_host = true;
 #ifdef PM_GALLERY_METAL_RENDERER
-                readback = !runtime.gpu_renderer || runtime.fixed_collector.active() || capture_requested ||
-                    debug.vectors_visible() || debug.rigid_contacts || debug.structure || debug.cloth_bonds ||
-                    debug.smoke_mode != SmokeDebugMode::none;
+                native_render = native_render || bool(runtime.gpu_renderer);
+                read_host = !runtime.gpu_renderer || runtime.fixed_collector.active() || host_diagnostics;
 #endif
-                if (!step_runtime(runtime, interactive_step, error, readback)) {
+                if (!step_runtime(runtime, interactive_step, error, !native_render || host_diagnostics, read_host)) {
                     std::cerr << "step gallery failed: " << error << '\n';
                     step_failed = true;
                     break;
@@ -1272,6 +1307,20 @@ static int run_gallery_application(
 
         }
 
+        // Debug toggles/capture can arrive while paused. Read the last GPU
+        // output explicitly, without advancing physics or exposing stale vectors.
+        if (!runtime.frame.full_host_output && (
+#ifdef PM_GALLERY_METAL_RENDERER
+            runtime.gpu_ready ||
+#endif
+            runtime.frame.revision != 0U) &&
+            (capture_requested || debug.structure || debug.cloth_bonds ||
+             debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none)) {
+            if (!runtime.simulation.read_output(runtime.frame, error)) {
+                std::cerr << "read gallery diagnostics failed: " << error << '\n';
+                break;
+            }
+        }
         const bool capture_frame_ready = runtime.frame.revision != 0U ||
 #ifdef PM_GALLERY_METAL_RENDERER
             runtime.gpu_ready ||
@@ -1283,12 +1332,6 @@ static int run_gallery_application(
             !runtime.frame.rope_nodes.empty() ||
             !runtime.frame.smoke_particles.empty();
         if (capture_requested && capture_frame_ready) {
-#ifdef PM_GALLERY_METAL_RENDERER
-            if (runtime.gpu_renderer && runtime.gpu_ready &&
-                !runtime.simulation.readback_frame(runtime.frame, error, debug.rigid_contacts)) {
-                std::cerr << "Capture readback failed: " << error << '\n'; return 1;
-            }
-#endif
             std::filesystem::path capture_path;
             if (save_physics_debug_capture(runtime.frame, capture_path,
                                            error)) {
@@ -1306,13 +1349,6 @@ static int run_gallery_application(
         }
 
         const Camera current_camera = input_state.shared.camera.camera();
-#ifdef PM_GALLERY_METAL_RENDERER
-        if (runtime.gpu_renderer && runtime.gpu_ready && (debug.vectors_visible() || debug.rigid_contacts ||
-            debug.structure || debug.cloth_bonds || debug.smoke_mode != SmokeDebugMode::none) &&
-            !runtime.simulation.readback_frame(runtime.frame, error, debug.rigid_contacts)) {
-            std::cerr << "Debug readback failed: " << error << '\n'; return 1;
-        }
-#endif
         frame_timings.begin_phase(FramePhase::render);
         bool gpu_frame = false;
 #ifdef PM_GALLERY_METAL_RENDERER
@@ -1436,13 +1472,11 @@ static int run_gallery_application(
 #ifdef PM_GALLERY_METAL_RENDERER
         if (gpu_frame) {
             frame_timings.begin_phase(FramePhase::render);
-            CommandSceneGpuFrame native_frame;
             PmNativeDeviceInfo native_device{};
-            if (!runtime.simulation.gpu_frame(native_frame, error) ||
-                pmGetNativeDevice(runtime.simulation.device(), &native_device) != PM_SUCCESS) {
+            if (pmGetNativeDevice(runtime.simulation.device(), &native_device) != PM_SUCCESS) {
                 std::cerr << "GPU output export failed: " << error << '\n'; return 1;
             }
-            runtime.gpu_renderer->render(native_frame, current_camera, options.width, options.height,
+            runtime.gpu_renderer->render(runtime.instance.render_buffers, current_camera, options.width, options.height,
                 presentation.metal_layer(reinterpret_cast<void *>(native_device.device)),
                 !options.interactive_smoke_output.empty() && displayed_frames + 1 == static_cast<unsigned>(options.frames) ? &pixels : nullptr,
                 &frame_timings, pixels);
@@ -1451,7 +1485,7 @@ static int run_gallery_application(
 #endif
         {
             frame_timings.begin_phase(FramePhase::present);
-            presented_ok = presentation.present(pixels, error);
+            presented_ok = presentation.present(pixels, error, runtime.renderer.native_image());
         }
         if (!presented_ok) {
             std::cerr << "Presentation failed: " << error << '\n';

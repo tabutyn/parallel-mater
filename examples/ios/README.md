@@ -123,6 +123,23 @@ behavior, numerical agreement or all missing interactions.
 and passed all 27 scenes × three frames on the connected Apple M1 iPad Pro
 12.9-inch (5th generation), `iPad13,8`, iPadOS 26.6.2. The shared-session/icon
 development build based on `051b50c` subsequently passed 27 × 120 frames plus
-shared control checks. Mac regression tests pass 36/36, including native Metal
+shared control checks using software drawing. This is separate from native Metal
+graphics qualification. Mac regression tests pass 36/36, including native Metal
 rendering across all 27 mobile scenes. These are explicitly preview results;
 no mobile performance profile or full physics qualification was promoted.
+
+The integration build combining `e89cf1a` with upstream `2625740` then passed
+**27 × 120 native Metal-rendered frames** on the same iPad, plus shared
+pause/inactive/resume/reset checks. Per-scene reported process footprints peaked
+at 306.4 MiB. Testing caught a mixed-language Xcode target silently omitting ARC:
+the renderer leaked roughly 1 GiB per scene and was terminated. ARC is now an
+explicit Xcode setting and a compile-time requirement. Completed command-buffer
+autoreleases are also bounded independently of the caller's outer test loop.
+
+The merged Mac build passes **38/38 CTest checks**, the portable no-driver build
+passes **3/3**, and all 27 shared scenes pass with Metal API/shader validation.
+A six-frame native-window check produces six CSV samples and an upright image.
+These are bounded Gallery integration checks, not the outstanding numerical,
+thermal/performance, or complete-interaction qualification gates. Local reports
+are saved under ignored `out/gallery-deployment/`; final deployment records the
+exact installed revision separately from this pre-commit test build.

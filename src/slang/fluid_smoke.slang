@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared fluid-smoke coupling kernels.
 
@@ -15,8 +16,9 @@ void fluid_smoke_drag(
     uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
     uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
     uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> smoke_keys,
-    uniform PMBuffer<uint> smoke_indices, uniform float dt)
+    uniform PMBuffer<uint> smoke_indices, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= *water_count) return;
     SmokeFlowSample local = smoke_sample_flow(positions[index],
@@ -36,8 +38,9 @@ void fluid_smoke_drag(
 void fluid_smoke_grid_drag(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
-    uniform SmokeOptions smoke, uniform SmokeGridField grid, uniform float dt)
+    uniform SmokeOptions smoke, uniform SmokeGridField grid, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= *water_count ||
         !smoke_grid_contains(positions[index], grid)) return;
@@ -64,8 +67,9 @@ void fluid_smoke_exchange(
     uniform PMBuffer<float> smoke_thermal_lift, uniform PMBuffer<float> smoke_densities,
     uniform PMBuffer<float> smoke_pressures, uniform PMBuffer<Vec3> smoke_vorticities,
     uniform uint first_smoke_slot, uniform PMBuffer<uint> converted,
-    uniform PMBuffer<PMResourceUint8> keep, uniform float dt, uniform Vec3 gravity)
+    uniform PMByteBuffer keep, uniform float dt, uniform Vec3 gravity PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= *water_count) return;
     Vec3 position = positions[index];
@@ -101,8 +105,9 @@ void fluid_smoke_exchange(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void fluid_clear_inactive_keep(
-    uniform PMBuffer<PMResourceUint8> keep, uniform PMBuffer<uint> count, uniform uint capacity)
+    uniform PMByteBuffer keep, uniform PMBuffer<uint> count, uniform uint capacity PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= capacity) return;
     if (index >= *count) keep[index] = 0u;

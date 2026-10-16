@@ -6,7 +6,7 @@ add_library(parallel-mater-driver-slang-metal SHARED
     src/api/commands.cpp src/api/synchronization.cpp src/api/queries.cpp src/api/interop.cpp
     src/driver/slang/entry.cpp src/driver/metal/schedule_context.cpp
     src/device/metal_device.mm src/device/submission.cpp
-    src/simulation/metal_runtime.cpp src/simulation/metal_geometry_dispatch.cpp
+    src/simulation/runtime.cpp src/simulation/metal_geometry_dispatch.cpp
     src/simulation/metal_geometry_constraints_dispatch.cpp src/simulation/metal_primitives.cpp
     src/simulation/metal_fluid_dispatch.cpp src/simulation/metal_geometry_fluid_dispatch.cpp
     src/simulation/metal_cloth_dispatch.cpp src/simulation/metal_soft_body_dispatch.cpp
@@ -29,6 +29,7 @@ target_compile_options(parallel-mater-driver-slang-metal PRIVATE
 target_link_libraries(parallel-mater-driver-slang-metal PRIVATE
     parallel-mater-device-metal parallel-mater-host-preparation Threads::Threads "-framework Metal")
 set_target_properties(parallel-mater-driver-slang-metal PROPERTIES
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
     OUTPUT_NAME parallel_mater_driver_slang_metal CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES OBJCXX_STANDARD 20)
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json" CONTENT

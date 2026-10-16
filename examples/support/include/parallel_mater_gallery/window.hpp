@@ -6,13 +6,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <parallel_mater_gallery/gpu_frame.hpp>
 
 struct GLFWwindow;
 
 namespace parallel_mater::gallery {
 
 // Owns the native window and the API-specific presentation surface. Physics
-// and scene code only hand it a CPU RGBA image produced by the renderer adapter.
+// and scene code hand it an adapter-owned GPU image or a CPU image, plus UI.
 class GalleryWindow {
   public:
     GalleryWindow() noexcept;
@@ -28,7 +29,7 @@ class GalleryWindow {
         std::string_view title, GalleryWindow &output, std::string &error);
 
     [[nodiscard]] bool present(const std::vector<std::uint32_t> &rgba,
-                               std::string &error);
+                               std::string &error, NativeRenderImage image = {});
     void set_vsync(bool enabled) noexcept;
     [[nodiscard]] GLFWwindow *native_handle() const noexcept;
 #if defined(__APPLE__)

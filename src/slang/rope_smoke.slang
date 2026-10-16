@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared rope/smoke coupling kernels.
 
@@ -19,8 +20,9 @@ void smoke_rope_wind(
     uniform PMBuffer<Vec3> smoke_positions, uniform PMBuffer<Vec3> smoke_velocities,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
     uniform SmokeGridField grid, uniform float drag,
-    uniform float maximum_acceleration, uniform float dt)
+    uniform float maximum_acceleration, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= rope_count ||
         (node == 0u && (first_attached || soft_first)) ||
@@ -39,8 +41,9 @@ void smoke_rope_contact(
     uniform float lifetime, uniform PMBuffer<Vec3> rope_positions,
     uniform PMBuffer<Vec3> rope_velocities, uniform uint rope_count,
     uniform PMBuffer<Vec3> minimum,
-    uniform PMBuffer<Vec3> maximum, uniform float clearance)
+    uniform PMBuffer<Vec3> maximum, uniform float clearance PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count || ages[particle] >= lifetime) return;
     Vec3 point = positions[particle];

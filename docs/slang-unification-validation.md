@@ -6,7 +6,8 @@ This page records the current validation contract for the unified runtime.
 
 - `parallel-mater` exposes the C command API in `parallel_mater.h`.
 - The production runtime dispatches physics generated from `src/slang`.
-- `runtime.cu` contains no GPU kernels or direct physics launches.
+- `src/simulation/runtime.cpp` is ordinary C++ using common device services;
+  it contains no CUDA runtime dependencies, GPU kernels or direct launches.
 - Device and simulation dispatch adapters contain platform services and
   generated-kernel launches only.
 - DirectCompute and Metal backend-specific implementations and galleries have
@@ -34,13 +35,15 @@ kernels or direct launches in the runtime.
 - Command API, API contract, gallery catalog/input, Slang architecture, and
   Slang reflection tests pass on the CUDA host.
 - All 105 AVBD fixtures and the CPU/CUDA/Slang AVBD-core tests pass.
-- The loader-visible D3D12 adapter executes the shared rigid-body,
-  rigid-constraint, contact, debug, and query schedules compiled to DXIL. Its
-  command and installed-gallery tests verify that dynamic bodies advance, and
-  it advertises only those tested rigid capabilities.
-- The common gallery builds with OptiX disabled, uses the software renderer and
-  thin D3D12 presentation window, and passes the real-window F/Tab/scene-switch
-  harness while physics is supplied by the selected full-feature driver.
+- The loader-visible D3D12 preview executes shared rigid, constraint, liquid,
+  cloth and rigid/liquid/cloth interaction schedules compiled to DXIL. The
+  installed gallery's native D3D12 renderer consumes public GPU output, including
+  liquid surface/particle drawing and cloth surfaces. It does not upload a CPU
+  scene image. Explicit captures and diagnostics still read selected outputs.
+- The 2026-10-16 installed-gallery test passed all 13 supported D3D12 scenes,
+  switching, resets, F/Tab controls and fluid/cloth display modes, observing at
+  least five seconds per scene/load. The installed executable's SHA-256 matched
+  the tested build. These are execution/input gates, not physical parity.
 - All 42 CUDA gallery headless, action, render, debug, containment, and coupled
   scene tests pass through the shared gallery application path. This includes
   Point release/restore, Hinge, Piston, Motor + Spring, dump tip/drive, rope,
@@ -58,12 +61,30 @@ source-deletion gates. Canonical conformance inputs, historical goldens, and
 the comparator remain; a replacement runner must execute through the public
 command API.
 
+## Current cross-driver qualification (2026-10-16)
+
+The same-build public-command runner completed all 17 selected cases on both
+GTX 1080 backends. Using unchanged canonical tolerances, CUDA/D3D12 comparison
+passes 7 cases: cloth-core, cloth-water, compound-weld-lifecycle,
+constraint-breaking, constraint-piston, constraint-slider and fluid-lifecycle.
+The other 10 fail rigid state/contact or cloth-tear topology comparisons.
+The Windows CUDA managed-memory ordering fault in cloth-tear is fixed; the
+case completes but does not pass cross-driver topology comparison.
+
+An independent closed-mesh brick-separation check also fails on both drivers:
+with eight bricks and four substeps, the 2 mm gate observes 7.21844 mm on D3D12
+at frame 102 and 7.02056 mm on CUDA at frame 101 (zero-based). Earlier finite
+state and interactive acceptance do not establish nonpenetration. Neither this
+gate nor canonical tolerances/goldens have been relaxed. Full backend parity
+and the shared brick solver's physical quality remain unqualified; see the
+[Windows roadmap evidence](ROADMAP.md#windows-shared-runtime-cleanup-2026-10-16).
+
 ## Target status
 
 | Target | Status |
 |---|---|
 | CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
-| DirectX 12 | Shared Slang rigid-body and constraint schedules; other domains unavailable |
+| DirectX 12 | Shared rigid/constraint/liquid/cloth preview and native GPU drawing; 13-scene window gate passes, strict physical parity remains unqualified |
 | Vulkan | Shared rigid/constraint/liquid preview; focused GPU and shader validation, not full backend qualification. See [Vulkan](VULKAN.md) |
 | WebGPU | AVBD numerical core compiles to WGSL; full schedule and driver unavailable |

@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared cloth/rigid geometry contacts and paint transfer.
 
@@ -74,7 +75,7 @@ void stamp_rigid_cloth_paint(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_constrain_bodies(
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform PMBuffer<uint> vertex_sources,
@@ -88,8 +89,9 @@ void cloth_constrain_bodies(
     uniform uint cloth_generation,
     uniform PMBuffer<PaintFieldResource> paint_fields, uniform uint field_capacity,
     uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity,
-    uniform PMBuffer<ClothBodyCorrection> corrections)
+    uniform PMBuffer<ClothBodyCorrection> corrections PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     ClothId cloth_id = {cloth_index, cloth_generation};
     uint bodyIndex = pmThreadIndex();
     if (bodyIndex >= body_count) return;
@@ -259,12 +261,13 @@ void cloth_constrain_bodies(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_apply_body_corrections(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform uint count,
-    uniform PMBuffer<ClothBodyCorrection> corrections, uniform uint body_count)
+    uniform PMBuffer<ClothBodyCorrection> corrections, uniform uint body_count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= count || inverse_masses[vertex] == 0.0f) return;
     Vec3 offset = {};

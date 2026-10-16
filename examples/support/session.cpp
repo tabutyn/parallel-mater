@@ -226,6 +226,7 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
             require(scene_->simulation.step(1.0F / limits.target_fps,
                 (240U + limits.target_fps - 1) / limits.target_fps, gravity,
                 scene_->output, error, scene_->collector.active(),
+                !config_.gpu_rendering || diagnostics_ || scene_->collector.active(),
                 !config_.gpu_rendering || diagnostics_ || scene_->collector.active()), error);
             if (scene_->collector.active())
                 require(scene_->collector.collect(scene_->simulation, scene_->definition,
@@ -238,10 +239,8 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
         timing.begin_phase(FramePhase::render);
 #ifdef PM_GALLERY_METAL_RENDERER
         if (scene_->gpu_renderer) {
-            CommandSceneGpuFrame gpu;
-            require(scene_->simulation.gpu_frame(gpu, error), error);
             pixels.clear();
-            scene_->gpu_renderer->render(gpu, scene_->camera.camera(), width, height,
+            scene_->gpu_renderer->render(scene_->instance.render_buffers, scene_->camera.camera(), width, height,
                 diagnostics_ ? nullptr : presentation_layer_, diagnostics_ ? &pixels : nullptr, &timing);
         } else
 #endif

@@ -9,6 +9,7 @@ bool CommandScene::create(const SceneDefinition &scene,
     output = {};
     instance = {};
     auto next = std::make_unique<Impl>();
+    next->selected_backend = backend;
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -878,6 +879,7 @@ bool CommandScene::create(const SceneDefinition &scene,
         output_size += bytes;
     };
     append_region(next->rigid_count * sizeof(PmRigidState), next->rigid_output);
+    append_region(next->rigid_count * sizeof(PmRigidState), next->previous_rigid_output);
     if (requires_fluid)
         append_region(sizeof(PmDomainOutputHeader) +
             static_cast<PmDeviceSize>(next->fluid_capacities[0].particleCapacity) *
@@ -941,6 +943,10 @@ bool CommandScene::create(const SceneDefinition &scene,
             static_cast<PmDeviceSize>(next->debug_capacity) *
                 sizeof(PmDebugRecord), next->debug_output);
     if (!next->create_buffer(output_size, next->output, error)) return false;
+    // Output remains GPU-owned between submissions. CPU consumers map only
+    // the requested live records; the native renderer borrows this buffer.
+    pmUnmapMemory(next->device, next->output.memory);
+    next->output.mapped = nullptr;
 
     instance.rigid_bodies.resize(scene.rigid_bodies.size());
     std::iota(instance.rigid_bodies.begin(), instance.rigid_bodies.end(), 0U);
@@ -955,6 +961,24 @@ bool CommandScene::create(const SceneDefinition &scene,
     std::iota(instance.soft_bodies.begin(), instance.soft_bodies.end(), 0U);
     instance.fluid = requires_fluid ? 0U : PM_INVALID_INDEX;
     instance.smoke = scene.has_smoke ? 0U : PM_INVALID_INDEX;
+    instance.render_buffers.device = next->device;
+    instance.render_buffers.queue = next->queue;
+    instance.render_buffers.output = next->output.handle;
+    const auto region = [](auto value) { return GpuSceneBuffers::Region{value.offset, value.size}; };
+    instance.render_buffers.rigid = region(next->rigid_output);
+    instance.render_buffers.previous_rigid = region(next->previous_rigid_output);
+    instance.render_buffers.fluid = region(next->fluid_output);
+    instance.render_buffers.smoke = region(next->smoke_output);
+    instance.render_buffers.fluid_capacity = requires_fluid
+        ? next->fluid_capacities[0].particleCapacity : 0U;
+    for (const auto value : next->cloth_surface_outputs)
+        instance.render_buffers.cloth_surfaces.push_back(region(value));
+    for (const auto value : next->soft_body_surface_outputs)
+        instance.render_buffers.soft_surfaces.push_back(region(value));
+    for (const auto value : next->rope_outputs)
+        instance.render_buffers.ropes.push_back(region(value));
+    for (const auto value : next->paint_outputs)
+        instance.render_buffers.paint.push_back(region(value));
     for (std::uint32_t index = 0U; index < paints.size(); ++index)
         instance.paint_bindings.push_back(
             {paints[index].body, paints[index].mesh, index});

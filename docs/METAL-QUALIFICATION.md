@@ -286,9 +286,14 @@ explicitly deferred. Use `CMakePresets.json` for backend-specific builds and
 The iPad app now packages the approved logo; Android and iPad consume one shared
 session and timer, including the same bounded qualification routine.
 
-`CommandScene::gpu_frame` exports only public output-buffer regions after the
-physics fence. The shared graphics adapter retains the native buffer while its
+`CommandSceneInstance::render_buffers` uses the same `GpuSceneBuffers` contract
+as D3D12. It describes public output-buffer regions, consumed after the physics
+fence. The shared graphics adapter retains the native buffer while its
 command reads it and finishes before the next simulation step can overwrite it.
+The Apple adapter now compiles the common backend-neutral `runtime.cpp`; the
+old include-runtime wrapper is removed. Adapter-local CUDA-shaped compatibility
+helpers remain a separate cleanup, not a CUDA execution dependency.
+
 Cloth (including torn per-corner surfaces), soft surfaces, rigid transforms,
 liquid/smoke/rope particles and paint are read by graphics shaders. UIKit and
 the Mac window supply a Metal layer; neither implements physics. Mac overlays
@@ -299,6 +304,15 @@ or complete external-engine interoperability. Native buffer/device/semaphore
 imports, general queue-sharing and timestamp queries remain unadvertised.
 Those public API capabilities and the deferred engine slice require their own
 lifetime/error qualification. The full all-domain checklist remains open.
+
+Integration verification: the combined `e89cf1a` / `2625740` development tree
+passed 38/38 Mac CTest checks and the short all-scene Metal API/shader-validation
+run. The connected M1 iPad passed all 27 scenes × 120 native-rendered frames plus
+shared control checks after fixing an Xcode ARC omission. See the
+[iPad evidence](../examples/ios/README.md#verification) and local deployment
+reports for the distinction between sustained scene checks and full physics
+qualification. Android's updated bridge still needs the new mobile CI/device
+run; older Android results do not qualify this shared-session change.
 
 ## Reproduce
 

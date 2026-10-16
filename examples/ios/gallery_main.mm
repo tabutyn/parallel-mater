@@ -4,6 +4,8 @@
 #import <Metal/Metal.h>
 #include <parallel_mater_gallery/session.hpp>
 #include <sys/utsname.h>
+#include <unistd.h>
+#include <mach/mach.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -12,6 +14,12 @@
 using parallel_mater::gallery::GallerySession;
 namespace {
 NSString *text(const std::string &value) { return [NSString stringWithUTF8String:value.c_str()]; }
+std::uint64_t memory_footprint() {
+    task_vm_info_data_t info{};
+    mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+    return task_info(mach_task_self(), TASK_VM_INFO, reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS
+        ? info.phys_footprint : 0;
+}
 NSString *argument(NSString *name) {
     NSArray<NSString *> *args = NSProcessInfo.processInfo.arguments;
     NSUInteger index = [args indexOfObject:name];
@@ -289,6 +297,7 @@ UIImage *frame_image(const GallerySession &session) {
     try {
         write_report(@"runtime-info.json", @{
             @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
+            @"pid":@(getpid()),
             @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
             @"backgrounds":@(_backgrounds), @"foregrounds":@(_foregrounds),
             @"active":@(_session->active()), @"frames":@(_session->frames), @"background_frames":@(_backgroundFrames),
@@ -313,11 +322,13 @@ UIImage *frame_image(const GallerySession &session) {
     for (unsigned i = 0; i < names.size(); ++i) {
         @autoreleasepool {
             try {
+                NSLog(@"ParallelMater smoke START: %@, footprint=%llu MiB", text(names[i]), memory_footprint() / (1024ULL*1024));
                 _session->select(i);
                 const auto statistics = _session->qualify(steps);
                 [results addObject:@{@"scene":text(names[i]), @"steps":@(steps),
                     @"mean_ms":@(statistics.mean_ms), @"p95_ms":@(statistics.p95_ms),
                     @"timing_window_frames":@(statistics.count), @"session_controls":@YES,
+                    @"memory_footprint_bytes":@(memory_footprint()),
                     @"passed":@YES, @"details":text(_session->details())}];
                 NSLog(@"ParallelMater smoke PASS: %@", text(names[i]));
                 [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:

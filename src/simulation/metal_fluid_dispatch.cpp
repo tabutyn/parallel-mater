@@ -26,13 +26,13 @@ FluidOptions options(const FluidDispatchConstants &value) {
 }
 }
 
-void fluid_cell_keys(dim3 grid, dim3, cudaStream_t stream,
+void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, std::uint32_t *count, std::uint32_t capacity,
     float inverse_radius, std::uint64_t *keys, std::uint32_t *indices) noexcept {
     (void)metal::launch(stream, "fluid_emit_cells", grid,
         positions, count, capacity, inverse_radius, keys, indices);
 }
-void fluid_forces(dim3 grid, dim3, cudaStream_t stream,
+void fluid_forces(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
     const float up[3], float *foam_sources, std::uint64_t *keys,
@@ -42,7 +42,7 @@ void fluid_forces(dim3 grid, dim3, cudaStream_t stream,
         positions, velocities, count, keys, indices, foam, options(values),
         vector(up), accelerations, foam_sources, overflow, maximum_neighbors);
 }
-void integrate_fluid(dim3 grid, dim3, cudaStream_t stream,
+void integrate_fluid(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
     void *previous, float *foam_sources) noexcept {
@@ -50,14 +50,14 @@ void integrate_fluid(dim3 grid, dim3, cudaStream_t stream,
         positions, velocities, previous, foam, accelerations, foam_sources,
         count, options(values), vector(values.gravity), values.timestep);
 }
-void reserve_fluid_contact_events(cudaStream_t stream,
+void reserve_fluid_contact_events(device::ExecutionQueue stream,
     std::uint32_t *selected_count, std::uint32_t *offset,
     std::uint32_t *world_count, std::uint32_t *overflow,
     std::uint32_t capacity) noexcept {
     (void)metal::launch(stream, "fluid_reserve_contact_events", 1U,
         selected_count, offset, world_count, overflow, capacity);
 }
-void gather_fluid_contact_events(dim3 grid, dim3, cudaStream_t stream,
+void gather_fluid_contact_events(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     std::uint32_t *selected, std::uint32_t *selected_count,
     std::uint32_t *offset, void *samples, std::uint32_t *stable_ids,
     void *body_ids, const void *fluid_id, void *events,
@@ -68,7 +68,7 @@ void gather_fluid_contact_events(dim3 grid, dim3, cudaStream_t stream,
         selected, selected_count, offset, samples, stable_ids, body_ids, id,
         events, capacity);
 }
-void find_fluid_source_vacancies(dim3 grid, dim3, cudaStream_t stream,
+void find_fluid_source_vacancies(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     const void *points, std::uint32_t amount, float spacing,
     const void *positions, const std::uint64_t *keys,
     const std::uint32_t *indices, std::uint32_t capacity,
@@ -77,7 +77,7 @@ void find_fluid_source_vacancies(dim3 grid, dim3, cudaStream_t stream,
         points, amount, spacing, positions, keys, indices, capacity,
         inverse_cell_size, vacant);
 }
-void emit_fluid_source(cudaStream_t stream, const void *points,
+void emit_fluid_source(device::ExecutionQueue stream, const void *points,
     const std::uint8_t *vacant, std::uint32_t amount, float spacing,
     const float velocity[3], void *positions, void *velocities,
     std::uint32_t *ids, float *foam, float *temperatures,
@@ -89,7 +89,7 @@ void emit_fluid_source(cudaStream_t stream, const void *points,
         velocities, ids, foam, temperatures, initial_temperature, count,
         capacity, first_spawned, first_id, misses);
 }
-void mark_fluid_destroy_flags(dim3 grid, dim3, cudaStream_t stream,
+void mark_fluid_destroy_flags(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     const void *positions, const void *previous, const std::uint32_t *count,
     std::uint32_t capacity, const void *plane_options, bool combine,
     std::uint8_t *keep) noexcept {
@@ -98,7 +98,7 @@ void mark_fluid_destroy_flags(dim3 grid, dim3, cudaStream_t stream,
     (void)metal::launch(stream, "fluid_destroy_flags", grid,
         positions, previous, count, capacity, plane, combine, keep);
 }
-void gather_fluid(dim3 grid, dim3, cudaStream_t stream,
+void gather_fluid(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     const void *positions, const void *velocities, const std::uint32_t *ids,
     const float *foam, const float *temperatures, const void *contact_samples,
     const std::uint8_t *contact_flags, bool copy_contacts,
@@ -112,7 +112,7 @@ void gather_fluid(dim3 grid, dim3, cudaStream_t stream,
         next_velocities, next_ids, next_foam, next_temperatures,
         next_contact_samples, next_contact_flags);
 }
-void copy_initial_fluid(dim3 grid, dim3, cudaStream_t stream,
+void copy_initial_fluid(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     const void *input, std::uint32_t count, void *positions, void *velocities,
     std::uint32_t *ids, float *foam, float *temperatures,
     std::uint32_t *invalid) noexcept {

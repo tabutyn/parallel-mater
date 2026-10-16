@@ -40,7 +40,7 @@ SmokeGridField_0 converted(const SmokeGridDispatchField &value) noexcept {
 } // namespace
 
 void apply_smoke_wind_to_rope(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *rope_positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count,
     float rope_maximum_speed, bool first_attached, bool last_attached,
     bool soft_first, bool soft_last, const SmokeDispatchOptions &smoke,
@@ -48,7 +48,7 @@ void apply_smoke_wind_to_rope(
     const std::uint64_t *keys, const std::uint32_t *indices,
     const SmokeGridDispatchField &smoke_grid, float drag,
     float maximum_acceleration, float timestep) noexcept {
-    smoke_rope_wind<<<grid, block, 0U, stream>>>(
+    smoke_rope_wind<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(rope_positions)),
         as<Vec3_0>(rope_velocities), rope_count, rope_maximum_speed,
         first_attached, last_attached, soft_first, soft_last, converted(smoke),
@@ -61,13 +61,13 @@ void apply_smoke_wind_to_rope(
 }
 
 void collide_smoke_with_rope(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     std::uint32_t count, const SmokeDispatchOptions &smoke,
     const void *rope_positions, const void *rope_velocities,
     std::uint32_t rope_count, const void *minimum, const void *maximum,
     float clearance) noexcept {
-    smoke_rope_contact<<<grid, block, 0U, stream>>>(
+    smoke_rope_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
         as<Vec3_0>(velocities), const_cast<float *>(ages), count,

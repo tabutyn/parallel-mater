@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
+#if !__has_feature(objc_arc)
+#error "Metal device services require ARC"
+#endif
 #include "device.hpp"
 #include "driver/metal/schedule_context.hpp"
 #import <Metal/Metal.h>
@@ -66,6 +69,13 @@ public:
         return copy(dst, source.get(), bytes, CopyDirection::host_to_device);
     }
     PmResult wait_idle() noexcept override { return from_driver_error(context_.checked([&] { context_.wait(); }, false)); }
+    PmResult clear(void *destination, int value, PmDeviceSize bytes) noexcept override {
+        if (bytes > SIZE_MAX) return PM_ERROR_INVALID_ARGUMENT;
+        return from_driver_error(context_.checked([&] { context_.clear(destination, value, bytes); }, false));
+    }
+    PmResult last_error(bool take) noexcept override {
+        return from_driver_error(context_.error(take));
+    }
     PmResult memory_budget(PmDeviceSize &available, PmDeviceSize &total) noexcept override {
         id<MTLDevice> gpu = (__bridge id<MTLDevice>)native_device_handle();
         total = gpu.recommendedMaxWorkingSetSize;

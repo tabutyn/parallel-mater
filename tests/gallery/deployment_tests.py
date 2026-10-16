@@ -14,6 +14,18 @@ spec.loader.exec_module(deploy)
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_dead_process_stops_wait_and_preserves_partial_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            (directory / "processes.json").write_text(json.dumps({"result": {"runningProcesses": []}}))
+            partial = {"nonce": "new", "completed": False, "scenes": [{"passed": True}]}
+            with patch.object(deploy, "copy_report", return_value=partial), patch.object(deploy, "run"):
+                with self.assertRaisesRegex(RuntimeError, "Gallery exited"):
+                    deploy.wait_report("device", "report", "new", directory, lambda r: r["completed"], 60,
+                        health=lambda: deploy.assert_process_running("device", 123, directory),
+                        save=directory / "partial.json")
+            self.assertEqual(json.loads((directory / "partial.json").read_text()), partial)
+
     def test_old_reports_and_nonce_are_rejected(self):
         reports = [[{"passed": True}], {"nonce": "old", "completed": True},
                    {"nonce": "new", "completed": False}, {"nonce": "new", "completed": True}]

@@ -148,6 +148,15 @@ class VulkanServices final : public Services {
         return from_driver_error(context_.synchronize());
     }
 
+    [[nodiscard]] PmResult clear(void *destination, int value,
+                                 PmDeviceSize size) noexcept override {
+        return from_driver_error(context_.clear(destination, value,
+            static_cast<std::size_t>(size)));
+    }
+    [[nodiscard]] PmResult last_error(bool take) noexcept override {
+        return from_driver_error(context_.error(take));
+    }
+
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept override {
         return context_.memory_budget(available, total);

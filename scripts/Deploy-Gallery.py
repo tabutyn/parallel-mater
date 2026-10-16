@@ -43,13 +43,24 @@ def copy_report(device, name, directory):
     return json.loads(path.read_text())
 
 
-def wait_report(device, name, nonce, directory, predicate, timeout):
+def assert_process_running(device, pid, directory):
+    path = directory / "processes.json"
+    run("xcrun", "devicectl", "device", "info", "processes", "--device", device,
+        "--json-output", path, "--timeout", "15", stdout=subprocess.DEVNULL)
+    processes = json.loads(path.read_text())["result"]["runningProcesses"]
+    if not any(p["processIdentifier"] == pid for p in processes):
+        raise RuntimeError("Gallery exited before device qualification completed; inspect the saved partial report and device logs")
+
+
+def wait_report(device, name, nonce, directory, predicate, timeout, health=None, save=None):
     end = time.monotonic() + timeout
     last_progress = -1
     while time.monotonic() < end:
         try:
             report = copy_report(device, name, directory)
             if isinstance(report, dict) and report.get("nonce") == nonce:
+                if save:
+                    save.write_text(json.dumps(report, indent=2) + "\n")
                 if "scenes" in report and len(report["scenes"]) != last_progress:
                     last_progress = len(report["scenes"])
                     print(f"Device qualification: {last_progress}/27 scenes completed", flush=True)
@@ -57,6 +68,8 @@ def wait_report(device, name, nonce, directory, predicate, timeout):
                     return report
         except (subprocess.CalledProcessError, OSError, ValueError):
             pass  # Reports may not exist yet; stale runs never satisfy the nonce.
+        if health:
+            health()
         time.sleep(2)
     raise RuntimeError(f"Timed out verifying fresh {name}; unlock iPad and inspect device logs")
 
@@ -109,7 +122,9 @@ def main():
                 raise RuntimeError("Installed runtime does not match built revision/backend")
             if args.qualify:
                 report = wait_report(args.device, "smoke-report.json", nonce, directory,
-                                     lambda r: r.get("completed"), args.timeout)
+                                     lambda r: r.get("completed"), args.timeout,
+                                     health=lambda: assert_process_running(args.device, runtime["pid"], directory),
+                                     save=args.output / "ipad-qualification.json")
                 (args.output / "ipad-qualification.json").write_text(json.dumps(report, indent=2) + "\n")
                 if len(report["scenes"]) != 27 or not all(s["passed"] for s in report["scenes"]):
                     raise RuntimeError("iPad scene qualification failed; see saved report")

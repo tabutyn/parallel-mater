@@ -7,7 +7,7 @@
 namespace parallel_mater::simulation {
 
 void collide_fluid_with_static_body(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const void *previous, float *foam,
     const std::uint32_t *count, float radius, float spawn_clearance,
     std::uint32_t first_spawned, bool recover_spawn, const void *up,
@@ -20,7 +20,7 @@ void collide_fluid_with_static_body(
     std::uint32_t paint_field_capacity, const void *paint_rules,
     std::uint32_t paint_rule_capacity) noexcept {
     if (auto *execution = metal::context(stream)) {
-        if (execution->checked([&] { execution->paint_fields(paint_fields, paint_field_capacity, meshes); }) != cudaSuccess) return;
+        if (execution->checked_result([&] { execution->paint_fields(paint_fields, paint_field_capacity, meshes); }) != PM_SUCCESS) return;
     }
     const auto fluid_id = FluidId{fluid_index, fluid_generation};
     (void)metal::launch(stream, "fluid_static_contacts", grid,
@@ -39,12 +39,12 @@ void collide_fluid_with_static_body(
 }
 
 void calculate_fluid_body_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     const void *previous_states, const void *current_states,
     const void *meshes, std::uint32_t body_count, void *bounds) noexcept {
     if (auto *execution = metal::context(stream)) {
-        const auto result = execution->checked([&] { execution->meshes(meshes, body_parameters, body_count); });
-        if (result != cudaSuccess) return;
+        const auto result = execution->checked_result([&] { execution->meshes(meshes, body_parameters, body_count); });
+        if (result != PM_SUCCESS) return;
     }
     (void)metal::launch(stream, "fluid_body_bounds_kernel", grid,
         body_parameters,
@@ -55,7 +55,7 @@ void calculate_fluid_body_bounds(
 }
 
 void index_fluid_body_cells(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     const void *bounds, std::uint32_t body_count, std::uint32_t words,
     float padding, void *masks, void *global_masks) noexcept {
     (void)metal::launch(stream, "fluid_index_body_cells", grid,
@@ -66,7 +66,7 @@ void index_fluid_body_cells(
 }
 
 void detect_fluid_moving_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const std::uint32_t *count, float radius,
     const void *body_parameters, const void *previous_states,
     const void *current_states, const void *meshes, const void *bounds,
@@ -89,7 +89,7 @@ void detect_fluid_moving_contacts(
 }
 
 void resolve_fluid_moving_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, float *foam, const std::uint32_t *count, float radius,
     float particle_mass, float timestep, float maximum_speed,
     const void *body_parameters, const void *body_states, const void *meshes,
@@ -100,7 +100,7 @@ void resolve_fluid_moving_contacts(
     const void *paint_fields, std::uint32_t paint_field_capacity,
     const void *paint_rules, std::uint32_t paint_rule_capacity) noexcept {
     if (auto *execution = metal::context(stream)) {
-        if (execution->checked([&] { execution->paint_fields(paint_fields, paint_field_capacity, meshes); }) != cudaSuccess) return;
+        if (execution->checked_result([&] { execution->paint_fields(paint_fields, paint_field_capacity, meshes); }) != PM_SUCCESS) return;
     }
     const auto fluid_id = FluidId{fluid_index, fluid_generation};
     (void)metal::launch(stream, "fluid_resolve_moving_contacts", grid,
@@ -119,7 +119,7 @@ void resolve_fluid_moving_contacts(
 }
 
 void reduce_fluid_body_impulses(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *impulses,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *impulses,
     const std::uint32_t *particle_count, const void *body_parameters,
     void *body_states, const std::uint32_t *contact_flags,
     std::uint32_t body_count, const void *position_corrections) noexcept {

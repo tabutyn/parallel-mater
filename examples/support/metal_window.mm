@@ -52,7 +52,8 @@ bool GalleryWindow::create(unsigned window_width, unsigned window_height, unsign
     if (!next->pipeline) { error = native_error.localizedDescription.UTF8String; return false; }
     output.impl_ = std::move(next); error.clear(); return true;
 }
-bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba, std::string &error) {
+bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba, std::string &error, NativeRenderImage native) {
+    if (native.handle) { error = "Unexpected native image for Metal CPU presenter"; return false; }
     @autoreleasepool {
         if (!impl_ || rgba.size() != std::size_t(impl_->width)*impl_->height) {
             error = "Presentation image size mismatch"; return false;

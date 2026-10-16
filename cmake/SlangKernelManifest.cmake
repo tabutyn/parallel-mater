@@ -38,12 +38,6 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_reserve_contact_events fluid_gather_contact_events
     fluid_source_vacancies fluid_source_emit fluid_destroy_flags
     fluid_gather fluid_copy_initial)
-set(PARALLEL_MATER_SLANG_fluid_CUDA_ENTRIES
-    pm_fluid_cell_keys pm_fluid_forces pm_fluid_integrate
-    fluid_reserve_contact_events fluid_gather_contact_events
-    fluid_source_vacancies fluid_source_emit fluid_destroy_flags
-    fluid_gather fluid_copy_initial)
-set(PARALLEL_MATER_SLANG_fluid_CUDA_DEFINITIONS PM_TARGET_CUDA=1)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)

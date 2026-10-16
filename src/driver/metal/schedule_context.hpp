@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include "device/compute.hpp"
+#include "device/device.hpp"
 #include <cuda_runtime_api.h>
 #include <algorithm>
 #include <cstdio>
@@ -63,6 +64,9 @@ public:
         }
     }
     cudaError_t error(bool take) noexcept;
+    template<class F> PmResult checked_result(F &&call) noexcept {
+        return device::from_driver_error(checked(std::forward<F>(call)));
+    }
 
     template<class... T> cudaError_t launch(const char *entry, dim3 grid, const T &...values) noexcept {
         return checked([&] {
@@ -105,5 +109,14 @@ template<class... T>
 cudaError_t launch(cudaStream_t stream, const char *entry, dim3 grid, const T &...values) noexcept {
     auto *execution = context(stream);
     return execution ? execution->launch(entry, grid, values...) : cudaErrorInvalidResourceHandle;
+}
+inline ScheduleContext *context(device::ExecutionQueue queue) noexcept {
+    return context(queue.native_handle);
+}
+template<class... T>
+PmResult launch(device::ExecutionQueue queue, const char *entry, device::DispatchSize grid, const T &...values) noexcept {
+    auto *execution = context(queue);
+    return execution ? device::from_driver_error(execution->launch(entry, dim3{grid.x, grid.y, grid.z}, values...))
+                     : PM_ERROR_INVALID_ARGUMENT;
 }
 } // namespace parallel_mater::metal

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-// Included by runtime.cu; kept in one CUDA translation unit.
+// Included by runtime.cpp; shared backend-neutral runtime implementation.
 
 Status SimulationRuntime::add_fluid(FluidOptions options,
                         DeviceSpan<const FluidParticle> initial_particles,
                         FluidId &output, device::ExecutionQueue queue) noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
@@ -73,7 +73,7 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
         simulation::radix_sort_scratch_bytes(options.capacity);
     fluid->select_workspace_size =
         simulation::compaction_scratch_bytes(options.capacity);
-    cudaError_t error = cudaSuccess;
+    PmResult error = PM_SUCCESS;
     if (!(status = allocate_scratch(fluid->sort_workspace,
                                     fluid->sort_workspace_size)) ||
         !(status = allocate_scratch(fluid->select_workspace,
@@ -89,10 +89,12 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
             fluid->positions, fluid->velocities, fluid->ids, fluid->foam,
             fluid->temperatures,
             impl_->fluid_neighbor_overflow);
-        error = cudaGetLastError();
-        if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-        if (error != cudaSuccess)
-            return cuda_failure(error, "initial fluid copy failed");
+        error = impl_->execution.services->last_error(true);
+        if (error == PM_SUCCESS) error = wait_queue(stream);
+        if (error != PM_SUCCESS)
+            return backend_failure(error, "initial fluid copy failed");
+        status = read_host_objects(impl_->execution, impl_->fluid_neighbor_overflow);
+        if (!status) return status;
         if (*impl_->fluid_neighbor_overflow != 0U)
             return failure(StatusCode::invalid_argument,
                            "initial fluid particles must be finite");
@@ -127,18 +129,19 @@ Status SimulationRuntime::add_fluid_geometry(FluidOptions options,
         sampled.swap(selected);
     }
     FluidParticle *device = nullptr;
-    cudaError_t error = cudaMalloc(reinterpret_cast<void **>(&device),
-                                    sampled.size() * sizeof(FluidParticle));
-    if (error != cudaSuccess)
-        return cuda_failure(error, "fluid geometry upload allocation failed");
-    error = cudaMemcpy(device, sampled.data(),
+    PmResult error = queue.services->allocate(
+        sampled.size() * sizeof(FluidParticle), false,
+        reinterpret_cast<void **>(&device));
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "fluid geometry upload allocation failed");
+    error = copy_bytes_wait(device, sampled.data(),
                        sampled.size() * sizeof(FluidParticle),
-                       cudaMemcpyHostToDevice);
-    if (error == cudaSuccess)
+                       device::CopyDirection::host_to_device, queue);
+    if (error == PM_SUCCESS)
         status = add_fluid(options, {device, sampled.size()}, output, queue);
-    cudaFree(device);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "fluid geometry upload failed");
+    queue.services->free(device);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "fluid geometry upload failed");
     return status;
 }
 
@@ -177,6 +180,8 @@ Status SimulationRuntime::remove_fluid(
         return failure(StatusCode::out_of_memory,
                        "fluid removal tombstone allocation failed");
     const std::uint32_t generation = fluid->generation + 1U;
+    status = read_host_objects(impl_->execution, fluid->count);
+    if (!status) return status;
     impl_->destroyed_particle_count +=
         fluid->initial_count + fluid->emitted_count - *fluid->count;
     tombstone->generation = generation;
@@ -203,7 +208,7 @@ Status SimulationRuntime::fluid_view(FluidId id, FluidDeviceView &output) const 
     if (impl_->frame && !impl_->frame->acknowledged)
         return failure(StatusCode::busy, "fluid view requires a completed frame");
     std::uint32_t count{};
-    status = read_device_u32(nullptr, fluid->count, count,
+    status = read_device_u32(impl_->execution, fluid->count, count,
                              "fluid view count readback failed");
     if (!status) return status;
     output = {{fluid->positions, count}, {fluid->velocities, count},
@@ -353,44 +358,44 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         const auto blocks = (grid.cell_count + 255U) / 256U;
         const float wind[3]{options.wind.x, options.wind.y, options.wind.z};
         simulation::initialize_smoke_grid_cells(
-            blocks, 256U, nullptr, grid.velocity,
+            blocks, 256U, impl_->execution, grid.velocity,
             grid.density, grid.temperature, grid.pressure[0],
             grid.divergence, grid.vorticity, grid.strain,
             grid.subgrid_force, grid.solid, grid.cell_count, wind);
-        cudaMemset(grid.pressure[1], 0, grid.cell_count * sizeof(float));
-        cudaMemset(grid.residual, 0, grid.cell_count * sizeof(float));
-        cudaMemset(grid.rhs_max, 0, sizeof(float));
-        cudaMemset(grid.residual_max, 0, sizeof(float));
-        cudaMemset(grid.pressure_converged, 0, sizeof(unsigned int));
+        clear_bytes(grid.pressure[1], 0, grid.cell_count * sizeof(float), impl_->execution);
+        clear_bytes(grid.residual, 0, grid.cell_count * sizeof(float), impl_->execution);
+        clear_bytes(grid.rhs_max, 0, sizeof(float), impl_->execution);
+        clear_bytes(grid.residual_max, 0, sizeof(float), impl_->execution);
+        clear_bytes(grid.pressure_converged, 0, sizeof(unsigned int), impl_->execution);
         for (int axis = 0; axis < 3; ++axis) {
             const float component = axis == 0 ? options.wind.x :
                                     axis == 1 ? options.wind.y : options.wind.z;
             simulation::initialize_smoke_grid_faces(
-                (grid.face_count[axis] + 255U) / 256U, 256U, nullptr,
+                (grid.face_count[axis] + 255U) / 256U, 256U, impl_->execution,
                 grid.face_velocity[axis][0], grid.face_reverse[axis],
                 grid.face_open[axis], grid.face_wall_velocity[axis],
                 grid.face_normal[axis], grid.face_nearest_triangle[axis],
                 grid.face_count[axis], component);
-            cudaMemcpy(grid.face_velocity[axis][1],
+            copy_bytes_wait(grid.face_velocity[axis][1],
                 grid.face_velocity[axis][0],
                 grid.face_count[axis] * sizeof(float),
-                cudaMemcpyDeviceToDevice);
+                device::CopyDirection::device_to_device, impl_->execution);
         }
         for (auto &level : grid.coarse) {
-            cudaMemset(level.pressure[0], 0,
-                level.cell_count * sizeof(float));
-            cudaMemset(level.pressure[1], 0,
-                level.cell_count * sizeof(float));
-            cudaMemset(level.rhs, 0, level.cell_count * sizeof(float));
-            cudaMemset(level.residual, 0,
-                level.cell_count * sizeof(float));
+            clear_bytes(level.pressure[0], 0,
+                level.cell_count * sizeof(float), impl_->execution);
+            clear_bytes(level.pressure[1], 0,
+                level.cell_count * sizeof(float), impl_->execution);
+            clear_bytes(level.rhs, 0, level.cell_count * sizeof(float), impl_->execution);
+            clear_bytes(level.residual, 0,
+                level.cell_count * sizeof(float), impl_->execution);
         }
-        cudaError_t grid_error = cudaPeekAtLastError();
-        if (grid_error != cudaSuccess)
-            return cuda_failure(grid_error, "smoke grid initialization failed");
-        grid_error = cudaDeviceSynchronize();
-        if (grid_error != cudaSuccess)
-            return cuda_failure(grid_error, "smoke grid initialization failed");
+        PmResult grid_error = impl_->execution.services->last_error(false);
+        if (grid_error != PM_SUCCESS)
+            return backend_failure(grid_error, "smoke grid initialization failed");
+        grid_error = wait_queue(impl_->execution);
+        if (grid_error != PM_SUCCESS)
+            return backend_failure(grid_error, "smoke grid initialization failed");
     }
     if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
         !(status = allocate_managed(smoke->previous_positions, options.capacity)) ||
@@ -474,15 +479,15 @@ Status SimulationRuntime::smoke_view(SmokeId id, SmokeDeviceView &output) const 
     if (smoke.grid.resolution != 0U) {
         float residual_max = 0.0F;
         float rhs_max = 0.0F;
-        cudaError_t error = cudaMemcpy(&residual_max, smoke.grid.residual_max,
+        PmResult error = copy_bytes_wait(&residual_max, smoke.grid.residual_max,
                                        sizeof(residual_max),
-                                       cudaMemcpyDeviceToHost);
-        if (error == cudaSuccess) {
-            error = cudaMemcpy(&rhs_max, smoke.grid.rhs_max, sizeof(rhs_max),
-                               cudaMemcpyDeviceToHost);
+                                       device::CopyDirection::device_to_host, impl_->execution);
+        if (error == PM_SUCCESS) {
+            error = copy_bytes_wait(&rhs_max, smoke.grid.rhs_max, sizeof(rhs_max),
+                               device::CopyDirection::device_to_host, impl_->execution);
         }
-        if (error != cudaSuccess)
-            return cuda_failure(error, "smoke pressure residual readback failed");
+        if (error != PM_SUCCESS)
+            return backend_failure(error, "smoke pressure residual readback failed");
         pressure_residual = residual_max / fmaxf(rhs_max, 1.0e-5F);
     }
     output = {{smoke.positions, smoke.count}, {smoke.velocities, smoke.count},

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Included by runtime.cu; kept in one CUDA translation unit.
+// Included by runtime.cpp; shared backend-neutral runtime implementation.
 
 ContactDeviceView SimulationRuntime::contacts() const noexcept {
     if (!impl_ || (impl_->frame && !impl_->frame->acknowledged)) return {};
     std::uint32_t count = 0U;
     std::uint32_t overflow = 0U;
-    if (!read_device_u32(nullptr, impl_->fluid_contact_count, count,
+    if (!read_device_u32(impl_->execution, impl_->fluid_contact_count, count,
                          "fluid contact count readback failed") ||
-        !read_device_u32(nullptr, impl_->fluid_contact_overflow, overflow,
+        !read_device_u32(impl_->execution, impl_->fluid_contact_overflow, overflow,
                          "fluid contact overflow readback failed")) {
         return {};
     }
@@ -21,7 +21,7 @@ RigidContactDeviceView SimulationRuntime::rigid_contacts() const noexcept {
         return {};
     }
     std::uint32_t count = 0U;
-    if (!read_device_u32(nullptr, impl_->rigid_contact_count, count,
+    if (!read_device_u32(impl_->execution, impl_->rigid_contact_count, count,
                          "rigid contact count readback failed")) {
         return {};
     }
@@ -131,18 +131,19 @@ Status SimulationRuntime::collect_step_timings(
 
     output.frame_index = impl_->timing_frame_index;
     output.available = true;
-    cudaError_t error = cudaEventElapsedTime(
-        &output.total_gpu_milliseconds, impl_->timing_events[0],
-        impl_->timing_events[impl_->timing_boundary_count - 1U]);
-    if (error != cudaSuccess) {
-        return cuda_failure(error, "failed to collect total kernel timing");
+    PmResult error = impl_->execution.services->elapsed_time(
+        impl_->timing_events[0],
+        impl_->timing_events[impl_->timing_boundary_count - 1U],
+        output.total_gpu_milliseconds);
+    if (error != PM_SUCCESS) {
+        return backend_failure(error, "failed to collect total kernel timing");
     }
     for (std::size_t index = 0; index < impl_->timing_stages.size(); ++index) {
         float milliseconds = 0.0F;
-        error = cudaEventElapsedTime(&milliseconds, impl_->timing_events[index],
-                                     impl_->timing_events[index + 1U]);
-        if (error != cudaSuccess) {
-            return cuda_failure(error, "failed to collect kernel stage timing");
+        error = impl_->execution.services->elapsed_time(impl_->timing_events[index],
+                                     impl_->timing_events[index + 1U], milliseconds);
+        if (error != PM_SUCCESS) {
+            return backend_failure(error, "failed to collect kernel stage timing");
         }
         KernelTiming *timing = nullptr;
         bool contact_generation_stage = false;
@@ -381,6 +382,9 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
             body.node_count * (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
             body.surface_vertex_count * sizeof(Vec3) + 2U * sizeof(Vec3) +
             sizeof(std::uint32_t) + sizeof(float);
+        const auto status = read_host_objects(impl_->execution, coupling->contact_count,
+                                              coupling->maximum_penetration);
+        if (!status) return status;
         output.fluid_soft_body_contact_count += *coupling->contact_count;
         output.maximum_fluid_soft_body_penetration = std::max(
             output.maximum_fluid_soft_body_penetration, *coupling->maximum_penetration);
@@ -389,6 +393,9 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
         if (!coupling || !coupling->alive) continue;
         output.allocated_bytes += impl_->ropes[coupling->options.rope.index]->data.count *
             sizeof(Vec3) + sizeof(std::uint32_t) + sizeof(float);
+        const auto status = read_host_objects(impl_->execution, coupling->contact_count,
+                                              coupling->maximum_penetration);
+        if (!status) return status;
         output.fluid_rope_contact_count += *coupling->contact_count;
         output.maximum_fluid_rope_penetration = std::max(
             output.maximum_fluid_rope_penetration, *coupling->maximum_penetration);
@@ -401,6 +408,9 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
             coupling->tree_count*(sizeof(BvhNode)+2U*sizeof(std::uint32_t))+
             impl_->soft_bodies[coupling->options.soft_body.index]->surface_index_count/3U*
                 sizeof(std::uint32_t)+sizeof(std::uint32_t)+sizeof(float);
+        const auto status = read_host_objects(impl_->execution, coupling->contact_count,
+                                              coupling->maximum_penetration);
+        if (!status) return status;
         output.rope_soft_body_contact_count += *coupling->contact_count;
         output.maximum_rope_soft_body_penetration = std::max(
             output.maximum_rope_soft_body_penetration,*coupling->maximum_penetration);
@@ -410,12 +420,17 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
     for (const auto &source : impl_->particle_sources)
         if (source.alive)
             output.allocated_bytes += source.data->count * (sizeof(Vec3) + sizeof(std::uint8_t)) + sizeof(std::uint32_t);
+    auto host_status = read_host_objects(impl_->execution, impl_->fluid_contact_count,
+        impl_->fluid_contact_overflow, impl_->fluid_maximum_neighbor_count);
+    if (!host_status) return host_status;
     output.contact_count = *impl_->fluid_contact_count;
     output.contact_overflow_count = *impl_->fluid_contact_overflow;
     output.maximum_fluid_neighbor_count =
         *impl_->fluid_maximum_neighbor_count;
     for (const auto &fluid : impl_->fluids) {
         if (!fluid || !fluid->alive) continue;
+        host_status = read_host_objects(impl_->execution, fluid->count);
+        if (!host_status) return host_status;
         const std::uint32_t live = *fluid->count;
         output.particle_count += live;
         output.destroyed_particle_count +=
@@ -433,6 +448,8 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
     output.rigid_constraint_count = impl_->rigid_constraint_count;
     output.triangle_mesh_count = impl_->triangle_mesh_count;
     if (impl_->frame_index != 0U && impl_->rigid_body_count != 0U) {
+        host_status = read_host_objects(impl_->execution, impl_->rigid_contact_schedule);
+        if (!host_status) return host_status;
         const auto &schedule = *impl_->rigid_contact_schedule;
         output.rigid_contact_island_count = schedule.island_count;
         output.rigid_contact_early_exit_count = schedule.early_exit_count;
@@ -521,5 +538,6 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
 }
 
 int SimulationRuntime::device_ordinal() const noexcept {
-    return impl_ ? impl_->device_ordinal : -1;
+    return impl_ && impl_->execution.services
+        ? impl_->execution.services->ordinal() : -1;
 }

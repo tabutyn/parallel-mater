@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared soft-body and rope endpoint coupling kernels. Contact traversal is
 // shared with rope.slang.
@@ -19,8 +20,9 @@ void rope_soft_sample_anchor(
     uniform PMBuffer<Vec3> surface,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> indices,
     uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform uint triangle,
-    uniform Vec3 weights, uniform Vec3 offset)
+    uniform Vec3 weights, uniform Vec3 offset PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
     uint base = 3u * triangle;
     float w[3];
@@ -54,8 +56,9 @@ void rope_soft_scatter_anchor(
     uniform float support_radius, uniform float contact_support_radius,
     uniform PMBuffer<uint> contact_count, uniform PMBuffer<uint> indices,
     uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform uint triangle,
-    uniform Vec3 weights, uniform PMBuffer<Vec3> node_impulses)
+    uniform Vec3 weights, uniform PMBuffer<Vec3> node_impulses PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u) return;
     uint thread = pmGroupThreadIndex().x;
     Vec3 anchor = soft_anchor_positions[end];
@@ -123,8 +126,9 @@ void rope_soft_apply(
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
     uniform PMBuffer<Vec3> impulses, uniform uint count,
     uniform float maximum_acceleration, uniform float maximum_speed,
-    uniform float dt, uniform float frame_inverse_dt)
+    uniform float dt, uniform float frame_inverse_dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= count || inverse_masses[node] == 0.0f) return;
     Vec3 impulse = clamp_length(
