@@ -74,17 +74,22 @@ struct Session {
     ~Session() { if (window) ANativeWindow_release(window); }
 
     std::size_t moving_bodies() const {
+        if (!scene) return 0;
         return static_cast<std::size_t>(std::count_if(
             scene->definition.rigid_bodies.begin(), scene->definition.rigid_bodies.end(),
             [](const auto &body) { return body.options.motion == MotionType::dynamic; }));
     }
 
     void focus() {
+        if (!scene) return;
         camera = CameraController{};
         if (selection < 6) {
-            camera.set_preset(selection == 0
+            auto preset = selection == 0
                 ? brick_camera_preset({static_cast<std::uint32_t>(bricks), 1.0F, 1U})
-                : gallery_entry(contexts[selection]).camera);
+                : gallery_entry(contexts[selection]).camera;
+            // Leave the gear assembly visible behind the landscape toolbar.
+            if (selection == 3) preset.distance_scale *= 1.6F;
+            camera.set_preset(preset);
             return;
         }
         // Frame the active particles and moving bodies, not the large static
@@ -133,6 +138,10 @@ struct Session {
         if (index >= 6) {
             if (!apply_liquid_workload_limits(next->definition, limits, error)) return false;
         }
+        // Mobile drivers can retain large private shader scratch per device.
+        // Keep only one simulation resident, including while switching/resetting.
+        scene.reset();
+        selection = index;
         if (!CommandScene::create(next->definition, 0U, next->simulation,
                                   next->instance, error,
                                   PM_ANDROID_VULKAN ? std::optional{PM_NATIVE_BACKEND_VULKAN}
@@ -160,6 +169,11 @@ struct Session {
         error.clear();
         PmPhysicalDeviceProperties properties{};
         pmGetPhysicalDeviceProperties(scene->simulation.physical_device(), &properties);
+        PmMemoryBudget budget{};
+        if (pmGetDeviceMemoryBudget(scene->simulation.device(), &budget) == PM_SUCCESS)
+            __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+                "Physics buffers: %llu bytes (excludes driver-private allocations)",
+                static_cast<unsigned long long>(budget.applicationAllocationBytes));
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
             "Scene ready: %s; backend=%s; device=%s; bodies=%zu; particles=%zu",
             scene_files[index], backend_name, properties.deviceName,
@@ -295,7 +309,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(
         if (ANativeWindow_setBuffersGeometry(s.window, s.width, s.height,
                                              WINDOW_FORMAT_RGBA_8888) != 0)
             throw std::runtime_error("Cannot configure display surface");
-        if (!create_renderer(s.scene->definition, s.scene->instance,
+        if (s.scene && !create_renderer(s.scene->definition, s.scene->instance,
                               s.width, s.height, s.scene->renderer, s.error))
             throw std::runtime_error(s.error);
     } catch (const std::exception &error) { exception(env, error.what()); }
@@ -307,6 +321,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(
     JNIEnv *env, jclass, jlong handle) {
     try {
         auto &s = session(handle);
+        if (!s.scene) throw std::runtime_error("Choose a scene or Reset to continue");
         const auto start = std::chrono::steady_clock::now();
         if (!s.paused && !s.advance()) throw std::runtime_error(s.error);
         const auto physics_end = std::chrono::steady_clock::now();
@@ -356,6 +371,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeDetails(JNIEnv *env, jclass, jlong handle) {
     try {
         const auto &s = session(handle);
+        if (!s.scene) throw std::runtime_error("Choose a scene or Reset to continue");
         const double mean = s.work_mean > 0 ? s.work_mean
             : (s.work_count ? s.work_sum / s.work_count : 0);
         char text[768];
@@ -381,6 +397,8 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(
     JNIEnv *env, jclass, jlong handle, jint command, jfloat x, jfloat y) {
     try {
         auto &s = session(handle);
+        if (!s.scene && command != 0 && command != 1 && command != 7)
+            throw std::runtime_error("Choose a scene or Reset to continue");
         bool ok = true;
         switch (command) {
         case 0: ok = s.select(static_cast<int>(x)); break;
