@@ -92,10 +92,22 @@ int main() {
     geometry_info.sType = PM_STRUCTURE_TYPE_GEOMETRY_CREATE_INFO;
     geometry_info.vertices = {{source, 0U, sizeof vertices}, PM_FORMAT_R32G32B32_SFLOAT, 8U, 12U};
     geometry_info.indices = {{source, sizeof vertices, sizeof indices}, PM_FORMAT_R32_UINT, 36U, 4U};
+    PmGeometry invalid_geometry{};
+    auto invalid_geometry_info = geometry_info;
+    invalid_geometry_info.vertices.count = 2U;
+    CHECK(pmCreateGeometry(device, &invalid_geometry_info, &invalid_geometry) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    CHECK(invalid_geometry == nullptr);
     PmGeometry geometry{};
     CHECK(pmCreateGeometry(device, &geometry_info, &geometry) == PM_SUCCESS);
     PmMemoryRequirements geometry_memory{};
     pmGetGeometryMemoryRequirements(device, geometry, &geometry_memory);
+    CHECK(geometry_memory.size > 1U);
+    CHECK(geometry_memory.alignment == 256U);
+    CHECK(geometry_memory.size % geometry_memory.alignment == 0U);
+    CHECK(pmBindGeometryMemory(
+              device, geometry, allocate(geometry_memory.size - 1U), 0U) ==
+          PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmBindGeometryMemory(device, geometry, allocate(geometry_memory.size), 0U) == PM_SUCCESS);
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;

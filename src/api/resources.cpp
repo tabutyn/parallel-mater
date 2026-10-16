@@ -84,6 +84,29 @@ using parallel_mater::Vec3;
                                          view.range.buffer->size);
 }
 
+[[nodiscard]] PmResult geometry_requirements(
+    const PmGeometryCreateInfo &info, PmMemoryRequirements &output) noexcept {
+    parallel_mater::simulation::StorageRequirements plan{};
+    const auto status = parallel_mater::simulation::geometry_storage_requirements(
+        info.vertices.count, info.indices.count, plan);
+    if (!status) return parallel_mater::api::from_status(status);
+    // Geometry currently has no bound scratch storage. Keeping that class in
+    // the shared plan makes a future addition fail here instead of silently
+    // drifting away from the single-allocation public contract.
+    if (plan.scratch != 0U) return PM_ERROR_INVALID_STATE;
+    constexpr PmDeviceSize alignment = 256U;
+    if (plan.persistent >
+        std::numeric_limits<PmDeviceSize>::max() - (alignment - 1U))
+        return PM_ERROR_OUT_OF_DEVICE_MEMORY;
+    const PmDeviceSize persistent =
+        static_cast<PmDeviceSize>(plan.persistent);
+    // Host BVH preparation reads this storage after upload. Keep the current
+    // contract coherent and host-visible until building moves onto the GPU.
+    output = {(persistent + alignment - 1U) & ~(alignment - 1U),
+              alignment, 0x2U, PM_FALSE};
+    return PM_SUCCESS;
+}
+
 [[nodiscard]] parallel_mater::SimulationOptions simulation_options(
     const PmSimulationCreateInfo &info) noexcept {
     parallel_mater::SimulationOptions options{};
@@ -313,10 +336,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateGeometry(
                             sizeof(std::uint32_t)) ||
         info->indices.count % 3U != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
+    PmMemoryRequirements requirements{};
+    const PmResult plan = geometry_requirements(*info, requirements);
+    if (plan != PM_SUCCESS) return plan;
     auto *created = parallel_mater::api::make_object<PmGeometry_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
     created->info = *info;
+    created->requirements = requirements;
     *geometry = created;
     return PM_SUCCESS;
 }
@@ -333,20 +360,7 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmGetGeometryMemoryRequirements(
     if (requirements == nullptr) return;
     *requirements = {};
     if (device == nullptr || geometry == nullptr || geometry->device != device) return;
-    const PmDeviceSize triangles = geometry->info.indices.count / 3U;
-    const PmDeviceSize vertices = geometry->info.vertices.count;
-    // Vertices, reordered indices, a binary BVH, leaf table, closed-solid
-    // planes, unique planes, shell normals, and alignment padding all live in
-    // the geometry allocation. The conservative bound intentionally leaves
-    // room for every triangle to contribute one unique plane.
-    requirements->size =
-        (vertices * 16U + triangles * 192U + 4095U) & ~PmDeviceSize{255U};
-    requirements->alignment = 256U;
-    // CUDA's current CPU BVH preparation reads the bound storage after the
-    // input transfer. Advertise only coherent host-visible memory until that
-    // preparation becomes a GPU build command; never accept device-local
-    // memory and then dereference it on the host.
-    requirements->memoryTypeBits = 0x2U;
+    *requirements = geometry->requirements;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindGeometryMemory(

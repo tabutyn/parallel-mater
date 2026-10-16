@@ -1,7 +1,7 @@
 {
   "id": "F1-01",
   "title": "Plan triangle geometry allocations once",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "runtime-memory"
@@ -14,15 +14,31 @@
     "Exact-query geometry allocation and overflow/invalid topology tests pass.",
     "Query and allocation traverse the same plan, including alignment and scratch."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "7799617a-e90f-49f8-8834-2d780f90f52c",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F1-01/thomas-laptop",
-    "claimed_at": "2026-10-16T22:39:34Z",
-    "heartbeat_at": "2026-10-16T22:39:34Z",
-    "expires_at": "2026-10-17T22:39:34Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-foundations --target parallel-mater-geometry-resource-plan-tests parallel-mater-async-submission-tests -j1; ThomasLaptop; Slang CPU exact-query API and plan tests",
+    "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 37/37 passed, 2 unsupported domain cases skipped",
+    "PASS: cmake --build build-desktop-switch --target parallel-mater-command-api-tests parallel-mater-vulkan-command-api-tests -j1; ThomasLaptop; CUDA and Vulkan shared runtime compiled"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "7799617a-e90f-49f8-8834-2d780f90f52c",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-01/thomas-laptop",
+        "claimed_at": "2026-10-16T22:39:34Z",
+        "heartbeat_at": "2026-10-16T22:39:34Z",
+        "expires_at": "2026-10-17T22:39:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-16T22:51:16Z",
+      "reason": "One typed plan now drives geometry requirements and allocation with topology-derived bounds and rollback.",
+      "evidence": [
+        "PASS: cmake --build build-foundations --target parallel-mater-geometry-resource-plan-tests parallel-mater-async-submission-tests -j1; ThomasLaptop; Slang CPU exact-query API and plan tests",
+        "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 37/37 passed, 2 unsupported domain cases skipped",
+        "PASS: cmake --build build-desktop-switch --target parallel-mater-command-api-tests parallel-mater-vulkan-command-api-tests -j1; ThomasLaptop; CUDA and Vulkan shared runtime compiled"
+      ]
+    }
+  ]
 }
