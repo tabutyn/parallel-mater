@@ -959,6 +959,15 @@
     "test": "ctest --test-dir build-cuda-slang-vs2022 -C Release --output-on-failure -R '^parallel-mater-(loader(-unicode|-validation)?-driver-discovery-tests|loader-validation-discovery-tests|gallery-registry-tests|gallery-input-tests|reject-(driver|layer)-abi-(0|999)|layer-v1-compatibility)$'",
     "log": "build-cuda-slang-vs2022/physics-loader-tests.log"
   },
+  "windows_reference_ci_followup": {
+    "initial_failure": "All Windows shaders compiled, but generated-api-check decoded UTF-8 specification text as cp1252 and raised UnicodeDecodeError. Reproduced locally with Python -X utf8=0.",
+    "correction": "tools/reference/build.py reads/writes reference text explicitly as UTF-8. No generated header/specification content changed.",
+    "passed_commands": [
+      "python -X utf8=0 tools/reference/build.py --check-generated",
+      "python -X utf8=1 tools/reference/build.py --check-generated",
+      "ctest --test-dir build-cuda-slang-vs2022 -C Release -R '^parallel-mater-generated-api-check$' --output-on-failure"
+    ]
+  },
   "log_hashes": [
     {
       "path": "build-cuda-slang-vs2022/physics-qualified-d3d12-tests.log",
