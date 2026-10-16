@@ -21,6 +21,11 @@ add_test(NAME parallel-mater-generated-api-check
             --check-generated)
 set_tests_properties(parallel-mater-generated-api-check PROPERTIES
     LABELS "api;registry")
+if(BUILD_TESTING)
+    add_test(NAME parallel-mater-reflected-abi-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
+    set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+endif()
 
 function(parallel_mater_enable_warnings target)
     if(MSVC)

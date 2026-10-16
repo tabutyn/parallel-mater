@@ -20,6 +20,9 @@ an assertion that those fixes remain absent. `7677ea9` isolates domain storage;
 adds typed layer ABI 2, memory/buffer state validation, cross-device dispatch
 rejection, and searchable-spec consistency checks. See
 [API-CONTRACT.md](API-CONTRACT.md) for executable evidence and coverage limits.
+The first F4 checkpoint removes generated CUDA from Vulkan ABI generation;
+[COMMON-RESOURCE-BOUNDARY.md](COMMON-RESOURCE-BOUNDARY.md) records the new neutral
+reflection model, runtime evidence and remaining engine ownership work.
 
 ## Assessment
 

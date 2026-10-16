@@ -158,8 +158,12 @@ generation and command routing.
 ### F4. Complete common runtime resources and engine ownership rules
 
 Status: scheduler extraction and common C++ runtime/device-service conversion
-are implemented, including the newly merged Windows work. Resource planning,
-binding generation and engine-owned handoff qualification remain.
+are implemented, including the newly merged Windows work. Vulkan bindings now
+use a common reflection-derived C++ ABI model; generated CUDA is no longer an
+input. Six shader modules compile and API/async/lifecycle checks pass within the
+[recorded validation scope](COMMON-RESOURCE-BOUNDARY.md). Common access metadata,
+completion ownership, all-adapter binding migration, memory-budget semantics and
+engine-owned handoff qualification remain.
 
 - Define backend-neutral resource identities, typed dispatch bindings, memory
   plans, read/write dependencies and completion ownership behind the existing
