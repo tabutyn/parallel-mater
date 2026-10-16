@@ -22,7 +22,7 @@ jobs:
           - os: windows-latest
             d3d12: 'ON'
             cpu: 'OFF'
-          - os: macos-15
+          - os: macos-26
             d3d12: 'OFF'
             cpu: 'ON'
     runs-on: ${{ matrix.os }}
@@ -36,6 +36,8 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          xcodebuild -version | tee xcode-version.txt
+          grep -q '^Xcode 26' xcode-version.txt
           if ! xcrun --sdk macosx metal --version; then
             xcodebuild -downloadComponent MetalToolchain
           fi
