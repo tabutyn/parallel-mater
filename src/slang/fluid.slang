@@ -582,9 +582,15 @@ void pm_fluid_forces(
         }
     }
 
+#if defined(PM_TARGET_CPU)
+    pmAtomicMax(&maximumNeighborCount[0], neighbors);
+    if (neighbors > constants.maximumNeighbors)
+        pmAtomicAdd(&neighborOverflow[0], 1u);
+#else
     InterlockedMax(maximumNeighborCount[0], neighbors);
     if (neighbors > constants.maximumNeighbors)
         InterlockedAdd(neighborOverflow[0], 1u);
+#endif
     if (constants.maximumPairAcceleration > 0.0f)
         acceleration = pmLimit(acceleration,
                                constants.maximumPairAcceleration);

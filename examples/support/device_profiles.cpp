@@ -303,6 +303,50 @@ bool parse_catalog(const Json &json, DeviceProfileCatalog &output,
     if (output.schema_version != brick_profile_schema_version) {
         error = "unsupported device profile schema version"; return false;
     }
+    if (const Json *items = member(*root, "startup_limits")) {
+        const auto *values = array(*items);
+        if (!values) { error = "startup_limits must be an array"; return false; }
+        for (const Json &item : *values) {
+            const auto *value = object(item);
+            if (!value) { error = "startup limit must be an object"; return false; }
+            GalleryWorkloadLimits limits;
+            limits.name = string(*value, "name");
+            limits.platform = string(*value, "platform");
+            limits.machine_model = string(*value, "machine_model");
+            limits.backend = string(*value, "backend");
+            if (limits.name.empty() || limits.platform.empty() ||
+                limits.machine_model.empty() || limits.backend.empty()) {
+                error = "startup limit selectors are required"; return false;
+            }
+            const auto count = [&](const char *key, std::uint32_t maximum,
+                                   std::uint32_t &destination) {
+                const double n = number(*value, key);
+                if (n < 1 || n > maximum || std::floor(n) != n) {
+                    error = std::string("invalid startup limit: ") + key;
+                    return false;
+                }
+                destination = static_cast<std::uint32_t>(n);
+                return true;
+            };
+            if (!count("brick_count", brick_maximum_count, limits.brick_count) ||
+                !count("fluid_particles", 1'000'000U, limits.fluid_particles) ||
+                !count("coupled_bodies", 4'096U, limits.coupled_bodies) ||
+                !count("smoke_particles", 1'000'000U, limits.smoke_particles) ||
+                !count("dump_spheres", 1'000U, limits.dump_spheres) ||
+                !count("render_width", 7680U, limits.render_width) ||
+                !count("render_height", 4320U, limits.render_height) ||
+                !count("target_fps", 240U, limits.target_fps)) return false;
+            for (const auto &previous : output.startup_limits)
+                if (previous.name == limits.name ||
+                    (previous.platform == limits.platform &&
+                     previous.machine_model == limits.machine_model &&
+                     previous.backend == limits.backend)) {
+                    error = "duplicate startup limit selector or name";
+                    return false;
+                }
+            output.startup_limits.push_back(std::move(limits));
+        }
+    }
     if (const Json *items = member(*root, "hardware")) {
         const auto *values = array(*items);
         if (values == nullptr) { error = "hardware must be an array"; return false; }
@@ -585,6 +629,23 @@ bool save_verified_profile(const std::filesystem::path &path,
         write_measurement(output, catalog.measurements[i]);
         output << (i + 1U == catalog.measurements.size() ? "\n" : ",\n");
     }
+    output << "  ],\n  \"startup_limits\": [\n";
+    for (std::size_t i = 0; i < catalog.startup_limits.size(); ++i) {
+        const auto &limits = catalog.startup_limits[i];
+        output << "    {\"name\":"; quote(output, limits.name);
+        output << ",\"platform\":"; quote(output, limits.platform);
+        output << ",\"machine_model\":"; quote(output, limits.machine_model);
+        output << ",\"backend\":"; quote(output, limits.backend);
+        output << ",\"brick_count\":" << limits.brick_count
+               << ",\"fluid_particles\":" << limits.fluid_particles
+               << ",\"coupled_bodies\":" << limits.coupled_bodies
+               << ",\"smoke_particles\":" << limits.smoke_particles
+               << ",\"dump_spheres\":" << limits.dump_spheres
+               << ",\"render_width\":" << limits.render_width
+               << ",\"render_height\":" << limits.render_height
+               << ",\"target_fps\":" << limits.target_fps << '}';
+        output << (i + 1 == catalog.startup_limits.size() ? "\n" : ",\n");
+    }
     output << "  ]\n}\n";
     output.close();
     if (!output) { error = "could not write temporary profile file"; return false; }
@@ -614,6 +675,22 @@ bool save_verified_profile(const std::filesystem::path &path,
 #endif
     if (rename_error) { std::filesystem::remove(temporary); error = "could not replace profile file: " + rename_error.message(); return false; }
     error.clear(); return true;
+}
+
+const GalleryWorkloadLimits *select_workload_limits(
+    const DeviceProfileCatalog &catalog, std::string_view platform,
+    std::string_view machine_model, std::string_view backend) noexcept {
+    const GalleryWorkloadLimits *best = nullptr;
+    int best_score = -1;
+    for (const auto &limits : catalog.startup_limits) {
+        if (limits.platform != platform ||
+            (limits.machine_model != "*" && limits.machine_model != machine_model) ||
+            (limits.backend != "*" && limits.backend != backend)) continue;
+        const int score = (limits.machine_model == machine_model ? 2 : 0) +
+                          (limits.backend == backend ? 1 : 0);
+        if (score > best_score) { best = &limits; best_score = score; }
+    }
+    return best;
 }
 
 const VerifiedBrickProfile *find_matching_profile(const DeviceProfileCatalog &catalog,

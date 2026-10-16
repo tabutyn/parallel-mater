@@ -1,0 +1,112 @@
+# Parallel Mater Gallery for Android
+
+This native APK uses the shared gallery scene builder, public command API,
+loader, validation layer, Slang CPU driver, and software renderer. Physics runs
+on the phone. It does not stream a desktop session and does not use Vulkan for
+physics. The CPU liquid adapter is experimental and opt-in; it uses the same
+Slang liquid and rigid-contact kernels as the CUDA adapter.
+
+Available scenes: Rigid Body, Fixed/Collector, Point/Celestial, Hinge/Slider,
+Piston, Generic, Fluid, and Fluid + Rigid. Cloth, rope, soft bodies, smoke, and
+their couplings are not exposed by this preview. Their presence in the shared
+asset catalog does not imply runtime support.
+
+## Device workload resource
+
+The APK bundles `config/device-profiles.json`. Native startup selects a
+`startup_limits` record by platform, Android `Build.MODEL`, and physics backend.
+Exact device matches beat the platform fallback; an exact backend breaks ties.
+
+The Pixel 7 preview selects four bricks, 128 fluid particles, four moving bodies
+in the liquid scene, at most 640×360 pixels, and a 30 FPS target. Unknown Android
+devices use 64 fluid particles and two moving bodies in liquid scenes.
+Both are conservative, unmeasured starting budgets, separate from
+`measurements` and `verified_profiles`. They are not sustained performance
+claims. Smoke and dump limits are reserved for backends/scenes that support
+them; they do not enable those scenes here.
+
+Fluid and coupled-body budgets are applied before simulation allocation. Static
+and kinematic scenery is retained; a deterministic subset of independent dynamic
+bodies is retained. Reduction rejects indexed attachments instead of silently
+invalidating their body references.
+
+Fluid capacity is applied before simulation allocation. The shared scene builder
+samples the authored initial population down to capacity, and emitters retain
+that capacity. Lower counts change the physical amount and sampling of liquid;
+this is not a quality-equivalent benchmark against the full desktop workload.
+Solver timestep, material parameters and contact iteration quality are retained.
+One update advances 1/target_fps seconds with approximately 240 substeps/second;
+if execution is slower than the target, simulation slows rather than skipping
+physics or allowing unbounded queued frames.
+
+## Build and install
+
+Requirements: JDK 21, Android SDK platform 36, NDK 29.0.14206865, SDK CMake
+4.1.2, and host Python/CMake build tools. Gradle 9.1.0 and Android Gradle Plugin
+9.0.1 are pinned. Slang is the repository's pinned host compiler. The NDK build
+does not require CUDA or GLFW. Native libraries use the NDK's 16 KB-compatible
+alignment defaults.
+
+From the repository root:
+
+```sh
+export ANDROID_HOME="$HOME/Android/Sdk"
+export JAVA_HOME=/path/to/jdk-21
+export SLANGC=/path/to/slang/bin/slangc # optional; otherwise CMake fetches it
+./scripts/Build-AndroidGallery.sh
+"$ANDROID_HOME/platform-tools/adb" -d install -r \
+  examples/android/app/build/outputs/apk/debug/app-debug.apk
+"$ANDROID_HOME/platform-tools/adb" -d shell am start \
+  -n org.parallelmater.gallery/.GalleryActivity
+```
+
+The default build is ARM64. Set `ANDROID_ABIS=arm64-v8a,x86_64` to include an
+emulator binary. For an existing dependency checkout, pass
+`-PcgltfSource=/path/to/cgltf` to the script. Debug APKs are locally signed and
+include optimized native code. Builds default to one compile job, a 1 GiB Gradle
+heap, and ARM64 in the build script to limit workstation memory pressure. No account, Internet permission, or server is
+required at runtime.
+
+The simulation fills the screen beneath compact overlay controls. Tap the scene
+name to open the scene picker. Drag to orbit, pinch or use +/- to zoom; Focus
+reframes the liquid particles and moving bodies, or restores the other scenes'
+authored views. Hold arrow buttons for the displayed action (push objects or tilt
+gravity). Orbiting bodies exposes separate Release and Restore actions. Reset
+reloads the scene. Info contains backend, profile limits, frame-work averages,
+and gesture help; the main view shows only population and paused state. Backgrounding stops frame scheduling and clears held movement. Physics
+and rendering run on a worker thread; Android UI controls remain responsive.
+
+For diagnostic logs:
+
+```sh
+"$ANDROID_HOME/platform-tools/adb" -d logcat -s ParallelMater AndroidRuntime
+```
+
+## Validation
+
+Host tests cover hardware-profile matching, malformed numeric limits,
+preservation of limits when saving a verified profile, analytic liquid free
+fall across dispatch boundaries, capped Fluid and FluidRigid gallery scenes,
+and reset. These require `BUILD_TESTING`, `PARALLEL_MATER_BUILD_GALLERY`,
+`PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER`, and
+`PARALLEL_MATER_SLANG_CPU_LIQUIDS` enabled. Run CTest with
+`-R 'gallery-workload|mobile-liquid|async-submission'`.
+
+APK compilation and host tests do not establish phone stability or GPU
+performance. Record phone runtime evidence separately before promoting budgets
+to measured or verified profiles.
+
+Pixel 7 smoke test (Android 17, 2026-10-16): installed and launched the ARM64
+APK; startup selected `pixel-7-preview`. Rigid Body, Fluid, and Fluid + Rigid
+rendered; both liquid scenes reported 128/128 particles. Pause/resume, orbit,
+reset, and background/foreground worked without Gallery errors after correcting
+Android's escaped manifest path separators. The other five scenes and sustained
+thermal behavior have not been qualified on the phone.
+
+Initial frame-work samples were 16.1 ms for Rigid Body, 19.9 ms for Fluid,
+and 156.1–194.5 ms for Fluid + Rigid with 65 rigid bodies. The coupled-body
+budget now limits that scene to four moving bodies plus its static geometry
+on Pixel 7. A follow-up run averaged 36.9 ms over its first 60 running frames
+at 640x288. These observations are not a matched benchmark or a sustained FPS
+qualification. Local screenshots and the tested APK are saved under the
+ignored `out/android/` directory.

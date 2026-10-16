@@ -23,53 +23,39 @@ public uint pmThreadIndex()
     return pmBlockIndex().x * pmGroupSize().x + pmGroupThreadIndex().x;
 }
 
+// CPU dispatch executes one lane at a time. Preserve atomic return values
+// without requesting GPU-only atomic instructions from Slang's C++ target.
 public uint pmAtomicAdd(uint* value, uint addend)
 {
-    uint original;
-    InterlockedAdd(*value, addend, original);
-    return original;
+    uint original = *value; *value += addend; return original;
 }
 public uint64_t pmAtomicAdd(uint64_t* value, uint64_t addend)
 {
-    uint64_t original;
-    InterlockedAdd(*value, addend, original);
-    return original;
+    uint64_t original = *value; *value += addend; return original;
 }
 public float pmAtomicAdd(float* value, float addend)
 {
-    float original;
-    InterlockedAdd(*value, addend, original);
-    return original;
+    float original = *value; *value += addend; return original;
 }
 public uint pmAtomicMax(uint* value, uint candidate)
 {
-    uint original;
-    InterlockedMax(*value, candidate, original);
-    return original;
+    uint original = *value; *value = max(original, candidate); return original;
 }
 public uint pmAtomicMin(uint* value, uint candidate)
 {
-    uint original;
-    InterlockedMin(*value, candidate, original);
-    return original;
+    uint original = *value; *value = min(original, candidate); return original;
 }
 public uint pmAtomicOr(uint* value, uint candidate)
 {
-    uint original;
-    InterlockedOr(*value, candidate, original);
-    return original;
+    uint original = *value; *value |= candidate; return original;
 }
 public uint64_t pmAtomicOr(uint64_t* value, uint64_t candidate)
 {
-    uint64_t original;
-    InterlockedOr(*value, candidate, original);
-    return original;
+    uint64_t original = *value; *value |= candidate; return original;
 }
 public uint pmAtomicExchange(uint* value, uint replacement)
 {
-    uint original;
-    InterlockedExchange(*value, replacement, original);
-    return original;
+    uint original = *value; *value = replacement; return original;
 }
 public void pmAtomicAddVec3(PMBuffer<Vec3> value, Vec3 addend)
 {

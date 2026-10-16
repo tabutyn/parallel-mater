@@ -1,5 +1,18 @@
 # Device-adaptive gallery scenes
 
+Android additionally consumes the catalog's `startup_limits` records for brick,
+fluid/smoke particle, coupled-body, dump-sphere and render budgets. These are explicit,
+unmeasured limits, separate from benchmark recommendations and verified profiles.
+Matching uses platform, machine model and backend; exact device records win over
+platform defaults, with exact backend as a tie-breaker. The Pixel 7 preview uses
+128 fluid particles, four bricks, four dynamic liquid-scene bodies, at most
+640×360 rendering and a 30 FPS target. The Android fallback uses 64 fluid particles
+and two dynamic liquid-scene bodies. Static/kinematic scenery is retained;
+indexed attachments prevent automatic body reduction. The app applies fluid capacity
+before allocation and emission; reserved smoke/dump limits do not enable
+unsupported scenes. See [Android build and scope](../examples/android/README.md).
+Existing desktop measurement matching and fixed headless defaults are unchanged.
+
 The Rigid Body gallery scene builds its brick walls at runtime. A profile selects
 brick count, uniform brick scale, and separated wall count. Bricks remain
 independent triangle-mesh rigid bodies; scale changes mass by volume and lets the

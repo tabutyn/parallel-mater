@@ -147,6 +147,14 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
+### Android Gallery preview
+
+An ARM64 native Android preview reuses the shared gallery and an optional Slang
+CPU liquid adapter. Its hardware-profile resource selects small rigid/fluid
+workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
+rigid and liquid scenes only; Android GPU execution and other domains remain
+future work. See [build, install and controls](examples/android/README.md).
+
 ### macOS Gallery application
 
 The default macOS build creates `ParallelMater Gallery.app`, bundles the Slang

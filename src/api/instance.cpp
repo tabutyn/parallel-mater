@@ -16,6 +16,11 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.rigidConstraints = PM_TRUE;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
     defined(PARALLEL_MATER_D3D12_DRIVER)
+#if defined(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+    features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
+    features.particleEmitters = PM_TRUE;
+#endif
     features.contactEvents = PM_TRUE;
     features.debugData = PM_TRUE;
     features.timelineSemaphores = PM_TRUE;

@@ -43,7 +43,7 @@ execute_process(
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMAND_ERROR_IS_FATAL ANY)
 
-if(NOT APPLE AND NOT WIN32)
+if(NOT APPLE AND NOT WIN32 AND NOT ANDROID)
     set(PARALLEL_MATER_CUDA_DEFAULT ON)
 else()
     set(PARALLEL_MATER_CUDA_DEFAULT OFF)
@@ -406,6 +406,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 examples/gallery/render/render_scene.cpp
                 examples/support/scene.cpp
                 examples/support/brick_scene.cpp
+                examples/support/liquid_workload.cpp
                 examples/support/device_profiles.cpp
                 examples/support/physics_debug.cpp
                 examples/support/rope_render.cpp
@@ -551,6 +552,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         FetchContent_MakeAvailable(pm_optix)
     endif()
 
+    if(NOT ANDROID)
     if(NOT WIN32)
         find_package(OpenGL REQUIRED)
     endif()
@@ -566,6 +568,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             GIT_TAG 3.4
             GIT_SHALLOW TRUE)
         FetchContent_MakeAvailable(parallel_mater_glfw)
+    endif()
     endif()
 
     if(PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
@@ -635,6 +638,9 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
+    if(ANDROID)
+        add_subdirectory(examples/android/app/src/main/cpp)
+    else()
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-gallery-window
@@ -773,6 +779,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             USES_TERMINAL
             VERBATIM)
     endif()
+    endif() # Desktop gallery shell
 endif()
 
 if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
@@ -933,6 +940,26 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-gallery-workload-tests
+        tests/gallery/workload_profile_tests.cpp examples/support/device_profiles.cpp)
+    target_compile_features(parallel-mater-gallery-workload-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-gallery-workload-tests PRIVATE examples/support/include)
+    target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
+        PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
+    add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
+    if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
+       PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+        add_executable(parallel-mater-mobile-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
+        target_link_libraries(parallel-mater-mobile-liquid-tests PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-mobile-liquid-tests PRIVATE
+            PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
+            PM_SCENE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+        add_dependencies(parallel-mater-mobile-liquid-tests
+            parallel-mater-driver-slang-cpu parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-mobile-liquid-tests COMMAND parallel-mater-mobile-liquid-tests)
+        set_tests_properties(parallel-mater-mobile-liquid-tests PROPERTIES TIMEOUT 120
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+    endif()
     add_executable(parallel-mater-submission-queue-tests
         tests/api/submission_queue_tests.cpp src/device/submission.cpp)
     target_compile_features(parallel-mater-submission-queue-tests PRIVATE cxx_std_20)
