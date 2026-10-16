@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <utility>
+#include <limits>
 
 using parallel_mater::test::Context;
 static int run(std::uint32_t rigid_capacity, std::uint32_t particle_capacity) {
@@ -78,6 +79,50 @@ static int run(std::uint32_t rigid_capacity, std::uint32_t particle_capacity) {
             PM_CHECK(output[0].position[0] == -10 && output[1].position[0] == 10);
         }
     }
+    // A zero count ignores all buffer-view fields and leaves a valid empty slot.
+    context.begin();
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    const PmBufferView empty{};
+    PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0, &empty) == PM_SUCCESS);
+    const PmBufferRange first_output{destination.handle, 0, output_size};
+    PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0, &first_output) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    context.invalidate(destination);
+    PM_CHECK(static_cast<const PmDomainOutputHeader *>(destination.mapped)->activeCount == 0);
+    // Recording-time rejection must not enqueue a partial write.
+    context.begin();
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    auto short_range = view; short_range.range.size = sizeof(PmParticleState);
+    PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0, &short_range) == PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    // Device-side validation happens after retirement. A failed replacement may
+    // empty its target, but must reclaim partial storage and preserve other slots.
+    particles[0].position[0] = std::numeric_limits<float>::quiet_NaN();
+    std::memcpy(source.mapped, particles.data(), sizeof(particles)); context.flush(source);
+    for (unsigned failure = 0; failure < 32; ++failure) {
+        context.begin();
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+        PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0, &view) == PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_ERROR_INVALID_ARGUMENT);
+    }
+    context.begin();
+    const PmBufferRange second_output{destination.handle, output_size, output_size};
+    PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 1, &second_output) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    context.invalidate(destination);
+    const auto *unrelated = reinterpret_cast<const PmDomainOutputHeader *>(
+        static_cast<const std::byte *>(destination.mapped) + output_size);
+    PM_CHECK(unrelated->activeCount == 2);
+    PM_CHECK(reinterpret_cast<const PmFluidParticleOutput *>(unrelated + 1)[0].position[0] == -10);
+    particles[0].position[0] = -10;
+    std::memcpy(source.mapped, particles.data(), sizeof(particles)); context.flush(source);
+    context.begin();
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0, &view) == PM_SUCCESS);
+    PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0, &first_output) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    context.invalidate(destination);
+    PM_CHECK(static_cast<const PmDomainOutputHeader *>(destination.mapped)->activeCount == 2);
     pmDestroySimulation(context.device, simulation);
     pmDestroyPhysicsPipeline(context.device, pipeline);
     return 0;

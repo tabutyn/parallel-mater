@@ -888,15 +888,17 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
         particles == nullptr || fluid >= simulation->fluids.size() ||
         command_buffer->bound_pipeline == nullptr ||
         fluid >= command_buffer->bound_pipeline->fluids.size() ||
-        particles->format != PM_FORMAT_PARTICLE_STATE ||
-        particles->stride != sizeof(PmParticleState) ||
-        particles->count > simulation->fluids[fluid].particleCapacity ||
-        particles->range.buffer == nullptr ||
-        particles->range.buffer->device != command_buffer->device ||
-        !parallel_mater::api::range_fits(
-            particles->range.offset,
-            static_cast<PmDeviceSize>(particles->count) * particles->stride,
-            particles->range.buffer->size))
+        particles->count > simulation->fluids[fluid].particleCapacity)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (particles->count != 0U &&
+        (particles->format != PM_FORMAT_PARTICLE_STATE ||
+         particles->stride != sizeof(PmParticleState) ||
+         particles->range.buffer == nullptr ||
+         particles->range.buffer->device != command_buffer->device ||
+         (particles->range.buffer->usage & PM_BUFFER_PARTICLE_INPUT_BIT) == 0U ||
+         static_cast<PmDeviceSize>(particles->count) * particles->stride > particles->range.size ||
+         !parallel_mater::api::range_fits(particles->range.offset, particles->range.size,
+                                         particles->range.buffer->size)))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferView copied = *particles;
     const PmLiquidMaterialState material =
@@ -904,9 +906,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, fluid, copied, material](
                             parallel_mater::device::Services &services) noexcept {
-            const PmResult ownership =
-                parallel_mater::api::require_device_ownership(
-                    copied.range.buffer);
+            const PmResult ownership = copied.count == 0U ? PM_SUCCESS :
+                parallel_mater::api::require_device_ownership(copied.range.buffer);
             if (ownership != PM_SUCCESS) return ownership;
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
@@ -939,8 +940,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
             static_assert(sizeof(PmParticleState) ==
                           sizeof(parallel_mater::FluidParticle));
             const auto *source = static_cast<const parallel_mater::FluidParticle *>(
-                parallel_mater::api::buffer_pointer(copied.range.buffer,
-                                                     copied.range.offset));
+                copied.count == 0U ? nullptr :
+                    parallel_mater::api::buffer_pointer(copied.range.buffer, copied.range.offset));
             parallel_mater::FluidId created{};
             result = parallel_mater::api::from_status(
                 simulation->runtime->add_fluid(

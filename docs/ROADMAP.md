@@ -85,8 +85,13 @@ SDK-only test target supports installed-driver selection without gallery/CUDA;
 4,096 fluid replacements across rigid/particle capacity boundaries preserve a
 second population using exactly queried storage. Global and fluid storage now
 share typed planning/allocation traversals, including padding and overflow
-checks. Serial Slang CPU build passes 23/23 tests. GPU qualification, remaining
-domain/geometry plans and broader mutation/failure cases remain open.
+checks. Serial Slang CPU build passes 23/23 tests; freshly rebuilt CUDA also
+passes the public lifecycle regression. Remaining driver qualification,
+domain/geometry plans and broader mutation/failure cases remain open. Empty
+fluid writes and view range/usage validation are corrected. The regression
+also exercises 128 deferred invalid-particle failures and recovery. See
+[resource lifetime and recovery](RESOURCE-LIFETIME.md) for exact semantics and
+remaining coverage.
 
 - Extract headless public-API test support that builds without CUDA, gallery
   rendering or private simulation headers. Use mock/CPU drivers for suitable
