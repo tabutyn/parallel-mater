@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -225,7 +226,7 @@ class LeaseTests(unittest.TestCase):
             git('init','-b','main')
             commit('base')
             git('switch','-c','claim-a')
-            command=['python3',str(ROOT/'tools/roadmap.py'),'--root',str(root)]
+            command=[sys.executable,str(ROOT/'tools/roadmap.py'),'--root',str(root)]
             subprocess.run(command+['claim','F1-01','--owner','a','--machine','linux',
                 '--branch','work/F1-01/a'],check=True,capture_output=True)
             commit('claim a')
@@ -247,14 +248,14 @@ class LeaseTests(unittest.TestCase):
             (root/roadmap.TASK_DIR).mkdir(parents=True)
             (root/roadmap.ROADMAP).write_text('# Queue\n'+roadmap.BEGIN+'\n'+roadmap.END+'\n')
             (root/roadmap.TASK_DIR/'F1-01.json').write_text(json.dumps(task()))
-            result=subprocess.run(['python3',str(ROOT/'tools/roadmap.py'),'--root',str(root),
+            result=subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py'),'--root',str(root),
                 'claim','F1-01','--owner','agent-a','--machine','linux-a','--branch','work/F1-01/agent-a'],
                 capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
             text=(root/roadmap.ROADMAP).read_text()
             self.assertIn('agent-a / linux-a /',text)
             self.assertIn('| leased |',text)
-            result=subprocess.run(['python3',str(ROOT/'tools/roadmap.py'),'--root',str(root),'check'],
+            result=subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py'),'--root',str(root),'check'],
                                   capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
 
