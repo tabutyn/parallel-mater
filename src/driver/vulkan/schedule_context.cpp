@@ -3,6 +3,7 @@
 #include "simulation/geometry_storage.hpp"
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -29,6 +30,12 @@ struct Instance {
         app.apiVersion = VK_API_VERSION_1_3;
         VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         info.pApplicationInfo = &app;
+        const char *validation = "VK_LAYER_KHRONOS_validation";
+        if (const char *enabled = std::getenv("PM_VULKAN_VALIDATION");
+            enabled && std::strcmp(enabled, "1") == 0) {
+            info.enabledLayerCount = 1;
+            info.ppEnabledLayerNames = &validation;
+        }
         check(vkCreateInstance(&info, nullptr, &handle), "vkCreateInstance");
     }
     ~Instance() {
@@ -587,6 +594,9 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                                 std::to_string(block.x);
         auto p = i.pipelines.find(key);
         if (p == i.pipelines.end()) {
+            if (std::getenv("PM_VULKAN_TRACE"))
+                std::fprintf(stderr, "Parallel Mater Vulkan pipeline: %s (%zu bytes)\n",
+                             key.c_str(), shader.size_bytes());
             VkShaderModuleCreateInfo source{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
             source.codeSize = shader.size_bytes();
             source.pCode = shader.data();

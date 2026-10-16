@@ -226,8 +226,10 @@ Vulkan on Linux. Backend capabilities control scene availability, and the shared
 hardware-profile resource limits preview workloads. Details and checks are in
 [VULKAN.md](VULKAN.md).
 
-This does not complete the full-domain qualification milestone. Android still
-ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
+This does not complete the full-domain qualification milestone. Android Vulkan packaging builds as of 2026-10-16, but the first Pixel 7 native
+API test crashes inside the Mali shader compiler during pipeline creation. The
+installed phone app remains the CPU preview. Resolving and qualifying this Vulkan
+driver on the phone,
 remaining particle domains/couplings, engine handoff, and sustained performance
 remain open.
 

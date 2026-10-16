@@ -123,5 +123,13 @@ unavailable-scene labels. The desktop profile uses four moving liquid-coupled
 bodies and 256 particles. Both physics drivers are separate loadable libraries;
 the Vulkan library has no CUDA runtime dependency.
 
-Android packaging and GPU runtime qualification remain the next step. The
-installed Android application still uses the previously tested CPU preview.
+Android Vulkan packaging now builds, including native public-API qualification
+executables. Pixel 7 reports the required features, but its first command/API
+run crashes inside the Mali shader compiler during pipeline creation. Phone GPU
+qualification remains open; the installed app retains the CPU preview. See
+[Android status and reproduction](../examples/android/README.md#vulkan-status-2026-10-16).
+
+For opt-in diagnostics, `PM_VULKAN_TRACE=1` prints each newly created pipeline's
+module, entry point, workgroup size and SPIR-V size. `PM_VULKAN_VALIDATION=1`
+explicitly requests `VK_LAYER_KHRONOS_validation`; it must already be available
+to the platform loader. A missing requested layer fails instance creation.
