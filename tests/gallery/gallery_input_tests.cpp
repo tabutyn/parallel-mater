@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/gallery_input.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -17,6 +18,17 @@ void require(bool condition, const char *message) {
 
 int main() {
     static_assert(gallery::gallery_entries.size() == 28U);
+    require(gallery::gallery_backend_from_name("cuda") ==
+                PM_NATIVE_BACKEND_CUDA,
+            "CUDA backend option must parse");
+    require(gallery::gallery_backend_from_name("d3d12") ==
+                PM_NATIVE_BACKEND_D3D12,
+            "D3D12 backend option must parse");
+    require(gallery::gallery_backend_from_name("dx12") ==
+                PM_NATIVE_BACKEND_D3D12,
+            "DX12 backend alias must parse");
+    require(!gallery::gallery_backend_from_name("directcompute"),
+            "retired DirectCompute backend must not parse");
 
     for (std::size_t current = 0; current < gallery::gallery_entries.size();
          ++current) {

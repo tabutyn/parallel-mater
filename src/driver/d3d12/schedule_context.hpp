@@ -67,8 +67,6 @@ class ScheduleContext {
     std::unique_ptr<Impl> impl_;
 };
 
-[[nodiscard]] inline ScheduleContext *context(cudaStream_t stream) noexcept {
-    return static_cast<ScheduleContext *>(stream);
-}
+[[nodiscard]] ScheduleContext *context(cudaStream_t stream) noexcept;
 
 } // namespace parallel_mater::d3d12

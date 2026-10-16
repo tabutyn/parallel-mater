@@ -147,6 +147,23 @@ ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
 
+### Windows Gallery application
+
+Windows gallery builds automatically refresh the current user's canonical
+Start Menu installation at
+`%LOCALAPPDATA%\Programs\Parallel-Mater\Parallel-Mater.exe`. This is enabled by
+default with `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=ON`, so building the
+`parallel-mater-gallery` target cannot leave the Start Menu shortcut pointing
+at an older tested build. The deployment packages every built portable driver
+manifest, excludes test-only drivers, atomically replaces files, and verifies
+their SHA-256 hashes and the executable's reported build identity.
+
+Use `Parallel-Mater.exe --version` to identify the installed revision and exact
+build timestamp. To
+repair the installation explicitly, build the `install-windows-gallery`
+target. Set `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=OFF` only for build
+directories that must never update the current user's application.
+
 ### macOS Gallery application
 
 The default macOS build creates `ParallelMater Gallery.app`, bundles the Slang
@@ -251,7 +268,7 @@ same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
-  --headless /tmp/parallel-mater-gallery.ppm --frames 120
+  --backend cuda --headless /tmp/parallel-mater-gallery.ppm --frames 120
 
 ./build-gallery/parallel-mater-gallery \
   --dump-spheres 100 \

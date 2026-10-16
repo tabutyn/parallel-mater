@@ -71,6 +71,10 @@
         } else if (argument == "--profiles-file" && index + 1 < argc) {
             output.profiles_file = argv[++index];
             output.profiles_file_overridden = true;
+        } else if (argument == "--backend" && index + 1 < argc) {
+            output.backend =
+                parallel_mater::gallery::gallery_backend_from_name(argv[++index]);
+            if (!output.backend) return false;
         } else if (argument == "--calibrate") {
             output.calibrate = true;
             output.initial_context = GalleryContext::rigid_body;
@@ -119,11 +123,16 @@
             output.cloth_debug = true;
         } else if (argument == "--physics-capture" && index + 1 < argc) {
             output.physics_capture_output = argv[++index];
+        } else if (argument == "--version") {
+            std::cout << "Parallel-Mater " PARALLEL_MATER_GALLERY_VERSION
+                      << " (" << build_identity_label() << ")\n";
+            std::exit(0);
         } else if (argument == "--help") {
             std::cout << "parallel-mater-gallery [--scene file.glb] "
                          "[--brick-count 1..4096] [--brick-scale 0.5..2] "
                          "[--brick-planes 1..16] [--calibrate] "
                          "[--profiles-file file.json] "
+                         "[--backend cuda|d3d12|metal|vulkan] "
                          "[--print-brick-profile] "
                          "[--dump-spheres N] [";
             bool first = true;
@@ -143,6 +152,7 @@
                          "[--fluid-particle-view] [--trace-fluid-escapes] "
                          "[--cloth-debug | --water-cloth-debug] "
                          "[--physics-capture output.log] "
+                         "[--version] "
                          "[--headless output.ppm] "
                          "[--frames N]\n";
             std::exit(0);

@@ -4,8 +4,10 @@
 #include <parallel_mater/parallel_mater.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,7 +34,15 @@ struct SelectedDevice {
     }
 };
 
-bool open_selected_device(SelectedDevice &selected) {
+[[nodiscard]] bool exposes_backend(PmPhysicalDevice physical,
+                                   PmNativeBackend backend) noexcept {
+    PmNativeInteropProperties properties{};
+    return pmGetPhysicalDeviceInteropProperties(
+               physical, backend, &properties) == PM_SUCCESS;
+}
+
+bool open_selected_device(SelectedDevice &selected,
+                          std::optional<PmNativeBackend> backend) {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_2;
@@ -48,16 +58,18 @@ bool open_selected_device(SelectedDevice &selected) {
     if (pmEnumeratePhysicalDevices(
             selected.instance, &count, physicals.data()) != PM_SUCCESS)
         return false;
-    selected.physical = physicals.front();
+    selected.physical = backend ? nullptr : physicals.front();
     for (PmPhysicalDevice candidate : physicals) {
         PmPhysicalDeviceFeatures features{};
         pmGetPhysicalDeviceFeatures(candidate, &features);
-        if (features.rigidBodies == PM_TRUE) {
+        if (features.rigidBodies == PM_TRUE &&
+            (!backend || exposes_backend(candidate, *backend))) {
             selected.physical = candidate;
             selected.features = features;
             break;
         }
     }
+    if (selected.physical == nullptr) return false;
     if (selected.features.rigidBodies != PM_TRUE)
         pmGetPhysicalDeviceFeatures(selected.physical, &selected.features);
     const float priority = 1.0F;
@@ -69,16 +81,6 @@ bool open_selected_device(SelectedDevice &selected) {
     device_info.enabledFeatures = selected.features;
     return pmCreateDevice(selected.physical, &device_info, &selected.device) ==
         PM_SUCCESS;
-}
-
-const char *backend_name(PmNativeBackend backend) noexcept {
-    switch (backend) {
-    case PM_NATIVE_BACKEND_CUDA: return "cuda";
-    case PM_NATIVE_BACKEND_D3D12: return "d3d12";
-    case PM_NATIVE_BACKEND_VULKAN: return "vulkan";
-    case PM_NATIVE_BACKEND_METAL: return "metal";
-    }
-    return "unknown";
 }
 
 #if defined(__APPLE__)
@@ -96,9 +98,50 @@ const char *backend_name(PmNativeBackend backend) noexcept {
 
 } // namespace
 
-HardwareIdentity platform_hardware_identity() {
+std::vector<GalleryBackendOption> platform_gallery_backends() {
+    PmInstanceCreateInfo instance_info{};
+    instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.pApplicationName = "parallel-mater-gallery-backends";
+    PmInstance instance{};
+    if (pmCreateInstance(&instance_info, nullptr, &instance) != PM_SUCCESS)
+        return {};
+    struct InstanceOwner {
+        PmInstance value{};
+        ~InstanceOwner() { if (value != nullptr) pmDestroyInstance(value); }
+    } owner{instance};
+    std::uint32_t count{};
+    if (pmEnumeratePhysicalDevices(instance, &count, nullptr) != PM_SUCCESS ||
+        count == 0U)
+        return {};
+    std::vector<PmPhysicalDevice> physicals(count);
+    if (pmEnumeratePhysicalDevices(instance, &count, physicals.data()) !=
+        PM_SUCCESS)
+        return {};
+
+    constexpr std::array backends{
+        PM_NATIVE_BACKEND_CUDA, PM_NATIVE_BACKEND_D3D12,
+        PM_NATIVE_BACKEND_METAL, PM_NATIVE_BACKEND_VULKAN};
+    std::vector<GalleryBackendOption> result;
+    for (PmNativeBackend backend : backends) {
+        for (PmPhysicalDevice physical : physicals) {
+            if (!exposes_backend(physical, backend)) continue;
+            PmPhysicalDeviceFeatures features{};
+            pmGetPhysicalDeviceFeatures(physical, &features);
+            if (features.rigidBodies != PM_TRUE) continue;
+            PmPhysicalDeviceProperties properties{};
+            pmGetPhysicalDeviceProperties(physical, &properties);
+            result.push_back({backend, properties.deviceName, features});
+            break;
+        }
+    }
+    return result;
+}
+
+HardwareIdentity platform_hardware_identity(
+    std::optional<PmNativeBackend> backend) {
     SelectedDevice selected;
-    if (!open_selected_device(selected)) return {};
+    if (!open_selected_device(selected, backend)) return {};
     PmPhysicalDeviceProperties properties{};
     PmMemoryProperties memory{};
     PmNativeDeviceInfo native{};
@@ -158,16 +201,17 @@ HardwareIdentity platform_hardware_identity() {
             result.memory_bytes = std::max(
                 result.memory_bytes, memory.heaps[index].size);
     result.backend = native_result == PM_SUCCESS
-        ? backend_name(native.backend) : "parallel-mater-loader";
+        ? gallery_backend_name(native.backend) : "parallel-mater-loader";
     result.driver = "Parallel Mater driver " +
         std::to_string(properties.driverVersion);
     result.power_mode = "driver-default";
     return result;
 }
 
-std::uint64_t platform_available_device_memory() noexcept {
+std::uint64_t platform_available_device_memory(
+    std::optional<PmNativeBackend> backend) noexcept {
     SelectedDevice selected;
-    if (!open_selected_device(selected)) return 0U;
+    if (!open_selected_device(selected, backend)) return 0U;
     PmMemoryBudget budget{};
     if (pmGetDeviceMemoryBudget(selected.device, &budget) != PM_SUCCESS ||
         budget.heapCount == 0U)

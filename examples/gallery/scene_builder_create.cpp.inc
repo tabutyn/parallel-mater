@@ -3,7 +3,8 @@ bool CommandScene::create(const SceneDefinition &scene,
                           std::uint32_t debug_frame_capacity,
                           CommandScene &output,
                           CommandSceneInstance &instance,
-                          std::string &error) {
+                          std::string &error,
+                          std::optional<PmNativeBackend> backend) {
     error.clear();
     output = {};
     instance = {};
@@ -33,6 +34,12 @@ bool CommandScene::create(const SceneDefinition &scene,
     PmPhysicalDeviceFeatures features{};
     const bool requires_fluid = scene.fluid_options.capacity != 0U;
     for (PmPhysicalDevice candidate : physical_devices) {
+        if (backend) {
+            PmNativeInteropProperties interop{};
+            if (pmGetPhysicalDeviceInteropProperties(
+                    candidate, *backend, &interop) != PM_SUCCESS)
+                continue;
+        }
         PmPhysicalDeviceFeatures candidate_features{};
         pmGetPhysicalDeviceFeatures(candidate, &candidate_features);
         const bool compatible = candidate_features.rigidBodies == PM_TRUE &&

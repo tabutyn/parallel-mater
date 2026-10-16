@@ -34,6 +34,7 @@ int main() {
     pmGetPhysicalDeviceFeatures(physical, &features);
     CHECK(features.rigidBodies == PM_TRUE);
     CHECK(features.rigidConstraints == PM_TRUE);
+    CHECK(features.debugData == PM_TRUE);
     CHECK(features.memoryBudget == PM_TRUE);
     std::uint32_t family_count{};
     CHECK(pmGetPhysicalDeviceQueueFamilies(
@@ -52,6 +53,7 @@ int main() {
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
+    device_info.enabledFeatures.debugData = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
     PmDevice device{};
     // Device creation loads the embedded common Slang schedule library,
@@ -164,6 +166,7 @@ int main() {
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     simulation_info.rigidBodyCapacity = 2U;
     simulation_info.contactCapacity = 8U;
+    simulation_info.debugFrameCapacity = 2U;
     PmSimulation simulation{};
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) == PM_SUCCESS);
     PmSimulationMemoryRequirements simulation_requirements{};
