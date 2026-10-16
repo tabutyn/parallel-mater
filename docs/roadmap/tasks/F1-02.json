@@ -1,7 +1,7 @@
 {
   "id": "F1-02",
   "title": "Plan paint allocations once",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "runtime-memory"
@@ -15,6 +15,14 @@
     "Undersized/capacity-overflow cases fail without corrupting unrelated resources."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "2d4225ef-790b-4808-a267-41c98576dae5",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-02/thomas-laptop",
+    "claimed_at": "2026-10-16T23:08:10Z",
+    "heartbeat_at": "2026-10-16T23:08:10Z",
+    "expires_at": "2026-10-17T23:08:10Z"
+  },
   "history": []
 }
