@@ -14,7 +14,7 @@ namespace parallel_mater::simulation {
 // It is scheduling state only; the constraint equations live in Slang.
 struct GeometryConstraintBody {
     RigidBodyState target{};
-    Quaternion current_orientation{};
+    Quaternion orientation_delta{};
     avbd::Vector6 displacement{};
     avbd::Block inertia{};
     std::uint32_t contact_head{UINT32_MAX};

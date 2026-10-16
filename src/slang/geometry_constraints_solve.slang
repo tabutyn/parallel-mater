@@ -200,8 +200,8 @@ void solve_avbd_kernel(
                 {
                     bodies[bodyIndex].target = states[bodyIndex];
                     bodies[bodyIndex].displacement = avbdZeroVector6();
-                    bodies[bodyIndex].current_orientation =
-                        states[bodyIndex].orientation;
+                    bodies[bodyIndex].orientation_delta =
+                        Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
                 }
             }
             rigid_avbd_barrier();
@@ -558,12 +558,12 @@ void solve_avbd_kernel(
             }
             state.position = add(state.position,
                 rigid_avbd_translation(delta));
-            state.orientation = bodies[bodyIndex].current_orientation;
+            state.orientation = rigid_avbd_pose(bodies[bodyIndex]).orientation;
             state.linear_velocity = add(state.linear_velocity,
                 multiply(rigid_avbd_translation(delta), 1.0f / dt));
             state.angular_velocity = add(state.angular_velocity,
-                quaternion_delta_velocity(bodies[bodyIndex].target.orientation,
-                    state.orientation, dt));
+                multiply(quaternion_rotation_vector(
+                    bodies[bodyIndex].orientation_delta), 1.0f / dt));
             states[bodyIndex] = state;
         }
         rigid_avbd_barrier();
