@@ -115,7 +115,7 @@ def git(root, *args):
 
 def load(root, revision=None):
     if revision:
-        paths = git(root, 'ls-tree', '-r', '--name-only', revision, '--', str(TASK_DIR)).splitlines()
+        paths = git(root, 'ls-tree', '-r', '--name-only', revision, '--', TASK_DIR.as_posix()).splitlines()
         result = {Path(p).stem: json.loads(git(root, 'show', f'{revision}:{p}'))
                   for p in paths if p.endswith('.json')}
     else:
@@ -236,7 +236,8 @@ def transitions(base, tasks, now, changed_paths=(), branch=None):
                 'completion PR cannot redefine another existing task; use a planning PR')
     if changes and changes[0][0] != 'complete':
         _, id = changes[0]
-        allowed = {str(ROADMAP), str(TASK_DIR / f'{id}.json')}
+        # Git reports repository paths with '/', including on Windows.
+        allowed = {ROADMAP.as_posix(), (TASK_DIR / f'{id}.json').as_posix()}
         require(set(changed_paths) <= allowed, 'claim/renew/reclaim/release PR must contain only its task card and generated roadmap')
         require(all(tasks[other] == base[other] for other in base if other != id), 'lease PR may change only its one task')
         require(set(tasks) == set(base), 'lease PR cannot add tasks')

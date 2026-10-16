@@ -1,0 +1,25 @@
+{
+  "id": "F5-10",
+  "title": "Correct shared contacts and CUDA/D3D12 drift",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "quality-bricks",
+    "quality-cross-driver",
+    "shared-rigid-contact-solver"
+  ],
+  "requires": [
+    "Windows CUDA and D3D12 on the same GPU"
+  ],
+  "scope": "Adopt the physics-correctness work started before the lease bootstrap: shared Slang rotational/contact corrections, common static mesh feature classification, and their CUDA/D3D12 numerical compilation contract. Resolve the selected 10/17 comparison failures and shared eight-brick penetration failure. F5-05 and F5-06 remain separate investigation/evidence reviews; this corrective task does not mark those cards complete.",
+  "acceptance": [
+    "All 17 selected same-build CUDA/D3D12 comparisons pass, with zero unsupported cases and unchanged canonical inputs, numerical tolerances and historical goldens.",
+    "Both adapters pass the independent eight-brick, four-substep, 300-frame mesh-penetration check against its existing 2 mm limit.",
+    "Focused regressions preserve torque-free rotation, floor clearance, closed/open concave seams, two-sided sheets, real boundary-edge impacts and centered fast convex crossings.",
+    "D3D12 passes all 13 supported gallery scene/reset gates, the 2400-frame hinge/slider fixture, repeated API submissions and resource/domain/coupling lifecycle checks; the installed gallery survives each supported scene for at least five seconds.",
+    "Commit a scoped, revisioned evidence report with reproduction commands, device/toolchain and case hashes. No backend-specific physics fork, tolerance relaxation, full-domain qualification or performance claim."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
