@@ -13,6 +13,13 @@ function(parallel_mater_add_slang_metal_kernels)
         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     if(APPLE)
         find_program(PARALLEL_MATER_XCRUN_EXECUTABLE xcrun REQUIRED)
+        set(metal_sdk macosx)
+        if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+            set(metal_sdk iphoneos)
+            if(CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
+                set(metal_sdk iphonesimulator)
+            endif()
+        endif()
     endif()
     set(outputs)
     set(records "")
@@ -56,14 +63,14 @@ function(parallel_mater_add_slang_metal_kernels)
             if(APPLE)
                 add_custom_command(
                     OUTPUT "${base}.air" "${base}.metallib"
-                    COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk macosx metal
+                    COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk ${metal_sdk} metal
                         -std=metal3.0 -Werror -fno-fast-math -ffp-contract=off
                         # Slang retains unused atomic fetch results in MSL.
                         # Keep all other native diagnostics as errors.
                         -Wno-unused-variable
                         "-fmodules-cache-path=${generated_dir}/module-cache"
                         -c "${base}.metal" -o "${base}.air"
-                    COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk macosx metallib
+                    COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk ${metal_sdk} metallib
                         "${base}.air" -o "${base}.metallib"
                     DEPENDS "${base}.metal" "${PARALLEL_MATER_XCRUN_EXECUTABLE}"
                     COMMENT "Native Metal compile/link: ${module}.${entry}"

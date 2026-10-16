@@ -59,6 +59,15 @@ It does not build at launch. Vulkan uses conservative startup limits from the
 shared device-profile resource and labels its smaller scene scope in the picker.
 See [Vulkan build and validation details](VULKAN.md).
 
+## iPad preview
+
+The [UIKit iPad app](../examples/ios/README.md) uses the same loader and Slang
+Metal physics backend as the macOS preview. It shares the scene builder,
+software renderer, workload catalog, and frame timing collector; only touch
+input, image presentation, and app lifecycle are native UIKit. It exposes 27
+existing scenes, excluding Dump Truck until vehicle touch controls are added.
+GPU physics is not GPU rendering: the image renderer remains CPU-based.
+
 ## First gallery sequence
 
 The same ordered catalog, scene construction, controls, and simulation path are

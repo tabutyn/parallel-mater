@@ -246,5 +246,18 @@ ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
 remaining particle domains/couplings, engine handoff, and sustained performance
 remain open.
 
+## iPad Gallery integration (2026-10-16)
+
+The [iPad preview](../examples/ios/README.md) packages the existing Slang Metal
+driver as a signed framework with iOS-compiled shaders. UIKit consumes shared
+Gallery scenes and software-rendered images; physics has no CPU fallback.
+Android's bounded worker scheduling and profile-driven workloads inform the
+mobile shell. The 27-scene session test covers finite output, rendering, pause,
+reset, and timing reset on the Mac GPU. Device runtime evidence is recorded
+separately in the iPad guide; compilation and host tests alone do not qualify
+iPad hardware. Dump Truck touch controls, sustained device validation, missing
+roadmap interactions, native GPU rendering, and full physics qualification
+remain open.
+
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

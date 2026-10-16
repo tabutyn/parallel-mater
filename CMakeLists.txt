@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ParallelMater VERSION 0.1.0 LANGUAGES CXX)
 
+set(PARALLEL_MATER_IOS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(PARALLEL_MATER_IOS ON)
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(FetchContent)
@@ -83,7 +88,7 @@ option(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW
        "Build the limited Apple-GPU Gallery development driver" OFF)
 if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
     if(NOT APPLE)
-        message(FATAL_ERROR "The Metal preview requires macOS")
+        message(FATAL_ERROR "The Metal preview requires an Apple platform")
     endif()
     set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL "Compile shared shaders" FORCE)
 endif()
@@ -634,7 +639,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         FetchContent_MakeAvailable(pm_optix)
     endif()
 
-    if(NOT ANDROID)
+    if(NOT ANDROID AND NOT PARALLEL_MATER_IOS)
     if(NOT WIN32)
         find_package(OpenGL REQUIRED)
     endif()
@@ -722,6 +727,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
 
     if(ANDROID)
         add_subdirectory(examples/android/app/src/main/cpp)
+    elseif(PARALLEL_MATER_IOS)
+        include(cmake/ParallelMaterIOSGallery.cmake)
     else()
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
@@ -1076,10 +1083,20 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     add_dependencies(parallel-mater-slang-kernel-mirrors
         parallel-mater-slang-metal-kernels)
     if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+        set(metal_resource_directory "$<TARGET_FILE_DIR:parallel-mater-driver-slang-metal>/slang-metal")
+        set(metal_resource_arguments "-DDESTINATION=${metal_resource_directory}")
+        if(PARALLEL_MATER_IOS)
+            # Xcode's target-directory generator expressions contain a literal
+            # EFFECTIVE_PLATFORM_NAME in custom targets. Resolve the
+            # platform suffix from the build environment instead.
+            set(metal_resource_arguments
+                "-DDESTINATION=$<TARGET_BUNDLE_DIR:parallel-mater-driver-slang-metal>/slang-metal"
+                "-DXCODE_RESOLVE_PLATFORM=ON")
+        endif()
         add_custom_target(parallel-mater-slang-metal-resources ALL
             COMMAND ${CMAKE_COMMAND}
                 -DMANIFEST=${PARALLEL_MATER_SLANG_METAL_MANIFEST}
-                -DDESTINATION=$<TARGET_FILE_DIR:parallel-mater-driver-slang-metal>/slang-metal
+                ${metal_resource_arguments}
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PackMetalKernels.cmake
             DEPENDS parallel-mater-slang-metal-kernels VERBATIM)
         add_dependencies(parallel-mater-driver-slang-metal parallel-mater-slang-metal-resources)
@@ -1098,6 +1115,25 @@ if(BUILD_TESTING)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
+    if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND TARGET parallel-mater-gallery-renderer)
+        set(ipad_test_resources "${CMAKE_CURRENT_BINARY_DIR}/ipad-test-resources")
+        file(MAKE_DIRECTORY "${ipad_test_resources}/config")
+        configure_file(config/device-profiles.json "${ipad_test_resources}/config/device-profiles.json" COPYONLY)
+        if(NOT EXISTS "${ipad_test_resources}/assets")
+            file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets" "${ipad_test_resources}/assets" SYMBOLIC)
+        endif()
+        add_executable(parallel-mater-ipad-session-tests
+            tests/gallery/ipad_session_tests.cpp examples/ios/gallery_session.cpp)
+        target_link_libraries(parallel-mater-ipad-session-tests PRIVATE
+            parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
+        target_include_directories(parallel-mater-ipad-session-tests PRIVATE examples/ios)
+        target_compile_definitions(parallel-mater-ipad-session-tests PRIVATE
+            PM_IPAD_REVISION="test" PM_IPAD_TEST_RESOURCES="${ipad_test_resources}")
+        add_dependencies(parallel-mater-ipad-session-tests parallel-mater-driver-slang-metal parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-ipad-session-tests COMMAND parallel-mater-ipad-session-tests)
+        set_tests_properties(parallel-mater-ipad-session-tests PROPERTIES TIMEOUT 600
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+    endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)
         add_executable(parallel-mater-mobile-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
@@ -1250,6 +1286,7 @@ install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
     EXPORT ParallelMaterTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
     FILES

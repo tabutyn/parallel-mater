@@ -158,6 +158,15 @@ workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
 rigid and liquid scenes only; Android GPU execution and other domains remain
 future work. See [build, install and controls](examples/android/README.md).
 
+### iPad Gallery preview
+
+A native UIKit preview reuses the macOS Slang Metal driver for **Apple GPU
+physics**, the shared Gallery software renderer, and Android-style bounded
+mobile workloads. It exposes 27 existing scenes without CPU physics fallback.
+Requires iPadOS 26+ and Apple GPU family 7 or newer; full physics and sustained
+performance qualification remain pending. See [build, install, controls and
+device diagnostics](examples/ios/README.md).
+
 ### Windows Gallery application
 
 Windows gallery builds automatically refresh the current user's canonical

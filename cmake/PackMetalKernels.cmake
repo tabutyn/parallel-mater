@@ -1,5 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Package relative shader paths; installed drivers never access the source tree.
+if(XCODE_RESOLVE_PLATFORM)
+    if("$ENV{EFFECTIVE_PLATFORM_NAME}" STREQUAL "")
+        message(FATAL_ERROR "Xcode EFFECTIVE_PLATFORM_NAME is required to package iOS Metal shaders")
+    endif()
+    string(REPLACE "\${EFFECTIVE_PLATFORM_NAME}" "$ENV{EFFECTIVE_PLATFORM_NAME}" DESTINATION "${DESTINATION}")
+endif()
+if(NOT DEFINED DESTINATION OR DESTINATION STREQUAL "")
+    message(FATAL_ERROR "Metal shader package destination is required")
+endif()
 file(STRINGS "${MANIFEST}" records)
 set(manifest "")
 foreach(record IN LISTS records)
