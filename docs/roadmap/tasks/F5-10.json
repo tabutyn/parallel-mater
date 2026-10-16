@@ -1,7 +1,7 @@
 {
   "id": "F5-10",
   "title": "Correct shared contacts and CUDA/D3D12 drift",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "quality-bricks",
@@ -20,6 +20,14 @@
     "Commit a scoped, revisioned evidence report with reproduction commands, device/toolchain and case hashes. No backend-specific physics fork, tolerance relaxation, full-domain qualification or performance claim."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "3e073a71-9d29-4d2a-ba05-70b3f6d9a551",
+    "owner": "codex-windows-physics",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-10/windows-gtx1080",
+    "claimed_at": "2026-10-16T21:56:11Z",
+    "heartbeat_at": "2026-10-16T21:56:11Z",
+    "expires_at": "2026-10-17T21:56:11Z"
+  },
   "history": []
 }
