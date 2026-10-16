@@ -25,6 +25,13 @@ struct FrameTimingSample {
     double other_ms{};
 };
 
+// Last 60 completed frames, including idle time only in cadence_fps. Host-work
+// throughput (fps()) intentionally excludes time outside measured frames.
+struct FrameTimingStatistics {
+    std::size_t count{};
+    double mean_ms{}, median_ms{}, p95_ms{}, physics_ms{}, render_ms{}, present_ms{}, cadence_fps{};
+};
+
 // Host wall time, not GPU kernel time. Call sites supply phase boundaries only.
 // Explicit timestamps allow deterministic tests without sleeps or native clocks.
 class FrameTimingCollector {
@@ -43,6 +50,7 @@ class FrameTimingCollector {
     void clear_history();
     [[nodiscard]] const std::optional<FrameTimingSample> &latest() const { return latest_; }
     [[nodiscard]] double fps() const;
+    [[nodiscard]] FrameTimingStatistics statistics() const;
 
   private:
     bool active_{};
@@ -54,6 +62,8 @@ class FrameTimingCollector {
     std::uint64_t completed_{};
     std::deque<double> history_{};
     double history_ms_{};
+    struct Completed { FrameTimingSample sample; TimePoint start, end; };
+    std::deque<Completed> recent_;
 };
 
 // A disabled writer is a no-op. The owner explicitly closes it to report flush

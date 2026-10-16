@@ -38,13 +38,14 @@ template <typename T>
 
 bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
                         CommandSceneFrame &frame, std::string &error,
-                        bool collect_contacts) {
+                        bool collect_contacts, bool readback) {
     error.clear();
     if (impl_ == nullptr || !(timestep > 0.0F) || substeps == 0U) {
         error = "step simulation: invalid argument";
         return false;
     }
-    frame.previous_rigid_states = frame.rigid_states;
+    impl_->output_ready = false;
+    if (readback) frame.previous_rigid_states = frame.rigid_states;
     if (!impl_->begin(error)) return false;
     if (!checked(pmCmdResetQueryPool(impl_->commands, impl_->statistics_query,
                                      0U, 1U),
@@ -150,6 +151,17 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
             }, impl_->debug_output, "copy debug output"))
         return false;
     if (!impl_->submit(error)) return false;
+    impl_->output_ready = true;
+
+    // GPU rendering consumes this public output buffer directly. Readback is
+    // retained only for explicit validation/capture and CPU scene controllers.
+    if (!readback) return true;
+    return readback_frame(frame, error, collect_contacts);
+}
+
+bool CommandScene::readback_frame(CommandSceneFrame &frame, std::string &error, bool collect_contacts) const {
+    error.clear();
+    if (!impl_ || !impl_->output_ready) { error = "No completed frame to read"; return false; }
 
     const auto *base = static_cast<const std::byte *>(impl_->output.mapped);
     try {
@@ -233,6 +245,23 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
         sizeof(frame.statistics), &frame.statistics,
         sizeof(frame.statistics), PM_QUERY_RESULT_WAIT_BIT);
     return checked(query_result, "read statistics query", error);
+}
+
+bool CommandScene::gpu_frame(CommandSceneGpuFrame &frame, std::string &error) const {
+    error.clear();
+    frame = {};
+    if (!impl_ || !impl_->output_ready) { error = "GPU frame: no completed output"; return false; }
+    if (!checked(pmGetNativeBuffer(impl_->device, impl_->output.handle, &frame.buffer),
+        "export public render buffer", error)) return false;
+    const auto region = [](auto value) { return CommandSceneGpuFrame::Region{value.offset, value.size}; };
+    frame.rigid = region(impl_->rigid_output);
+    frame.fluid = region(impl_->fluid_output);
+    frame.smoke = region(impl_->smoke_output);
+    for (auto value : impl_->cloth_surface_outputs) frame.cloth_surfaces.push_back(region(value));
+    for (auto value : impl_->soft_body_surface_outputs) frame.soft_surfaces.push_back(region(value));
+    for (auto value : impl_->rope_outputs) frame.ropes.push_back(region(value));
+    for (auto value : impl_->paint_outputs) frame.paint.push_back(region(value));
+    return true;
 }
 
 bool CommandScene::set_rigid_state(std::uint32_t body,

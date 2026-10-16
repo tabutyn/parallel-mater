@@ -3,8 +3,11 @@
 Native UIKit development preview using the same public loader, validation layer,
 shared Gallery scene builder, and **Slang Metal physics driver** as macOS.
 Physics kernels execute on the iPad's Apple GPU. There is no CPU physics
-fallback. The shared software renderer still draws the image on the CPU;
-UIKit displays that image. No desktop streaming or runtime network is needed.
+fallback. A shared Metal graphics renderer consumes the public GPU output
+buffer directly and presents through `CAMetalLayer`. Normal drawing does not
+copy physics positions or rendered images to the CPU. Explicit diagnostic
+captures and the Fixed scene's CPU controller still read state. No desktop
+streaming or runtime network is needed.
 
 The Android app informed the worker-thread lifecycle, touch controls, bounded
 frame scheduling, and shared device-profile budgets. iPad does not use Android's
@@ -25,10 +28,7 @@ export PM_APPLE_TEAM=YOUR_TEAM_ID
 export SLANGC=/path/to/slang/bin/slangc # optional; CMake can fetch the pinned host compiler
 bash scripts/Build-IPadGallery.sh
 xcrun devicectl list devices
-xcrun devicectl device install app --device DEVICE_ID \
-  'build-ipad-gallery/Release-iphoneos/ParallelMater Gallery.app'
-xcrun devicectl device process launch --device DEVICE_ID \
-  com.ballrollergames.parallelmater.gallery
+python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID
 ```
 
 Unlock the iPad before launching. Xcode handles development signing; do not
@@ -38,6 +38,21 @@ an existing cgltf checkout. The generated Xcode project can also be opened to
 run/debug on a selected device. Frameworks, GLBs, profiles, manifests, and 136
 compiled Metal shader entries are bundled and signed; runtime does not access
 the workstation or its removable volumes.
+
+The build uses the `ipad-metal-preview` CMake preset. `ipad-ci` builds the same
+app without signing for CI. The approved logo is compiled into the AppIcon
+asset catalog. Deployment rejects an old revision or dirty build by default;
+`--allow-dirty` explicitly permits a development iteration. It verifies the
+running app's compiled revision and actual backend using a fresh launch nonce,
+not a stale file from an earlier installation. A locked iPad is an installation
+success but a verification failure, never a claimed successful launch.
+
+For Mac: configure/build/test `macos-metal-preview`, then run
+`python3 scripts/Deploy-Gallery.py macos`. The wrapper checks the installed
+bundle and runs a native-window direct-GPU smoke test. Linux/Vulkan and
+Windows/D3D12 presets provide equivalent explicit backend selection; native
+runtime qualification still needs suitable hardware. See the mobile build
+workflow for Android's pinned Gradle/SDK/NDK configuration.
 
 ## Scenes and controls
 
@@ -55,8 +70,14 @@ missing roadmap interactions.
 
 Only one worker frame can be pending. Backgrounding stops scheduling and clears
 held input. A completed worker frame can still finish during the transition.
-UI image handoff and display latency are excluded from the displayed host-work
-timings; these are neither GPU-kernel durations nor scan-out FPS.
+Android and iPad use one C++ `GallerySession`, including controls, scene/reset
+logic, workload selection and `FrameTimingCollector`. Native adapters own only
+input, lifecycle and presentation. Metal drawable acquisition/presentation is
+recorded under presentation; GPU command completion is render work. These are
+host wall-clock measurements, neither GPU-kernel durations nor scan-out FPS.
+Physics and graphics are explicitly fenced before the shared output buffer is
+reused: this removes the rendering readback, not all host waits or solver-internal
+readbacks. Multiple frames in flight and external engine imports remain separate work.
 
 The provisional `ipad-metal-preview` profile in `config/device-profiles.json`
 uses four bricks, 256 liquid particles, four independent dynamic bodies in the
@@ -75,28 +96,33 @@ ctest --test-dir build-macos-metal-preview --output-on-failure \
   -R 'ipad-session|gallery-workload'
 ```
 
-The session test loads all 27 exposed scenes, simulates and renders three
-frames each, checks finite domain output and image dimensions, and exercises
+The session test loads all 27 exposed scenes with software and native Metal
+rendering, checks finite domain output and image dimensions, and exercises
 pause, reset, timing-history reset, invalid selection, and Point release/restore.
-This tests the shared iPad session with the Mac GPU, not UIKit or iPad hardware.
+It also checks Android's eight-scene catalog and budgets, plus image-readback
+exclusion on ordinary GPU frames. This tests shared code with the Mac GPU,
+not Android hardware or UIKit.
 
 For an on-device diagnostic run:
 
 ```sh
-xcrun devicectl device process launch --device DEVICE_ID --terminate-existing \
-  --console com.ballrollergames.parallelmater.gallery --smoke-test
+python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID --qualify 120
 ```
 
-The app checks three rendered frames per exposed scene, logs each result, and
-writes `Documents/smoke-report.json` and `Documents/last-smoke-frame.png` inside
-its own container. It then returns to Rigid Body for interactive use. Reports
-can be copied with `devicectl device copy from` or Finder file sharing. This is
-a bounded startup/render smoke test, not sustained stability, touch-control,
-thermal, numerical-reference, or full interaction qualification.
+The app runs 120 frames per scene, validates output/images, and checks shared
+pause, inactive/resume and reset behavior. The host then backgrounds Gallery
+using Settings and returns to Gallery, checking actual OS lifecycle counters and
+that simulation did not advance while inactive. Reports are nonce-bound and
+saved under `out/gallery-deployment/`. `--smoke-test` remains a short three-frame
+variant. The app writes `Documents/smoke-report.json`, `runtime-info.json` and
+`last-smoke-frame.png`; report schema now includes identity and a `scenes` array.
+These bounded sustained/control checks do not qualify touch accuracy, thermal
+behavior, numerical agreement or all missing interactions.
 
-2026-10-16 validation: Release iPadOS build and deep code-signature verification
-passed; all 136 Metal entries were bundled. Installation succeeded on the
-connected iPad Pro 12.9-inch (5th generation), `iPad13,8`, iPadOS 26.6.2. Launch
-was blocked by the device lock screen, so on-device physics and UIKit interaction
-are **not yet verified**. The Mac regression suite passed all 36 tests, including
-the 27-scene session check. No mobile performance profile was promoted.
+2026-10-16 evidence: the original `43dcfac` iPad preview launched after unlocking
+and passed all 27 scenes × three frames on the connected Apple M1 iPad Pro
+12.9-inch (5th generation), `iPad13,8`, iPadOS 26.6.2. The shared-session/icon
+development build based on `051b50c` subsequently passed 27 × 120 frames plus
+shared control checks. Mac regression tests pass 36/36, including native Metal
+rendering across all 27 mobile scenes. These are explicitly preview results;
+no mobile performance profile or full physics qualification was promoted.

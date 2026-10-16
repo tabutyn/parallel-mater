@@ -18,7 +18,7 @@ endif()
 target_compile_definitions(parallel-mater-gallery-android PRIVATE
     PM_ANDROID_VULKAN=$<STREQUAL:${PARALLEL_MATER_ANDROID_BACKEND},vulkan>)
 target_link_libraries(parallel-mater-gallery-android PRIVATE
-    parallel-mater-gallery-renderer ${android_driver}
+    parallel-mater-gallery-session ${android_driver}
     parallel-mater-layer-validation android log)
 set_target_properties(parallel-mater-gallery-android PROPERTIES
     OUTPUT_NAME parallel_mater_gallery)

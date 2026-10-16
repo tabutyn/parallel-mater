@@ -1,17 +1,30 @@
 // SPDX-License-Identifier: MIT
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
-#include "gallery_session.hpp"
+#import <Metal/Metal.h>
+#include <parallel_mater_gallery/session.hpp>
 #include <sys/utsname.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <memory>
 
-using parallel_mater::gallery::IPadGallerySession;
+using parallel_mater::gallery::GallerySession;
 namespace {
 NSString *text(const std::string &value) { return [NSString stringWithUTF8String:value.c_str()]; }
-UIImage *frame_image(const IPadGallerySession &session) {
+NSString *argument(NSString *name) {
+    NSArray<NSString *> *args = NSProcessInfo.processInfo.arguments;
+    NSUInteger index = [args indexOfObject:name];
+    return index != NSNotFound && index + 1 < args.count ? args[index + 1] : nil;
+}
+void write_report(NSString *name, id object) {
+    NSError *error = nil;
+    NSURL *directory = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:object options:NSJSONWritingPrettyPrinted error:&error];
+    if (!data || ![data writeToURL:[directory URLByAppendingPathComponent:name] options:NSDataWritingAtomic error:&error])
+        throw std::runtime_error(std::string("Writing device report: ") + error.localizedDescription.UTF8String);
+}
+UIImage *frame_image(const GallerySession &session) {
     // Shared renderer pixels are bottom-up RGBA. UIKit images are top-down.
     NSMutableData *data = [NSMutableData dataWithLength:session.pixels.size() * 4];
     auto *destination = static_cast<std::uint32_t *>(data.mutableBytes);
@@ -29,10 +42,16 @@ UIImage *frame_image(const IPadGallerySession &session) {
 }
 }
 
+@interface PMMetalView : UIView
+@end
+@implementation PMMetalView
++ (Class)layerClass { return CAMetalLayer.class; }
+@end
+
 @interface PMGalleryController : UIViewController <UIGestureRecognizerDelegate> {
-    std::unique_ptr<IPadGallerySession> _session;
+    std::unique_ptr<GallerySession> _session;
     dispatch_queue_t _worker;
-    UIImageView *_image;
+    PMMetalView *_image;
     UILabel *_status;
     UIButton *_sceneButton, *_pauseButton, *_releaseButton;
     CADisplayLink *_display;
@@ -41,6 +60,9 @@ UIImage *frame_image(const IPadGallerySession &session) {
     NSInteger _selection;
     BOOL _reset, _focus, _release;
     NSString *_details;
+    unsigned _backgrounds, _foregrounds;
+    std::uint64_t _backgroundFrames;
+    unsigned _renderWidth, _renderHeight;
 }
 @end
 
@@ -59,10 +81,11 @@ UIImage *frame_image(const IPadGallerySession &session) {
 }
 - (void)viewDidLoad {
     [super viewDidLoad];
+    UIApplication.sharedApplication.idleTimerDisabled = YES;
     _active = YES; _selection = -1;
     _worker = dispatch_queue_create("org.parallelmater.gallery.simulation", DISPATCH_QUEUE_SERIAL);
     self.view.backgroundColor = [UIColor colorWithWhite:0.075 alpha:1];
-    _image = [UIImageView new]; _image.contentMode = UIViewContentModeScaleAspectFit;
+    _image = [PMMetalView new];
     _image.userInteractionEnabled = YES;
     _image.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:_image];
@@ -79,7 +102,7 @@ UIImage *frame_image(const IPadGallerySession &session) {
 
     _sceneButton = [self button:@"RIGID BODY ▾" action:nil];
     NSMutableArray<UIMenuElement *> *scenes = [NSMutableArray array];
-    const auto names = IPadGallerySession::scene_names();
+    const auto names = GallerySession::scene_names();
     __weak PMGalleryController *weakSelf = self;
     for (unsigned i = 0; i < names.size(); ++i) {
         NSString *name = text(names[i]);
@@ -147,9 +170,27 @@ UIImage *frame_image(const IPadGallerySession &session) {
                 setenv("PM_DRIVER_FILES", (resources / "manifests/slang-metal.json").c_str(), 1);
                 setenv("PM_LAYER_FILES", (resources / "manifests/validation.json").c_str(), 1);
                 struct utsname machine{}; uname(&machine);
-                self->_session = std::make_unique<IPadGallerySession>(resources, machine.machine);
+                self->_session = std::make_unique<GallerySession>(parallel_mater::gallery::GallerySessionConfig{
+                    .assets = resources / "assets", .profiles = resources / "config/device-profiles.json",
+                    .platform = "iPadOS", .model = machine.machine, .backend = "metal",
+                    .native_backend = PM_NATIVE_BACKEND_METAL, .gpu_rendering = true});
+                self->_session->set_presentation_layer((__bridge void *)self->_image.layer);
                 NSLog(@"ParallelMater: %@", text(self->_session->details()));
-                if ([NSProcessInfo.processInfo.arguments containsObject:@"--smoke-test"])
+                id<MTLDevice> gpu = (__bridge id<MTLDevice>)self->_session->native_render_device();
+                const auto limits = self->_session->limits;
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    CAMetalLayer *layer = (CAMetalLayer *)self->_image.layer;
+                    layer.device = gpu; layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+                    layer.framebufferOnly = YES;
+                    layer.drawableSize = CGSizeMake(limits.render_width, limits.render_height);
+                    self->_renderWidth = limits.render_width; self->_renderHeight = limits.render_height;
+                });
+                // Publish a real drawable before a long offscreen diagnostic.
+                // The system must never wait for qualification to see first draw.
+                self->_session->frame();
+                [self writeRuntimeInfo];
+                if ([NSProcessInfo.processInfo.arguments containsObject:@"--smoke-test"] ||
+                    [NSProcessInfo.processInfo.arguments containsObject:@"--qualify"])
                     [self runSmokeTests];
                 dispatch_async(dispatch_get_main_queue(), ^{ self->_ready = YES; });
             } catch (const std::exception &error) {
@@ -168,6 +209,8 @@ UIImage *frame_image(const IPadGallerySession &session) {
     const NSInteger selection = _selection;
     const unsigned width = std::max(1.0, self.view.bounds.size.width);
     const unsigned height = std::max(1.0, self.view.bounds.size.height);
+    const float scale = std::min({1.0F, float(_renderWidth)/width, float(_renderHeight)/height});
+    ((CAMetalLayer *)_image.layer).drawableSize = CGSizeMake(std::max(1U, unsigned(width*scale)), std::max(1U, unsigned(height*scale)));
     _orbitX = _orbitY = _zoom = 0; _reset = _focus = _release = NO; _selection = -1;
     dispatch_async(_worker, ^{
         @autoreleasepool {
@@ -175,17 +218,20 @@ UIImage *frame_image(const IPadGallerySession &session) {
                 auto &session = *self->_session;
                 if (selection >= 0) session.select(static_cast<unsigned>(selection));
                 else if (reset) session.reset();
+                if (selection >= 0 || reset) {
+                    id<MTLDevice> gpu = (__bridge id<MTLDevice>)session.native_render_device();
+                    dispatch_sync(dispatch_get_main_queue(), ^{ ((CAMetalLayer *)self->_image.layer).device = gpu; });
+                }
                 session.resize(width, height);
                 if (focus) session.focus();
                 if (release) session.release();
                 session.orbit(x * session.height / height, y * session.height / height);
-                session.zoom(z); session.right = right; session.up = up; session.paused = paused;
+                session.zoom(z); session.steer(right, up); session.set_paused(paused);
                 session.frame();
-                UIImage *image = frame_image(session);
                 NSString *status = text(session.status());
                 NSString *details = text(session.details());
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    self->_image.image = image; self->_status.text = status;
+                    self->_status.text = status;
                     self->_details = details; self->_pending = NO;
                 });
             } catch (const std::exception &error) {
@@ -220,25 +266,58 @@ UIImage *frame_image(const IPadGallerySession &session) {
 }
 - (void)zoom:(UIPinchGestureRecognizer *)gesture { _zoom += std::log(gesture.scale) * 10; gesture.scale = 1; }
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)a shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)b { (void)a; (void)b; return YES; }
-- (void)background { _active = NO; [self releaseDirections]; _orbitX = _orbitY = _zoom = 0; }
-- (void)foreground { _active = YES; }
+- (void)background {
+    UIApplication.sharedApplication.idleTimerDisabled = NO;
+    _active = NO; [self releaseDirections]; _orbitX = _orbitY = _zoom = 0;
+    dispatch_async(_worker, ^{
+        if (!self->_session) return;
+        self->_session->set_active(false); ++self->_backgrounds;
+        self->_backgroundFrames = self->_session->frames;
+        [self writeRuntimeInfo];
+    });
+}
+- (void)foreground {
+    UIApplication.sharedApplication.idleTimerDisabled = YES;
+    _active = YES;
+    dispatch_async(_worker, ^{
+        if (!self->_session) return;
+        self->_session->set_active(true); ++self->_foregrounds;
+        [self writeRuntimeInfo];
+    });
+}
+- (void)writeRuntimeInfo {
+    try {
+        write_report(@"runtime-info.json", @{
+            @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
+            @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
+            @"backgrounds":@(_backgrounds), @"foregrounds":@(_foregrounds),
+            @"active":@(_session->active()), @"frames":@(_session->frames), @"background_frames":@(_backgroundFrames),
+            @"release_channel":@"development-preview", @"renderer":@"metal-direct-fenced"});
+    } catch (const std::exception &error) { NSLog(@"Runtime report failed: %s", error.what()); }
+}
 - (void)shutdown {
+    UIApplication.sharedApplication.idleTimerDisabled = NO;
     _active = NO; [_display invalidate];
     [NSNotificationCenter.defaultCenter removeObserver:self];
     dispatch_async(_worker, ^{ self->_session.reset(); });
 }
 - (void)runSmokeTests {
     NSMutableArray *results = [NSMutableArray array];
+    const bool extended = [NSProcessInfo.processInfo.arguments containsObject:@"--qualify"];
+    const NSInteger requested = argument(@"--qualification-frames") ? [argument(@"--qualification-frames") integerValue] : 120;
+    if (extended && (requested < 1 || requested > 100000))
+        throw std::runtime_error("--qualification-frames must be 1..100000");
+    const unsigned steps = extended ? static_cast<unsigned>(requested) : 3;
     NSArray<NSURL *> *directories = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
-    NSURL *report = [directories.firstObject URLByAppendingPathComponent:@"smoke-report.json"];
-    const auto names = IPadGallerySession::scene_names();
+    const auto names = GallerySession::scene_names();
     for (unsigned i = 0; i < names.size(); ++i) {
         @autoreleasepool {
             try {
                 _session->select(i);
-                for (unsigned step = 0; step < 3; ++step) _session->frame();
-                _session->validate_snapshot();
-                [results addObject:@{@"scene":text(names[i]), @"steps":@(_session->frames),
+                const auto statistics = _session->qualify(steps);
+                [results addObject:@{@"scene":text(names[i]), @"steps":@(steps),
+                    @"mean_ms":@(statistics.mean_ms), @"p95_ms":@(statistics.p95_ms),
+                    @"timing_window_frames":@(statistics.count), @"session_controls":@YES,
                     @"passed":@YES, @"details":text(_session->details())}];
                 NSLog(@"ParallelMater smoke PASS: %@", text(names[i]));
                 [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:
@@ -247,12 +326,17 @@ UIImage *frame_image(const IPadGallerySession &session) {
                 [results addObject:@{@"scene":text(names[i]), @"passed":@NO, @"error":text(error.what())}];
                 NSLog(@"ParallelMater smoke FAIL: %@: %@", text(names[i]), text(error.what()));
             }
-            NSData *data = [NSJSONSerialization dataWithJSONObject:results options:NSJSONWritingPrettyPrinted error:nil];
-            [data writeToURL:report atomically:YES];
+            write_report(@"smoke-report.json", @{
+                @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
+                @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
+                @"completed":@(results.count == names.size()), @"frames_per_scene":@(steps),
+                @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
+                @"scenes":results});
         }
     }
     NSLog(@"ParallelMater smoke complete: %lu scenes", (unsigned long)results.count);
     _session->select(0);
+    [self writeRuntimeInfo];
 }
 - (void)dealloc { [_display invalidate]; [NSNotificationCenter.defaultCenter removeObserver:self]; }
 @end

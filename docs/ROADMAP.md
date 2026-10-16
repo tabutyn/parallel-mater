@@ -156,6 +156,12 @@ asynchronous, and correctness survives resource reuse and frames in flight.
 
 Status: pending.
 
+2026-10-16 Gallery prerequisite: Mac/iPad share direct Metal graphics over
+exported public GPU output, with explicit physics/graphics completion fences.
+Rendering no longer requires CPU position/image copies in normal playback.
+This is not general imported-resource/queue interoperability or frames in flight.
+The user has deferred engine integration; the milestone below remains pending.
+
 - Qualify rigid bodies, fluid, cloth, and their interactions through CUDA and
   one non-CUDA driver using the same public commands and cases.
 - Implement native device/queue, buffer, and synchronization interoperability,

@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <locale>
 #include <sstream>
+#include <cmath>
+#include <vector>
 
 namespace parallel_mater::gallery {
 namespace {
@@ -60,6 +62,8 @@ bool FrameTimingCollector::finish_frame(TimePoint now) {
     pending_.other_ms = std::max(0.0, pending_.total_ms - pending_.physics_ms -
         pending_.render_ms - pending_.present_ms.value_or(0.0));
     latest_ = pending_;
+    recent_.push_back({pending_, frame_started_, now});
+    if (recent_.size() > 60) recent_.pop_front();
     history_.push_back(pending_.total_ms);
     history_ms_ += pending_.total_ms;
     // Keep roughly one second, including at least the most recent sample.
@@ -83,6 +87,31 @@ void FrameTimingCollector::clear_history() {
     latest_.reset();
     history_.clear();
     history_ms_ = 0.0;
+    recent_.clear();
+}
+
+FrameTimingStatistics FrameTimingCollector::statistics() const {
+    FrameTimingStatistics result;
+    result.count = recent_.size();
+    if (!result.count) return result;
+    std::vector<double> sorted;
+    sorted.reserve(result.count);
+    for (const auto &entry : recent_) {
+        sorted.push_back(entry.sample.total_ms);
+        result.mean_ms += entry.sample.total_ms;
+        result.physics_ms += entry.sample.physics_ms;
+        result.render_ms += entry.sample.render_ms;
+        result.present_ms += entry.sample.present_ms.value_or(0);
+    }
+    const double count = static_cast<double>(result.count);
+    result.mean_ms /= count; result.physics_ms /= count;
+    result.render_ms /= count; result.present_ms /= count;
+    std::sort(sorted.begin(), sorted.end());
+    result.median_ms = (sorted[(result.count - 1) / 2] + sorted[result.count / 2]) * .5;
+    result.p95_ms = sorted[static_cast<std::size_t>(std::ceil(count * .95)) - 1];
+    const double elapsed = milliseconds(recent_.front().start, recent_.back().end);
+    result.cadence_fps = elapsed > 0 ? 1000 * count / elapsed : 0;
+    return result;
 }
 
 double FrameTimingCollector::fps() const {

@@ -26,16 +26,14 @@ foreach(target parallel-mater parallel-mater-layer-validation parallel-mater-dri
 endforeach()
 
 add_executable(parallel-mater-ipad-gallery MACOSX_BUNDLE
-    examples/ios/gallery_main.mm examples/ios/gallery_session.cpp)
+    examples/ios/gallery_main.mm)
 target_compile_features(parallel-mater-ipad-gallery PRIVATE cxx_std_20)
 target_compile_options(parallel-mater-ipad-gallery PRIVATE
     "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>" -Wall -Wextra -Wpedantic)
 target_include_directories(parallel-mater-ipad-gallery PRIVATE examples/gallery examples/support)
 target_link_libraries(parallel-mater-ipad-gallery PRIVATE
-    parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing
+    parallel-mater-gallery-session
     "-framework UIKit" "-framework QuartzCore" "-framework Foundation" "-framework CoreGraphics")
-target_compile_definitions(parallel-mater-ipad-gallery PRIVATE
-    PM_IPAD_REVISION="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
 set_target_properties(parallel-mater-ipad-gallery PROPERTIES
     OUTPUT_NAME "ParallelMater Gallery"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/ios/Info.plist.in"
@@ -54,6 +52,20 @@ set_target_properties(parallel-mater-ipad-gallery PROPERTIES
     XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY YES
     BUILD_WITH_INSTALL_RPATH YES INSTALL_RPATH "@executable_path/Frameworks")
 add_dependencies(parallel-mater-ipad-gallery parallel-mater-driver-slang-metal parallel-mater-layer-validation)
+
+# Asset catalogs must exist when Xcode scans the generated project. Reconfigure
+# when the approved source artwork changes, then let actool produce every size.
+set(ios_assets "${CMAKE_CURRENT_BINARY_DIR}/generated/ios/Assets.xcassets")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS examples/assets/branding/logo.png)
+execute_process(COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/logo.png"
+    "-DOUTPUT=${ios_assets}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateIOSIcons.cmake"
+    COMMAND_ERROR_IS_FATAL ANY)
+target_sources(parallel-mater-ipad-gallery PRIVATE "${ios_assets}")
+set_source_files_properties("${ios_assets}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+set_target_properties(parallel-mater-ipad-gallery PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME AppIcon)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryBuildInfo.cmake")
+parallel_mater_gallery_build_info(parallel-mater-ipad-gallery metal)
 
 file(GLOB assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
 target_sources(parallel-mater-ipad-gallery PRIVATE ${assets} config/device-profiles.json)

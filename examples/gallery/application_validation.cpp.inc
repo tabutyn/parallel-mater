@@ -221,6 +221,14 @@
         error = "renderer creation failed: " + error;
         return false;
     }
+#ifdef PM_GALLERY_METAL_RENDERER
+    if (options.backend == PM_NATIVE_BACKEND_METAL && !options.calibrate && options.headless_output.empty()) {
+        try {
+            next.gpu_renderer = std::make_unique<parallel_mater::gallery::GpuGalleryRenderer>(
+                next.simulation.device(), next.scene, next.instance);
+        } catch (const std::exception &failure) { error = failure.what(); return false; }
+    }
+#endif
     for (std::size_t index = 0; index < next.scene.rigid_bodies.size(); ++index) {
         if (next.scene.rigid_bodies[index].options.motion ==
             parallel_mater::MotionType::kinematic) {

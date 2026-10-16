@@ -26,6 +26,14 @@ if(NOT SIGN_RESULT EQUAL 0)
 endif()
 
 if(EXISTS "${DESTINATION_APP}")
+    # Replacing files cannot update a running process. Quit only this bundle,
+    # then let the verified deployment wrapper relaunch the installed revision.
+    execute_process(COMMAND /usr/bin/osascript -e
+        "if application id \"com.tabutyn.parallel-mater.gallery\" is running then tell application id \"com.tabutyn.parallel-mater.gallery\" to quit"
+        RESULT_VARIABLE QUIT_RESULT ERROR_VARIABLE QUIT_ERROR)
+    if(NOT QUIT_RESULT EQUAL 0)
+        message(FATAL_ERROR "Quit the installed Gallery before deployment: ${QUIT_ERROR}")
+    endif()
     file(RENAME "${DESTINATION_APP}" "${PREVIOUS_APP}"
          RESULT MOVE_PREVIOUS_RESULT)
     if(MOVE_PREVIOUS_RESULT)

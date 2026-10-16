@@ -1,7 +1,9 @@
 # Parallel Mater Gallery for Android
 
 This native APK uses the shared gallery scene builder, public command API,
-loader, validation layer, and software renderer. The default build bundles the
+loader, validation layer, and software renderer. Android and iPad share one C++
+GallerySession for controls, scene/reset logic, budgets and frame timing. The
+JNI layer contains only Android surface/lifecycle/input adaptation. The default build bundles the
 same loadable Vulkan driver and common Slang physics as the desktop preview.
 Vulkan physics runs on the phone; rendering currently copies results into the
 software renderer. This is not yet native GPU-renderer interoperability.
@@ -47,7 +49,7 @@ Vulkan requires Android 13/API 33 or newer and the GPU features listed in
 [the Vulkan driver documentation](../../docs/VULKAN.md). The CPU build supports
 API 29 or newer. Both install under the same app ID.
 
-Requirements: JDK 21, Android SDK platform 36, NDK 29.0.14206865, SDK CMake
+Requirements: JDK 17+ (CI uses 21), Android SDK platform 36, NDK 29.0.14206865, SDK CMake
 4.1.2, and host Python/CMake build tools. Gradle 9.1.0 and Android Gradle Plugin
 9.0.1 are pinned. Slang is the repository's pinned host compiler. The NDK build
 does not require CUDA or GLFW. Native libraries use the NDK's 16 KB-compatible
@@ -90,6 +92,19 @@ For diagnostic logs:
 ```
 
 ## Device qualification
+
+The mobile CI workflow builds the Vulkan APK and unsigned iPad app. On a phone
+with the new debug APK installed, run shared sustained/control and actual OS
+background-recovery checks with:
+
+```sh
+python3 scripts/Test-AndroidGallery.py --serial PHONE_SERIAL --frames 120
+```
+
+Reports include compiled revision/backend and a fresh nonce; old reports cannot
+satisfy a new run. The same C++ qualification routine runs on iPad. This does
+not replace the native API suites below or qualify thermal/physical accuracy.
+Release APKs ignore diagnostic intents and do not write these reports.
 
 Build existing public-API tests as Android executables alongside the APK:
 

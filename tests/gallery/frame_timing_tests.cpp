@@ -71,6 +71,14 @@ int main() {
     near(timings.latest()->physics_ms, 0.0, "Paused physics must be zero");
     require(timings.latest()->present_ms == 0.0, "Zero wait is still a measured present");
     near(timings.fps(), 2000.0 / 22.0, "Do not average instantaneous FPS");
+    const auto stats = timings.statistics();
+    require(stats.count == 2, "Shared statistics must count completed frames");
+    near(stats.mean_ms, 11, "Shared statistics mean mismatch");
+    near(stats.median_ms, 11, "Even-size median must average middle samples");
+    near(stats.p95_ms, 20, "Shared p95 must include stalls");
+    near(stats.physics_ms, 2.5, "Statistics must include zero-step frames");
+    near(stats.render_ms, 2.5, "Statistics render mean mismatch");
+    near(stats.present_ms, 4, "Statistics present mean mismatch");
 
     timings.begin_frame(at(22));
     timings.begin_phase(FramePhase::render, at(23));
@@ -84,6 +92,7 @@ int main() {
     timings.clear_history(); // Scene change inside an active frame.
     require(!timings.latest(), "Scene reset must clear stale display");
     near(timings.fps(), 0.0, "Scene reset must clear FPS history");
+    require(timings.statistics().count == 0, "Reset must clear shared statistics");
     timings.begin_phase(FramePhase::physics, at(31));
     timings.end_phase(at(331));
     timings.begin_phase(FramePhase::render, at(331));
@@ -102,6 +111,14 @@ int main() {
     timings.begin_frame(at(3031));
     timings.finish_frame(at(3031));
     near(timings.fps(), 0.0, "Zero-duration frame must not divide by zero");
+    timings.clear_history();
+    for (int i = 0; i < 61; ++i) {
+        timings.begin_frame(at(i * 100));
+        timings.finish_frame(at(i * 100 + 10));
+    }
+    require(timings.statistics().count == 60, "Diagnostic history must be bounded");
+    near(timings.statistics().cadence_fps, 60000.0 / 5910.0, "Cadence must include inter-frame idle time");
+    near(timings.fps(), 100, "Work throughput must exclude inter-frame idle time");
 
     std::string error;
     std::ostringstream csv;

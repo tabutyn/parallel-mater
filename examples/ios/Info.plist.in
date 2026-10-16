@@ -6,7 +6,7 @@
 <key>CFBundleName</key><string>ParallelMater Gallery</string>
 <key>CFBundleDisplayName</key><string>ParallelMater</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleVersion</key><string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
 <key>CFBundleShortVersionString</key><string>${PROJECT_VERSION}</string>
 <key>LSRequiresIPhoneOS</key><true/>
 <key>UILaunchScreen</key><dict/>

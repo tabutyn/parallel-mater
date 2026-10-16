@@ -80,7 +80,9 @@ add_custom_target(refresh-macos-gallery-runtime ALL
     DEPENDS parallel-mater-gallery parallel-mater parallel-mater-layer-validation
     VERBATIM)
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryBuildInfo.cmake")
 if(TARGET parallel-mater-driver-slang-metal)
+    parallel_mater_gallery_build_info(parallel-mater-gallery metal)
     add_dependencies(parallel-mater-gallery parallel-mater-driver-slang-metal)
     target_compile_definitions(parallel-mater-gallery-application PRIVATE PARALLEL_MATER_METAL_PREVIEW=1)
     add_dependencies(refresh-macos-gallery-runtime parallel-mater-driver-slang-metal)
@@ -98,6 +100,7 @@ if(TARGET parallel-mater-driver-slang-metal)
             "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-metal.json"
         VERBATIM)
 elseif(TARGET parallel-mater-driver-slang-cpu)
+    parallel_mater_gallery_build_info(parallel-mater-gallery slang-cpu)
     add_dependencies(refresh-macos-gallery-runtime parallel-mater-driver-slang-cpu)
     add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E rm -f

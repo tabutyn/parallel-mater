@@ -1,439 +1,204 @@
 // SPDX-License-Identifier: MIT
-#include "scene_builder.hpp"
-#include "render/render_scene.hpp"
-#include <parallel_mater_gallery/renderer.hpp>
-#include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/arrow_forces.hpp>
-#include <parallel_mater_gallery/fixed_collector.hpp>
-#include <parallel_mater_gallery/runtime_platform.hpp>
+// Android owns JNI, surfaces and lifecycle. Shared C++ owns the Gallery session.
+#include <parallel_mater_gallery/session.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
-
 #include <algorithm>
-#include <array>
-#include <chrono>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
-#include <memory>
-#include <limits>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
+#include <sstream>
 
 namespace {
-using namespace parallel_mater;
 using namespace parallel_mater::gallery;
-
 constexpr const char *backend_name = PM_ANDROID_VULKAN ? "vulkan" : "slang-cpu";
-constexpr const char *backend_label = PM_ANDROID_VULKAN ? "Vulkan GPU preview" : "CPU preview";
-
-constexpr const char *scene_files[]{"RigidBody.glb", "ConstraintFixed.glb",
-    "Celestial.glb", "ConstraintHinge.glb", "ConstraintPiston.glb",
-    "ConstraintGeneric.glb", "Fluid.glb", "FluidRigid.glb"};
-constexpr std::size_t scene_count = std::size(scene_files);
-constexpr GalleryContext contexts[]{GalleryContext::rigid_body,
-    GalleryContext::constraint_fixed, GalleryContext::constraint_point,
-    GalleryContext::constraint_hinge, GalleryContext::constraint_piston,
-    GalleryContext::constraint_generic, GalleryContext::fluid,
-    GalleryContext::fluid_rigid};
-
-struct Scene {
-    SceneDefinition definition;
-    CommandScene simulation;
-    CommandSceneInstance instance;
-    CommandSceneFrame output;
-    RenderSceneFrame frame;
-    RendererHandle renderer;
-    ArrowForces arrows;
-    FixedContactCollector collector;
-};
-
-// All calls run on the Activity's one worker thread, including destruction.
 struct Session {
-    std::filesystem::path assets;
-    GalleryWorkloadLimits limits;
-    std::unique_ptr<Scene> scene;
-    CameraController camera;
+    std::unique_ptr<GallerySession> gallery;
     ANativeWindow *window{};
-    std::uint32_t width{640U}, height{360U};
-    int selection{};
-    int bricks{8};
-    bool paused{}, released{};
-    float right{}, up{};
-    std::uint64_t frames{};
-    double work_sum{}, work_mean{};
-    std::array<double, 60> work_times{};
-    std::chrono::steady_clock::time_point window_start{};
-    double physics_sum{}, render_sum{};
-    unsigned work_count{};
-    std::vector<std::uint32_t> pixels;
-    std::string error;
-
+    unsigned logged_frames{};
     ~Session() { if (window) ANativeWindow_release(window); }
-
-    std::size_t moving_bodies() const {
-        if (!scene) return 0;
-        return static_cast<std::size_t>(std::count_if(
-            scene->definition.rigid_bodies.begin(), scene->definition.rigid_bodies.end(),
-            [](const auto &body) { return body.options.motion == MotionType::dynamic; }));
-    }
-
-    void focus() {
-        if (!scene) return;
-        camera = CameraController{};
-        if (selection < 6) {
-            auto preset = selection == 0
-                ? brick_camera_preset({static_cast<std::uint32_t>(bricks), 1.0F, 1U})
-                : gallery_entry(contexts[selection]).camera;
-            // Leave the gear assembly visible behind the landscape toolbar.
-            if (selection == 3) preset.distance_scale *= 1.6F;
-            camera.set_preset(preset);
-            return;
-        }
-        // Frame the active particles and moving bodies, not the large static
-        // course. Focus can be tapped again after the action moves downstream.
-        Vec3 low{INFINITY, INFINITY, INFINITY}, high{-INFINITY, -INFINITY, -INFINITY};
-        const auto include = [&](float x, float y, float z) {
-            if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return;
-            low = {std::min(low.x, x), std::min(low.y, y), std::min(low.z, z)};
-            high = {std::max(high.x, x), std::max(high.y, y), std::max(high.z, z)};
-        };
-        for (const auto &p : scene->output.fluid_particles)
-            include(p.position[0], p.position[1], p.position[2]);
-        for (std::size_t i = 0; i < scene->output.rigid_states.size(); ++i) {
-            if (scene->definition.rigid_bodies[i].options.motion != MotionType::dynamic) continue;
-            const auto &p = scene->output.rigid_states[i].position;
-            include(p[0] - 0.35F, p[1] - 0.35F, p[2] - 0.35F);
-            include(p[0] + 0.35F, p[1] + 0.35F, p[2] + 0.35F);
-        }
-        if (!std::isfinite(low.x)) {
-            camera.set_preset(gallery_entry(contexts[selection]).camera);
-            return;
-        }
-        const Vec3 extent{high.x-low.x, high.y-low.y, high.z-low.z};
-        const float radius = 0.5F * std::sqrt(extent.x*extent.x +
-            extent.y*extent.y + extent.z*extent.z);
-        camera.set_preset({.target = {(low.x+high.x)*0.5F,
-            (low.y+high.y)*0.5F, (low.z+high.z)*0.5F},
-            .distance_scale = std::max(0.28F, (radius + 0.25F) * 2.8F / 11.0F),
-            .pitch = 0.8F});
-    }
-
-    bool select(int index) {
-        if (index < 0 || index >= static_cast<int>(scene_count)) {
-            error = "Scene unavailable in this preview";
-            return false;
-        }
-        auto next = std::make_unique<Scene>();
-        SceneDefinition authored;
-        if (!load_glb_scene(assets / scene_files[index], authored, error))
-            return false;
-        const BrickSceneConfig config{static_cast<std::uint32_t>(bricks), 1.0F, 1U};
-        if (index == 0) {
-            if (!make_brick_scene(authored, config, next->definition, error))
-                return false;
-        } else next->definition = std::move(authored);
-        if (index >= 6) {
-            if (!apply_liquid_workload_limits(next->definition, limits, error)) return false;
-        }
-        // Mobile drivers can retain large private shader scratch per device.
-        // Keep only one simulation resident, including while switching/resetting.
-        scene.reset();
-        selection = index;
-        if (!CommandScene::create(next->definition, 0U, next->simulation,
-                                  next->instance, error,
-                                  PM_ANDROID_VULKAN ? std::optional{PM_NATIVE_BACKEND_VULKAN}
-                                                    : std::nullopt) ||
-            !next->arrows.initialize(next->definition, next->instance, error))
-            return false;
-        if (index == 1 && !next->collector.initialize(
-                next->definition, next->instance, error)) return false;
-        if (!create_renderer(next->definition, next->instance, width, height,
-                             next->renderer, error) ||
-            !next->simulation.step(1.0F / 60.0F, 4U,
-                {0, -9.81F * next->definition.gravity_scale, 0},
-                next->output, error) ||
-            !make_render_scene_frame(next->definition, next->output,
-                                      next->frame, error)) return false;
-        scene = std::move(next);
-        selection = index;
-        right = up = 0;
-        released = false;
-        frames = 0;
-        work_sum = work_mean = 0;
-        physics_sum = render_sum = 0;
-        work_count = 0;
-        focus();
-        error.clear();
-        PmPhysicalDeviceProperties properties{};
-        pmGetPhysicalDeviceProperties(scene->simulation.physical_device(), &properties);
-        PmMemoryBudget budget{};
-        if (pmGetDeviceMemoryBudget(scene->simulation.device(), &budget) == PM_SUCCESS)
-            __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-                "Physics buffers: %llu bytes (excludes driver-private allocations)",
-                static_cast<unsigned long long>(budget.applicationAllocationBytes));
-        __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-            "Scene ready: %s; backend=%s; device=%s; bodies=%zu; particles=%zu",
-            scene_files[index], backend_name, properties.deviceName,
-            scene->definition.rigid_bodies.size(), scene->output.fluid_particles.size());
-        return true;
-    }
-
-    bool advance() {
-        const float magnitude = 9.81F * scene->definition.gravity_scale;
-        const float steering_right = scene->arrows.active() ? 0 : right;
-        const float steering_up = scene->arrows.active() ? 0 : up;
-        const Vec3 gravity = screen_space_gravity(camera.camera(),
-            steering_right, steering_up, magnitude, 30.0F);
-        if (scene->collector.active() &&
-            !scene->collector.apply_loose_gravity(scene->simulation,
-                scene->definition, scene->instance, {0, -magnitude, 0},
-                gravity, error)) return false;
-        if (!scene->arrows.apply(scene->simulation, camera.camera(), right,
-                                 up, error) ||
-            !scene->simulation.step(1.0F / limits.target_fps,
-                (240U + limits.target_fps - 1U) / limits.target_fps, gravity, scene->output,
-                error, scene->collector.active())) return false;
-        if (scene->collector.active() && !scene->collector.collect(
-                scene->simulation, scene->definition, scene->instance,
-                scene->output, error)) return false;
-        ++frames;
-        return make_render_scene_frame(scene->definition, scene->output,
-                                        scene->frame, error);
-    }
-
-    bool present() {
-        if (!window || !scene) return true;
-        if (!scene->renderer.render(scene->frame, camera.camera(), pixels,
-                                     error, nullptr, FluidRenderMode::particles))
-            return false;
+    void present(const GallerySession &frame) {
+        if (!window) return;
         ANativeWindow_Buffer buffer{};
-        if (ANativeWindow_lock(window, &buffer, nullptr) != 0) {
-            // Android may retire the surface while its destruction callback
-            // waits in the worker queue. Skip presentation during that handoff.
-            return true;
-        }
+        // A retired surface can race its queued destruction callback.
+        if (ANativeWindow_lock(window, &buffer, nullptr) != 0) return;
         if (buffer.format == WINDOW_FORMAT_RGBA_8888 &&
-            buffer.width == static_cast<int>(width) &&
-            buffer.height == static_cast<int>(height)) {
-            for (std::uint32_t y = 0; y < height; ++y)
-                std::memcpy(static_cast<std::uint32_t *>(buffer.bits) +
-                                y * buffer.stride,
-                            pixels.data() + (height - 1U - y) * width,
-                            width * sizeof(std::uint32_t));
+            buffer.width == static_cast<int>(frame.width) &&
+            buffer.height == static_cast<int>(frame.height)) {
+            for (unsigned y = 0; y < frame.height; ++y)
+                std::memcpy(static_cast<std::uint32_t *>(buffer.bits) + y * buffer.stride,
+                    frame.pixels.data() + (frame.height - 1 - y) * frame.width,
+                    frame.width * sizeof(std::uint32_t));
         }
         (void)ANativeWindow_unlockAndPost(window);
-        return true;
+    }
+    void log_scene() {
+        logged_frames = 0;
+        const auto &g = *gallery;
+        __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+            "Physics buffers: %llu bytes (excludes driver-private allocations)",
+            static_cast<unsigned long long>(g.allocated_bytes()));
+        __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+            "Scene ready: %s; backend=%s; device=%s; bodies=%zu; particles=%zu",
+            g.scene_file().c_str(), backend_name, g.device_name().c_str(), g.moving_bodies(), g.particle_count());
     }
 };
-
 Session &session(jlong handle) {
     if (!handle) throw std::runtime_error("Gallery not initialized");
     return *reinterpret_cast<Session *>(handle);
 }
-
 std::string string(JNIEnv *env, jstring text) {
     if (!text) throw std::runtime_error("Missing app path");
     const char *chars = env->GetStringUTFChars(text, nullptr);
     if (!chars) throw std::bad_alloc();
-    std::string result(chars);
-    env->ReleaseStringUTFChars(text, chars);
-    return result;
+    std::string result(chars); env->ReleaseStringUTFChars(text, chars); return result;
+}
+void exception(JNIEnv *env, const char *message) {
+    __android_log_print(ANDROID_LOG_ERROR, "ParallelMater", "%s", message);
+    if (!env->ExceptionCheck()) env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), message);
+}
 }
 
-void exception(JNIEnv *env, const char *text) {
-    __android_log_print(ANDROID_LOG_ERROR, "ParallelMater", "%s", text);
-    if (!env->ExceptionCheck())
-        env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), text);
-}
-} // namespace
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(
-    JNIEnv *env, jclass, jstring assets, jstring manifest, jstring catalog_path,
-    jstring model, jstring cache) {
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeSceneNames(JNIEnv *env, jclass) {
     try {
-        if (setenv("PM_DRIVER_FILES", string(env, manifest).c_str(), 1) != 0)
-            throw std::runtime_error("Could not configure bundled driver");
-        if (setenv("PM_LAYER_PATH", std::filesystem::path(string(env, manifest))
-                .parent_path().c_str(), 1) != 0)
-            throw std::runtime_error("Could not configure bundled validation layer");
+        const auto names = GallerySession::scene_names(GallerySceneSet::rigid_liquid);
+        auto result = env->NewObjectArray(static_cast<jsize>(names.size()), env->FindClass("java/lang/String"), nullptr);
+        if (!result) return nullptr;
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            auto name = env->NewStringUTF(names[i].c_str());
+            if (!name) return nullptr;
+            env->SetObjectArrayElement(result, static_cast<jsize>(i), name); env->DeleteLocalRef(name);
+            if (env->ExceptionCheck()) return nullptr;
+        }
+        return result;
+    } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
+}
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, jclass, jlong handle, jint index, jint count) {
+    try {
+        auto &g = *session(handle).gallery;
+        if (index < 0 || count < 1 || count > 100000) throw std::runtime_error("Invalid qualification arguments");
+        g.select(static_cast<unsigned>(index));
+        const auto stats = g.qualify(static_cast<unsigned>(count));
+        const jdouble values[]{stats.mean_ms, stats.p95_ms, static_cast<double>(stats.count)};
+        auto result = env->NewDoubleArray(3);
+        if (result) env->SetDoubleArrayRegion(result, 0, 3, values);
+        return result;
+    } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
+}
+extern "C" JNIEXPORT jstring JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jclass, jlong handle) {
+    try {
+        const auto &g = *session(handle).gallery;
+        std::ostringstream info;
+        info.imbue(std::locale::classic());
+        info << "{\"revision\":\"" << GallerySession::build_revision() << "\",\"backend\":\"" << backend_name
+             << "\",\"frames\":" << g.frames << ",\"active\":" << (g.active() ? "true" : "false")
+             << ",\"paused\":" << (g.is_paused() ? "true" : "false") << "}";
+        return env->NewStringUTF(info.str().c_str());
+    } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
+}
+extern "C" JNIEXPORT jlong JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
+    jstring assets, jstring manifest, jstring profiles, jstring model, jstring cache) {
+    try {
+        const auto manifest_path = string(env, manifest);
+        if (setenv("PM_DRIVER_FILES", manifest_path.c_str(), 1) != 0 ||
+            setenv("PM_LAYER_PATH", std::filesystem::path(manifest_path).parent_path().c_str(), 1) != 0)
+            throw std::runtime_error("Could not configure bundled driver/layer");
         if (PM_ANDROID_VULKAN && setenv("PM_VULKAN_CACHE_DIR", string(env, cache).c_str(), 1) != 0)
             throw std::runtime_error("Could not configure Vulkan pipeline cache");
         auto result = std::make_unique<Session>();
-        result->assets = string(env, assets);
-        DeviceProfileCatalog catalog;
-        if (!load_device_profiles(string(env, catalog_path), catalog, result->error))
-            throw std::runtime_error(result->error);
-        const auto *limits = select_workload_limits(
-            catalog, "Android", string(env, model), backend_name);
-        if (!limits) throw std::runtime_error("Android workload profile missing");
-        result->limits = *limits;
-        result->bricks = static_cast<int>(limits->brick_count);
-        result->width = limits->render_width;
-        result->height = limits->render_height;
+        GallerySessionConfig config{.assets = string(env, assets), .profiles = string(env, profiles),
+            .platform = "Android", .model = string(env, model), .backend = backend_name,
+            .scenes = GallerySceneSet::rigid_liquid};
+        if (PM_ANDROID_VULKAN) config.native_backend = PM_NATIVE_BACKEND_VULKAN;
+        result->gallery = std::make_unique<GallerySession>(std::move(config));
+        const auto &limits = result->gallery->limits;
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
             "Profile %s: %u bricks, %u fluid particles, %u coupled bodies, %ux%u, target %u FPS (unmeasured)",
-            limits->name.c_str(), limits->brick_count, limits->fluid_particles,
-            limits->coupled_bodies,
-            limits->render_width, limits->render_height, limits->target_fps);
-        if (!result->select(0)) throw std::runtime_error(result->error);
+            limits.name.c_str(), limits.brick_count, limits.fluid_particles,
+            limits.coupled_bodies, limits.render_width, limits.render_height, limits.target_fps);
+        result->log_scene();
         return reinterpret_cast<jlong>(result.release());
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery initialization failed"); }
     return 0;
 }
-
 extern "C" JNIEXPORT void JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeDestroy(
-    JNIEnv *, jclass, jlong handle) { delete reinterpret_cast<Session *>(handle); }
-
+Java_org_parallelmater_gallery_GalleryActivity_nativeDestroy(JNIEnv *, jclass, jlong handle) {
+    delete reinterpret_cast<Session *>(handle);
+}
 extern "C" JNIEXPORT void JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(
-    JNIEnv *env, jclass, jlong handle, jobject surface, jint w, jint h) {
+Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(JNIEnv *env, jclass,
+    jlong handle, jobject surface, jint w, jint h) {
     try {
         auto &s = session(handle);
         if (s.window) ANativeWindow_release(s.window);
         s.window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
-        if (!s.window) {
-            s.work_count = 0; s.work_sum = s.physics_sum = s.render_sum = 0;
-            return;
-        }
-        const float scale = std::min({1.0F,
-            static_cast<float>(s.limits.render_width) / std::max(w, 1),
-            static_cast<float>(s.limits.render_height) / std::max(h, 1)});
-        s.width = std::max(1U, static_cast<std::uint32_t>(std::max(w, 1) * scale));
-        s.height = std::max(1U, static_cast<std::uint32_t>(std::max(h, 1) * scale));
-        if (ANativeWindow_setBuffersGeometry(s.window, s.width, s.height,
-                                             WINDOW_FORMAT_RGBA_8888) != 0)
+        s.gallery->set_active(s.window != nullptr); s.logged_frames = 0;
+        if (!s.window) return;
+        s.gallery->resize(std::max(w, 1), std::max(h, 1));
+        if (ANativeWindow_setBuffersGeometry(s.window, s.gallery->width, s.gallery->height, WINDOW_FORMAT_RGBA_8888) != 0)
             throw std::runtime_error("Cannot configure display surface");
-        if (s.scene && !create_renderer(s.scene->definition, s.scene->instance,
-                              s.width, s.height, s.scene->renderer, s.error))
-            throw std::runtime_error(s.error);
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Display initialization failed"); }
 }
-
 extern "C" JNIEXPORT jstring JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(
-    JNIEnv *env, jclass, jlong handle) {
+Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, jlong handle) {
     try {
-        auto &s = session(handle);
-        if (!s.scene) throw std::runtime_error("Choose a scene or Reset to continue");
-        const auto start = std::chrono::steady_clock::now();
-        if (!s.paused && !s.advance()) throw std::runtime_error(s.error);
-        const auto physics_end = std::chrono::steady_clock::now();
-        if (!s.present()) throw std::runtime_error(s.error);
-        const auto end = std::chrono::steady_clock::now();
-        const double milliseconds = std::chrono::duration<double, std::milli>(
-            end - start).count();
-        if (!s.paused) {
-            if (s.work_count == 0) s.window_start = start;
-            s.work_times[s.work_count] = milliseconds;
-            s.physics_sum += std::chrono::duration<double, std::milli>(physics_end - start).count();
-            s.render_sum += std::chrono::duration<double, std::milli>(end - physics_end).count();
-            s.work_sum += milliseconds;
-            if (++s.work_count == 60) {
-                s.work_mean = s.work_sum / s.work_count;
-                auto sorted = s.work_times;
-                std::sort(sorted.begin(), sorted.end());
-                const double seconds = std::chrono::duration<double>(start - s.window_start).count();
-                __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-                    "FrameWindow scene=%s backend=%s frames=%llu count=60 mean_ms=%.3f median_ms=%.3f p95_ms=%.3f physics_ms=%.3f render_ms=%.3f fps=%.2f particles=%zu bodies=%zu",
-                    scene_files[s.selection], backend_name, static_cast<unsigned long long>(s.frames),
-                    s.work_mean, (sorted[29] + sorted[30]) * 0.5, sorted[56],
-                    s.physics_sum / 60, s.render_sum / 60, seconds > 0 ? 59 / seconds : 0,
-                    s.scene->output.fluid_particles.size(), s.moving_bodies());
-                s.work_count = 0;
-                s.work_sum = s.physics_sum = s.render_sum = 0;
-            }
+        auto &s = session(handle); auto &g = *s.gallery;
+        g.frame([&](const GallerySession &frame) { s.present(frame); });
+        if (!g.is_paused() && g.active() && ++s.logged_frames == 60) {
+            const auto stats = g.timing.statistics();
+            __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+                "FrameWindow scene=%s backend=%s frames=%llu count=%zu mean_ms=%.3f median_ms=%.3f p95_ms=%.3f physics_ms=%.3f render_ms=%.3f present_ms=%.3f fps=%.2f particles=%zu bodies=%zu",
+                g.scene_file().c_str(), backend_name, static_cast<unsigned long long>(g.frames), stats.count,
+                stats.mean_ms, stats.median_ms, stats.p95_ms, stats.physics_ms, stats.render_ms,
+                stats.present_ms, stats.cadence_fps, g.particle_count(), g.moving_bodies());
+            s.logged_frames = 0;
         }
-        char text[256];
-        const auto bodies = s.moving_bodies();
-        std::string population = s.selection >= 6
-            ? std::to_string(s.scene->output.fluid_particles.size()) + " particles" : "";
-        if (bodies > 0) {
-            if (!population.empty()) population += " · ";
-            population += std::to_string(bodies) + (bodies == 1 ? " moving body" : " moving bodies");
-        }
-        std::snprintf(text, sizeof(text), "%s%s\n%s",
-            s.paused ? "Paused · " : "", population.c_str(),
-            s.scene->arrows.active() ? "Push objects" : "Tilt gravity");
-        return env->NewStringUTF(text);
+        return env->NewStringUTF(g.status().c_str());
     } catch (const std::exception &error) { exception(env, error.what()); }
-    catch (...) { exception(env, "Physics frame failed"); }
+    catch (...) { exception(env, "Gallery frame failed"); }
     return nullptr;
 }
-
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeDetails(JNIEnv *env, jclass, jlong handle) {
-    try {
-        const auto &s = session(handle);
-        if (!s.scene) throw std::runtime_error("Choose a scene or Reset to continue");
-        const double mean = s.work_mean > 0 ? s.work_mean
-            : (s.work_count ? s.work_sum / s.work_count : 0);
-        char text[768];
-        PmPhysicalDeviceProperties properties{};
-        pmGetPhysicalDeviceProperties(s.scene->simulation.physical_device(), &properties);
-        std::snprintf(text, sizeof(text),
-            "%s · Slang physics\nDevice: %s\n\n"
-            "Profile: %s\nLimits: %u particles · %u coupled bodies\n"
-            "Render: %u × %u · target %u FPS\n"
-            "Average frame work: %.1f ms\n(last window, up to 60 running frames)\n"
-            "Frames simulated: %llu\n\n"
-            "Workload limits are provisional. Slow frames slow simulation time.",
-            backend_label, properties.deviceName, s.limits.name.c_str(), s.limits.fluid_particles, s.limits.coupled_bodies,
-            s.width, s.height, s.limits.target_fps, mean,
-            static_cast<unsigned long long>(s.frames));
-        return env->NewStringUTF(text);
-    } catch (const std::exception &error) { exception(env, error.what()); }
+    try { return env->NewStringUTF(session(handle).gallery->details().c_str()); }
+    catch (const std::exception &error) { exception(env, error.what()); }
     return nullptr;
 }
-
 extern "C" JNIEXPORT void JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(
-    JNIEnv *env, jclass, jlong handle, jint command, jfloat x, jfloat y) {
+Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass,
+    jlong handle, jint command, jfloat x, jfloat y) {
     try {
-        auto &s = session(handle);
-        if (!s.scene && command != 0 && command != 1 && command != 7)
-            throw std::runtime_error("Choose a scene or Reset to continue");
-        bool ok = true;
+        auto &s = session(handle); auto &g = *s.gallery;
+        if (!std::isfinite(x) || !std::isfinite(y)) throw std::runtime_error("Non-finite Gallery input");
         switch (command) {
-        case 0: ok = s.select(static_cast<int>(x)); break;
-        case 1: ok = s.select(s.selection); break;
-        case 2: s.paused = x != 0;
-                s.work_count = 0; s.work_sum = s.physics_sum = s.render_sum = 0;
-                break;
-        case 3: s.right = std::clamp(x, -1.0F, 1.0F);
-                s.up = std::clamp(y, -1.0F, 1.0F); break;
-        case 4: s.camera.begin_drag(CameraDragMode::orbit, 0, 0);
-                s.camera.move_cursor(x, y, s.height); s.camera.end_drag(); break;
-        case 5: s.camera.zoom(x); break;
-        case 6:
-            if (s.selection != 2) break;
-            if (s.released) { ok = s.select(s.selection); break; }
-            for (auto slot : s.scene->instance.rigid_constraints)
-                if (!s.scene->simulation.set_constraint_active(slot, false,
-                                                               s.error)) {
-                    ok = false; break;
-                }
-            if (ok) s.released = true;
-            break;
-        case 7: s.bricks = std::clamp(static_cast<int>(x), 1,
-                                     static_cast<int>(s.limits.brick_count));
-                if (s.selection == 0) ok = s.select(0); break;
-        case 8: s.focus(); break;
-        default: throw std::runtime_error("Unknown gallery command");
+        case 0:
+            if (x < 0 || x >= GallerySession::scene_names(GallerySceneSet::rigid_liquid).size())
+                throw std::runtime_error("Unknown Gallery scene");
+            g.select(static_cast<unsigned>(x)); s.log_scene(); break;
+        case 1: g.reset(); s.log_scene(); break;
+        case 2: g.set_paused(x != 0); s.logged_frames = 0; break;
+        case 3: g.steer(x, y); break;
+        case 4: g.orbit(x, y); break;
+        case 5: g.zoom(x); break;
+        case 6: g.release(); break;
+        case 7: g.set_bricks(static_cast<unsigned>(std::max(1.0F, x))); s.logged_frames = 0; break;
+        case 8: g.focus(); break;
+        case 9: g.set_active(x != 0); s.logged_frames = 0; break;
+        default: throw std::runtime_error("Unknown Gallery command");
         }
-        if (!ok) throw std::runtime_error(s.error);
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery command failed"); }
 }
-
 extern "C" JNIEXPORT jint JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeTargetFps(
-    JNIEnv *, jclass, jlong handle) {
-    return handle ? static_cast<jint>(reinterpret_cast<Session *>(handle)->limits.target_fps) : 30;
+Java_org_parallelmater_gallery_GalleryActivity_nativeTargetFps(JNIEnv *, jclass, jlong handle) {
+    return handle ? static_cast<jint>(reinterpret_cast<Session *>(handle)->gallery->limits.target_fps) : 30;
 }

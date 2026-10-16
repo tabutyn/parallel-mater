@@ -230,6 +230,7 @@ struct CommandScene::Impl {
     SceneDefinition original_scene;
     std::uint32_t debug_frame_capacity{};
     bool fence_submitted{};
+    bool output_ready{};
 
     ~Impl() { release(); }
 

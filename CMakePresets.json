@@ -1,0 +1,37 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {"name":"gallery-preview-base","hidden":true,"cacheVariables":{
+      "CMAKE_BUILD_TYPE":"Release","PARALLEL_MATER_BUILD_CUDA":"OFF",
+      "PARALLEL_MATER_BUILD_D3D12":"OFF","PARALLEL_MATER_BUILD_VULKAN":"OFF",
+      "PARALLEL_MATER_BUILD_GALLERY":"ON","PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER":"OFF",
+      "PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY":"OFF","PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY":"OFF"
+    }},
+    {"name":"macos-metal-preview","inherits":"gallery-preview-base","generator":"Unix Makefiles",
+      "binaryDir":"${sourceDir}/build-macos-metal-preview","condition":{"type":"equals","lhs":"${hostSystemName}","rhs":"Darwin"},
+      "cacheVariables":{"BUILD_TESTING":"ON","PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW":"ON","PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER":"ON"}},
+    {"name":"ipad-metal-preview","inherits":"gallery-preview-base","generator":"Xcode",
+      "binaryDir":"${sourceDir}/build-ipad-gallery","condition":{"type":"equals","lhs":"${hostSystemName}","rhs":"Darwin"},
+      "cacheVariables":{"BUILD_TESTING":"OFF","CMAKE_SYSTEM_NAME":"iOS","CMAKE_OSX_SYSROOT":"iphoneos",
+        "CMAKE_OSX_ARCHITECTURES":"arm64","CMAKE_OSX_DEPLOYMENT_TARGET":"26.0",
+        "CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM":"$env{PM_APPLE_TEAM}","CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE":"Automatic",
+        "PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW":"ON","PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS":"OFF"}},
+    {"name":"ipad-ci","inherits":"ipad-metal-preview","binaryDir":"${sourceDir}/build-ipad-ci",
+      "cacheVariables":{"CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED":"NO","CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM":""}},
+    {"name":"linux-vulkan-preview","inherits":"gallery-preview-base","generator":"Ninja",
+      "binaryDir":"${sourceDir}/build-linux-vulkan-preview","condition":{"type":"equals","lhs":"${hostSystemName}","rhs":"Linux"},
+      "cacheVariables":{"BUILD_TESTING":"ON","PARALLEL_MATER_BUILD_VULKAN":"ON"}},
+    {"name":"windows-d3d12-preview","inherits":"gallery-preview-base","generator":"Visual Studio 17 2022","architecture":"x64",
+      "binaryDir":"${sourceDir}/build-windows-d3d12-preview","condition":{"type":"equals","lhs":"${hostSystemName}","rhs":"Windows"},
+      "cacheVariables":{"BUILD_TESTING":"ON","PARALLEL_MATER_BUILD_D3D12":"ON"}}
+  ],
+  "buildPresets": [
+    {"name":"macos-metal-preview","configurePreset":"macos-metal-preview","jobs":6},
+    {"name":"ipad-metal-preview","configurePreset":"ipad-metal-preview","configuration":"Release","targets":["parallel-mater-ipad-gallery"],"jobs":6},
+    {"name":"ipad-ci","configurePreset":"ipad-ci","configuration":"Release","targets":["parallel-mater-ipad-gallery"],"jobs":3},
+    {"name":"linux-vulkan-preview","configurePreset":"linux-vulkan-preview","jobs":2},
+    {"name":"windows-d3d12-preview","configurePreset":"windows-d3d12-preview","configuration":"Release","jobs":2}
+  ],
+  "testPresets": [{"name":"macos-metal-preview","configurePreset":"macos-metal-preview","output":{"outputOnFailure":true}}]
+}

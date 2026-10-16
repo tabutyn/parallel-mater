@@ -30,4 +30,4 @@ jobs:
       - name: Build shared timing and input tests
         run: cmake --build build --config Release --target parallel-mater-gallery-frame-timing-tests parallel-mater-gallery-input-tests
       - name: Test same implementation on every OS
-        run: ctest --test-dir build -C Release --output-on-failure -R "parallel-mater-gallery-(frame-timing|input)-tests"
+        run: ctest --test-dir build -C Release --output-on-failure -R "parallel-mater-gallery-(frame-timing|input|deployment)-tests"

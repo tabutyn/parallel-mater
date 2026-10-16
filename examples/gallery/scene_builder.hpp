@@ -49,6 +49,16 @@ struct CommandSceneFrame {
     std::uint64_t revision{};
 };
 
+// Borrowed public output, never solver-private storage. step() completes the
+// physics fence before publishing it. Consumers must finish before another
+// step/reset/destruction reuses or frees the buffer. Offsets include headers.
+struct CommandSceneGpuFrame {
+    struct Region { PmDeviceSize offset{}, size{}; };
+    PmNativeBufferInfo buffer{};
+    Region rigid, fluid, smoke;
+    std::vector<Region> cloth_surfaces, soft_surfaces, ropes, paint;
+};
+
 // Gallery client for the public command API. It owns only pm* resources and
 // records one command stream for scene creation, stepping, updates and output.
 class CommandScene {
@@ -71,7 +81,11 @@ class CommandScene {
     [[nodiscard]] bool step(float timestep, std::uint32_t substeps,
                             Vec3 gravity, CommandSceneFrame &frame,
                             std::string &error,
-                            bool collect_contacts = false);
+                            bool collect_contacts = false, bool readback = true);
+    [[nodiscard]] bool gpu_frame(CommandSceneGpuFrame &frame, std::string &error) const;
+    // Explicit diagnostic/control readback of the last completed output; never
+    // advances simulation or re-renders. Caller has already completed step().
+    [[nodiscard]] bool readback_frame(CommandSceneFrame &, std::string &error, bool collect_contacts = false) const;
     [[nodiscard]] bool set_rigid_state(std::uint32_t body,
                                        const RigidBodyState &state,
                                        std::string &error);

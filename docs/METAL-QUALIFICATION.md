@@ -56,8 +56,11 @@ are exposed, but imports and timestamp queries remain unsupported.
 
 This is not the final asynchronous GPU-only architecture: the submission
 worker waits between frames, shared-memory transfers can synchronize, and
-AVBD reads prepared work counts before staged solving. Gallery still reads
-states back for its software renderer. Existing domain dispatch integration is
+AVBD reads prepared work counts before staged solving. The Mac interactive and
+iPad Gallery now render directly from the public Metal output buffer using one
+graphics adapter. Physics completion precedes graphics, and graphics completion
+precedes buffer reuse/destruction. Headless/reference rendering, explicit debug
+captures and CPU scene controls retain readback. Existing domain dispatch integration is
 present; missing roadmap modes, complete physics qualification, native engine
 handoff and performance qualification remain pending.
 
@@ -208,7 +211,8 @@ execution and the new seven-scene Gallery preview smoke test.
 The installed preview is a development exception, not completion of the
 all-domain release gate. No Windows/Linux runtime qualification was performed.
 Unsupported scene selection retains the current scene and reports a capability
-error. Native GPU rendering and zero-readback scheduling remain future work.
+error. At that initial milestone native rendering was still pending; the later
+shared Gallery graphics path removes rendering readback, not solver host waits.
 
 ## Current-domain Gallery expansion (2026-10-16)
 
@@ -272,6 +276,29 @@ changes; the deploy target also refreshes them before atomically replacing and
 signing `/Applications/ParallelMater Gallery.app`. Quit an already-running
 Gallery before reopening it to load the new driver. Disable auto-deploy in
 older CPU build directories so they cannot silently replace the preview.
+
+## Shared Gallery delivery and GPU graphics (2026-10-16)
+
+The newer user instruction permits merging the labeled development preview to
+main; it does not waive the production gates above. Engine integration is
+explicitly deferred. Use `CMakePresets.json` for backend-specific builds and
+`scripts/Deploy-Gallery.py` for revision/backend-verified Apple deployment.
+The iPad app now packages the approved logo; Android and iPad consume one shared
+session and timer, including the same bounded qualification routine.
+
+`CommandScene::gpu_frame` exports only public output-buffer regions after the
+physics fence. The shared graphics adapter retains the native buffer while its
+command reads it and finishes before the next simulation step can overwrite it.
+Cloth (including torn per-corner surfaces), soft surfaces, rigid transforms,
+liquid/smoke/rope particles and paint are read by graphics shaders. UIKit and
+the Mac window supply a Metal layer; neither implements physics. Mac overlays
+remain CPU-generated UI textures, not CPU-generated scene geometry or images.
+
+This is a **fenced direct-rendering preview**, not asynchronous frames-in-flight
+or complete external-engine interoperability. Native buffer/device/semaphore
+imports, general queue-sharing and timestamp queries remain unadvertised.
+Those public API capabilities and the deferred engine slice require their own
+lifetime/error qualification. The full all-domain checklist remains open.
 
 ## Reproduce
 

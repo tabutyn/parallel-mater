@@ -14,6 +14,9 @@
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 #include <parallel_mater_gallery/window.hpp>
+#ifdef PM_GALLERY_METAL_RENDERER
+#include <parallel_mater_gallery/gpu_renderer.hpp>
+#endif
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 
@@ -134,6 +137,7 @@ struct Options {
     std::filesystem::path executable_path{};
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
+    std::filesystem::path interactive_smoke_output{};
     std::filesystem::path physics_capture_output{};
     std::filesystem::path frame_timings_output{};
     int frames{240};
@@ -368,10 +372,15 @@ static int run_gallery_application(
         std::cerr << "--calibrate requires the interactive gallery path\n";
         return 2;
     }
+    if (!options.interactive_smoke_output.empty() &&
+        (options.frames < 3 || options.calibrate || !options.headless_output.empty())) {
+        std::cerr << "--interactive-smoke requires at least 3 frames and cannot combine with headless/calibration\n";
+        return 2;
+    }
     std::string error;
     std::string window_title =
 #ifdef PARALLEL_MATER_METAL_PREVIEW
-        "ParallelMater Gallery - Apple GPU Preview (qualification incomplete; software render)";
+        "ParallelMater Gallery - Apple GPU Preview (qualification incomplete; Metal graphics)";
 #elif defined(PARALLEL_MATER_SLANG_TEST_BUILD)
         "ParallelMater Gallery - Slang Production Test";
 #else
@@ -492,6 +501,7 @@ static int run_gallery_application(
     PmPhysicalDeviceProperties physics_device{};
     pmGetPhysicalDeviceProperties(runtime.simulation.physical_device(), &physics_device);
     std::cout << "Physics device: " << physics_device.deviceName << '\n';
+    std::cout << "Build revision: " << PARALLEL_MATER_GALLERY_GIT_COMMIT << '\n';
     std::uint32_t &dump_spheres = session.dump_spheres;
     std::uint32_t &fluid_particles = session.fluid_particles;
     Vec3 &peg_gravity = session.peg_gravity;
@@ -864,6 +874,7 @@ static int run_gallery_application(
     double physics_accumulator = 0.0;
     std::uint64_t observed_session_revision = session.revision;
     float rigid_interpolation_alpha = 1.0F;
+    unsigned displayed_frames = 0;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         const auto frame_time = FrameClock::now();
         frame_timings.begin_frame(frame_time);
@@ -874,6 +885,8 @@ static int run_gallery_application(
         previous_frame_time = frame_time;
         glfwPollEvents();
         keys.update(window);
+        if (!options.interactive_smoke_output.empty() && displayed_frames == 1)
+            input_state.shared.key(GalleryKey::fps);
         if (keys.pressed(KeyAction::timing))
             input_state.shared.key(GalleryKey::fps);
 
@@ -1223,7 +1236,13 @@ static int run_gallery_application(
                     step_failed = true;
                     break;
                 }
-                if (!step_runtime(runtime, interactive_step, error)) {
+                bool readback = true;
+#ifdef PM_GALLERY_METAL_RENDERER
+                readback = !runtime.gpu_renderer || runtime.fixed_collector.active() || capture_requested ||
+                    debug.vectors_visible() || debug.rigid_contacts || debug.structure || debug.cloth_bonds ||
+                    debug.smoke_mode != SmokeDebugMode::none;
+#endif
+                if (!step_runtime(runtime, interactive_step, error, readback)) {
                     std::cerr << "step gallery failed: " << error << '\n';
                     step_failed = true;
                     break;
@@ -1254,6 +1273,9 @@ static int run_gallery_application(
         }
 
         const bool capture_frame_ready = runtime.frame.revision != 0U ||
+#ifdef PM_GALLERY_METAL_RENDERER
+            runtime.gpu_ready ||
+#endif
             !runtime.frame.rigid_states.empty() ||
             !runtime.frame.fluid_particles.empty() ||
             !runtime.frame.cloth_vertices.empty() ||
@@ -1261,6 +1283,12 @@ static int run_gallery_application(
             !runtime.frame.rope_nodes.empty() ||
             !runtime.frame.smoke_particles.empty();
         if (capture_requested && capture_frame_ready) {
+#ifdef PM_GALLERY_METAL_RENDERER
+            if (runtime.gpu_renderer && runtime.gpu_ready &&
+                !runtime.simulation.readback_frame(runtime.frame, error, debug.rigid_contacts)) {
+                std::cerr << "Capture readback failed: " << error << '\n'; return 1;
+            }
+#endif
             std::filesystem::path capture_path;
             if (save_physics_debug_capture(runtime.frame, capture_path,
                                            error)) {
@@ -1278,8 +1306,20 @@ static int run_gallery_application(
         }
 
         const Camera current_camera = input_state.shared.camera.camera();
+#ifdef PM_GALLERY_METAL_RENDERER
+        if (runtime.gpu_renderer && runtime.gpu_ready && (debug.vectors_visible() || debug.rigid_contacts ||
+            debug.structure || debug.cloth_bonds || debug.smoke_mode != SmokeDebugMode::none) &&
+            !runtime.simulation.readback_frame(runtime.frame, error, debug.rigid_contacts)) {
+            std::cerr << "Debug readback failed: " << error << '\n'; return 1;
+        }
+#endif
         frame_timings.begin_phase(FramePhase::render);
-        if (!runtime.renderer.render(runtime.render_frame,
+        bool gpu_frame = false;
+#ifdef PM_GALLERY_METAL_RENDERER
+        gpu_frame = runtime.gpu_renderer && runtime.gpu_ready;
+#endif
+        if (gpu_frame) pixels.assign(std::size_t(options.width)*options.height, 0U);
+        else if (!runtime.renderer.render(runtime.render_frame,
                                      current_camera, pixels, error,
                                      nullptr,
                                      debug.fluid_render_mode(runtime.context),
@@ -1392,8 +1432,28 @@ static int run_gallery_application(
                                 runtime.renderer.height(), capture_status,
                                 capture_status_failure);
 
-        frame_timings.begin_phase(FramePhase::present);
-        if (!presentation.present(pixels, error)) {
+        bool presented_ok = false;
+#ifdef PM_GALLERY_METAL_RENDERER
+        if (gpu_frame) {
+            frame_timings.begin_phase(FramePhase::render);
+            CommandSceneGpuFrame native_frame;
+            PmNativeDeviceInfo native_device{};
+            if (!runtime.simulation.gpu_frame(native_frame, error) ||
+                pmGetNativeDevice(runtime.simulation.device(), &native_device) != PM_SUCCESS) {
+                std::cerr << "GPU output export failed: " << error << '\n'; return 1;
+            }
+            runtime.gpu_renderer->render(native_frame, current_camera, options.width, options.height,
+                presentation.metal_layer(reinterpret_cast<void *>(native_device.device)),
+                !options.interactive_smoke_output.empty() && displayed_frames + 1 == static_cast<unsigned>(options.frames) ? &pixels : nullptr,
+                &frame_timings, pixels);
+            presented_ok = true;
+        } else
+#endif
+        {
+            frame_timings.begin_phase(FramePhase::present);
+            presented_ok = presentation.present(pixels, error);
+        }
+        if (!presented_ok) {
             std::cerr << "Presentation failed: " << error << '\n';
             return 1;
         }
@@ -1406,13 +1466,22 @@ static int run_gallery_application(
             std::cerr << error << '\n';
             return 1;
         }
+        ++displayed_frames;
+        if (!options.interactive_smoke_output.empty() && displayed_frames == static_cast<unsigned>(options.frames)) {
+            if (!write_ppm(options.interactive_smoke_output, pixels, options.width, options.height)) return 1;
+            std::cout << "Interactive smoke: " << displayed_frames << " frames, renderer="
+                      << (gpu_frame ? "metal-direct-fenced" : "software") << '\n';
+            return 0;
+        }
     }
     return 0;
 }
 
 int parallel_mater_gallery_application(int argc, char **argv) {
     parallel_mater::gallery::FrameTimingCsv timing_csv;
-    const int result = run_gallery_application(argc, argv, timing_csv);
+    int result = 1;
+    try { result = run_gallery_application(argc, argv, timing_csv); }
+    catch (const std::exception &failure) { std::cerr << "Gallery failed: " << failure.what() << '\n'; }
     std::string error;
     if (!timing_csv.close(error)) {
         std::cerr << error << '\n';

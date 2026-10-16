@@ -41,6 +41,8 @@
             output.scene = argv[++index];
         } else if (argument == "--headless" && index + 1 < argc) {
             output.headless_output = argv[++index];
+        } else if (argument == "--interactive-smoke" && index + 1 < argc) {
+            output.interactive_smoke_output = argv[++index];
         } else if (argument == "--frame-timings" && index + 1 < argc) {
             output.frame_timings_output = argv[++index];
             if (output.frame_timings_output.empty()) return false;
@@ -138,6 +140,7 @@
                          "[--brick-planes 1..16] [--calibrate] "
                          "[--profiles-file file.json] "
                          "[--backend cuda|d3d12|metal|vulkan] "
+                         "[--interactive-smoke final.ppm] "
                          "[--print-brick-profile] "
                          "[--dump-spheres N] [";
             bool first = true;

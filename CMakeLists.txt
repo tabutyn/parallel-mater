@@ -36,6 +36,7 @@ endfunction()
 add_library(parallel-mater-gallery-frame-timing STATIC
     examples/support/frame_timing.cpp)
 target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
+set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
 target_include_directories(parallel-mater-gallery-frame-timing
     PUBLIC examples/support/include)
 parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing)
@@ -725,6 +726,21 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
+    add_library(parallel-mater-gallery-session STATIC examples/support/session.cpp)
+    set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
+    target_link_libraries(parallel-mater-gallery-session PUBLIC
+        parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
+    target_include_directories(parallel-mater-gallery-session PRIVATE examples/gallery examples/support)
+    target_compile_definitions(parallel-mater-gallery-session PRIVATE
+        PM_GALLERY_BUILD_REVISION="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+    parallel_mater_enable_warnings(parallel-mater-gallery-session)
+    if(APPLE AND PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+        target_sources(parallel-mater-gallery-session PRIVATE examples/support/metal_gallery_renderer.mm)
+        target_compile_options(parallel-mater-gallery-session PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+        target_compile_definitions(parallel-mater-gallery-session PRIVATE PM_GALLERY_METAL_RENDERER=1)
+        target_link_libraries(parallel-mater-gallery-session PRIVATE "-framework Metal" "-framework QuartzCore" "-framework Foundation")
+    endif()
+
     if(ANDROID)
         add_subdirectory(examples/android/app/src/main/cpp)
     elseif(PARALLEL_MATER_IOS)
@@ -741,6 +757,10 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PRIVATE glfw d3d12 dxgi)
         target_compile_definitions(parallel-mater-gallery-window
             PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    elseif(APPLE)
+        target_sources(parallel-mater-gallery-window PRIVATE examples/support/metal_window.mm)
+        target_compile_options(parallel-mater-gallery-window PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+        target_link_libraries(parallel-mater-gallery-window PRIVATE glfw "-framework Metal" "-framework QuartzCore" "-framework AppKit")
     else()
         target_sources(parallel-mater-gallery-window PRIVATE
             examples/support/opengl_window.cpp)
@@ -779,6 +799,10 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 parallel-mater-gallery-frame-timing)
 
     if(APPLE)
+        if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+            target_link_libraries(parallel-mater-gallery-application PRIVATE parallel-mater-gallery-session)
+            target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_METAL_RENDERER=1)
+        endif()
         include(cmake/ParallelMaterMacOSGallery.cmake)
     else()
         add_executable(parallel-mater-gallery examples/gallery/main.cpp)
@@ -1123,12 +1147,11 @@ if(BUILD_TESTING)
             file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets" "${ipad_test_resources}/assets" SYMBOLIC)
         endif()
         add_executable(parallel-mater-ipad-session-tests
-            tests/gallery/ipad_session_tests.cpp examples/ios/gallery_session.cpp)
+            tests/gallery/ipad_session_tests.cpp)
         target_link_libraries(parallel-mater-ipad-session-tests PRIVATE
-            parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
-        target_include_directories(parallel-mater-ipad-session-tests PRIVATE examples/ios)
+            parallel-mater-gallery-session)
         target_compile_definitions(parallel-mater-ipad-session-tests PRIVATE
-            PM_IPAD_REVISION="test" PM_IPAD_TEST_RESOURCES="${ipad_test_resources}")
+            PM_IPAD_TEST_RESOURCES="${ipad_test_resources}")
         add_dependencies(parallel-mater-ipad-session-tests parallel-mater-driver-slang-metal parallel-mater-layer-validation)
         add_test(NAME parallel-mater-ipad-session-tests COMMAND parallel-mater-ipad-session-tests)
         set_tests_properties(parallel-mater-ipad-session-tests PROPERTIES TIMEOUT 600
@@ -1159,6 +1182,8 @@ if(BUILD_TESTING)
     add_subdirectory(tests/solver)
     add_executable(parallel-mater-gallery-frame-timing-tests
         tests/gallery/frame_timing_tests.cpp)
+    add_test(NAME parallel-mater-gallery-deployment-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/deployment_tests.py")
     target_link_libraries(parallel-mater-gallery-frame-timing-tests PRIVATE
         parallel-mater-gallery-frame-timing)
     parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-tests)
