@@ -224,7 +224,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                     out.write(manifestBytes(manifest));
                 }
                 JSONObject layer = new JSONObject();
-                layer.put("name", "PM_LAYER_KHRONOS_validation");
+                layer.put("name", "PM_LAYER_PARALLEL_MATER_validation");
                 layer.put("library_path", getApplicationInfo().nativeLibraryDir +
                     "/libparallel_mater_layer_validation.so");
                 layer.put("api_version", "0.2.0");

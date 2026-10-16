@@ -41,6 +41,14 @@ int main(int argc, char **argv) {
     CHECK(version == PM_DRIVER_INTERFACE_VERSION);
     CHECK(get_instance(nullptr, "pmCreateInstance") != nullptr);
     CHECK(get_instance(nullptr, "pmQueueSubmit") == nullptr);
+    auto create = reinterpret_cast<PFN_pmCreateInstance>(
+        get_instance(nullptr, "pmCreateInstance"));
+    PmInstanceCreateInfo info{};
+    info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    info.apiVersion = PM_API_VERSION_0_2 + 1U;
+    PmInstance instance{};
+    CHECK(create(&info, nullptr, &instance) == PM_ERROR_INCOMPATIBLE_VERSION);
+    CHECK(instance == nullptr);
 
     Library loader = open_library(argv[2]);
     CHECK(loader != nullptr);

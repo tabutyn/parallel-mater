@@ -1,7 +1,7 @@
 {
   "file_format_version": "1.0.0",
   "layer": {
-    "name": "PM_LAYER_KHRONOS_validation",
+    "name": "PM_LAYER_PARALLEL_MATER_validation",
     "type": "GLOBAL",
     "library_path": "@PARALLEL_MATER_INSTALLED_LAYER_PATH@",
     "api_version": "0.2.0",

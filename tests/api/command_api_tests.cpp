@@ -22,7 +22,7 @@ int main() {
     CHECK(layer_count == 1U);
     PmLayerProperties layer{};
     CHECK(pmEnumerateInstanceLayerProperties(&layer_count, &layer) == PM_SUCCESS);
-    CHECK(std::strcmp(layer.layerName, "PM_LAYER_KHRONOS_validation") == 0);
+    CHECK(std::strcmp(layer.layerName, "PM_LAYER_PARALLEL_MATER_validation") == 0);
 
     const char *missing_instance_extension = "PM_EXT_missing";
     PmInstanceCreateInfo missing_instance_info{};
@@ -38,7 +38,7 @@ int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_2;
-    const char *validation_layer = "PM_LAYER_KHRONOS_validation";
+    const char *validation_layer = "PM_LAYER_PARALLEL_MATER_validation";
     instance_info.enabledLayerCount = 1U;
     instance_info.ppEnabledLayerNames = &validation_layer;
     PmInstance instance{};

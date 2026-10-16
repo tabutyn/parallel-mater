@@ -74,7 +74,7 @@ set_source_files_properties(config/device-profiles.json PROPERTIES MACOSX_PACKAG
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/ios/slang-metal.json" CONTENT
 "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"../Frameworks/ParallelMaterMetal.framework/ParallelMaterMetal\",\"api_version\":\"0.2.0\",\"library_arch\":\"64\"}}\n")
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/ios/validation.json" CONTENT
-"{\"file_format_version\":\"1.0.0\",\"layer\":{\"name\":\"PM_LAYER_KHRONOS_validation\",\"library_path\":\"../Frameworks/ParallelMaterValidation.framework/ParallelMaterValidation\",\"api_version\":\"0.2.0\"}}\n")
+"{\"file_format_version\":\"1.0.0\",\"layer\":{\"name\":\"PM_LAYER_PARALLEL_MATER_validation\",\"library_path\":\"../Frameworks/ParallelMaterValidation.framework/ParallelMaterValidation\",\"api_version\":\"0.2.0\"}}\n")
 foreach(manifest slang-metal validation)
     set(path "${CMAKE_CURRENT_BINARY_DIR}/generated/ios/${manifest}.json")
     target_sources(parallel-mater-ipad-gallery PRIVATE "${path}")

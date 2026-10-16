@@ -134,7 +134,11 @@ fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope
 
 ### F3. Reconcile the specification, ABI and validation contract
 
-Status: pending.
+Status: in progress. Invalid API/driver/layer version negotiation is rejected
+with independent mock-library tests. Validation uses the project-owned namespace
+with an old-name compatibility alias. Lifetime prose and stable contract-rule
+identifiers now describe tested behavior; typed state validation remains next.
+See [API contract rules](API-CONTRACT.md).
 
 - Resolve conflicting destruction/wait semantics and error codes; specify
   threading, command snapshots, deferred failures, capacity overflow and reset.

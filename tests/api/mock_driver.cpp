@@ -76,7 +76,11 @@ PM_MOCK_EXPORT PmResult PMAPI_CALL
 pm_driverNegotiateLoaderInterfaceVersion(std::uint32_t *version) {
     if (version == nullptr || *version == 0U)
         return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PM_MOCK_INTERFACE_VERSION)
+    *version = PM_MOCK_INTERFACE_VERSION;
+#else
     *version = std::min(*version, PM_DRIVER_INTERFACE_VERSION);
+#endif
     return PM_SUCCESS;
 }
 

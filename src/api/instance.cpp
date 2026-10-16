@@ -253,9 +253,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
     if (instance == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *instance = nullptr;
     if (info == nullptr || !parallel_mater::api::valid_structure(
-            info->sType, PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, info->pNext) ||
-        info->apiVersion > PM_API_VERSION_0_2)
+            info->sType, PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, info->pNext))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (info->apiVersion != 0U && info->apiVersion != PM_API_VERSION_0_2)
+        return PM_ERROR_INCOMPATIBLE_VERSION;
     if (allocator != nullptr &&
         (allocator->pfnAllocate == nullptr || allocator->pfnFree == nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
