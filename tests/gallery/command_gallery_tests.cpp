@@ -3,6 +3,7 @@
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <scene_builder.hpp>
 #include "backend_comparison.hpp"
+#include "rigid_mesh_checks.hpp"
 
 #include <array>
 #include <cmath>
@@ -212,6 +213,11 @@ int main(int argc, char **argv) {
             }
         }
         if (entry.has_fluid) scene.fluid_options.capacity = 100U;
+        std::vector<rigid_mesh_checks::MeshSamples> brick_geometry;
+        float maximum_brick_penetration{};
+        if (entry.context == GalleryContext::rigid_body)
+            for (std::size_t body = 0U; body < scene.rigid_bodies.size(); ++body)
+                brick_geometry.emplace_back(scene, body);
 
         CommandScene simulation;
         CommandSceneInstance instance;
@@ -248,6 +254,28 @@ int main(int argc, char **argv) {
             if ((frame_index + 1U) % 60U == 0U)
                 std::cout << entry.name << ": " << frame_index + 1U
                           << " frames submitted\n" << std::flush;
+            if (!brick_geometry.empty()) {
+                const auto state = [&](std::size_t body) {
+                    const auto &value = frame.rigid_states[body];
+                    return RigidBodyState{{value.position[0],value.position[1],value.position[2]},
+                        {value.orientation[0],value.orientation[1],value.orientation[2],value.orientation[3]},
+                        {}, {}};
+                };
+                for (std::size_t a = 0U; a < brick_geometry.size(); ++a)
+                    for (std::size_t b = a + 1U; b < brick_geometry.size(); ++b) {
+                        if (!scene.rigid_bodies[a].name.starts_with("Brick_") ||
+                            !scene.rigid_bodies[b].name.starts_with("Brick_")) continue;
+                        const float depth = std::max(
+                            brick_geometry[a].penetration(state(a), brick_geometry[b], state(b)),
+                            brick_geometry[b].penetration(state(b), brick_geometry[a], state(a)));
+                        maximum_brick_penetration = std::max(maximum_brick_penetration, depth);
+                        if (depth > 0.002F) {
+                            std::cerr << "Brick separation failed at frame " << frame_index
+                                      << " bodies=" << a << ',' << b << " penetration=" << depth << '\n';
+                            return 1;
+                        }
+                    }
+            }
             if (reference_backend &&
                 (!reference.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, reference_frame, error, true) ||
                  !validate_frame(scene, reference_frame, error) ||
@@ -306,6 +334,8 @@ int main(int argc, char **argv) {
             return 1;
         }
         ++passed;
+        if (!brick_geometry.empty())
+            std::cout << "Independent brick penetration=" << maximum_brick_penetration << " m\n";
         std::cout << entry.name << ": " << frame_count
                   << " frames and reset passed" << std::endl;
     }

@@ -274,5 +274,14 @@ cloth-tear run was fixed in the device adapter and the case now completes;
 completion does not erase its cross-driver differences. Milestones 4 and 6
 remain open until those numerical failures are resolved.
 
+The additional independent brick/brick mesh test also exposes a shared quality
+failure: with eight bricks, four substeps and a 2 mm separation gate, D3D12
+reaches 7.21844 mm penetration at frame 102 and CUDA reaches 7.02056 mm at
+frame 101 (zero-based). Earlier finite-state/300-frame execution passes must
+not be described as nonpenetration or full gallery parity. Keep this test red
+until the common solver is corrected. An isolated relaxed floating-point
+compilation experiment did not qualify rigid-direct, hinge or generic; the
+production precise settings remain unchanged.
+
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).
