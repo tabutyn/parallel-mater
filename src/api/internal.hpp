@@ -9,6 +9,7 @@
 #include <simulation/runtime.hpp>
 
 #include "../device/device.hpp"
+#include "../device/submission.hpp"
 #include "../simulation/memory_arena.hpp"
 
 #include <atomic>
@@ -40,6 +41,7 @@ struct PmQueue_T {
     std::uint32_t family{};
     std::uint32_t index{};
     std::mutex mutex;
+    std::unique_ptr<parallel_mater::device::SubmissionQueue> submissions;
 };
 
 struct PmInstance_T {
@@ -121,7 +123,8 @@ struct PmSimulation_T {
     bool couplings_initialized{};
     std::uint64_t submitted_steps{};
     std::uint32_t last_substeps{};
-    PmResult execution_result{PM_SUCCESS};
+    std::atomic<PmResult> execution_result{PM_SUCCESS};
+    std::atomic<std::uint32_t> pending_submissions{};
 };
 
 struct PmPhysicsPipeline_T {
@@ -133,6 +136,12 @@ struct PmPhysicsPipeline_T {
     std::vector<PmRopeMaterialState> ropes;
     std::vector<PmSoftBodyMaterialState> soft_bodies;
     std::vector<PmSmokeMaterialState> smokes;
+};
+
+struct PmQueryWrite {
+    PmQueryPool pool{};
+    std::uint32_t first{};
+    std::uint32_t count{};
 };
 
 enum class PmCommandState : std::uint8_t { initial, recording, executable, pending };
@@ -148,7 +157,9 @@ struct PmCommandBuffer_T {
     PmQueryPool statistics_pool{};
     std::uint32_t statistics_query{};
     PmSimulation statistics_simulation{};
-    parallel_mater::device::Event completion{};
+    std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
+    std::vector<PmQueryWrite> query_writes;
+    std::vector<PmSimulation> simulation_resources;
     std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
 };
 
@@ -162,27 +173,28 @@ struct PmCommandPool_T {
 struct PmSemaphore_T {
     PmDevice_T *device{};
     std::mutex mutex;
-    std::condition_variable changed;
     std::uint64_t value{};
-    std::map<std::uint64_t, parallel_mater::device::Event> events;
+    std::map<std::uint64_t, std::shared_ptr<parallel_mater::device::SubmissionCompletion>> signals;
     bool imported{};
     PmNativeHandle native{};
 };
 
 struct PmFence_T {
     PmDevice_T *device{};
-    parallel_mater::device::Event event{};
+    std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
     bool submitted{};
     bool initially_signaled{};
 };
 
 struct PmQuerySlot {
+    std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
     parallel_mater::device::Event event{};
     bool available{};
     PmStepStatistics statistics{};
 };
 
 struct PmQueryPool_T {
+    std::mutex mutex;
     PmDevice_T *device{};
     PmQueryType type{};
     std::vector<PmQuerySlot> slots;
@@ -249,9 +261,7 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
     if (buffer == nullptr || buffer->state != PmCommandState::pending ||
         !buffer->completion)
         return;
-    bool ready = false;
-    if (buffer->device->services->query_event(buffer->completion, ready) == PM_SUCCESS &&
-        ready)
+    if (buffer->completion->status() != PM_NOT_READY)
         buffer->state = PmCommandState::executable;
 }
 
@@ -285,6 +295,29 @@ inline PmResult record(PmCommandBuffer buffer,
         buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
         return buffer->latched_error;
     }
+}
+
+inline PmResult record_simulation(PmCommandBuffer buffer, PmSimulation simulation,
+    std::function<PmResult(device::Services &)> command) noexcept {
+    const auto state = require_recording(buffer);
+    if (state != PM_SUCCESS) return state;
+    try {
+        buffer->simulation_resources.push_back(simulation);
+    } catch (const std::bad_alloc &) {
+        return buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    return record(buffer, std::move(command));
+}
+
+inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
+    std::uint32_t first, std::uint32_t count,
+    std::function<PmResult(device::Services &)> command) noexcept {
+    try {
+        buffer->query_writes.push_back({pool, first, count});
+    } catch (const std::bad_alloc &) {
+        return buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    return record(buffer, std::move(command));
 }
 
 [[nodiscard]] PmPhysicalDeviceFeatures supported_features() noexcept;

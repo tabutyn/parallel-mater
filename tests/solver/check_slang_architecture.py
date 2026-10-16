@@ -19,6 +19,13 @@ runtime_paths.extend(sorted(
     (ROOT / "src" / "simulation").glob("runtime_*.cu.inc")
 ))
 runtime = "\n".join(path.read_text(encoding="utf-8") for path in runtime_paths)
+schedule_path = ROOT / "src" / "simulation" / "reference_schedule.hpp"
+schedule_text = schedule_path.read_text(encoding="utf-8")
+for native_token in ("cuda_runtime", "cudaStream", "cudaEvent", "cudaMemcpy", "cudaError", "<<<"):
+    if native_token in schedule_text:
+        failures.append(f"{schedule_path.relative_to(ROOT)}: portable schedule contains {native_token}")
+if "simulation::schedule_frame(*impl_, backend, options)" not in runtime:
+    failures.append("runtime_schedule.cu.inc: runtime bypasses the shared reference schedule")
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text(encoding="utf-8")
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():
@@ -480,16 +487,18 @@ for required in (
             f"cmake/SlangGeometryConstraints.cmake: missing DXIL contract {required}"
         )
 
-d3d12_driver_path = ROOT / "src" / "driver" / "d3d12" / "entry.cpp"
-d3d12_command_path = ROOT / "src" / "driver" / "d3d12" / "slang_command.cpp"
+d3d12_driver_paths = (
+    ROOT / "src" / "driver" / "d3d12" / "slang_command.cpp",
+    ROOT / "src" / "driver" / "d3d12" / "schedule_context.cpp",
+    ROOT / "src" / "device" / "d3d12_device.cpp",
+)
 if "parallel-mater-driver-slang-d3d12 SHARED" not in cmake:
     failures.append("CMakeLists.txt: D3D12 loader driver target missing")
-if not d3d12_driver_path.exists() or not d3d12_command_path.exists():
+if any(not path.exists() for path in d3d12_driver_paths):
     failures.append("src/driver/d3d12: thin Slang command adapter missing")
 else:
-    d3d12_driver = (
-        d3d12_driver_path.read_text(encoding="utf-8") + "\n" +
-        d3d12_command_path.read_text(encoding="utf-8")
+    d3d12_driver = "\n".join(
+        path.read_text(encoding="utf-8") for path in d3d12_driver_paths
     )
     for required in (
         "parallel_mater_slang_dxil.hpp", "record_dispatch",
@@ -499,12 +508,12 @@ else:
     ):
         if required not in d3d12_driver:
             failures.append(
-                f"src/driver/d3d12/entry.cpp: missing shared DXIL driver "
+                f"src/driver/d3d12: missing shared DXIL driver "
                 f"contract {required}")
     for forbidden in ("simulation/runtime.hpp", "cuda_runtime", ".cu\""):
         if forbidden in d3d12_driver:
             failures.append(
-                f"src/driver/d3d12/entry.cpp: physics/backend implementation "
+                f"src/driver/d3d12: physics/backend implementation "
                 f"leaked into thin driver: {forbidden}")
 
 # Native CUDA is limited to device services and generated-Slang dispatch. Host

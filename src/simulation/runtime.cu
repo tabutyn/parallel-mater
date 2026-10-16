@@ -23,6 +23,7 @@
 #include "simulation/exports.hpp"
 #include "simulation/memory_arena.hpp"
 #include "simulation/primitives.hpp"
+#include "simulation/reference_schedule.hpp"
 
 #include <cuda_runtime.h>
 
@@ -79,7 +80,6 @@ using simulation::transform_point;
 
 constexpr float k_epsilon = 1.0e-6F;
 constexpr std::uint32_t k_invalid_dense = std::numeric_limits<std::uint32_t>::max();
-constexpr std::uint32_t k_soft_contact_cleanup_passes = 8U;
 
 [[nodiscard]] Status success() noexcept { return {}; }
 
@@ -177,42 +177,8 @@ struct CompletionState {
     }
 };
 
-enum class TimingStage : std::uint8_t {
-    rigid_integration,
-    rigid_world_bounds,
-    rigid_pair_filter,
-    rigid_pair_compaction,
-    rigid_leaf_pair_generation,
-    rigid_contact_evaluation,
-    rigid_contact_solve,
-    rigid_input_clear,
-    cloth_prediction,
-    cloth_constraints,
-    cloth_contacts,
-    soft_body_prediction,
-    soft_body_constraints,
-    soft_body_contacts,
-    soft_body_contact_cleanup,
-    soft_body_cloth_contacts,
-    fluid_soft_body_contacts,
-    fluid_rope_contacts,
-    rope_soft_body_contacts,
-    fluid_cloth_contacts,
-    fluid_spawn,
-    fluid_neighbor_sort,
-    fluid_neighbor_forces,
-    fluid_integration,
-    fluid_static_contacts,
-    fluid_body_index,
-    fluid_moving_contacts,
-    fluid_contact_events,
-    fluid_outflow_compaction,
-    fluid_smoke_exchange,
-    rope_solve,
-    smoke_grid,
-    smoke_advection,
-    smoke_emission,
-};
+using simulation::TimingStage;
+using simulation::k_soft_contact_cleanup_passes;
 
 [[nodiscard]] Status wait_for_completion(
     const std::shared_ptr<CompletionState> &completion) noexcept {
@@ -311,14 +277,14 @@ enum class TimingStage : std::uint8_t {
     return success();
 }
 
-[[nodiscard]] bool valid_constraint_mask(std::uint8_t axes) noexcept {
+[[nodiscard]] bool valid_constraint_mask(std::uint32_t axes) noexcept {
     return (axes & ~rigid_constraint_all_axes) == 0U;
 }
 
 [[nodiscard]] Status validate_constraint_options(
     const RigidConstraintOptions &options) noexcept {
-    if (static_cast<std::uint8_t>(options.type) >
-        static_cast<std::uint8_t>(RigidConstraintType::motor))
+    if (static_cast<std::uint32_t>(options.type) >
+        static_cast<std::uint32_t>(RigidConstraintType::motor))
         return failure(StatusCode::invalid_argument,
                        "rigid constraint type is invalid");
     if (options.body_a == options.body_b)
@@ -1101,6 +1067,7 @@ struct FrameToken::Impl {
 };
 
 struct SimulationRuntime::Impl {
+    using RopeSoftCoupling = RopeSoftBodyCouplingStorage;
     struct Slot {
         std::uint32_t generation{1U};
         std::uint32_t dense_index{k_invalid_dense};
@@ -1896,6 +1863,7 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
 #include "runtime_domains.cu.inc"
 #include "runtime_deformables.cu.inc"
 #include "runtime_rigid.cu.inc"
+#include "native_schedule_backend.cu.inc"
 #include "runtime_schedule.cu.inc"
 #include "runtime_diagnostics.cu.inc"
 

@@ -158,6 +158,7 @@ add_library(parallel-mater-driver-slang-cpu SHARED
     src/api/interop.cpp
     src/driver/slang/entry.cpp
     src/device/cpu_device.cpp
+    src/device/submission.cpp
     src/simulation/cpu_runtime.cpp
     src/simulation/cpu_geometry_dispatch.cpp
     src/simulation/cpu_geometry_constraints_dispatch.cpp
@@ -185,7 +186,7 @@ target_include_directories(parallel-mater-driver-slang-cpu
         ${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}
         ${PARALLEL_MATER_API_GENERATED_DIR})
 target_link_libraries(parallel-mater-driver-slang-cpu PRIVATE
-    parallel-mater-host-preparation)
+    parallel-mater-host-preparation Threads::Threads)
 parallel_mater_enable_warnings(parallel-mater-driver-slang-cpu)
 set_target_properties(parallel-mater-driver-slang-cpu PROPERTIES
     OUTPUT_NAME parallel_mater_driver_slang_cpu
@@ -205,6 +206,15 @@ file(GENERATE
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
+    add_executable(parallel-mater-async-submission-tests tests/api/async_submission_tests.cpp)
+    target_compile_features(parallel-mater-async-submission-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-async-submission-tests PRIVATE parallel-mater)
+    add_dependencies(parallel-mater-async-submission-tests parallel-mater-driver-slang-cpu)
+    add_test(NAME parallel-mater-async-submission-tests COMMAND parallel-mater-async-submission-tests)
+    set_tests_properties(parallel-mater-async-submission-tests PROPERTIES
+        TIMEOUT 30
+        ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json")
+
     add_executable(parallel-mater-slang-cpu-driver-abi-tests
         tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-slang-cpu-driver-abi-tests

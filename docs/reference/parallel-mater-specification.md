@@ -1922,6 +1922,14 @@ PmResult pmWaitForFences(PmDevice device,
 
 Submit requires an unsignaled fence not associated with pending work. Get returns SUCCESS or NOT_READY. Wait accepts zero for polling and PM_TIMEOUT_INFINITE for an unbounded wait; expiration returns TIMEOUT. Only reset a fence after its associated work completes. A fence synchronizes GPU completion with the CPU, not another GPU queue.
 
+A deferred submission failure may also be returned by fence status/wait,
+timeline wait, query-result retrieval, and queue/device idle. Such a failure
+must not make a completion observable until all partially issued work has
+finished accessing its resources. The reference drivers retain the fence's
+execution result until reset; idle returns the first failure since the preceding
+idle call. Simulation status remains NOT_READY while host scheduling or device
+execution is pending, including work accepted behind an unresolved timeline wait.
+
 <a id="spec-interop"></a>
 
 ## 14 Native API interoperability

@@ -7,117 +7,93 @@
 #include <vector>
 
 namespace {
+using Completion = parallel_mater::device::SubmissionCompletion;
+using CompletionPtr = std::shared_ptr<Completion>;
 
-void refresh(PmSemaphore semaphore) noexcept {
-    if (semaphore == nullptr) return;
-    std::lock_guard lock(semaphore->mutex);
-    for (const auto &[value, event] : semaphore->events) {
-        bool ready = false;
-        if (semaphore->device->services->query_event(event, ready) == PM_SUCCESS &&
-            ready)
-            semaphore->value = std::max(semaphore->value, value);
+void refresh_timeline_locked(PmSemaphore semaphore) noexcept {
+    while (!semaphore->signals.empty()) {
+        const auto first = semaphore->signals.begin();
+        if (first->second->status() != PM_SUCCESS) break;
+        semaphore->value = std::max(semaphore->value, first->first);
+        semaphore->signals.erase(first);
     }
+}
+
+PmResult timeline_status(PmSemaphore semaphore, std::uint64_t value) noexcept {
+    std::lock_guard lock(semaphore->mutex);
+    refresh_timeline_locked(semaphore);
+    if (semaphore->value >= value) return PM_SUCCESS;
+    const auto found = semaphore->signals.lower_bound(value);
+    if (found == semaphore->signals.end()) return PM_NOT_READY;
+    const PmResult result = found->second->status();
+    if (result == PM_SUCCESS) semaphore->value = found->first;
+    return result;
 }
 
 PmResult wait_timeline(PmSemaphore semaphore, std::uint64_t value,
                        std::uint64_t timeout) noexcept {
-    if (semaphore == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     const auto started = std::chrono::steady_clock::now();
-    std::unique_lock lock(semaphore->mutex);
     for (;;) {
-        if (semaphore->value >= value) return PM_SUCCESS;
-        const auto found = semaphore->events.lower_bound(value);
-        if (found != semaphore->events.end()) {
-            const parallel_mater::device::Event event = found->second;
-            lock.unlock();
-            if (timeout == PM_TIMEOUT_INFINITE) {
-                const PmResult result = semaphore->device->services->wait_event(event);
-                if (result != PM_SUCCESS) return result;
-            } else {
-                for (;;) {
-                    bool ready = false;
-                    const PmResult result = semaphore->device->services->query_event(
-                        event, ready);
-                    if (result != PM_SUCCESS) return result;
-                    if (ready) break;
-                    const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::steady_clock::now() - started).count();
-                    if (static_cast<std::uint64_t>(elapsed) >= timeout)
-                        return PM_TIMEOUT;
-                    std::this_thread::sleep_for(std::chrono::microseconds(50));
-                }
+        const PmResult result = timeline_status(semaphore, value);
+        if (result != PM_NOT_READY) return result;
+        if (timeout != PM_TIMEOUT_INFINITE) {
+            const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - started).count();
+            if (static_cast<std::uint64_t>(elapsed) >= timeout) return PM_TIMEOUT;
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+    }
+}
+
+struct Submission {
+    std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
+    std::vector<PmSemaphoreSubmitInfo> waits;
+    std::vector<CompletionPtr> signal_dependencies;
+    std::vector<PmQueryWrite> queries;
+    std::vector<PmSimulation> simulations;
+
+    [[nodiscard]] bool ready() const noexcept {
+        for (const auto &wait : waits)
+            if (timeline_status(wait.semaphore, wait.value) == PM_NOT_READY)
+                return false;
+        for (const auto &dependency : signal_dependencies)
+            if (dependency->status() == PM_NOT_READY) return false;
+        return true;
+    }
+
+    [[nodiscard]] PmResult execute(parallel_mater::device::Services &services) noexcept {
+        PmResult result = services.activate();
+        for (const auto &wait : waits)
+            if (result == PM_SUCCESS)
+                result = timeline_status(wait.semaphore, wait.value);
+        for (const auto &dependency : signal_dependencies)
+            if (result == PM_SUCCESS) result = dependency->status();
+        try {
+            for (auto &command : commands) {
+                if (result != PM_SUCCESS) break;
+                result = command(services);
             }
-            lock.lock();
-            semaphore->value = std::max(semaphore->value, found->first);
-            return PM_SUCCESS;
+        } catch (const std::bad_alloc &) {
+            result = PM_ERROR_OUT_OF_HOST_MEMORY;
+        } catch (...) {
+            result = PM_ERROR_INVALID_STATE;
         }
-        if (timeout == 0U) return PM_TIMEOUT;
-        if (timeout == PM_TIMEOUT_INFINITE) {
-            semaphore->changed.wait(lock);
-        } else {
-            const auto deadline = started + std::chrono::nanoseconds(timeout);
-            if (semaphore->changed.wait_until(lock, deadline) ==
-                std::cv_status::timeout)
-                return PM_TIMEOUT;
+        // Partial execution still owns all referenced storage until the
+        // native queue drains. Never signal a failed submission prematurely.
+        const PmResult drained = services.wait_idle();
+        if (result == PM_SUCCESS) result = drained;
+        for (PmSimulation simulation : simulations) {
+            if (result != PM_SUCCESS) simulation->execution_result.store(result);
+            simulation->pending_submissions.fetch_sub(1U, std::memory_order_release);
         }
+        return result;
     }
-}
-
-PmResult reset_fence(PmFence fence) noexcept {
-    if (fence == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    if (fence->event) fence->device->services->destroy_event(fence->event);
-    fence->event = {};
-    const PmResult result = fence->device->services->create_event(
-        false, fence->event);
-    if (result != PM_SUCCESS) return result;
-    fence->submitted = false;
-    fence->initially_signaled = false;
-    return PM_SUCCESS;
-}
-
-[[nodiscard]] bool has_timeline_dependency(PmSemaphore semaphore,
-                                           std::uint64_t value) noexcept {
-    std::lock_guard lock(semaphore->mutex);
-    return semaphore->value >= value ||
-        semaphore->events.lower_bound(value) != semaphore->events.end();
-}
-
-[[nodiscard]] PmResult enqueue_timeline_wait(PmSemaphore semaphore,
-                                             std::uint64_t value) noexcept {
-    parallel_mater::device::Event event{};
-    {
-        std::lock_guard lock(semaphore->mutex);
-        if (semaphore->value >= value) return PM_SUCCESS;
-        const auto found = semaphore->events.lower_bound(value);
-        if (found == semaphore->events.end()) return PM_ERROR_INVALID_STATE;
-        event = found->second;
-    }
-    return semaphore->device->services->enqueue_wait(event);
-}
-
-[[nodiscard]] bool submit_signals_dependency(
-    const PmSubmitInfo &info, PmSemaphore semaphore,
-    std::uint64_t value) noexcept {
-    for (std::uint32_t index = 0U; index < info.signalCount; ++index)
-        if (info.pSignals[index].semaphore == semaphore &&
-            info.pSignals[index].value >= value)
-            return true;
-    return false;
-}
+};
 
 struct PreparedSignal {
     PmSemaphore semaphore{};
-    std::uint64_t value{};
-    parallel_mater::device::Event event{};
-    std::map<std::uint64_t, parallel_mater::device::Event>::node_type node;
+    std::map<std::uint64_t, CompletionPtr>::node_type node;
 };
-
-void destroy_prepared_signals(std::vector<PreparedSignal> &signals) noexcept {
-    for (PreparedSignal &signal : signals)
-        if (signal.event)
-            signal.semaphore->device->services->destroy_event(signal.event);
-}
-
 } // namespace
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSemaphore(
@@ -139,11 +115,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSemaphore(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroySemaphore(
     PmDevice device, PmSemaphore semaphore) {
     if (device == nullptr || semaphore == nullptr || semaphore->device != device) return;
-    (void)device->services->wait_idle();
-    for (const auto &[value, event] : semaphore->events) {
-        (void)value;
-        device->services->destroy_event(event);
-    }
+    (void)pmDeviceWaitIdle(device);
     parallel_mater::api::destroy_object(device, semaphore);
 }
 
@@ -152,8 +124,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetSemaphoreCounterValue(
     if (device == nullptr || semaphore == nullptr || value == nullptr ||
         semaphore->device != device)
         return PM_ERROR_INVALID_ARGUMENT;
-    refresh(semaphore);
     std::lock_guard lock(semaphore->mutex);
+    refresh_timeline_locked(semaphore);
+    if (!semaphore->signals.empty()) {
+        const auto result = semaphore->signals.begin()->second->status();
+        if (result < PM_SUCCESS) return result;
+    }
     *value = semaphore->value;
     return PM_SUCCESS;
 }
@@ -176,30 +152,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
         (info->signalCount != 0U && info->pSignals == nullptr) ||
         (fence != nullptr && fence->device != queue->device))
         return PM_ERROR_INVALID_ARGUMENT;
-
-    // Dependencies that already have device events are queued on the device.
-    // Only a value not submitted anywhere yet needs a host-side wait; do that
-    // before taking the queue lock so another thread can submit its producer.
-    for (std::uint32_t index = 0U; index < info->waitCount; ++index) {
-        const auto &wait = info->pWaits[index];
-        if (wait.semaphore == nullptr || wait.semaphore->device != queue->device)
-            return PM_ERROR_INVALID_ARGUMENT;
-        if (!has_timeline_dependency(wait.semaphore, wait.value)) {
-            if (submit_signals_dependency(*info, wait.semaphore, wait.value))
-                return PM_ERROR_INVALID_ARGUMENT;
-            const PmResult result = wait_timeline(
-                wait.semaphore, wait.value, PM_TIMEOUT_INFINITE);
-            if (result != PM_SUCCESS) return result;
-        }
-    }
-    for (std::uint32_t index = 0U; index < info->signalCount; ++index)
-        if (info->pSignals[index].semaphore == nullptr ||
-            info->pSignals[index].semaphore->device != queue->device)
-            return PM_ERROR_INVALID_ARGUMENT;
-
     std::lock_guard queue_lock(queue->mutex);
+    if (fence != nullptr && (fence->submitted || fence->initially_signaled))
+        return PM_ERROR_INVALID_STATE;
     for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
-        const PmCommandBuffer buffer = info->pCommandBuffers[index];
+        const auto buffer = info->pCommandBuffers[index];
         parallel_mater::api::refresh_command_state(buffer);
         if (buffer == nullptr || buffer->device != queue->device ||
             buffer->state != PmCommandState::executable)
@@ -208,117 +165,102 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
             if (info->pCommandBuffers[previous] == buffer)
                 return PM_ERROR_INVALID_ARGUMENT;
     }
-    if (fence != nullptr && (fence->submitted || fence->initially_signaled))
-        return PM_ERROR_INVALID_STATE;
-
-    // Validate strict timeline ordering against both completed and pending
-    // values before any command in this submission can reach the GPU.
+    for (std::uint32_t index = 0U; index < info->waitCount; ++index) {
+        const auto &wait = info->pWaits[index];
+        if (wait.semaphore == nullptr || wait.semaphore->device != queue->device)
+            return PM_ERROR_INVALID_ARGUMENT;
+        // An unresolved wait cannot precede a signal on the same timeline.
+        // Even a smaller signal value would prevent its future producer from
+        // satisfying strict signal ordering.
+        std::lock_guard lock(wait.semaphore->mutex);
+        const bool submitted = wait.semaphore->value >= wait.value ||
+            wait.semaphore->signals.lower_bound(wait.value) != wait.semaphore->signals.end();
+        if (!submitted)
+            for (std::uint32_t signal = 0U; signal < info->signalCount; ++signal)
+                if (info->pSignals[signal].semaphore == wait.semaphore)
+                    return PM_ERROR_INVALID_ARGUMENT;
+    }
     for (std::uint32_t index = 0U; index < info->signalCount; ++index) {
         const auto &signal = info->pSignals[index];
-        std::uint64_t greatest{};
-        {
-            std::lock_guard lock(signal.semaphore->mutex);
-            greatest = signal.semaphore->value;
-            if (!signal.semaphore->events.empty())
-                greatest = std::max(greatest,
-                                    signal.semaphore->events.rbegin()->first);
-        }
+        if (signal.semaphore == nullptr || signal.semaphore->device != queue->device ||
+            signal.stages != PM_STAGE_ALL_COMMANDS_BIT)
+            return PM_ERROR_INVALID_ARGUMENT;
+        std::lock_guard lock(signal.semaphore->mutex);
+        refresh_timeline_locked(signal.semaphore);
+        auto greatest = signal.semaphore->value;
+        if (!signal.semaphore->signals.empty())
+            greatest = std::max(greatest, signal.semaphore->signals.rbegin()->first);
         for (std::uint32_t previous = 0U; previous < index; ++previous)
             if (info->pSignals[previous].semaphore == signal.semaphore)
                 greatest = std::max(greatest, info->pSignals[previous].value);
         if (signal.value <= greatest) return PM_ERROR_INVALID_ARGUMENT;
     }
-
-    std::vector<PreparedSignal> prepared;
     try {
+        auto submission = std::make_shared<Submission>();
+        auto completion = std::make_shared<Completion>();
+        if (info->waitCount != 0U)
+            submission->waits.assign(info->pWaits, info->pWaits + info->waitCount);
+        for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
+            const auto buffer = info->pCommandBuffers[index];
+            submission->commands.insert(submission->commands.end(),
+                buffer->commands.begin(), buffer->commands.end());
+            submission->queries.insert(submission->queries.end(),
+                buffer->query_writes.begin(), buffer->query_writes.end());
+            for (auto simulation : buffer->simulation_resources)
+                if (std::find(submission->simulations.begin(), submission->simulations.end(), simulation) ==
+                    submission->simulations.end()) submission->simulations.push_back(simulation);
+        }
+        std::vector<PreparedSignal> prepared;
         prepared.reserve(info->signalCount);
         for (std::uint32_t index = 0U; index < info->signalCount; ++index) {
             const auto &signal = info->pSignals[index];
-            std::map<std::uint64_t, parallel_mater::device::Event> holder;
-            holder.emplace(signal.value, parallel_mater::device::Event{});
-            PreparedSignal item{};
-            item.semaphore = signal.semaphore;
-            item.value = signal.value;
-            item.node = holder.extract(signal.value);
-            const PmResult result = queue->device->services->create_event(
-                false, item.event);
-            if (result != PM_SUCCESS) {
-                destroy_prepared_signals(prepared);
-                return result;
-            }
-            item.node.mapped() = item.event;
-            prepared.push_back(std::move(item));
+            std::map<std::uint64_t, CompletionPtr> holder;
+            holder.emplace(signal.value, completion);
+            prepared.push_back({signal.semaphore, holder.extract(signal.value)});
+            std::lock_guard lock(signal.semaphore->mutex);
+            if (!signal.semaphore->signals.empty())
+                submission->signal_dependencies.push_back(signal.semaphore->signals.rbegin()->second);
         }
+        return queue->submissions->enqueue(
+            [submission, services = queue->device->services.get()]() noexcept {
+                return submission->execute(*services);
+            },
+            [submission]() noexcept { return submission->ready(); }, completion,
+            [&]() noexcept {
+                for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
+                    auto buffer = info->pCommandBuffers[index];
+                    buffer->completion = completion;
+                    buffer->state = PmCommandState::pending;
+                }
+                for (auto simulation : submission->simulations)
+                    simulation->pending_submissions.fetch_add(1U);
+                for (const auto &write : submission->queries) {
+                    for (std::uint32_t slot = write.first; slot < write.first + write.count; ++slot)
+                        std::atomic_store(&write.pool->slots[slot].completion, completion);
+                }
+                for (auto &signal : prepared) {
+                    std::lock_guard lock(signal.semaphore->mutex);
+                    signal.semaphore->signals.insert(std::move(signal.node));
+                }
+                if (fence != nullptr) {
+                    fence->completion = completion;
+                    fence->submitted = true;
+                }
+            });
     } catch (const std::bad_alloc &) {
-        destroy_prepared_signals(prepared);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-
-    parallel_mater::device::Services &services = *queue->device->services;
-    for (std::uint32_t index = 0U; index < info->waitCount; ++index) {
-        const auto &wait = info->pWaits[index];
-        const PmResult result = enqueue_timeline_wait(
-            wait.semaphore, wait.value);
-        if (result != PM_SUCCESS) {
-            destroy_prepared_signals(prepared);
-            return result;
-        }
-    }
-    for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
-        PmCommandBuffer buffer = info->pCommandBuffers[index];
-        buffer->state = PmCommandState::pending;
-        for (auto &command : buffer->commands) {
-            const PmResult result = command(services);
-            if (result != PM_SUCCESS) {
-                // Some commands may already be in flight. Keep the buffer
-                // pending until a completion marker reaches the stream.
-                (void)services.record_event(buffer->completion);
-                destroy_prepared_signals(prepared);
-                return result;
-            }
-        }
-        const PmResult completion = services.record_event(buffer->completion);
-        if (completion != PM_SUCCESS) {
-            destroy_prepared_signals(prepared);
-            return completion;
-        }
-    }
-    for (PreparedSignal &signal : prepared) {
-        const PmResult result = services.record_event(signal.event);
-        if (result != PM_SUCCESS) {
-            destroy_prepared_signals(prepared);
-            return result;
-        }
-    }
-    if (fence != nullptr) {
-        const PmResult result = services.record_event(fence->event);
-        if (result != PM_SUCCESS) {
-            destroy_prepared_signals(prepared);
-            return result;
-        }
-        fence->submitted = true;
-    }
-    for (PreparedSignal &signal : prepared) {
-        {
-            std::lock_guard lock(signal.semaphore->mutex);
-            const auto inserted = signal.semaphore->events.insert(
-                std::move(signal.node));
-            if (!inserted.inserted) return PM_ERROR_INVALID_STATE;
-        }
-        signal.semaphore->changed.notify_all();
-        signal.event = {};
-    }
-    return PM_SUCCESS;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueWaitIdle(PmQueue queue) {
-    return queue == nullptr ? PM_ERROR_INVALID_ARGUMENT
-                            : queue->device->services->wait_idle();
+    if (queue == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    const auto result = queue->submissions->wait_idle();
+    const auto native = queue->device->services->wait_idle();
+    return result == PM_SUCCESS ? native : result;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmDeviceWaitIdle(PmDevice device) {
-    return device == nullptr ? PM_ERROR_INVALID_ARGUMENT
-                             : device->services->wait_idle();
+    return device == nullptr ? PM_ERROR_INVALID_ARGUMENT : pmQueueWaitIdle(&device->queue);
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateFence(
@@ -330,11 +272,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateFence(
     auto *created = parallel_mater::api::make_object<PmFence_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
-    const PmResult result = device->services->create_event(false, created->event);
-    if (result != PM_SUCCESS) {
-        parallel_mater::api::destroy_object(device, created);
-        return result;
-    }
     created->initially_signaled = (flags & PM_FENCE_SIGNALED_BIT) != 0U;
     *fence = created;
     return PM_SUCCESS;
@@ -343,8 +280,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateFence(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyFence(
     PmDevice device, PmFence fence) {
     if (device == nullptr || fence == nullptr || fence->device != device) return;
-    if (fence->submitted) (void)device->services->wait_event(fence->event);
-    device->services->destroy_event(fence->event);
+    if (fence->completion) (void)fence->completion->wait();
     parallel_mater::api::destroy_object(device, fence);
 }
 
@@ -354,10 +290,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetFenceStatus(
         return PM_ERROR_INVALID_ARGUMENT;
     if (fence->initially_signaled) return PM_SUCCESS;
     if (!fence->submitted) return PM_NOT_READY;
-    bool ready = false;
-    const PmResult result = device->services->query_event(fence->event, ready);
-    if (result != PM_SUCCESS) return result;
-    return ready ? PM_SUCCESS : PM_NOT_READY;
+    return fence->completion->status();
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetFences(
@@ -370,8 +303,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetFences(
              pmGetFenceStatus(device, fences[index]) == PM_NOT_READY))
             return PM_ERROR_INVALID_STATE;
     for (std::uint32_t index = 0U; index < count; ++index) {
-        const PmResult result = reset_fence(fences[index]);
-        if (result != PM_SUCCESS) return result;
+        fences[index]->completion.reset();
+        fences[index]->submitted = false;
+        fences[index]->initially_signaled = false;
     }
     return PM_SUCCESS;
 }

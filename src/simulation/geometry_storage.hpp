@@ -53,7 +53,7 @@ struct BodyAccumulator {
 
 struct KinematicTarget {
     RigidBodyState state{};
-    bool active{};
+    std::uint32_t active{};
 };
 
 struct RigidConstraintGeometry {
@@ -65,7 +65,7 @@ struct RigidConstraintResource {
     RigidConstraintOptions options{};
     RigidConstraintState state{};
     std::uint32_t generation{1U};
-    bool alive{};
+    std::uint32_t alive{};
     RigidConstraintGeometry geometry{};
     avbd::Row avbd_rows[18]{};
     std::uint32_t avbd_count{};
@@ -83,13 +83,13 @@ struct HingeContactFrame {
     Vec3 local_anchor{};
     float inverse_mass{};
     float inverse_moment{};
-    bool present{};
-    bool fixed{};
-    bool axial{};
-    bool axial_rotation{};
-    bool fixed_member{};
-    bool point_member{};
-    bool static_body{};
+    std::uint32_t present{};
+    std::uint32_t fixed{};
+    std::uint32_t axial{};
+    std::uint32_t axial_rotation{};
+    std::uint32_t fixed_member{};
+    std::uint32_t point_member{};
+    std::uint32_t static_body{};
 };
 
 struct Contact {
@@ -101,8 +101,8 @@ struct Contact {
     float accumulated_normal_impulse{};
     Vec3 accumulated_friction_impulse{};
     float initial_normal_speed{};
-    bool warm_started{};
-    bool persistent{};
+    std::uint32_t warm_started{};
+    std::uint32_t persistent{};
     float impact_fraction{1.0F};
     float reported_normal_impulse{};
     Vec3 reported_friction_impulse{};
@@ -110,14 +110,14 @@ struct Contact {
     Vec3 avbd_error{};
     Vec3 avbd_anchor_a{};
     Vec3 avbd_anchor_b{};
-    bool avbd_cached{};
+    std::uint32_t avbd_cached{};
 };
 
 struct ContactManifold {
     Contact contacts[8]{};
     std::uint32_t count{};
     Vec3 initial_relative_position{};
-    bool face_patch{};
+    std::uint32_t face_patch{};
     std::uint32_t response_slot{UINT32_MAX};
     std::uint32_t avbd_next_a{};
     std::uint32_t avbd_next_b{};
@@ -196,7 +196,7 @@ struct TriangleMeshResource {
     std::uint32_t vertex_count{};
     std::uint32_t index_count{};
     std::uint32_t generation{};
-    bool alive{};
+    std::uint32_t alive{};
     Vec3 minimum{};
     Vec3 maximum{};
     Vec3 bounding_center{};
@@ -312,7 +312,7 @@ inline Vec3 transform_point(const RigidBodyState &state, Vec3 point) noexcept {
     return geometry_add(state.position, geometry_rotate(state.orientation, point));
 }
 
-inline bool axis_enabled(std::uint8_t mask, std::uint32_t axis) noexcept {
+inline bool axis_enabled(std::uint32_t mask, std::uint32_t axis) noexcept {
     return (mask & static_cast<std::uint8_t>(1U << axis)) != 0U;
 }
 

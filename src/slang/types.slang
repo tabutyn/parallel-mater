@@ -71,7 +71,7 @@ struct HitBox
     Vec3 half_extents;
 };
 
-enum MotionType : PM_STORAGE_UINT8
+enum MotionType : uint
 {
     static_body,
     kinematic,
@@ -184,7 +184,7 @@ struct TriangleMeshResource
     uint vertex_count;
     uint index_count;
     uint generation;
-    bool alive;
+    uint alive;
     Vec3 minimum;
     Vec3 maximum;
     Vec3 bounding_center;

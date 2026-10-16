@@ -27,7 +27,7 @@ void rigid_avbd_project_hinge_anchors(
         for (uint jointIndex = 0u; jointIndex < jointCapacity; ++jointIndex)
         {
             if (joints[jointIndex].avbd_count == 0u ||
-                !joints[jointIndex].state.enabled ||
+                joints[jointIndex].state.enabled == 0u ||
                 joints[jointIndex].options.type != RigidConstraintType.hinge)
                 continue;
             uint a = joints[jointIndex].geometry.dense_a;
@@ -123,7 +123,7 @@ void rigid_avbd_solve_stage(
              jointIndex += stride)
         {
             if (joints[jointIndex].avbd_count == 0u ||
-                !joints[jointIndex].state.enabled) continue;
+                joints[jointIndex].state.enabled == 0u) continue;
             uint a = joints[jointIndex].geometry.dense_a;
             uint b = joints[jointIndex].geometry.dense_b;
             if (bodies[a].impact == 0u && bodies[b].impact == 0u)
@@ -154,7 +154,7 @@ void rigid_avbd_solve_stage(
                 float error[3];
                 rigid_avbd_contact_rows(contact, a, b, bodies,
                     jacobianA, jacobianB, error);
-                float restitution = !contact.avbd_cached &&
+                float restitution = contact.avbd_cached == 0u &&
                     contact.initial_normal_speed < -1.0f
                     ? min(parameters[a].restitution,
                         parameters[b].restitution) : 0.0f;
@@ -243,7 +243,7 @@ void rigid_avbd_solve_stage(
                 uint a = joints[jointIndex].geometry.dense_a;
                 uint b = joints[jointIndex].geometry.dense_b;
                 bool first = bodyIndex == a;
-                if (joints[jointIndex].state.enabled)
+                if (joints[jointIndex].state.enabled != 0u)
                 {
                     if (phase == 0u)
                         rigid_avbd_visit_joint(joints[jointIndex],
@@ -403,7 +403,7 @@ void rigid_avbd_solve_stage(
              jointIndex += stride)
         {
             if (joints[jointIndex].avbd_count == 0u ||
-                !joints[jointIndex].state.enabled) continue;
+                joints[jointIndex].state.enabled == 0u) continue;
             uint a = joints[jointIndex].geometry.dense_a;
             uint b = joints[jointIndex].geometry.dense_b;
             if (phase != 0u && bodies[a].impact == 0u &&

@@ -144,6 +144,21 @@ contraction, preserving Slang's precise mode and explicit `fma` operations.
 Linux/Windows CI and complete simulation/interaction qualification have not run
 for this branch. Nothing here establishes release readiness.
 
+## Upstream integration (2026-10-16)
+
+Merged `origin/main` at `54d99ed`, including the shared reference schedule,
+asynchronous public submissions and D3D12 adapter work. Preserved staged AVBD
+while incorporating upstream's 32-bit resource flags and explicit flag tests.
+The Metal compute boundary still needs to be connected to that reference
+schedule and the public driver API; this merge alone does not supply it.
+
+On Apple M4, the rebuilt Gallery test configuration passes all 27 tests,
+including asynchronous submission, headless Gallery timing, all 138 native
+Metal pipeline/layout checks and the focused GPU execution fixtures. All
+canonical CUDA-source, SPIR-V and native Metal compiler gates rebuild cleanly.
+Auto-deployment remains disabled. No installed app or main-branch release is
+qualified by these development tests.
+
 ## Reproduce
 
 ```sh

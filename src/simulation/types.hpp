@@ -650,7 +650,7 @@ struct ParticleDestroyPlaneOptions {
     bool enabled{true};
 };
 
-enum class MotionType : std::uint8_t {
+enum class MotionType : std::uint32_t {
     static_body,
     kinematic,
     dynamic,
@@ -719,7 +719,7 @@ struct RigidBodyOptions {
     std::uint64_t user_data{};
 };
 
-enum class RigidConstraintType : std::uint8_t {
+enum class RigidConstraintType : std::uint32_t {
     fixed,
     point,
     hinge,
@@ -733,12 +733,12 @@ enum class RigidConstraintType : std::uint8_t {
 inline constexpr std::uint8_t rigid_constraint_axis_x = 1U << 0U;
 inline constexpr std::uint8_t rigid_constraint_axis_y = 1U << 1U;
 inline constexpr std::uint8_t rigid_constraint_axis_z = 1U << 2U;
-inline constexpr std::uint8_t rigid_constraint_all_axes =
+inline constexpr std::uint32_t rigid_constraint_all_axes =
     rigid_constraint_axis_x | rigid_constraint_axis_y | rigid_constraint_axis_z;
 
 struct RigidConstraintLimitOptions {
     // Bit mask of rigid_constraint_axis_* values. Disabled axes remain free.
-    std::uint8_t axes{};
+    std::uint32_t axes{};
     Vec3 lower{};
     Vec3 upper{};
 };
@@ -746,14 +746,14 @@ struct RigidConstraintLimitOptions {
 struct RigidConstraintSpringOptions {
     // Bit mask of rigid_constraint_axis_* values. Stiffness uses N/m for
     // translation and N*m/rad for rotation; damping uses matching SI units.
-    std::uint8_t axes{};
+    std::uint32_t axes{};
     Vec3 stiffness{};
     Vec3 damping{};
 };
 
 struct RigidConstraintMotorOptions {
-    bool linear_enabled{};
-    bool angular_enabled{};
+    std::uint32_t linear_enabled{};
+    std::uint32_t angular_enabled{};
     // Linear motor follows frame X. Angular motor rotates around frame X.
     float linear_target_velocity{};
     float linear_maximum_impulse{1.0F};
@@ -774,11 +774,11 @@ struct RigidConstraintOptions {
     RigidConstraintSpringOptions linear_springs{};
     RigidConstraintSpringOptions angular_springs{};
     RigidConstraintMotorOptions motor{};
-    bool enabled{true};
+    std::uint32_t enabled{1U};
     // Fixed joints suppress contacts throughout the component connected by
     // enabled, unbroken fixed joints with this flag. Other joints suppress
     // only their own body pair. Contacts outside the component are preserved.
-    bool disable_collisions{true};
+    std::uint32_t disable_collisions{1U};
     // Zero disables breaking. Otherwise this is maximum accumulated impulse
     // accepted during one substep before constraint disables itself.
     float breaking_impulse_threshold{};
@@ -786,8 +786,8 @@ struct RigidConstraintOptions {
 };
 
 struct RigidConstraintState {
-    bool enabled{};
-    bool broken{};
+    std::uint32_t enabled{};
+    std::uint32_t broken{};
     // Accumulated during the latest active substep. A broken constraint keeps
     // the impulse from the substep that exceeded its threshold.
     float applied_impulse{};

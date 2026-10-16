@@ -612,7 +612,7 @@ Status SimulationRuntime::read_rigid_constraint_state(
     RigidConstraintResource *resource = &impl_->rigid_constraints[id.index];
     RigidConstraintState temporary{};
     std::uint32_t generation = 0U;
-    bool alive = false;
+    std::uint32_t alive = 0U;
     cudaError_t error = cudaMemcpyAsync(
         &temporary, &resource->state, sizeof(temporary),
         cudaMemcpyDeviceToHost, stream);
@@ -629,7 +629,7 @@ Status SimulationRuntime::read_rigid_constraint_state(
     if (error == cudaSuccess) error = synchronization_error;
     if (error != cudaSuccess)
         return cuda_failure(error, "rigid constraint state readback failed");
-    if (!alive || generation != id.generation) {
+    if (alive == 0U || generation != id.generation) {
         return failure(StatusCode::invalid_handle,
                        "rigid constraint handle is stale");
     }

@@ -31,6 +31,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmAllocateMemory(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmFreeMemory(
     PmDevice device, PmDeviceMemory memory) {
     if (device == nullptr || memory == nullptr || memory->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     device->services->free(memory->allocation);
     device->application_bytes.fetch_sub(memory->size, std::memory_order_relaxed);
     parallel_mater::api::destroy_object(device, memory);
@@ -101,6 +102,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateBuffer(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyBuffer(
     PmDevice device, PmBuffer buffer) {
     if (device == nullptr || buffer == nullptr || buffer->device != device) return;
+    (void)pmDeviceWaitIdle(device);
     parallel_mater::api::destroy_object(device, buffer);
 }
 
@@ -126,8 +128,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindBufferMemory(
     buffer->memory = memory;
     buffer->memory_offset = offset;
     buffer->native_buffer = static_cast<PmNativeHandle>(
-        reinterpret_cast<std::uintptr_t>(memory->allocation));
+        reinterpret_cast<std::uintptr_t>(
+            device->services->native_allocation_handle(memory->allocation)));
     buffer->native_offset = offset;
+    buffer->native_usage = device->services->native_allocation_usage();
     buffer->native_pointer = static_cast<std::byte *>(memory->allocation) + offset;
     return PM_SUCCESS;
 }

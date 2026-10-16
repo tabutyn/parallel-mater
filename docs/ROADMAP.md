@@ -121,7 +121,23 @@ are queryable, and fluid-fluid lifecycle and physics tests pass.
 
 ### 3. Complete portable, asynchronous execution
 
-Status: pending.
+Status: scheduler extraction and asynchronous submission implemented (2026-10-15);
+GPU-only scheduling and performance qualification remain open.
+
+The domain/coupling schedule now lives in backend-parameterized ordinary C++
+(`reference_schedule.hpp`), compiled through CUDA and serial Slang CPU adapters.
+Public submission owns command snapshots and returns after enqueue. Completion
+includes deferred validation and partial-work draining; fences, timelines,
+simulation status, and queries account for queued host work as well as GPU work.
+CPU tests exercise real rigid integration, multiple submitted frames, pending
+resource reuse, wait-before-signal dependencies, and deferred failures. Native
+CUDA compilation passes; GPU execution still requires working hardware.
+
+Remaining work includes descriptor resource mapping for graphics adapters,
+removing inner-frame readbacks, overlapping independent GPU work, and measured
+scan/sort/collision/coupling improvements. The worker currently serializes frame
+completion; asynchronous application submission alone does not qualify those
+performance milestones.
 
 - Extract the CUDA-dependent host schedule behind backend-neutral execution
   and resource interfaces, including dispatch, indirect work, and barriers.

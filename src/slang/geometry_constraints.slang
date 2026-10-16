@@ -92,9 +92,9 @@ Vec3 rigid_avbd_contact_delta_velocity(Quaternion from, Quaternion to,
     return {delta.x * scale, delta.y * scale, delta.z * scale};
 }
 
-bool rigid_avbd_axis_enabled(PM_GEOMETRY_UINT8 mask, uint axis)
+bool rigid_avbd_axis_enabled(uint mask, uint axis)
 {
-    return (uint(mask) & (1u << axis)) != 0u;
+    return (mask & (1u << axis)) != 0u;
 }
 
 Vec3 rigid_avbd_relative_rotation_vector(Quaternion frameA,
@@ -126,10 +126,10 @@ uint rigid_avbd_find_dense(RigidBodyId id, PM_AVBD_BUFFER(RigidBodyId) ids,
 
 bool rigid_avbd_guided_contact(Contact contact)
 {
-    return (contact.body_hinge.axial &&
-                contact.collider_hinge.static_body) ||
-           (contact.collider_hinge.axial &&
-                contact.body_hinge.static_body);
+    return (contact.body_hinge.axial != 0u &&
+                contact.collider_hinge.static_body != 0u) ||
+           (contact.collider_hinge.axial != 0u &&
+                contact.body_hinge.static_body != 0u);
 }
 
 float rigid_avbd_rest_offset(float margin)
@@ -454,7 +454,7 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
     bool swing = options.type == RigidConstraintType.hinge ||
         options.type == RigidConstraintType.piston ||
         (options.type == RigidConstraintType.motor &&
-            options.motor.angular_enabled);
+            options.motor.angular_enabled != 0u);
     Vec3 freeAxis = options.type == RigidConstraintType.hinge
         ? Vec3(0.0f, 0.0f, 1.0f) : Vec3(1.0f, 0.0f, 0.0f);
     Vec3 swingAxis = inverse_rotate(frameA, rotate(frameB, freeAxis));
@@ -481,7 +481,7 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
                     (options.type == RigidConstraintType.hinge && axis != 2u) ||
                     (options.type == RigidConstraintType.piston && axis != 0u) ||
                     (motorType && (axis != 0u ||
-                        !options.motor.angular_enabled))
+                        options.motor.angular_enabled == 0u))
                 : options.type == RigidConstraintType.fixed ||
                     options.type == RigidConstraintType.point ||
                     options.type == RigidConstraintType.hinge ||
@@ -489,7 +489,7 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
                         options.type == RigidConstraintType.piston) &&
                         axis != 0u) ||
                     (motorType && (axis != 0u ||
-                        !options.motor.linear_enabled));
+                        options.motor.linear_enabled == 0u));
             RigidConstraintLimitOptions limits = angular
                 ? options.angular_limits : options.linear_limits;
             RigidConstraintSpringOptions springs = angular
@@ -597,8 +597,8 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
                     -kAvbdMaximumPenalty, kAvbdMaximumPenalty, false, 0.0f,
                     add(error, armA), armB, kAvbdAlpha, visit);
             if (motorType && axis == 0u && (angular
-                ? options.motor.angular_enabled
-                : options.motor.linear_enabled))
+                ? options.motor.angular_enabled != 0u
+                : options.motor.linear_enabled != 0u))
             {
                 float speed = angular ? options.motor.angular_target_velocity
                     : options.motor.linear_target_velocity;
@@ -696,7 +696,7 @@ bool rigid_avbd_prepare_contact_impact(uint active,
         Contact contact = PM_AVBD_MANIFOLD_CONTACT(
             manifolds, active, point);
         float skin = rigid_avbd_contact_skin(contact, a, b);
-        bool newImpact = (!contact.avbd_cached ||
+        bool newImpact = (contact.avbd_cached == 0u ||
             contact.avbd_dual[0].lambda <= 1.0e-6f ||
             (contact.impact_fraction > 0.0f &&
                 contact.impact_fraction < 1.0f)) &&
@@ -1006,7 +1006,7 @@ void prepare_avbd_kernel(
         for (uint point = 0u; point < manifold.count; ++point)
         {
             Contact contact = manifold.contacts[point];
-            if (!contact.avbd_cached)
+            if (contact.avbd_cached == 0u)
             {
                 contact.avbd_anchor_a = inverse_rotate(
                     previous[a].orientation,
@@ -1054,7 +1054,7 @@ void prepare_avbd_kernel(
             {
                 AvbdDual dual = {contact.avbd_dual[axis].lambda,
                     contact.avbd_dual[axis].penalty};
-                if (!contact.avbd_cached) dual = {0.0f, penalty};
+                if (contact.avbd_cached == 0u) dual = {0.0f, penalty};
                 dual = avbdWarmStart(dual, kAvbdMaximumPenalty);
                 contact.avbd_dual[axis] = {dual.lambda, dual.penalty};
             }
@@ -1079,12 +1079,12 @@ void prepare_avbd_kernel(
          jointIndex += pmGroupSize().x)
     {
         joints[jointIndex].avbd_count = 0u;
-        if (joints[jointIndex].alive)
+        if (joints[jointIndex].alive != 0u)
         {
             joints[jointIndex].state.enabled =
-                joints[jointIndex].options.enabled &&
-                !joints[jointIndex].state.broken;
-            if (joints[jointIndex].state.enabled)
+                joints[jointIndex].options.enabled != 0u &&
+                joints[jointIndex].state.broken == 0u;
+            if (joints[jointIndex].state.enabled != 0u)
             {
                 joints[jointIndex].state.applied_impulse = 0.0f;
                 joints[jointIndex].geometry.dense_a = rigid_avbd_find_dense(
