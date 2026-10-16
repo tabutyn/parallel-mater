@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
 #include "../simulation/exports.hpp"
+#include "../simulation/host_preparation.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -198,6 +199,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
             source.triangleIndexCount > capacity.triangleIndexCapacity ||
             source.triangleIndexCount > capacity.bondCapacity)
             return PM_ERROR_INVALID_ARGUMENT;
+        const auto &material = command_buffer->bound_pipeline->cloths[source.materialIndex];
+        if ((material.breakStrain > 0 || material.impactBreakImpulse > 0) &&
+            std::uint64_t(source.vertexCount) + source.triangleIndexCount > capacity.vertexCapacity)
+            return PM_ERROR_CAPACITY_EXCEEDED;
         PmResult result = copy_array(source.pVertices, source.vertexCount,
                                      target.vertices);
         if (result == PM_SUCCESS)
@@ -212,9 +217,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
+            if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                parallel_mater::simulation::ScopedMemoryArena slot_scope(
+                    simulation->domain_memory.cloths[first + offset].get());
                 auto &slot = simulation->cloths[first + offset];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
@@ -282,14 +290,23 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRopes(
         const PmResult result = copy_array(source.pCenterline, source.pointCount,
                                            target.centerline);
         if (result != PM_SUCCESS) return result;
+        std::vector<Vec3> sampled;
+        const auto prepared = parallel_mater::sample_rope_centerline(
+            {reinterpret_cast<const Vec3 *>(target.centerline.data()), target.centerline.size()},
+            command_buffer->bound_pipeline->ropes[source.materialIndex].nodeSpacing, sampled);
+        if (!prepared) return parallel_mater::api::from_status(prepared);
+        if (sampled.size() > capacity.nodeCapacity) return PM_ERROR_CAPACITY_EXCEEDED;
     }
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
+            if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                parallel_mater::simulation::ScopedMemoryArena slot_scope(
+                    simulation->domain_memory.ropes[first + offset].get());
                 auto &slot = simulation->ropes[first + offset];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
@@ -392,9 +409,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSoftBodies(
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
+            if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                parallel_mater::simulation::ScopedMemoryArena slot_scope(
+                    simulation->domain_memory.soft_bodies[first + offset].get());
                 auto &slot = simulation->soft_bodies[first + offset];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
@@ -481,9 +501,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSmoke(
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, pipeline, first, copied = std::move(copied)](
             parallel_mater::device::Services &) noexcept {
+            if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                parallel_mater::simulation::ScopedMemoryArena slot_scope(
+                    simulation->domain_memory.smokes[first + offset].get());
                 auto &slot = simulation->smokes[first + offset];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(

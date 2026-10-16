@@ -7,6 +7,15 @@ conformance and SDK boundaries. Platform expansion and shader optimization are
 deferred behind the foundation work in
 [ROADMAP.md](ROADMAP.md#current-priority-project-foundations).
 
+## Implementation follow-up
+
+Foundation work began after merging the subsequent Mac work through `3496b61`.
+Checkpoints `368dfe5`, `76bbfe8` and `4eaf42b` add arena reclamation, common
+allocation planning and tested fluid replacement/recovery. Continuing domain
+planning and qualification are recorded in [RESOURCE-LIFETIME.md](RESOURCE-LIFETIME.md)
+and the roadmap. Findings below describe the audited revisions; they are not
+an assertion that those fixes remain absent.
+
 ## Assessment
 
 Keep the loadable-driver architecture, registry-generated C API, shared Slang

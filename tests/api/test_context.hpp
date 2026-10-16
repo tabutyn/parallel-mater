@@ -47,6 +47,10 @@ public:
             if ((needed.rigidBodies && !features.rigidBodies) ||
                 (needed.particleLiquids && !features.particleLiquids) ||
                 (needed.cloth && !features.cloth) ||
+                (needed.rope && !features.rope) ||
+                (needed.softBodies && !features.softBodies) ||
+                (needed.smoke && !features.smoke) ||
+                (needed.domainCouplings && !features.domainCouplings) ||
                 (needed.timelineSemaphores && !features.timelineSemaphores)) continue;
             physical = candidate; supported = features; break;
         }

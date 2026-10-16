@@ -1620,6 +1620,111 @@ SimulationRuntime::~SimulationRuntime() = default;
 SimulationRuntime::SimulationRuntime(SimulationRuntime &&) noexcept = default;
 SimulationRuntime &SimulationRuntime::operator=(SimulationRuntime &&) noexcept = default;
 
+Status SimulationRuntime::cloth_memory_requirements(std::uint32_t vertices,
+    std::uint32_t indices, std::uint32_t bonds, std::uint32_t rigid,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    ClothStorage state;
+    state.vertex_count = state.vertex_capacity = vertices;
+    state.index_count = indices;
+    state.bond_count = bonds;
+    state.neighbor_capacity = 2 * (std::size_t(indices) + bonds);
+    if (state.neighbor_capacity > UINT32_MAX)
+        return failure(StatusCode::invalid_argument, "cloth neighbor capacity overflow");
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_cloth_storage(state, rigid,
+        true, true, true, true, true, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+Status SimulationRuntime::rope_memory_requirements(std::uint32_t nodes,
+    std::uint32_t rigid, simulation::StorageRequirements &output) noexcept {
+    output = {};
+    RopeStorage state;
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_rope_storage(state.data, nodes, rigid, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+Status SimulationRuntime::soft_body_memory_requirements(std::uint32_t nodes,
+    std::uint32_t bonds, std::uint32_t vertices, std::uint32_t indices,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    SoftBodyStorage state;
+    state.node_count = nodes;
+    state.bond_count = bonds;
+    state.surface_vertex_count = vertices;
+    state.surface_index_count = indices;
+    const std::size_t neighbors = 2 * std::size_t(bonds);
+    const std::size_t influences = 4 * std::size_t(indices);
+    if (neighbors > UINT32_MAX || influences > UINT32_MAX)
+        return failure(StatusCode::invalid_argument, "soft-body adjacency capacity overflow");
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_soft_body_storage(state, neighbors,
+        neighbors, influences, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
+Status SimulationRuntime::smoke_memory_requirements(std::uint32_t particles,
+    std::uint32_t cells, simulation::StorageRequirements &output) noexcept {
+    output = {};
+    if (particles > 1'000'000U || cells > 256U * 256U * 256U)
+        return failure(StatusCode::invalid_argument, "smoke capacity exceeds implementation limits");
+    SmokeStorage state;
+    simulation::StoragePlanner planner;
+    state.grid.cell_count = cells;
+    // The query declares cell count, not grid shape. Bound staggered faces
+    // using the minimum supported dimension (8); coarse dimensions stop at 2.
+    for (auto &count : state.grid.face_count) count = cells + (cells + 7) / 8;
+    auto coarse_cells = cells;
+    for (auto &level : state.grid.coarse) {
+        // At least two dimensions still halve until the final 2x2x2 level.
+        coarse_cells = std::max(8U, coarse_cells / 4U);
+        level.cell_count = coarse_cells;
+        for (auto &count : level.face_count) count = coarse_cells + (coarse_cells + 1) / 2;
+    }
+    auto status = simulation::visit_smoke_grid_storage(state.grid, planner);
+    if (status) status = simulation::visit_smoke_particles_storage(state, particles, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
+Status SimulationRuntime::coupling_memory_requirements(const simulation::CouplingStorageLimits &limits,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    simulation::StoragePlanner fluid_soft, rope_soft, fluid_rope, soft_cloth, smoke;
+    FluidSoftCouplingStorage fs;
+    RopeSoftBodyCouplingStorage rs;
+    FluidRopeCouplingStorage fr;
+    SoftClothCouplingStorage sc;
+    const auto triangles = limits.soft_indices / 3;
+    const auto tree_nodes = 2 * triangles; // Binary BVH has at most 2T-1 nodes.
+    Status status;
+    if (!(status = simulation::visit_fluid_soft_storage(fs, limits.fluid_particles, limits.soft_nodes,
+            limits.soft_vertices, tree_nodes, triangles, fluid_soft)) ||
+        !(status = simulation::visit_rope_soft_tree_storage(rs, tree_nodes, triangles, rope_soft)) ||
+        !(status = simulation::visit_rope_soft_data_storage(rs, limits.soft_nodes, limits.soft_vertices, rope_soft)) ||
+        !(status = simulation::visit_fluid_rope_storage(fr, limits.rope_nodes, fluid_rope)) ||
+        !(status = simulation::visit_soft_cloth_storage(sc, limits.soft_nodes, limits.cloth_vertices, soft_cloth)))
+        return status;
+    Vec3 *bounds = nullptr;
+    std::uint32_t *converted = nullptr;
+    if (!(status = smoke(bounds, 2, simulation::MemoryClass::persistent)) ||
+        !(status = smoke(converted, 1, simulation::MemoryClass::persistent))) return status;
+    for (const auto *plan : {&fluid_soft, &rope_soft, &fluid_rope, &soft_cloth, &smoke})
+        output.persistent = std::max(output.persistent, plan->requirements.persistent);
+    return {};
+}
+Status SimulationRuntime::emitter_memory_requirements(simulation::StorageRequirements &output) noexcept {
+    output = {};
+    ParticleSourceData state;
+    simulation::StoragePlanner planner;
+    const auto status = simulation::visit_emitter_storage(state, maximum_fluid_source_sites, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
 Status SimulationRuntime::base_memory_requirements(SimulationOptions options,
     simulation::StorageRequirements &output) noexcept {
     output = {};

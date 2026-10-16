@@ -6,11 +6,22 @@ tracked in ROADMAP F1–F3 rather than treated as conformance evidence.
 
 ## Bound storage
 
-Simulation requirements and allocation share typed traversals for global and
-fluid storage. Alignment padding and integer overflow are included in planning.
-Other domains, geometry and coupling budgets still need conversion from
-conservative estimates. Memory requirements describe application-bound storage;
-they do not include every host allocation or native-driver cost.
+Simulation requirements and allocation share typed traversals for global,
+fluid, cloth, rope, soft-body, smoke, emitter and major coupling storage.
+Alignment padding and integer overflow are included in planning. Each particle
+system has its own disjoint region within the application's binding; resizing
+one slot cannot fragment another slot's promised capacity. Smoke planning bounds
+staggered faces and multigrid levels for any supported shape within cell capacity.
+Coupling storage is bounded using the largest declared endpoint capacities.
+Emitter storage covers the reference sampler's maximum of 65,536 sites per
+emitter. Geometry and paint planning still need the same typed traversal.
+Memory requirements describe application-bound storage; they do not include
+every host allocation or native-driver cost.
+
+Rope capacity applies to the resampled nodes, not just the authored centerline.
+Cloth fracture reserves source vertices plus triangle corners. Writes exceeding
+those generated capacities fail before enqueueing; the gallery declares the
+full fracture reserve.
 
 The arena tracks live allocations and reuses freed gaps. It never writes host
 allocator metadata into device memory. Retiring an allocation does not reset
@@ -49,9 +60,15 @@ installed `ParallelMater_DIR`; select an installed driver using PM_DRIVER_FILES.
 The test binds exactly queried storage, crosses rigid and radix tile capacity
 boundaries, performs 4,096 replacements, clears populations, rejects undersized
 views, exercises 128 deferred failures and recovers while preserving another
-population. Slang CPU and freshly rebuilt CUDA pass on this laptop. Equivalent
-deformable, smoke, geometry and coupling lifecycle coverage remains a
-qualification obligation.
+population. Slang CPU, CUDA and Vulkan pass on this laptop.
+
+`tests/api/domain_lifecycle_tests.cpp` performs 1,024 interleaved cloth, rope,
+soft-body and smoke writes using exact queried memory. It alternates fracture
+storage, rope lengths and smoke grid layouts and rejects generated capacity
+overflow. CUDA passes. CPU and Vulkan do not advertise all required domains,
+so this case is unsupported on those drivers, not a passing physics result.
+Geometry, paint, emitter and coupling lifecycle cases remain qualification
+obligations; these tests do not establish numerical solver quality.
 
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data
 isolation, exact-capacity allocation, alignment, rejected oversized allocations,

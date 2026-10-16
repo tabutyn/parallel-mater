@@ -91,6 +91,11 @@ struct PmGeometry_T {
     bool built{};
 };
 
+struct PmDomainMemory {
+    using Arena = parallel_mater::simulation::MemoryArena;
+    std::vector<std::unique_ptr<Arena>> fluids, cloths, ropes, soft_bodies, smokes;
+};
+
 struct PmSimulation_T {
     PmDevice_T *device{};
     PmSimulationCreateInfo info{};
@@ -104,6 +109,7 @@ struct PmSimulation_T {
     parallel_mater::SimulationOptions simulation_options{};
     PmSimulationMemoryBinding binding{};
     std::unique_ptr<parallel_mater::simulation::MemoryArena> arena;
+    PmDomainMemory domain_memory;
     std::unique_ptr<parallel_mater::SimulationRuntime> runtime;
     std::unordered_map<PmGeometry, parallel_mater::TriangleMeshId> geometries;
     std::vector<std::optional<parallel_mater::RigidBodyId>> rigid_bodies;

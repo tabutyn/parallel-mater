@@ -265,42 +265,6 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         for (int axis = 0; axis < 3; ++axis)
             grid.face_count[axis] = smoke_grid_face_count(axis,
                 int(grid.resolution), int(grid.height));
-        if (!(status = allocate_managed(grid.velocity, grid.cell_count)) ||
-            !(status = allocate_managed(grid.density, grid.cell_count)) ||
-            !(status = allocate_managed(grid.temperature, grid.cell_count)) ||
-            !(status = allocate_managed(grid.density_accumulator,
-                                        grid.cell_count)) ||
-            !(status = allocate_managed(grid.temperature_accumulator,
-                                        grid.cell_count)) ||
-            !(status = allocate_managed(grid.pressure[0], grid.cell_count)) ||
-            !(status = allocate_managed(grid.pressure[1], grid.cell_count)) ||
-            !(status = allocate_managed(grid.divergence, grid.cell_count)) ||
-            !(status = allocate_managed(grid.residual, grid.cell_count)) ||
-            !(status = allocate_managed(grid.vorticity, grid.cell_count)) ||
-            !(status = allocate_managed(grid.strain, grid.cell_count)) ||
-            !(status = allocate_managed(grid.subgrid_force, grid.cell_count)) ||
-            !(status = allocate_managed(grid.rhs_max, 1U)) ||
-            !(status = allocate_managed(grid.residual_max, 1U)) ||
-            !(status = allocate_managed(grid.pressure_converged, 1U)) ||
-            !(status = allocate_managed(grid.solid, grid.cell_count)))
-            return status;
-        for (int axis = 0; axis < 3; ++axis) {
-            if (!(status = allocate_managed(grid.face_velocity[axis][0],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_velocity[axis][1],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_reverse[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_open[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_wall_velocity[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_normal[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_nearest_triangle[axis],
-                                            grid.face_count[axis])))
-                return status;
-        }
         std::uint32_t level_n = grid.resolution;
         std::uint32_t level_h = grid.height;
         for (auto &level : grid.coarse) {
@@ -309,17 +273,12 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
             level.n = level_n;
             level.height = level_h;
             level.cell_count = level_n * level_h * level_n;
-            if (!(status = allocate_managed(level.pressure[0], level.cell_count)) ||
-                !(status = allocate_managed(level.pressure[1], level.cell_count)) ||
-                !(status = allocate_managed(level.rhs, level.cell_count)) ||
-                !(status = allocate_managed(level.residual, level.cell_count)))
-                return status;
             for (int axis = 0; axis < 3; ++axis)
-                if (!(status = allocate_managed(level.open[axis],
-                    smoke_grid_face_count(axis, int(level.n),
-                                          int(level.height)))))
-                    return status;
+                level.face_count[axis] = smoke_grid_face_count(axis, int(level_n), int(level_h));
         }
+        StorageAllocator allocator;
+        status = simulation::visit_smoke_grid_storage(grid, allocator);
+        if (!status) return status;
         const auto blocks = (grid.cell_count + 255U) / 256U;
         const float wind[3]{options.wind.x, options.wind.y, options.wind.z};
         simulation::initialize_smoke_grid_cells(
@@ -362,27 +321,9 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         if (grid_error != PM_SUCCESS)
             return backend_failure(grid_error, "smoke grid initialization failed");
     }
-    if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
-        !(status = allocate_managed(smoke->previous_positions, options.capacity)) ||
-        !(status = allocate_managed(smoke->velocities, options.capacity)) ||
-        !(status = allocate_managed(smoke->ages, options.capacity)) ||
-        !(status = allocate_managed(smoke->thermal_lift, options.capacity)) ||
-        !(status = allocate_managed(smoke->number_densities, options.capacity)) ||
-        !(status = allocate_managed(smoke->pressures, options.capacity)) ||
-        !(status = allocate_managed(smoke->accelerations, options.capacity)) ||
-        !(status = allocate_managed(smoke->vorticities, options.capacity)) ||
-        !(status = allocate_managed(smoke->vorticity_magnitudes,
-                                    options.capacity)) ||
-        !(status = allocate_managed(smoke->keys[0], options.capacity)) ||
-        !(status = allocate_managed(smoke->keys[1], options.capacity)) ||
-        !(status = allocate_managed(smoke->indices[0], options.capacity)) ||
-        !(status = allocate_managed(smoke->indices[1], options.capacity)) ||
-        !(status = allocate_managed(smoke->rigid_impulses, options.capacity)))
-        return status;
-    smoke->sort_workspace_size =
-        simulation::radix_sort_scratch_bytes(options.capacity);
-    if (!(status = allocate_scratch(smoke->sort_workspace,
-                                    smoke->sort_workspace_size))) return status;
+    StorageAllocator allocator;
+    status = simulation::visit_smoke_particles_storage(*smoke, options.capacity, allocator);
+    if (!status) return status;
     smoke->alive = true;
     output = {slot, smoke->generation};
     impl_->smokes[slot] = std::move(smoke);
@@ -870,9 +811,9 @@ Status SimulationRuntime::add_particle_source(ParticleSourceMesh mesh, ParticleS
         if (!data) return failure(StatusCode::out_of_memory, "fluid source allocation failed");
         data->count = static_cast<std::uint32_t>(points.size());
         data->spacing = mesh.spacing;
-        if (!(status = allocate_managed(data->points, points.size())) ||
-            !(status = allocate_managed(data->vacant, points.size())) ||
-            !(status = allocate_managed(data->capacity_misses, 1))) return status;
+        StorageAllocator allocator;
+        status = simulation::visit_emitter_storage(*data, points.size(), allocator);
+        if (!status) return status;
         std::copy(points.begin(), points.end(), data->points);
         *data->capacity_misses = 0;
         plane.options = options;

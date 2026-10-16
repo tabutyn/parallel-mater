@@ -78,26 +78,25 @@ reproductions.
 
 ### F1. Make resource lifetime and declared capacity reliable
 
-Status: in progress. The shared arena now reclaims retired persistent/scratch
-allocations, coalesces free space, and leaves allocation state unchanged on
-failure. Simulation reset releases only its own geometry allocations. A new
-SDK-only test target supports installed-driver selection without gallery/CUDA;
-4,096 fluid replacements across rigid/particle capacity boundaries preserve a
-second population using exactly queried storage. Global and fluid storage now
-share typed planning/allocation traversals, including padding and overflow
-checks. Serial Slang CPU build passes 23/23 tests; freshly rebuilt CUDA also
-passes the public lifecycle regression. Remaining driver qualification,
-domain/geometry plans and broader mutation/failure cases remain open. Empty
-fluid writes and view range/usage validation are corrected. The regression
-also exercises 128 deferred invalid-particle failures and recovery. See
-[resource lifetime and recovery](RESOURCE-LIFETIME.md) for exact semantics and
-remaining coverage.
+Status: in progress. Retired bound allocations are reclaimed, and simulation
+reset releases only its own geometry allocations. Typed allocation plans cover
+global storage, all five particle domains, emitters and major coupling buffers.
+Disjoint per-slot regions prevent cross-domain fragmentation. Rope resampling
+and cloth fracture respect declared capacity; gallery fracture budgets match.
+
+SDK-only regressions use exact queried memory: 4,096 fluid replacements plus
+128 deferred failures/recovery pass on Slang CPU, CUDA and Vulkan. A further
+1,024 mixed-domain writes with changing layouts pass on CUDA. The CPU build
+passes 23 checks and skips the unsupported mixed-domain case. Geometry/paint
+planning, auxiliary-resource lifecycle and coupled endpoint mutation remain
+open. See [resource lifetime and recovery](RESOURCE-LIFETIME.md) for semantics,
+evidence scope and remaining coverage.
 
 - Extract headless public-API test support that builds without CUDA, gallery
   rendering or private simulation headers. Use mock/CPU drivers for suitable
   host tests and select installed GPU drivers for advertised physics cases.
 - Add the fluid replacement regression: one write passes, but 256 replacements
-  in the same two-particle slot exhaust bound memory in the current CUDA path.
+  in the same two-particle slot exhausted bound memory in the audited CUDA path.
 - Make per-resource storage reusable within declared capacity. Share one
   allocation plan between memory-requirement queries and actual allocation.
 - Define replacement, removal, pending-resource lifetime, failed allocation,

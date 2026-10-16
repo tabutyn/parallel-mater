@@ -8,6 +8,7 @@ struct SmokePressureLevel {
     std::uint32_t n{};
     std::uint32_t height{};
     std::uint32_t cell_count{};
+    std::uint32_t face_count[3]{};
     float *pressure[2]{};
     float *rhs{};
     float *residual{};
