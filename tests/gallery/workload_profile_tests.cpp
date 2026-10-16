@@ -20,6 +20,10 @@ int main() {
     CHECK(fallback && fallback->fluid_particles <= pixel->fluid_particles);
     CHECK(fallback->coupled_bodies == 2);
     CHECK(!select_workload_limits(catalog, "Linux", "Pixel 7", "slang-cpu"));
+    const auto *ipad = select_workload_limits(catalog, "iPadOS", "iPad13,8", "metal");
+    CHECK(ipad && ipad->fluid_particles == 256 && ipad->coupled_bodies == 4);
+    CHECK(ipad->render_width == 960 && ipad->render_height == 720 && ipad->target_fps == 30);
+    CHECK(!select_workload_limits(catalog, "iPadOS", "iPad13,8", "slang-cpu"));
     auto specific = *pixel;
     specific.name = "pixel-cpu-test";
     specific.backend = "slang-cpu";
@@ -46,6 +50,7 @@ int main() {
     CHECK(select_workload_limits(catalog, "Android", "Pixel 7", "slang-cpu")->fluid_particles == 128);
     CHECK(select_workload_limits(catalog, "Android", "Pixel 7", "slang-cpu")->coupled_bodies == 4);
     CHECK(catalog.measurements.size() >= 1);
+    CHECK(select_workload_limits(catalog, "iPadOS", "iPad13,8", "metal")->smoke_particles == 128);
 
     for (const char *bad : {"-1", "0", "1.5", "4294967296"}) {
         std::ofstream out(path);

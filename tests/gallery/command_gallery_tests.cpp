@@ -440,6 +440,19 @@ int main(int argc, char **argv) {
             std::cerr << entry.name << ": reference create failed: " << error << '\n';
             return 1;
         }
+        if (simulation.read_output(frame, error)) {
+            std::cerr << entry.name << ": published output before the first completed step\n";
+            return 1;
+        }
+        const auto &buffers = instance.render_buffers;
+        if (buffers.device != simulation.device() || buffers.queue != simulation.queue() ||
+            !buffers.output || buffers.rigid.size != scene.rigid_bodies.size() * sizeof(PmRigidState) ||
+            buffers.cloth_surfaces.size() != scene.cloths.size() ||
+            buffers.soft_surfaces.size() != scene.soft_bodies.size() ||
+            buffers.ropes.size() != scene.ropes.size()) {
+            std::cerr << entry.name << ": invalid common GPU output bindings\n";
+            return 1;
+        }
         const std::uint32_t frame_count = requested_frames != 0U
             ? requested_frames
             : (index <= gallery_context_index(GalleryContext::dump) ? 120U : 1U);
@@ -556,8 +569,23 @@ int main(int argc, char **argv) {
             std::cerr << entry.name << ": GPU-only/diagnostic read failed: " << error << '\n';
             return 1;
         }
+        // Apple drawing needs no per-frame host snapshot at all. Explicit
+        // diagnostic access must still recover that exact completed output.
+        CommandSceneFrame gpu_only;
+        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, gpu_only,
+                error, false, false, false) || gpu_only.full_host_output ||
+            gpu_only.revision != 0 || !gpu_only.rigid_states.empty() ||
+            !gpu_only.fluid_particles.empty() || !gpu_only.cloth_vertices.empty() ||
+            !simulation.read_output(gpu_only, error) || !validate_frame(scene, gpu_only, error)) {
+            std::cerr << entry.name << ": no-host-output step failed: " << error << '\n';
+            return 1;
+        }
         if (!simulation.reset(error)) {
             std::cerr << entry.name << ": reset failed: " << error << '\n';
+            return 1;
+        }
+        if (simulation.read_output(frame, error)) {
+            std::cerr << entry.name << ": reset retained completed output\n";
             return 1;
         }
         // Reset must recreate the selected driver and resume submission.

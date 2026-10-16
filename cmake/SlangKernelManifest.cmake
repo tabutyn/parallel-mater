@@ -40,7 +40,7 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_gather fluid_copy_initial)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
-    prepare_avbd_kernel solve_avbd_kernel)
+    prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)
 set(PARALLEL_MATER_SLANG_geometry_constraints_DEFINITIONS
     PM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
 
@@ -183,6 +183,7 @@ function(parallel_mater_compile_slang_cuda output_variable)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc"
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     set(outputs)
     foreach(module IN LISTS PARALLEL_MATER_SLANG_KERNEL_MODULES)
@@ -228,6 +229,7 @@ function(parallel_mater_compile_slang_dxil output_variable)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc"
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     set(outputs)
     set(dxil_outputs)

@@ -5,7 +5,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
 set(vulkan_generated "${CMAKE_CURRENT_BINARY_DIR}/generated/vulkan")
 file(MAKE_DIRECTORY "${vulkan_generated}")
 file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang" "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang" "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
 set(vulkan_sources)
 foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
@@ -88,9 +89,9 @@ file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-vulkan
 if(BUILD_TESTING)
     add_test(NAME parallel-mater-vulkan-spirv-normalization
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_vulkan_spirv.py")
-    add_executable(parallel-mater-vulkan-command-api-tests tests/api/d3d12_command_api_tests.cpp)
+    add_executable(parallel-mater-vulkan-command-api-tests tests/api/native_command_api_tests.cpp)
     target_compile_features(parallel-mater-vulkan-command-api-tests PRIVATE cxx_std_20)
-    target_compile_definitions(parallel-mater-vulkan-command-api-tests PRIVATE PM_TEST_VULKAN=1)
+    target_compile_definitions(parallel-mater-vulkan-command-api-tests PRIVATE PM_TEST_NATIVE_BACKEND=PM_NATIVE_BACKEND_VULKAN)
     target_link_libraries(parallel-mater-vulkan-command-api-tests PRIVATE ParallelMater::parallel_mater)
     add_dependencies(parallel-mater-vulkan-command-api-tests parallel-mater-driver-slang-vulkan)
     add_test(NAME parallel-mater-vulkan-command-api-tests COMMAND parallel-mater-vulkan-command-api-tests)

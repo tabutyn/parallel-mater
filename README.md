@@ -129,9 +129,15 @@ interoperability enums because applications may query support and receive
 The optional gallery loads committed Blender-authored `.glb` files and creates
 every scene through the public command API. The default renderer is a portable
 software rasterizer feeding a thin native window/presentation adapter (D3D12 on
-Windows, OpenGL elsewhere). OptiX is an optional renderer adapter and is
+Windows, Metal for Apple previews, OpenGL elsewhere). OptiX is an optional renderer adapter and is
 deliberately separate from the common catalog, scene, input, and application
 targets.
+
+Apple previews use the same public `GpuSceneBuffers` handoff for direct Metal
+drawing on macOS and iPad. Physics finishes before graphics reads its outputs;
+graphics finishes before the next step reuses them. Diagnostics and CPU scene
+controllers explicitly retain host reads. This is fenced GPU-to-GPU drawing,
+not engine-owned devices or asynchronous frames in flight.
 
 Selecting D3D12 uses a thin native GPU drawing adapter instead of the software
 renderer. Shared Slang drawing shaders consume public rigid, cloth-surface and
@@ -163,11 +169,20 @@ ctest --test-dir build-gallery --output-on-failure
 
 ### Android Gallery preview
 
-An ARM64 native Android preview reuses the shared gallery and an optional Slang
-CPU liquid adapter. Its hardware-profile resource selects small rigid/fluid
-workloads (Pixel 7: four bricks and 128 particles). This is CPU physics, with
-rigid and liquid scenes only; Android GPU execution and other domains remain
-future work. See [build, install and controls](examples/android/README.md).
+An ARM64 native Android preview uses the shared Gallery session and timer with
+Vulkan GPU physics (an explicitly selected Slang CPU build remains available).
+Hardware profiles select bounded rigid/fluid workloads. The exposed Android
+catalog is eight scenes; shader availability does not establish full device
+physics qualification. See [build, install and controls](examples/android/README.md).
+
+### iPad Gallery preview
+
+A native UIKit preview reuses the macOS Slang Metal driver for **Apple GPU
+physics** and direct Metal drawing from public GPU output buffers. Android and
+iPad share one C++ session, timer, controls and bounded mobile workloads. It exposes 27 existing scenes without CPU physics fallback.
+Requires iPadOS 26+ and Apple GPU family 7 or newer; full physics and sustained
+performance qualification remain pending. See [build, install, controls and
+device diagnostics](examples/ios/README.md).
 
 ### Windows Gallery application
 
@@ -216,8 +231,8 @@ iterations per pose/impact phase for both contacts and joints. Impacted islands
 may therefore report twice that value;
 integration substeps are unchanged. Low budgets can destabilize stacks. Check
 quality with `parallel-mater-command-gallery-tests`, not only timing.
-The overlay labels `X` as GPU launches and reports total AVBD iterations in
-the last substep separately.
+`F` shows shared host wall-clock frame timing, not GPU kernel launches or
+solver iterations. Physics time includes every catch-up step in that frame.
 
 Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
 the selector for Rigid Body, six Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
@@ -240,8 +255,11 @@ is available as a non-colliding hit-box query volume. In
 DUMP, arrows drive and steer the suspended dump truck; Space tips its open-top
 rear bucket 100 degrees, and another press lowers it. Press `P` to edit its
 10–1,000 sphere load centered on the Blender Empty `SphereCluster`; applying a
-count restarts DUMP. `F` toggles per-kernel
-GPU timings. Fluid uses the supplied
+count restarts DUMP. `F` toggles the same frame-time/FPS panel in every scene.
+Use `--frame-timings output.csv` for per-frame measurements; with `--headless`,
+this renders each simulated frame instead of only the final image. See
+[Gallery timing](docs/GALLERY.md#frame-timing) for measurement boundaries.
+Fluid uses the supplied
 `Fluid.blend` scene and displays blue particles with white surface foam. Escape
 quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
 camera; release them to return it smoothly to vertical. Display-free scene

@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ParallelMater VERSION 0.1.0 LANGUAGES CXX)
 
+set(PARALLEL_MATER_IOS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(PARALLEL_MATER_IOS ON)
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(FetchContent)
@@ -26,6 +31,15 @@ function(parallel_mater_enable_warnings target)
             $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
     endif()
 endfunction()
+
+# One portable wall-clock collector and CSV serializer for all Gallery paths.
+add_library(parallel-mater-gallery-frame-timing STATIC
+    examples/support/frame_timing.cpp)
+target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
+set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
+target_include_directories(parallel-mater-gallery-frame-timing
+    PUBLIC examples/support/include)
+parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(PARALLEL_MATER_LIBRARY_ARCH 64)
@@ -71,6 +85,14 @@ else()
 endif()
 option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
        "Build the serial Slang CPU reference driver" ${APPLE})
+option(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW
+       "Build the limited Apple-GPU Gallery development driver" OFF)
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    if(NOT APPLE)
+        message(FATAL_ERROR "The Metal preview requires an Apple platform")
+    endif()
+    set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL "Compile shared shaders" FORCE)
+endif()
 option(PARALLEL_MATER_BUILD_OPTIX_GALLERY
        "Deprecated: build the gallery with the OptiX renderer" OFF)
 set(PARALLEL_MATER_GALLERY_RENDERER "SOFTWARE" CACHE STRING
@@ -101,7 +123,7 @@ option(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS
        "Build and validate the portable Slang rigid constraint core"
        ${BUILD_TESTING})
 option(PARALLEL_MATER_BUILD_SLANG_MIRRORS
-       "Build and validate every CUDA physics kernel mirror" ${BUILD_TESTING})
+       "Build and validate the shared Slang kernel compiler gates" ${BUILD_TESTING})
 option(PARALLEL_MATER_SLANG_TEST_BUILD
        "Label the gallery as a production Slang runtime test build" OFF)
 
@@ -115,7 +137,7 @@ if(PARALLEL_MATER_SLANG_TEST_BUILD)
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
         "Build and validate the portable Slang rigid constraint core" FORCE)
     set(PARALLEL_MATER_BUILD_SLANG_MIRRORS ON CACHE BOOL
-        "Build and validate every CUDA physics kernel mirror" FORCE)
+        "Build and validate the shared Slang kernel compiler gates" FORCE)
     add_compile_definitions(PARALLEL_MATER_SLANG_TEST_BUILD=1)
 endif()
 
@@ -145,6 +167,24 @@ endif()
 if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
     message(FATAL_ERROR
         "The current profiler-backed benchmarks require PARALLEL_MATER_BUILD_CUDA")
+endif()
+
+# Enable at the common parent scope: the Gallery and native shader tests both
+# contain Objective-C++ sources. Subdirectory-only enablement breaks generation
+# when both targets are present.
+if(APPLE AND (PARALLEL_MATER_BUILD_GALLERY OR PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW OR
+              (BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS)))
+    enable_language(OBJCXX)
+endif()
+
+# Reusable native compute services for kernel tests and the opt-in preview.
+# Runtime schedules consume the C++ compute boundary, never Objective-C types.
+if(APPLE AND ((BUILD_TESTING AND PARALLEL_MATER_BUILD_SLANG_MIRRORS) OR PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW))
+    add_library(parallel-mater-device-metal STATIC src/device/metal_compute.mm)
+    target_compile_features(parallel-mater-device-metal PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-device-metal PUBLIC src)
+    target_compile_options(parallel-mater-device-metal PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+    target_link_libraries(parallel-mater-device-metal PRIVATE "-framework Metal" "-framework Foundation")
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
@@ -195,6 +235,7 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
+   PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW OR
    PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
    PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
@@ -399,6 +440,9 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
             "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER currently requires a POSIX host")
     endif()
     include(cmake/ParallelMaterSlangCpu.cmake)
+endif()
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    include(cmake/ParallelMaterSlangMetal.cmake)
 endif()
 
 execute_process(
@@ -623,7 +667,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         FetchContent_MakeAvailable(pm_optix)
     endif()
 
-    if(NOT ANDROID)
+    if(NOT ANDROID AND NOT PARALLEL_MATER_IOS)
     if(NOT WIN32)
         find_package(OpenGL REQUIRED)
     endif()
@@ -725,8 +769,29 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     endif()
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
+    add_library(parallel-mater-gallery-session STATIC examples/support/session.cpp)
+    set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
+    target_link_libraries(parallel-mater-gallery-session PUBLIC
+        parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
+    target_include_directories(parallel-mater-gallery-session PRIVATE examples/gallery examples/support)
+    target_compile_definitions(parallel-mater-gallery-session PRIVATE
+        PM_GALLERY_BUILD_REVISION="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+    parallel_mater_enable_warnings(parallel-mater-gallery-session)
+    if(APPLE AND PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+        target_sources(parallel-mater-gallery-session PRIVATE examples/support/metal_gallery_renderer.mm)
+        # Xcode does not distinguish CXX/OBJCXX target flags in mixed targets.
+        # Keep ARC explicit there as well as for Makefiles/Ninja generators.
+        set_target_properties(parallel-mater-gallery-session PROPERTIES
+            XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
+        target_compile_options(parallel-mater-gallery-session PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+        target_compile_definitions(parallel-mater-gallery-session PRIVATE PM_GALLERY_METAL_RENDERER=1)
+        target_link_libraries(parallel-mater-gallery-session PRIVATE "-framework Metal" "-framework QuartzCore" "-framework Foundation")
+    endif()
+
     if(ANDROID)
         add_subdirectory(examples/android/app/src/main/cpp)
+    elseif(PARALLEL_MATER_IOS)
+        include(cmake/ParallelMaterIOSGallery.cmake)
     else()
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
@@ -740,6 +805,10 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PRIVATE glfw d3d12 dxgi)
         target_compile_definitions(parallel-mater-gallery-window
             PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    elseif(APPLE)
+        target_sources(parallel-mater-gallery-window PRIVATE examples/support/metal_window.mm)
+        target_compile_options(parallel-mater-gallery-window PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+        target_link_libraries(parallel-mater-gallery-window PRIVATE glfw "-framework Metal" "-framework QuartzCore" "-framework AppKit")
     else()
         target_sources(parallel-mater-gallery-window PRIVATE
             examples/support/opengl_window.cpp)
@@ -774,9 +843,14 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_link_libraries(
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
-        PRIVATE glfw parallel-mater-gallery-window)
+        PRIVATE glfw parallel-mater-gallery-window
+                parallel-mater-gallery-frame-timing)
 
     if(APPLE)
+        if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+            target_link_libraries(parallel-mater-gallery-application PRIVATE parallel-mater-gallery-session)
+            target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_METAL_RENDERER=1)
+        endif()
         include(cmake/ParallelMaterMacOSGallery.cmake)
     else()
         add_executable(parallel-mater-gallery examples/gallery/main.cpp)
@@ -1073,7 +1147,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     if(BUILD_TESTING)
         add_executable(parallel-mater-d3d12-command-api-tests
-            tests/api/d3d12_command_api_tests.cpp)
+            tests/api/native_command_api_tests.cpp)
         target_compile_features(parallel-mater-d3d12-command-api-tests
             PRIVATE cxx_std_20)
         target_link_libraries(parallel-mater-d3d12-command-api-tests
@@ -1093,6 +1167,29 @@ endif()
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
     include(cmake/SlangKernelMirrors.cmake)
     parallel_mater_add_slang_kernel_mirrors()
+    include(cmake/SlangMetal.cmake)
+    parallel_mater_add_slang_metal_kernels()
+    add_dependencies(parallel-mater-slang-kernel-mirrors
+        parallel-mater-slang-metal-kernels)
+    if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+        set(metal_resource_directory "$<TARGET_FILE_DIR:parallel-mater-driver-slang-metal>/slang-metal")
+        set(metal_resource_arguments "-DDESTINATION=${metal_resource_directory}")
+        if(PARALLEL_MATER_IOS)
+            # Xcode's target-directory generator expressions contain a literal
+            # EFFECTIVE_PLATFORM_NAME in custom targets. Resolve the
+            # platform suffix from the build environment instead.
+            set(metal_resource_arguments
+                "-DDESTINATION=$<TARGET_BUNDLE_DIR:parallel-mater-driver-slang-metal>/slang-metal"
+                "-DXCODE_RESOLVE_PLATFORM=ON")
+        endif()
+        add_custom_target(parallel-mater-slang-metal-resources ALL
+            COMMAND ${CMAKE_COMMAND}
+                -DMANIFEST=${PARALLEL_MATER_SLANG_METAL_MANIFEST}
+                ${metal_resource_arguments}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PackMetalKernels.cmake
+            DEPENDS parallel-mater-slang-metal-kernels VERBATIM)
+        add_dependencies(parallel-mater-driver-slang-metal parallel-mater-slang-metal-resources)
+    endif()
     if(PARALLEL_MATER_SLANG_TEST_BUILD AND TARGET parallel-mater-gallery)
         add_dependencies(parallel-mater-gallery
                          parallel-mater-slang-kernel-mirrors)
@@ -1107,6 +1204,24 @@ if(BUILD_TESTING)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
+    if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND TARGET parallel-mater-gallery-renderer)
+        set(ipad_test_resources "${CMAKE_CURRENT_BINARY_DIR}/ipad-test-resources")
+        file(MAKE_DIRECTORY "${ipad_test_resources}/config")
+        configure_file(config/device-profiles.json "${ipad_test_resources}/config/device-profiles.json" COPYONLY)
+        if(NOT EXISTS "${ipad_test_resources}/assets")
+            file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets" "${ipad_test_resources}/assets" SYMBOLIC)
+        endif()
+        add_executable(parallel-mater-ipad-session-tests
+            tests/gallery/ipad_session_tests.cpp)
+        target_link_libraries(parallel-mater-ipad-session-tests PRIVATE
+            parallel-mater-gallery-session)
+        target_compile_definitions(parallel-mater-ipad-session-tests PRIVATE
+            PM_IPAD_TEST_RESOURCES="${ipad_test_resources}")
+        add_dependencies(parallel-mater-ipad-session-tests parallel-mater-driver-slang-metal parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-ipad-session-tests COMMAND parallel-mater-ipad-session-tests)
+        set_tests_properties(parallel-mater-ipad-session-tests PROPERTIES TIMEOUT 600
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+    endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)
         add_executable(parallel-mater-mobile-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
@@ -1130,6 +1245,35 @@ if(BUILD_TESTING)
         COMMAND parallel-mater-submission-queue-tests)
     set_tests_properties(parallel-mater-submission-queue-tests PROPERTIES TIMEOUT 30)
     add_subdirectory(tests/solver)
+    add_subdirectory(tests/api)
+    add_executable(parallel-mater-gallery-frame-timing-tests
+        tests/gallery/frame_timing_tests.cpp)
+    add_test(NAME parallel-mater-gallery-deployment-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/deployment_tests.py")
+    target_link_libraries(parallel-mater-gallery-frame-timing-tests PRIVATE
+        parallel-mater-gallery-frame-timing)
+    parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-tests)
+    add_test(NAME parallel-mater-gallery-frame-timing-tests
+        COMMAND parallel-mater-gallery-frame-timing-tests)
+    if(TARGET parallel-mater-gallery-application)
+        add_executable(parallel-mater-gallery-frame-timing-overlay-tests
+            tests/gallery/frame_timing_overlay_tests.cpp)
+        target_link_libraries(parallel-mater-gallery-frame-timing-overlay-tests PRIVATE
+            parallel-mater-gallery-application parallel-mater-gallery-frame-timing)
+        parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-overlay-tests)
+        add_test(NAME parallel-mater-gallery-frame-timing-overlay-tests
+            COMMAND parallel-mater-gallery-frame-timing-overlay-tests)
+    endif()
+    if(TARGET parallel-mater-gallery AND
+       (TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-cuda OR
+        TARGET parallel-mater-driver-slang-metal))
+        add_test(NAME parallel-mater-gallery-frame-timing-headless
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/frame_timing_headless.py"
+                $<TARGET_FILE:parallel-mater-gallery>)
+        set_tests_properties(parallel-mater-gallery-frame-timing-headless PROPERTIES
+            LABELS "gallery;timing;runtime" TIMEOUT 180)
+    endif()
     add_executable(parallel-mater-camera-controller-tests
         tests/gallery/camera_controller_tests.cpp)
     target_compile_features(parallel-mater-camera-controller-tests
@@ -1233,6 +1377,7 @@ install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
     EXPORT ParallelMaterTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
     FILES

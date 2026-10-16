@@ -52,6 +52,11 @@ int main() {
         input.current = current;
         input.selected = current;
         input.arrow(gallery::GalleryArrowKey::right, true);
+        input.key(gallery::GalleryKey::fps);
+        require(input.show_fps && input.right_input() == 1.0F && !input.scene_action,
+                "F must only toggle the shared overlay in every scene");
+        input.key(gallery::GalleryKey::fps);
+        require(!input.show_fps, "F must hide the shared overlay");
 
         if (gallery::gallery_entries[current].count_kind !=
             gallery::GalleryCountKind::none) {
@@ -69,6 +74,9 @@ int main() {
                 "Opening the catalog must select the current scene");
         require(input.right_input() == 0.0F,
                 "Opening a modal must clear held movement");
+        input.key(gallery::GalleryKey::fps);
+        require(input.show_fps && input.catalog_visible,
+                "F must preserve the open modal");
 
         while (input.selected + 1U < gallery::gallery_entries.size())
             input.key(gallery::GalleryKey::next);

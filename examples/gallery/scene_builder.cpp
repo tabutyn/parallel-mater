@@ -232,6 +232,7 @@ struct CommandScene::Impl {
     std::optional<PmNativeBackend> selected_backend;
     std::uint32_t debug_frame_capacity{};
     bool fence_submitted{};
+    bool output_ready{};
     bool contacts_available{};
 
     ~Impl() { release(); }

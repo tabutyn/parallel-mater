@@ -5,9 +5,6 @@ struct GallerySession {
     std::uint32_t fluid_particles{k_default_fluid_particles};
     parallel_mater::Vec3 peg_gravity{};
     parallel_mater::Vec3 cloth_gravity{};
-    parallel_mater::gallery::GalleryStepTimings timings{};
-    parallel_mater::gallery::GalleryStatistics statistics{};
-    parallel_mater::gallery::RendererTimings renderer_timings{};
     std::uint64_t revision{};
 
     [[nodiscard]] bool rebuild(const Options &options, GalleryContext context,
@@ -24,9 +21,6 @@ struct GallerySession {
         fluid_particles = requested_fluid_particles;
         peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);
         cloth_gravity = peg_gravity;
-        timings = {};
-        statistics = {};
-        renderer_timings = {};
         ++revision;
         std::cout << "Gallery scene ready index=" << gallery_context_index(context)
                   << " revision=" << revision << '\n' << std::flush;
@@ -128,18 +122,26 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
     std::vector<std::uint32_t> pixels;
     CameraController camera;
     camera.set_preset(camera_preset_for(GalleryContext::rigid_body, config));
+    parallel_mater::gallery::FrameTimingCollector timings;
+    using parallel_mater::gallery::FramePhase;
     auto measure = [&](bool collision) {
-        const auto begin = std::chrono::steady_clock::now();
+        timings.begin_frame();
+        timings.begin_phase(FramePhase::physics);
         if (!step_runtime(runtime, step, error)) {
             error = "calibration step failed: " + error;
             return false;
         }
+        timings.end_phase();
+        timings.begin_phase(FramePhase::render);
         if (!runtime.renderer.render(runtime.render_frame,
                                      camera.camera(), pixels, error)) return false;
+        timings.end_phase();
+        timings.begin_phase(FramePhase::present);
         if (!window.present(pixels, error, runtime.renderer.native_image())) return false;
-        const double milliseconds = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - begin).count();
-        samples.push_back({milliseconds, collision, true});
+        const auto presented = parallel_mater::gallery::FrameTimingCollector::Clock::now();
+        timings.end_phase(presented);
+        timings.finish_frame(presented);
+        samples.push_back({timings.latest()->total_ms, collision, true});
         glfwPollEvents();
         return glfwWindowShouldClose(window.native_handle()) == GLFW_FALSE;
     };

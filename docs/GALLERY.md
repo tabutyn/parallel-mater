@@ -59,6 +59,15 @@ It does not build at launch. Vulkan uses conservative startup limits from the
 shared device-profile resource and labels its smaller scene scope in the picker.
 See [Vulkan build and validation details](VULKAN.md).
 
+## iPad preview
+
+The [UIKit iPad app](../examples/ios/README.md) uses the same loader and Slang
+Metal physics backend as the macOS preview. It shares the scene builder,
+software renderer, workload catalog, and frame timing collector; only touch
+input, image presentation, and app lifecycle are native UIKit. It exposes 27
+existing scenes, excluding Dump Truck until vehicle touch controls are added.
+GPU physics is not GPU rendering: the image renderer remains CPU-based.
+
 ## First gallery sequence
 
 The same ordered catalog, scene construction, controls, and simulation path are
@@ -248,13 +257,12 @@ For containment debugging, run the headless Fluid scene with
 `--trace-fluid-escapes`. It reports the first particle below the passive
 mesh's overall bottom or more than 1 mm below its local floor surface,
 including its stable ID and recent positions, and exits nonzero on penetration.
-`F` shows Fluid solver stages, surface-build GPU time, OptiX/render wall time,
-and live/emitted/outflow/capacity-miss counts. It shows rigid solver stages in
-the other scenes. Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
+`F` shows the shared wall-clock frame-time panel in every scene (see
+[Frame timing](#frame-timing)). Fluid + Rigid uses the same `P`, `R`, `V`, and `F` controls as
 Fluid, or `--fluid-rigid` for a headless run.
 Peg Paint uses the same fluid controls and can be selected with `--peg-paint`.
 Cloth can be selected with `--cloth`; `R` restarts the pinned sheet and
-`F` reports its constraint and contact timings. Cloth, Cloth Tear, and Cloth
+`F` reports frame time. Cloth, Cloth Tear, and Cloth
 Paint all start with straight-down gravity. Arrow keys steer it relative to
 the camera, up to 45 degrees from vertical; releasing them eases it back to
 straight down. `--cloth-tear` and `--cloth-paint` also support `R` reset and
@@ -264,30 +272,69 @@ fluid particle cap. Its pressure cloth is a transparent refractive render
 layer.
 Soft Body can be selected with `--soft-body`. It starts with straight-down
 gravity; arrow keys steer gravity through the shared deformable control path,
-`R` rebuilds the API resource, and `F` reports node prediction, spring
-projection, and passive triangle contact timings. `V` draws every generated
+`R` rebuilds the API resource, and `F` reports frame time. `V` draws every generated
 internal API spring; `B` draws the authored surface wireframe.
 Soft Body Rigid can be selected with `--soft-body-rigid`. It reuses all of those
 controls and diagnostics while two active spheres collide with the lattice.
 Rope can be selected with `--rope`. Gravity starts down; arrows use the shared
-45-degree tilt controller. `R` resets, `F` includes rope solve time, `V`/`B`
+45-degree tilt controller. `R` resets, `F` shows frame time, `V`/`B`
 draw physical segments, `X` shows constraint/contact forces, `N` velocities,
 and `M` writes the common opt-in API capture.
 Rope Fluid can be selected with `--rope-fluid` and uses the same gravity,
 camera, reset, and rope debug controls. `P` changes the water-particle cap;
-`V` toggles water particles; `F` includes fluid/rope contact time and depth.
+`V` toggles water particles; `F` shows frame time.
 Soft Body Cloth can be selected with `--soft-body-cloth`. It starts with
-gravity down and reuses those controls. `F` also reports cloth stepping and
-soft/cloth coupling. The bridge's Blender `pm_break_strain` is zero; the
+gravity down and reuses those controls, including the shared `F` panel.
+The bridge's Blender `pm_break_strain` is zero; the
 curtain's is 0.10. Both use the common exporter and API fracture implementation.
 
 Soft Body Fluid (`--soft-body-fluid`) uses `SoftbodyFluid.blend`. Full-weight
 Goal vertices remain fixed while falling water loads the soft body's current
 triangles and exits through the authored outflow. Gravity starts straight down;
 arrows tilt it up to 45 degrees. `P` changes particle capacity and resets;
-`R` resets, `F` includes fluid/soft contact timing, and the shared water surface
+`R` resets, `F` shows frame time, and the shared water surface
 and foam renderer are unchanged. `V` exposes both water particles and internal
 soft springs; `B` shows the soft surface and `C` shows water reactions.
+
+### Frame timing
+
+Windows, Linux, and macOS use one `FrameTimingCollector` in Gallery support,
+backed by C++ `std::chrono::steady_clock`. No native timers or GPU queries are
+needed. `F` only toggles visibility: it does not enable contact collection or
+change solver work. The panel shows the previous completed frame, plus FPS
+computed as frame count divided by summed wall time over roughly one second.
+Scene changes/resets and calibration clear the displayed history.
+
+Interactive total spans loop entry through presentation return. Physics sums
+all catch-up steps, including their controllers, command completion, readback,
+and render-frame assembly. Render measures the renderer call; presentation
+includes upload and any VSync wait. Other time covers remaining input, debug/UI,
+and frame work. These are host wall times, not pure GPU kernel durations or
+display scan-out latency. Slow frames are never clamped to the simulation's
+250 ms delta limit. Turning off the panel does not stop collection.
+
+Use `--frame-timings output.csv` to record completed frames:
+
+```sh
+parallel-mater-gallery --constraint-point --frame-timings live.csv
+parallel-mater-gallery --constraint-point --headless point.ppm --frames 3 --frame-timings headless.csv
+```
+
+CSV columns are `frame,scene,mode,physics_steps,total_ms,physics_ms,render_ms,present_ms,other_ms`.
+Values use milliseconds and a locale-independent decimal point. `mode` is
+`interactive` or `headless`; headless `present_ms` is empty (unavailable), not
+zero. Each completed frame gets one row; interrupted frames get none. Output
+is buffered, with open/write/flush errors reported. CSV writing and final
+screenshot/validation/export work are outside the measured interval.
+
+Headless timing explicitly simulates and renders every frame: `--frames N`
+produces N rows and saves the last rendered image without another render or
+double-advancing fluid visuals. Without `--frame-timings`, existing headless
+behavior stays unchanged: N simulation steps and one final render. Headless
+throughput lacks interactive presentation/VSync and should not be compared
+directly with displayed FPS. The flag cannot combine with `--calibrate` or
+`--print-brick-profile`; calibration uses the same collector internally, keeps
+its existing warmup/qualification rules, and does not export playback rows.
 
 Interactive playback uses elapsed-time accumulation, fixed 1/60-second physics
 steps, and interpolated rigid rendering. Catch-up permits at most four steps

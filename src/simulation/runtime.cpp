@@ -4,6 +4,7 @@
 #include "simulation/geometry_dispatch.hpp"
 #include "simulation/geometry_constraints_dispatch.hpp"
 #include "simulation/geometry_storage.hpp"
+#include "simulation/paint_storage.hpp"
 #include "simulation/cloth_dispatch.hpp"
 #include "simulation/soft_body_dispatch.hpp"
 #include "simulation/soft_body_cloth_dispatch.hpp"
@@ -57,6 +58,8 @@ using simulation::ContactSchedule;
 using simulation::FixedContactProjection;
 using simulation::KinematicTarget;
 using simulation::LeafPair;
+using simulation::PaintFieldResource;
+using simulation::PaintRuleResource;
 using simulation::RigidConstraintResource;
 using simulation::TriangleMeshResource;
 using simulation::WorldAabb;
@@ -431,6 +434,9 @@ using simulation::k_soft_contact_cleanup_passes;
 
 template <typename T>
 [[nodiscard]] Status allocate_managed(T *&pointer, std::size_t count) noexcept {
+    pointer = nullptr;
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(T))
+        return failure(StatusCode::out_of_memory, "simulation allocation size overflow");
     if (count == 0U) {
         pointer = nullptr;
         return success();
@@ -451,13 +457,18 @@ template <typename T>
 
 template <typename T> void release_managed(T *&pointer) noexcept {
     if (pointer != nullptr) {
-        // Simulation storage belongs to its bound arena, never this view.
+        // Resource owners retire queued work before releasing their storage.
+        // Locate the owning arena: geometry can live outside the active arena.
+        (void)simulation::release_bound(pointer);
         pointer = nullptr;
     }
 }
 
 template <typename T>
 [[nodiscard]] Status allocate_scratch(T *&pointer, std::size_t count) noexcept {
+    pointer = nullptr;
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(T))
+        return failure(StatusCode::out_of_memory, "simulation scratch size overflow");
     if (count == 0U) {
         pointer = nullptr;
         return success();
@@ -922,20 +933,6 @@ struct FluidMovingContact {
     Vec3 point{};
     float penetration{};
     std::uint32_t body{k_invalid_dense};
-};
-
-struct PaintFieldResource {
-    PaintFieldOptions options{};
-    Vec2 *uvs{};
-    std::uint32_t *pixels{};
-    std::uint32_t generation{1U};
-    bool alive{};
-};
-
-struct PaintRuleResource {
-    PaintRuleOptions options{};
-    std::uint32_t generation{1U};
-    bool alive{};
 };
 
 struct FluidStorage {

@@ -964,13 +964,21 @@ bool CommandScene::create(const SceneDefinition &scene,
     instance.render_buffers.device = next->device;
     instance.render_buffers.queue = next->queue;
     instance.render_buffers.output = next->output.handle;
-    instance.render_buffers.rigid_offset = next->rigid_output.offset;
-    instance.render_buffers.previous_rigid_offset = next->previous_rigid_output.offset;
-    instance.render_buffers.fluid_offset = next->fluid_output.offset;
+    const auto region = [](auto value) { return GpuSceneBuffers::Region{value.offset, value.size}; };
+    instance.render_buffers.rigid = region(next->rigid_output);
+    instance.render_buffers.previous_rigid = region(next->previous_rigid_output);
+    instance.render_buffers.fluid = region(next->fluid_output);
+    instance.render_buffers.smoke = region(next->smoke_output);
     instance.render_buffers.fluid_capacity = requires_fluid
         ? next->fluid_capacities[0].particleCapacity : 0U;
-    for (const auto region : next->cloth_surface_outputs)
-        instance.render_buffers.cloth_surface_offsets.push_back(region.offset);
+    for (const auto value : next->cloth_surface_outputs)
+        instance.render_buffers.cloth_surfaces.push_back(region(value));
+    for (const auto value : next->soft_body_surface_outputs)
+        instance.render_buffers.soft_surfaces.push_back(region(value));
+    for (const auto value : next->rope_outputs)
+        instance.render_buffers.ropes.push_back(region(value));
+    for (const auto value : next->paint_outputs)
+        instance.render_buffers.paint.push_back(region(value));
     for (std::uint32_t index = 0U; index < paints.size(); ++index)
         instance.paint_bindings.push_back(
             {paints[index].body, paints[index].mesh, index});

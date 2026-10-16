@@ -7,16 +7,16 @@
 namespace parallel_mater::gallery {
 
 // Borrowed public output resources, valid until the CommandScene is reset or
-// destroyed. Rendering consumes API exports, never private simulation storage.
+// destroyed. Finish rendering before the next step overwrites these exports.
+// Rendering consumes API exports, never private simulation storage.
 struct GpuSceneBuffers {
     PmDevice device{};
     PmQueue queue{};
     PmBuffer output{};
-    PmDeviceSize rigid_offset{};
-    PmDeviceSize previous_rigid_offset{};
-    PmDeviceSize fluid_offset{};
+    struct Region { PmDeviceSize offset{}, size{}; };
+    Region rigid, previous_rigid, fluid, smoke;
     std::uint32_t fluid_capacity{};
-    std::vector<PmDeviceSize> cloth_surface_offsets;
+    std::vector<Region> cloth_surfaces, soft_surfaces, ropes, paint;
 };
 
 // An adapter-owned image shared with native presentation. A zero handle means

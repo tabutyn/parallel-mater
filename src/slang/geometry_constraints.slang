@@ -608,13 +608,24 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
     return impulse;
 }
 
+#ifndef PM_AVBD_PREPARE_SMALL_CACHE
 #if PM_TARGET_D3D12 || defined(PM_TARGET_VULKAN)
-static const uint kAvbdPrepareBodyCacheSize = 512u;
-static const uint kAvbdPrepareContactCacheSize = 512u;
+#define PM_AVBD_PREPARE_SMALL_CACHE 1
 #else
-static const uint kAvbdPrepareBodyCacheSize = 1024u;
-static const uint kAvbdPrepareContactCacheSize = 1024u;
+#define PM_AVBD_PREPARE_SMALL_CACHE 0
 #endif
+#endif
+#ifndef PM_AVBD_PREPARE_CACHE_SIZE
+#if PM_AVBD_PREPARE_SMALL_CACHE
+#define PM_AVBD_PREPARE_CACHE_SIZE 512
+#else
+#define PM_AVBD_PREPARE_CACHE_SIZE 1024
+#endif
+#endif
+// The tail already uses device memory; only the fast cache is smaller.
+// Adapters budget scratch for native validation instrumentation as well.
+static const uint kAvbdPrepareBodyCacheSize = PM_AVBD_PREPARE_CACHE_SIZE;
+static const uint kAvbdPrepareContactCacheSize = PM_AVBD_PREPARE_CACHE_SIZE;
 static const uint kAvbdPrepareJointCacheSize = 128u;
 
 struct AvbdPrepareBodyMetadata

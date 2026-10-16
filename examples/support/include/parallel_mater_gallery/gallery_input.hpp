@@ -38,9 +38,6 @@ struct GalleryInputState {
     std::size_t selected{};
     std::optional<std::size_t> requested_scene{};
     CameraController camera{};
-    double fps{};
-    double frame_ms{};
-    double gpu_ms{};
 
     void arrow(GalleryArrowKey key, bool pressed) noexcept {
         if (catalog_visible || parameters_visible) pressed = false;

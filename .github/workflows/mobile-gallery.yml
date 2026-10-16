@@ -1,0 +1,52 @@
+name: Mobile Gallery builds
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mobile-gallery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ipad:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Select Xcode 26 (required, never skip an older SDK)
+        run: |
+          xcodebuild -version | tee xcode-version.txt
+          grep -q '^Xcode 26' xcode-version.txt
+          xcrun --sdk iphoneos --show-sdk-version
+          if ! xcrun --sdk iphoneos metal --version; then
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+      - run: cmake --preset ipad-ci
+      - run: cmake --build --preset ipad-ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipad-unsigned-preview
+          path: build-ipad-ci/Release-iphoneos/ParallelMater Gallery.app
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
+      - run: bash scripts/Build-AndroidGallery.sh -Pqualification=true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-vulkan-preview
+          path: examples/android/app/build/outputs/apk/debug/app-debug.apk

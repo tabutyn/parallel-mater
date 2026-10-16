@@ -58,13 +58,14 @@ template <typename T>
 
 bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
                         CommandSceneFrame &frame, std::string &error,
-                        bool collect_contacts, bool read_deformables) {
+                        bool collect_contacts, bool read_deformables, bool read_host) {
     error.clear();
     if (impl_ == nullptr || !(timestep > 0.0F) || substeps == 0U) {
         error = "step simulation: invalid argument";
         return false;
     }
-    frame.previous_rigid_states = frame.rigid_states;
+    impl_->output_ready = false;
+    if (read_host) frame.previous_rigid_states = frame.rigid_states;
     if (!impl_->begin(error)) return false;
     if (impl_->rigid_count != 0U) {
         const PmBufferCopy snapshot{impl_->rigid_output.offset,
@@ -176,15 +177,22 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
             }, impl_->debug_output, "copy debug output"))
         return false;
     if (!impl_->submit(error)) return false;
+    impl_->output_ready = true;
 
+    // Native rendering borrows completed public exports. Host reads are explicit.
     impl_->contacts_available = collect_contacts;
+    frame.full_host_output = false;
+    if (!read_host) return true;
     return read_output(frame, error, read_deformables);
 }
 
 bool CommandScene::read_output(CommandSceneFrame &frame, std::string &error,
                                bool read_deformables) {
     error.clear();
-    if (!impl_) { error = "read simulation output: no scene"; return false; }
+    if (!impl_ || !impl_->output_ready) {
+        error = "read simulation output: no completed frame";
+        return false;
+    }
     const auto read = [&](auto region, auto &records) {
         return read_domain(impl_->device, impl_->output.memory, region, records, frame.revision, error);
     };

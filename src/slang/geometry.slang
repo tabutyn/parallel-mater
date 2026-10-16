@@ -1658,7 +1658,10 @@ groupshared uint rigidLeafCandidateCount;
 // Match the native broad/narrow-phase handoff exactly. Reusing one transformed
 // bound per leaf is both the dense-mesh fast path and part of deterministic
 // candidate selection near overlap boundaries.
-groupshared WorldAabb rigidLeafCachedBounds[1024];
+#ifndef PM_RIGID_LEAF_BOUNDS_CACHE_SIZE
+#define PM_RIGID_LEAF_BOUNDS_CACHE_SIZE 1024
+#endif
+groupshared WorldAabb rigidLeafCachedBounds[PM_RIGID_LEAF_BOUNDS_CACHE_SIZE];
 
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
@@ -1721,7 +1724,7 @@ void pm_generate_rigid_leaf_pairs(
         }
         uint totalLeaves = aMesh.bvh_leaf_count + bMesh.bvh_leaf_count;
         bool cacheBounds = totalLeaves <= shared_leaf_capacity &&
-            totalLeaves <= 1024u;
+            totalLeaves <= PM_RIGID_LEAF_BOUNDS_CACHE_SIZE;
         if (cacheBounds)
         {
             for (uint leaf = lane; leaf < totalLeaves;
@@ -1857,14 +1860,21 @@ void pm_generate_rigid_leaf_pairs(
 #endif
 
 #if !PM_TARGET_D3D12 || defined(PM_DXIL_ENTRY_pm_evaluate_rigid_leaf_pairs)
-#if !PM_TARGET_D3D12
-#if defined(PM_TARGET_VULKAN)
-// Eight workers keep this contact reduction within a 32 KiB mobile workgroup
-// budget. The adapter specializes the launch to the same number of workers.
-groupshared ContactManifold rigidLeafWorkerManifolds[8];
-#else
-groupshared ContactManifold rigidLeafWorkerManifolds[16];
+// Graphics adapters supply per-leaf device scratch and dispatch the shared
+// reduction entry afterwards. The optional inline CUDA cache exceeds Metal's
+// threadgroup memory limit; this does not change candidate/reduction order.
+#ifndef PM_DEVICE_LEAF_MANIFOLDS
+#define PM_DEVICE_LEAF_MANIFOLDS PM_TARGET_D3D12
 #endif
+#ifndef PM_RIGID_CONTACT_WORKERS
+#if defined(PM_TARGET_VULKAN)
+#define PM_RIGID_CONTACT_WORKERS 8
+#else
+#define PM_RIGID_CONTACT_WORKERS 16
+#endif
+#endif
+#if !PM_DEVICE_LEAF_MANIFOLDS
+groupshared ContactManifold rigidLeafWorkerManifolds[PM_RIGID_CONTACT_WORKERS];
 groupshared ContactManifold rigidLeafReducedManifold;
 #endif
 groupshared HingeContactFrame rigidLeafPreviousBodyHinge;
@@ -1876,7 +1886,7 @@ groupshared float rigidLeafMargin;
 groupshared uint rigidLeafSwept;
 
 [shader("compute")]
-[numthreads(PM_THREADS(16), 1, 1)]
+[numthreads(PM_THREADS(PM_RIGID_CONTACT_WORKERS), 1, 1)]
 void pm_evaluate_rigid_leaf_pairs(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
@@ -1933,7 +1943,7 @@ void pm_evaluate_rigid_leaf_pairs(
                     meshes[parameters[a].mesh.index], previous_states[b],
                     states[b], meshes[parameters[b].mesh.index],
                     rigidLeafMargin)) ? 1u : 0u;
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
             rigidLeafReducedManifold.count = 0u;
             rigidLeafReducedManifold.face_patch = false;
 #endif
@@ -2018,7 +2028,7 @@ void pm_evaluate_rigid_leaf_pairs(
                         range.collider_first, range.collider_count,
                         rigidLeafColliderHinge, rigidLeafMargin,
                         timestep, local);
-#if PM_TARGET_D3D12
+#if PM_DEVICE_LEAF_MANIFOLDS
                 leaf_manifolds[
                     activeIndex * leaf_pairs_per_slot + candidate] = local;
 #else
@@ -2029,7 +2039,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
             }
             pmGroupBarrier();
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
             if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             {
                 float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
@@ -2046,7 +2056,7 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
             pmGroupBarrier();
         }
-#if !PM_TARGET_D3D12
+#if !PM_DEVICE_LEAF_MANIFOLDS
         if (!pmBufferPresent(leaf_manifolds) && lane == 0u)
             manifolds[activeIndex] = rigidLeafReducedManifold;
 #endif

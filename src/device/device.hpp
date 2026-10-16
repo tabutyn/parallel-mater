@@ -135,6 +135,8 @@ class Services {
     int ordinal, PmResult &result) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_cpu(
     int ordinal, PmResult &result) noexcept;
+[[nodiscard]] std::unique_ptr<Services> create_metal(
+    int ordinal, PmResult &result) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_d3d12(
     int ordinal, PmResult &result) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_vulkan(

@@ -15,7 +15,7 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.rigidBodies = PM_TRUE;
     features.rigidConstraints = PM_TRUE;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
-    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_VULKAN_DRIVER)
+    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_METAL_DRIVER) || defined(PARALLEL_MATER_VULKAN_DRIVER)
 #if defined(PARALLEL_MATER_SLANG_CPU_LIQUIDS) || defined(PARALLEL_MATER_VULKAN_DRIVER)
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;
@@ -25,6 +25,18 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.debugData = PM_TRUE;
     features.timelineSemaphores = PM_TRUE;
     features.timestampQueries = PM_TRUE;
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+    features.timestampQueries = PM_FALSE; // Native timestamp API not qualified by this preview.
+    features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
+    features.particleEmitters = PM_TRUE;
+    features.cloth = PM_TRUE;
+    features.softBodies = PM_TRUE;
+    features.domainCouplings = PM_TRUE;
+    features.rope = PM_TRUE;
+    features.smoke = PM_TRUE;
+    features.paint = PM_TRUE;
+#endif
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
 #if defined(PARALLEL_MATER_D3D12_DRIVER)

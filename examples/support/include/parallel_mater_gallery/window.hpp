@@ -32,6 +32,10 @@ class GalleryWindow {
                                std::string &error, NativeRenderImage image = {});
     void set_vsync(bool enabled) noexcept;
     [[nodiscard]] GLFWwindow *native_handle() const noexcept;
+#if defined(__APPLE__)
+    // Main-thread layer setup only. Shared graphics code owns rendering.
+    [[nodiscard]] void *metal_layer(void *device);
+#endif
 
   private:
     struct Impl;

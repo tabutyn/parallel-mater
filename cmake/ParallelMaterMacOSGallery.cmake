@@ -56,7 +56,7 @@ set(PARALLEL_MATER_BUNDLE_LAYER_MANIFEST
     "${CMAKE_CURRENT_BINARY_DIR}/generated/macos/validation.json")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUNDLE_LAYER_MANIFEST}" CONTENT
 "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
-add_custom_command(TARGET parallel-mater-gallery POST_BUILD
+add_custom_target(refresh-macos-gallery-runtime ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks"
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d"
@@ -77,10 +77,34 @@ add_custom_command(TARGET parallel-mater-gallery POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PARALLEL_MATER_BUNDLE_LAYER_MANIFEST}"
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/layers.d/validation.json"
+    DEPENDS parallel-mater-gallery parallel-mater parallel-mater-layer-validation
     VERBATIM)
 
-if(TARGET parallel-mater-driver-slang-cpu)
-    add_custom_command(TARGET parallel-mater-gallery POST_BUILD
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryBuildInfo.cmake")
+if(TARGET parallel-mater-driver-slang-metal)
+    parallel_mater_gallery_build_info(parallel-mater-gallery metal)
+    add_dependencies(parallel-mater-gallery parallel-mater-driver-slang-metal)
+    target_compile_definitions(parallel-mater-gallery-application PRIVATE PARALLEL_MATER_METAL_PREVIEW=1)
+    add_dependencies(refresh-macos-gallery-runtime parallel-mater-driver-slang-metal)
+    add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -f
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-cpu.json"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:parallel-mater-driver-slang-metal>"
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-metal>"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "$<TARGET_FILE_DIR:parallel-mater-driver-slang-metal>/slang-metal"
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/slang-metal"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-metal.json"
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-metal.json"
+        VERBATIM)
+elseif(TARGET parallel-mater-driver-slang-cpu)
+    parallel_mater_gallery_build_info(parallel-mater-gallery slang-cpu)
+    add_dependencies(refresh-macos-gallery-runtime parallel-mater-driver-slang-cpu)
+    add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -f
+            "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-metal.json"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:parallel-mater-driver-slang-cpu>"
             "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>"
@@ -89,6 +113,15 @@ if(TARGET parallel-mater-driver-slang-cpu)
             "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-cpu.json"
         VERBATIM)
 endif()
+
+# Runtime relocation and resource copies invalidate any earlier linker/Xcode
+# signature. Seal only the finished bundle, so deployment can verify its input.
+add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
+    COMMAND /usr/bin/codesign --force --deep --sign -
+        "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>"
+    COMMAND /usr/bin/codesign --verify --deep --strict
+        "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>"
+    VERBATIM)
 
 set(PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY "/Applications" CACHE PATH
     "Directory containing the continuously refreshed macOS Gallery")
@@ -105,12 +138,31 @@ add_custom_target(deploy-macos-gallery ${PARALLEL_MATER_MACOS_DEPLOY_KIND}
         -DDESTINATION_APP=${PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY}/ParallelMater\ Gallery.app
         -DUPDATE_DOCK=ON
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployMacOSBundle.cmake
-    DEPENDS parallel-mater-gallery
+    DEPENDS refresh-macos-gallery-runtime
     COMMENT "Refreshing the installed ParallelMater Gallery"
     USES_TERMINAL
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_test(NAME parallel-mater-macos-gallery-signature
+        COMMAND /usr/bin/codesign --verify --deep --strict
+            "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>")
+    if(TARGET parallel-mater-driver-slang-metal)
+        set(PM_PREVIEW_REFERENCE_ARGS)
+        if(TARGET parallel-mater-driver-slang-cpu)
+            list(APPEND PM_PREVIEW_REFERENCE_ARGS "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json")
+        endif()
+        add_test(NAME parallel-mater-slang-metal-gallery-preview
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/metal_preview_smoke.py"
+                $<TARGET_FILE:parallel-mater-gallery> ${PM_PREVIEW_REFERENCE_ARGS})
+        set_tests_properties(parallel-mater-slang-metal-gallery-preview PROPERTIES
+            LABELS "gallery;metal;gpu;preview" TIMEOUT 900)
+        add_test(NAME parallel-mater-slang-metal-gallery-domains
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/metal_domain_smoke.py"
+                $<TARGET_FILE:parallel-mater-gallery>)
+        set_tests_properties(parallel-mater-slang-metal-gallery-domains PROPERTIES
+            LABELS "gallery;metal;gpu;preview" TIMEOUT 1200)
+    endif()
     add_executable(parallel-mater-software-renderer-tests
         tests/gallery/software_renderer_tests.cpp)
     target_compile_features(parallel-mater-software-renderer-tests PRIVATE cxx_std_20)
@@ -127,7 +179,7 @@ if(BUILD_TESTING)
              COMMAND $<TARGET_FILE:parallel-mater-gallery> --help)
     set_tests_properties(parallel-mater-macos-gallery-help PROPERTIES
         LABELS "gallery;macos;bundle")
-    if(TARGET parallel-mater-driver-slang-cpu)
+    if(TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-metal)
         add_test(NAME parallel-mater-macos-slang-rigid-smoke
             COMMAND $<TARGET_FILE:parallel-mater-gallery>
                 --constraint-point --frames 3 --headless

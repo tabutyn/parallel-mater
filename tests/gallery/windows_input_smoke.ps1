@@ -107,7 +107,7 @@ try {
         Write-Output "$Backend ${name}: $DwellSeconds seconds observed"
     }
     Wait-Scene 'startup' 0
-    Send-Key 0x46 # F: enable live timing/contact collection.
+    Send-Key 0x46 # F: show shared timing; solver workload is unchanged.
     Wait-Scene 'F timing'
     $process.Refresh()
     if ($process.HasExited) { throw 'Viewer exited after enabling timing with F' }

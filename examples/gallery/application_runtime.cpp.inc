@@ -7,6 +7,10 @@ struct GalleryRuntime {
     CommandSceneFrame frame{};
     RenderSceneFrame render_frame{};
     RendererHandle renderer{};
+#ifdef PM_GALLERY_METAL_RENDERER
+    std::unique_ptr<parallel_mater::gallery::GpuGalleryRenderer> gpu_renderer;
+    bool gpu_ready{};
+#endif
     FixedContactCollector fixed_collector{};
     parallel_mater::gallery::ArrowForces arrow_forces{};
     parallel_mater::gallery::DumpTruckBed dump_bed{};
@@ -56,12 +60,16 @@ struct GalleryRuntime {
 
 [[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
                                 const StepOptions &options,
-                                std::string &error, bool read_deformables = true) {
+                                std::string &error, bool read_deformables = true, bool read_host = true) {
     if (!runtime.simulation.step(options.timestep, options.substeps,
                                  options.gravity, runtime.frame, error,
                                  options.collect_rigid_contacts ||
-                                     options.collect_fluid_contacts, read_deformables))
+                                     options.collect_fluid_contacts, read_deformables, read_host))
         return false;
+#ifdef PM_GALLERY_METAL_RENDERER
+    runtime.gpu_ready = true;
+#endif
+    if (!read_host) return true;
     return parallel_mater::gallery::make_render_scene_frame(
         runtime.scene, runtime.frame, runtime.render_frame, error);
 }

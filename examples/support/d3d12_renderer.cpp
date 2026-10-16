@@ -297,10 +297,10 @@ class D3D12Renderer final : public Renderer {
         }
         for (std::uint32_t body = 0U; body < scene.rigid_bodies.size(); ++body)
             for (const auto mesh : scene.rigid_bodies[body].mesh_indices)
-                draws_.push_back({mesh, 0U, body, static_cast<std::uint32_t>(buffers_.rigid_offset)});
+                draws_.push_back({mesh, 0U, body, static_cast<std::uint32_t>(buffers_.rigid.offset)});
         for (std::uint32_t cloth = 0U; cloth < scene.cloths.size(); ++cloth)
             draws_.push_back({scene.cloths[cloth].mesh_index, 1U, 0U,
-                static_cast<std::uint32_t>(buffers_.cloth_surface_offsets.at(cloth))});
+                static_cast<std::uint32_t>(buffers_.cloth_surfaces.at(cloth).offset)});
         constants_ = upload(nullptr, (draws_.size() + 2U) * 256U);
         D3D12_RANGE no_read{};
         check(constants_->Map(0U, &no_read, reinterpret_cast<void **>(&constant_data_)), "map drawing constants");
@@ -344,7 +344,7 @@ class D3D12Renderer final : public Renderer {
             std::memcpy(values.forward, &forward, sizeof(Vec3));
             values.up[3] = std::tan(camera.vertical_field_of_view_degrees * 0.00872664626F);
             values.right[3] = values.up[3] * static_cast<float>(width_) / static_cast<float>(height_);
-            values.draw[3] = static_cast<std::uint32_t>(buffers_.previous_rigid_offset);
+            values.draw[3] = static_cast<std::uint32_t>(buffers_.previous_rigid.offset);
             values.settings[1] = rigid_interpolation_alpha;
             std::size_t constant_index{};
             const auto bind = [&] {
@@ -366,7 +366,7 @@ class D3D12Renderer final : public Renderer {
             if (buffers_.fluid_capacity) {
                 values.color[0] = 0.05F; values.color[1] = 0.42F; values.color[2] = 0.92F;
                 values.draw[0] = 2U;
-                values.draw[1] = static_cast<std::uint32_t>(buffers_.fluid_offset);
+                values.draw[1] = static_cast<std::uint32_t>(buffers_.fluid.offset);
                 values.settings[0] = particle_radius_;
                 values.settings[2] = support_radius_;
                 if (fluid_mode == FluidRenderMode::particles) {

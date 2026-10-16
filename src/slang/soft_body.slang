@@ -8,6 +8,12 @@ import device_intrinsics;
 import graphics_resources;
 
 static const uint kSoftReductionThreads = 128u;
+#ifndef PM_SOFT_NEIGHBOR_GROUP_SIZE
+#define PM_SOFT_NEIGHBOR_GROUP_SIZE 16
+#endif
+// The adapter selects 16 masked lanes or a full 32-lane SIMD group. This
+// changes launch geometry, not the ordered neighbor accumulation below.
+static const uint kSoftNeighborGroupSize = PM_SOFT_NEIGHBOR_GROUP_SIZE;
 groupshared Vec3 softValuesA[kSoftReductionThreads];
 groupshared Vec3 softValuesB[kSoftReductionThreads];
 groupshared float softInverseMasses[kSoftReductionThreads];
@@ -342,12 +348,13 @@ void deformable_project_links_warp(
     uniform float maximum_projection_fraction PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
-    const uint groupSize = 16u;
+    const uint groupSize = kSoftNeighborGroupSize;
     uint lane = pmGroupThreadIndex().x & (groupSize - 1u);
     uint group = pmBlockIndex().x * (pmGroupSize().x / groupSize) +
         pmGroupThreadIndex().x / groupSize;
     if (group >= count) return;
-    uint groupMask = 0xffffu << (pmGroupThreadIndex().x & 16u);
+    uint groupMask = (0xffffffffu >> (32u - groupSize)) <<
+        (pmGroupThreadIndex().x & (32u - groupSize));
     float selfMass = inverse_masses[group];
     Vec3 position = positions[group];
     if (selfMass == 0.0f)
@@ -532,12 +539,13 @@ void soft_body_damp_springs_warp(
     uniform uint count, uniform float damping, uniform float maximum_speed PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
-    const uint groupSize = 16u;
+    const uint groupSize = kSoftNeighborGroupSize;
     uint lane = pmGroupThreadIndex().x & (groupSize - 1u);
     uint group = pmBlockIndex().x * (pmGroupSize().x / groupSize) +
         pmGroupThreadIndex().x / groupSize;
     if (group >= count) return;
-    uint groupMask = 0xffffu << (pmGroupThreadIndex().x & 16u);
+    uint groupMask = (0xffffffffu >> (32u - groupSize)) <<
+        (pmGroupThreadIndex().x & (32u - groupSize));
     if (inverse_masses[group] == 0.0f)
     {
         if (lane == 0u) output[group] = {};

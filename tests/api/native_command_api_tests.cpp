@@ -7,6 +7,10 @@
 #include <cmath>
 #include <vector>
 
+#ifndef PM_TEST_NATIVE_BACKEND
+#define PM_TEST_NATIVE_BACKEND PM_NATIVE_BACKEND_D3D12
+#endif
+
 #define CHECK(expression) do { if (!(expression)) {                         \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #expression);          \
     return 1;                                                               \
@@ -23,7 +27,7 @@ int main() {
           PM_SUCCESS);
     if (physical_count == 0U) {
         pmDestroyInstance(instance);
-        std::puts("SKIP: no compatible graphics compute device");
+        std::puts("SKIP: no selected native GPU device");
         return 77;
     }
     std::vector<PmPhysicalDevice> physicals(physical_count);
@@ -55,10 +59,11 @@ int main() {
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
     device_info.enabledFeatures.debugData = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
-    device_info.enabledFeatures.timestampQueries = PM_TRUE;
+    CHECK(features.timestampQueries ==
+        (PM_TEST_NATIVE_BACKEND == PM_NATIVE_BACKEND_METAL ? PM_FALSE : PM_TRUE));
+    device_info.enabledFeatures.timestampQueries = features.timestampQueries;
     PmDevice device{};
-    // Device creation loads the embedded common Slang schedule library,
-    // dispatches a descriptor-backed rigid-input kernel, and validates it.
+    // The same public command fixture runs against each selected native driver.
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);
@@ -70,6 +75,13 @@ int main() {
     allocation.allocationSize = byte_count;
     allocation.memoryTypeIndex = 1U;
     PmDeviceMemory upload{};
+#if defined(PM_TEST_METAL_PREVIEW)
+    // An invalid allocation is not a device-lost error; subsequent work works.
+    allocation.allocationSize = UINT64_MAX;
+    CHECK(pmAllocateMemory(device, &allocation, &upload) == PM_ERROR_INVALID_ARGUMENT);
+    CHECK(upload == nullptr);
+    allocation.allocationSize = byte_count;
+#endif
     CHECK(pmAllocateMemory(device, &allocation, &upload) == PM_SUCCESS);
     allocation.memoryTypeIndex = 1U;
     PmDeviceMemory readback{};
@@ -184,11 +196,7 @@ int main() {
     PmNativeDeviceInfo native_device{};
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
-#if defined(PM_TEST_VULKAN)
-    CHECK(native_device.backend == PM_NATIVE_BACKEND_VULKAN);
-#else
-    CHECK(native_device.backend == PM_NATIVE_BACKEND_D3D12);
-#endif
+    CHECK(native_device.backend == PM_TEST_NATIVE_BACKEND);
     CHECK(native_device.device != 0U);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U);
@@ -254,7 +262,8 @@ int main() {
     const PmQueryPoolCreateInfo timing_info{PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
         nullptr, PM_QUERY_TIMESTAMP, 2U};
     PmQueryPool timing{};
-    CHECK(pmCreateQueryPool(device, &timing_info, &timing) == PM_SUCCESS);
+    if (features.timestampQueries)
+        CHECK(pmCreateQueryPool(device, &timing_info, &timing) == PM_SUCCESS);
     CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -277,7 +286,8 @@ int main() {
     CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) ==
           PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 0U) == PM_SUCCESS);
+    if (timing)
+        CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 0U) == PM_SUCCESS);
     const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
@@ -296,7 +306,7 @@ int main() {
         std::abs(states[1].position[1] - bodies[1].state.position[1]) > 1.0e-4F ||
         std::abs(states[1].linearVelocity[1]) > 1.0e-4F;
     if (!dynamic_body_advanced)
-        std::fprintf(stderr, "Graphics rigid body did not advance: y=%g vy=%g\n",
+        std::fprintf(stderr, "Native rigid body did not advance: y=%g vy=%g\n",
                      states[1].position[1], states[1].linearVelocity[1]);
     CHECK(dynamic_body_advanced);
     const float first_position = states[1].position[1];
@@ -316,7 +326,7 @@ int main() {
     if (!(states[1].position[1] < first_position - 1.0e-4F &&
           states[1].linearVelocity[1] < first_velocity - 1.0e-4F))
         std::fprintf(stderr,
-                     "Graphics rigid body did not advance across submissions: "
+                     "Native rigid body did not advance across submissions: "
                      "first y=%g vy=%g, second y=%g vy=%g\n",
                      first_position, first_velocity, states[1].position[1],
                      states[1].linearVelocity[1]);
@@ -329,26 +339,47 @@ int main() {
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     for (std::uint32_t frame = 0U; frame < 30U; ++frame)
         CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
-    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 1U) == PM_SUCCESS);
+    if (timing)
+        CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 1U) == PM_SUCCESS);
     CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
     CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
     CHECK(std::isfinite(states[1].position[1]));
     CHECK(states[1].position[1] > -0.5F);
-    std::uint64_t timestamps[2]{};
-    CHECK(pmGetQueryPoolResults(device, timing, 0U, 2U, sizeof timestamps,
-        timestamps, sizeof timestamps[0], PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
-    CHECK(timestamps[1] > timestamps[0]);
-    // Retire timestamp commands before destroying their query pool. The
-    // repeated-submission buffer below contains exactly one physics frame.
+    if (timing) {
+        std::uint64_t timestamps[2]{};
+        CHECK(pmGetQueryPoolResults(device, timing, 0U, 2U, sizeof timestamps,
+            timestamps, sizeof timestamps[0], PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(timestamps[1] > timestamps[0]);
+    }
+
+#if defined(PM_TEST_METAL_PREVIEW)
+    // Separate contact case: preserve upstream free-fall/multiple-submission
+    // checks above as well as the preview's independent settling check.
+    bodies[1].state.position[1] = -0.25F;
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
+        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    CHECK(states[1].position[1] > -0.025F && states[1].position[1] < 0.08F);
+    CHECK(std::abs(states[1].linearVelocity[1]) < 0.15F);
+#endif
+    // Retire timestamp and multi-step commands before repeated submissions.
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
-    pmDestroyQueryPool(device, timing);
+    if (timing) pmDestroyQueryPool(device, timing);
 
     // Reuse the same executable command buffer over six simulated seconds.
     // The cube must settle on the static cube, not merely remain finite.
@@ -382,6 +413,6 @@ int main() {
     pmFreeMemory(device, upload);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: graphics transfer and shared Slang rigid schedule");
+    std::puts("PASS: native transfer, handles and shared Slang rigid contact schedule");
     return 0;
 }

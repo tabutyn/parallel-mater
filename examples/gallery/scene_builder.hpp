@@ -75,7 +75,7 @@ class CommandScene {
                             Vec3 gravity, CommandSceneFrame &frame,
                             std::string &error,
                             bool collect_contacts = false,
-                            bool read_deformables = true);
+                            bool read_deformables = true, bool read_host = true);
     // Explicit diagnostics/capture readback, including while the viewer is paused.
     [[nodiscard]] bool read_output(CommandSceneFrame &frame, std::string &error,
                                    bool read_deformables = true);

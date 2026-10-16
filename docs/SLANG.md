@@ -46,7 +46,7 @@ some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
 full native adapters for other graphics APIs remain separate work. The
 [Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies, constraints,
-liquids, and liquid–rigid coupling. Metal remains unavailable.
+liquids, and liquid–rigid coupling.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
 Its public command path binds and dispatches the shared rigid-body,
@@ -54,12 +54,22 @@ rigid-constraint, contact, debug, and query schedules and advertises those
 tested capabilities. Fluid, cloth, rope, soft-body, smoke, and their couplings
 remain unadvertised.
 
-No Metal device adapter or Metal physics implementation is shipped. The CPU
-driver advertises only the rigid capabilities that its shared Slang schedule
-currently executes, with experimental liquids explicitly enabled for the Android
-preview; other domains remain unavailable. Cross-target generation
-of the shared AVBD module remains a compiler and reflection portability check;
-it does not expose a backend-specific runtime or advertise Metal execution.
+The opt-in Metal preview connects the same public API and reference scheduler
+to native Apple-GPU dispatch for rigid bodies/constraints, liquids, cloth,
+soft bodies, ropes, particle/grid smoke, existing cross-domain couplings and paint.
+It bundles generated Slang Metal libraries, not generated CPU physics. The CPU
+driver advertises rigid capabilities, with experimental liquids enabled for
+Android; its other domains remain unavailable.
+All existing domain and coupling entries now compile separately to Metal.
+Native kernel tests use actual
+Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
+boundary. AVBD now has shared staged dispatches for adapters without cooperative
+grid barriers; the original cooperative entry uses the same stage equations.
+The preview Gallery uses the Metal driver for physics and software rendering
+for images. It still synchronizes for prepared solver counts and frame output.
+Missing roadmap interaction modes, full physics/performance qualification,
+native import and GPU rendering handoff remain unfinished. See the
+[Metal qualification checklist](METAL-QUALIFICATION.md) for the release gate.
 
 The AVBD numerical core also compiles to WGSL and its reflection contract is
 tested. This qualifies the shared equations for WebGPU code generation only;
@@ -83,7 +93,7 @@ records remain in the build tree.
 
 The portable AVBD test executes 105 fixtures against the host reference. The
 full mirror target compiles every shared command-runtime entry point to CUDA,
-PTX when available, and SPIR-V. The architecture test rejects native CUDA
+PTX when available, SPIR-V, and Metal. The architecture test rejects native CUDA
 physics kernels, direct physics launches, legacy command-runtime `World`
 dependencies, and dispatch adapters that are not backed by generated Slang.
 
@@ -99,23 +109,28 @@ runs without path filters on pull requests, branch pushes, and merge queues.
 Its `Shader portability required` check fails unless every platform job passes:
 
 - Linux, Windows, and macOS compile every manifest module to CUDA source and
-  SPIR-V, plus the AVBD numerical core to CUDA, Metal, HLSL, and WGSL. CPU tests
-  and reflection checks run on each platform.
+  SPIR-V, every entry separately to Metal, plus the AVBD numerical core to CUDA,
+  Metal, HLSL, and WGSL. CPU tests and reflection checks run on each platform.
 - Windows also compiles every manifest entry to DXIL and builds the D3D12
   driver against those outputs. Device-dependent execution tests are excluded
   from this compiler workflow and remain separate runtime qualification.
-- macOS additionally compiles the generated AVBD MSL with Apple's `metal`
-  compiler and links a `.metallib`. Xcode's Metal toolchain must be installed.
+- macOS additionally compiles and links every generated MSL entry with Apple's
+  native toolchain. Native pipeline/layout and GPU execution tests run when an
+  Apple GPU is available; lack of hardware produces an explicit skip, never a
+  CPU fallback. Xcode's Metal toolchain must be installed.
 - Linux and macOS build the Slang CPU driver and execute public-API asynchronous
   submission tests, including actual rigid integration. All platforms test
   submission lifetime, dependency scheduling, and deferred failures without a GPU.
 
 All gates use the pinned Slang toolchain and treat shader compiler warnings as
-errors. They require neither a CUDA toolkit nor a GPU; CUDA source generation
+errors. Native MSL compilation exempts only unused-variable diagnostics because
+Slang retains unused atomic fetch results. Compiler/reflection gates require
+neither a CUDA toolkit nor a GPU; CUDA source generation
 does not replace NVCC/PTX compilation or device execution in CUDA qualification.
-The existing optional PTX gate still runs when NVRTC is available. Full Metal
-domain schedules and a Metal driver remain unimplemented; the native Metal gate
-covers only the AVBD core. Reflection and test logs are retained as CI artifacts.
+The existing optional PTX gate still runs when NVRTC is available. The
+Metal command-API preview now executes the existing domain schedule; a fully
+asynchronous GPU-only schedule and all-domain qualification remain incomplete. Reflection
+and test logs are retained as CI artifacts.
 Repository branch rules should require the stable `Shader portability required`
 check; the workflow itself does not modify repository protection settings.
 

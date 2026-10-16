@@ -31,6 +31,7 @@
     {"vendor":"Qualcomm","model":"Snapdragon 8 Elite","variant":"Adreno GPU","source_url":"https://docs.qualcomm.com/bundle/publicresource/87-83196-1_REV_A_Snapdragon_8_Elite_Mobile_Platform_Product_Brief.pdf"}
   ],
   "startup_limits": [
+    {"name":"ipad-metal-preview","platform":"iPadOS","machine_model":"*","backend":"metal","brick_count":4,"fluid_particles":256,"coupled_bodies":4,"smoke_particles":128,"dump_spheres":10,"render_width":960,"render_height":720,"target_fps":30},
     {"name":"desktop-vulkan-preview","platform":"Linux","machine_model":"*","backend":"vulkan","brick_count":4,"fluid_particles":256,"coupled_bodies":4,"smoke_particles":128,"dump_spheres":10,"render_width":1280,"render_height":720,"target_fps":30},
     {"name":"android-conservative","platform":"Android","machine_model":"*","backend":"*","brick_count":4,"fluid_particles":64,"coupled_bodies":2,"smoke_particles":128,"dump_spheres":10,"render_width":640,"render_height":360,"target_fps":30},
     {"name":"pixel-7-preview","platform":"Android","machine_model":"Pixel 7","backend":"*","brick_count":4,"fluid_particles":128,"coupled_bodies":4,"smoke_particles":128,"dump_spheres":10,"render_width":640,"render_height":360,"target_fps":30}

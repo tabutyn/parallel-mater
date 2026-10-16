@@ -13,6 +13,22 @@
 
 namespace parallel_mater::simulation {
 
+// Host storage mirrored by AvbdBody in shaders/geometry_constraints.slang.
+// It is scheduling state only; the constraint equations live in Slang.
+struct GeometryConstraintBody {
+    RigidBodyState target{};
+    Quaternion orientation_delta{};
+    avbd::Vector6 displacement{};
+    avbd::Block inertia{};
+    std::uint32_t contact_head{UINT32_MAX};
+    std::uint32_t joint_head{UINT32_MAX};
+    std::uint32_t color{UINT32_MAX};
+    std::uint32_t parent{};
+    std::uint32_t impact{};
+    Vec3 previous_velocity{};
+    std::uint32_t history_valid{};
+};
+
 struct BodyParameters {
     MotionType motion{};
     TriangleMeshId mesh{};

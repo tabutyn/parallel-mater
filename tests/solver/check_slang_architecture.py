@@ -148,6 +148,7 @@ if re.search(r"\busing\s+World\s*=", runtime_header):
 for boundary_header in (
     ROOT / "src" / "api" / "internal.hpp",
     ROOT / "src" / "device" / "device.hpp",
+    ROOT / "src" / "device" / "compute.hpp",
     ROOT / "src" / "simulation" / "runtime.hpp",
     ROOT / "src" / "simulation" / "exports.hpp",
 ):

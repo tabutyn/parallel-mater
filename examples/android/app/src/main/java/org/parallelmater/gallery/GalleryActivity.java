@@ -32,6 +32,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -48,9 +49,11 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private static native String nativeDetails(long handle);
     private static native void nativeCommand(long handle, int command, float x, float y);
     private static native int nativeTargetFps(long handle);
+    private static native String[] nativeSceneNames();
+    private static native double[] nativeQualifyScene(long handle, int scene, int frames);
+    private static native String nativeRuntimeInfo(long handle);
 
-    private static final String[] NAMES = {"Brick wall", "Collector", "Orbiting bodies",
-        "Hinges & sliders", "Piston", "Limited joints", "Fluid course", "Fluid & spheres"};
+    private static final String[] NAMES = nativeSceneNames();
     private static final String[] DESCRIPTIONS = {"Rigid-body collisions", "Fixed joints",
         "Point constraints", "Rotating and sliding joints", "Linear motion",
         "Translation and rotation limits", "Liquid particles", "Liquid–rigid interaction"};
@@ -66,6 +69,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private boolean active, surfaceReady, failed;
     private int frameInterval = 33;
     private long lastStatus;
+    private int backgrounds, foregrounds;
+    private String diagnosticNonce = "";
     // UI state is only accessed on the main thread.
     private boolean paused, released;
     private int selected;
@@ -310,6 +315,12 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     // Release builds ignore these diagnostic extras.
     private void applyDebugRequest(Intent intent) {
         if (!BuildConfig.DEBUG || intent == null) return;
+        if (intent.hasExtra("pm_qualify_frames")) {
+            final int count = intent.getIntExtra("pm_qualify_frames", 120);
+            final String nonce = intent.getStringExtra("pm_nonce");
+            intent.removeExtra("pm_qualify_frames"); intent.removeExtra("pm_nonce");
+            worker.post(() -> qualify(count, nonce == null ? "" : nonce));
+        }
         if (intent.hasExtra("pm_scene")) selectScene(intent.getIntExtra("pm_scene", 0));
         String action = intent.getStringExtra("pm_action");
         if ("reset".equals(action)) resetScene();
@@ -321,6 +332,48 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         else if ("info".equals(action)) showInfo();
         intent.removeExtra("pm_scene");
         intent.removeExtra("pm_action");
+    }
+    private void writeReport(String name, JSONObject report) throws Exception {
+        android.util.AtomicFile file = new android.util.AtomicFile(new File(getFilesDir(), name));
+        FileOutputStream stream = file.startWrite();
+        try {
+            stream.write(report.toString(2).getBytes(StandardCharsets.UTF_8));
+            file.finishWrite(stream);
+        } catch (Exception error) { file.failWrite(stream); throw error; }
+    }
+    private void writeRuntimeInfo() {
+        if (!BuildConfig.DEBUG || handle == 0) return;
+        try {
+            JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
+            report.put("nonce", diagnosticNonce).put("backgrounds", backgrounds).put("foregrounds", foregrounds);
+            writeReport("runtime-info.json", report);
+        } catch (Exception error) { showFailure(error); }
+    }
+    private void qualify(int count, String nonce) {
+        if (handle == 0) return;
+        try {
+            if (count < 1 || count > 100000) throw new IllegalArgumentException("Qualification frames must be 1..100000");
+            diagnosticNonce = nonce;
+            worker.removeCallbacks(frame);
+            JSONArray results = new JSONArray();
+            JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
+            report.put("nonce", nonce).put("frames_per_scene", count).put("scenes", results);
+            for (int i = 0; i < NAMES.length; ++i) {
+                JSONObject result = new JSONObject().put("scene", NAMES[i]).put("steps", count);
+                try {
+                    double[] stats = nativeQualifyScene(handle, i, count);
+                    result.put("passed", true).put("mean_ms", stats[0]).put("p95_ms", stats[1])
+                        .put("timing_window_frames", stats[2]).put("session_controls", true);
+                } catch (RuntimeException error) { result.put("passed", false).put("error", error.toString()); }
+                results.put(result);
+                report.put("completed", i + 1 == NAMES.length);
+                writeReport("qualification.json", report);
+            }
+            nativeCommand(handle, 0, 0, 0);
+            writeRuntimeInfo();
+            runOnUiThread(() -> { selected = 0; scenes.setText(NAMES[0] + "  ▾"); });
+            restartFrames();
+        } catch (Exception error) { showFailure(error); }
     }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -474,12 +527,18 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     }
     @Override protected void onResume() {
         super.onResume();
-        worker.post(() -> { active = true; restartFrames(); });
+        worker.post(() -> {
+            active = true;
+            if (handle != 0) nativeCommand(handle, 9, 1, 0);
+            ++foregrounds; writeRuntimeInfo();
+            restartFrames();
+        });
     }
     @Override protected void onPause() {
         worker.post(() -> {
             active = false; worker.removeCallbacks(frame);
-            if (handle != 0) nativeCommand(handle, 3, 0, 0);
+            if (handle != 0) nativeCommand(handle, 9, 0, 0);
+            ++backgrounds; writeRuntimeInfo();
         });
         super.onPause();
     }

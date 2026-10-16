@@ -26,6 +26,31 @@ if(NOT SIGN_RESULT EQUAL 0)
 endif()
 
 if(EXISTS "${DESTINATION_APP}")
+    # Replacing files cannot update a running process. Quit only this bundle,
+    # then let the verified deployment wrapper relaunch the installed revision.
+    execute_process(COMMAND /usr/bin/osascript -e
+        "if application id \"com.tabutyn.parallel-mater.gallery\" is running then tell application id \"com.tabutyn.parallel-mater.gallery\" to quit"
+        RESULT_VARIABLE QUIT_RESULT ERROR_VARIABLE QUIT_ERROR)
+    # GLFW returns NSTerminateCancel while asking its windows to close. The
+    # Apple event can report -128 even though the main loop exits normally.
+    # Verify actual exit; never force-terminate a still-running application.
+    set(GALLERY_RUNNING true)
+    foreach(attempt RANGE 1 40)
+        execute_process(COMMAND /usr/bin/osascript -e
+            "application id \"com.tabutyn.parallel-mater.gallery\" is running"
+            RESULT_VARIABLE CHECK_RESULT OUTPUT_VARIABLE GALLERY_RUNNING
+            OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE CHECK_ERROR)
+        if(NOT CHECK_RESULT EQUAL 0)
+            message(FATAL_ERROR "Cannot verify Gallery shutdown: ${CHECK_ERROR}")
+        endif()
+        if(GALLERY_RUNNING STREQUAL "false")
+            break()
+        endif()
+        execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 0.25)
+    endforeach()
+    if(NOT GALLERY_RUNNING STREQUAL "false")
+        message(FATAL_ERROR "Quit the installed Gallery before deployment (still running): ${QUIT_ERROR}")
+    endif()
     file(RENAME "${DESTINATION_APP}" "${PREVIOUS_APP}"
          RESULT MOVE_PREVIOUS_RESULT)
     if(MOVE_PREVIOUS_RESULT)
