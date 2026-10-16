@@ -59,7 +59,8 @@ def main():
     subprocess.run(adb + ["shell", "mkdir", "-p", REMOTE], check=True)
     subprocess.run(adb + ["push", str(stage) + "/.", REMOTE], check=True)
     environment = (f"LD_LIBRARY_PATH={REMOTE} PM_DRIVER_FILES={REMOTE}/driver.json "
-                   f"PM_LAYER_FILES={REMOTE}/validation.json PM_VULKAN_CACHE_DIR={REMOTE}/cache")
+                   f"PM_LAYER_FILES={REMOTE}/validation.json PM_VULKAN_CACHE_DIR={REMOTE}/cache "
+                   "PM_VULKAN_TRACE=1")
     results = []
     for name in tests:
         print(f"Running {name}…", flush=True)
