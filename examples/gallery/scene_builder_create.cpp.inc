@@ -4,7 +4,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                           CommandScene &output,
                           CommandSceneInstance &instance,
                           std::string &error,
-                          std::optional<PmNativeBackend> backend) {
+                          std::optional<PmNativeBackend> backend,
+                          PmResult *creation_category) {
+    if (creation_category) *creation_category = PM_ERROR_INVALID_STATE;
     error.clear();
     output = {};
     instance = {};
@@ -59,6 +61,7 @@ bool CommandScene::create(const SceneDefinition &scene,
         break;
     }
     if (next->physical == nullptr) {
+        if (creation_category) *creation_category = PM_ERROR_FEATURE_NOT_PRESENT;
         error = "selected device does not expose every scene capability";
         return false;
     }
@@ -244,59 +247,55 @@ bool CommandScene::create(const SceneDefinition &scene,
         if (type == PM_COUPLING_LIQUID_RIGID) state.parameters.mechanical.twoWay = PM_TRUE;
         couplings.push_back(state);
     };
+    // Explicit scene/corpus defaults, independent of private solver options.
     try {
         if (requires_fluid)
             add_mechanical(PM_COUPLING_LIQUID_RIGID, 0U, 0U);
         for (std::uint32_t cloth = 0U; cloth < scene.cloths.size(); ++cloth) {
             if (requires_fluid && scene.cloths[cloth].contains_fluid) {
-                const FluidClothCouplingOptions options{};
                 add_mechanical(PM_COUPLING_LIQUID_CLOTH, 0U, cloth,
-                    {options.contact_distance, options.stiffness,
-                     options.damping, 0.0F, options.tangential_drag,
-                     options.maximum_force, 0.0F,
+                    {0.0F, 2'000.0F,
+                     12.0F, 0.0F, 1.44F,
+                     960.0F, 0.0F,
                      PM_TRUE});
             }
             for (std::uint32_t soft = 0U;
                  soft < scene.soft_bodies.size(); ++soft) {
-                const SoftBodyClothCouplingOptions options{};
                 add_mechanical(PM_COUPLING_SOFT_BODY_CLOTH, soft, cloth,
-                    {options.contact_distance, 0.0F, 0.0F,
+                    {0.0F, 0.0F, 0.0F,
                      scene.cloths[cloth].contact_friction, 0.0F, 0.0F, 0.0F,
                      PM_TRUE});
             }
         }
         for (std::uint32_t soft = 0U; soft < scene.soft_bodies.size(); ++soft) {
             if (requires_fluid) {
-                const FluidSoftBodyCouplingOptions options{};
                 add_mechanical(PM_COUPLING_LIQUID_SOFT_BODY, 0U, soft,
-                    {options.contact_distance, 0.0F, 0.0F,
-                     options.friction, 0.0F, 0.0F, 0.0F, PM_TRUE});
+                    {0.0F, 0.0F, 0.0F,
+                     0.05F, 0.0F, 0.0F, 0.0F, PM_TRUE});
             }
         }
         for (std::uint32_t rope = 0U; rope < scene.ropes.size(); ++rope) {
             if (requires_fluid) {
-                const FluidRopeCouplingOptions options{};
                 add_mechanical(PM_COUPLING_LIQUID_ROPE, 0U, rope,
-                    {options.contact_distance, 0.0F, 0.0F,
-                     options.friction, 0.0F, 0.0F,
-                     options.maximum_rope_acceleration, PM_TRUE});
+                    {0.0F, 0.0F, 0.0F,
+                     0.05F, 0.0F, 0.0F,
+                     30.0F, PM_TRUE});
             }
             for (std::uint32_t soft = 0U;
                  soft < scene.soft_bodies.size(); ++soft) {
                 const auto &definition = scene.ropes[rope];
-                const RopeSoftBodyCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_ROPE_SOFT_BODY;
                 state.first = rope;
                 state.second = soft;
                 state.parameters.mechanical.contactDistance =
-                    options.contact_distance;
-                state.parameters.mechanical.friction = options.friction;
+                    0.0F;
+                state.parameters.mechanical.friction = 0.4F;
                 state.parameters.attachment = {
                     PM_INVALID_INDEX, PM_INVALID_INDEX,
-                    0.0F, options.anchor_support_radius_scale,
-                    options.anchor_contact_support_radius_scale,
-                    options.maximum_soft_body_acceleration,
+                    0.0F, 4.0F,
+                    1.5F,
+                    100.0F,
                     definition.first_soft_body == static_cast<int>(soft)
                         ? PM_TRUE : PM_FALSE,
                     definition.last_soft_body == static_cast<int>(soft)
@@ -311,7 +310,6 @@ bool CommandScene::create(const SceneDefinition &scene,
                 const bool last =
                     definition.last_cloth == static_cast<int>(cloth);
                 if (!first && !last) continue;
-                const RopeClothCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_ROPE_CLOTH;
                 state.first = rope;
@@ -319,8 +317,8 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.parameters.attachment = {
                     first ? definition.first_cloth_vertex : PM_INVALID_INDEX,
                     last ? definition.last_cloth_vertex : PM_INVALID_INDEX,
-                    options.anchor_effective_mass, 0.0F, 0.0F,
-                    options.maximum_cloth_acceleration, PM_FALSE, PM_FALSE};
+                    0.05F, 0.0F, 0.0F,
+                    20'000.0F, PM_FALSE, PM_FALSE};
                 couplings.push_back(state);
             }
         }
@@ -346,37 +344,34 @@ bool CommandScene::create(const SceneDefinition &scene,
         }
         if (scene.has_smoke) {
             for (std::uint32_t cloth = 0U; cloth < scene.cloths.size(); ++cloth) {
-                const SmokeClothCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_SMOKE_CLOTH;
                 state.first = 0U;
                 state.second = cloth;
-                state.parameters.smoke = {options.wind_drag,
-                    options.maximum_wind_acceleration, 0.0F, 0.0F,
-                    options.contact_distance, PM_FALSE};
+                state.parameters.smoke = {2.0F,
+                    20.0F, 0.0F, 0.0F,
+                    0.0F, PM_FALSE};
                 couplings.push_back(state);
             }
             for (std::uint32_t rope = 0U; rope < scene.ropes.size(); ++rope) {
-                const SmokeRopeCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_SMOKE_ROPE;
                 state.first = 0U;
                 state.second = rope;
-                state.parameters.smoke = {options.wind_drag,
-                    options.maximum_wind_acceleration, 0.0F, 0.0F,
-                    options.contact_distance, PM_FALSE};
+                state.parameters.smoke = {2.0F,
+                    20.0F, 0.0F, 0.0F,
+                    0.0F, PM_FALSE};
                 couplings.push_back(state);
             }
             for (std::uint32_t soft = 0U;
                  soft < scene.soft_bodies.size(); ++soft) {
-                const SmokeSoftBodyCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_SMOKE_SOFT_BODY;
                 state.first = 0U;
                 state.second = soft;
-                state.parameters.smoke = {options.wind_drag,
-                    options.maximum_wind_acceleration, 0.0F, 0.0F,
-                    options.contact_distance, PM_FALSE};
+                state.parameters.smoke = {0.5F,
+                    2.0F, 0.0F, 0.0F,
+                    0.0F, PM_FALSE};
                 couplings.push_back(state);
             }
             for (std::uint32_t body = 0U;
@@ -388,13 +383,12 @@ bool CommandScene::create(const SceneDefinition &scene,
                 if (!definition.smoke_collider && !named_obstacle &&
                     definition.options.motion != MotionType::dynamic)
                     continue;
-                const SmokeRigidCouplingOptions options{};
                 PmCouplingState state{};
                 state.type = PM_COUPLING_SMOKE_RIGID;
                 state.first = 0U;
                 state.second = body;
-                state.parameters.smoke = {0.0F, 0.0F, options.air_density,
-                    options.drag_coefficient, options.contact_distance,
+                state.parameters.smoke = {0.0F, 0.0F, 1.5F,
+                    4.0F, 0.0F,
                     PM_TRUE};
                 couplings.push_back(state);
             }
@@ -986,6 +980,7 @@ bool CommandScene::create(const SceneDefinition &scene,
             {paints[index].body, paints[index].mesh, index});
 
     output.impl_ = std::move(next);
+    if (creation_category) *creation_category = PM_SUCCESS;
     return true;
 }
 

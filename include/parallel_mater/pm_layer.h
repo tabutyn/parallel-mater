@@ -9,11 +9,16 @@
 extern "C" {
 #endif
 
-#define PM_LAYER_INTERFACE_VERSION 1u
+#define PM_LAYER_INTERFACE_VERSION 2u
 
 typedef struct PmLayerCallInfo {
     const char* pCommandName;
     const void* primaryHandle;
+    /* Version 2: application-visible arguments, valid only during the callback.
+     * Cast pArguments to PmLayerArgs_pmCommand from pm_layer_args.h after
+     * checking argumentSize. The version 1 prefix remains unchanged. */
+    uint32_t argumentSize;
+    const void* pArguments;
 } PmLayerCallInfo;
 
 typedef PmResult (PMAPI_CALL *PFN_pmLayerNegotiateLoaderInterfaceVersion)(

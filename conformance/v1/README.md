@@ -1,7 +1,8 @@
 # Parallel Mater physics conformance v1
 
-This directory is the backend-neutral correctness contract for the qualified
-CUDA driver and future Slang device adapters. It is separate from physics
+This directory defines versioned reference-regression and physical-quality
+inputs for independently loaded drivers. Existing captures do not qualify every
+advertised capability. It is separate from physics
 capture v1, which remains a debugging/replay format.
 
 For shared implementation code and small host/device equation fixtures, see
@@ -56,6 +57,54 @@ python3 conformance/v1/compare.py \
 Every driver result keeps the canonical case SHA-256. Driver identity,
 timings, and implementation-specific hashes are diagnostic and never gate
 correctness.
+
+## Independent SDK build
+
+Enable `PARALLEL_MATER_BUILD_CONFORMANCE=ON` with gallery and native drivers
+OFF to build the runner and `ParallelMater::scene` / `ParallelMater::preparation`
+static tooling libraries. No Slang compiler or graphics SDK is required when
+shader compiler gates and drivers are also OFF. The scene headers contain host
+geometry and authored inputs, not private solver handles. These C++ tooling
+libraries are source-level helpers; only the `pm*` C API is the driver boundary.
+
+After installing the SDK, build this directory as an independent project:
+
+```bash
+cmake -S conformance/v1 -B build-conformance-sdk \
+  -DCMAKE_PREFIX_PATH=/path/to/installed-sdk
+cmake --build build-conformance-sdk --parallel 1
+build-conformance-sdk/parallel-mater-conformance --check-inputs --root /path/to/corpus-root
+```
+
+The corpus root contains `conformance/v1` and `examples/assets`. `--root` avoids
+embedding a developer checkout as a runtime requirement. Select a separately
+installed driver with `PM_DRIVER_FILES`; the runner links only the loader and
+host scene helpers, never a reference driver.
+
+Execution emits `completed`, `unsupported`, or `failed` for each selected case
+and continues the corpus after a case failure. Unsupported means advertised
+features cannot satisfy scene requirements; errors after capability selection
+remain failures. No installed driver is a setup failure. Exit codes: 0 for a
+run with completed cases and no failures, 2 for execution/setup failure, 77
+when every selected case is unsupported. Mixed completed/unsupported runs must
+still go through the comparator; execution exit zero is not qualification.
+
+Completed results explicitly say `quality_status: not_evaluated`. The comparator
+reports reference-regression `passed`, `failed`, and `unsupported` separately.
+Historical captures without execution metadata remain readable. Comparator exit
+codes are 0 for all passed, 1 for any failure, 77 for incomplete unsupported
+coverage without failures. Unsupported results never count as passes; malformed
+case identity/hash still fails. Analytic/invariant quality gates remain separate
+from agreement with CUDA captures and must gate performance qualification.
+
+2026-10-16 evidence: gallery-free CPU build passed 34 checks, skipped two
+unsupported domain tests. An installed and relocated SDK built this runner and
+validated all 30 canonical inputs. CPU `rigid-direct` execution completed but
+failed three final angular-velocity comparisons against the historical CUDA
+capture (maximum absolute difference about 0.000256 versus about 0.0000102
+allowed). CPU `cloth-core` produced unsupported/exit 77. Existing shared brick
+penetration and 10/17 Windows comparison failures remain open; no tolerance or
+golden was changed by this separation.
 
 ## Matching rules
 

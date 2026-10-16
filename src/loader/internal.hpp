@@ -44,8 +44,8 @@ struct Layer {
 
     static std::shared_ptr<Layer> open(const std::filesystem::path &path,
                                        std::string &error);
-    PmResult pre(const char *command, const void *handle) const;
-    void post(const char *command, const void *handle, PmResult result) const;
+    PmResult pre(const PmLayerCallInfo &call) const;
+    void post(const PmLayerCallInfo &call, PmResult result) const;
 
     std::filesystem::path path;
     void *library{};
@@ -82,8 +82,21 @@ struct Driver {
 std::vector<std::shared_ptr<Driver>> discover_drivers();
 std::shared_ptr<LayerChain> load_validation_layers(bool enabled);
 PFN_pmVoidFunction lookup_loader_proc(const char *name) noexcept;
-PmResult pre_call(const Route &route, const char *command) noexcept;
-void post_call(const Route &route, const char *command, PmResult result) noexcept;
+PmResult pre_call(const Route &route, const char *command,
+                  std::uint32_t size, const void *arguments) noexcept;
+void post_call(const Route &route, const char *command, PmResult result,
+               std::uint32_t size, const void *arguments) noexcept;
+
+template <typename Arguments>
+PmResult pre_call(const Route &route, const char *command,
+                  const Arguments &arguments) noexcept {
+    return pre_call(route, command, sizeof(Arguments), &arguments);
+}
+template <typename Arguments>
+void post_call(const Route &route, const char *command, PmResult result,
+               const Arguments &arguments) noexcept {
+    post_call(route, command, result, sizeof(Arguments), &arguments);
+}
 
 template <typename T>
 T failure() noexcept {

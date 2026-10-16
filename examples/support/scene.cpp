@@ -3,7 +3,7 @@
 
 #include "vector_math.hpp"
 
-#include <simulation/host_preparation.hpp>
+#include <parallel_mater_scene/preparation.hpp>
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>

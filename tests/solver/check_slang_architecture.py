@@ -105,7 +105,7 @@ for loader_source in sorted((ROOT / "src" / "loader").glob("*")):
         if forbidden in loader_text:
             failures.append(
                 f"{loader_source.relative_to(ROOT)}: loader owns device/physics detail {forbidden}")
-if "install(DIRECTORY include/" in build_contract:
+if re.search(r"install\(DIRECTORY\s+include/\s", build_contract):
     failures.append("CMakeLists.txt: legacy backend-specific headers are installed")
 if (ROOT / "include" / "parallel_mater" / "parallel_mater.hpp").exists():
     failures.append("include/parallel_mater/parallel_mater.hpp: private runtime is public")
@@ -393,6 +393,11 @@ for path in backend_neutral_sources:
                 f"{path.relative_to(ROOT)}: host preparation owns backend detail "
                 f"{backend_detail}"
             )
+# The installed tooling SDK may share plain geometry values, never private
+# simulation handles or implementation headers.
+for path in (ROOT / "include" / "parallel_mater_scene").glob("*.hpp"):
+    if re.search(r'#include\s+[<"](?:simulation/|device/|api/)', path.read_text()):
+        failures.append(f"{path.relative_to(ROOT)}: private SDK dependency")
 if "parallel-mater-asset-preparation" in cmake:
     failures.append("CMakeLists.txt: duplicate gallery asset-preparation target remains")
 

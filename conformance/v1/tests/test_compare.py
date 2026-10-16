@@ -62,6 +62,29 @@ class ComparatorTests(unittest.TestCase):
         return compare.compare_documents(case or case_document(),
                                          expected, actual)
 
+    def test_execution_metadata_compatible_with_historical_captures(self):
+        expected = result({"position": [0.0, 0.0, 0.0]})
+        actual = dict(expected, execution_status="completed", quality_status="not_evaluated")
+        self.assertTrue(self.compare(expected, actual).passed)
+
+    def test_unsupported_and_execution_failure_never_pass(self):
+        expected = result({"position": [0.0, 0.0, 0.0]})
+        actual = {"schema": "parallel-mater-conformance-execution/v1",
+                  "case_id": "sample", "case_sha256": "fixed",
+                  "execution_status": "unsupported", "reason": "no cloth"}
+        comparison = self.compare(expected, actual)
+        self.assertTrue(comparison.unsupported)
+        self.assertFalse(comparison.passed)
+        report = compare.report_json([comparison])
+        self.assertEqual((report["passed"], report["failed"], report["unsupported"]), (0, 0, 1))
+        actual["execution_status"] = "failed"
+        self.assertFalse(self.compare(expected, actual).passed)
+        self.assertFalse(self.compare(expected, actual).unsupported)
+        actual["execution_status"] = "unsupported"
+        actual["case_sha256"] = "wrong-case"
+        self.assertFalse(self.compare(expected, actual).unsupported)
+        self.assertFalse(self.compare(actual, actual).passed)
+
     def test_tolerance_passes_and_deliberate_violation_fails(self):
         expected = result({"name": "body", "position": [1.0, 2.0, 3.0],
                            "tolerance_class": "constraint_contact"})

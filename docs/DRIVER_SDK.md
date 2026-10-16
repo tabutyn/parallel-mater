@@ -13,9 +13,9 @@ ordinary `pm*` application symbols.
 | `libparallel-mater` | Driver/layer discovery, physical-device aggregation, dispatch |
 | `pm_driver.h` | Versioned private loader-driver ABI |
 | `pm_layer.h` | Versioned loader-layer observation and validation ABI |
-| `parallel_mater_driver_slang_cuda` | First reference driver and conformance baseline |
+| `parallel_mater_driver_slang_cuda` | First reference driver; historical regression baseline with current quality failures still open |
 | `parallel_mater_driver_slang_d3d12` | Windows transfer driver and shared DXIL rigid-body/constraint adapter |
-| `parallel_mater_driver_slang_cpu` | Serial macOS rigid-capability development driver |
+| `parallel_mater_driver_slang_cpu` | Serial Slang CPU development driver; rigid capabilities and opt-in experimental liquids |
 | `PM_LAYER_PARALLEL_MATER_validation` | Optional validation layer |
 
 ## Required driver exports
@@ -145,3 +145,17 @@ The initial `PM_LAYER_KHRONOS_validation` spelling remains an unadvertised
 compatibility alias for existing 0.2 applications; it implies no Khronos
 ownership or endorsement. The command arguments and state validation contract
 is tracked in [API contract rules](API-CONTRACT.md).
+
+Layer ABI 2 appends `argumentSize` and `pArguments` to `PmLayerCallInfo`. The
+installed, registry-generated `pm_layer_args.h` defines `PmLayerArgs_pmCommand`
+for each command. Payloads use application-visible handles; `primaryHandle`
+retains the native handle for v1 compatibility. Pointers and payloads are valid
+only during their callback; post-call sees driver-written output parameters.
+Pre-call failure suppresses the driver call. Post-call is observation only and
+must not throw or convert a successful resource creation into an error.
+Existing ABI 1 layers remain loadable; this version of the validation layer
+requires a loader offering ABI 2. Unsupported returned ABI versions are rejected.
+
+For version compatibility, independently built consumers/drivers and install gates,
+see [SDK releases](SDK-RELEASES.md). Runtime qualification is scoped separately in
+the [qualification index](QUALIFICATION.md).

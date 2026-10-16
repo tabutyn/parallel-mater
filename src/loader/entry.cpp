@@ -3,6 +3,7 @@
 #if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
 #include <parallel_mater/interop_vulkan.h>
 #endif
+#include <parallel_mater/pm_layer_args.h>
 
 #include <algorithm>
 #include <cstring>
@@ -290,10 +291,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
 extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyDevice(PmDevice device) {
     const auto route = parallel_mater::loader::route(device);
     if (!route) return;
+    const PmLayerArgs_pmDestroyDevice arguments{device};
+    if (parallel_mater::loader::pre_call(route, "pmDestroyDevice", arguments) != PM_SUCCESS)
+        return;
     auto destroy = reinterpret_cast<PFN_pmDestroyDevice>(
         route.driver->device_proc(reinterpret_cast<PmDevice>(route.context),
                                   "pmDestroyDevice"));
     if (destroy != nullptr) destroy(reinterpret_cast<PmDevice>(route.native));
+    parallel_mater::loader::post_call(route, "pmDestroyDevice", PM_SUCCESS, arguments);
     delete device;
 }
 
@@ -381,7 +386,8 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmFreeCommandBuffers(
     std::vector<PmCommandBuffer> native(count);
     for (std::uint32_t index = 0U; index < count; ++index) {
         const auto command_route = parallel_mater::loader::route(buffers[index]);
-        if (!command_route || command_route.driver != route.driver) return;
+        if (!command_route || command_route.driver != route.driver ||
+            command_route.context != route.context) return;
         native[index] = reinterpret_cast<PmCommandBuffer>(command_route.native);
     }
     auto free = reinterpret_cast<PFN_pmFreeCommandBuffers>(
@@ -402,7 +408,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
     for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
         const auto command_route =
             parallel_mater::loader::route(info->pCommandBuffers[index]);
-        if (!command_route || command_route.driver != route.driver)
+        if (!command_route || command_route.driver != route.driver ||
+            command_route.context != route.context)
             return PM_ERROR_INVALID_ARGUMENT;
         native[index] = reinterpret_cast<PmCommandBuffer>(command_route.native);
     }

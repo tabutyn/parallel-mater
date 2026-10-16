@@ -17,6 +17,14 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle)
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
                 LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+            if(suite STREQUAL "resource-lifecycle")
+                add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests
+                    COMMAND parallel-mater-${suite}-tests)
+                set_tests_properties(parallel-mater-${backend}-validated-lifecycle-tests PROPERTIES
+                    LABELS "api;validation;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
+                    ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_TEST_VALIDATION=1")
+                add_dependencies(parallel-mater-${suite}-tests parallel-mater-layer-validation)
+            endif()
         endif()
     endforeach()
     if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

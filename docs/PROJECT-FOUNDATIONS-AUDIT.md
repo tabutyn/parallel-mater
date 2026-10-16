@@ -14,7 +14,22 @@ Checkpoints `368dfe5`, `76bbfe8` and `4eaf42b` add arena reclamation, common
 allocation planning and tested fluid replacement/recovery. Continuing domain
 planning and qualification are recorded in [RESOURCE-LIFETIME.md](RESOURCE-LIFETIME.md)
 and the roadmap. Findings below describe the audited revisions; they are not
-an assertion that those fixes remain absent.
+an assertion that those fixes remain absent. `7677ea9` isolates domain storage;
+`1fde50c` adds simulation-owned graph updates and endpoint replacement recovery.
+`4449b74` fixes negotiation and the layer namespace. The following F3 checkpoint
+adds typed layer ABI 2, memory/buffer state validation, cross-device dispatch
+rejection, and searchable-spec consistency checks. See
+[API-CONTRACT.md](API-CONTRACT.md) for executable evidence and coverage limits.
+The first F4 checkpoint removes generated CUDA from Vulkan ABI generation;
+[COMMON-RESOURCE-BOUNDARY.md](COMMON-RESOURCE-BOUNDARY.md) records the new neutral
+reflection model, runtime evidence and remaining engine ownership work.
+`603fee5` separates the headless conformance/scene SDK and execution outcomes.
+The F6 follow-up aligns package/API 0.2, adds relocatable installed-consumer and
+external-driver gates, and removes active old-worktree toolchain dependencies.
+See [SDK release contract](SDK-RELEASES.md), [qualification scope](QUALIFICATION.md)
+and [preserved work disposition](WORKTREE-RECONCILIATION.md). None of these
+packaging/compiler passes closes outstanding physical-quality or engine-handoff
+gates.
 
 ## Assessment
 

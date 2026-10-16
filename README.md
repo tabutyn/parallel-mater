@@ -27,14 +27,20 @@ the same body blocks and is included in the reported iteration count.
 
 The [Slang implementation](docs/SLANG.md) is the production source for rigid
 AVBD and triangle/BVH contact geometry, fluid, cloth, soft bodies, ropes,
-smoke, and every coupling. A CMake gate compiles the shared entries to CUDA and
+smoke, and implemented couplings. Distinct fluid–fluid systems remain unsupported. A CMake gate compiles the shared entries to CUDA and
 PTX; an architecture test rejects native physics kernels and direct launches.
-Current qualification evidence and target acceptance are recorded in the
-[Slang unification validation report](docs/slang-unification-validation.md).
+Current evidence scope and open failures are recorded in the
+[qualification index](docs/QUALIFICATION.md). Earlier compiler evidence remains
+in the [Slang validation report](docs/slang-unification-validation.md).
 
 Measured performance, validation limits and earlier solver experiments are
 recorded in [the rigid performance report](docs/PERFORMANCE.md). Historical
 timings in that report are not measurements of the current AVBD implementation.
+
+For a shader-free loader/SDK build, installed C example and release gates, see
+[SDK builds and releases](docs/SDK-RELEASES.md). The specification and runtime
+remain MIT licensed; driver competition and future standards adoption are
+project goals, not current certification claims.
 
 ## Design goals
 
@@ -102,7 +108,9 @@ the [Slang toolchain and source layout](docs/SLANG.md).
 
 ### Target and driver support
 
-The Slang/CUDA driver is the first fully qualified physics implementation.
+The Slang/CUDA driver is the first reference physics implementation. Current
+full-corpus quality qualification remains incomplete; see the
+[qualification index](docs/QUALIFICATION.md) for known failures.
 macOS also builds a loader-native Slang CPU driver: its serial host adapter
 executes the shared generated rigid-body, constraint, contact, debug, and query
 kernels. It is a correctness and development path, not yet a performance

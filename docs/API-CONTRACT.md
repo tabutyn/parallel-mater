@@ -7,6 +7,7 @@ physics accuracy result.
 | Rule | Required behavior | Executable evidence |
 |---|---|---|
 | PM-API-001 | Accept API 0.2 and zero (default 0.2); reject other versions with INCOMPATIBLE_VERSION and null output. | loader discovery tests; driver ABI tests (future version) |
+| PM-MEM-001 | Buffer/memory handles belong to one device. Binding and mapped ranges fit the allocation without overflow. Binding twice or mapping twice is invalid state; live bound buffers prevent freeing their memory. | permissive-driver validation tests, paired with no-layer negative controls |
 | PM-ABI-001 | A successful driver/layer negotiation returns a nonzero version no greater than requested. | loader rejection tests with independent zero/999 mock libraries |
 | PM-LIFE-001 | Retired domain storage is reusable within the queried allocation; unrelated live slots survive replacement. | SDK resource/domain/coupling lifecycle tests; arena tests |
 | PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK resource lifecycle (rejected capacity/range then valid work); coupling lifecycle (descriptor mutation) |
@@ -31,7 +32,18 @@ remain valid and a later replacement can recover. See
 
 ## Remaining qualification
 
-The validation layer still needs typed command arguments and object-state
-coverage. The table above maps implemented tests, not comprehensive proof of
+Layer ABI 2 supplies registry-generated typed arguments to generated forwarding
+commands and device destruction. Memory/buffer validation tracks allocation,
+queried requirements, binding, mapping, ownership and retirement. It includes
+native buffer import tracking. Old v1 layers receive their unchanged prefix;
+this v2 layer rejects old loaders that cannot supply arguments.
+
+Coverage is intentionally explicit: command-buffer transitions, submit/fence
+state, geometry/simulation memory dependencies, query state and interop handoff
+are not yet validated by this layer. Most hand-written loader entrypoints do
+not yet invoke layer callbacks. Driver validation remains required. Invalid
+void calls are suppressed; the layer has no structured diagnostic callback yet.
+Host bookkeeping exhaustion reports a diagnostic on stderr and disables state
+tracking, preserving already-created driver objects and stateless checks. The table above maps implemented tests, not comprehensive proof of
 all specification clauses. Geometry/paint ownership, every synchronization
 interleaving, all coupling modes and physical accuracy remain separate gates.

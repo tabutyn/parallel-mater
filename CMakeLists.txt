@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(ParallelMater VERSION 0.1.0 LANGUAGES CXX)
+project(ParallelMater VERSION 0.2.0 LANGUAGES CXX)
 
 set(PARALLEL_MATER_IOS OFF)
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
@@ -21,6 +21,11 @@ add_test(NAME parallel-mater-generated-api-check
             --check-generated)
 set_tests_properties(parallel-mater-generated-api-check PROPERTIES
     LABELS "api;registry")
+if(BUILD_TESTING)
+    add_test(NAME parallel-mater-reflected-abi-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
+    set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+endif()
 
 function(parallel_mater_enable_warnings target)
     if(MSVC)
@@ -31,15 +36,6 @@ function(parallel_mater_enable_warnings target)
             $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
     endif()
 endfunction()
-
-# One portable wall-clock collector and CSV serializer for all Gallery paths.
-add_library(parallel-mater-gallery-frame-timing STATIC
-    examples/support/frame_timing.cpp)
-target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
-set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
-target_include_directories(parallel-mater-gallery-frame-timing
-    PUBLIC examples/support/include)
-parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(PARALLEL_MATER_LIBRARY_ARCH 64)
@@ -75,6 +71,10 @@ option(PARALLEL_MATER_BUILD_D3D12
        ${PARALLEL_MATER_D3D12_DEFAULT})
 option(PARALLEL_MATER_BUILD_VULKAN
        "Build the loadable shared-Slang Vulkan qualification driver" OFF)
+option(PARALLEL_MATER_BUILD_SCENE_SDK
+       "Build optional host scene authoring helpers" OFF)
+option(PARALLEL_MATER_BUILD_CONFORMANCE
+       "Build the headless conformance runner and scene input SDK" ${BUILD_TESTING})
 option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
 if(WIN32)
@@ -195,49 +195,58 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUI
     parallel_mater_require_slang()
 endif()
 
-# The conformance case registry intentionally has no CUDA or engine dependency.
-# Every backend byte-checks and executes the same canonical inputs.
-add_library(parallel-mater-conformance-registry STATIC
-            conformance/v1/src/case_registry.cpp)
-target_compile_features(parallel-mater-conformance-registry PUBLIC cxx_std_20)
-target_include_directories(parallel-mater-conformance-registry
-    PUBLIC conformance/v1/include)
-if(MSVC)
-    target_compile_options(parallel-mater-conformance-registry PRIVATE /W4)
-else()
-    target_compile_options(parallel-mater-conformance-registry
-                           PRIVATE -Wall -Wextra -Wpedantic)
+if(PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
+    # One portable wall-clock collector and CSV serializer for all Gallery paths.
+    add_library(parallel-mater-gallery-frame-timing STATIC
+        examples/support/frame_timing.cpp)
+    target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
+    set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
+    target_include_directories(parallel-mater-gallery-frame-timing
+        PUBLIC include examples/support/include)
+    parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing)
+
 endif()
 
-add_executable(parallel-mater-conformance-cases
-               conformance/v1/src/case_files.cpp)
-target_link_libraries(parallel-mater-conformance-cases
-                      PRIVATE parallel-mater-conformance-registry)
-if(MSVC)
-    target_compile_options(parallel-mater-conformance-cases PRIVATE /W4)
-else()
-    target_compile_options(parallel-mater-conformance-cases
-                           PRIVATE -Wall -Wextra -Wpedantic)
+# The conformance case registry intentionally has no CUDA or engine dependency.
+# Every backend byte-checks and executes the same canonical inputs.
+if(PARALLEL_MATER_BUILD_CONFORMANCE OR BUILD_TESTING)
+    add_library(parallel-mater-conformance-registry STATIC
+                conformance/v1/src/case_registry.cpp)
+    target_compile_features(parallel-mater-conformance-registry PUBLIC cxx_std_20)
+    target_include_directories(parallel-mater-conformance-registry
+        PUBLIC conformance/v1/include)
+    if(MSVC)
+        target_compile_options(parallel-mater-conformance-registry PRIVATE /W4)
+    else()
+        target_compile_options(parallel-mater-conformance-registry
+                               PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    add_executable(parallel-mater-conformance-cases
+                   conformance/v1/src/case_files.cpp)
+    target_link_libraries(parallel-mater-conformance-cases
+                          PRIVATE parallel-mater-conformance-registry)
+    if(MSVC)
+        target_compile_options(parallel-mater-conformance-cases PRIVATE /W4)
+    else()
+        target_compile_options(parallel-mater-conformance-cases
+                               PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
 endif()
 
 set(PARALLEL_MATER_INSTALL_TARGETS)
 
 include(cmake/ParallelMaterLoader.cmake)
 
-if(PARALLEL_MATER_BUILD_GALLERY OR
-   (PARALLEL_MATER_BUILD_CUDA AND BUILD_TESTING))
-    FetchContent_Declare(
-        parallel_mater_cgltf
-        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
-        GIT_TAG 85cd62382dfea638278962690cf515023f33ed00
-        GIT_SHALLOW TRUE)
-    FetchContent_MakeAvailable(parallel_mater_cgltf)
-endif()
+# Scene parsing is pinned in-tree and needs no workstation dependency cache.
+set(parallel_mater_cgltf_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cgltf")
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW OR
    PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
-   PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
+   PARALLEL_MATER_BUILD_GALLERY OR PARALLEL_MATER_BUILD_SCENE_SDK OR
+   PARALLEL_MATER_BUILD_CONFORMANCE OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
         src/fluid_source.cpp
@@ -246,10 +255,12 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
     target_compile_features(parallel-mater-host-preparation PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-host-preparation
         PUBLIC
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/src)
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     set_target_properties(parallel-mater-host-preparation PROPERTIES
-        POSITION_INDEPENDENT_CODE ON)
+        EXPORT_NAME preparation POSITION_INDEPENDENT_CODE ON)
+    add_library(ParallelMater::preparation ALIAS parallel-mater-host-preparation)
+    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-host-preparation)
     parallel_mater_enable_warnings(parallel-mater-host-preparation)
 endif()
 
@@ -491,29 +502,18 @@ if(PARALLEL_MATER_GIT_HEAD_REF)
     endif()
 endif()
 
+include(cmake/ParallelMaterScene.cmake)
+include(cmake/ParallelMaterConformance.cmake)
+
 if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-scene STATIC
-                examples/gallery/scene_builder.cpp
-                examples/gallery/scene_builder_create.cpp.inc
-                examples/gallery/scene_builder_output.cpp.inc
                 examples/gallery/render/render_scene.cpp
-                examples/support/scene.cpp
-                examples/support/brick_scene.cpp
-                examples/support/liquid_workload.cpp
-                examples/support/device_profiles.cpp
                 examples/support/physics_debug.cpp
-                examples/support/rope_render.cpp
                 examples/support/surface_query.cpp)
     target_compile_features(parallel-mater-gallery-scene PUBLIC cxx_std_20)
-    target_include_directories(
-        parallel-mater-gallery-scene
-        PUBLIC examples/support/include examples/gallery
-               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        PRIVATE ${parallel_mater_cgltf_SOURCE_DIR})
-    target_link_libraries(
-        parallel-mater-gallery-scene
-        PUBLIC ParallelMater::parallel_mater
-        PRIVATE parallel-mater-host-preparation)
+    target_include_directories(parallel-mater-gallery-scene
+        PUBLIC include examples/support/include examples/gallery)
+    target_link_libraries(parallel-mater-gallery-scene PUBLIC ParallelMater::scene)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
     if(BUILD_TESTING)
@@ -535,23 +535,11 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         parallel_mater_enable_warnings(
             parallel-mater-rigid-constraint-command-tests)
 
-        add_executable(parallel-mater-conformance
-                       conformance/v1/src/command_runner.cpp)
-        target_link_libraries(parallel-mater-conformance PRIVATE
-            parallel-mater-conformance-registry parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-conformance PRIVATE
-            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-        parallel_mater_enable_warnings(parallel-mater-conformance)
-        add_test(NAME parallel-mater-conformance-command-inputs
-                 COMMAND parallel-mater-conformance --check-inputs)
-        set_tests_properties(parallel-mater-conformance-command-inputs
-            PROPERTIES LABELS "api;conformance")
     endif()
 
     if(BUILD_TESTING AND WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         foreach(test_target parallel-mater-command-gallery-tests
-                parallel-mater-rigid-constraint-command-tests parallel-mater-conformance)
+                parallel-mater-rigid-constraint-command-tests)
             add_dependencies(${test_target} parallel-mater-driver-slang-d3d12)
         endforeach()
         foreach(scene RigidBody ConstraintFixed ConstraintPoint ConstraintHinge
@@ -575,7 +563,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
 
     if(BUILD_TESTING AND PARALLEL_MATER_BUILD_CUDA)
         foreach(test_target parallel-mater-command-gallery-tests
-                parallel-mater-rigid-constraint-command-tests parallel-mater-conformance)
+                parallel-mater-rigid-constraint-command-tests)
             add_dependencies(${test_target} parallel-mater-driver-slang-cuda)
         endforeach()
         add_test(NAME parallel-mater-command-gallery-tests
@@ -741,7 +729,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                          parallel-mater-optix-ptx)
         target_include_directories(
             parallel-mater-gallery-renderer
-            PUBLIC examples/support/include
+            PUBLIC include examples/support/include
             PRIVATE
                 examples/support
                 "${CMAKE_CURRENT_BINARY_DIR}/generated/gallery"
@@ -758,7 +746,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         add_library(parallel-mater-gallery-renderer STATIC
                     examples/support/software_renderer.cpp)
         target_include_directories(parallel-mater-gallery-renderer
-            PUBLIC examples/support/include
+            PUBLIC include examples/support/include
             PRIVATE examples/support examples/gallery)
         target_link_libraries(parallel-mater-gallery-renderer
             PUBLIC parallel-mater-gallery-scene)
@@ -796,7 +784,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-window STATIC)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-gallery-window
-        PUBLIC examples/support/include)
+        PUBLIC include examples/support/include)
     target_link_libraries(parallel-mater-gallery-window PUBLIC ParallelMater::parallel_mater)
     if(WIN32)
         target_sources(parallel-mater-gallery-window PRIVATE
@@ -1200,7 +1188,7 @@ if(BUILD_TESTING)
     add_executable(parallel-mater-gallery-workload-tests
         tests/gallery/workload_profile_tests.cpp examples/support/device_profiles.cpp)
     target_compile_features(parallel-mater-gallery-workload-tests PRIVATE cxx_std_20)
-    target_include_directories(parallel-mater-gallery-workload-tests PRIVATE examples/support/include)
+    target_include_directories(parallel-mater-gallery-workload-tests PRIVATE include examples/support/include)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
@@ -1288,7 +1276,7 @@ if(BUILD_TESTING)
     target_compile_features(parallel-mater-physics-frame-budget-tests
         PRIVATE cxx_std_20)
     target_include_directories(parallel-mater-physics-frame-budget-tests
-        PRIVATE examples/support/include)
+        PRIVATE include examples/support/include)
     add_test(NAME parallel-mater-physics-frame-budget-tests
         COMMAND parallel-mater-physics-frame-budget-tests)
 
@@ -1318,7 +1306,7 @@ if(BUILD_TESTING)
                    tests/types_contract.cpp)
     target_compile_features(parallel-mater-types-contract-tests PRIVATE cxx_std_20)
     target_include_directories(parallel-mater-types-contract-tests
-                               PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+                               PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/include)
     add_test(NAME parallel-mater-types-contract-tests
              COMMAND parallel-mater-types-contract-tests)
 
@@ -1339,34 +1327,39 @@ configure_package_config_file(
 write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+    COMPATIBILITY SameMinorVersion)
 
+if(WIN32)
+    set(PARALLEL_MATER_SHARED_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
+else()
+    set(PARALLEL_MATER_SHARED_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
+endif()
 set(PARALLEL_MATER_INSTALLED_LAYER_PATH
-    "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_layer_validation${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_layer_validation${CMAKE_SHARED_LIBRARY_SUFFIX}")
 configure_file(config/validation-layer.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json @ONLY)
 if(PARALLEL_MATER_BUILD_CUDA)
     set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
-        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cuda${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cuda${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json @ONLY)
 endif()
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
     set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
-        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_d3d12${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_d3d12${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json @ONLY)
 endif()
 if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
     set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
-        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
 endif()
 
 if(PARALLEL_MATER_BUILD_VULKAN)
     set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
-        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_vulkan${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_vulkan${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json @ONLY)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json
@@ -1377,6 +1370,8 @@ install(
     TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
     EXPORT ParallelMaterTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
@@ -1385,7 +1380,15 @@ install(
         include/parallel_mater/interop_vulkan.h
         include/parallel_mater/pm_driver.h
         include/parallel_mater/pm_layer.h
+        ${PARALLEL_MATER_API_GENERATED_DIR}/parallel_mater/pm_layer_args.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater)
+if(TARGET parallel-mater-host-preparation)
+    install(DIRECTORY include/parallel_mater_scene DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
+if(TARGET parallel-mater-scene)
+    install(FILES third_party/cgltf/LICENSE third_party/cgltf/README.parallel-mater.md
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses/cgltf)
+endif()
 if(PARALLEL_MATER_BUILD_CUDA)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
             DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
@@ -1404,6 +1407,7 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses)
 install(FILES tools/blender/export_parallel_mater_scene.py
         DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender)
 install(

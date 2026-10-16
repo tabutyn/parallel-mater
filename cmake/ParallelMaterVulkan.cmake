@@ -18,11 +18,7 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
         set(wrapper src/simulation/primitives.cu)
     endif()
     set(base "${vulkan_generated}/${module}")
-    add_custom_command(OUTPUT "${base}.cu" "${base}.json" "${base}.raw.spv" "${base}.spv"
-        COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang"
-            -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang" ${entries} ${definitions}
-            -target cuda -fp-mode precise -line-directive-mode none -o "${base}.cu"
+    add_custom_command(OUTPUT "${base}.json" "${base}.raw.spv" "${base}.spv"
         COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang"
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang" ${entries} ${definitions}
@@ -36,9 +32,9 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
         COMMENT "Compiling shared Slang ${module} for Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
     add_custom_command(OUTPUT "${base}.cpp"
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_vulkan_dispatch.py"
-            --cuda "${base}.cu" --spirv "${base}.spv" --reflection "${base}.json"
+            --spirv "${base}.spv" --reflection "${base}.json"
             --wrapper "${CMAKE_CURRENT_SOURCE_DIR}/${wrapper}" --module "${module}" --output "${base}.cpp"
-        DEPENDS "${base}.cu" "${base}.json" "${base}.spv" "${wrapper}" tools/generate_vulkan_dispatch.py
+        DEPENDS "${base}.json" "${base}.spv" "${wrapper}" tools/generate_vulkan_dispatch.py tools/slang_abi.py
         COMMENT "Binding shared Slang ${module} to Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
     list(APPEND vulkan_sources "${base}.cpp")
     if(BUILD_TESTING AND PARALLEL_MATER_SPIRV_VAL_EXECUTABLE)

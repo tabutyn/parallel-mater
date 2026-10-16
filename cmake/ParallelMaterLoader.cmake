@@ -12,6 +12,8 @@ set_target_properties(parallel-mater PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
     EXPORT_NAME parallel_mater
+    VERSION ${PROJECT_VERSION}
+    SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
     POSITION_INDEPENDENT_CODE ON)
 target_include_directories(parallel-mater
     PUBLIC
@@ -39,7 +41,13 @@ set_target_properties(parallel-mater-layer-validation PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)
-target_include_directories(parallel-mater-layer-validation PRIVATE include)
+target_include_directories(parallel-mater-layer-validation PRIVATE
+    include ${PARALLEL_MATER_API_GENERATED_DIR})
+if(Vulkan_FOUND)
+    target_include_directories(parallel-mater-layer-validation PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_compile_definitions(parallel-mater-layer-validation PRIVATE
+        PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+endif()
 list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-layer-validation)
 
 set(PARALLEL_MATER_BUILD_MANIFEST_DIR
@@ -126,4 +134,28 @@ if(BUILD_TESTING)
     set_tests_properties(parallel-mater-loader-validation-discovery-tests
         PROPERTIES LABELS "api;loader;layer" ENVIRONMENT
         "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+    add_executable(parallel-mater-layer-validation-tests tests/api/layer_validation_tests.cpp)
+    target_compile_features(parallel-mater-layer-validation-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-layer-validation-tests PRIVATE
+        ${PARALLEL_MATER_API_GENERATED_DIR})
+    target_link_libraries(parallel-mater-layer-validation-tests PRIVATE
+        ParallelMater::parallel_mater parallel-mater-layer-validation)
+    add_dependencies(parallel-mater-layer-validation-tests parallel-mater-mock-driver)
+    foreach(mode IN ITEMS validation plain)
+        add_test(NAME parallel-mater-layer-${mode}-tests
+            COMMAND parallel-mater-layer-validation-tests ${mode})
+        set_tests_properties(parallel-mater-layer-${mode}-tests PROPERTIES
+            LABELS "api;loader;validation" ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+    endforeach()
+    add_library(parallel-mater-legacy-layer SHARED tests/api/mock_legacy_layer.cpp)
+    target_include_directories(parallel-mater-legacy-layer PRIVATE include)
+    file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json"
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:parallel-mater-legacy-layer>\"}}\n")
+    add_dependencies(parallel-mater-loader-driver-discovery-tests parallel-mater-legacy-layer)
+    add_test(NAME parallel-mater-layer-v1-compatibility
+        COMMAND parallel-mater-loader-driver-discovery-tests validation)
+    set_tests_properties(parallel-mater-layer-v1-compatibility PROPERTIES
+        LABELS "api;loader;abi" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json")
 endif()

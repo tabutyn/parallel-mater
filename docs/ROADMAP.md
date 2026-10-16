@@ -137,7 +137,10 @@ fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope
 Status: in progress. Invalid API/driver/layer version negotiation is rejected
 with independent mock-library tests. Validation uses the project-owned namespace
 with an old-name compatibility alias. Lifetime prose and stable contract-rule
-identifiers now describe tested behavior; typed state validation remains next.
+identifiers now describe tested behavior. Layer ABI 2 carries generated typed
+arguments, with stateful memory/buffer validation tested against a permissive
+external mock driver and no-layer controls. Command/synchronization state,
+all manual interception paths and structured diagnostics remain open.
 See [API contract rules](API-CONTRACT.md).
 
 - Resolve conflicting destruction/wait semantics and error codes; specify
@@ -155,8 +158,12 @@ generation and command routing.
 ### F4. Complete common runtime resources and engine ownership rules
 
 Status: scheduler extraction and common C++ runtime/device-service conversion
-are implemented, including the newly merged Windows work. Resource planning,
-binding generation and engine-owned handoff qualification remain.
+are implemented, including the newly merged Windows work. Vulkan bindings now
+use a common reflection-derived C++ ABI model; generated CUDA is no longer an
+input. Six shader modules compile and API/async/lifecycle checks pass within the
+[recorded validation scope](COMMON-RESOURCE-BOUNDARY.md). Common access metadata,
+completion ownership, all-adapter binding migration, memory-budget semantics and
+engine-owned handoff qualification remain.
 
 - Define backend-neutral resource identities, typed dispatch bindings, memory
   plans, read/write dependencies and completion ownership behind the existing
@@ -173,9 +180,13 @@ details remain in adapters; engine handoff has a tested common contract.
 
 ### F5. Make conformance and quality benchmarks independent SDK consumers
 
-Status: existing public-command runner/corpus need build and data separation.
-The merged runner no longer requires CUDA to exist, but still requires gallery
-support. Upstream quality and cross-driver comparison failures remain open.
+Status: headless runner and host scene SDK now build without gallery, private
+simulation headers or native drivers. Standalone conformance builds against an
+installed/relocated SDK and validates all 30 inputs. Execution and comparison
+separate completed, unsupported and failed outcomes; execution alone never
+qualifies quality. CPU rigid-direct fails its historical CUDA comparison;
+upstream quality and cross-driver comparison failures remain open. See the
+[conformance build and evidence](../conformance/v1/README.md).
 
 - Build the headless runner without gallery or CUDA dependencies; remove
   private simulation types from portable case data. Select installed drivers.
@@ -194,7 +205,15 @@ every advertised mode has current correctness and quality evidence.
 
 ### F6. Establish reproducible SDK releases and repository ownership
 
-Status: basic install/relocation works; release gates are missing.
+Status: SDK/package version is 0.2.0 with same-minor compatibility. Minimal,
+headless CI and CPU presets separate toolchain requirements. Installed C/C++
+consumers and an external mock driver pass after relocation; standalone
+conformance validates installed corpus inputs. Linux CI, release/contribution
+rules and an evidence index are added. Active builds no longer depend on old
+worktrees; unique hinge/contact/asset patches remain preserved for review.
+Cross-platform package qualification, bit-identical release reproduction and
+retirement of those preserved patches remain open. See [SDK releases](SDK-RELEASES.md)
+and [worktree reconciliation](WORKTREE-RECONCILIATION.md).
 
 - Define package/API version policy and resolve the current CMake 0.1.0 versus
   API 0.2 mismatch. Add installed C/C++ consumer and external-driver CI gates.
