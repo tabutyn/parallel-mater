@@ -288,6 +288,9 @@ struct ScheduleContext::Impl {
             allocate.memoryTypeIndex = type;
             check(vkAllocateMemory(device, &allocate, nullptr, &b.memory),
                   "allocate memory");
+            if (std::getenv("PM_VULKAN_TRACE"))
+                std::fprintf(stderr, "Parallel Mater Vulkan allocation: %llu bytes\n",
+                             static_cast<unsigned long long>(requirements.size));
             check(vkBindBufferMemory(device, b.buffer, b.memory, 0), "bind memory");
             check(vkMapMemory(device, b.memory, 0, VK_WHOLE_SIZE, 0, &b.host),
                   "map memory");
@@ -586,17 +589,13 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
             block.y != shader_block.y || block.z != shader_block.z)
             throw std::runtime_error("dispatch shape or push constant mismatch");
         i.begin();
-        if (i.global_offset + i.global_stride > i.globals.size) {
-            i.sync();
-            i.begin();
-        }
         const std::string key = std::string(module) + '/' + std::string(entry) + '/' +
                                 std::to_string(block.x);
         auto p = i.pipelines.find(key);
         if (p == i.pipelines.end()) {
             if (std::getenv("PM_VULKAN_TRACE"))
-                std::fprintf(stderr, "Parallel Mater Vulkan pipeline: %s (%zu bytes)\n",
-                             key.c_str(), shader.size_bytes());
+                std::fprintf(stderr, "Parallel Mater Vulkan pipeline: %s (%zu bytes; grid=%u,%u,%u)\n",
+                             key.c_str(), shader.size_bytes(), grid.x, grid.y, grid.z);
             VkShaderModuleCreateInfo source{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
             source.codeSize = shader.size_bytes();
             source.pCode = shader.data();
@@ -638,6 +637,11 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         i.barrier();
         i.global_offset += i.global_stride;
+        // Flush after recording: constants may contain a translated mesh address
+        // prepared immediately before dispatch. Resetting the pool beforehand
+        // would free that temporary while the pending dispatch still needs it.
+        if (i.global_offset + i.global_stride > i.globals.size)
+            i.submit();
     } catch (const std::exception &e) {
         std::fprintf(
             stderr, "Parallel Mater Vulkan: %.*s/%.*s: %s (block %u/%u; constants %zu)\n",

@@ -161,7 +161,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         addButton(arrows, direction("↑", "Steer forward", 0, 1), 48);
         addButton(arrows, direction("↓", "Steer back", 0, -1), 48);
         addButton(arrows, direction("→", "Steer right", 1, 0), 48);
-        movement.addView(arrows);
+        // The wrapping column must measure the row's buttons, not only its label.
+        movement.addView(arrows, new LinearLayout.LayoutParams(-2, -2));
         overlay.addView(movement, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START));
 
         LinearLayout camera = row();
@@ -314,7 +315,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         if ("reset".equals(action)) resetScene();
         else if ("pause".equals(action) || "resume".equals(action)) {
             paused = "pause".equals(action);
-            pause.setText(paused ? "Play" : "Pause");
+            pause.setText(paused ? "Resume" : "Pause");
             command(2, paused ? 1 : 0, 0);
         } else if ("focus".equals(action)) command(8, 0, 0);
         else if ("info".equals(action)) showInfo();

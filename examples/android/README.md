@@ -138,8 +138,11 @@ changing physics instructions or memory layouts; see the
 
 With normalized shaders, Pixel 7 now passes all three native suites: command/API,
 asynchronous submission, and analytic liquid free fall plus bounded Fluid and
-FluidRigid scenes/reset. All six modules pass SPIR-V validation. Gallery scene,
-lifecycle, sustained frame-time and thermal qualification remain pending.
+FluidRigid scenes/reset. All six modules pass SPIR-V validation. All eight mobile
+scenes now complete short Vulkan rendering/frame checks, and scene replacement
+releases the old GPU simulation first to avoid overlapping memory footprints.
+Performance remains below target; see the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
+for scene timings, memory observations and remaining gates.
 
 ## Earlier CPU validation
 

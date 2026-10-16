@@ -3,10 +3,12 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 #include <cstring>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -56,6 +58,7 @@ int main(int argc, char **argv) {
         if (!input.read(reinterpret_cast<char *>(code.data()), bytes) || code[0] != 0x07230203)
             throw std::runtime_error("Invalid SPIR-V file");
         Resources r;
+        const bool statistics = std::getenv("PM_VULKAN_PROBE_STATISTICS") != nullptr;
         VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
         app.pApplicationName = "Parallel Mater pipeline probe";
         app.apiVersion = VK_API_VERSION_1_3;
@@ -78,9 +81,13 @@ int main(int argc, char **argv) {
             if (properties.apiVersion < VK_API_VERSION_1_3 || properties.limits.maxPushConstantsSize < 256 ||
                 properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) continue;
             VkPhysicalDeviceVulkan13Features f13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+            VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR executable{
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR};
+            if (statistics) f13.pNext = &executable;
             VkPhysicalDeviceVulkan12Features f12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, &f13};
             VkPhysicalDeviceFeatures2 features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &f12};
             vkGetPhysicalDeviceFeatures2(physical, &features);
+            if (statistics && !executable.pipelineExecutableInfo) continue;
             if (!f13.maintenance4 || !f12.bufferDeviceAddress || !f12.scalarBlockLayout ||
                 !f12.storageBuffer8BitAccess || !f12.storagePushConstant8 || !f12.shaderInt8 ||
                 !f12.shaderBufferInt64Atomics || !features.features.shaderInt64) continue;
@@ -95,6 +102,7 @@ int main(int argc, char **argv) {
                 properties.deviceName, argv[1], argv[2], code.size() * 4, block);
             f13 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
             f13.maintenance4 = VK_TRUE;
+            if (statistics) f13.pNext = &executable;
             f12 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, &f13};
             f12.bufferDeviceAddress = f12.scalarBlockLayout = f12.storageBuffer8BitAccess = VK_TRUE;
             f12.storagePushConstant8 = f12.shaderInt8 = f12.shaderBufferInt64Atomics = VK_TRUE;
@@ -104,6 +112,11 @@ int main(int argc, char **argv) {
             VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             queue.queueFamilyIndex = family; queue.queueCount = 1; queue.pQueuePriorities = &priority;
             VkDeviceCreateInfo device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, &f12};
+            const char *extension = VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME;
+            if (statistics) {
+                device.enabledExtensionCount = 1;
+                device.ppEnabledExtensionNames = &extension;
+            }
             device.queueCreateInfoCount = 1; device.pQueueCreateInfos = &queue; device.pEnabledFeatures = &enabled;
             check(vkCreateDevice(physical, &device, nullptr, &r.device), "vkCreateDevice");
             break;
@@ -125,12 +138,59 @@ int main(int argc, char **argv) {
         VkSpecializationInfo specialization{1, &entry, sizeof(block), &block};
         VkComputePipelineCreateInfo pipeline{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
         pipeline.layout = r.layout;
+        if (statistics) pipeline.flags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;
         pipeline.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         pipeline.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         pipeline.stage.module = r.shader; pipeline.stage.pName = argv[2];
         pipeline.stage.pSpecializationInfo = &specialization;
         check(vkCreateComputePipelines(r.device, VK_NULL_HANDLE, 1, &pipeline, nullptr, &r.pipeline), "compute pipeline");
+        if (statistics) {
+            auto properties = reinterpret_cast<PFN_vkGetPipelineExecutablePropertiesKHR>(
+                vkGetDeviceProcAddr(r.device, "vkGetPipelineExecutablePropertiesKHR"));
+            auto values = reinterpret_cast<PFN_vkGetPipelineExecutableStatisticsKHR>(
+                vkGetDeviceProcAddr(r.device, "vkGetPipelineExecutableStatisticsKHR"));
+            if (!properties || !values) throw std::runtime_error("Missing pipeline statistics entry points");
+            VkPipelineInfoKHR info{VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR};
+            info.pipeline = r.pipeline;
+            std::uint32_t count{};
+            check(properties(r.device, &info, &count, nullptr), "executable count");
+            std::vector<VkPipelineExecutablePropertiesKHR> executables(count,
+                {VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR});
+            check(properties(r.device, &info, &count, executables.data()), "executables");
+            for (std::uint32_t i = 0; i < count; ++i) {
+                std::printf("EXECUTABLE %s subgroup=%u\n", executables[i].name, executables[i].subgroupSize);
+                VkPipelineExecutableInfoKHR target{VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR};
+                target.pipeline = r.pipeline;
+                target.executableIndex = i;
+                std::uint32_t size{};
+                check(values(r.device, &target, &size, nullptr), "statistic count");
+                std::vector<VkPipelineExecutableStatisticKHR> entries(size,
+                    {VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR});
+                check(values(r.device, &target, &size, entries.data()), "statistics");
+                for (const auto &value : entries) {
+                    std::printf("%s = ", value.name);
+                    switch (value.format) {
+                    case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+                        std::printf("%u", value.value.b32); break;
+                    case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
+                        std::printf("%lld", static_cast<long long>(value.value.i64)); break;
+                    case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
+                        std::printf("%llu", static_cast<unsigned long long>(value.value.u64)); break;
+                    case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
+                        std::printf("%g", value.value.f64); break;
+                    default: std::printf("unknown format"); break;
+                    }
+                    std::printf(" (%s)\n", value.description);
+                }
+            }
+        }
         std::puts("PIPELINE_OK (compilation only; no physics dispatched)");
+        std::fflush(stdout);
+        if (const char *hold = std::getenv("PM_VULKAN_PROBE_HOLD_SECONDS")) {
+            const int seconds = std::atoi(hold);
+            if (seconds > 0 && seconds <= 60)
+                std::this_thread::sleep_for(std::chrono::seconds(seconds));
+        }
         return 0;
     } catch (const std::exception &error) {
         std::fprintf(stderr, "%s\n", error.what());

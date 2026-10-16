@@ -126,7 +126,8 @@ the Vulkan library has no CUDA runtime dependency.
 Android Vulkan packaging builds, including native public-API qualification
 executables. Pixel 7 now passes command/API, asynchronous submission and bounded
 liquid/coupling/reset tests after the pointer declaration workaround below.
-Gallery scene/lifecycle and sustained performance qualification remain open. See
+All eight mobile scenes complete short runtime checks; performance remains below
+target. See [the qualification record](ANDROID-QUALIFICATION.md) and
 [Android status and reproduction](../examples/android/README.md#vulkan-status-2026-10-16).
 
 For opt-in diagnostics, `PM_VULKAN_TRACE=1` prints each newly created pipeline's
