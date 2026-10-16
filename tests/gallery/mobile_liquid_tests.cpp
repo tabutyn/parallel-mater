@@ -6,6 +6,10 @@
 #include <iostream>
 #include <algorithm>
 
+#ifndef PM_TEST_BACKEND
+#define PM_TEST_BACKEND "slang-cpu"
+#endif
+
 #define CHECK(x) do { if (!(x)) { std::cerr << __LINE__ << ": " << #x << ": " << error << '\n'; std::abort(); } } while (false)
 
 int main() {
@@ -34,7 +38,7 @@ int main() {
 
     DeviceProfileCatalog profiles;
     CHECK(load_device_profiles(PM_PROFILE_CATALOG, profiles, error));
-    const auto *limits = select_workload_limits(profiles, "Android", "Pixel 7", "slang-cpu");
+    const auto *limits = select_workload_limits(profiles, "Android", "Pixel 7", PM_TEST_BACKEND);
     CHECK(limits);
     for (const char *file : {"Fluid.glb", "FluidRigid.glb"}) {
         SceneDefinition scene;

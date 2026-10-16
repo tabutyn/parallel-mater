@@ -5,11 +5,13 @@
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <parallel_mater_gallery/arrow_forces.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -23,6 +25,9 @@
 namespace {
 using namespace parallel_mater;
 using namespace parallel_mater::gallery;
+
+constexpr const char *backend_name = PM_ANDROID_VULKAN ? "vulkan" : "slang-cpu";
+constexpr const char *backend_label = PM_ANDROID_VULKAN ? "Vulkan GPU preview" : "CPU preview";
 
 constexpr const char *scene_files[]{"RigidBody.glb", "ConstraintFixed.glb",
     "Celestial.glb", "ConstraintHinge.glb", "ConstraintPiston.glb",
@@ -59,6 +64,9 @@ struct Session {
     float right{}, up{};
     std::uint64_t frames{};
     double work_sum{}, work_mean{};
+    std::array<double, 60> work_times{};
+    std::chrono::steady_clock::time_point window_start{};
+    double physics_sum{}, render_sum{};
     unsigned work_count{};
     std::vector<std::uint32_t> pixels;
     std::string error;
@@ -126,7 +134,9 @@ struct Session {
             if (!apply_liquid_workload_limits(next->definition, limits, error)) return false;
         }
         if (!CommandScene::create(next->definition, 0U, next->simulation,
-                                  next->instance, error) ||
+                                  next->instance, error,
+                                  PM_ANDROID_VULKAN ? std::optional{PM_NATIVE_BACKEND_VULKAN}
+                                                    : std::nullopt) ||
             !next->arrows.initialize(next->definition, next->instance, error))
             return false;
         if (index == 1 && !next->collector.initialize(
@@ -144,12 +154,16 @@ struct Session {
         released = false;
         frames = 0;
         work_sum = work_mean = 0;
+        physics_sum = render_sum = 0;
         work_count = 0;
         focus();
         error.clear();
+        PmPhysicalDeviceProperties properties{};
+        pmGetPhysicalDeviceProperties(scene->simulation.physical_device(), &properties);
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-            "Scene ready: %s; bodies=%zu", scene_files[index],
-            scene->definition.rigid_bodies.size());
+            "Scene ready: %s; backend=%s; device=%s; bodies=%zu; particles=%zu",
+            scene_files[index], backend_name, properties.deviceName,
+            scene->definition.rigid_bodies.size(), scene->output.fluid_particles.size());
         return true;
     }
 
@@ -225,20 +239,22 @@ void exception(JNIEnv *env, const char *text) {
 extern "C" JNIEXPORT jlong JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(
     JNIEnv *env, jclass, jstring assets, jstring manifest, jstring catalog_path,
-    jstring model) {
+    jstring model, jstring cache) {
     try {
         if (setenv("PM_DRIVER_FILES", string(env, manifest).c_str(), 1) != 0)
             throw std::runtime_error("Could not configure bundled driver");
         if (setenv("PM_LAYER_PATH", std::filesystem::path(string(env, manifest))
                 .parent_path().c_str(), 1) != 0)
             throw std::runtime_error("Could not configure bundled validation layer");
+        if (PM_ANDROID_VULKAN && setenv("PM_VULKAN_CACHE_DIR", string(env, cache).c_str(), 1) != 0)
+            throw std::runtime_error("Could not configure Vulkan pipeline cache");
         auto result = std::make_unique<Session>();
         result->assets = string(env, assets);
         DeviceProfileCatalog catalog;
         if (!load_device_profiles(string(env, catalog_path), catalog, result->error))
             throw std::runtime_error(result->error);
         const auto *limits = select_workload_limits(
-            catalog, "Android", string(env, model), "slang-cpu");
+            catalog, "Android", string(env, model), backend_name);
         if (!limits) throw std::runtime_error("Android workload profile missing");
         result->limits = *limits;
         result->bricks = static_cast<int>(limits->brick_count);
@@ -267,7 +283,10 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(
         auto &s = session(handle);
         if (s.window) ANativeWindow_release(s.window);
         s.window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
-        if (!s.window) return;
+        if (!s.window) {
+            s.work_count = 0; s.work_sum = s.physics_sum = s.render_sum = 0;
+            return;
+        }
         const float scale = std::min({1.0F,
             static_cast<float>(s.limits.render_width) / std::max(w, 1),
             static_cast<float>(s.limits.render_height) / std::max(h, 1)});
@@ -290,15 +309,30 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(
         auto &s = session(handle);
         const auto start = std::chrono::steady_clock::now();
         if (!s.paused && !s.advance()) throw std::runtime_error(s.error);
+        const auto physics_end = std::chrono::steady_clock::now();
         if (!s.present()) throw std::runtime_error(s.error);
+        const auto end = std::chrono::steady_clock::now();
         const double milliseconds = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - start).count();
+            end - start).count();
         if (!s.paused) {
+            if (s.work_count == 0) s.window_start = start;
+            s.work_times[s.work_count] = milliseconds;
+            s.physics_sum += std::chrono::duration<double, std::milli>(physics_end - start).count();
+            s.render_sum += std::chrono::duration<double, std::milli>(end - physics_end).count();
             s.work_sum += milliseconds;
             if (++s.work_count == 60) {
                 s.work_mean = s.work_sum / s.work_count;
+                auto sorted = s.work_times;
+                std::sort(sorted.begin(), sorted.end());
+                const double seconds = std::chrono::duration<double>(start - s.window_start).count();
+                __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+                    "FrameWindow scene=%s backend=%s frames=%llu count=60 mean_ms=%.3f median_ms=%.3f p95_ms=%.3f physics_ms=%.3f render_ms=%.3f fps=%.2f particles=%zu bodies=%zu",
+                    scene_files[s.selection], backend_name, static_cast<unsigned long long>(s.frames),
+                    s.work_mean, (sorted[29] + sorted[30]) * 0.5, sorted[56],
+                    s.physics_sum / 60, s.render_sum / 60, seconds > 0 ? 59 / seconds : 0,
+                    s.scene->output.fluid_particles.size(), s.moving_bodies());
                 s.work_count = 0;
-                s.work_sum = 0;
+                s.work_sum = s.physics_sum = s.render_sum = 0;
             }
         }
         char text[256];
@@ -325,14 +359,16 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeDetails(JNIEnv *env, jclass
         const double mean = s.work_mean > 0 ? s.work_mean
             : (s.work_count ? s.work_sum / s.work_count : 0);
         char text[768];
+        PmPhysicalDeviceProperties properties{};
+        pmGetPhysicalDeviceProperties(s.scene->simulation.physical_device(), &properties);
         std::snprintf(text, sizeof(text),
-            "CPU preview · Slang physics\n\n"
+            "%s · Slang physics\nDevice: %s\n\n"
             "Profile: %s\nLimits: %u particles · %u coupled bodies\n"
             "Render: %u × %u · target %u FPS\n"
             "Average frame work: %.1f ms\n(last window, up to 60 running frames)\n"
             "Frames simulated: %llu\n\n"
             "Workload limits are provisional. Slow frames slow simulation time.",
-            s.limits.name.c_str(), s.limits.fluid_particles, s.limits.coupled_bodies,
+            backend_label, properties.deviceName, s.limits.name.c_str(), s.limits.fluid_particles, s.limits.coupled_bodies,
             s.width, s.height, s.limits.target_fps, mean,
             static_cast<unsigned long long>(s.frames));
         return env->NewStringUTF(text);
@@ -349,7 +385,9 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(
         switch (command) {
         case 0: ok = s.select(static_cast<int>(x)); break;
         case 1: ok = s.select(s.selection); break;
-        case 2: s.paused = x != 0; break;
+        case 2: s.paused = x != 0;
+                s.work_count = 0; s.work_sum = s.physics_sum = s.render_sum = 0;
+                break;
         case 3: s.right = std::clamp(x, -1.0F, 1.0F);
                 s.up = std::clamp(y, -1.0F, 1.0F); break;
         case 4: s.camera.begin_drag(CameraDragMode::orbit, 0, 0);

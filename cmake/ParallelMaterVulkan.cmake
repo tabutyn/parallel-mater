@@ -103,6 +103,7 @@ if(BUILD_TESTING)
         add_executable(parallel-mater-vulkan-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
         target_link_libraries(parallel-mater-vulkan-liquid-tests PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(parallel-mater-vulkan-liquid-tests PRIVATE
+            PM_TEST_BACKEND="vulkan"
             PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
             PM_SCENE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
         add_dependencies(parallel-mater-vulkan-liquid-tests parallel-mater-driver-slang-vulkan parallel-mater-layer-validation)

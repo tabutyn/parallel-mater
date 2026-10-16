@@ -241,8 +241,10 @@ Vulkan on Linux. Backend capabilities control scene availability, and the shared
 hardware-profile resource limits preview workloads. Details and checks are in
 [VULKAN.md](VULKAN.md).
 
-This does not complete the full-domain qualification milestone. Android still
-ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
+This does not complete the full-domain qualification milestone. Android Vulkan packaging builds as of 2026-10-16, but the first Pixel 7 native
+API test crashes inside the Mali shader compiler during pipeline creation. The
+installed phone app remains the CPU preview. Resolving and qualifying this Vulkan
+driver on the phone,
 remaining particle domains/couplings, engine handoff, and sustained performance
 remain open.
 
@@ -258,6 +260,34 @@ separately in the iPad guide; compilation and host tests alone do not qualify
 iPad hardware. Dump Truck touch controls, sustained device validation, missing
 roadmap interactions, native GPU rendering, and full physics qualification
 remain open.
+
+## Linux/Android workstation checkpoint (2026-10-16)
+
+The Linux launcher now installs one canonical **Parallel Mater** entry pointing
+at the prepared CUDA/Vulkan build, with no build on application launch. Builds
+and qualification checks run serially on this memory-constrained laptop.
+Changed source in both older worktrees was archived and hash-verified before
+cleanup; those worktrees remain intact because they contain unmerged physics
+and scene work. Four stale worktree records and about 622 MiB of duplicate SDK
+and download files were removed. Local preservation records are under ignored
+`out/worktree-backups/2026-10-16/`.
+
+`scripts/Setup-VulkanValidation.sh` and `scripts/Test-Vulkan.sh` pin and verify
+the working desktop validator without changing system packages. Desktop
+CUDA/Vulkan checks pass 12/12 after Android packaging changes. Both explicit
+Android CPU and Vulkan builds succeed. The Vulkan APK includes one loadable
+physics driver and no CUDA runtime dependency. Device-side public-API tests,
+debug scene/control requests, and frame-window measurements are available for
+repeatable phone qualification.
+
+Phone qualification is unfinished: the first native command/API test crashes
+inside Mali's SPIR-V compiler. Desktop and Android use identical SPIR-V bytes.
+The Pixel 7 then disconnected from ADB; its installed CPU preview was retained.
+Next on this machine: isolate the pipeline compilation failure on the connected
+Mali device, pass the three native suites, then test all eight mobile scenes,
+reset/pause/background recovery, and sustained frame time, memory and thermals.
+Do not promote startup budgets to verified profiles or expose more domains
+before those results exist.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).
