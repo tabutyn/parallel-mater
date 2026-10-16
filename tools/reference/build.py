@@ -50,12 +50,12 @@ def generate_headers(check=False):
         paths.append(target)
         if check:
             for path in (target, installed):
-                if not path.exists() or path.read_text() != output:
+                if not path.exists() or path.read_text(encoding="utf-8") != output:
                     stale.append(str(path.relative_to(ROOT)))
             continue
         for path in (target, installed):
-            if not path.exists() or path.read_text() != output:
-                path.write_text(output)
+            if not path.exists() or path.read_text(encoding="utf-8") != output:
+                path.write_text(output, encoding="utf-8")
     if stale:
         raise RuntimeError(
             "generated API files are stale; run "
@@ -79,14 +79,14 @@ def main():
     generate_headers(check=args.check_generated)
     if args.check_generated:
         from specification_text import render_markdown
-        if (DEST / "parallel-mater-specification.md").read_text() != render_markdown():
+        if (DEST / "parallel-mater-specification.md").read_text(encoding="utf-8") != render_markdown():
             raise RuntimeError("specification text is stale; run tools/reference/build.py --text-only")
         print("PASS: public headers and specification text match canonical sources")
         return
     generate_coverage(ROOT, DEST)
     if args.text_only:
         from specification_text import render_markdown
-        (DEST / "parallel-mater-specification.md").write_text(render_markdown())
+        (DEST / "parallel-mater-specification.md").write_text(render_markdown(), encoding="utf-8")
         print("Built public headers, coverage and specification text")
         return
     if args.headers_only:
@@ -98,10 +98,10 @@ def main():
     spec_output = args.output.with_name("parallel-mater-specification.pdf")
     specification = build_specification(spec_output)
     spec_output.with_suffix(".layout.json").write_text(
-        json.dumps(specification, indent=2, ensure_ascii=False) + "\n")
+        json.dumps(specification, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     manifest = build_pdf(args.output, specification)
     args.output.with_suffix(".layout.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Built {args.output}: {manifest['page_count']} pages, "
           f"{len(manifest['symbols'])} indexed symbols, "
           f"{manifest['columns']} columns")

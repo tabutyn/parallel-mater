@@ -29,8 +29,8 @@ static_assert(sizeof(ContactSchedule) == sizeof(ContactSchedule_0));
 static_assert(alignof(ContactSchedule) == alignof(ContactSchedule_0));
 static_assert(offsetof(GeometryConstraintBody, target) ==
               offsetof(AvbdBody_0, target_0));
-static_assert(offsetof(GeometryConstraintBody, current_orientation) ==
-              offsetof(AvbdBody_0, current_orientation_0));
+static_assert(offsetof(GeometryConstraintBody, orientation_delta) ==
+              offsetof(AvbdBody_0, orientation_delta_0));
 static_assert(offsetof(GeometryConstraintBody, displacement) ==
               offsetof(AvbdBody_0, displacement_0));
 static_assert(offsetof(GeometryConstraintBody, inertia) ==

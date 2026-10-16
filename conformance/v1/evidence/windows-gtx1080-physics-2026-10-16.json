@@ -1,0 +1,993 @@
+{
+  "schema": "parallel-mater-physics-qualification/v1",
+  "date": "2026-10-16",
+  "task": "F5-10",
+  "scope": "Selected 17 same-build CUDA/D3D12 reference regressions and independent rigid-contact quality; not all domains or performance.",
+  "tested_source": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
+  "baseline_source": "a137042f5083f9a6305d6c81f2d0bd04dd5fdf29",
+  "source_trees": {
+    "slang": "90ad85cb817fb8d3639ff1bc6bd04cc3412ba245",
+    "simulation": "e62f612eed12a1e46598b79df8169de21db769d1"
+  },
+  "host": {
+    "os": "Windows",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "driver": "582.66",
+    "cuda_toolkit": "12.9.86",
+    "msvc": "19.44.35228.0",
+    "slang": "2026.18",
+    "dxc": "1.9.0.5399 (a107ba613)",
+    "configuration": "Release",
+    "cuda_architecture": "sm_61"
+  },
+  "numerical_contract": {
+    "slang_fp_mode": "precise",
+    "cuda_flags": [
+      "--fmad=false",
+      "--prec-div=false",
+      "--prec-sqrt=false"
+    ],
+    "canonical_inputs_changed": false,
+    "tolerances_changed": false,
+    "historical_goldens_changed": false
+  },
+  "build_options": {
+    "PARALLEL_MATER_BUILD_CUDA": true,
+    "PARALLEL_MATER_BUILD_D3D12": true,
+    "PARALLEL_MATER_BUILD_CONFORMANCE": true,
+    "PARALLEL_MATER_BUILD_GALLERY": true,
+    "PARALLEL_MATER_GALLERY_RENDERER": "OPTIX (CUDA selection); native D3D12 adapter for D3D12 selection",
+    "PARALLEL_MATER_BUILD_SLANG_AVBD": true,
+    "PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS": true,
+    "PARALLEL_MATER_BUILD_SLANG_MIRRORS": true,
+    "PARALLEL_MATER_BUILD_SLANG_INTEROP": true,
+    "PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY": true
+  },
+  "reference_regression": {
+    "baseline": {
+      "passed": 7,
+      "failed": 10,
+      "failures": [
+        {
+          "id": "cloth-tear",
+          "difference_count": 30,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/Plane.002/1",
+              "collider": "rigid/Plane.001/0",
+              "friction_impulse": [
+                -0.0047028688713908195,
+                0.3313007950782776,
+                0.00017043940897565335
+              ],
+              "normal": [
+                0.0002554147504270077,
+                -0.0005108295008540154,
+                0.9999998807907104
+              ],
+              "normal_impulse": 0.6626684069633484,
+              "penetration": 0.00042658965685404837,
+              "position": [
+                0.17667444050312042,
+                0.6915222406387329,
+                -1.8160899877548218
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[2].contacts.rigid_contacts[0]"
+          }
+        },
+        {
+          "id": "constraint-fixed",
+          "difference_count": 22,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/Large/1",
+              "collider": "rigid/Ground/0",
+              "friction_impulse": [
+                0.02689450792968273,
+                0.00005036107904743403,
+                -0.000450350547907874
+              ],
+              "normal": [
+                -0.001839919830672443,
+                0.9999964237213135,
+                0.0019477276364341378
+              ],
+              "normal_impulse": 4.12851095199585,
+              "penetration": 0.0008804191020317376,
+              "position": [
+                -2.1999998092651367,
+                0.00006479024887084961,
+                -8.274801075458527e-7
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[1].contacts.rigid_contacts[0]"
+          }
+        },
+        {
+          "id": "constraint-generic-spring",
+          "difference_count": 22,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/GenericBlockA/1",
+              "collider": "rigid/Ground/0",
+              "friction_impulse": [
+                -0.025882959365844727,
+                0,
+                -4.429824063123533e-9
+              ],
+              "normal": [
+                0,
+                1,
+                0
+              ],
+              "normal_impulse": 1.0671074390411377,
+              "penetration": 0.0001716017723083496,
+              "position": [
+                0.6988106369972229,
+                -0.0000858008861541748,
+                0.6988081932067871
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[1].contacts.rigid_contacts[0]"
+          }
+        },
+        {
+          "id": "constraint-generic",
+          "difference_count": 21,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/GenericBlockA/1",
+              "collider": "rigid/Ground/0",
+              "friction_impulse": [
+                -0.04614019766449928,
+                0,
+                1.2397315174439427e-8
+              ],
+              "normal": [
+                0,
+                1,
+                0
+              ],
+              "normal_impulse": 1.0663222074508667,
+              "penetration": 0.000171661376953125,
+              "position": [
+                0.698810875415802,
+                -0.0000858306884765625,
+                -0.6988081932067871
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[1].contacts.rigid_contacts[0]"
+          }
+        },
+        {
+          "id": "constraint-hinge",
+          "difference_count": 2,
+          "first_difference": {
+            "actual": 7,
+            "expected": 8,
+            "message": "exact value mismatch",
+            "path": "$.checkpoints[2].contacts.rigid_contact_count"
+          }
+        },
+        {
+          "id": "constraint-motor",
+          "difference_count": 16,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/MotorWheelLeftFront/2",
+              "collider": "rigid/Ground/0",
+              "friction_impulse": [
+                -0.003148543182760477,
+                -0.0000013990401157570886,
+                -0.0005914429784752429
+              ],
+              "normal": [
+                -0.0002841917157638818,
+                0.9999995827674866,
+                -0.0008525751763954759
+              ],
+              "normal_impulse": 0.058739423751831055,
+              "penetration": 0.00017106432642322034,
+              "position": [
+                1.0500048398971558,
+                0.0004194676876068115,
+                -1.0499905347824097
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[1].contacts.rigid_contacts[0]"
+          }
+        },
+        {
+          "id": "constraint-point",
+          "difference_count": 81,
+          "first_difference": {
+            "actual": null,
+            "expected": {
+              "body": "rigid/PointSphereB.001/4",
+              "collider": "rigid/Ground/0",
+              "friction_impulse": [
+                0,
+                0,
+                0
+              ],
+              "normal": [
+                -0.0636371523141861,
+                -0.6021247506141663,
+                -0.7958618402481079
+              ],
+              "normal_impulse": 0,
+              "penetration": 0.012009999714791775,
+              "position": [
+                -1.699191689491272,
+                1.3683045807511007e-9,
+                -3.550554037094116
+              ]
+            },
+            "message": "no one-to-one contact match within existing tolerances",
+            "path": "$.checkpoints[1].contacts.rigid_contacts[1]"
+          }
+        },
+        {
+          "id": "fluid-rigid",
+          "difference_count": 1,
+          "first_difference": {
+            "actual": 91,
+            "expected": 80,
+            "message": "absolute error 11.0 > 9.15",
+            "path": "$.checkpoints[2].contacts.rigid_contact_count"
+          }
+        },
+        {
+          "id": "passive-active",
+          "difference_count": 43,
+          "first_difference": {
+            "actual": 26.386768341064453,
+            "expected": 27.92757797241211,
+            "message": "absolute error 1.5408096313476562 > 0.5785515594482422",
+            "path": "$.checkpoints[1].invariants.combined_momentum[0]"
+          }
+        },
+        {
+          "id": "rigid-direct",
+          "difference_count": 3,
+          "first_difference": {
+            "actual": -0.00023679515288677067,
+            "expected": -0.00024795500212349,
+            "message": "absolute error 1.115984923671931e-05 > 1.0002479550021236e-05",
+            "path": "$.checkpoints[3].invariants.combined_momentum[2]"
+          }
+        }
+      ]
+    },
+    "final": {
+      "passed": 17,
+      "failed": 0,
+      "unsupported": 0
+    },
+    "cases": [
+      {
+        "id": "cloth-core",
+        "case_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          24,
+          48
+        ],
+        "cuda_result_sha256": "02f2d1e073f515b9284be6fba1c76d4be65bed8d3d79c37e1062ac0ac564ba01",
+        "d3d12_result_sha256": "c81083d31749c175c590ccbd25afde17d256c6c98ae80d0064edae684b61023f",
+        "cuda_state_sha256": "18562b8ce1d2cafd5dc800196b87947f89e021bd28ba02c0dd219c92e3c344cb",
+        "d3d12_state_sha256": "18562b8ce1d2cafd5dc800196b87947f89e021bd28ba02c0dd219c92e3c344cb"
+      },
+      {
+        "id": "cloth-tear",
+        "case_sha256": "2f05830bf1ff8e06b9c8170a62d0e949c09f39fb472537d013ce3e901c84b33e",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          120,
+          240,
+          420
+        ],
+        "cuda_result_sha256": "59d2d929cf75cc00e352601d645e31b2b58918d69890b4ec32053010cd41eb48",
+        "d3d12_result_sha256": "57587b6c002151f55000ede9818502823c80316d12a84d4d07ea9ff5a4c95154",
+        "cuda_state_sha256": "e826ad9afa7d0247f597bdf60c36dd93ba33ce66b9f3ef77248d84e72cce8624",
+        "d3d12_state_sha256": "e826ad9afa7d0247f597bdf60c36dd93ba33ce66b9f3ef77248d84e72cce8624"
+      },
+      {
+        "id": "cloth-water",
+        "case_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          24,
+          48
+        ],
+        "cuda_result_sha256": "68176d5c928e7efaaa9da35d4d4731162e027f963c5c84f6da575532f69351fc",
+        "d3d12_result_sha256": "32be1abd9816b14eb3a1d6af31129469961c48c8075be8c7c1b588836824dcd7",
+        "cuda_state_sha256": "9e1a98614c700eb158fbf0f1a38edf96b5252edbd450945e069218d14d5c61c4",
+        "d3d12_state_sha256": "81552fc8e76f46291fbe8a6131190ed2b5391cacc7a586c5bca4d401dba20f60"
+      },
+      {
+        "id": "compound-weld-lifecycle",
+        "case_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          1,
+          24,
+          25,
+          48,
+          49,
+          72
+        ],
+        "cuda_result_sha256": "aac5152205b975599576cd203ebf301a3237b145ab52a861648dec973968ae2b",
+        "d3d12_result_sha256": "bac248981f61751a37141fbb09c3af9ef49f4ada38c93f6645f32aea45c99baf",
+        "cuda_state_sha256": "fec3dfaa17f52cda538be1caf1bd88101c4868cb581ff0115a99026a0ab1e7f3",
+        "d3d12_state_sha256": "fec3dfaa17f52cda538be1caf1bd88101c4868cb581ff0115a99026a0ab1e7f3"
+      },
+      {
+        "id": "constraint-breaking",
+        "case_sha256": "ee88456eba855a56a18b23116e940ad5901ee745161c1a70033630ab0f70b993",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          1,
+          2,
+          24
+        ],
+        "cuda_result_sha256": "c1ae8d545b87536dcb65bbd702a45164d75b329be6b0b03e7399f1fb9dcaa215",
+        "d3d12_result_sha256": "e87596b0e998b0d87cdb6bfe44592f2efc22d4de2d4a46c60e7e8d32733659b0",
+        "cuda_state_sha256": "21115ce07bb9c62ddfaed6dbf3630a9e2f805b4f60ef5c9d7d25270b7fc1a920",
+        "d3d12_state_sha256": "21115ce07bb9c62ddfaed6dbf3630a9e2f805b4f60ef5c9d7d25270b7fc1a920"
+      },
+      {
+        "id": "constraint-fixed",
+        "case_sha256": "e86b977f76e006c42dfd0f441aec730583286a8ed829a21f89c0db5322155f11",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "a8731792c76c012f5aa6b979cfa531602c688475237aac01e5d4ffe749479073",
+        "d3d12_result_sha256": "c9657e5c0a6d5fb9cd64e796f50be71402032ffc17e1bb27c22fb47d87f5b4b3",
+        "cuda_state_sha256": "9d94fb7f515dcbd8726d4672e0a77a43ad7e2b65132f9059116eb97443832821",
+        "d3d12_state_sha256": "9d94fb7f515dcbd8726d4672e0a77a43ad7e2b65132f9059116eb97443832821"
+      },
+      {
+        "id": "constraint-generic-spring",
+        "case_sha256": "7cc4e0f3621026fe48959e162f1248d5c407bb68284fce7454e1197ec8c33a5b",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "77e7efb045cd820e0783fab24535a3b6bb76e3d31c7513941fbb20a4ab016b8d",
+        "d3d12_result_sha256": "5205a0e7061f22c3a41d8516052ce641a526441192517a506e21a5e8d1122172",
+        "cuda_state_sha256": "b5e02fcb14ef6cec7bcf27247794c6765ae9f17a212845f5efbbd02e57ac440e",
+        "d3d12_state_sha256": "b5e02fcb14ef6cec7bcf27247794c6765ae9f17a212845f5efbbd02e57ac440e"
+      },
+      {
+        "id": "constraint-generic",
+        "case_sha256": "84b2b29f3bc0e07d32013518e652f70e0e90f3864524a3452ec1ce80c79e3127",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "3537f8475dc51c1ae0c0106569e412dc2a3df436da43b50f7a88b442d7042b2e",
+        "d3d12_result_sha256": "e3913d29895667af8156d4b41c4ed656473fb7b9db53885a3370c84bbd9c726d",
+        "cuda_state_sha256": "25dd42d275fbe861c0e2e2ec5afab5f4f7ad06bb11ced24df3065e29da63c28a",
+        "d3d12_state_sha256": "25dd42d275fbe861c0e2e2ec5afab5f4f7ad06bb11ced24df3065e29da63c28a"
+      },
+      {
+        "id": "constraint-hinge",
+        "case_sha256": "e6180187b34d4f914503304cf5687159f0ecf495f6152c4d45ccc13477946bbd",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          45,
+          90
+        ],
+        "cuda_result_sha256": "31c8d8ff68830d6e1e3cfdeef9c1cbe1e318a2d091083d2664a7b92807bd06ac",
+        "d3d12_result_sha256": "fb71cbb0744bc037585e9b016f6d382f69b6c6b80e994dd90ffc3202b24c6110",
+        "cuda_state_sha256": "8a838c4ddf1a54c8d7b2b15cddca23c13878e7caa913ca7c6ae5180de8b85f78",
+        "d3d12_state_sha256": "8a838c4ddf1a54c8d7b2b15cddca23c13878e7caa913ca7c6ae5180de8b85f78"
+      },
+      {
+        "id": "constraint-motor",
+        "case_sha256": "acfdf20008d5b27980656aea19945981e1d449412684b596ef87dce7605af4df",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "c41e817d66170683087902df1be3c6e2d03996f10194fec1f61b497d83ce27ed",
+        "d3d12_result_sha256": "d215e54baa284206decb57df6dd6786615795f94d7d2e0e0de499e5361947812",
+        "cuda_state_sha256": "f912c395d0ab00e74070f9253301c2cf9ede117b5b82e3fa9dd7cc66760544f0",
+        "d3d12_state_sha256": "f912c395d0ab00e74070f9253301c2cf9ede117b5b82e3fa9dd7cc66760544f0"
+      },
+      {
+        "id": "constraint-piston",
+        "case_sha256": "4421466e8e5381b79944fb287f8106f4848d8b59ff904ad2021609de34af6c3c",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "69665bf0558d882646719ac6d7dbc61d9f417c3fee62e666ef7273e2bf809757",
+        "d3d12_result_sha256": "14bcfa599c9c7a906948cf75eee1292a2db7d1b2e9a5b6edc703e2303141d4d4",
+        "cuda_state_sha256": "996bd7a501c23a9c92b7066a71b9aee3c38272a6f067517325b12435968d9669",
+        "d3d12_state_sha256": "996bd7a501c23a9c92b7066a71b9aee3c38272a6f067517325b12435968d9669"
+      },
+      {
+        "id": "constraint-point",
+        "case_sha256": "2f2593e422b8c61fb79f24b4096cbf76894c1b3c5b1fc3947b2e259776ad77d2",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "0d0dc4520a2ff883d7ad7556e83991309d7c8d2e426eeba3e83d94d065eb0b82",
+        "d3d12_result_sha256": "d9b4ad8f12c3c87a482fe16034c8762dec52bc989091e6c6a124a2ee9aa36156",
+        "cuda_state_sha256": "215207de366e1262b389e15cd98bfb4b86a1917c53c24ea6b3a2968d60ca8c67",
+        "d3d12_state_sha256": "215207de366e1262b389e15cd98bfb4b86a1917c53c24ea6b3a2968d60ca8c67"
+      },
+      {
+        "id": "constraint-slider",
+        "case_sha256": "c998761e7543598206f72a85dc9c3bffa98ef2f235ac7f82de41ace28e739dcf",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          30,
+          60
+        ],
+        "cuda_result_sha256": "a71487656b4f26ff0996c3c2a10f5b33e9c6c01b43eee836c3f85260c34bc093",
+        "d3d12_result_sha256": "430e355232baf42f9b73d3a04e4511bc974d4833f8013c47f0f1280d7d4363ea",
+        "cuda_state_sha256": "df0195e98fda03340c9cb6dcac4a763a035de5385277abe6cf1bcf183c95a299",
+        "d3d12_state_sha256": "df0195e98fda03340c9cb6dcac4a763a035de5385277abe6cf1bcf183c95a299"
+      },
+      {
+        "id": "fluid-lifecycle",
+        "case_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          24,
+          48
+        ],
+        "cuda_result_sha256": "7253d584f9168598461430841defeed3d95a77ff4de019955865ff374f809849",
+        "d3d12_result_sha256": "3adc8a6495076ce27489b8b62529f40dfce225a1d3eb0b898c90120cefb08c9f",
+        "cuda_state_sha256": "28f4901aaea4f0ab6ffa71fabd68922733d85b315bee819ffcb3ad24d529ed80",
+        "d3d12_state_sha256": "a19410bf33ab621f191ed90c55a762c5ee82b256b60963270ac81dbcdb39ceed"
+      },
+      {
+        "id": "fluid-rigid",
+        "case_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          24,
+          48
+        ],
+        "cuda_result_sha256": "23a1a85d4d60926c8260dc461fa254b58f11e138b972bd54d78d2fd330f23f57",
+        "d3d12_result_sha256": "fa6a2a2e7a3edc6f91bbbae005515cd5e9dad3460311da2dc0879d4743bac886",
+        "cuda_state_sha256": "a69d1bd9a6ccab0465d0045eed4c7b14bc61d728c39dd9b4bec06d71122d0f75",
+        "d3d12_state_sha256": "dcf6b8ed85ed9b5c9dfedfe00617d3afd8df96da91334b1ec28702d921684f39"
+      },
+      {
+        "id": "passive-active",
+        "case_sha256": "8f7e68c2ca6b10668e58e7232dff97cd9e7a002a13823bb4d23e4bc2fbbee4f5",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          24,
+          48
+        ],
+        "cuda_result_sha256": "69391e7d684c2aee6e0a119e9a3eb5cbbe40418ca1d4ffccc8376b8f1ffac2b9",
+        "d3d12_result_sha256": "32372e5d43661f4b137c126b5d587e7fdef627a17fa19c761473f3313c430cbf",
+        "cuda_state_sha256": "44f5d0749bac0c1df576122f1d6de4c7b049963d5c3842ed2e33a859afcd1388",
+        "d3d12_state_sha256": "44f5d0749bac0c1df576122f1d6de4c7b049963d5c3842ed2e33a859afcd1388"
+      },
+      {
+        "id": "rigid-direct",
+        "case_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+        "passed": true,
+        "cuda_execution": "completed",
+        "d3d12_execution": "completed",
+        "checkpoint_frames": [
+          0,
+          1,
+          20,
+          40,
+          60
+        ],
+        "cuda_result_sha256": "1129a098cea0d913f8a673a83e78442835720e6851abafc87cdc27c75d1937bf",
+        "d3d12_result_sha256": "7ae08e0619d4be3145f61ae5d462e4a5e1a1e911f62432caba7e474317477ef1",
+        "cuda_state_sha256": "3494fdedcdf4406e2e72c6e83a8cb972a37c4755b86abe46d99a39fe6a9b9148",
+        "d3d12_state_sha256": "3494fdedcdf4406e2e72c6e83a8cb972a37c4755b86abe46d99a39fe6a9b9148"
+      }
+    ]
+  },
+  "physical_quality": {
+    "brick_separation": {
+      "bodies": 8,
+      "frames": 300,
+      "substeps": 4,
+      "limit_m": 0.002,
+      "baseline": {
+        "cuda_max_penetration_m": 0.00702056,
+        "cuda_failure_frame_zero_based": 101,
+        "d3d12_max_penetration_m": 0.00721844,
+        "d3d12_failure_frame_zero_based": 102
+      },
+      "final": {
+        "cuda_max_penetration_m": 0.000205278,
+        "d3d12_max_penetration_m": 0.000205278
+      },
+      "oracle": "Independent closed-mesh sampling in tests/gallery/rigid_mesh_checks.hpp (unchanged)."
+    },
+    "focused_contacts": {
+      "drivers": [
+        "slang-cuda",
+        "slang-d3d12"
+      ],
+      "passed": true,
+      "torque_free_max_angular_drift_rad_s": 0,
+      "torque_free_limit_rad_s": 0.000001,
+      "floor_max_penetration_m": 0.000231959,
+      "floor_limit_m": 0.002,
+      "checks": [
+        "Zero/nonzero free spin at arbitrary orientation",
+        "Planar floor normals (303 contacts)",
+        "Closed/open concave co-facing seams",
+        "Horizontal open sheet from both sides",
+        "Vertical open boundary against closed floor",
+        "Open boundary aligned with floor internal diagonal",
+        "Centered fast convex crossings: four substeps, one substep, initially touching"
+      ]
+    },
+    "hinge_slider": {
+      "driver": "slang-d3d12",
+      "frames": 2400,
+      "passed": true,
+      "hinge_anchor_error_m": 4.91513e-7,
+      "hinge_axis_error": 0.00000280403,
+      "slider_sideways_drift_m": 0.0000181449,
+      "slider_axis_error": 0.00000196062,
+      "slider_travel_m": 0.236723,
+      "slider_mesh_penetration_m": 0,
+      "slider_contact_impulse": 0.914982,
+      "hinge_anchor_limit_m": 0.002,
+      "hinge_axis_limit": 0.014,
+      "slider_sideways_limit_m": 0.002,
+      "slider_axis_limit": 0.001,
+      "slider_penetration_limit_m": 0.002,
+      "alternating_rotation_both_gear_interfaces": true
+    }
+  },
+  "binary_hashes": [
+    {
+      "path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_cuda.dll",
+      "sha256": "b01e4d9eff90365291c9e2839f75094368ae2cededb1f8839c9aec2f8a8ef187"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_d3d12.dll",
+      "sha256": "bb50a6a4103efa18249ecf39e3a5fcd87d05c15b93f5e0f2eab9775a6646a0cf"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/Release/parallel-mater-conformance.exe",
+      "sha256": "966296db32a76f1b14bb53352c53b71d207880642a0b4e18386fed6f0efef16a"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/Release/parallel-mater-command-gallery-tests.exe",
+      "sha256": "2fdef44db6c65aaabee01518efa541a6695869d6ddd3e1100f4b83b852d3c176"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/Release/parallel-mater-rigid-constraint-command-tests.exe",
+      "sha256": "eec18939bc74764694150512df78fefbcec0c17e871fda066fef8cb95c5234a9"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-report.json",
+      "sha256": "fa45a584ad788c3eb19cafbdece06be6210c15377398ac0f52b88aa5e0427f3f"
+    }
+  ],
+  "reproduction": {
+    "capture": "For each selected case ID listed above: set PM_DRIVER_FILES to build-cuda-slang-vs2022/Release/manifests/slang-{cuda,d3d12}.json; run Release/parallel-mater-conformance.exe --case <id> --output physics-qualified-<backend>.",
+    "compare": "python conformance/v1/compare.py --cases conformance/v1/cases --expected build-cuda-slang-vs2022/physics-qualified-cuda --actual build-cuda-slang-vs2022/physics-qualified-d3d12 --report build-cuda-slang-vs2022/physics-qualified-report.json",
+    "brick": "Set PM_DRIVER_FILES for the intended driver; run build-cuda-slang-vs2022/Release/parallel-mater-command-gallery-tests.exe --backend <cuda|d3d12> --scene RigidBody.glb --frames 300",
+    "d3d12_suite": "ctest --test-dir build-cuda-slang-vs2022 -C Release -R ^parallel-mater-d3d12- --output-on-failure -j1",
+    "window": "tests/gallery/windows_input_smoke.ps1 -Executable C:/Users/tabut/AppData/Local/Programs/Parallel-Mater/Parallel-Mater.exe -Output build-cuda-slang-vs2022/physics-qualified-window -Backend d3d12 -DwellSeconds 5"
+  },
+  "limitations": [
+    "Only the listed 17 cases are compared; remaining corpus cases are not qualified.",
+    "Reference agreement is not itself physical correctness; independent brick/contact checks are recorded separately.",
+    "No Metal/Vulkan device qualification, engine-handoff approval, or 30/60 FPS claim."
+  ],
+  "case_hash_convention": "SHA-256 of registry serialize_case(), UTF-8 with LF line endings including the final newline; not Windows CRLF file bytes.",
+  "regression_tests": {
+    "passed": 34,
+    "unsupported": 2,
+    "failed_after_harness_correction": 0,
+    "results": [
+      {
+        "name": "parallel-mater-d3d12-gallery-RigidBody",
+        "status": "passed",
+        "seconds": 51.95
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintFixed",
+        "status": "passed",
+        "seconds": 26.1
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintPoint",
+        "status": "passed",
+        "seconds": 70.49
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintHinge",
+        "status": "passed",
+        "seconds": 96.58
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintPiston",
+        "status": "passed",
+        "seconds": 18.72
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintGeneric",
+        "status": "passed",
+        "seconds": 34.55
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ConstraintMotorSpring",
+        "status": "passed",
+        "seconds": 25.5
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-DumpTruck",
+        "status": "passed",
+        "seconds": 56.24
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-Fluid",
+        "status": "passed",
+        "seconds": 14.51
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-FluidRigid",
+        "status": "passed",
+        "seconds": 76.42
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-Cloth",
+        "status": "passed",
+        "seconds": 15.84
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ClothTear",
+        "status": "passed",
+        "seconds": 13.11
+      },
+      {
+        "name": "parallel-mater-d3d12-gallery-ClothWater",
+        "status": "passed",
+        "seconds": 16.04
+      },
+      {
+        "name": "parallel-mater-d3d12-rigid-constraints",
+        "status": "passed",
+        "seconds": 744.5
+      },
+      {
+        "name": "parallel-mater-d3d12-command-api-tests",
+        "status": "passed",
+        "seconds": 70.63
+      },
+      {
+        "name": "parallel-mater-reflected-abi-tests",
+        "status": "passed",
+        "seconds": 0.1
+      },
+      {
+        "name": "parallel-mater-layer-validation-tests",
+        "status": "passed",
+        "seconds": 0.06
+      },
+      {
+        "name": "parallel-mater-layer-plain-tests",
+        "status": "passed",
+        "seconds": 0.01
+      },
+      {
+        "name": "parallel-mater-conformance-command-inputs",
+        "status": "passed",
+        "seconds": 0.04
+      },
+      {
+        "name": "parallel-mater-conformance-case-registry",
+        "status": "passed",
+        "seconds": 0.04
+      },
+      {
+        "name": "parallel-mater-conformance-comparator-tests",
+        "status": "passed",
+        "seconds": 0.2
+      },
+      {
+        "name": "parallel-mater-contact-friction-tests",
+        "status": "passed",
+        "seconds": 0.01
+      },
+      {
+        "name": "parallel-mater-avbd-core-tests",
+        "status": "passed",
+        "seconds": 0.02
+      },
+      {
+        "name": "parallel-mater-slang-architecture",
+        "status": "passed",
+        "seconds": 0.74
+      },
+      {
+        "name": "parallel-mater-contact-friction-cuda-tests",
+        "status": "passed",
+        "seconds": 0.53
+      },
+      {
+        "name": "parallel-mater-avbd-core-cuda-tests",
+        "status": "passed",
+        "seconds": 0.52
+      },
+      {
+        "name": "parallel-mater-avbd-slang-cuda-tests",
+        "status": "passed",
+        "seconds": 0.52
+      },
+      {
+        "name": "parallel-mater-avbd-slang-reflection-tests",
+        "status": "passed",
+        "seconds": 0.06
+      },
+      {
+        "name": "parallel-mater-cuda-resource-lifecycle-tests",
+        "status": "passed",
+        "seconds": 7.84
+      },
+      {
+        "name": "parallel-mater-cuda-validated-lifecycle-tests",
+        "status": "passed",
+        "seconds": 7.83
+      },
+      {
+        "name": "parallel-mater-d3d12-resource-lifecycle-tests",
+        "status": "passed",
+        "seconds": 14.78
+      },
+      {
+        "name": "parallel-mater-d3d12-validated-lifecycle-tests",
+        "status": "passed",
+        "seconds": 15.03
+      },
+      {
+        "name": "parallel-mater-cuda-domain-lifecycle-tests",
+        "status": "passed",
+        "seconds": 0.75
+      },
+      {
+        "name": "parallel-mater-d3d12-domain-lifecycle-tests",
+        "status": "unsupported",
+        "seconds": 0.38
+      },
+      {
+        "name": "parallel-mater-cuda-coupling-lifecycle-tests",
+        "status": "passed",
+        "seconds": 1.19
+      },
+      {
+        "name": "parallel-mater-d3d12-coupling-lifecycle-tests",
+        "status": "unsupported",
+        "seconds": 0.4
+      }
+    ],
+    "startup_failure_and_resolution": "The initial D3D12 resource-lifecycle invocation timed out before entering main: SDK-only executables were in tests/api/Release without the loader DLL on their search path. A controlled PATH launch passed. tests/api/CMakeLists.txt now prepends the selected loader directory with CTest ENVIRONMENT_MODIFICATION; unchanged 120-second timeout and all assertions retained. The full supplemental rerun passed 19 tests and explicitly skipped two unsupported D3D12 scopes.",
+    "windows_harness_git_blob": "6130f3eac3b2e5948c99dc5ac609968895013fe5",
+    "unsupported_reasons": {
+      "parallel-mater-d3d12-domain-lifecycle-tests": "Requires cloth, rope, soft bodies and smoke; D3D12 does not advertise rope, soft bodies or smoke.",
+      "parallel-mater-d3d12-coupling-lifecycle-tests": "Requires liquid-rope coupling; D3D12 does not advertise rope."
+    }
+  },
+  "installed_window": {
+    "backend": "d3d12",
+    "passed": true,
+    "tested_source": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
+    "minimum_dwell_seconds": 5,
+    "scene_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      11,
+      12,
+      14
+    ],
+    "load_and_reset_each_scene": true,
+    "observations": [
+      "startup",
+      "F timing",
+      "GPU-only rendering",
+      "point scene",
+      "point release",
+      "hinge scene",
+      "scene-0",
+      "scene-0-reset",
+      "scene-1",
+      "scene-1-reset",
+      "scene-2",
+      "scene-2-reset",
+      "scene-3",
+      "scene-3-reset",
+      "scene-4",
+      "scene-4-reset",
+      "scene-5",
+      "scene-5-reset",
+      "scene-6",
+      "scene-6-reset",
+      "scene-7",
+      "scene-7-reset",
+      "scene-8",
+      "scene-8-surface",
+      "scene-8-particles",
+      "scene-8-diagnostics",
+      "scene-8-reset",
+      "scene-9",
+      "scene-9-surface",
+      "scene-9-particles",
+      "scene-9-diagnostics",
+      "scene-9-reset",
+      "scene-11",
+      "scene-11-structure",
+      "scene-11-reset",
+      "scene-12",
+      "scene-12-structure",
+      "scene-12-reset",
+      "scene-14",
+      "scene-14-surface",
+      "scene-14-particles",
+      "scene-14-diagnostics",
+      "scene-14-reset"
+    ],
+    "installed_matches_build": [
+      {
+        "file": "Parallel-Mater.exe",
+        "match": true,
+        "sha256": "861e2e41ab57b2eff7c209753960f2a8fb6a37f3ff0640d1c7f192bf947a385e"
+      },
+      {
+        "file": "parallel_mater_driver_slang_d3d12.dll",
+        "match": true,
+        "sha256": "bb50a6a4103efa18249ecf39e3a5fcd87d05c15b93f5e0f2eab9775a6646a0cf"
+      },
+      {
+        "file": "parallel_mater_driver_slang_cuda.dll",
+        "match": true,
+        "sha256": "b01e4d9eff90365291c9e2839f75094368ae2cededb1f8839c9aec2f8a8ef187"
+      },
+      {
+        "file": "parallel-mater.dll",
+        "match": true,
+        "sha256": "849daed70ce2ed62d693c9a6f993f6659206a627564d183d7dea41c06706db74"
+      }
+    ],
+    "stderr_empty": true
+  },
+  "windows_loader_ci_followup": {
+    "initial_failure": "Remote Windows loader CI and a local negative control fail C2375 in mock-driver-0/999: their declarations omit the driver export definition while definitions export the symbols.",
+    "correction": "cmake/ParallelMaterLoader.cmake gives both malformed-ABI mock drivers the same PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 definition as the normal mock driver. No production loader/physics algorithm or ABI behavior changes.",
+    "passed": 10,
+    "failed": 0,
+    "unsupported": 0,
+    "checks": [
+      "loader driver discovery",
+      "Unicode-path driver discovery",
+      "reject driver ABI 0",
+      "reject driver ABI 999",
+      "reject layer ABI 0",
+      "reject layer ABI 999",
+      "validation layer discovery",
+      "legacy layer ABI compatibility",
+      "shared gallery registry",
+      "shared gallery input"
+    ],
+    "build": "cmake --build build-cuda-slang-vs2022 --config Release --target parallel-mater-loader-driver-discovery-tests parallel-mater-gallery-registry-tests parallel-mater-gallery-input-tests --parallel 4",
+    "test": "ctest --test-dir build-cuda-slang-vs2022 -C Release --output-on-failure -R '^parallel-mater-(loader(-unicode|-validation)?-driver-discovery-tests|loader-validation-discovery-tests|gallery-registry-tests|gallery-input-tests|reject-(driver|layer)-abi-(0|999)|layer-v1-compatibility)$'",
+    "log": "build-cuda-slang-vs2022/physics-loader-tests.log"
+  },
+  "windows_reference_ci_followup": {
+    "initial_failure": "All Windows shaders compiled, but generated-api-check decoded UTF-8 specification text as cp1252 and raised UnicodeDecodeError. Reproduced locally with Python -X utf8=0.",
+    "correction": "tools/reference/build.py reads/writes reference text explicitly as UTF-8. No generated header/specification content changed.",
+    "passed_commands": [
+      "python -X utf8=0 tools/reference/build.py --check-generated",
+      "python -X utf8=1 tools/reference/build.py --check-generated",
+      "ctest --test-dir build-cuda-slang-vs2022 -C Release -R '^parallel-mater-generated-api-check$' --output-on-failure"
+    ]
+  },
+  "log_hashes": [
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-d3d12-tests.log",
+      "sha256": "bc3727d0512626fbca2781abaf10af02970ec359ff409d84276a76197b61fa47"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-d3d12-detail.log",
+      "sha256": "05785df203e62f1294211e57f2f1f985f5c8f94a35ed11a5188b1ee8d2676066"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-supplemental-tests.log",
+      "sha256": "ece2cc11236911d0bf389a8965507451f0e3ee9562afef96fbe0205725aae0fd"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-window.log",
+      "sha256": "ceac7c675e12387d0dabe0765f8d4ac7dc66e8635930a0b46df1f1fa21dd0af8"
+    },
+    {
+      "path": "build-cuda-slang-vs2022/physics-qualified-bricks-cuda.log",
+      "sha256": "157a640a1b3034bc4295cb346fb4d29a0b67e96b780b5a7a1a32d0fc28624d76"
+    }
+  ]
+}

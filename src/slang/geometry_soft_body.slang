@@ -494,7 +494,7 @@ void soft_body_surface_contacts(
                 continue;
             Vec3 onSoft = {}, onRigid = {};
             rigid_closest_triangle_pair(point[0], point[1], point[2],
-                a, b, c, onSoft, onRigid, false);
+                a, b, c, onSoft, onRigid);
             contact = length_squared(subtract(onSoft, onRigid)) <
                 margin * margin;
         }

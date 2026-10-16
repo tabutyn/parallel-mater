@@ -655,8 +655,7 @@ void rigid_closest_segments(Vec3 p0, Vec3 p1, Vec3 q0, Vec3 q1,
     onQ = add(q0, multiply(d1, t));
 }
 
-public Vec3 rigid_closest_triangle(Vec3 p, Vec3 a, Vec3 b, Vec3 c,
-    bool stableFace)
+public Vec3 rigid_closest_triangle(Vec3 p, Vec3 a, Vec3 b, Vec3 c)
 {
     Vec3 ab = subtract(b, a);
     Vec3 ac = subtract(c, a);
@@ -679,15 +678,12 @@ public Vec3 rigid_closest_triangle(Vec3 p, Vec3 a, Vec3 b, Vec3 c,
     if (va <= 0.0f && d4 - d3 >= 0.0f && d5 - d6 >= 0.0f)
         return add(b, multiply(subtract(c, b),
             (d4 - d3) / ((d4 - d3) + (d5 - d6))));
-    if (stableFace)
-    {
-        Vec3 normal = cross(ab, ac);
-        return subtract(p, multiply(normal,
-            dot(ap, normal) / length_squared(normal)));
-    }
-    float inverse = 1.0f / (va + vb + vc);
-    return add(a, add(multiply(ab, vb * inverse),
-                      multiply(ac, vc * inverse)));
+    // The Voronoi tests above establish an interior face witness. Project
+    // directly so its tangential coordinates retain the input precision;
+    // reconstructing from barycentrics introduces world-space cancellation.
+    Vec3 normal = cross(ab, ac);
+    return subtract(p, multiply(normal,
+        dot(ap, normal) / length_squared(normal)));
 }
 
 bool rigid_point_in_triangle(Vec3 point, Vec3 a, Vec3 b, Vec3 c,
@@ -727,8 +723,7 @@ public void rigid_consider_pair(Vec3 a, Vec3 b, inout float bestSquared,
 }
 
 public void rigid_closest_triangle_pair(Vec3 a0, Vec3 a1, Vec3 a2,
-    Vec3 b0, Vec3 b1, Vec3 b2, out Vec3 bestA, out Vec3 bestB,
-    bool stableFace)
+    Vec3 b0, Vec3 b1, Vec3 b2, out Vec3 bestA, out Vec3 bestB)
 {
     Vec3 av[3] = {a0, a1, a2};
     Vec3 bv[3] = {b0, b1, b2};
@@ -751,12 +746,10 @@ public void rigid_closest_triangle_pair(Vec3 a0, Vec3 a1, Vec3 a2,
     }
     float bestSquared = 3.402823466e+38f;
     for (uint i = 0u; i < 3u; ++i)
-        rigid_consider_pair(av[i], rigid_closest_triangle(av[i], b0, b1, b2,
-                            stableFace),
+        rigid_consider_pair(av[i], rigid_closest_triangle(av[i], b0, b1, b2),
                             bestSquared, bestA, bestB);
     for (uint i = 0u; i < 3u; ++i)
-        rigid_consider_pair(rigid_closest_triangle(bv[i], a0, a1, a2,
-                            stableFace), bv[i],
+        rigid_consider_pair(rigid_closest_triangle(bv[i], a0, a1, a2), bv[i],
                             bestSquared, bestA, bestB);
     for (uint i = 0u; i < 3u; ++i)
         for (uint j = 0u; j < 3u; ++j)
@@ -873,6 +866,39 @@ bool rigid_contact_reaches_rest_offset(RigidBodyState body,
     return -speed * timestep + restOffset + 1.0e-5f >= distance;
 }
 
+// Shell metadata certifies exterior faces of closed components and support
+// planes. Apply that sign to the actual (possibly swept) triangle.
+Vec3 rigid_shell_outward(__constref TriangleMeshResource mesh, uint triangle,
+    Vec3 a, Vec3 b, Vec3 c)
+{
+    if (!pmBufferPresent(mesh.shell_normals)) return {};
+    Vec3 outward = mesh.shell_normals[triangle];
+    float squared = length_squared(outward);
+    if (squared < 0.01f) return {};
+    Vec3 localA = mesh.vertices[mesh.indices[triangle * 3u]];
+    Vec3 localB = mesh.vertices[mesh.indices[triangle * 3u + 1u]];
+    Vec3 localC = mesh.vertices[mesh.indices[triangle * 3u + 2u]];
+    float sign = dot(cross(subtract(localB, localA), subtract(localC, localA)),
+        outward) >= 0.0f ? 1.0f : -1.0f;
+    return multiply(normalized_or(cross(subtract(b, a), subtract(c, a)), {}),
+        sign * (squared > 0.5f ? 1.0f : 0.25f));
+}
+
+bool rigid_shell_contact_facing(Vec3 normal, Vec3 outwardA, Vec3 outwardB)
+{
+    // A face normal is supported by an opposing surface, not by a tangent
+    // side wall meeting it at a coplanar seam. Adjacent outward-facing
+    // triangles supply actual edge/vertex contacts on a closed shell.
+    float squaredA = length_squared(outwardA);
+    float squaredB = length_squared(outwardB);
+    return (squaredA < 0.01f || (squaredA > 0.5f
+            ? dot(normal, outwardA) < -1.0e-3f
+            : abs(dot(normal, outwardA)) > 2.5e-4f)) &&
+        (squaredB < 0.01f || (squaredB > 0.5f
+            ? dot(normal, outwardB) > 1.0e-3f
+            : abs(dot(normal, outwardB)) > 2.5e-4f));
+}
+
 void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
     __constref RigidBodyState aPreviousState,
     __constref RigidBodyState aState,
@@ -903,10 +929,15 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             Vec3 b2 = transform_point(bState, bMesh.vertices[bMesh.indices[3u * bt + 2u]]);
             if (!rigid_triangle_bounds_overlap(a0, a1, a2, b0, b1, b2, margin))
                 continue;
+            Vec3 outwardA = rigid_shell_outward(aMesh, at, a0, a1, a2);
+            Vec3 outwardB = rigid_shell_outward(bMesh, bt, b0, b1, b2);
+            // Coplanar, co-facing surfaces of adjacent closed components are
+            // not a contact interface. Their seam must not push out of plane.
+            if (dot(outwardA, outwardB) > 0.9999f) continue;
             Vec3 pointA;
             Vec3 pointB;
             rigid_closest_triangle_pair(a0, a1, a2, b0, b1, b2,
-                                        pointA, pointB, false);
+                                        pointA, pointB);
             Vec3 delta = subtract(pointA, pointB);
             float squared = length_squared(delta);
             if (squared > margin * margin) continue;
@@ -916,85 +947,71 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             Vec3 fallback = dot(colliderNormal,
                 subtract(bodyReference, pointB)) >= 0.0f
                 ? colliderNormal : multiply(colliderNormal, -1.0f);
+            // Certified exterior faces have an unambiguous outward direction.
+            // A concave body's origin may be inside its cavity, so orienting
+            // the collider from that origin can reverse a real contact.
+            if (length_squared(outwardB) > 0.5f) fallback = outwardB;
             float distance = sqrt(max(squared, 0.0f));
             Vec3 point = multiply(add(pointA, pointB), 0.5f);
             Vec3 planeProjection = subtract(pointA, multiply(colliderNormal,
                 dot(subtract(pointA, b0), colliderNormal)));
             bool onTriangleFace = length_squared(subtract(planeProjection,
-                rigid_closest_triangle(planeProjection, b0, b1, b2, false))) <=
+                rigid_closest_triangle(planeProjection, b0, b1, b2))) <=
                 1.0e-10f;
-            bool smallConvex = pmBufferPresent(aMesh.solid_planes) &&
-                               aMesh.index_count <= 96u;
-            Vec3 normal = (distance <= 1.0e-5f ||
-                (smallConvex && onTriangleFace))
+            // Face contacts use the face normal, regardless of mesh size.
+            // Normalizing nearly coincident world-space witnesses amplifies
+            // roundoff into spurious tangential impulses.
+            Vec3 normal = (distance <= 1.0e-5f || onTriangleFace)
                 ? fallback : normalized_or(delta, fallback);
-            // A concave body's origin can lie in its cavity, on the wrong
-            // side of the contacting face. Orient that face from the convex
-            // body's previous position so contact is independent of body
-            // allocation order and cannot recover further into the cavity.
-            bool convexSurfaceFace = false;
-            float faceSeparation = 0.0f;
-            bool convexA = pmBufferPresent(aMesh.solid_planes);
-            bool convexB = pmBufferPresent(bMesh.solid_planes);
-            if (convexA != convexB && distance <= 1.0e-5f)
+            if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) continue;
+            if (onTriangleFace && length_squared(outwardA) < 0.01f &&
+                length_squared(outwardB) > 0.5f &&
+                pmBufferPresent(bMesh.solid_planes))
             {
-                Vec3 face0 = convexA ? b0 : a0;
-                Vec3 face1 = convexA ? b1 : a1;
-                Vec3 face2 = convexA ? b2 : a2;
-                RigidBodyState surfaceState = convexA ? bState : aState;
-                RigidBodyState previousSurface = convexA
-                    ? bPreviousState : aPreviousState;
-                RigidBodyState previousConvex = convexA
-                    ? aPreviousState : bPreviousState;
-                Vec3 outward = normalized_or(cross(subtract(face1, face0),
-                    subtract(face2, face0)), {});
-                Vec3 localNormal = inverse_rotate(
-                    surfaceState.orientation, outward);
-                Vec3 oldNormal = rotate(
-                    previousSurface.orientation, localNormal);
-                Vec3 oldPoint = transform_point(previousSurface,
-                    inverse_rotate(surfaceState.orientation,
-                        subtract(face0, surfaceState.position)));
-                if (dot(oldNormal,
-                        subtract(previousConvex.position, oldPoint)) < 0.0f)
-                    outward = multiply(outward, -1.0f);
-                Vec3 incidentPoint = convexA ? pointA : pointB;
-                Vec3 projection = subtract(incidentPoint, multiply(outward,
-                    dot(subtract(incidentPoint, face0), outward)));
-                convexSurfaceFace = length_squared(outward) > 0.5f &&
-                    length_squared(subtract(projection,
-                        rigid_closest_triangle(projection, face0, face1,
-                            face2, false))) <= 1.0e-10f;
-                if (convexSurfaceFace)
+                Vec3 faceA = normalized_or(cross(subtract(a1, a0),
+                    subtract(a2, a0)), {});
+                if (abs(dot(faceA, normal)) < 1.0e-3f)
                 {
-                    normal = multiply(outward, convexA ? 1.0f : -1.0f);
-                    Vec3 incident0 = convexA ? a0 : b0;
-                    Vec3 incident1 = convexA ? a1 : b1;
-                    Vec3 incident2 = convexA ? a2 : b2;
-                    faceSeparation = min(
-                        dot(subtract(incident0, face0), outward),
-                        min(dot(subtract(incident1, face0), outward),
-                            dot(subtract(incident2, face0), outward)));
+                    // At an open boundary, do not choose a deeply crossing
+                    // collider plane when the open face separates the whole
+                    // convex collider with a smaller displacement. Use all
+                    // collider vertices, not one triangle: a floor's internal
+                    // diagonal must not become an artificial separating axis.
+                    float depth = max(0.0f, -min(dot(subtract(a0, b0), normal),
+                        min(dot(subtract(a1, b0), normal),
+                            dot(subtract(a2, b0), normal))));
+                    Vec3 localAxis = inverse_rotate(bState.orientation, faceA);
+                    float offset = dot(subtract(bState.position, a0), faceA);
+                    float minimum = 3.402823466e+38f;
+                    float maximum = -3.402823466e+38f;
+                    for (uint vertex = 0u; vertex < bMesh.vertex_count; ++vertex)
+                    {
+                        float projection = dot(bMesh.vertices[vertex], localAxis) + offset;
+                        minimum = min(minimum, projection);
+                        maximum = max(maximum, projection);
+                    }
+                    float alternateDepth = max(0.0f, min(-minimum, maximum));
+                    if (alternateDepth + 1.0e-5f < depth) continue;
                 }
             }
+            // A face witness inside the collider has negative separation.
+            // Using its unsigned distance turns growing overlap into an
+            // increasingly inactive contact once side-wall seams are culled.
+            float separation = onTriangleFace && length_squared(outwardB) > 0.5f
+                ? dot(delta, normal) : distance;
             if (!rigid_contact_reaches_rest_offset(aState, bState, point,
-                normal, distance, restOffset, timestep)) continue;
+                normal, separation, restOffset, timestep)) continue;
             Contact contact = {};
             contact.normal = normal;
             contact.point = point;
             contact.body_hinge = bodyHinge;
             contact.collider_hinge = colliderHinge;
-            contact.penetration = restOffset - distance + 1.0e-5f;
-            if (convexSurfaceFace)
-            {
-                contact.penetration = min(margin,
-                    restOffset - faceSeparation) + 1.0e-5f;
-            }
-            else if (distance <= 1.0e-5f)
+            contact.penetration = restOffset - separation + 1.0e-5f;
+            if (distance <= 1.0e-5f)
             {
                 if (bodyHinge.fixed_member != 0u ||
                     colliderHinge.fixed_member != 0u ||
-                    smallConvex)
+                    onTriangleFace)
                 {
                     float intersectionDepth = max(0.0f, -min(
                         dot(subtract(a0, pointB), normal), min(
@@ -1097,7 +1114,9 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
             incidentFace = face;
         }
     }
-    if (alignment > -0.98f) return false;
+    // The incident face need not be parallel to the reference face. Rejecting
+    // tilted convex faces sends ordinary resting boxes through triangle/edge
+    // contact generation, which can select opposing internal-edge normals.
     Vec3 normal = multiply(outward, referenceIsBody ? -1.0f : 1.0f);
     CollisionPlane incident = incidentMesh.solid_planes[incidentFace];
     ContactManifold manifold = {};
@@ -1160,8 +1179,117 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
                 max(margin * 2.0f, 1.0e-4f));
         }
     }
-    if (manifold.count == 0u && alignment > -0.999999f) return false;
+    if (manifold.count == 0u) return false;
     manifold.face_patch = true;
+    output = manifold;
+    return true;
+}
+
+// A translating convex face must hit as a face, not as unrelated triangle
+// edges (which create lateral impulses at tessellation diagonals). Intersect
+// face-plane time intervals, then verify the entry face with polygon clipping.
+// Rotating and edge/corner impacts retain the general swept triangle path.
+bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
+    RigidBodyState body, TriangleMeshResource bodyMesh,
+    HingeContactFrame bodyHinge, RigidBodyState previousCollider,
+    RigidBodyState collider, TriangleMeshResource colliderMesh,
+    HingeContactFrame colliderHinge, float margin,
+    out ContactManifold output)
+{
+    output = {};
+    Quaternion bodyDelta = relative_quaternion(previousBody.orientation,
+        body.orientation, false);
+    Quaternion colliderDelta = relative_quaternion(previousCollider.orientation,
+        collider.orientation, false);
+    if (bodyDelta.x != 0.0f || bodyDelta.y != 0.0f || bodyDelta.z != 0.0f ||
+        colliderDelta.x != 0.0f || colliderDelta.y != 0.0f ||
+        colliderDelta.z != 0.0f) return false;
+    Vec3 bodyMotion = subtract(body.position, previousBody.position);
+    Vec3 colliderMotion = subtract(collider.position, previousCollider.position);
+    float restOffset = min(margin, 1.0e-3f);
+    float entry = 0.0f;
+    float exitTime = 1.0f;
+    Vec3 entryNormal = {};
+    for (uint side = 0u; side < 2u; ++side)
+    {
+        TriangleMeshResource referenceMesh = side == 0u ? colliderMesh : bodyMesh;
+        TriangleMeshResource incidentMesh = side == 0u ? bodyMesh : colliderMesh;
+        RigidBodyState reference = side == 0u ? previousCollider : previousBody;
+        RigidBodyState incident = side == 0u ? previousBody : previousCollider;
+        Vec3 relativeMotion = side == 0u
+            ? subtract(bodyMotion, colliderMotion)
+            : subtract(colliderMotion, bodyMotion);
+        for (uint face = 0u; face < referenceMesh.index_count / 3u; ++face)
+        {
+            CollisionPlane plane = referenceMesh.solid_planes[face];
+            Vec3 normal = rotate(reference.orientation, plane.normal);
+            Vec3 incidentNormal = inverse_rotate(incident.orientation, normal);
+            float support = 3.402823466e+38f;
+            for (uint vertex = 0u; vertex < incidentMesh.vertex_count; ++vertex)
+                support = min(support,
+                    dot(incidentNormal, incidentMesh.vertices[vertex]));
+            float gap = support + dot(normal,
+                subtract(incident.position, reference.position)) - plane.offset;
+            float speed = dot(normal, relativeMotion);
+            if (speed == 0.0f)
+            {
+                if (gap > restOffset) return true;
+            }
+            else
+            {
+                float crossing = (restOffset - gap) / speed;
+                if (speed < 0.0f && crossing > entry)
+                {
+                    entry = crossing;
+                    entryNormal = multiply(normal, side == 0u ? 1.0f : -1.0f);
+                }
+                if (speed > 0.0f) exitTime = min(exitTime, crossing);
+            }
+        }
+    }
+    if (entry > exitTime || entry > 1.0f || exitTime < 0.0f) return true;
+    // Already touching: discrete face clipping supplies the actual overlap.
+    if (entry == 0.0f)
+    {
+        bool clipped = rigid_convex_face_manifold(body, bodyMesh, bodyHinge,
+            collider, colliderMesh, colliderHinge, margin, output);
+        if (clipped && output.count != 0u) return true;
+        // A touching body can cross the entire collider in one step. Use its
+        // initial face when the final poses are disjoint; the triangle CCD
+        // intentionally leaves already-touching features to this manifold.
+        if (!rigid_convex_face_manifold(previousBody, bodyMesh, bodyHinge,
+            previousCollider, colliderMesh, colliderHinge, margin, output) ||
+            output.count == 0u) return false;
+        for (uint point = 0u; point < output.count; ++point)
+        {
+            float closing = -dot(subtract(bodyMotion, colliderMotion),
+                output.contacts[point].normal);
+            if (closing <= 0.0f) return false;
+            output.contacts[point].penetration += closing;
+            output.contacts[point].impact_fraction = 0.0f;
+        }
+        return true;
+    }
+    RigidBodyState impactBody = previousBody;
+    RigidBodyState impactCollider = previousCollider;
+    impactBody.position = add(previousBody.position, multiply(bodyMotion, entry));
+    impactCollider.position = add(previousCollider.position,
+        multiply(colliderMotion, entry));
+    ContactManifold manifold;
+    if (!rigid_convex_face_manifold(impactBody, bodyMesh, bodyHinge,
+        impactCollider, colliderMesh, colliderHinge, restOffset + 1.0e-5f,
+        manifold) || manifold.count == 0u) return false;
+    for (uint point = 0u; point < manifold.count; ++point)
+    {
+        Contact contact = manifold.contacts[point];
+        if (dot(contact.normal, entryNormal) < 0.99999f) return false;
+        float remaining = -dot(subtract(bodyMotion, colliderMotion),
+            contact.normal) * (1.0f - entry);
+        contact.penetration = max(0.0f, remaining + contact.penetration) +
+            restOffset + 1.0e-5f;
+        contact.impact_fraction = entry;
+        manifold.contacts[point] = contact;
+    }
     output = manifold;
     return true;
 }
@@ -1338,7 +1466,7 @@ void rigid_collide_triangle_ranges_swept(
                 Vec3 pointA;
                 Vec3 pointB;
                 rigid_closest_triangle_pair(a[0], a[1], a[2],
-                    b[0], b[1], b[2], pointA, pointB, guided);
+                    b[0], b[1], b[2], pointA, pointB);
                 Vec3 delta = subtract(pointA, pointB);
                 float distance = sqrt(max(0.0f, length_squared(delta)));
                 float contactOffset = restOffset;
@@ -1376,32 +1504,26 @@ void rigid_collide_triangle_ranges_swept(
                             subtract(reference, pointB)) >= 0.0f
                             ? colliderNormal : multiply(colliderNormal, -1.0f);
                     }
-                    Vec3 outwardA = pmBufferPresent(aMesh.shell_normals)
-                        ? rotate(aState.orientation, aMesh.shell_normals[at])
-                        : Vec3();
-                    Vec3 outwardB = pmBufferPresent(bMesh.shell_normals)
-                        ? rotate(bState.orientation, bMesh.shell_normals[bt])
-                        : Vec3();
-                    if (guided && length_squared(outwardB) > 0.5f)
+                    Vec3 outwardA = rigid_shell_outward(aMesh, at, a[0], a[1], a[2]);
+                    Vec3 outwardB = rigid_shell_outward(bMesh, bt, b[0], b[1], b[2]);
+                    if (dot(outwardA, outwardB) > 0.9999f) break;
+                    if (length_squared(outwardB) > 0.5f)
                         fallback = outwardB;
-                    else if (guided && length_squared(outwardA) > 0.5f)
+                    else if (length_squared(outwardA) > 0.5f)
                         fallback = multiply(outwardA, -1.0f);
                     Vec3 planeProjection = subtract(pointA,
                         multiply(colliderNormal,
                             dot(subtract(pointA, b[0]), colliderNormal)));
                     bool onFace = length_squared(subtract(planeProjection,
                         rigid_closest_triangle(planeProjection, b[0], b[1],
-                            b[2], false))) <= 1.0e-10f;
-                    bool smallConvex = pmBufferPresent(aMesh.solid_planes) &&
-                        aMesh.index_count <= 96u;
+                            b[2]))) <= 1.0e-10f;
                     Vec3 normal = guided
                         ? rigid_guided_triangle_normal(a[0], a[1], a[2],
                             b[0], b[1], b[2], pointA, pointB,
                             haveSeparatingNormal ? separatingNormal : fallback)
-                        : (distance <= 1.0e-5f || (smallConvex && onFace))
+                        : (distance <= 1.0e-5f || onFace)
                             ? fallback : normalized_or(delta, fallback);
-                    if (guided && (dot(normal, outwardA) > 1.0e-3f ||
-                                   dot(normal, outwardB) < -1.0e-3f)) break;
+                    if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) break;
                     Vec3 point = multiply(add(pointA, pointB), 0.5f);
                     float normalSpeed = rigid_contact_normal_speed(
                         aState, bState, point, normal);
@@ -2059,9 +2181,7 @@ void pm_finalize_rigid_contact_manifolds(
     {
         bool facePair = pmBufferPresent(bodyMesh.solid_planes) &&
             pmBufferPresent(colliderMesh.solid_planes) &&
-            bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u &&
-            !rigid_requires_swept_pair_contact(previous_states[a], states[a],
-                bodyMesh, previous_states[b], states[b], colliderMesh, margin);
+            bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u;
         if (!facePair) return;
         Vec3 bodyReference;
         Vec3 colliderReference;
@@ -2072,9 +2192,23 @@ void pm_finalize_rigid_contact_manifolds(
             ids, count, b, states, states[b], constraints,
             constraint_capacity, colliderReference);
         if (rigid_guided_pair(bodyHinge, colliderHinge)) return;
-        ContactManifold faceManifold;
-        if (rigid_convex_face_manifold(states[a], bodyMesh, bodyHinge,
-            states[b], colliderMesh, colliderHinge, margin, faceManifold))
+        ContactManifold faceManifold = {};
+        bool swept = rigid_requires_swept_pair_contact(previous_states[a], states[a],
+            bodyMesh, previous_states[b], states[b], colliderMesh, margin);
+        bool faceContact = false;
+        if (swept)
+            faceContact = rigid_swept_convex_face_manifold(previous_states[a], states[a],
+                bodyMesh, bodyHinge, previous_states[b], states[b],
+                colliderMesh, colliderHinge, margin, faceManifold);
+        // A rotating overlap is still a convex face contact, not a collection
+        // of internal triangle edges. Keep general CCD for separated end poses.
+        if (!faceContact)
+        {
+            faceContact = rigid_convex_face_manifold(states[a], bodyMesh, bodyHinge,
+                states[b], colliderMesh, colliderHinge, margin, faceManifold);
+            if (swept && faceManifold.count == 0u) faceContact = false;
+        }
+        if (faceContact)
         {
             manifolds[activeIndex] = faceManifold;
             leaf_pair_counts[pair] = 0xfffffffeu;
