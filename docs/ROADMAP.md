@@ -67,7 +67,118 @@ capacity failure, and combinations of three or more families. Test timestep and
 mass-ratio sweeps, fast impacts, containment, long-run stability, momentum
 balance, and energy behavior with external forces and dissipation accounted for.
 
-## Ordered implementation milestones
+## Current priority: project foundations
+
+Updated 2026-10-16 after reviewing `e9e0144`. This order takes precedence over
+platform expansion and shader performance work. Existing milestone numbers
+below remain as implementation history and coverage obligations. See the
+[project foundations audit](PROJECT-FOUNDATIONS-AUDIT.md) for code evidence and
+reproductions.
+
+### F1. Make resource lifetime and declared capacity reliable
+
+Status: pending; a repeated-replacement failure is reproduced.
+
+- Extract headless public-API test support that builds without CUDA, gallery
+  rendering or private simulation headers. Use mock/CPU drivers for suitable
+  host tests and select installed GPU drivers for advertised physics cases.
+- Add the fluid replacement regression: one write passes, but 256 replacements
+  in the same two-particle slot exhaust bound memory in the current CUDA path.
+- Make per-resource storage reusable within declared capacity. Share one
+  allocation plan between memory-requirement queries and actual allocation.
+- Define replacement, removal, pending-resource lifetime, failed allocation,
+  rollback/reset and generation rules across every domain.
+
+Exit: repeated resource churn remains bounded without whole-simulation resets;
+unrelated live systems survive replacement and failure; exact-capacity and
+recovery cases run through the public API. This is the next implementation slice.
+
+### F2. Make the interaction graph a first-class simulation resource
+
+Status: pending; extends milestone 2.
+
+- Separate mutable coupling edges from immutable pipeline policy. Support
+  create/update/remove/rebind and endpoint replacement with stable generations.
+- Correct units and parameter mappings; apply or explicitly reject sleeping,
+  `twoWay` and other exposed settings.
+- Define per-pair/per-mode/material capabilities and a complete interaction
+  matrix. Include all 15 distinct-family pairs and required same-family modes.
+- Implement distinct fluid–fluid system interactions after graph lifetime and
+  material semantics are defined; qualify them before advertising support.
+
+Exit: pipeline changes and endpoint replacement cannot retain stale edges;
+fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope.
+
+### F3. Reconcile the specification, ABI and validation contract
+
+Status: pending.
+
+- Resolve conflicting destruction/wait semantics and error codes; specify
+  threading, command snapshots, deferred failures, capacity overflow and reset.
+- Give normative rules identifiers and map them to executable positive and
+  negative tests. Distinguish vendor-neutral behavior from solver profiles.
+- Generate typed validation interception with command arguments and object
+  state; replace the borrowed Khronos layer namespace with a project name.
+- Define API/driver/layer version and extension compatibility, including old
+  applications, independently built drivers and invalid negotiation results.
+
+Exit: documentation, runtime and validation agree, with tests beyond header
+generation and command routing.
+
+### F4. Complete common runtime resources and engine ownership rules
+
+Status: scheduler extraction is complete; resource-boundary work remains.
+
+- Define backend-neutral resource identities, typed dispatch bindings, memory
+  plans, read/write dependencies and completion ownership behind the existing
+  scheduler. Reduce dependence on CUDA compatibility headers and parsing
+  generated CUDA source without moving physics out of Slang.
+- Distinguish allocation requirements, usable memory budgets and untracked
+  driver costs; keep workload admission conservative where data is unavailable.
+- Specify common borrowed-device/queue, shared-buffer and fence/timeline
+  ownership before writing engine-specific integrations.
+
+Exit: a mock adapter can verify resource and dependency behavior; native
+details remain in adapters; engine handoff has a tested common contract.
+
+### F5. Make conformance and quality benchmarks independent SDK consumers
+
+Status: existing public-command runner/corpus need build and data separation.
+
+- Build the headless runner without gallery or CUDA dependencies; remove
+  private simulation types from portable case data. Select installed drivers.
+- Separate pass/fail/unsupported, advertised capability qualification, reference
+  regression and vendor-neutral physical compliance.
+- Expand analytic/invariant, lifecycle, adverse-capacity, mixed-family and
+  same-family cases. Gate performance on fixed physical quality requirements.
+- Publish revisioned evidence per driver and capability. Compilation, a demo
+  and historical goldens are distinct evidence, not interchangeable approval.
+
+Exit: an independent driver can run the suite using the installed SDK alone;
+every advertised mode has current correctness and quality evidence.
+
+### F6. Establish reproducible SDK releases and repository ownership
+
+Status: basic install/relocation works; release gates are missing.
+
+- Define package/API version policy and resolve the current CMake 0.1.0 versus
+  API 0.2 mismatch. Add installed C/C++ consumer and external-driver CI gates.
+- Separate loader, driver, conformance, gallery and benchmark CMake components;
+  provide reproducible build profiles and minimal headless SDK examples.
+- Add contribution, extension allocation, compatibility, release and
+  qualification-review rules. Check capability documentation against evidence.
+- Reconcile preserved older-worktree patches and remove active toolchain
+  dependencies on those worktrees before retiring them.
+
+Exit: a clean checkout produces a relocatable, versioned SDK and independently
+built consumer/driver packages without private source or workstation paths.
+
+After these gates, resume non-CUDA engine qualification, remaining backend and
+domain coverage, then measured platform/shader optimization. Small packaging
+and documentation repairs can accompany foundation work; they do not replace
+the lifecycle and behavioral gates.
+
+## Existing implementation milestones and status
 
 ### 1. Restore shader portability and require compiler gates
 
@@ -131,7 +242,8 @@ includes deferred validation and partial-work draining; fences, timelines,
 simulation status, and queries account for queued host work as well as GPU work.
 CPU tests exercise real rigid integration, multiple submitted frames, pending
 resource reuse, wait-before-signal dependencies, and deferred failures. Native
-CUDA compilation passes; GPU execution still requires working hardware.
+CUDA compilation passes; subsequent desktop/phone runtime evidence is recorded
+below and does not qualify every domain or asynchronous overlap behavior.
 
 Remaining work includes descriptor resource mapping for graphics adapters,
 removing inner-frame readbacks, overlapping independent GPU work, and measured
@@ -263,13 +375,13 @@ Pause/reset/resume and background/foreground recovery pass. A five-minute
 fluid–rigid run completed without errors or restart, with stable sampled memory
 and thermal status 0; its frame rate remained below target.
 
-Next on this machine: reduce Mali shader-private memory and execution cost, add
-smaller representative constraint workloads through the hardware-profile
-resource, and reduce software rendering cost. Current scene samples run roughly
-2–16 FPS against a 30 FPS target and use around 3.2 GiB PSS. Keep startup budgets
-provisional and verified profiles empty until the performance gates pass. See
-[the device qualification record](ANDROID-QUALIFICATION.md) for exact scope and
-measurements.
+Platform tuning backlog, deferred behind the foundation priorities above:
+reduce Mali shader-private memory and execution cost, add smaller representative
+constraint workloads through the hardware-profile resource, and reduce software
+rendering cost. Current scene samples run roughly 2–16 FPS against a 30 FPS
+target and use around 3.2 GiB PSS. Keep startup budgets provisional and verified
+profiles empty until the performance gates pass. See [the device qualification
+record](ANDROID-QUALIFICATION.md) for exact scope and measurements.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).
