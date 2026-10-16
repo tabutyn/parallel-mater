@@ -937,6 +937,28 @@
     ],
     "stderr_empty": true
   },
+  "windows_loader_ci_followup": {
+    "initial_failure": "Remote Windows loader CI and a local negative control fail C2375 in mock-driver-0/999: their declarations omit the driver export definition while definitions export the symbols.",
+    "correction": "cmake/ParallelMaterLoader.cmake gives both malformed-ABI mock drivers the same PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 definition as the normal mock driver. No production loader/physics algorithm or ABI behavior changes.",
+    "passed": 10,
+    "failed": 0,
+    "unsupported": 0,
+    "checks": [
+      "loader driver discovery",
+      "Unicode-path driver discovery",
+      "reject driver ABI 0",
+      "reject driver ABI 999",
+      "reject layer ABI 0",
+      "reject layer ABI 999",
+      "validation layer discovery",
+      "legacy layer ABI compatibility",
+      "shared gallery registry",
+      "shared gallery input"
+    ],
+    "build": "cmake --build build-cuda-slang-vs2022 --config Release --target parallel-mater-loader-driver-discovery-tests parallel-mater-gallery-registry-tests parallel-mater-gallery-input-tests --parallel 4",
+    "test": "ctest --test-dir build-cuda-slang-vs2022 -C Release --output-on-failure -R '^parallel-mater-(loader(-unicode|-validation)?-driver-discovery-tests|loader-validation-discovery-tests|gallery-registry-tests|gallery-input-tests|reject-(driver|layer)-abi-(0|999)|layer-v1-compatibility)$'",
+    "log": "build-cuda-slang-vs2022/physics-loader-tests.log"
+  },
   "log_hashes": [
     {
       "path": "build-cuda-slang-vs2022/physics-qualified-d3d12-tests.log",

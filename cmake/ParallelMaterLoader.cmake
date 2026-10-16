@@ -110,6 +110,8 @@ if(BUILD_TESTING)
             target_compile_definitions(${mock_target} PRIVATE
                 PM_MOCK_INTERFACE_VERSION=${version})
             if(kind STREQUAL "driver")
+                target_compile_definitions(${mock_target} PRIVATE
+                    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
                 set(manifest_key PMD)
                 set(test_environment "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${mock_target}.json")
             else()
