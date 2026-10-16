@@ -158,8 +158,10 @@ void solve_avbd_kernel(
     uniform PM_AVBD_BUFFER(RigidConstraintResource) joints,
     uniform uint joint_capacity,
     uniform PM_AVBD_BUFFER(AvbdBody) bodies,
-    uniform PM_AVBD_BUFFER(ContactSchedule) schedule, uniform float dt)
+    uniform PM_AVBD_BUFFER(ContactSchedule) schedule, uniform float dt
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint lane = pmThreadIndex();
     uint stride = pmGroupSize().x * pmGridDim().x;
     for (uint phase = 0u; phase < 2u; ++phase)

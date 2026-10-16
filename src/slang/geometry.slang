@@ -14,8 +14,14 @@ import graphics_resources;
 // DXIL does not support i8 structured-buffer memory operations.
 #if PM_TARGET_D3D12
 #define PM_GEOMETRY_UINT8 uint
+#define PM_D3D12_DISPATCH_PARAMETER \
+    , uint3 pmD3D12DispatchThreadId : SV_DispatchThreadID
+#define PM_D3D12_DISPATCH_PROLOGUE() \
+    pmSetD3D12DispatchThreadId(pmD3D12DispatchThreadId)
 #else
 #define PM_GEOMETRY_UINT8 uint8_t
+#define PM_D3D12_DISPATCH_PARAMETER
+#define PM_D3D12_DISPATCH_PROLOGUE()
 #endif
 
 struct RigidAvbdVector6 { float values[6]; };
@@ -412,8 +418,9 @@ void pm_integrate_rigid_bodies(
     uniform PMBuffer<KinematicTarget> targets, uniform PMBuffer<RigidBodyState> input,
     uniform PMBuffer<RigidBodyState> output, uniform uint count, uniform Vec3 gravity,
     uniform float timestep, uniform uint remaining_substeps,
-    uniform bool apply_impulses)
+    uniform bool apply_impulses PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count) return;
     BodyParameters body = parameters[index];
@@ -500,8 +507,9 @@ void pm_compute_rigid_world_bounds(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
     uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
-    uniform PMBuffer<WorldAabb> world_bounds)
+    uniform PMBuffer<WorldAabb> world_bounds PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count) return;
     TriangleMeshResource mesh = meshes[parameters[index].mesh.index];
@@ -560,8 +568,10 @@ void pm_broad_phase_rigid_pairs(
     uniform PMBuffer<RigidConstraintResource> constraints,
     uniform uint constraint_capacity,
     uniform PMBuffer<FixedContactProjection> fixed_groups, uniform uint count,
-    uniform PMBuffer<PMResourceUint8> active_flags)
+    uniform PMBuffer<PMResourceUint8> active_flags
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint pair = pmThreadIndex();
     if (pair >= count * count) return;
     uint bodyIndex = pair / count, colliderIndex = pair % count;
@@ -1599,8 +1609,10 @@ void pm_generate_rigid_leaf_pairs(
     uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<LeafPair> leaf_pairs,
     uniform PMBuffer<uint> leaf_pair_counts,
     uniform uint leaf_pair_cache_slot_capacity,
-    uniform uint leaf_pairs_per_slot, uniform uint shared_leaf_capacity)
+    uniform uint leaf_pairs_per_slot, uniform uint shared_leaf_capacity
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint lane = pmGroupThreadIndex().x;
     for (uint activeIndex = pmBlockIndex().x;
          activeIndex < *active_pair_count; activeIndex += pmGridDim().x)
@@ -1807,8 +1819,10 @@ void pm_evaluate_rigid_leaf_pairs(
     uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<LeafPair> leaf_pairs,
     uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
     uniform PMBuffer<ContactManifold> leaf_manifolds, uniform uint blocks_per_pair,
-    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds)
+    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint lane = pmGroupThreadIndex().x;
     uint pairBlock = pmBlockIndex().x % blocks_per_pair;
     for (uint activeIndex = pmBlockIndex().x / blocks_per_pair;
@@ -1858,6 +1872,53 @@ void pm_evaluate_rigid_leaf_pairs(
 #endif
         }
         pmGroupBarrier();
+#if PM_TARGET_D3D12
+        // Large worlds avoid the multi-gigabyte per-leaf manifold cache. CUDA
+        // reduces those candidates in group shared memory; DXIL evaluates the
+        // same candidate order on lane zero because a full ContactManifold
+        // array exceeds the D3D12 thread-group shared-memory budget.
+        if (!pmBufferPresent(leaf_manifolds))
+        {
+            if (lane == 0u)
+            {
+                ContactManifold reduced = {};
+                float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
+                for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+                {
+                    ContactManifold local = {};
+                    LeafPair range = leaf_pairs[
+                        activeIndex * leaf_pairs_per_slot + candidate];
+                    rigid_collide_triangle_ranges(
+                        meshes[parameters[a].mesh.index],
+                        previous_states[a], states[a],
+                        rigidLeafBodyReference, rigidLeafBodyHinge,
+                        range.body_first, range.body_count,
+                        meshes[parameters[b].mesh.index],
+                        previous_states[b], states[b],
+                        rigidLeafColliderHinge, range.collider_first,
+                        range.collider_count, rigidLeafMargin, timestep,
+                        local);
+                    if (rigidLeafSwept != 0u)
+                        rigid_collide_triangle_ranges_swept(
+                            previous_states[a], states[a],
+                            rigidLeafPreviousBodyReference,
+                            rigidLeafBodyReference, rigidLeafBodyHinge,
+                            meshes[parameters[a].mesh.index],
+                            range.body_first, range.body_count,
+                            previous_states[b], states[b],
+                            meshes[parameters[b].mesh.index],
+                            range.collider_first, range.collider_count,
+                            rigidLeafColliderHinge, rigidLeafMargin,
+                            timestep, local);
+                    for (uint point = 0u; point < local.count; ++point)
+                        rigid_add_contact(reduced, local.contacts[point], spacing);
+                }
+                manifolds[activeIndex] = reduced;
+            }
+            pmGroupBarrier();
+            continue;
+        }
+#endif
         for (uint wave = pairBlock * pmGroupSize().x;
              wave < candidateCount;
              wave += pmGroupSize().x * blocks_per_pair)
@@ -1934,8 +1995,9 @@ void pm_reduce_rigid_leaf_manifolds(
     uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
     uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
     uniform PMBuffer<ContactManifold> leaf_manifolds,
-    uniform PMBuffer<ContactManifold> manifolds)
+    uniform PMBuffer<ContactManifold> manifolds PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint activeIndex = pmThreadIndex();
     if (activeIndex >= *active_pair_count) return;
     uint pair = active_pairs[activeIndex];
@@ -1964,8 +2026,9 @@ void pm_finalize_rigid_contact_manifolds(
     uniform uint constraint_capacity, uniform PMBuffer<uint> active_pairs,
     uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<uint> leaf_pair_counts,
     uniform float timestep, uniform PMBuffer<ContactManifold> manifolds,
-    uniform bool prepare_faces)
+    uniform bool prepare_faces PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint activeIndex = pmThreadIndex();
     if (activeIndex >= *active_pair_count) return;
     uint pair = active_pairs[activeIndex];
@@ -2054,8 +2117,9 @@ void pm_finalize_rigid_contact_manifolds(
 [numthreads(256, 1, 1)]
 void pm_clear_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<KinematicTarget> targets,
-    uniform uint count)
+    uniform uint count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count) return;
     accumulators[index] = {};
@@ -2066,8 +2130,10 @@ void pm_clear_rigid_inputs(
 [numthreads(256, 1, 1)]
 void pm_capture_rigid_inputs(
     uniform PMBuffer<BodyAccumulator> accumulators, uniform PMBuffer<Vec3> forces,
-    uniform PMBuffer<Vec3> torques, uniform uint count)
+    uniform PMBuffer<Vec3> torques, uniform uint count
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count) return;
     forces[index] = accumulators[index].force;
@@ -2082,8 +2148,9 @@ void pm_prepare_parallel_contact_events(
     uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<uint> event_offsets,
     uniform PMBuffer<RigidContactEvent> events, uniform uint event_capacity,
     uniform PMBuffer<uint> event_count, uniform bool collect_events,
-    uniform bool reset_events)
+    uniform bool reset_events PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (reset_events) event_count[0] = 0u;
     uint cursor = 0u;
     uint responseSlot = 0u;
@@ -2119,8 +2186,10 @@ void pm_load_rigid_contact_cache(
     uniform PMBuffer<uint> active_count, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<RigidBodyId> ids, uniform uint body_count,
     uniform PMBuffer<CachedContactPair> cache, uniform PMBuffer<uint> slots,
-    uniform uint capacity, uniform uint64_t epoch, uniform float timestep)
+    uniform uint capacity, uniform uint64_t epoch, uniform float timestep
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint active = pmThreadIndex();
     if (active >= *active_count) return;
     uint pair = active_pairs[active], slot = slots[pair];
@@ -2189,8 +2258,9 @@ void pm_save_rigid_contact_cache(
     uniform PMBuffer<CachedContactPair> cache, uniform PMBuffer<uint> slots,
     uniform uint capacity, uniform uint64_t epoch, uniform float timestep,
     uniform PMBuffer<uint> event_offsets, uniform PMBuffer<RigidContactEvent> events,
-    uniform uint event_capacity)
+    uniform uint event_capacity PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint active = pmThreadIndex();
     if (active >= *active_count) return;
     uint pair = active_pairs[active];
@@ -2245,8 +2315,10 @@ void pm_save_rigid_contact_cache(
 void pm_gather_rigid_debug_samples(
     uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<Vec3> torques, uniform uint count,
-    uniform PMBuffer<PhysicsDebugRigidSample> samples)
+    uniform PMBuffer<PhysicsDebugRigidSample> samples
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index < count)
         samples[index] = {ids[index], states[index], forces[index], torques[index]};
@@ -2256,8 +2328,9 @@ void pm_gather_rigid_debug_samples(
 [numthreads(256, 1, 1)]
 void pm_clamp_rigid_speeds(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
-    uniform uint count)
+    uniform uint count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count || parameters[index].motion != MotionType.dynamic)
         return;
@@ -2278,8 +2351,10 @@ uint fixed_projection_root(PMBuffer<FixedContactProjection> groups, uint body)
 void pm_build_fixed_collision_groups(
     uniform PMBuffer<RigidConstraintResource> constraints, uniform uint capacity,
     uniform PMBuffer<RigidBodyId> ids, uniform uint count,
-    uniform PMBuffer<FixedContactProjection> groups)
+    uniform PMBuffer<FixedContactProjection> groups
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     for (uint body = 0u; body < count; ++body) groups[body].root = body;
     for (uint index = 0u; index < capacity; ++index)
     {

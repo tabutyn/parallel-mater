@@ -232,14 +232,13 @@ int main() {
     bodies[0].motionType = PM_MOTION_STATIC;
     bodies[0].state.position[1] = -1.0F;
     bodies[1].motionType = PM_MOTION_DYNAMIC;
-    bodies[1].state.position[1] = -0.25F;
+    bodies[1].state.position[1] = 1.0F;
     CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) ==
           PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
-    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
-        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     const PmBufferRange state_output{
         destination, 0U, 2U * sizeof(PmRigidState)};
     CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) ==
@@ -251,7 +250,36 @@ int main() {
     const auto *states = static_cast<const PmRigidState *>(mapped_readback);
     CHECK(states[0].position[1] == -1.0F);
     CHECK(std::isfinite(states[1].position[1]));
-    CHECK(states[1].position[1] > -0.5F);
+    const bool dynamic_body_advanced =
+        std::abs(states[1].position[1] - bodies[1].state.position[1]) > 1.0e-4F ||
+        std::abs(states[1].linearVelocity[1]) > 1.0e-4F;
+    if (!dynamic_body_advanced)
+        std::fprintf(stderr, "D3D12 rigid body did not advance: y=%g vy=%g\n",
+                     states[1].position[1], states[1].linearVelocity[1]);
+    CHECK(dynamic_body_advanced);
+    const float first_position = states[1].position[1];
+    const float first_velocity = states[1].linearVelocity[1];
+
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) ==
+          PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    if (!(states[1].position[1] < first_position - 1.0e-4F &&
+          states[1].linearVelocity[1] < first_velocity - 1.0e-4F))
+        std::fprintf(stderr,
+                     "D3D12 rigid body did not advance across submissions: "
+                     "first y=%g vy=%g, second y=%g vy=%g\n",
+                     first_position, first_velocity, states[1].position[1],
+                     states[1].linearVelocity[1]);
+    CHECK(states[1].position[1] < first_position - 1.0e-4F);
+    CHECK(states[1].linearVelocity[1] < first_velocity - 1.0e-4F);
 
     pmDestroyPhysicsPipeline(device, pipeline);
     pmDestroySimulation(device, simulation);

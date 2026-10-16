@@ -1171,16 +1171,21 @@ struct SimulationRuntime::Impl {
     std::size_t debug_frame_count{};
 
     [[nodiscard]] Status record_debug_frame(
-        StepOptions step_options) noexcept {
+        StepOptions step_options, device::ExecutionQueue queue) noexcept {
         if (options.physics_debug.frame_capacity == 0U ||
             frame_index % options.physics_debug.frame_stride != 0U)
             return success();
         try {
             PhysicsDebugFrame &output = debug_frames[debug_next_frame];
-            const auto download = [](void *destination, const void *source,
-                                     std::size_t bytes) -> Status {
+            const cudaStream_t stream = native_stream(queue);
+            const auto download = [stream](void *destination,
+                                           const void *source,
+                                           std::size_t bytes) -> Status {
                 if (bytes == 0U) return success();
-                const auto error = cudaMemcpy(destination, source, bytes, cudaMemcpyDeviceToHost);
+                auto error = cudaMemcpyAsync(destination, source, bytes,
+                                             cudaMemcpyDeviceToHost, stream);
+                if (error == cudaSuccess)
+                    error = cudaStreamSynchronize(stream);
                 return error == cudaSuccess ? success()
                     : cuda_failure(error, "physics debug readback failed");
             };
@@ -1198,7 +1203,7 @@ struct SimulationRuntime::Impl {
                 // Explicit readback leaves live simulation pages on the GPU;
                 // direct CPU dereferences migrate them back and forth each frame.
                 const auto gather_error = simulation::gather_rigid_debug_samples(
-                    (rigid_body_count + 127U) / 128U, 128U, nullptr,
+                    (rigid_body_count + 127U) / 128U, 128U, stream,
                     ids, states[current_state], debug_applied_forces,
                     debug_applied_torques, rigid_body_count, debug_rigid_samples);
                 if (gather_error != cudaSuccess)
@@ -1215,7 +1220,7 @@ struct SimulationRuntime::Impl {
                 const FluidStorage &fluid = *owner;
                 std::uint32_t count{};
                 const auto count_status = read_device_u32(
-                    nullptr, fluid.count, count,
+                    stream, fluid.count, count,
                     "physics debug fluid count readback failed");
                 if (!count_status) return count_status;
                 output.fluid_particles.reserve(

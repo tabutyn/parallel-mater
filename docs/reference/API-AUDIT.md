@@ -13,9 +13,9 @@ buffer access, and the gallery's physics domains and couplings.
 
 The Slang/D3D12 driver implements discovery, explicit memory and buffer
 binding, transfer command recording, barriers, queue submission, fences,
-memory budgets, limits, formats, and native handles. It also qualifies the
-embedded shared AVBD DXIL schedule during device creation, but returns no
-physics feature bits until the full command schedule is available.
+memory budgets, limits, formats, and native handles. It executes the common
+rigid-body, rigid-constraint, contact, debug, and query schedules compiled to
+DXIL and advertises only those tested rigid capabilities.
 
 Typed Vulkan functions have concrete validation entry points and explicitly
 report unavailable capability when the selected device is not a Vulkan-imported

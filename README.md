@@ -67,10 +67,10 @@ shared Slang schedule is present.
 
 On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
 implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
-and memory budgets, and qualifies device creation by dispatching the embedded
-shared AVBD DXIL prepare/solve schedule. It deliberately does not advertise
-physics features until the remaining shared domain schedules are wired through
-the command API.
+and memory budgets. Its command path dispatches the common rigid-body,
+rigid-constraint, contact, debug, and query schedules compiled to DXIL. It
+advertises those tested rigid capabilities while the remaining simulation
+domains stay unavailable.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -108,9 +108,10 @@ replacement for a native Apple GPU adapter, and it does not advertise fluid,
 cloth, rope, soft-body, smoke, or paint capabilities. All shared Slang modules
 are also compiled to Vulkan SPIR-V as a portability check, but there is no
 Vulkan driver until a complete shared schedule passes the same conformance and
-gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule and
-core transfer API but advertises no physics domains; Metal and WebGPU have no
-drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
+gallery gates. The D3D12 driver advertises the shared rigid-body and
+rigid-constraint DXIL schedules, but no fluid, cloth, rope, soft-body, smoke,
+or coupling domains; Metal and WebGPU have no drivers. The backend-neutral AVBD
+numerical core is also compiled to WGSL
 as a WebGPU portability gate; the complete pointer-based domain schedules do
 not yet have WebGPU resource wrappers. Retired backend-specific physics targets
 are absent rather than available as fallbacks. Native
