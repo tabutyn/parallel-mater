@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "scene_builder.hpp"
 
-#include <simulation/host_preparation.hpp>
+#include <parallel_mater_scene/preparation.hpp>
 
 #include <algorithm>
 #include <cmath>

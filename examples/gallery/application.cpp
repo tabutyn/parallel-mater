@@ -51,12 +51,9 @@ extern "C" const char *parallel_mater_windows_gallery_build_stamp() noexcept;
 namespace {
 
 using parallel_mater::RigidBodyState;
-using parallel_mater::RigidConstraintOptions;
-using parallel_mater::RigidConstraintState;
-using parallel_mater::RigidConstraintType;
-using parallel_mater::MotionType;
+using parallel_mater::gallery::RigidConstraintType;
+using parallel_mater::gallery::MotionType;
 using parallel_mater::Quaternion;
-using parallel_mater::StepOptions;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
@@ -100,6 +97,16 @@ using parallel_mater::gallery::brick_maximum_planes;
 using parallel_mater::gallery::brick_render_width;
 using parallel_mater::gallery::brick_render_height;
 using parallel_mater::gallery::validate_brick_config;
+
+// UI frame input; translated by step_runtime into public command descriptors.
+struct StepOptions {
+    float timestep{1.0F / 60.0F};
+    std::uint32_t substeps{4U};
+    Vec3 gravity{0.0F, -9.81F, 0.0F};
+    bool collect_rigid_contacts{};
+    bool collect_fluid_contacts{};
+    std::uint32_t rigid_contact_pass_limit{};
+};
 
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
@@ -600,7 +607,7 @@ static int run_gallery_application(
                 return 1;
             }
             for (const auto &body : runtime.scene.rigid_bodies) {
-                if (body.options.motion != parallel_mater::MotionType::static_body)
+                if (body.options.motion != parallel_mater::gallery::MotionType::static_body)
                     continue;
                 std::cout << "Passive body " << body.name << " collision_meshes="
                           << body.collision_mesh_indices.size() << " render_meshes="

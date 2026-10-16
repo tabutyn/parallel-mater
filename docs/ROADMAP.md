@@ -180,9 +180,13 @@ details remain in adapters; engine handoff has a tested common contract.
 
 ### F5. Make conformance and quality benchmarks independent SDK consumers
 
-Status: existing public-command runner/corpus need build and data separation.
-The merged runner no longer requires CUDA to exist, but still requires gallery
-support. Upstream quality and cross-driver comparison failures remain open.
+Status: headless runner and host scene SDK now build without gallery, private
+simulation headers or native drivers. Standalone conformance builds against an
+installed/relocated SDK and validates all 30 inputs. Execution and comparison
+separate completed, unsupported and failed outcomes; execution alone never
+qualifies quality. CPU rigid-direct fails its historical CUDA comparison;
+upstream quality and cross-driver comparison failures remain open. See the
+[conformance build and evidence](../conformance/v1/README.md).
 
 - Build the headless runner without gallery or CUDA dependencies; remove
   private simulation types from portable case data. Select installed drivers.

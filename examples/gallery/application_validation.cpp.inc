@@ -231,7 +231,7 @@
 #endif
     for (std::size_t index = 0; index < next.scene.rigid_bodies.size(); ++index) {
         if (next.scene.rigid_bodies[index].options.motion ==
-            parallel_mater::MotionType::kinematic) {
+            parallel_mater::gallery::MotionType::kinematic) {
             next.kinematic_index = index;
             next.kinematic_target =
                 next.scene.rigid_bodies[index].options.initial_state;

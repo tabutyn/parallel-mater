@@ -69,10 +69,12 @@ class Difference:
 class Comparison:
     case_id: str
     differences: list[Difference] = field(default_factory=list)
+    unsupported: bool = False
+    reason: str = ""
 
     @property
     def passed(self) -> bool:
-        return not self.differences
+        return not self.differences and not self.unsupported
 
     def fail(self, path: str, message: str, expected: Any = None,
              actual: Any = None) -> None:
@@ -452,7 +454,30 @@ def compare_documents(case: dict[str, Any], expected: dict[str, Any],
     comparison = Comparison(case_id)
     ensure_finite(expected, "$expected", comparison)
     ensure_finite(actual, "$actual", comparison)
-    expected = canonicalize_contacts(copy.deepcopy(expected))
+    # Execution metadata is optional on historical v1 captures. It never
+    # establishes physical compliance. Incomplete execution cannot pass.
+    if expected.get("execution_status", "completed") != "completed":
+        comparison.fail("$expected.execution_status", "reference did not complete")
+        return comparison
+    status = actual.get("execution_status", "completed")
+    if status != "completed":
+        for key in ("case_id", "case_sha256"):
+            if actual.get(key) != expected.get(key):
+                comparison.fail(f"$.{key}", "exact value mismatch",
+                                expected.get(key), actual.get(key))
+        if status == "unsupported" and not comparison.differences:
+            comparison.unsupported = True
+            comparison.reason = str(actual.get("reason", "capability unavailable"))
+        else:
+            comparison.fail("$.execution_status", "case did not complete",
+                            "completed", status)
+        return comparison
+    expected = copy.deepcopy(expected)
+    actual = copy.deepcopy(actual)
+    for document in (expected, actual):
+        document.pop("execution_status", None)
+        document.pop("quality_status", None)
+    expected = canonicalize_contacts(expected)
     actual = canonicalize_contacts(copy.deepcopy(actual))
     align_rigid_contacts(expected, actual)
     compare_value(expected, actual, case, comparison)
@@ -502,10 +527,15 @@ def report_json(comparisons: list[Comparison]) -> dict[str, Any]:
                                 for difference in comparison.differences],
                 "id": comparison.case_id,
                 "passed": comparison.passed,
+                "status": "unsupported" if comparison.unsupported else
+                          "passed" if comparison.passed else "failed",
+                "reason": comparison.reason,
             }
             for comparison in comparisons
         ],
-        "failed": sum(not comparison.passed for comparison in comparisons),
+        "failed": sum(not item.passed and not item.unsupported for item in comparisons),
+        "unsupported": sum(item.unsupported for item in comparisons),
+        "scope": "reference_regression",
         "passed": sum(comparison.passed for comparison in comparisons),
         "schema": "parallel-mater-conformance-report/v1",
     }
@@ -528,13 +558,16 @@ def main() -> int:
             json.dumps(report, allow_nan=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8")
     for comparison in comparisons:
+        if comparison.unsupported:
+            print(f"UNSUPPORTED {comparison.case_id}: {comparison.reason}")
+            continue
         if comparison.passed:
             print(f"PASS {comparison.case_id}")
             continue
         print(f"FAIL {comparison.case_id}")
         for difference in comparison.differences:
             print(f"  {difference.path}: {difference.message}")
-    return 0 if report["failed"] == 0 else 1
+    return 1 if report["failed"] else 77 if report["unsupported"] else 0
 
 
 if __name__ == "__main__":

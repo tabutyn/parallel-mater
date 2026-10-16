@@ -38,3 +38,15 @@ residual and divergence; rope carries maximum strain; fluids carry foam.
 The comparator emits per-case `passed` status and structured differences with
 JSON paths, messages, expected values, and actual values. Human-readable output
 uses the same differences. Diagnostic fields are deliberately ignored.
+
+## Execution outcome metadata
+
+Completed v1 result documents may add `execution_status: "completed"` and
+`quality_status: "not_evaluated"`; older results omit both. Incomplete execution
+uses `parallel-mater-conformance-execution/v1` with `case_id`, `case_sha256`,
+`execution_status` (`unsupported` or `failed`), `quality_status`, and `reason`.
+These documents contain no physics result and cannot pass comparison.
+Report v1 adds per-case `status` and `reason`, an `unsupported` total, and
+`scope: "reference_regression"`. The existing `passed` boolean is false for
+unsupported cases. `failed` excludes unsupported cases; qualification callers
+must require both totals to be zero.

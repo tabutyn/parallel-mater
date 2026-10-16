@@ -3,9 +3,9 @@
 #include <parallel_mater_conformance/case_registry.hpp>
 #include <parallel_mater_conformance/json.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
-#include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_scene/scene.hpp>
 
-#include "scene_builder.hpp"
+#include <parallel_mater_scene/command_scene.hpp>
 
 #include <algorithm>
 #include <array>
@@ -36,6 +36,11 @@ namespace {
 using namespace parallel_mater;
 using namespace parallel_mater::conformance;
 using namespace parallel_mater::gallery;
+
+class UnsupportedCase final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
 
 constexpr std::size_t complete_state_limit = 256U;
 constexpr std::size_t large_sample_limit = 32U;
@@ -389,9 +394,13 @@ void initialize_frame(Runtime &runtime) {
     }
     initialize_frame(runtime);
     std::string error;
+    PmResult creation_category{};
     if (!CommandScene::create(runtime.scene, 0U, runtime.command_scene,
-                              runtime.instance, error))
+                              runtime.instance, error, std::nullopt, &creation_category)) {
+        if (creation_category == PM_ERROR_FEATURE_NOT_PRESENT)
+            throw UnsupportedCase(error);
         throw std::runtime_error("create command scene: " + error);
+    }
     return runtime;
 }
 
@@ -945,6 +954,9 @@ void copy_particle_state(const std::vector<State> &states,
     result["diagnostics"] = std::move(diagnostics);
     result["provenance"] = std::move(provenance);
     result["schema"] = "parallel-mater-conformance-result/v1";
+    result["execution_status"] = "completed";
+    // Physics pass/fail is determined by the independent comparator/quality gates.
+    result["quality_status"] = "not_evaluated";
     return result;
 }
 
@@ -1067,6 +1079,7 @@ struct Arguments {
     bool every_frame{};
     std::string case_id{};
     std::filesystem::path output{};
+    std::filesystem::path root{PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT};
 };
 
 [[nodiscard]] Arguments parse_arguments(int argc, char **argv) {
@@ -1079,6 +1092,8 @@ struct Arguments {
         else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
+        else if (argument == "--root" && index + 1 < argc)
+            result.root = argv[++index];
         else if (argument == "--output" && index + 1 < argc)
             result.output = argv[++index];
         else throw std::runtime_error("unknown or incomplete argument: " + argument);
@@ -1103,7 +1118,7 @@ struct Arguments {
 int main(int argc, char **argv) {
     try {
         const Arguments arguments = parse_arguments(argc, argv);
-        const std::filesystem::path root = PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT;
+        const std::filesystem::path root = arguments.root;
         if (arguments.list) {
             for (const auto &definition : case_registry())
                 std::cout << definition.id << '\n';
@@ -1125,13 +1140,31 @@ int main(int argc, char **argv) {
                                          arguments.case_id);
             definitions.push_back(definition);
         }
+        std::uint32_t completed{}, unsupported{}, failed{};
         for (const CaseDefinition *definition : definitions) {
             std::cout << "RUN " << definition->id << std::endl;
-            write_file(arguments.output / (definition->id + ".json"),
-                       run_case(*definition, root,
-                                arguments.every_frame).serialize());
+            Json result;
+            try {
+                result = run_case(*definition, root, arguments.every_frame);
+                ++completed;
+            } catch (const std::exception &error) {
+                const bool absent = dynamic_cast<const UnsupportedCase *>(&error) != nullptr;
+                if (absent) ++unsupported; else ++failed;
+                result = Json::object();
+                result["schema"] = "parallel-mater-conformance-execution/v1";
+                result["case_id"] = definition->id;
+                result["case_sha256"] = sha256(serialize_case(*definition));
+                result["execution_status"] = absent ? "unsupported" : "failed";
+                result["quality_status"] = "not_evaluated";
+                result["reason"] = error.what();
+                std::cerr << (absent ? "UNSUPPORTED " : "FAILED ") << definition->id
+                          << ": " << error.what() << '\n';
+            }
+            write_file(arguments.output / (definition->id + ".json"), result.serialize());
         }
-        return 0;
+        std::cout << "Execution: " << completed << " completed, " << unsupported
+                  << " unsupported, " << failed << " failed; quality gates run separately\n";
+        return failed ? 2 : (completed == 0 && unsupported != 0 ? 77 : 0);
     } catch (const std::exception &error) {
         std::cerr << "conformance: " << error.what() << '\n';
         return 2;
