@@ -324,7 +324,9 @@ int main() {
     pmGetSimulationMemoryRequirements(device, simulation,
                                       &simulation_requirements);
     CHECK(simulation_requirements.persistent.size > 256U);
-    CHECK(simulation_requirements.scratch.size > 256U);
+    CHECK(simulation_requirements.scratch.size != 0U);
+    CHECK(simulation_requirements.scratch.alignment != 0U);
+    CHECK(simulation_requirements.scratch.size % simulation_requirements.scratch.alignment == 0U);
     allocation.memoryTypeIndex = 1U;
     allocation.allocationSize = simulation_requirements.persistent.size;
     CHECK(pmAllocateMemory(device, &allocation, &persistent_memory) == PM_SUCCESS);
@@ -339,7 +341,7 @@ int main() {
                      static_cast<int>(bind_simulation));
     CHECK(bind_simulation == PM_SUCCESS);
 
-    PmRigidSolverState rigid_solver{10U, PM_TRUE, 0.02F, 0.02F, 0.5F};
+    PmRigidSolverState rigid_solver{10U, PM_FALSE, 0.02F, 0.02F, 0.5F};
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;

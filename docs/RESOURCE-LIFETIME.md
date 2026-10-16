@@ -48,8 +48,11 @@ required after a failed physics step where output validity is unknown.
 Applications must keep referenced objects and memory alive until completion.
 Pending storage is not reusable simply because pmQueueSubmit returned.
 Generation changes invalidate private runtime handles when a slot is retired;
-public commands continue to address their declared slot indices. Coupled endpoint
-replacement and graph rollback remain F2 work.
+public commands continue to address their declared slot indices. Active coupling
+handles are retired before endpoint writes. Graph descriptors retain slot indices
+and are resolved against current generations on the next step. A failed graph
+creation removes its partial edges; recovery can install a valid graph. Broader
+auxiliary references, including emitters and paint, still need lifecycle coverage.
 
 ## Current evidence
 
@@ -73,3 +76,10 @@ obligations; these tests do not establish numerical solver quality.
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data
 isolation, exact-capacity allocation, alignment, rejected oversized allocations,
 and rejection of interior/double frees.
+
+`tests/api/coupling_lifecycle_tests.cpp` qualifies graph lifetime using a liquid
+and rope without contact forces: repeated endpoint replacement, pipeline changes,
+explicit simulation graph changes, descriptor snapshots, capacity rejection and
+partial-creation rollback pass on CUDA. This is lifecycle evidence, not a claim
+of physical accuracy for every coupling pair. Retiring fluid/smoke owners and
+smoke coupling edges no longer allocates a replacement host tombstone.

@@ -27,6 +27,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <variant>
+#include <type_traits>
 
 struct PmInstance_T;
 struct PmDevice_T;
@@ -56,6 +58,7 @@ struct PmDevice_T {
     PmPhysicalDeviceFeatures enabled{};
     std::unique_ptr<parallel_mater::device::Services> services;
     PmQueue_T queue{};
+    std::atomic<std::uint64_t> next_pipeline_serial{1};
     std::atomic<PmDeviceSize> application_bytes{};
     std::atomic<PmDeviceSize> library_host_bytes{};
 };
@@ -96,6 +99,19 @@ struct PmDomainMemory {
     std::vector<std::unique_ptr<Arena>> fluids, cloths, ropes, soft_bodies, smokes;
 };
 
+using PmRuntimeCoupling = std::variant<
+    parallel_mater::FluidClothCouplingId,
+    parallel_mater::FluidRopeCouplingId,
+    parallel_mater::FluidSoftBodyCouplingId,
+    parallel_mater::FluidSmokeCouplingId,
+    parallel_mater::SoftBodyClothCouplingId,
+    parallel_mater::RopeSoftBodyCouplingId,
+    parallel_mater::RopeClothCouplingId,
+    parallel_mater::SmokeRigidCouplingId,
+    parallel_mater::SmokeClothCouplingId,
+    parallel_mater::SmokeRopeCouplingId,
+    parallel_mater::SmokeSoftBodyCouplingId>;
+
 struct PmSimulation_T {
     PmDevice_T *device{};
     PmSimulationCreateInfo info{};
@@ -126,6 +142,10 @@ struct PmSimulation_T {
     std::vector<std::optional<parallel_mater::ParticleDestroyPlaneId>> destroyers;
     std::vector<std::optional<parallel_mater::PaintFieldId>> paint_fields;
     std::vector<std::optional<parallel_mater::PaintRuleId>> paint_rules;
+    std::vector<PmCouplingState> requested_couplings;
+    bool explicit_couplings{};
+    std::vector<PmRuntimeCoupling> active_couplings;
+    std::uint64_t coupling_pipeline_serial{};
     bool couplings_initialized{};
     std::uint64_t submitted_steps{};
     std::uint32_t last_substeps{};
@@ -135,6 +155,7 @@ struct PmSimulation_T {
 
 struct PmPhysicsPipeline_T {
     PmDevice_T *device{};
+    std::uint64_t serial{};
     PmRigidSolverState rigid{};
     std::vector<PmLiquidMaterialState> fluids;
     std::vector<PmCouplingState> couplings;
@@ -330,6 +351,8 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
 
 [[nodiscard]] PmPhysicalDeviceFeatures supported_features() noexcept;
 [[nodiscard]] PFN_pmVoidFunction lookup_proc(const char *name) noexcept;
+[[nodiscard]] PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept;
+[[nodiscard]] PmResult clear_couplings(PmSimulation simulation) noexcept;
 [[nodiscard]] PmResult initialize_couplings(
     PmSimulation simulation, PmPhysicsPipeline pipeline) noexcept;
 [[nodiscard]] PmResult register_geometry(

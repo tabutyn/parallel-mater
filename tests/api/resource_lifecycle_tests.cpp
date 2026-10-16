@@ -44,6 +44,11 @@ static int run(std::uint32_t rigid_capacity, std::uint32_t particle_capacity) {
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.fluidMaterialCount = 2;
     pipeline_info.pFluidMaterials = materials;
+    const PmRigidSolverState sleeping{10, PM_TRUE, 0.02F, 0.02F, 0.5F};
+    auto unsupported_policy = pipeline_info; unsupported_policy.pRigidState = &sleeping;
+    PmPhysicsPipeline unsupported{};
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &unsupported_policy, &unsupported) == PM_ERROR_FEATURE_NOT_PRESENT);
+    PM_CHECK(!unsupported);
     PmPhysicsPipeline pipeline{};
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &pipeline_info, &pipeline) == PM_SUCCESS);
     const PmDeviceSize output_size = sizeof(PmDomainOutputHeader) + particle_capacity * sizeof(PmFluidParticleOutput);

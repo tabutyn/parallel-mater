@@ -597,7 +597,7 @@ SECTIONS += [
                 float sleepAngularThreshold;
                 float sleepTimeSeconds;
             } PmRigidSolverState;
-        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled."),
+        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled. The current reference drivers require enableSleeping = PM_FALSE and reject enabled sleeping with FEATURE_NOT_PRESENT; omitted rigid state defaults to sleeping disabled."),
         c("liquid_material", "Particle-liquid material", types="""
             typedef struct PmLiquidMaterialState {
                 float restDensity;
@@ -679,7 +679,7 @@ SECTIONS += [
                 uint32_t second;
                 PmCouplingParameters parameters;
             } PmCouplingState;
-        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid."),
+        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph. The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair."),
         c("domain_materials", "Deformable, rope & smoke materials", types="""
             typedef struct PmClothMaterialState {
                 float vertexMass;

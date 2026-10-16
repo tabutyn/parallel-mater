@@ -220,6 +220,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
             if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 parallel_mater::simulation::ScopedMemoryArena slot_scope(
                     simulation->domain_memory.cloths[first + offset].get());
@@ -304,6 +306,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRopes(
             if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 parallel_mater::simulation::ScopedMemoryArena slot_scope(
                     simulation->domain_memory.ropes[first + offset].get());
@@ -412,6 +416,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSoftBodies(
             if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 parallel_mater::simulation::ScopedMemoryArena slot_scope(
                     simulation->domain_memory.soft_bodies[first + offset].get());
@@ -504,6 +510,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSmoke(
             if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 parallel_mater::simulation::ScopedMemoryArena slot_scope(
                     simulation->domain_memory.smokes[first + offset].get());
@@ -1397,12 +1405,60 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyDebugData(
 
 namespace parallel_mater::api {
 
+PmResult clear_couplings(PmSimulation simulation) noexcept {
+    simulation->couplings_initialized = false;
+    simulation->coupling_pipeline_serial = 0;
+    while (!simulation->active_couplings.empty()) {
+        const auto status = std::visit([&](auto id) -> Status {
+            using Id = decltype(id);
+            if constexpr (std::is_same_v<Id, FluidClothCouplingId>)
+                return simulation->runtime->remove_fluid_cloth_coupling(id);
+            else if constexpr (std::is_same_v<Id, FluidRopeCouplingId>)
+                return simulation->runtime->remove_fluid_rope_coupling(id);
+            else if constexpr (std::is_same_v<Id, FluidSoftBodyCouplingId>)
+                return simulation->runtime->remove_fluid_soft_body_coupling(id);
+            else if constexpr (std::is_same_v<Id, FluidSmokeCouplingId>)
+                return simulation->runtime->remove_fluid_smoke_coupling(id);
+            else if constexpr (std::is_same_v<Id, SoftBodyClothCouplingId>)
+                return simulation->runtime->remove_soft_body_cloth_coupling(id);
+            else if constexpr (std::is_same_v<Id, RopeSoftBodyCouplingId>)
+                return simulation->runtime->remove_rope_soft_body_coupling(id);
+            else if constexpr (std::is_same_v<Id, RopeClothCouplingId>)
+                return simulation->runtime->remove_rope_cloth_coupling(id);
+            else if constexpr (std::is_same_v<Id, SmokeRigidCouplingId>)
+                return simulation->runtime->remove_smoke_rigid_coupling(id);
+            else if constexpr (std::is_same_v<Id, SmokeClothCouplingId>)
+                return simulation->runtime->remove_smoke_cloth_coupling(id);
+            else if constexpr (std::is_same_v<Id, SmokeRopeCouplingId>)
+                return simulation->runtime->remove_smoke_rope_coupling(id);
+            else if constexpr (std::is_same_v<Id, SmokeSoftBodyCouplingId>)
+                return simulation->runtime->remove_smoke_soft_body_coupling(id);
+        }, simulation->active_couplings.back());
+        if (!status) return from_status(status);
+        simulation->active_couplings.pop_back();
+    }
+    return PM_SUCCESS;
+}
+
 PmResult initialize_couplings(PmSimulation simulation,
                               PmPhysicsPipeline pipeline) noexcept {
     if (simulation == nullptr || pipeline == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    if (simulation->couplings_initialized) return PM_SUCCESS;
-    for (const PmCouplingState &source : pipeline->couplings) {
+    if (simulation->couplings_initialized &&
+        (simulation->explicit_couplings || simulation->coupling_pipeline_serial == pipeline->serial))
+        return PM_SUCCESS;
+    const auto &requested = simulation->explicit_couplings ? simulation->requested_couplings : pipeline->couplings;
+    if (requested.size() > simulation->info.couplingCapacity)
+        return PM_ERROR_CAPACITY_EXCEEDED;
+    try { simulation->active_couplings.reserve(requested.size()); }
+    catch (...) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
+    const auto cleared = clear_couplings(simulation);
+    if (cleared != PM_SUCCESS) return cleared;
+    const auto rollback = [&](PmResult result) {
+        const auto cleanup = clear_couplings(simulation);
+        return cleanup == PM_SUCCESS ? result : cleanup;
+    };
+    for (const PmCouplingState &source : requested) {
         const auto &mechanical = source.parameters.mechanical;
         const auto &smoke = source.parameters.smoke;
         const auto &attachment = source.parameters.attachment;
@@ -1413,29 +1469,30 @@ PmResult initialize_couplings(PmSimulation simulation,
             // Rigid/liquid contact is a core edge in the shared scheduler.
             break;
         case PM_COUPLING_LIQUID_LIQUID:
-            return PM_ERROR_FEATURE_NOT_PRESENT;
+            return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
         case PM_COUPLING_LIQUID_CLOTH: {
             FluidId fluid{}; ClothId cloth{};
             if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
                 (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             FluidClothCouplingId created{};
             result = from_status(simulation->runtime->add_fluid_cloth_coupling({
                 .fluid = fluid, .cloth = cloth,
                 .contact_distance = mechanical.contactDistance,
-                .interaction_radius = mechanical.maximumAcceleration,
+                .interaction_radius = 0.0F,
                 .stiffness = mechanical.stiffness,
                 .damping = mechanical.damping,
                 .tangential_drag = mechanical.tangentialDrag,
                 .maximum_force = mechanical.maximumForce,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_LIQUID_ROPE: {
             FluidId fluid{}; RopeId rope{};
             if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
                 (result = require_slot(simulation->ropes, source.second, rope)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             FluidRopeCouplingId created{};
             result = from_status(simulation->runtime->add_fluid_rope_coupling({
                 .fluid = fluid, .rope = rope,
@@ -1443,26 +1500,28 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .friction = mechanical.friction,
                 .maximum_rope_acceleration = mechanical.maximumAcceleration,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_LIQUID_SOFT_BODY: {
             FluidId fluid{}; SoftBodyId body{};
             if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
                 (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             FluidSoftBodyCouplingId created{};
             result = from_status(simulation->runtime->add_fluid_soft_body_coupling({
                 .fluid = fluid, .soft_body = body,
                 .contact_distance = mechanical.contactDistance,
                 .friction = mechanical.friction,
                 .solver_iterations = 4U, .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_LIQUID_SMOKE: {
             FluidId fluid{}; SmokeId smoke_id{};
             if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
                 (result = require_slot(simulation->smokes, source.second, smoke_id)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             FluidSmokeCouplingId created{};
             result = from_status(simulation->runtime->add_fluid_smoke_coupling({
                 .fluid = fluid, .smoke = smoke_id,
@@ -1480,26 +1539,28 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .heat_transfer_rate = thermal.heatTransferRate,
                 .wind_drag = thermal.windDrag,
                 .steam_rise_speed = thermal.steamRiseSpeed}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_SOFT_BODY_CLOTH: {
             SoftBodyId body{}; ClothId cloth{};
             if ((result = require_slot(simulation->soft_bodies, source.first, body)) != PM_SUCCESS ||
                 (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             SoftBodyClothCouplingId created{};
             result = from_status(simulation->runtime->add_soft_body_cloth_coupling({
                 .soft_body = body, .cloth = cloth,
                 .contact_distance = mechanical.contactDistance,
                 .friction = mechanical.friction,
                 .solver_iterations = 4U, .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_ROPE_SOFT_BODY: {
             RopeId rope{}; SoftBodyId body{};
             if ((result = require_slot(simulation->ropes, source.first, rope)) != PM_SUCCESS ||
                 (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             RopeSoftBodyCouplingId created{};
             result = from_status(simulation->runtime->add_rope_soft_body_coupling({
                 .rope = rope, .soft_body = body,
@@ -1512,13 +1573,14 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .attach_first = attachment.attachFirst == PM_TRUE,
                 .attach_last = attachment.attachLast == PM_TRUE,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_ROPE_CLOTH: {
             RopeId rope{}; ClothId cloth{};
             if ((result = require_slot(simulation->ropes, source.first, rope)) != PM_SUCCESS ||
                 (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             RopeClothCouplingId created{};
             result = from_status(simulation->runtime->add_rope_cloth_coupling({
                 .rope = rope, .cloth = cloth,
@@ -1527,13 +1589,14 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .anchor_effective_mass = attachment.effectiveMass,
                 .maximum_cloth_acceleration = attachment.maximumAcceleration,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_SMOKE_RIGID: {
             SmokeId smoke_id{}; RigidBodyId body{};
             if ((result = require_slot(simulation->smokes, source.first, smoke_id)) != PM_SUCCESS ||
                 (result = require_slot(simulation->rigid_bodies, source.second, body)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             SmokeRigidCouplingId created{};
             result = from_status(simulation->runtime->add_smoke_rigid_coupling({
                 .smoke = smoke_id, .body = body,
@@ -1542,13 +1605,14 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .contact_distance = smoke.contactDistance,
                 .tracer_contact = smoke.tracerContact == PM_TRUE,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_SMOKE_CLOTH: {
             SmokeId smoke_id{}; ClothId cloth{};
             if ((result = require_slot(simulation->smokes, source.first, smoke_id)) != PM_SUCCESS ||
                 (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             SmokeClothCouplingId created{};
             result = from_status(simulation->runtime->add_smoke_cloth_coupling({
                 .smoke = smoke_id, .cloth = cloth,
@@ -1556,13 +1620,14 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .maximum_wind_acceleration = smoke.maximumWindAcceleration,
                 .contact_distance = smoke.contactDistance,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_SMOKE_ROPE: {
             SmokeId smoke_id{}; RopeId rope{};
             if ((result = require_slot(simulation->smokes, source.first, smoke_id)) != PM_SUCCESS ||
                 (result = require_slot(simulation->ropes, source.second, rope)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             SmokeRopeCouplingId created{};
             result = from_status(simulation->runtime->add_smoke_rope_coupling({
                 .smoke = smoke_id, .rope = rope,
@@ -1570,13 +1635,14 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .maximum_wind_acceleration = smoke.maximumWindAcceleration,
                 .contact_distance = smoke.contactDistance,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         case PM_COUPLING_SMOKE_SOFT_BODY: {
             SmokeId smoke_id{}; SoftBodyId body{};
             if ((result = require_slot(simulation->smokes, source.first, smoke_id)) != PM_SUCCESS ||
                 (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
-                return result;
+                return rollback(result);
             SmokeSoftBodyCouplingId created{};
             result = from_status(simulation->runtime->add_smoke_soft_body_coupling({
                 .smoke = smoke_id, .soft_body = body,
@@ -1584,13 +1650,45 @@ PmResult initialize_couplings(PmSimulation simulation,
                 .maximum_wind_acceleration = smoke.maximumWindAcceleration,
                 .contact_distance = smoke.contactDistance,
                 .enabled = true}, created));
+            if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
         }
-        if (result != PM_SUCCESS) return result;
+        if (result != PM_SUCCESS) return rollback(result);
     }
+    simulation->coupling_pipeline_serial = pipeline->serial;
     simulation->couplings_initialized = true;
     return PM_SUCCESS;
 }
 
 } // namespace parallel_mater::api
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(
+    PmCommandBuffer command_buffer, PmSimulation simulation, std::uint32_t count,
+    const PmCouplingState *couplings) {
+    const auto recording = parallel_mater::api::require_recording(command_buffer);
+    if (recording != PM_SUCCESS) return recording;
+    if (!simulation || simulation->device != command_buffer->device || (count && !couplings))
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (count > simulation->info.couplingCapacity) return PM_ERROR_CAPACITY_EXCEEDED;
+    for (std::uint32_t i = 0; i < count; ++i) {
+        const auto result = parallel_mater::api::validate_coupling(simulation->device, couplings[i]);
+        if (result != PM_SUCCESS) return result;
+    }
+    try {
+        std::vector<PmCouplingState> copied;
+        if (count) copied.assign(couplings, couplings + count);
+        return parallel_mater::api::record_simulation(command_buffer, simulation,
+            [simulation, copied = std::move(copied)](parallel_mater::device::Services &) noexcept {
+                if (!simulation->binding.persistentMemory) return PM_ERROR_INVALID_STATE;
+                std::vector<PmCouplingState> next;
+                try { next = copied; } // Preserve recorded data for command-buffer resubmission.
+                catch (...) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
+                const auto result = parallel_mater::api::clear_couplings(simulation);
+                if (result != PM_SUCCESS) return result;
+                simulation->requested_couplings.swap(next);
+                simulation->explicit_couplings = true;
+                return PM_SUCCESS;
+            });
+    } catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
+}

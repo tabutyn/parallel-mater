@@ -113,7 +113,7 @@ using parallel_mater::Vec3;
     options.rope_soft_body_coupling_capacity = coupling_capacity;
     options.rope_cloth_coupling_capacity = coupling_capacity;
     options.physics_debug.frame_capacity = info.debugFrameCapacity;
-    options.rigid_sleeping = true;
+    options.rigid_sleeping = false;
     return options;
 }
 
@@ -684,6 +684,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
             if (result != PM_SUCCESS) return result;
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 auto &slot = simulation->rigid_bodies[first + offset];
                 if (slot.has_value()) {
@@ -930,6 +932,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             for (auto &slot : simulation->destroyers) slot.reset();
             for (auto &slot : simulation->paint_fields) slot.reset();
             for (auto &slot : simulation->paint_rules) slot.reset();
+            simulation->requested_couplings.clear();
+            simulation->explicit_couplings = false;
+            simulation->active_couplings.clear();
+            simulation->coupling_pipeline_serial = 0;
             simulation->couplings_initialized = false;
             simulation->submitted_steps = 0U;
             simulation->last_substeps = 0U;
@@ -973,6 +979,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
             if (result != PM_SUCCESS) return result;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->domain_memory.fluids[fluid].get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             auto &slot = simulation->fluid_ids[fluid];
             if (slot.has_value()) {
                 result = parallel_mater::api::from_status(

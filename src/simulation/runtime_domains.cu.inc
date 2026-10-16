@@ -139,18 +139,11 @@ Status SimulationRuntime::remove_fluid(
         if (coupling.alive && coupling.options.fluid == id)
             return failure(StatusCode::invalid_argument,
                 "fluid is still referenced by a cloth coupling");
-    std::unique_ptr<FluidStorage> tombstone(
-        new (std::nothrow) FluidStorage());
-    if (!tombstone)
-        return failure(StatusCode::out_of_memory,
-                       "fluid removal tombstone allocation failed");
-    const std::uint32_t generation = fluid->generation + 1U;
     status = read_host_objects(impl_->execution, fluid->count);
     if (!status) return status;
     impl_->destroyed_particle_count +=
         fluid->initial_count + fluid->emitted_count - *fluid->count;
-    tombstone->generation = generation;
-    impl_->fluids[id.index] = std::move(tombstone);
+    retire_owner(*fluid);
     for (ParticleSourceSlot &plane : impl_->particle_sources)
         if (plane.alive && plane.options.fluid == id) {
             plane.alive = false; ++plane.generation; plane.data.reset();
@@ -359,12 +352,7 @@ Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a rigid coupling");
-    std::unique_ptr<SmokeStorage> tombstone;
-    try { tombstone = std::make_unique<SmokeStorage>(); }
-    catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
-    tombstone->generation = impl_->smokes[id.index]->generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->smokes[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smokes[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -474,12 +462,7 @@ Status SimulationRuntime::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) n
         !impl_->fluid_smoke_couplings[id.index]->alive ||
         impl_->fluid_smoke_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid smoke coupling handle is stale");
-    std::unique_ptr<FluidSmokeCouplingStorage> tombstone;
-    try { tombstone = std::make_unique<FluidSmokeCouplingStorage>(); }
-    catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->fluid_smoke_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->fluid_smoke_couplings[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -548,14 +531,8 @@ Status SimulationRuntime::remove_smoke_soft_body_coupling(
         impl_->smoke_soft_body_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke soft-body coupling handle is stale");
-    std::unique_ptr<SmokeSoftBodyCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeSoftBodyCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke soft-body coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_soft_body_couplings[id.index]->options.smoke;
-    impl_->smoke_soft_body_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_soft_body_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -623,14 +600,8 @@ Status SimulationRuntime::remove_smoke_cloth_coupling(SmokeClothCouplingId id) n
         impl_->smoke_cloth_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke cloth coupling handle is stale");
-    std::unique_ptr<SmokeClothCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeClothCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke cloth coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_cloth_couplings[id.index]->options.smoke;
-    impl_->smoke_cloth_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_cloth_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -697,13 +668,7 @@ Status SimulationRuntime::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noe
         impl_->smoke_rope_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke rope coupling handle is stale");
-    std::unique_ptr<SmokeRopeCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeRopeCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke rope coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->smoke_rope_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_rope_couplings[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -764,14 +729,8 @@ Status SimulationRuntime::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) n
         impl_->smoke_rigid_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke rigid coupling handle is stale");
-    std::unique_ptr<SmokeRigidCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeRigidCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke rigid coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_rigid_couplings[id.index]->options.smoke;
-    impl_->smoke_rigid_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_rigid_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();

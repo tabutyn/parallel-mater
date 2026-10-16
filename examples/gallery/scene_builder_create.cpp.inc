@@ -241,6 +241,7 @@ bool CommandScene::create(const SceneDefinition &scene,
         state.first = first;
         state.second = second;
         state.parameters.mechanical = parameters;
+        if (type == PM_COUPLING_LIQUID_RIGID) state.parameters.mechanical.twoWay = PM_TRUE;
         couplings.push_back(state);
     };
     try {
@@ -252,7 +253,7 @@ bool CommandScene::create(const SceneDefinition &scene,
                 add_mechanical(PM_COUPLING_LIQUID_CLOTH, 0U, cloth,
                     {options.contact_distance, options.stiffness,
                      options.damping, 0.0F, options.tangential_drag,
-                     options.maximum_force, options.interaction_radius,
+                     options.maximum_force, 0.0F,
                      PM_TRUE});
             }
             for (std::uint32_t soft = 0U;

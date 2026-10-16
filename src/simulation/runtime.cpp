@@ -43,6 +43,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <type_traits>
 #include <vector>
 
 namespace parallel_mater {
@@ -463,6 +464,17 @@ template <typename T> void release_managed(T *&pointer) noexcept {
         (void)simulation::release_bound(pointer);
         pointer = nullptr;
     }
+}
+
+// Keep the host slot allocation when retiring an owner. Cleanup must not
+// require fresh host memory while recovering from an allocation failure.
+template<class T> void retire_owner(T &owner) noexcept {
+    static_assert(std::is_nothrow_default_constructible_v<T>);
+    auto generation = owner.generation + 1U;
+    if (!generation) generation = 1U;
+    std::destroy_at(&owner);
+    std::construct_at(&owner);
+    owner.generation = generation;
 }
 
 template <typename T>

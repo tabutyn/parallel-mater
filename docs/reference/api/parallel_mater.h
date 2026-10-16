@@ -1174,6 +1174,10 @@ typedef PmResult (PMAPI_CALL *PFN_pmCmdWriteRigidConstraints)(
     uint32_t firstConstraint, uint32_t count,
     const PmRigidConstraintInfo* pConstraints);
 
+typedef PmResult (PMAPI_CALL *PFN_pmCmdSetCouplings)(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingState *pCouplings);
+
 typedef PmResult (PMAPI_CALL *PFN_pmCreatePhysicsPipeline)(
     PmDevice device,
     const PmPhysicsPipelineCreateInfo* pInfo,
@@ -1588,6 +1592,10 @@ PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidConstraints(
     PmSimulation simulation,
     uint32_t firstConstraint, uint32_t count,
     const PmRigidConstraintInfo* pConstraints);
+
+PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingState *pCouplings);
 
 PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
     PmDevice device,

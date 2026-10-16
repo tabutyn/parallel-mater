@@ -108,7 +108,17 @@ recovery cases run through the public API. This is the next implementation slice
 
 ### F2. Make the interaction graph a first-class simulation resource
 
-Status: pending; extends milestone 2.
+Status: in progress; extends milestone 2. The reference API now tracks active
+coupling handles on the simulation, retires them before endpoint replacement,
+reconciles pipeline changes and rolls back partially created graphs. New
+`pmCmdSetCouplings` records a simulation-owned graph independently of pipeline
+creation. CPU host/loader checks pass (23 passed, two unsupported domain cases
+skipped); CUDA passes the fluid–rope graph lifecycle regression, including
+endpoint replacement, policy/explicit graph changes, snapshots and partial graph
+rollback. Retirement reuses host owners without allocating tombstones.
+Sleeping and one-way mechanical requests now fail explicitly, and
+liquid/cloth no longer interprets acceleration as a distance. Pair/mode capability
+queries and qualified fluid–fluid physics remain open.
 
 - Separate mutable coupling edges from immutable pipeline policy. Support
   create/update/remove/rebind and endpoint replacement with stable generations.
