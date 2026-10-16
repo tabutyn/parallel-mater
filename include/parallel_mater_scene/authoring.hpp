@@ -153,6 +153,12 @@ enum class RigidConstraintType : std::uint32_t {
     motor,
 };
 
+inline constexpr std::uint8_t rigid_constraint_axis_x = 1U << 0U;
+inline constexpr std::uint8_t rigid_constraint_axis_y = 1U << 1U;
+inline constexpr std::uint8_t rigid_constraint_axis_z = 1U << 2U;
+inline constexpr std::uint32_t rigid_constraint_all_axes =
+    rigid_constraint_axis_x | rigid_constraint_axis_y | rigid_constraint_axis_z;
+
 struct RigidConstraintLimitOptions {
     // Bit mask of rigid_constraint_axis_* values. Disabled axes remain free.
     std::uint32_t axes{};

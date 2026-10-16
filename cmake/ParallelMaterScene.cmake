@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Optional host-side scene authoring and public-command client. No renderer,
 # native graphics API, GPU toolchain, or private simulation header dependency.
-if(NOT PARALLEL_MATER_BUILD_GALLERY AND NOT PARALLEL_MATER_BUILD_CONFORMANCE)
+if(NOT PARALLEL_MATER_BUILD_GALLERY AND NOT PARALLEL_MATER_BUILD_SCENE_SDK
+   AND NOT PARALLEL_MATER_BUILD_CONFORMANCE)
     return()
 endif()
 add_library(parallel-mater-scene STATIC

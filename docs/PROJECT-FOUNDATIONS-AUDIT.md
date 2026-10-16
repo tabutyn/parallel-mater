@@ -23,6 +23,13 @@ rejection, and searchable-spec consistency checks. See
 The first F4 checkpoint removes generated CUDA from Vulkan ABI generation;
 [COMMON-RESOURCE-BOUNDARY.md](COMMON-RESOURCE-BOUNDARY.md) records the new neutral
 reflection model, runtime evidence and remaining engine ownership work.
+`603fee5` separates the headless conformance/scene SDK and execution outcomes.
+The F6 follow-up aligns package/API 0.2, adds relocatable installed-consumer and
+external-driver gates, and removes active old-worktree toolchain dependencies.
+See [SDK release contract](SDK-RELEASES.md), [qualification scope](QUALIFICATION.md)
+and [preserved work disposition](WORKTREE-RECONCILIATION.md). None of these
+packaging/compiler passes closes outstanding physical-quality or engine-handoff
+gates.
 
 ## Assessment
 

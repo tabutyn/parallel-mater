@@ -12,6 +12,8 @@ set_target_properties(parallel-mater PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
     EXPORT_NAME parallel_mater
+    VERSION ${PROJECT_VERSION}
+    SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
     POSITION_INDEPENDENT_CODE ON)
 target_include_directories(parallel-mater
     PUBLIC

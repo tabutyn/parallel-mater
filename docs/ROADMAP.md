@@ -205,7 +205,15 @@ every advertised mode has current correctness and quality evidence.
 
 ### F6. Establish reproducible SDK releases and repository ownership
 
-Status: basic install/relocation works; release gates are missing.
+Status: SDK/package version is 0.2.0 with same-minor compatibility. Minimal,
+headless CI and CPU presets separate toolchain requirements. Installed C/C++
+consumers and an external mock driver pass after relocation; standalone
+conformance validates installed corpus inputs. Linux CI, release/contribution
+rules and an evidence index are added. Active builds no longer depend on old
+worktrees; unique hinge/contact/asset patches remain preserved for review.
+Cross-platform package qualification, bit-identical release reproduction and
+retirement of those preserved patches remain open. See [SDK releases](SDK-RELEASES.md)
+and [worktree reconciliation](WORKTREE-RECONCILIATION.md).
 
 - Define package/API version policy and resolve the current CMake 0.1.0 versus
   API 0.2 mismatch. Add installed C/C++ consumer and external-driver CI gates.

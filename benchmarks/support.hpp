@@ -17,6 +17,15 @@
 
 namespace parallel_mater::benchmark {
 
+// Benchmark input values, translated into public CommandScene calls.
+struct StepOptions {
+    float timestep{1.0F / 60.0F};
+    std::uint32_t substeps{4U};
+    Vec3 gravity{0.0F, -9.81F, 0.0F};
+    bool collect_kernel_timings{};
+    std::uint32_t rigid_contact_pass_limit{};
+};
+
 [[nodiscard]] inline StepOptions standard_step_options(bool collect_timings) {
     return {.timestep = 1.0F / 60.0F, .substeps = 4U,
             .gravity = {0.0F, -9.81F, 0.0F},
