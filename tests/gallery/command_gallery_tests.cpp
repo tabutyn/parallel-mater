@@ -189,8 +189,8 @@ bool validate_torque_free_rotation(const TriangleMesh &mesh,
     return true;
 }
 
-bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
-                               std::string &error) {
+bool validate_swept_face_impact_case(std::optional<PmNativeBackend> backend,
+                                    float start, unsigned substeps, std::string &error) {
     SceneDefinition scene;
     TriangleMesh box;
     box.vertices = {{{-0.25F, -0.25F, -0.25F}}, {{0.25F, -0.25F, -0.25F}},
@@ -209,7 +209,7 @@ bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
     scene.rigid_bodies.push_back(body);
     body.name = "TranslatingStriker";
     body.options.motion = MotionType::kinematic;
-    body.options.initial_state.position = {-1.0F, 0.0F, 0.0F};
+    body.options.initial_state.position = {start, 0.0F, 0.0F};
     scene.rigid_bodies.push_back(body);
     CommandScene simulation;
     CommandSceneInstance instance;
@@ -218,13 +218,14 @@ bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
     target.position = {1.0F, 0.0F, 0.0F};
     if (!CommandScene::create(scene, 2U, simulation, instance, error, backend) ||
         !simulation.set_kinematic_target(instance.rigid_bodies.at(1U), target, error) ||
-        !simulation.step(1.0F / 60.0F, 4U, {}, frame, error, true)) return false;
+        !simulation.step(1.0F / 60.0F, substeps, {}, frame, error, true)) return false;
     const auto &actual = frame.rigid_states.at(0U);
     float transverse_speed = std::max(std::abs(actual.linearVelocity[1]),
                                      std::abs(actual.linearVelocity[2]));
     float angular_speed = std::max({std::abs(actual.angularVelocity[0]),
         std::abs(actual.angularVelocity[1]), std::abs(actual.angularVelocity[2])});
-    std::cout << "Swept face impact: forward=" << actual.linearVelocity[0]
+    std::cout << "Swept face impact: start=" << start << " substeps=" << substeps
+              << " forward=" << actual.linearVelocity[0]
               << " transverse=" << transverse_speed << " angular=" << angular_speed << '\n';
     if (actual.linearVelocity[0] <= 1.0F || transverse_speed > 1.0e-3F ||
         angular_speed > 0.01F) {
@@ -232,6 +233,13 @@ bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
         return false;
     }
     return true;
+}
+
+bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
+                               std::string &error) {
+    return validate_swept_face_impact_case(backend, -1.0F, 4U, error) &&
+        validate_swept_face_impact_case(backend, -1.0F, 1U, error) &&
+        validate_swept_face_impact_case(backend, -0.5F, 1U, error);
 }
 
 bool validate_face_contact_normals(const TriangleMesh &mesh,
@@ -302,25 +310,41 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
     CommandSceneFrame frame;
     if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) return false;
     std::size_t contacts{};
+    float minimum_clearance = 0.0F;
     for (unsigned step = 0U; step < 60U; ++step) {
         if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, frame, error, true))
             return false;
+        const auto &state = frame.rigid_states.at(0U);
+        const Quaternion orientation{state.orientation[0], state.orientation[1],
+            state.orientation[2], state.orientation[3]};
+        for (const auto &vertex : refined.vertices)
+            minimum_clearance = std::min(minimum_clearance, state.position[1] +
+                rigid_mesh_checks::rotate(orientation, vertex.position).y);
+        if (minimum_clearance < -0.002F) {
+            error = "planar floor penetration=" + std::to_string(-minimum_clearance) +
+                " m at frame " + std::to_string(step);
+            return false;
+        }
         for (const auto &contact : frame.contacts) {
             ++contacts;
             if (std::abs(contact.normal.x) > 1.0e-6F ||
                 std::abs(contact.normal.z) > 1.0e-6F ||
                 std::abs(contact.normal.y - 1.0F) > 1.0e-6F) {
-                error = "planar ground contact generated an inward or tangential normal";
+                error = "planar ground contact generated normal " +
+                    std::to_string(contact.normal.x) + "," + std::to_string(contact.normal.y) +
+                    "," + std::to_string(contact.normal.z) + " at frame " + std::to_string(step) +
+                    " body y=" + std::to_string(frame.rigid_states.at(0U).position[1]);
                 return false;
             }
         }
     }
     if (contacts == 0U) { error = "face-normal regression produced no contacts"; return false; }
-    std::cout << "Planar face normals passed (" << contacts << " contacts)\n";
+    std::cout << "Planar face normals passed (" << contacts << " contacts), penetration="
+              << -minimum_clearance << " m\n";
     // Adjacent closed boxes share coplanar top/bottom/front/back surfaces.
     // Those co-facing surfaces are not opposing collision boundaries.
     SceneDefinition seam_scene;
-    seam_scene.meshes.push_back(surface_box);
+    seam_scene.meshes = {surface_box, surface_box};
     float minimum_x = surface_box.vertices.front().position.x;
     float maximum_x = minimum_x;
     float minimum_y_seam = surface_box.vertices.front().position.y;
@@ -336,20 +360,98 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
     body.mesh_indices = {0U};
     seam_scene.rigid_bodies.push_back(body);
     body.name = "SeamStatic";
+    body.mesh_indices = {1U};
     body.options.motion = MotionType::static_body;
     body.options.initial_state.position.x = maximum_x - minimum_x - 0.001F;
     body.options.initial_state.position.y = 0.9F * (maximum_y_seam - minimum_y_seam);
     seam_scene.rigid_bodies.push_back(body);
-    CommandScene seam_simulation;
-    if (!CommandScene::create(seam_scene, 2U, seam_simulation, instance, error, backend) ||
-        !seam_simulation.step(1.0F / 60.0F, 4U, {}, frame, error, true)) return false;
-    if (frame.contacts.empty()) { error = "surface seam produced no contacts"; return false; }
-    for (const auto &contact : frame.contacts)
-        if (std::abs(contact.normal.z) > 1.0e-6F) {
-            error = "co-facing surface seam generated a collision normal";
-            return false;
+    for (bool open : {false, true}) {
+        if (open) {
+            // An uncapped volume still has exterior support faces. Missing
+            // faces elsewhere must not make its front/back seam collide.
+            auto &indices = seam_scene.meshes[0].indices;
+            std::vector<std::uint32_t> remaining;
+            for (std::size_t i = 0; i < indices.size(); i += 3U) {
+                bool top = true;
+                for (std::size_t corner = 0; corner < 3U; ++corner)
+                    top = top && surface_box.vertices[indices[i + corner]].position.y ==
+                        maximum_y_seam;
+                if (!top) remaining.insert(remaining.end(),
+                    indices.begin() + i, indices.begin() + i + 3U);
+            }
+            indices = std::move(remaining);
+            // An extruded concave side wall is not a support plane. Its
+            // interior edges must still not collide with the other box's
+            // front/back surfaces, as in the authored gear/rack mesh pair.
+            for (auto &vertex : seam_scene.meshes[0].vertices)
+                if (vertex.position.x == maximum_x &&
+                    vertex.position.y > minimum_y_seam &&
+                    vertex.position.y < maximum_y_seam)
+                    vertex.position.x -= 0.02F;
         }
-    std::cout << "Co-facing surface seams passed\n";
+        CommandScene seam_simulation;
+        if (!CommandScene::create(seam_scene, 2U, seam_simulation, instance, error, backend) ||
+            !seam_simulation.step(1.0F / 60.0F, 1U, {}, frame, error, true)) return false;
+        if (frame.contacts.empty()) { error = "surface seam produced no contacts"; return false; }
+        for (const auto &contact : frame.contacts)
+            if (std::abs(contact.normal.z) > 1.0e-6F) {
+                error = std::string(open ? "open" : "closed") +
+                    " co-facing surface seam generated normal " +
+                    std::to_string(contact.normal.x) + "," + std::to_string(contact.normal.y) +
+                    "," + std::to_string(contact.normal.z);
+                return false;
+            }
+        std::cout << (open ? "Open" : "Closed") << " co-facing surface seams passed\n";
+    }
+    // A truly flat open sheet has no certified inside. Keep collision from
+    // both sides, irrespective of its authored triangle winding.
+    for (float side : {-1.0F, 1.0F}) {
+        SceneDefinition sheet_scene;
+        sheet_scene.meshes = {surface_box, floor};
+        sheet_scene.meshes[1].indices.resize(6U);
+        sheet_scene.meshes[1].vertices.resize(4U);
+        body = {};
+        body.name = "SheetProbe";
+        body.mesh_indices = {0U};
+        body.options.linear_damping = 0.0F;
+        body.options.angular_damping = 0.0F;
+        body.options.initial_state.position.y = side > 0.0F
+            ? 0.02F - minimum_y_seam : -0.02F - maximum_y_seam;
+        body.options.initial_state.linear_velocity.y = -side;
+        sheet_scene.rigid_bodies.push_back(body);
+        body = {};
+        body.name = "TwoSidedSheet";
+        body.mesh_indices = {1U};
+        body.options.motion = MotionType::static_body;
+        sheet_scene.rigid_bodies.push_back(body);
+        CommandScene sheet_simulation;
+        if (!CommandScene::create(sheet_scene, 2U, sheet_simulation, instance, error, backend))
+            return false;
+        bool saw_contact = false;
+        for (unsigned step = 0U; step < 30U; ++step) {
+            if (!sheet_simulation.step(1.0F / 60.0F, 4U, {}, frame, error, true)) return false;
+            for (const auto &contact : frame.contacts) {
+                saw_contact = true;
+                if (contact.normal.y * side < 0.99F) {
+                    error = "open sheet reversed a two-sided contact";
+                    return false;
+                }
+            }
+            const auto &state = frame.rigid_states[0];
+            const Quaternion orientation{state.orientation[0], state.orientation[1],
+                state.orientation[2], state.orientation[3]};
+            for (const auto &vertex : surface_box.vertices) {
+                const float height = state.position[1] +
+                    rigid_mesh_checks::rotate(orientation, vertex.position).y;
+                if (height * side < -0.002F) {
+                    error = "body penetrated a two-sided sheet";
+                    return false;
+                }
+            }
+        }
+        if (!saw_contact) { error = "two-sided sheet contact missing"; return false; }
+    }
+    std::cout << "Two-sided open sheet contacts passed\n";
     return true;
 }
 

@@ -866,20 +866,37 @@ bool rigid_contact_reaches_rest_offset(RigidBodyState body,
     return -speed * timestep + restOffset + 1.0e-5f >= distance;
 }
 
-// Shell metadata certifies which side of a triangle is outside its closed
-// convex component. Apply that sign to the actual (possibly swept) triangle.
+// Shell metadata certifies exterior faces of closed components and support
+// planes. Apply that sign to the actual (possibly swept) triangle.
 Vec3 rigid_shell_outward(__constref TriangleMeshResource mesh, uint triangle,
     Vec3 a, Vec3 b, Vec3 c)
 {
     if (!pmBufferPresent(mesh.shell_normals)) return {};
     Vec3 outward = mesh.shell_normals[triangle];
-    if (length_squared(outward) < 0.5f) return {};
+    float squared = length_squared(outward);
+    if (squared < 0.01f) return {};
     Vec3 localA = mesh.vertices[mesh.indices[triangle * 3u]];
     Vec3 localB = mesh.vertices[mesh.indices[triangle * 3u + 1u]];
     Vec3 localC = mesh.vertices[mesh.indices[triangle * 3u + 2u]];
     float sign = dot(cross(subtract(localB, localA), subtract(localC, localA)),
         outward) >= 0.0f ? 1.0f : -1.0f;
-    return multiply(normalized_or(cross(subtract(b, a), subtract(c, a)), {}), sign);
+    return multiply(normalized_or(cross(subtract(b, a), subtract(c, a)), {}),
+        sign * (squared > 0.5f ? 1.0f : 0.25f));
+}
+
+bool rigid_shell_contact_facing(Vec3 normal, Vec3 outwardA, Vec3 outwardB)
+{
+    // A face normal is supported by an opposing surface, not by a tangent
+    // side wall meeting it at a coplanar seam. Adjacent outward-facing
+    // triangles supply actual edge/vertex contacts on a closed shell.
+    float squaredA = length_squared(outwardA);
+    float squaredB = length_squared(outwardB);
+    return (squaredA < 0.01f || (squaredA > 0.5f
+            ? dot(normal, outwardA) < -1.0e-3f
+            : abs(dot(normal, outwardA)) > 2.5e-4f)) &&
+        (squaredB < 0.01f || (squaredB > 0.5f
+            ? dot(normal, outwardB) > 1.0e-3f
+            : abs(dot(normal, outwardB)) > 2.5e-4f));
 }
 
 void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
@@ -930,13 +947,10 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             Vec3 fallback = dot(colliderNormal,
                 subtract(bodyReference, pointB)) >= 0.0f
                 ? colliderNormal : multiply(colliderNormal, -1.0f);
-            // Closed convex colliders have an unambiguous outward direction.
+            // Certified exterior faces have an unambiguous outward direction.
             // A concave body's origin may be inside its cavity, so orienting
             // the collider from that origin can reverse a real contact.
-            if (!pmBufferPresent(aMesh.solid_planes) &&
-                pmBufferPresent(bMesh.solid_planes))
-                fallback = rotate(bState.orientation,
-                    bMesh.solid_planes[bt].normal);
+            if (length_squared(outwardB) > 0.5f) fallback = outwardB;
             float distance = sqrt(max(squared, 0.0f));
             Vec3 point = multiply(add(pointA, pointB), 0.5f);
             Vec3 planeProjection = subtract(pointA, multiply(colliderNormal,
@@ -949,14 +963,20 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             // roundoff into spurious tangential impulses.
             Vec3 normal = (distance <= 1.0e-5f || onTriangleFace)
                 ? fallback : normalized_or(delta, fallback);
+            if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) continue;
+            // A face witness inside the collider has negative separation.
+            // Using its unsigned distance turns growing overlap into an
+            // increasingly inactive contact once side-wall seams are culled.
+            float separation = onTriangleFace && length_squared(outwardB) > 0.5f
+                ? dot(delta, normal) : distance;
             if (!rigid_contact_reaches_rest_offset(aState, bState, point,
-                normal, distance, restOffset, timestep)) continue;
+                normal, separation, restOffset, timestep)) continue;
             Contact contact = {};
             contact.normal = normal;
             contact.point = point;
             contact.body_hinge = bodyHinge;
             contact.collider_hinge = colliderHinge;
-            contact.penetration = restOffset - distance + 1.0e-5f;
+            contact.penetration = restOffset - separation + 1.0e-5f;
             if (distance <= 1.0e-5f)
             {
                 if (bodyHinge.fixed_member != 0u ||
@@ -1203,9 +1223,22 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
     {
         bool clipped = rigid_convex_face_manifold(body, bodyMesh, bodyHinge,
             collider, colliderMesh, colliderHinge, margin, output);
-        // A fast body can leave through the opposite face during this step;
-        // an empty final manifold must not suppress its swept contact.
-        return clipped && output.count != 0u;
+        if (clipped && output.count != 0u) return true;
+        // A touching body can cross the entire collider in one step. Use its
+        // initial face when the final poses are disjoint; the triangle CCD
+        // intentionally leaves already-touching features to this manifold.
+        if (!rigid_convex_face_manifold(previousBody, bodyMesh, bodyHinge,
+            previousCollider, colliderMesh, colliderHinge, margin, output) ||
+            output.count == 0u) return false;
+        for (uint point = 0u; point < output.count; ++point)
+        {
+            float closing = -dot(subtract(bodyMotion, colliderMotion),
+                output.contacts[point].normal);
+            if (closing <= 0.0f) return false;
+            output.contacts[point].penetration += closing;
+            output.contacts[point].impact_fraction = 0.0f;
+        }
+        return true;
     }
     RigidBodyState impactBody = previousBody;
     RigidBodyState impactCollider = previousCollider;
@@ -1444,9 +1477,9 @@ void rigid_collide_triangle_ranges_swept(
                     Vec3 outwardA = rigid_shell_outward(aMesh, at, a[0], a[1], a[2]);
                     Vec3 outwardB = rigid_shell_outward(bMesh, bt, b[0], b[1], b[2]);
                     if (dot(outwardA, outwardB) > 0.9999f) break;
-                    if (guided && length_squared(outwardB) > 0.5f)
+                    if (length_squared(outwardB) > 0.5f)
                         fallback = outwardB;
-                    else if (guided && length_squared(outwardA) > 0.5f)
+                    else if (length_squared(outwardA) > 0.5f)
                         fallback = multiply(outwardA, -1.0f);
                     Vec3 planeProjection = subtract(pointA,
                         multiply(colliderNormal,
@@ -1460,8 +1493,7 @@ void rigid_collide_triangle_ranges_swept(
                             haveSeparatingNormal ? separatingNormal : fallback)
                         : (distance <= 1.0e-5f || onFace)
                             ? fallback : normalized_or(delta, fallback);
-                    if (guided && (dot(normal, outwardA) > 1.0e-3f ||
-                                   dot(normal, outwardB) < -1.0e-3f)) break;
+                    if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) break;
                     Vec3 point = multiply(add(pointA, pointB), 0.5f);
                     float normalSpeed = rigid_contact_normal_speed(
                         aState, bState, point, normal);

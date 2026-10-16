@@ -62,17 +62,23 @@ struct AvbdContactForce
     float tangent1;
 };
 
+float avbdFrictionScale(float tangent0, float tangent1, float bound)
+{
+    if (bound <= 0.0f) return 0.0f;
+    float squared = tangent0 * tangent0 + tangent1 * tangent1;
+    // One reciprocal square root avoids separately rounding sqrt and divide.
+    // Projection and curvature must use the same radial Coulomb scale.
+    return squared <= bound * bound ? 1.0f
+        : avbdMin(1.0f, bound * rsqrt(squared));
+}
+
 AvbdContactForce avbdProjectContact(AvbdContactForce value, float friction)
 {
     value.normal = avbdMax(value.normal, 0.0f);
     float bound = friction * value.normal;
-    float tangentLength = sqrt(value.tangent0 * value.tangent0
-                             + value.tangent1 * value.tangent1);
-    if (tangentLength > bound && tangentLength > 0.0f)
-    {
-        value.tangent0 *= bound / tangentLength;
-        value.tangent1 *= bound / tangentLength;
-    }
+    float scale = avbdFrictionScale(value.tangent0, value.tangent1, bound);
+    value.tangent0 *= scale;
+    value.tangent1 *= scale;
     return value;
 }
 
@@ -81,10 +87,7 @@ AvbdContactForce avbdContactStiffnessScales(
 {
     float normal = avbdMax(trial.normal, 0.0f);
     float bound = friction * normal;
-    float tangent = sqrt(trial.tangent0 * trial.tangent0
-                       + trial.tangent1 * trial.tangent1);
-    float scale = bound <= 0.0f ? 0.0f
-                : tangent <= bound ? 1.0f : bound / tangent;
+    float scale = avbdFrictionScale(trial.tangent0, trial.tangent1, bound);
     AvbdContactForce result;
     result.normal = trial.normal > 0.0f ? 1.0f : 0.0f;
     result.tangent0 = scale;
@@ -178,7 +181,7 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
         [ForceUnroll]
         for (uint i = 0; i < 6; ++i)
         {
-            scale[i] = attempt != 0 ? 1.0f / sqrt(block.h[i][i]) : 1.0f;
+            scale[i] = attempt != 0 ? rsqrt(block.h[i][i]) : 1.0f;
             diagonalFactors[i] = 0.0f;
             forward[i] = 0.0f;
         }

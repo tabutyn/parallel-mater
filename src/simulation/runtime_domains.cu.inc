@@ -1051,10 +1051,10 @@ static std::vector<CollisionPlane> closed_convex_planes(
     return planes;
 }
 
-// A concave compound can contain individually closed convex shells. Keep
-// their outward normals for one-sided contact validation, without replacing
-// any triangles or treating the entire compound as its convex hull.
-static std::vector<Vec3> convex_shell_normals(
+// Certify outward normals once at upload. Concave closed shells need the same
+// one-sided boundary metadata as convex components; this does not replace
+// their triangles or treat a concave surface as its convex hull.
+static std::vector<Vec3> closed_shell_normals(
     const Vec3 *vertices, std::uint32_t vertex_count,
     const std::vector<std::uint32_t> &indices) {
     std::map<std::array<float, 3>, std::uint32_t> welded;
@@ -1099,10 +1099,93 @@ static std::vector<Vec3> convex_shell_normals(
         }
         const auto planes = closed_convex_planes(
             points.data(), static_cast<std::uint32_t>(points.size()), faces);
-        if (planes.empty()) continue;
+        if (!planes.empty()) {
+            found = true;
+            for (std::size_t i = 0; i < triangles.size(); ++i)
+                normals[triangles[i]] = planes[i].normal;
+            continue;
+        }
+        // A consistently wound, closed orientable component has two opposite
+        // uses of every edge. Signed volume then determines its outward sign.
+        // Open or inconsistent meshes retain two-sided triangle behavior.
+        std::map<std::pair<std::uint32_t, std::uint32_t>,
+            std::pair<unsigned, int>> edges;
+        double volume = 0.0;
+        for (std::size_t face = 0; face < faces.size(); face += 3U) {
+            for (std::size_t corner = 0; corner < 3U; ++corner) {
+                const auto a = faces[face + corner];
+                const auto b = faces[face + (corner + 1U) % 3U];
+                auto &edge = edges[{std::min(a, b), std::max(a, b)}];
+                ++edge.first;
+                edge.second += a < b ? 1 : -1;
+            }
+            std::array<std::array<double, 3>, 3> v{};
+            for (std::size_t corner = 0; corner < 3U; ++corner) {
+                const Vec3 p = points[faces[face + corner]];
+                v[corner] = {double(p.x) - points[0].x,
+                    double(p.y) - points[0].y, double(p.z) - points[0].z};
+            }
+            volume += v[0][0] * (v[1][1] * v[2][2] - v[1][2] * v[2][1]) +
+                v[0][1] * (v[1][2] * v[2][0] - v[1][0] * v[2][2]) +
+                v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
+        }
+        bool closed = volume != 0.0 && std::isfinite(volume);
+        for (const auto &[edge, uses] : edges) {
+            (void)edge;
+            closed = closed && uses.first == 2U && uses.second == 0;
+        }
+        if (!closed) {
+            // A support plane still has a certified exterior when a volumetric
+            // component has open seams (for example, an uncapped gear hub).
+            // Require extent off the plane; a flat open sheet stays two-sided.
+            float scale = 0.0F;
+            for (const auto point : points)
+                scale = std::max(scale, vector_length(subtract(point, points[0])));
+            const float tolerance = std::max(1.0e-7F, scale * 1.0e-5F);
+            for (std::size_t i = 0; i < triangles.size(); ++i) {
+                const Vec3 a = points[faces[i * 3U]];
+                const Vec3 normal = normalized_or(cross(
+                    subtract(points[faces[i * 3U + 1U]], a),
+                    subtract(points[faces[i * 3U + 2U]], a)), {});
+                float minimum = 0.0F, maximum = 0.0F;
+                for (const auto point : points) {
+                    const float distance = dot(normal, subtract(point, a));
+                    minimum = std::min(minimum, distance);
+                    maximum = std::max(maximum, distance);
+                }
+                if (maximum <= tolerance && minimum < -tolerance)
+                    normals[triangles[i]] = normal;
+                else if (minimum >= -tolerance && maximum > tolerance)
+                    normals[triangles[i]] = multiply(normal, -1.0F);
+                else {
+                    // An interior triangle of an open surface still has a
+                    // normal cone: tangent directions belong to neighboring
+                    // faces, not to its tessellation edges. A quarter-length
+                    // normal marks that two-sided feature without certifying
+                    // an inside/outside. Boundary triangles stay unrestricted.
+                    bool interior = true;
+                    for (std::size_t corner = 0; corner < 3U; ++corner) {
+                        const auto first = faces[i * 3U + corner];
+                        const auto second = faces[i * 3U + (corner + 1U) % 3U];
+                        const auto uses = edges.at({std::min(first, second),
+                            std::max(first, second)});
+                        interior = interior && uses.first == 2U && uses.second == 0;
+                    }
+                    if (!interior) continue;
+                    normals[triangles[i]] = multiply(normal, 0.25F);
+                }
+                found = true;
+            }
+            continue;
+        }
         found = true;
-        for (std::size_t i = 0; i < triangles.size(); ++i)
-            normals[triangles[i]] = planes[i].normal;
+        for (std::size_t i = 0; i < triangles.size(); ++i) {
+            const Vec3 a = points[faces[i * 3U]];
+            const Vec3 b = points[faces[i * 3U + 1U]];
+            const Vec3 c = points[faces[i * 3U + 2U]];
+            normals[triangles[i]] = multiply(normalized_or(
+                cross(subtract(b, a), subtract(c, a)), {}), volume > 0.0 ? 1.0F : -1.0F);
+        }
     }
     return found ? normals : std::vector<Vec3>{};
 }

@@ -275,6 +275,20 @@ int main(int argc, char **argv) try {
                 saw_gear_contact[pair] = saw_gear_contact[pair] ||
                     matches(gear_indices[pair], gear_indices[pair + 1U]);
         }
+        // Stop at the first physical failure instead of spending the rest of
+        // the 2,400-frame regression evolving an already invalid trajectory.
+        check(maximum_hinge_anchor_error < 0.002F,
+              "hinge anchors drifted by more than 2 mm");
+        check(maximum_hinge_axis_error < 0.014F,
+              "hinge axes lost alignment");
+        check(maximum_slider_sideways_drift < 0.002F,
+              "slider drifted sideways by more than 2 mm");
+        check(maximum_slider_axis_error < 1.0e-3F,
+              "slider axis lost alignment");
+        check(maximum_slider_travel < 1.0F,
+              "return spring did not bound slider travel");
+        check(maximum_slider_mesh_penetration < 0.002F,
+              "slider and gear meshes interpenetrated by more than 2 mm");
     }
 
     std::cout << "hinge_anchor_error=" << maximum_hinge_anchor_error
@@ -285,20 +299,8 @@ int main(int argc, char **argv) try {
               << " slider_mesh_penetration="
               << maximum_slider_mesh_penetration
               << " slider_contact_impulse=" << slider_contact_impulse << '\n';
-    check(maximum_hinge_anchor_error < 0.002F,
-          "hinge anchors drifted by more than 2 mm");
-    check(maximum_hinge_axis_error < 0.014F,
-          "hinge axes lost alignment");
-    check(maximum_slider_sideways_drift < 0.002F,
-          "slider drifted sideways by more than 2 mm");
-    check(maximum_slider_axis_error < 1.0e-3F,
-          "slider axis lost alignment");
     check(maximum_slider_travel > 0.01F,
           "slider did not travel along its axis");
-    check(maximum_slider_travel < 1.0F,
-          "return spring did not bound slider travel");
-    check(maximum_slider_mesh_penetration < 0.002F,
-          "slider and gear meshes interpenetrated by more than 2 mm");
     check(slider_contact_impulse > 0.1F,
           "slider and gear did not exchange contact impulse");
     check(std::all_of(saw_gear_contact.begin(), saw_gear_contact.end(),

@@ -208,6 +208,7 @@ struct TriangleMeshResource {
     std::uint32_t bvh_leaf_count{};
     CollisionPlane *solid_planes{};
     std::uint32_t solid_unique_plane_count{};
+    // Unit: exterior; length 1/4: two-sided interior face; zero: open boundary.
     Vec3 *shell_normals{};
 };
 

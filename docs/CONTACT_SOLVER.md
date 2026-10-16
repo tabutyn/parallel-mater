@@ -4,8 +4,9 @@ The production CUDA adapter consumes the numerical core generated from
 [one Slang implementation](SLANG.md); the same numerical core is compiled for
 DXIL, MSL, HLSL, and WGSL validation. The portable C++ header is the test-only
 host reference used by equation
-fixtures. Collision geometry, graph construction, storage, synchronization,
-and dispatch remain device-adapter responsibilities.
+fixtures. Collision geometry and graph construction also live in shared Slang.
+The common runtime prepares static mesh metadata; native adapters provide
+storage, synchronization and dispatch, not alternative physics algorithms.
 
 Rigid contacts and fixed, point, hinge, slider, piston, generic, spring and
 motor joints participate in the same Augmented Vertex Block Descent solver.
@@ -35,8 +36,9 @@ shared numerical core owns:
 - Corrective-phase reference forces, so total motor/friction bounds are not
   accidentally applied twice.
 
-Device adapters own geometry, persistent state, adjacency, vertex coloring and
-GPU synchronization. Static/kinematic endpoints are read-only.
+Shared Slang owns collision geometry, persistent contact state, adjacency and
+vertex coloring. Device adapters own GPU storage and synchronization.
+Static/kinematic endpoints are read-only.
 Dynamic contact and joint edges connect islands; sharing a floor does not.
 CPU fixtures exercise the portable reference, while Slang reflection and PTX
 fixtures exercise generated code from the production source.
@@ -45,6 +47,21 @@ Well-conditioned blocks use ordinary LDLᵀ. If floating-point cancellation
 destroys an inertial pivot, the same block is equilibrated and retried with a
 roundoff-sized modified-Cholesky floor. Materially indefinite or nonfinite
 input is still rejected; this does not cap physical forces or add solve sweeps.
+
+Small pose corrections accumulate as a quaternion relative to the inertial
+target, rather than repeatedly subtracting rounded world orientations.
+Relative rotations and rotational sweep bounds use quaternion differences;
+an unchanged orientation therefore produces exactly zero angular correction
+and zero swept rotation. Contact anchor motion is evaluated from the small
+rotation change, and newly created anchors have zero initial separation by
+construction. Small-angle logarithms/Jacobians use cancellation-free series.
+
+The shared Coulomb projection and tangent stiffness use the same radial
+reciprocal-square-root scale. Slang retains precise operation ordering; native
+CUDA compilation disables implicit multiply-add contraction and uses GPU
+reciprocal/square-root arithmetic (`--fmad=false --prec-div=false
+--prec-sqrt=false`). This is not full fast-math or a promise of bit-identical
+results across devices. Physical and cross-driver tolerances remain required.
 
 The method follows [Giles, Diaz and Yuksel, SIGGRAPH 2025](https://graphics.cs.utah.edu/research/projects/avbd/Augmented_VBD-SIGGRAPH25.pdf).
 The authors' [reference implementation](https://github.com/savant117/avbd-demo3d)
@@ -109,6 +126,21 @@ epoch and timestep. Teleports/topology edits invalidate history. Updating only
 a joint target/frame must not invalidate every unrelated contact in the world.
 Joint row history is reset when its authored definition changes or its slot is
 reused.
+
+Convex face clipping does not require parallel incident/reference faces, and
+an overlapping convex pair does not become a triangle-edge contact merely
+because it moved farther than the collision margin. Closed convex components
+and consistently wound closed concave shells carry outward-normal metadata
+prepared once by the common mesh uploader. Supporting faces whose other
+vertices lie strictly on one side also have a certified exterior, including
+volumes with open seams. This does not close holes or replace concave geometry
+with a convex hull. Triangle contacts must face an opposing boundary:
+co-facing coplanar seams and tangent side walls are not contact faces. Faces
+without a certified exterior, including flat open sheets, remain two-sided.
+Signed face separation is used only for certified exterior faces.
+Interior triangles of open surfaces reject tangent contact directions at
+their tessellation edges; boundary triangles retain edge contact. This
+normal-cone metadata does not assign an inside to an open surface.
 
 ## Iterations and diagnostics
 

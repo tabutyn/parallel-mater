@@ -196,6 +196,8 @@ struct TriangleMeshResource
     uint bvh_leaf_count;
     PMBuffer<CollisionPlane> solid_planes;
     uint solid_unique_plane_count;
+    // Unit: certified exterior. Length 1/4: two-sided interior-face normal
+    // cone. Zero: unrestricted open-boundary feature. Matches host storage.
     PMBuffer<Vec3> shell_normals;
 };
 

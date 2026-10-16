@@ -355,9 +355,9 @@ void rigid_avbd_solve_stage(
                     contact.avbd_dual[1].penalty * error[1];
                 float tangentY = contact.avbd_dual[2].lambda +
                     contact.avbd_dual[2].penalty * error[2];
-                float tangential = sqrt(
-                    tangentX * tangentX + tangentY * tangentY);
-                bool stick = tangential <= friction * force.normal;
+                float frictionBound = friction * force.normal;
+                bool stick = tangentX * tangentX + tangentY * tangentY <=
+                    frictionBound * frictionBound;
                 contact.avbd_dual[0].lambda = force.normal;
                 contact.avbd_dual[1].lambda = force.tangent0;
                 contact.avbd_dual[2].lambda = force.tangent1;
