@@ -309,7 +309,7 @@ Integration verification: the combined `e89cf1a` / `2625740` development tree
 passed 38/38 Mac CTest checks and the short all-scene Metal API/shader-validation
 run. The connected M1 iPad passed all 27 scenes × 120 native-rendered frames plus
 shared control checks after fixing an Xcode ARC omission. See the
-[iPad evidence](../examples/ios/README.md#verification) and local deployment
+[iPad evidence](../examples/ios/README.md#validation) and local deployment
 reports for the distinction between sustained scene checks and full physics
 qualification. Android's updated bridge still needs the new mobile CI/device
 run; older Android results do not qualify this shared-session change.
