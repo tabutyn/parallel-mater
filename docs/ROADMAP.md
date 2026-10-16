@@ -226,12 +226,11 @@ Vulkan on Linux. Backend capabilities control scene availability, and the shared
 hardware-profile resource limits preview workloads. Details and checks are in
 [VULKAN.md](VULKAN.md).
 
-This does not complete the full-domain qualification milestone. Android Vulkan packaging builds as of 2026-10-16, but the first Pixel 7 native
-API test crashes inside the Mali shader compiler during pipeline creation. The
-installed phone app remains the CPU preview. Resolving and qualifying this Vulkan
-driver on the phone,
-remaining particle domains/couplings, engine handoff, and sustained performance
-remain open.
+This does not complete the full-domain qualification milestone. Android Vulkan
+packaging and the three Pixel 7 native API/liquid suites now pass after a
+transport-only workaround for the Mali compiler's forward-pointer handling.
+Gallery scene/lifecycle and sustained performance qualification, remaining
+particle domains/couplings, and engine handoff remain open.
 
 ## Linux/Android workstation checkpoint (2026-10-16)
 
@@ -252,14 +251,13 @@ physics driver and no CUDA runtime dependency. Device-side public-API tests,
 debug scene/control requests, and frame-window measurements are available for
 repeatable phone qualification.
 
-Phone qualification is unfinished: the first native command/API test crashes
-inside Mali's SPIR-V compiler. Desktop and Android use identical SPIR-V bytes.
-The Pixel 7 then disconnected from ADB; its installed CPU preview was retained.
-Next on this machine: isolate the pipeline compilation failure on the connected
-Mali device, pass the three native suites, then test all eight mobile scenes,
-reset/pause/background recovery, and sustained frame time, memory and thermals.
-Do not promote startup budgets to verified profiles or expose more domains
-before those results exist.
+Phone qualification is underway: command/API, asynchronous submission, and
+analytic/bounded liquid/coupling/reset suites pass on Pixel 7/Mali-G710. The
+initial compiler crash was isolated to unnecessary forward pointer declarations;
+normalizing type order resolves it while preserving Slang physics instructions.
+Next on this machine: test all eight mobile scenes, reset/pause/background
+recovery, and sustained frame time, memory and thermals. Do not promote startup
+budgets to verified profiles before those results exist.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

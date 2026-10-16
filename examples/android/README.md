@@ -130,11 +130,15 @@ with no CUDA runtime dependency. Pixel 7/Mali-G710 reports Vulkan 1.4.343 and th
 required features, including 256-byte push constants, `storagePushConstant8`,
 `maintenance4`, physical buffer addresses and 64-bit buffer atomics.
 
-The first device command/API test fails with SIGSEGV inside Mali's SPIR-V compiler
-(`SPIR_MBS2Helper::apply_decorations`, called by `vkCreateComputePipelines`).
-The same shader set passes desktop SPIR-V validation and runtime checks. This is
-an unresolved phone runtime failure, not phone qualification. The installed CPU
-preview has been retained while the Vulkan failure is investigated. Scene,
+The initial command/API test crashed inside Mali's SPIR-V compiler
+(`SPIR_MBS2Helper::apply_decorations`). A minimal 1496-byte shader reproduced
+the failure. Ordering acyclic pointer types before use resolves it without
+changing physics instructions or memory layouts; see the
+[Vulkan workaround](../../docs/VULKAN.md#mali-pointer-declaration-workaround).
+
+With normalized shaders, Pixel 7 now passes all three native suites: command/API,
+asynchronous submission, and analytic liquid free fall plus bounded Fluid and
+FluidRigid scenes/reset. All six modules pass SPIR-V validation. Gallery scene,
 lifecycle, sustained frame-time and thermal qualification remain pending.
 
 ## Earlier CPU validation

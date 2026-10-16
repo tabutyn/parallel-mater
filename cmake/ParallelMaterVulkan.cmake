@@ -17,7 +17,7 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
         set(wrapper src/simulation/primitives.cu)
     endif()
     set(base "${vulkan_generated}/${module}")
-    add_custom_command(OUTPUT "${base}.cu" "${base}.json" "${base}.spv"
+    add_custom_command(OUTPUT "${base}.cu" "${base}.json" "${base}.raw.spv" "${base}.spv"
         COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang"
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang" ${entries} ${definitions}
@@ -27,8 +27,11 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
             -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang" ${entries} ${definitions}
             -DPM_TARGET_VULKAN=1 -DPM_VULKAN_VARIABLE_GROUP_SIZE=1 -target spirv -profile sm_6_5 -fp-mode precise -O2
             -fvk-use-scalar-layout -fvk-use-entrypoint-name -separate-debug-info
-            -reflection-json "${base}.json" -o "${base}.spv"
+            -reflection-json "${base}.json" -o "${base}.raw.spv"
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/normalize_vulkan_spirv.py"
+            --input "${base}.raw.spv" --output "${base}.spv"
         DEPENDS ${vulkan_shader_dependencies} "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
+            tools/normalize_vulkan_spirv.py
         COMMENT "Compiling shared Slang ${module} for Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
     add_custom_command(OUTPUT "${base}.cpp"
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_vulkan_dispatch.py"
@@ -83,6 +86,8 @@ file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json"
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-vulkan.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-vulkan>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 if(BUILD_TESTING)
+    add_test(NAME parallel-mater-vulkan-spirv-normalization
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_vulkan_spirv.py")
     add_executable(parallel-mater-vulkan-command-api-tests tests/api/d3d12_command_api_tests.cpp)
     target_compile_features(parallel-mater-vulkan-command-api-tests PRIVATE cxx_std_20)
     target_compile_definitions(parallel-mater-vulkan-command-api-tests PRIVATE PM_TEST_VULKAN=1)
