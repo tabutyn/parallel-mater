@@ -1,0 +1,22 @@
+{
+  "id": "F3-07",
+  "title": "Test independent compatibility combinations",
+  "status": "open",
+  "dependencies": [
+    "F3-05"
+  ],
+  "locks": [
+    "sdk-contract-tests"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Extend installed-driver/layer tests across supported ABI combinations and extension discovery.",
+  "acceptance": [
+    "Current/legacy layer, malformed negotiation, unknown extensions and app versions have independent fixtures.",
+    "No C++ implementation types cross any negotiated ABI."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

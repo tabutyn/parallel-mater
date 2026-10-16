@@ -1,0 +1,24 @@
+{
+  "id": "F4-07",
+  "title": "Specify borrowed device and queue handoff",
+  "status": "open",
+  "dependencies": [
+    "F4-02",
+    "F3-04"
+  ],
+  "locks": [
+    "api-registry",
+    "device-contract"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define engine/library ownership, submission order and buffer/fence handoff using common API objects.",
+  "acceptance": [
+    "Borrowed device/queue/buffer handles are never destroyed by the library.",
+    "Import/export compatibility, error paths and prior/next completion are explicit."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

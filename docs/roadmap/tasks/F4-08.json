@@ -1,0 +1,24 @@
+{
+  "id": "F4-08",
+  "title": "Qualify engine handoff with a mock adapter",
+  "status": "open",
+  "dependencies": [
+    "F4-03",
+    "F4-07"
+  ],
+  "locks": [
+    "device-contract",
+    "sdk-contract-tests"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement an engine-independent ownership/dependency test adapter before native engine plugins.",
+  "acceptance": [
+    "Physics/renderer alternation, simultaneous live frames and caller-token release pass.",
+    "Import failure and teardown tests prove exactly-once ownership and completion."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

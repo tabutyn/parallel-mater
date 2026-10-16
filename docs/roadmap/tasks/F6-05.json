@@ -1,0 +1,22 @@
+{
+  "id": "F6-05",
+  "title": "Regenerate and verify release reference artifacts",
+  "status": "open",
+  "dependencies": [
+    "F3-06"
+  ],
+  "locks": [
+    "reference-artifacts"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Pin the full reference-document toolchain and regenerate PDF/layout artifacts for the reviewed contract.",
+  "acceptance": [
+    "Text, generated C headers, coverage and PDF/layout refer to the same registry revision.",
+    "A clean documented command reproduces artifacts or reports known nondeterminism."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

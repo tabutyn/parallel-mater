@@ -1,0 +1,26 @@
+{
+  "id": "P3-01",
+  "title": "Plan measured platform and shader optimization",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99"
+  ],
+  "locks": [
+    "performance-plan"
+  ],
+  "requires": [
+    "Relevant qualified hardware"
+  ],
+  "scope": "Select bottlenecks only after fixed quality and reproducible benchmark gates pass.",
+  "acceptance": [
+    "Create one task per measured bottleneck with hardware, baseline, quality floor and success metric."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

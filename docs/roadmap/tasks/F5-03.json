@@ -1,0 +1,23 @@
+{
+  "id": "F5-03",
+  "title": "Add capacity and three-family corpus cases",
+  "status": "open",
+  "dependencies": [
+    "F1-06",
+    "F2-04"
+  ],
+  "locks": [
+    "conformance-corpus"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Extend public conformance with adverse capacity and three-family interactions.",
+  "acceptance": [
+    "Replacement, overflow and partial failure preserve unrelated systems.",
+    "Execution/unsupported outcomes never become physical passes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

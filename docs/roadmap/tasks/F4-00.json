@@ -1,0 +1,19 @@
+{
+  "id": "F4-00",
+  "title": "Portable schedule and neutral reflection baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Shared scheduler/device services and reflection-derived Vulkan binding ABI.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "5adeee1; docs/COMMON-RESOURCE-BOUNDARY.md"
+  ],
+  "lease": null,
+  "history": []
+}

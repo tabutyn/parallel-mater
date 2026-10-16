@@ -1,0 +1,20 @@
+{
+  "id": "F4-01",
+  "title": "Describe resources and access ranges",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "device-contract"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define common device-owned resource identities and read/write ranges at dispatch boundaries.",
+  "acceptance": [
+    "A mock adapter observes typed bindings and complete indirect resource references.",
+    "Overlap, aliasing and out-of-range uses have explicit rules and tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "F5-06",
+  "title": "Classify CUDA/D3D12 comparison failures",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "quality-cross-driver"
+  ],
+  "requires": [
+    "Windows CUDA and D3D12"
+  ],
+  "scope": "Classify the 10/17 failing comparisons into independent causes with minimal reproductions.",
+  "acceptance": [
+    "Exact build/case hashes and first divergence are retained.",
+    "Create separate corrective tasks per cause; do not rewrite goldens to hide failures."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "F5-05",
+  "title": "Isolate shared brick penetration failure",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "quality-bricks"
+  ],
+  "requires": [
+    "CUDA or D3D12; second adapter confirmation before qualification"
+  ],
+  "scope": "Reduce the shared approximately 7 mm penetration failure against the existing 2 mm gate.",
+  "acceptance": [
+    "The reproduction distinguishes contact generation, solver response and fixture problems.",
+    "Retain the failing gate and propose separate bounded corrective work; no tolerance relaxation."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

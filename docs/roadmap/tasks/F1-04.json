@@ -1,0 +1,24 @@
+{
+  "id": "F1-04",
+  "title": "Retire paint dependencies safely",
+  "status": "open",
+  "dependencies": [
+    "F1-02",
+    "F1-03"
+  ],
+  "locks": [
+    "runtime-memory",
+    "runtime-geometry"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define paint-field ownership when its body, mesh or simulation is replaced/reset.",
+  "acceptance": [
+    "Repeated create/replace/reset remains within declared memory.",
+    "Stale paint endpoints fail deterministically and unrelated fields survive."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

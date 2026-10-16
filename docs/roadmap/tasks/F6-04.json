@@ -1,0 +1,20 @@
+{
+  "id": "F6-04",
+  "title": "Record reproducible release inputs",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "release-tooling"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Capture source/toolchain/dependency versions, build options, generated artifacts and artifact checksums.",
+  "acceptance": [
+    "Two clean builds compare manifests and classify nondeterministic binary differences.",
+    "No claim of bit-identical output without evidence; no workstation paths required at runtime."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

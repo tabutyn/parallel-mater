@@ -1,0 +1,27 @@
+{
+  "id": "P2-04",
+  "title": "Build Godot minimal SDK integration",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99",
+    "P2-01"
+  ],
+  "locks": [
+    "godot-plugin"
+  ],
+  "requires": [
+    "Godot development host"
+  ],
+  "scope": "Implement the GDExtension/RenderingDevice bridge for one qualified scene.",
+  "acceptance": [
+    "Independent SDK load, explicit feature discovery and ownership-safe render handoff pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

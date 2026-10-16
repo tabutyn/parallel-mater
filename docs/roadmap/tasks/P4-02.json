@@ -1,0 +1,27 @@
+{
+  "id": "P4-02",
+  "title": "Prepare standards proposal prerequisites",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99",
+    "P4-01"
+  ],
+  "locks": [
+    "adoption-docs"
+  ],
+  "requires": [
+    "Project maintainer and interested partners"
+  ],
+  "scope": "Document governance, independent implementations and industry participation required for a future Khronos proposal.",
+  "acceptance": [
+    "Use project-owned namespaces and state adoption as a goal; no implied endorsement."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

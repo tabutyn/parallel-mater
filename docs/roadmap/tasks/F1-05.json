@@ -1,0 +1,21 @@
+{
+  "id": "F1-05",
+  "title": "Rebind emitters and destroy planes",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "runtime-memory",
+    "runtime-graph"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Handle fluid/smoke endpoint replacement for emitters and destroy-plane resources.",
+  "acceptance": [
+    "Create/update/remove and failed rebind preserve unrelated populations.",
+    "Repeated endpoint churn neither leaks memory nor targets an old generation."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

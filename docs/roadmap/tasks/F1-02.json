@@ -1,0 +1,20 @@
+{
+  "id": "F1-02",
+  "title": "Plan paint allocations once",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Bring paint persistent and scratch storage into the common allocation plan.",
+  "acceptance": [
+    "Exact-query paint setup succeeds.",
+    "Undersized/capacity-overflow cases fail without corrupting unrelated resources."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

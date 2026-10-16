@@ -1,0 +1,20 @@
+{
+  "id": "F5-04",
+  "title": "Isolate CPU rigid-direct divergence",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "quality-rigid-direct"
+  ],
+  "requires": [
+    "Slang CPU; historical CUDA capture or CUDA device"
+  ],
+  "scope": "Produce a minimal public-API reproduction and first divergent quantity for the final angular-velocity mismatch.",
+  "acceptance": [
+    "Retain exact revisions, parameters and both raw outputs with unchanged tolerances.",
+    "File a narrowly scoped corrective leaf task supported by the reproduction."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

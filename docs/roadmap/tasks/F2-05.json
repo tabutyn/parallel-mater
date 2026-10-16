@@ -1,0 +1,22 @@
+{
+  "id": "F2-05",
+  "title": "Specify equal-material fluid–fluid behavior",
+  "status": "open",
+  "dependencies": [
+    "F2-01"
+  ],
+  "locks": [
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define pressure/contact/viscosity exchange for distinct compatible fluid populations.",
+  "acceptance": [
+    "Combined-population equivalence and balanced momentum expectations are numerical acceptance criteria.",
+    "Capacity, stable IDs, boundaries and per-system ownership are specified."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

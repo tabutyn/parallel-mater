@@ -1,0 +1,19 @@
+{
+  "id": "F1-00",
+  "title": "Storage reclamation and domain capacity baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Arena reuse, shared allocation plans, per-slot isolation and fluid/domain lifecycle regressions.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "368dfe5, 76bbfe8, 4eaf42b, 7677ea9; docs/RESOURCE-LIFETIME.md"
+  ],
+  "lease": null,
+  "history": []
+}

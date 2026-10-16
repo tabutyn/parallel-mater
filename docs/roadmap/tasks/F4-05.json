@@ -1,0 +1,21 @@
+{
+  "id": "F4-05",
+  "title": "Specify memory-budget confidence",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "api-registry",
+    "device-contract"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Separate allocation requirements, OS budget, tracked allocations and borrowed/untracked bytes in the public contract.",
+  "acceptance": [
+    "Unknown/estimated values cannot be mistaken for guaranteed usable memory.",
+    "Mock SDK tests cover confidence and overflow/failure semantics."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

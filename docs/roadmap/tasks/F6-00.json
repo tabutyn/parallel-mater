@@ -1,0 +1,19 @@
+{
+  "id": "F6-00",
+  "title": "Versioned SDK and release baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "SDK 0.2, clean install/relocation checks, independent clients/mock driver, presets and governance.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "69ae154; docs/SDK-RELEASES.md; docs/WORKTREE-RECONCILIATION.md"
+  ],
+  "lease": null,
+  "history": []
+}

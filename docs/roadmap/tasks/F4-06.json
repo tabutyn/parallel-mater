@@ -1,0 +1,22 @@
+{
+  "id": "F4-06",
+  "title": "Apply conservative workload admission",
+  "status": "open",
+  "dependencies": [
+    "F4-05"
+  ],
+  "locks": [
+    "device-profiles"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Consume confidence-aware budgets in the shared device-profile admission path.",
+  "acceptance": [
+    "Unknown budget, borrowed memory and changing budget have deterministic conservative behavior.",
+    "Gallery policy tests use fake hardware resources; no phone-specific shader tuning."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "F6-03",
+  "title": "Separate optional package exports",
+  "status": "open",
+  "dependencies": [
+    "F5-07"
+  ],
+  "locks": [
+    "sdk-packaging"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define loader, validation, scene, driver, conformance and benchmark package boundaries without dangling exported targets.",
+  "acceptance": [
+    "Minimal and selected-component installations fail cleanly for absent required components.",
+    "Each supported package combination passes relocated external-consumer checks."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

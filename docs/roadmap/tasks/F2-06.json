@@ -1,0 +1,25 @@
+{
+  "id": "F2-06",
+  "title": "Build cross-population neighbor indexing",
+  "status": "open",
+  "dependencies": [
+    "F2-05",
+    "F1-00"
+  ],
+  "locks": [
+    "fluid-kernels",
+    "runtime-graph",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement shared Slang neighbor traversal for two fluid systems without changing public capability claims.",
+  "acceptance": [
+    "Cross-system neighbors are complete, bounded and do not alias system-local IDs.",
+    "Capacity/neighbor-overflow and zero-population tests cover both endpoints."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

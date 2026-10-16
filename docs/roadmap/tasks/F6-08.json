@@ -1,0 +1,23 @@
+{
+  "id": "F6-08",
+  "title": "Retire reconciled old worktrees",
+  "status": "open",
+  "dependencies": [
+    "F6-06",
+    "F6-07"
+  ],
+  "locks": [
+    "legacy-patch-review"
+  ],
+  "requires": [
+    "Machine owning the old worktrees"
+  ],
+  "scope": "Remove old worktrees only after unique patches are preserved/ported and no active build depends on them.",
+  "acceptance": [
+    "Verified archives and disposition records remain accessible.",
+    "Active build rules, launchers and toolchains contain no retired paths."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

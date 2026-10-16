@@ -1,0 +1,22 @@
+{
+  "id": "F3-02",
+  "title": "Validate command recording state",
+  "status": "open",
+  "dependencies": [
+    "F3-01"
+  ],
+  "locks": [
+    "validation-layer"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Track command pool/buffer lifecycle, begin/end/reset and invalid/pending states in the validation layer.",
+  "acceptance": [
+    "Negative controls prove the layer rejects illegal transitions before driver dispatch.",
+    "Legal reuse and deferred failure recovery pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

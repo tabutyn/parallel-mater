@@ -67,487 +67,183 @@ capacity failure, and combinations of three or more families. Test timestep and
 mass-ratio sweeps, fast impacts, containment, long-run stability, momentum
 balance, and energy behavior with external forces and dissipation accounted for.
 
-## Current priority: project foundations
-
-Updated 2026-10-16 after reviewing `e9e0144` and merging/reviewing the subsequent
-Windows work through `a137042`. This order takes precedence over platform
-expansion and shader performance work. Existing milestone numbers below remain
-as implementation history and coverage obligations. See the
-[project foundations audit](PROJECT-FOUNDATIONS-AUDIT.md) for code evidence and
-reproductions.
-
-### F1. Make resource lifetime and declared capacity reliable
-
-Status: in progress. Retired bound allocations are reclaimed, and simulation
-reset releases only its own geometry allocations. Typed allocation plans cover
-global storage, all five particle domains, emitters and major coupling buffers.
-Disjoint per-slot regions prevent cross-domain fragmentation. Rope resampling
-and cloth fracture respect declared capacity; gallery fracture budgets match.
-
-SDK-only regressions use exact queried memory: 4,096 fluid replacements plus
-128 deferred failures/recovery pass on Slang CPU, CUDA and Vulkan. A further
-1,024 mixed-domain writes with changing layouts pass on CUDA. The CPU build
-passes 23 checks and skips the unsupported mixed-domain case. Geometry/paint
-planning, auxiliary-resource lifecycle and coupled endpoint mutation remain
-open. See [resource lifetime and recovery](RESOURCE-LIFETIME.md) for semantics,
-evidence scope and remaining coverage.
-
-- Extract headless public-API test support that builds without CUDA, gallery
-  rendering or private simulation headers. Use mock/CPU drivers for suitable
-  host tests and select installed GPU drivers for advertised physics cases.
-- Add the fluid replacement regression: one write passes, but 256 replacements
-  in the same two-particle slot exhausted bound memory in the audited CUDA path.
-- Make per-resource storage reusable within declared capacity. Share one
-  allocation plan between memory-requirement queries and actual allocation.
-- Define replacement, removal, pending-resource lifetime, failed allocation,
-  rollback/reset and generation rules across every domain.
-
-Exit: repeated resource churn remains bounded without whole-simulation resets;
-unrelated live systems survive replacement and failure; exact-capacity and
-recovery cases run through the public API. This is the next implementation slice.
-
-### F2. Make the interaction graph a first-class simulation resource
-
-Status: in progress; extends milestone 2. The reference API now tracks active
-coupling handles on the simulation, retires them before endpoint replacement,
-reconciles pipeline changes and rolls back partially created graphs. New
-`pmCmdSetCouplings` records a simulation-owned graph independently of pipeline
-creation. CPU host/loader checks pass (23 passed, two unsupported domain cases
-skipped); CUDA passes the fluid–rope graph lifecycle regression, including
-endpoint replacement, policy/explicit graph changes, snapshots and partial graph
-rollback. Retirement reuses host owners without allocating tombstones.
-Sleeping and one-way mechanical requests now fail explicitly, and
-liquid/cloth no longer interprets acceleration as a distance. Pair/mode capability
-queries and qualified fluid–fluid physics remain open.
-
-- Separate mutable coupling edges from immutable pipeline policy. Support
-  create/update/remove/rebind and endpoint replacement with stable generations.
-- Correct units and parameter mappings; apply or explicitly reject sleeping,
-  `twoWay` and other exposed settings.
-- Define per-pair/per-mode/material capabilities and a complete interaction
-  matrix. Include all 15 distinct-family pairs and required same-family modes.
-- Implement distinct fluid–fluid system interactions after graph lifetime and
-  material semantics are defined; qualify them before advertising support.
-
-Exit: pipeline changes and endpoint replacement cannot retain stale edges;
-fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope.
-
-### F3. Reconcile the specification, ABI and validation contract
-
-Status: in progress. Invalid API/driver/layer version negotiation is rejected
-with independent mock-library tests. Validation uses the project-owned namespace
-with an old-name compatibility alias. Lifetime prose and stable contract-rule
-identifiers now describe tested behavior. Layer ABI 2 carries generated typed
-arguments, with stateful memory/buffer validation tested against a permissive
-external mock driver and no-layer controls. Command/synchronization state,
-all manual interception paths and structured diagnostics remain open.
-See [API contract rules](API-CONTRACT.md).
-
-- Resolve conflicting destruction/wait semantics and error codes; specify
-  threading, command snapshots, deferred failures, capacity overflow and reset.
-- Give normative rules identifiers and map them to executable positive and
-  negative tests. Distinguish vendor-neutral behavior from solver profiles.
-- Generate typed validation interception with command arguments and object
-  state; replace the borrowed Khronos layer namespace with a project name.
-- Define API/driver/layer version and extension compatibility, including old
-  applications, independently built drivers and invalid negotiation results.
-
-Exit: documentation, runtime and validation agree, with tests beyond header
-generation and command routing.
-
-### F4. Complete common runtime resources and engine ownership rules
-
-Status: scheduler extraction and common C++ runtime/device-service conversion
-are implemented, including the newly merged Windows work. Vulkan bindings now
-use a common reflection-derived C++ ABI model; generated CUDA is no longer an
-input. Six shader modules compile and API/async/lifecycle checks pass within the
-[recorded validation scope](COMMON-RESOURCE-BOUNDARY.md). Common access metadata,
-completion ownership, all-adapter binding migration, memory-budget semantics and
-engine-owned handoff qualification remain.
-
-- Define backend-neutral resource identities, typed dispatch bindings, memory
-  plans, read/write dependencies and completion ownership behind the existing
-  scheduler and device services. Finish neutral binding generation instead of
-  parsing generated CUDA source, without moving physics out of Slang.
-- Distinguish allocation requirements, usable memory budgets and untracked
-  driver costs; keep workload admission conservative where data is unavailable.
-- Use the new D3D12 public-GPU-output gallery path to test common
-  borrowed-device/queue, shared-buffer and fence/timeline ownership before
-  writing engine-specific integrations.
-
-Exit: a mock adapter can verify resource and dependency behavior; native
-details remain in adapters; engine handoff has a tested common contract.
-
-### F5. Make conformance and quality benchmarks independent SDK consumers
-
-Status: headless runner and host scene SDK now build without gallery, private
-simulation headers or native drivers. Standalone conformance builds against an
-installed/relocated SDK and validates all 30 inputs. Execution and comparison
-separate completed, unsupported and failed outcomes; execution alone never
-qualifies quality. CPU rigid-direct fails its historical CUDA comparison;
-upstream quality and cross-driver comparison failures remain open. See the
-[conformance build and evidence](../conformance/v1/README.md).
-
-- Build the headless runner without gallery or CUDA dependencies; remove
-  private simulation types from portable case data. Select installed drivers.
-- Separate pass/fail/unsupported, advertised capability qualification, reference
-  regression and vendor-neutral physical compliance.
-- Expand analytic/invariant, lifecycle, adverse-capacity, mixed-family and
-  same-family cases. Gate performance on fixed physical quality requirements.
-- Keep the newly reported shared brick penetration failure and 10/17 failing
-  CUDA/D3D12 comparisons visible. Correct behavior before optimization; do not
-  weaken tolerances to turn execution evidence into a correctness claim.
-- Publish revisioned evidence per driver and capability. Compilation, a demo
-  and historical goldens are distinct evidence, not interchangeable approval.
-
-Exit: an independent driver can run the suite using the installed SDK alone;
-every advertised mode has current correctness and quality evidence.
-
-### F6. Establish reproducible SDK releases and repository ownership
-
-Status: SDK/package version is 0.2.0 with same-minor compatibility. Minimal,
-headless CI and CPU presets separate toolchain requirements. Installed C/C++
-consumers and an external mock driver pass after relocation; standalone
-conformance validates installed corpus inputs. Linux CI, release/contribution
-rules and an evidence index are added. Active builds no longer depend on old
-worktrees; unique hinge/contact/asset patches remain preserved for review.
-Cross-platform package qualification, bit-identical release reproduction and
-retirement of those preserved patches remain open. See [SDK releases](SDK-RELEASES.md)
-and [worktree reconciliation](WORKTREE-RECONCILIATION.md).
-
-- Define package/API version policy and resolve the current CMake 0.1.0 versus
-  API 0.2 mismatch. Add installed C/C++ consumer and external-driver CI gates.
-- Separate loader, driver, conformance, gallery and benchmark CMake components;
-  provide reproducible build profiles and minimal headless SDK examples.
-- Add contribution, extension allocation, compatibility, release and
-  qualification-review rules. Check capability documentation against evidence.
-- Reconcile preserved older-worktree patches and remove active toolchain
-  dependencies on those worktrees before retiring them.
-
-Exit: a clean checkout produces a relocatable, versioned SDK and independently
-built consumer/driver packages without private source or workstation paths.
-
-After these gates, resume non-CUDA engine qualification, remaining backend and
-domain coverage, then measured platform/shader optimization. Small packaging
-and documentation repairs can accompany foundation work; they do not replace
-the lifecycle and behavioral gates.
-
-## Existing implementation milestones and status
-
-### 1. Restore shader portability and require compiler gates
-
-Status: complete (2026-10-15).
-
-The atomic target guards were supplied by upstream `7a724fe` before this
-milestone's implementation. The complete 23-module CUDA-source/SPIR-V mirror
-build and 15 host/reflection tests pass locally with Slang 2026.18. The
-[shader portability workflow](../.github/workflows/shader-portability.yml)
-now runs Linux, Windows, and macOS builds, including full Windows DXIL schedules
-and native compilation/linking of the AVBD Metal core. All three platform jobs
-and the aggregate gate passed in [CI run 38763192659](https://github.com/tabutyn/parallel-mater/actions/runs/38763192659),
-with 15 host/reflection tests passing per platform. The Windows run also exposed
-and verified a fix for locale-dependent source decoding in the architecture
-checker. Runtime physics qualification remains separate.
-
-- Fix the SPIR-V atomic-overload regression introduced by the D3D12 resource
-  wrappers. Pointer and descriptor-backed operations must compile only for
-  their applicable targets.
-- Compile every supported domain/coupling entry through the canonical kernel
-  manifest. Require CUDA-source and SPIR-V generation, the full Windows DXIL
-  schedule, and existing portable AVBD core targets, including Metal, in CI.
-  Use the pinned Slang compiler and fail on compilation/reflection errors.
-- Run these gates on pull requests and changes to `main`; do not substitute
-  architecture text scanning for shader compilation.
-- State exact coverage: compiling the AVBD core to Metal is not a full Metal
-  domain schedule or a runtime driver. Complete Metal resource wrappers and
-  native runtime qualification remain part of milestones 4 and 6.
-
-Exit: the reproduced SPIR-V failure is fixed, supported compiler targets pass,
-and CI exercises the target boundaries that allowed the regression.
-
-### 2. Repair the public physics and coupling contract
-
-Status: pending.
-
-- Separate mutable coupling resources from pipeline policy; define rebind and
-  update semantics. Remove one-time initialization that ignores new pipelines.
-- Correct parameter mappings and units, including fluid/cloth interaction
-  radius versus maximum acceleration. Implement or explicitly reject exposed
-  controls such as `twoWay` and sleeping; no silently ignored settings.
-- Define per-pair/per-mode capabilities and the same-family interaction scope
-  above. Implement fluid-fluid interactions and qualify them before enabling
-  `liquidLiquidCoupling`; follow with the other missing interaction modes.
-- Reconcile specification, runtime, feature reporting, and negative tests.
-  Keep algorithm-specific profiles explicit instead of accidentally freezing
-  reference implementation details into the universal contract.
-
-Exit: command behavior matches the specification, supported interaction modes
-are queryable, and fluid-fluid lifecycle and physics tests pass.
-
-### 3. Complete portable, asynchronous execution
-
-Status: scheduler extraction and asynchronous submission implemented (2026-10-15);
-GPU-only scheduling and performance qualification remain open.
-
-The domain/coupling schedule now lives in backend-parameterized ordinary C++
-(`reference_schedule.hpp`), compiled through CUDA and serial Slang CPU adapters.
-Public submission owns command snapshots and returns after enqueue. Completion
-includes deferred validation and partial-work draining; fences, timelines,
-simulation status, and queries account for queued host work as well as GPU work.
-CPU tests exercise real rigid integration, multiple submitted frames, pending
-resource reuse, wait-before-signal dependencies, and deferred failures. Native
-CUDA compilation passes; subsequent desktop/phone runtime evidence is recorded
-below and does not qualify every domain or asynchronous overlap behavior.
-
-Remaining work includes descriptor resource mapping for graphics adapters,
-removing inner-frame readbacks, overlapping independent GPU work, and measured
-scan/sort/collision/coupling improvements. The worker currently serializes frame
-completion; asynchronous application submission alone does not qualify those
-performance milestones.
-
-- Extract the CUDA-dependent host schedule behind backend-neutral execution
-  and resource interfaces, including dispatch, indirect work, and barriers.
-- Submit physics without waiting for the whole GPU step on the calling thread.
-  Retain execution state until completion; expose deferred errors and overflow
-  through the documented status/query paths.
-- Remove required inner-frame host readbacks, coordinate coupled substeps, and
-  express dependencies so independent work can overlap safely.
-- Benchmark scalable scan, sort, compaction, collision, and coupling workloads;
-  replace serial bottlenecks where measurements justify changes.
-
-Exit: the same reference schedule runs through adapters, submission remains
-asynchronous, and correctness survives resource reuse and frames in flight.
-
-### 4. Prove a non-CUDA engine-facing vertical slice
-
-Status: pending.
-
-2026-10-16 Gallery prerequisite: Mac/iPad share direct Metal graphics over
-exported public GPU output, with explicit physics/graphics completion fences.
-Rendering no longer requires CPU position/image copies in normal playback.
-This is not general imported-resource/queue interoperability or frames in flight.
-The user has deferred engine integration; the milestone below remains pending.
-
-- Qualify rigid bodies, fluid, cloth, and their interactions through CUDA and
-  one non-CUDA driver using the same public commands and cases.
-- Implement native device/queue, buffer, and synchronization interoperability,
-  including resource ownership, transitions, and lifetime.
-- Simulate and render shared GPU output in an engine integration without a
-  required per-frame CPU readback. Define authority when engine physics and
-  Parallel Mater coexist.
-
-Exit: physical results, lifecycle, native handoff, and quality-controlled
-performance pass on both drivers. Shader compilation alone is insufficient.
-
-### 5. Establish independent conformance and performance qualification
-
-Status: pending.
-
-- Build the public-API conformance runner without a CUDA or gallery dependency;
-  select any installed driver at runtime.
-- Cover every advertised pair and same-family interaction, including
-  fluid-fluid, plus mixed scenes and adverse numerical/capacity conditions.
-- Combine analytic cases, physical invariants, tolerance-based comparisons,
-  and long-run envelopes. Define determinism guarantees separately from
-  cross-vendor numerical equivalence.
-- Benchmark fixed quality requirements: penetration, density/divergence,
-  strain, drift, throughput, memory, and median/p95 latency. Vendors must not
-  improve scores by weakening physical quality.
-- Give validation layers sufficient command arguments and object state to
-  check usage and synchronization. Use Parallel Mater's own layer namespace.
-
-Exit: an independent implementation can determine compliance without private
-runtime code or copying the reference solver's exact trajectories.
-
-### 6. Complete backends, engine packages, and adoption work
-
-Status: pending.
-
-An explicitly authorized macOS development preview (2026-10-16) connects all six
-existing physics domains, their implemented cross-domain couplings and paint to
-the Apple GPU through shared Slang and the reference schedule. It is labeled,
-keeps unsupported liquid–liquid coupling unadvertised, and retains software
-rendering/readbacks. It does not satisfy this all-domain milestone; evidence
-and remaining limits are in [Metal qualification](METAL-QUALIFICATION.md).
-
-Metal implementation work is isolated behind the
-[all-domain qualification gate](METAL-QUALIFICATION.md). Full existing-kernel
-Metal compilation, reusable asynchronous compute services, and focused native
-GPU tests (including staged AVBD) do not satisfy this milestone: command-API
-integration, the complete schedule and missing interaction physics must also
-pass before merging that work into `main`.
-
-- Qualify all declared domains and interaction modes on CUDA, D3D12, Vulkan,
-  and Metal; add full shader/resource-wrapper coverage as adapters mature.
-- Ship Unity native-plugin/C# integration, Unreal RHI/RDG integration, and
-  Godot GDExtension/RenderingDevice integration with common ownership rules.
-- Publish the driver SDK, versioned specification, conformance corpus,
-  reproducible benchmark procedures, and contribution/governance process.
-- Seek independent vendor implementations and engine partners before pursuing
-  Khronos standardization through its new-initiative process.
-
-Exit: each advertised driver passes its build, conformance, engine-handoff,
-gallery-control, stability, and performance gates on identified hardware.
-
-## Audit baseline (2026-10-15)
-
-The source audit covered `deb158a` and local gallery/hinge changes. A fresh
-CPU-only build passed 15 tests. The shader mirror build failed on Vulkan
-SPIR-V because descriptor atomic overloads leaked into the pointer target.
-GPU runtime and performance were not revalidated during that audit.
-
-CUDA contains the full reference physics path. D3D12 advertises its tested
-shared DXIL rigid-body and rigid-constraint schedules plus core transfer
-services; the other physics domains remain unadvertised. Vulkan has no runtime
-driver. Metal had no driver at that audit; the subsequent opt-in development
-preview is described above. Existing shader generation, historical
-galleries, and older worktrees do not establish current backend qualification.
-Completion evidence belongs beside each milestone.
-
-## Desktop Vulkan integration progress (2026-10-16)
-
-The loadable Vulkan preview now uses the existing public loader, portable
-scheduler, and common Slang kernels for rigid bodies, constraints, liquids, and
-liquid–rigid coupling. The shared Windows backend picker also selects CUDA or
-Vulkan on Linux. Backend capabilities control scene availability, and the shared
-hardware-profile resource limits preview workloads. Details and checks are in
-[VULKAN.md](VULKAN.md).
-
-This does not complete the full-domain qualification milestone. Android Vulkan
-packaging and the three Pixel 7 native API/liquid suites now pass after a
-transport-only workaround for the Mali compiler's forward-pointer handling.
-All eight mobile scenes pass short runtime checks. Phone performance remains
-below target; the remaining particle domains/couplings and engine handoff are
-still open. Device evidence is in [ANDROID-QUALIFICATION.md](ANDROID-QUALIFICATION.md).
-
-## iPad Gallery integration (2026-10-16)
-
-The [iPad preview](../examples/ios/README.md) packages the existing Slang Metal
-driver as a signed framework with iOS-compiled shaders. UIKit consumes shared
-Gallery scenes through the same C++ session and timer as Android; physics has
-no CPU fallback. macOS and iPad now draw directly from public GPU output using
-the common `GpuSceneBuffers` contract. The fenced preview waits for physics
-before graphics, then for graphics before reusing output. Host diagnostics and
-CPU scene controllers remain explicit exceptions to no rendering readback.
-
-The iPad bundle includes the approved logo. Shared presets, revision/backend
-manifests and `scripts/Deploy-Gallery.py` verify installation identity. Mobile
-CI builds Android and unsigned iPad packages; device scripts exercise scene
-switching, pause/reset, sustained frames and actual OS background recovery.
-The 27-scene host test also runs under Metal API/shader validation. Device
-evidence is recorded separately in the iPad guide, not inferred from compilation.
-
-Dump Truck touch controls, thermal/performance qualification, missing roadmap
-interactions and complete physics qualification remain open. Asynchronous
-frames in flight and engine-owned resource imports are separate work. The user
-explicitly deferred external engine integration; this Gallery handoff does not
-claim that milestone.
-
-## Linux/Android workstation checkpoint (2026-10-16)
-
-The Linux launcher now installs one canonical **Parallel Mater** entry pointing
-at the prepared CUDA/Vulkan build, with no build on application launch. Builds
-and qualification checks run serially on this memory-constrained laptop.
-Changed source in both older worktrees was archived and hash-verified before
-cleanup; those worktrees remain intact because they contain unmerged physics
-and scene work. Four stale worktree records and about 622 MiB of duplicate SDK
-and download files were removed. Local preservation records are under ignored
-`out/worktree-backups/2026-10-16/`.
-
-`scripts/Setup-VulkanValidation.sh` and `scripts/Test-Vulkan.sh` pin and verify
-the working desktop validator without changing system packages. Desktop
-CUDA/Vulkan checks pass 13/13 after the Android transport fixes. Both explicit
-Android CPU and Vulkan builds succeed. The Vulkan APK includes one loadable
-physics driver and no CUDA runtime dependency. Device-side public-API tests,
-debug scene/control requests, and frame-window measurements are available for
-repeatable phone qualification.
-
-Phone qualification is underway: command/API, asynchronous submission, and
-analytic/bounded liquid/coupling/reset suites pass on Pixel 7/Mali-G710. The
-initial compiler crash was isolated to unnecessary forward pointer declarations;
-normalizing type order resolves it while preserving Slang physics instructions.
-All eight mobile scenes now render and complete 120-frame checks. Releasing the
-old GPU scene before replacement prevents the observed Android memory kill;
-direction controls and hinge framing were corrected from device screenshots.
-Pause/reset/resume and background/foreground recovery pass. A five-minute
-fluid–rigid run completed without errors or restart, with stable sampled memory
-and thermal status 0; its frame rate remained below target.
-
-Platform tuning backlog, deferred behind the foundation priorities above:
-reduce Mali shader-private memory and execution cost, add smaller representative
-constraint workloads through the hardware-profile resource, and reduce software
-rendering cost. Current scene samples run roughly 2–16 FPS against a 30 FPS
-target and use around 3.2 GiB PSS. Keep startup budgets provisional and verified
-profiles empty until the performance gates pass. See [the device qualification
-record](ANDROID-QUALIFICATION.md) for exact scope and measurements.
-
-## Windows shared-runtime cleanup (2026-10-16)
-
-Implementation now uses `src/simulation/runtime.cpp`, the common schedule,
-opaque execution queues, dispatch dimensions and device-service events/copies.
-The Windows CUDA-shaped compatibility headers and the include-`runtime.cu`
-driver shims are removed. CUDA/CPU/Vulkan dispatch interfaces use the same
-types; native API interpretation stays in each adapter. CPU and Vulkan runtime
-qualification still belongs on their native machines.
-
-D3D12 binds liquid, cloth and their rigid/liquid interactions to the shared
-DXIL schedules. Unsupported stubs for those paths are removed. Persistent GPU
-allocations no longer receive full readback/re-upload on synchronization:
-host edits upload dirty ranges, explicit mappings read requested ranges, and
-same-allocation copies use GPU scratch. Tear topology currently still needs
-selected host reads at frame boundaries; this is not GPU-only scheduling.
-
-The native drawing adapter consumes public GPU output and presents a shared
-texture. Rigid interpolation, invisible authored meshes, expanded tearable
-cloth surfaces, and liquid particle/surface/wireframe drawing are implemented.
-The liquid presentation field is shared Slang, including the CUDA renderer's
-field kernels. Normal interactive D3D12 frames do not read fluid/cloth records
-back to the CPU. Controllers, diagnostics and explicit captures retain scoped
-readback. Queue overlap, native GPU timings, OptiX lighting/foam equivalence and
-performance qualification remain separate work.
-
-Validation distinguishes working execution from parity. The real-window test
-has exercised all 13 advertised scenes, Tab/Enter switching, F timing, Point
-release and resets, with at least five seconds per scene/load. The regression
-suite now requires 300 frames per supported scene, reset/backend retention,
-finite/contact/static-body/pinned-cloth invariants, GPU-only output followed by
-explicit diagnostic reads, 360 repeated API steps and narrow-range/self-copy
-checks. The long hinge/slider fixture independently checks drift, contacts and
-penetration. These gates do not replace canonical conformance.
-
-Strict same-build CUDA/D3D12 comparisons remain unqualified: the final 17-case
-capture completed on both drivers, with 7 comparisons passing and 10 failing.
-Passing cases are cloth-core, cloth-water, compound-weld-lifecycle,
-constraint-breaking, constraint-piston, constraint-slider and fluid-lifecycle.
-Failures concern other rigid contact/state cases and cloth-tear topology.
-Existing tolerances and goldens
-are unchanged. Windows CUDA's managed-memory host-read ordering fault in the
-cloth-tear run was fixed in the device adapter and the case now completes;
-completion does not erase its cross-driver differences. Milestones 4 and 6
-remain open until those numerical failures are resolved.
-
-The additional independent brick/brick mesh test also exposes a shared quality
-failure: with eight bricks, four substeps and a 2 mm separation gate, D3D12
-reaches 7.21844 mm penetration at frame 102 and CUDA reaches 7.02056 mm at
-frame 101 (zero-based). Earlier finite-state/300-frame execution passes must
-not be described as nonpenetration or full gallery parity. Keep this test red
-until the common solver is corrected. An isolated relaxed floating-point
-compilation experiment did not qualify rigid-direct, hinge or generic; the
-production precise settings remain unchanged.
-
-The final real-window run used installed build `8d5cfc6`, whose SHA-256 matched
-the build-tree executable. All 13 supported scenes passed load/reset dwell,
-including GPU-only rendering, scoped diagnostics, fluid surface/particle modes
-and cloth structure display. Captures and the unchanged-tolerance comparison
-report are in `build-cuda-slang-vs2022/d3d12-installed-final/` and
-`build-cuda-slang-vs2022/conformance-final-report.json`. Those local artifacts
-are evidence, not committed goldens or a claim that the failing cases pass.
-
-The final 2,400-step hinge/slider fixture and 360-step repeated-submission API
-test passed. The 20-test execution/architecture/reflection run passed before
-the new brick-mesh assertion was exercised; rerunning the strengthened
-`parallel-mater-d3d12-gallery-RigidBody` test fails at frame 102 as above. Do
-not report that older 20/20 result as a passing current physical-quality suite.
-
-The completed pre-command-API implementation plan is retained in
-[the legacy roadmap](history/ROADMAP-LEGACY.md).
+## Leasing work across machines
+
+This is the current work queue. Stable leaf IDs below are the only leaseable
+units; F1–F6 are foundation areas, not whole-area reservations. Choose the
+smallest ready task matching the machine's capabilities. Each task links to a
+canonical JSON card with scope, acceptance checks, dependencies, shared-area
+locks, evidence and lease history. Completed `*-00` cards record existing work
+and must not be implemented again.
+
+Read [the lease workflow](roadmap/WORKFLOW.md) before changing a task. Push a
+**claim-only PR** first. Ownership begins only when that PR merges into `main`;
+a pushed branch or open PR alone is not a lease. Then branch from the merged
+claim, implement the task and submit a completion PR with evidence. Update task
+cards with `tools/roadmap.py`; the index below is generated from those cards.
+
+Leases last at most 24 hours, use UTC and can be renewed. Expired leases remain
+reserved until an explicit reclaim/release PR merges. A unique lease token
+prevents a previous owner from completing a reclaimed task. Shared-area locks
+prevent different task IDs from reserving the same common implementation area.
+
+F1 has the highest priority. Independent ready tasks in F2–F6 may proceed in
+parallel when dependencies and locks permit. Platform expansion, engine plugins
+and shader performance work remain deferred until the six `*-99` foundation
+review gates close and a planning PR activates the selected follow-up task.
+
+The lease check must be required with up-to-date branches for race-safe
+automated merges. Each merge candidate permits one lease operation. Until configured, serialize claim/renew/reclaim/
+completion merges against current `main` and rerun the check immediately before
+merging. The workflow does not change GitHub branch-protection settings.
+
+<!-- BEGIN TASK INDEX -->
+<!-- Generated by tools/roadmap.py render. Edit task cards, not this index. -->
+
+### F1. Resource lifetime and capacity
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F1-00](roadmap/tasks/F1-00.json) | Storage reclamation and domain capacity baseline | done | — | — |
+| [F1-01](roadmap/tasks/F1-01.json) | Plan triangle geometry allocations once | ready | — | — |
+| [F1-02](roadmap/tasks/F1-02.json) | Plan paint allocations once | ready | — | — |
+| [F1-03](roadmap/tasks/F1-03.json) | Retire geometry dependencies safely | waiting on dependencies | F1-01 | — |
+| [F1-04](roadmap/tasks/F1-04.json) | Retire paint dependencies safely | waiting on dependencies | F1-02, F1-03 | — |
+| [F1-05](roadmap/tasks/F1-05.json) | Rebind emitters and destroy planes | ready | — | — |
+| [F1-06](roadmap/tasks/F1-06.json) | Qualify allocation failure and pending lifetime | waiting on dependencies | F1-03, F1-04, F1-05 | — |
+| [F1-07](roadmap/tasks/F1-07.json) | Bound host auxiliary metadata | ready | — | — |
+| [F1-99](roadmap/tasks/F1-99.json) | Review F1 exit evidence | waiting on dependencies | F1-01, F1-02, F1-03, F1-04, F1-05, F1-06, F1-07 | — |
+
+### F2. Interaction graph and system coupling
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F2-00](roadmap/tasks/F2-00.json) | Simulation-owned graph baseline | done | — | — |
+| [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | ready | — | — |
+| [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | waiting on dependencies | F2-01 | — |
+| [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | waiting on dependencies | F2-02 | — |
+| [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | waiting on dependencies | F1-05, F2-03 | — |
+| [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | waiting on dependencies | F2-01 | — |
+| [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | waiting on dependencies | F2-05, F1-00 | — |
+| [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | waiting on dependencies | F2-06 | — |
+| [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | waiting on dependencies | F2-07 | — |
+| [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | waiting on dependencies | F2-03, F2-08 | — |
+| [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on dependencies | F2-04, F2-09, F5-02 | — |
+| [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | waiting on dependencies | F2-05 | — |
+| [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | waiting on dependencies | F2-01 | — |
+| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | waiting on dependencies | F2-01 | — |
+| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | waiting on dependencies | F2-01 | — |
+| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | waiting on dependencies | F2-01 | — |
+| [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
+
+### F3. Specification, ABI and validation
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F3-00](roadmap/tasks/F3-00.json) | Version and typed validation baseline | done | — | — |
+| [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | ready | — | — |
+| [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | waiting on dependencies | F3-01 | — |
+| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | waiting on dependencies | F3-01, F1-03, F1-04 | — |
+| [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | waiting on dependencies | F3-02 | — |
+| [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | waiting on dependencies | F3-01 | — |
+| [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | waiting on dependencies | F1-06, F3-04 | — |
+| [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | waiting on dependencies | F3-05 | — |
+| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07 | — |
+
+### F4. Common resources and engine ownership
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F4-00](roadmap/tasks/F4-00.json) | Portable schedule and neutral reflection baseline | done | — | — |
+| [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | ready | — | — |
+| [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | waiting on dependencies | F4-01 | — |
+| [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
+| [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | waiting on dependencies | F4-01 | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | ready | — | — |
+| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
+| [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
+| [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
+| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | waiting on dependencies | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
+
+### F5. Independent conformance and quality
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F5-00](roadmap/tasks/F5-00.json) | Independent headless conformance baseline | done | — | — |
+| [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | waiting on dependencies | F2-02 | — |
+| [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | ready | — | — |
+| [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | waiting on dependencies | F1-06, F2-04 | — |
+| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
+| [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | waiting on lock | — | — |
+| [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | waiting on lock | — | — |
+| [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | waiting on dependencies | F5-01, F5-02 | — |
+| [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | waiting on dependencies | F5-01 | — |
+| [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
+| [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | leased | — | codex-windows-physics / windows-gtx1080 / 2026-10-17T21:56:11Z |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10 | — |
+
+### F6. SDK releases and repository ownership
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F6-00](roadmap/tasks/F6-00.json) | Versioned SDK and release baseline | done | — | — |
+| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | ready | — | — |
+| [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | ready | — | — |
+| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | waiting on dependencies | F5-07 | — |
+| [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | ready | — | — |
+| [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | waiting on dependencies | F3-06 | — |
+| [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
+| [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | ready | — | — |
+| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |
+| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08 | — |
+
+### P1. Deferred domain and interaction coverage
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+
+### P2. Deferred engine integration
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [P2-01](roadmap/tasks/P2-01.json) | Qualify one native engine-handoff slice | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P2-02](roadmap/tasks/P2-02.json) | Build Unity minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
+| [P2-03](roadmap/tasks/P2-03.json) | Build Unreal minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
+| [P2-04](roadmap/tasks/P2-04.json) | Build Godot minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
+
+### P3. Deferred measured optimization
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+
+### P4. Deferred vendor and standards adoption
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [P4-01](roadmap/tasks/P4-01.json) | Prepare independent vendor-driver handoff | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P4-02](roadmap/tasks/P4-02.json) | Prepare standards proposal prerequisites | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P4-01 | — |
+<!-- END TASK INDEX -->
+
+## Scope and evidence
+
+Foundation exit reviews preserve the original requirements: bounded resource
+lifetime (F1), simulation-owned interaction graphs and qualified fluid–fluid
+behavior (F2), agreeing specification/runtime/validation (F3), common resource
+and engine-ownership contracts (F4), independent physical qualification (F5),
+and relocatable reproducible SDK releases (F6). A completed task closes only its
+listed acceptance checks, not its entire area or a driver's physical compliance.
+
+The [qualification index](QUALIFICATION.md) keeps known failures visible.
+Current limits include CPU rigid-direct divergence, 10/17 CUDA/D3D12 comparison
+failures, shared brick penetration, native Vulkan validation failure and
+unqualified engine handoff. Do not relax tolerances or promote execution to
+physical correctness to complete a lease.
+
+The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves
+prior implementation checkpoints, original exits and platform evidence. It is
+historical context, not a second live work queue. The
+[pre-command-API roadmap](history/ROADMAP-LEGACY.md) is also historical.

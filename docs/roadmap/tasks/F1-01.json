@@ -1,0 +1,20 @@
+{
+  "id": "F1-01",
+  "title": "Plan triangle geometry allocations once",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Use one typed plan for geometry memory queries and allocation; do not change collision physics.",
+  "acceptance": [
+    "Exact-query geometry allocation and overflow/invalid topology tests pass.",
+    "Query and allocation traverse the same plan, including alignment and scratch."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

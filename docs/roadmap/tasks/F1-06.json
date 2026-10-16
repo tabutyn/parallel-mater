@@ -1,0 +1,24 @@
+{
+  "id": "F1-06",
+  "title": "Qualify allocation failure and pending lifetime",
+  "status": "open",
+  "dependencies": [
+    "F1-03",
+    "F1-04",
+    "F1-05"
+  ],
+  "locks": [
+    "lifecycle-tests"
+  ],
+  "requires": [
+    "Host mock driver; one advertised native driver"
+  ],
+  "scope": "Add public-API failure injection for allocation/upload/submit failure and reset with pending work.",
+  "acceptance": [
+    "Every failure stage has a recovery case and an unchanged unrelated resource.",
+    "Evidence distinguishes recording errors from deferred completion errors."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
