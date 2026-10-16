@@ -102,9 +102,16 @@ unsupported domain tests. An installed and relocated SDK built this runner and
 validated all 30 canonical inputs. CPU `rigid-direct` execution completed but
 failed three final angular-velocity comparisons against the historical CUDA
 capture (maximum absolute difference about 0.000256 versus about 0.0000102
-allowed). CPU `cloth-core` produced unsupported/exit 77. Existing shared brick
-penetration and 10/17 Windows comparison failures remain open; no tolerance or
-golden was changed by this separation.
+allowed). CPU `cloth-core` produced unsupported/exit 77. No tolerance or golden
+was changed by this separation.
+
+Subsequent [Windows GTX 1080 evidence](evidence/windows-gtx1080-physics-2026-10-16.json)
+resolves the ten failing comparisons: the same-build SDK runner passes all 17
+selected CUDA/D3D12 cases with zero unsupported results. Independent eight-brick,
+four-substep, 300-frame mesh checks pass on both drivers at 0.205278 mm against
+the unchanged 2 mm limit. The report retains original divergences, source/case/
+binary hashes and reproduction commands. These corrections do not qualify the
+remaining corpus, CPU historical regression, other devices or performance.
 
 ## Matching rules
 

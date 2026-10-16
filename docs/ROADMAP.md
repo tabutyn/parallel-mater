@@ -238,10 +238,12 @@ and relocatable reproducible SDK releases (F6). A completed task closes only its
 listed acceptance checks, not its entire area or a driver's physical compliance.
 
 The [qualification index](QUALIFICATION.md) keeps known failures visible.
-Current limits include CPU rigid-direct divergence, 10/17 CUDA/D3D12 comparison
-failures, shared brick penetration, native Vulkan validation failure and
-unqualified engine handoff. Do not relax tolerances or promote execution to
-physical correctness to complete a lease.
+Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
+independent shared-brick penetration gate without changing inputs, tolerances
+or historical goldens. Current limits include CPU rigid-direct divergence,
+remaining driver/domain qualification, native Vulkan validation failure and
+unqualified engine handoff. Do not promote execution to physical correctness
+to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves
 prior implementation checkpoints, original exits and platform evidence. It is
