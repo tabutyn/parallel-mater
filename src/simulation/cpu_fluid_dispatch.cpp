@@ -15,62 +15,54 @@ template <typename T> T *as(void *value) noexcept {
 template <typename T> const T *as(const void *value) noexcept {
     return reinterpret_cast<const T *>(value);
 }
-PMPackedVec3_0 packed_vec3(const float value[3]) noexcept {
-    return {value[0], value[1], value[2]};
-}
 Vec3_0 vec3(const float value[3]) noexcept {
     return {value[0], value[1], value[2]};
 }
-PMFluidConstants_0 constants(const FluidDispatchConstants &value) noexcept {
-    return {value.timestep, packed_vec3(value.gravity), value.count,
-        value.particle_radius, value.support_radius, value.repulsion,
-        value.viscosity, value.normal_damping, value.velocity_damping,
-        value.maximum_speed, value.maximum_pair_acceleration,
-        value.rest_density, value.maximum_neighbors};
+FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
+    return {value.count, value.particle_radius, value.rest_density,
+        value.support_radius, 0U, value.maximum_neighbors, value.repulsion,
+        value.viscosity, value.velocity_damping, value.maximum_speed,
+        value.normal_damping, 0.0F, value.maximum_pair_acceleration};
 }
 
 } // namespace
 
-void fluid_cell_keys(dim3 grid, dim3 block, cudaStream_t,
+void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     void *positions, std::uint32_t *count, std::uint32_t capacity,
     float inverse_radius, std::uint64_t *keys,
     std::uint32_t *sorted_indices) noexcept {
     EntryPointParams_0 args{
-        as<PMPackedVec3_0>(positions), count, capacity, inverse_radius,
+        as<Vec3_0>(positions), count, capacity, inverse_radius,
         reinterpret_cast<std::uint64_t *>(keys), sorted_indices};
-    device::dispatch_cpu(dim3((grid.x * block.x + 63U) / 64U),
-                         dim3(64U), pm_fluid_cell_keys_Thread, &args);
+    device::dispatch_cpu(grid, block, fluid_emit_cells_Thread, &args);
 }
 
-void fluid_forces(dim3 grid, dim3 block, cudaStream_t,
+void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
     const float up[3], float *foam_sources, std::uint64_t *keys,
     std::uint32_t *sorted_indices, std::uint32_t *neighbor_overflow,
     std::uint32_t *maximum_neighbor_count) noexcept {
     EntryPointParams_1 args{
-        as<PMPackedVec3_0>(positions), as<PMPackedVec3_0>(velocities),
-        as<PMPackedVec3_0>(accelerations), foam, count, constants(values),
-        packed_vec3(up), foam_sources,
-        reinterpret_cast<std::uint64_t *>(keys),
-        sorted_indices, neighbor_overflow, maximum_neighbor_count};
-    device::dispatch_cpu(dim3((grid.x * block.x + 63U) / 64U),
-                         dim3(64U), pm_fluid_forces_Thread, &args);
+        as<Vec3_0>(positions), as<Vec3_0>(velocities), count,
+        reinterpret_cast<std::uint64_t *>(keys), sorted_indices, foam,
+        constants(values), vec3(up), as<Vec3_0>(accelerations), foam_sources,
+        neighbor_overflow, maximum_neighbor_count};
+    device::dispatch_cpu(grid, block, fluid_compute_forces_Thread, &args);
 }
 
-void integrate_fluid(dim3 grid, dim3 block, cudaStream_t,
+void integrate_fluid(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
     void *previous, float *foam_sources) noexcept {
     EntryPointParams_2 args{
-        as<PMPackedVec3_0>(positions), as<PMPackedVec3_0>(velocities),
-        as<PMPackedVec3_0>(accelerations), foam, count, constants(values),
-        as<PMPackedVec3_0>(previous), foam_sources};
-    device::dispatch_cpu(dim3((grid.x * block.x + 63U) / 64U),
-                         dim3(64U), pm_fluid_integrate_Thread, &args);
+        as<Vec3_0>(positions), as<Vec3_0>(velocities), as<Vec3_0>(previous),
+        foam, as<Vec3_0>(accelerations), foam_sources, count, constants(values),
+        vec3(values.gravity), values.timestep};
+    device::dispatch_cpu(grid, block, fluid_integrate_Thread, &args);
 }
 
-void reserve_fluid_contact_events(cudaStream_t,
+void reserve_fluid_contact_events(device::ExecutionQueue,
     std::uint32_t *selected_count, std::uint32_t *offset,
     std::uint32_t *world_count, std::uint32_t *overflow,
     std::uint32_t capacity) noexcept {
@@ -79,7 +71,7 @@ void reserve_fluid_contact_events(cudaStream_t,
     device::dispatch_cpu(1U, 1U, fluid_reserve_contact_events_Thread, &args);
 }
 
-void gather_fluid_contact_events(dim3 grid, dim3 block, cudaStream_t,
+void gather_fluid_contact_events(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     std::uint32_t *selected, std::uint32_t *selected_count,
     std::uint32_t *offset, void *samples, std::uint32_t *stable_ids,
     void *body_ids, const void *fluid_id, void *events,
@@ -93,7 +85,7 @@ void gather_fluid_contact_events(dim3 grid, dim3 block, cudaStream_t,
     device::dispatch_cpu(grid, block, fluid_gather_contact_events_Thread, &args);
 }
 
-void find_fluid_source_vacancies(dim3 grid, dim3 block, cudaStream_t,
+void find_fluid_source_vacancies(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     const void *points, std::uint32_t amount, float spacing,
     const void *positions, const std::uint64_t *keys,
     const std::uint32_t *indices, std::uint32_t capacity,
@@ -108,7 +100,7 @@ void find_fluid_source_vacancies(dim3 grid, dim3 block, cudaStream_t,
     device::dispatch_cpu(grid, block, fluid_source_vacancies_Thread, &args);
 }
 
-void emit_fluid_source(cudaStream_t, const void *points,
+void emit_fluid_source(device::ExecutionQueue, const void *points,
     const std::uint8_t *vacant, std::uint32_t amount, float spacing,
     const float velocity[3], void *positions, void *velocities,
     std::uint32_t *ids, float *foam, float *temperatures,
@@ -123,7 +115,7 @@ void emit_fluid_source(cudaStream_t, const void *points,
     device::dispatch_cpu(1U, 1U, fluid_source_emit_Thread, &args);
 }
 
-void mark_fluid_destroy_flags(dim3 grid, dim3 block, cudaStream_t,
+void mark_fluid_destroy_flags(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     const void *positions, const void *previous, const std::uint32_t *count,
     std::uint32_t capacity, const void *plane_options, bool combine,
     std::uint8_t *keep) noexcept {
@@ -136,7 +128,7 @@ void mark_fluid_destroy_flags(dim3 grid, dim3 block, cudaStream_t,
     device::dispatch_cpu(grid, block, fluid_destroy_flags_Thread, &args);
 }
 
-void gather_fluid(dim3 grid, dim3 block, cudaStream_t,
+void gather_fluid(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     const void *positions, const void *velocities, const std::uint32_t *ids,
     const float *foam, const float *temperatures, const void *contact_samples,
     const std::uint8_t *contact_flags, bool copy_contacts,
@@ -160,7 +152,7 @@ void gather_fluid(dim3 grid, dim3 block, cudaStream_t,
     device::dispatch_cpu(grid, block, fluid_gather_Thread, &args);
 }
 
-void copy_initial_fluid(dim3 grid, dim3 block, cudaStream_t,
+void copy_initial_fluid(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     const void *input, std::uint32_t count, void *positions, void *velocities,
     std::uint32_t *ids, float *foam, float *temperatures,
     std::uint32_t *invalid) noexcept {

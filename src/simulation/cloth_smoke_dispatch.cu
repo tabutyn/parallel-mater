@@ -40,13 +40,13 @@ SmokeGridField_0 converted(const SmokeGridDispatchField &value) noexcept {
 } // namespace
 
 void apply_smoke_wind_to_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t vertex_count,
     const SmokeDispatchOptions &smoke, const void *smoke_positions,
     const void *smoke_velocities, const std::uint64_t *keys,
     const std::uint32_t *indices, const SmokeGridDispatchField &smoke_grid,
     float drag, float maximum_acceleration, float timestep) noexcept {
-    smoke_cloth_wind<<<grid, block, 0U, stream>>>(
+    smoke_cloth_wind<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), vertex_count, converted(smoke),
         const_cast<Vec3_0 *>(as<Vec3_0>(smoke_positions)),
@@ -58,14 +58,14 @@ void apply_smoke_wind_to_cloth(
 }
 
 void collide_smoke_with_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     float *pressures, std::uint32_t count,
     const SmokeDispatchOptions &smoke, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     std::uint32_t index_count, const void *minimum, const void *maximum,
     float clearance, const SmokeGridDispatchField &smoke_grid) noexcept {
-    smoke_cloth_contact<<<grid, block, 0U, stream>>>(
+    smoke_cloth_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
         as<Vec3_0>(velocities), const_cast<float *>(ages), pressures, count,

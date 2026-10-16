@@ -110,7 +110,14 @@ void check(bool condition, const char *message) {
 
 } // namespace
 
-int main() try {
+int main(int argc, char **argv) try {
+    std::optional<PmNativeBackend> backend;
+    if (argc == 3 && std::string(argv[1]) == "--backend") {
+        const std::string value = argv[2];
+        if (value == "d3d12") backend = PM_NATIVE_BACKEND_D3D12;
+        else if (value == "cuda") backend = PM_NATIVE_BACKEND_CUDA;
+        else throw std::runtime_error("unknown backend");
+    } else if (argc != 1) throw std::runtime_error("expected --backend d3d12|cuda");
     SceneDefinition scene;
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
@@ -179,7 +186,7 @@ int main() try {
     CommandScene simulation;
     CommandSceneInstance instance;
     CommandSceneFrame frame;
-    if (!CommandScene::create(scene, 2U, simulation, instance, error)) {
+    if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) {
         if (error.find("physical device") != std::string::npos) {
             std::cout << "SKIP: no Parallel Mater device\n";
             return 77;
@@ -200,6 +207,8 @@ int main() try {
     const rigid_mesh_checks::MeshSamples slider_gear_mesh(
         scene, gear_indices[2]);
     for (std::uint32_t frame_index = 0U; frame_index < 2400U; ++frame_index) {
+        if (frame_index % 300U == 0U)
+            std::cout << "constraint regression frame " << frame_index << '\n' << std::flush;
         check(simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
                               frame, error, true),
               error.empty() ? "step Hinge + Slider scene" : error.c_str());

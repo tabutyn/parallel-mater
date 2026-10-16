@@ -383,5 +383,73 @@ target and use around 3.2 GiB PSS. Keep startup budgets provisional and verified
 profiles empty until the performance gates pass. See [the device qualification
 record](ANDROID-QUALIFICATION.md) for exact scope and measurements.
 
+## Windows shared-runtime cleanup (2026-10-16)
+
+Implementation now uses `src/simulation/runtime.cpp`, the common schedule,
+opaque execution queues, dispatch dimensions and device-service events/copies.
+The Windows CUDA-shaped compatibility headers and the include-`runtime.cu`
+driver shims are removed. CUDA/CPU/Vulkan dispatch interfaces use the same
+types; native API interpretation stays in each adapter. CPU and Vulkan runtime
+qualification still belongs on their native machines.
+
+D3D12 binds liquid, cloth and their rigid/liquid interactions to the shared
+DXIL schedules. Unsupported stubs for those paths are removed. Persistent GPU
+allocations no longer receive full readback/re-upload on synchronization:
+host edits upload dirty ranges, explicit mappings read requested ranges, and
+same-allocation copies use GPU scratch. Tear topology currently still needs
+selected host reads at frame boundaries; this is not GPU-only scheduling.
+
+The native drawing adapter consumes public GPU output and presents a shared
+texture. Rigid interpolation, invisible authored meshes, expanded tearable
+cloth surfaces, and liquid particle/surface/wireframe drawing are implemented.
+The liquid presentation field is shared Slang, including the CUDA renderer's
+field kernels. Normal interactive D3D12 frames do not read fluid/cloth records
+back to the CPU. Controllers, diagnostics and explicit captures retain scoped
+readback. Queue overlap, native GPU timings, OptiX lighting/foam equivalence and
+performance qualification remain separate work.
+
+Validation distinguishes working execution from parity. The real-window test
+has exercised all 13 advertised scenes, Tab/Enter switching, F timing, Point
+release and resets, with at least five seconds per scene/load. The regression
+suite now requires 300 frames per supported scene, reset/backend retention,
+finite/contact/static-body/pinned-cloth invariants, GPU-only output followed by
+explicit diagnostic reads, 360 repeated API steps and narrow-range/self-copy
+checks. The long hinge/slider fixture independently checks drift, contacts and
+penetration. These gates do not replace canonical conformance.
+
+Strict same-build CUDA/D3D12 comparisons remain unqualified: the final 17-case
+capture completed on both drivers, with 7 comparisons passing and 10 failing.
+Passing cases are cloth-core, cloth-water, compound-weld-lifecycle,
+constraint-breaking, constraint-piston, constraint-slider and fluid-lifecycle.
+Failures concern other rigid contact/state cases and cloth-tear topology.
+Existing tolerances and goldens
+are unchanged. Windows CUDA's managed-memory host-read ordering fault in the
+cloth-tear run was fixed in the device adapter and the case now completes;
+completion does not erase its cross-driver differences. Milestones 4 and 6
+remain open until those numerical failures are resolved.
+
+The additional independent brick/brick mesh test also exposes a shared quality
+failure: with eight bricks, four substeps and a 2 mm separation gate, D3D12
+reaches 7.21844 mm penetration at frame 102 and CUDA reaches 7.02056 mm at
+frame 101 (zero-based). Earlier finite-state/300-frame execution passes must
+not be described as nonpenetration or full gallery parity. Keep this test red
+until the common solver is corrected. An isolated relaxed floating-point
+compilation experiment did not qualify rigid-direct, hinge or generic; the
+production precise settings remain unchanged.
+
+The final real-window run used installed build `8d5cfc6`, whose SHA-256 matched
+the build-tree executable. All 13 supported scenes passed load/reset dwell,
+including GPU-only rendering, scoped diagnostics, fluid surface/particle modes
+and cloth structure display. Captures and the unchanged-tolerance comparison
+report are in `build-cuda-slang-vs2022/d3d12-installed-final/` and
+`build-cuda-slang-vs2022/conformance-final-report.json`. Those local artifacts
+are evidence, not committed goldens or a claim that the failing cases pass.
+
+The final 2,400-step hinge/slider fixture and 360-step repeated-submission API
+test passed. The 20-test execution/architecture/reflection run passed before
+the new brick-mesh assertion was exercised; rerunning the strengthened
+`parallel-mater-d3d12-gallery-RigidBody` test fails at frame 102 as above. Do
+not report that older 20/20 result as a passing current physical-quality suite.
+
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

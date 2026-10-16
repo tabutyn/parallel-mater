@@ -277,6 +277,8 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
     case StatusCode::busy: return PM_ERROR_INVALID_STATE;
     case StatusCode::out_of_memory: return PM_ERROR_OUT_OF_DEVICE_MEMORY;
     case StatusCode::backend_failure:
+        if (status.backend_error < 0)
+            return static_cast<PmResult>(status.backend_error);
         return parallel_mater::device::from_driver_error(status.backend_error);
     case StatusCode::internal_error: return PM_ERROR_INVALID_STATE;
     }

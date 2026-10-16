@@ -3,6 +3,7 @@
 
 #include <parallel_mater_gallery/camera.hpp>
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/gpu_frame.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -45,6 +46,9 @@ enum class SmokeDebugMode : std::uint8_t {
 class Renderer {
   public:
     virtual ~Renderer() = default;
+    [[nodiscard]] virtual NativeRenderImage native_image() const noexcept { return {}; }
+    // Explicit capture only; interactive presentation must not read back pixels.
+    [[nodiscard]] virtual bool read_image(std::vector<std::uint32_t> &, std::string &) { return true; }
     [[nodiscard]] virtual bool render(
         const RenderSceneFrame &frame, Camera camera,
         std::vector<std::uint32_t> &rgba, std::string &error,
@@ -61,11 +65,19 @@ class Renderer {
 class RendererHandle {
   public:
     RendererHandle() noexcept = default;
+    explicit RendererHandle(std::unique_ptr<Renderer> implementation) noexcept
+        : implementation_(std::move(implementation)) {}
     ~RendererHandle() = default;
     RendererHandle(RendererHandle &&) noexcept = default;
     RendererHandle &operator=(RendererHandle &&) noexcept = default;
     RendererHandle(const RendererHandle &) = delete;
     RendererHandle &operator=(const RendererHandle &) = delete;
+    [[nodiscard]] NativeRenderImage native_image() const noexcept {
+        return implementation_ ? implementation_->native_image() : NativeRenderImage{};
+    }
+    [[nodiscard]] bool read_image(std::vector<std::uint32_t> &rgba, std::string &error) {
+        return implementation_ && implementation_->read_image(rgba, error);
+    }
 
     [[nodiscard]] bool render(
         const RenderSceneFrame &frame, Camera camera,

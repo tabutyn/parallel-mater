@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-// Included by runtime.cu; kept in one CUDA translation unit.
+// Included by runtime.cpp; shared backend-neutral runtime implementation.
 
 Status SimulationRuntime::add_triangle_mesh(
     DeviceSpan<const Vec3> vertices,
     DeviceSpan<const std::uint32_t> triangle_indices, TriangleMeshId &output,
     device::ExecutionQueue queue) noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) {
         return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
@@ -51,21 +51,25 @@ Status SimulationRuntime::add_triangle_mesh(
         release_managed(owned_vertices);
         return status;
     }
-    cudaError_t error = cudaMemcpyAsync(
+    PmResult error = copy_bytes(
         owned_vertices, vertices.data, sizeof(Vec3) * vertices.size,
-        cudaMemcpyDefault, stream);
-    if (error == cudaSuccess) {
-        error = cudaMemcpyAsync(owned_indices, triangle_indices.data,
+        device::CopyDirection::automatic, stream);
+    if (error == PM_SUCCESS) {
+        error = copy_bytes(owned_indices, triangle_indices.data,
                                 sizeof(std::uint32_t) * triangle_indices.size,
-                                cudaMemcpyDefault, stream);
+                                device::CopyDirection::automatic, stream);
     }
-    if (error == cudaSuccess) {
-        error = cudaStreamSynchronize(stream);
+    if (error == PM_SUCCESS) {
+        error = wait_queue(stream);
     }
-    if (error != cudaSuccess) {
+    if (error == PM_SUCCESS)
+        error = stream.services->read_host(owned_vertices, sizeof(Vec3) * vertices.size);
+    if (error == PM_SUCCESS)
+        error = stream.services->read_host(owned_indices, sizeof(std::uint32_t) * triangle_indices.size);
+    if (error != PM_SUCCESS) {
         release_managed(owned_indices);
         release_managed(owned_vertices);
-        return cuda_failure(error, "triangle mesh upload failed");
+        return backend_failure(error, "triangle mesh upload failed");
     }
     // Native adapters may map uncached device-local memory. BVH and convex
     // preparation revisit vertices many times; take one contiguous host copy
@@ -310,7 +314,11 @@ Status SimulationRuntime::add_triangle_mesh(
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
     output = {slot, mesh.generation};
-    return success();
+    // Host preparation rewrites the complete index order, not isolated bytes.
+    // Publish its ranges explicitly before any graphics-backend dispatch.
+    status = write_host_span(impl_->execution, owned_indices, triangle_indices.size);
+    if (!status) return status;
+    return write_host_objects(impl_->execution, &mesh);
 }
 Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept {
     if (!impl_) {
@@ -360,7 +368,7 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
 Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
                               PaintFieldId &output,
                               device::ExecutionQueue queue) noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
@@ -404,17 +412,17 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
     status = allocate_managed(pixels,
         static_cast<std::size_t>(options.width) * options.height);
     if (!status) { release_managed(uvs); return status; }
-    cudaError_t error = cudaMemcpyAsync(uvs, options.vertex_uvs.data,
-        vertex_count * sizeof(Vec2), cudaMemcpyDefault, stream);
-    if (error == cudaSuccess)
-        error = cudaMemsetAsync(pixels, 0,
+    PmResult error = copy_bytes(uvs, options.vertex_uvs.data,
+        vertex_count * sizeof(Vec2), device::CopyDirection::automatic, stream);
+    if (error == PM_SUCCESS)
+        error = clear_bytes(pixels, 0,
             static_cast<std::size_t>(options.width) * options.height *
                 sizeof(std::uint32_t), stream);
-    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-    if (error != cudaSuccess) {
+    if (error == PM_SUCCESS) error = wait_queue(stream);
+    if (error != PM_SUCCESS) {
         release_managed(pixels);
         release_managed(uvs);
-        return cuda_failure(error, "paint field upload failed");
+        return backend_failure(error, "paint field upload failed");
     }
     for (std::uint32_t i = 0; i < vertex_count; ++i)
         if (!finite(uvs[i].x) || !finite(uvs[i].y)) {
@@ -459,7 +467,7 @@ Status SimulationRuntime::remove_paint_field(PaintFieldId id) noexcept {
 
 Status SimulationRuntime::clear_paint_field(
     PaintFieldId id, device::ExecutionQueue queue) noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
@@ -468,12 +476,12 @@ Status SimulationRuntime::clear_paint_field(
         impl_->paint_fields[id.index].generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
     const PaintFieldResource &field = impl_->paint_fields[id.index];
-    cudaError_t error = cudaMemsetAsync(field.pixels, 0,
+    PmResult error = clear_bytes(field.pixels, 0,
         static_cast<std::size_t>(field.options.width) *
         field.options.height * sizeof(std::uint32_t), stream);
-    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "paint field clear failed");
+    if (error == PM_SUCCESS) error = wait_queue(stream);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint field clear failed");
     return success();
 }
 
@@ -486,11 +494,11 @@ Status SimulationRuntime::paint_field_view(PaintFieldId id,
         impl_->paint_fields == nullptr)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
     PaintFieldResource field{};
-    const cudaError_t error = cudaMemcpy(
+    const PmResult error = copy_bytes_wait(
         &field, &impl_->paint_fields[id.index], sizeof(field),
-        cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return cuda_failure(error, "paint field view readback failed");
+        device::CopyDirection::device_to_host, impl_->execution);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint field view readback failed");
     if (!field.alive || field.generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
     output = {{field.pixels, static_cast<std::uint64_t>(field.options.width) *
@@ -893,7 +901,7 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
                 }
             }
         } catch (...) { return failure(StatusCode::out_of_memory, "failed to build cloth seams"); }
-        status = rebuild_cloth_topology(*cloth, true);
+        status = rebuild_cloth_topology(*cloth, impl_->execution, true);
         if (!status) return status;
     }
     cloth->alive = true;

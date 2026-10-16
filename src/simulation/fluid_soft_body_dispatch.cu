@@ -14,12 +14,12 @@ template <typename T> const T *as(const void *value) noexcept {
 } // namespace
 
 void refit_fluid_soft_surface(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     const void *previous_surface, const std::uint32_t *surface_indices,
     const std::uint32_t *triangle_order, void *tree,
     const std::uint32_t *parents, std::uint32_t *ready,
     std::uint32_t tree_count, void *bounds) noexcept {
-    fluid_soft_refit<<<grid, block, 0U, stream>>>(
+    fluid_soft_refit<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(surface)),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_surface)),
         const_cast<std::uint32_t *>(surface_indices),
@@ -29,7 +29,7 @@ void refit_fluid_soft_surface(
 }
 
 void detect_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const void *velocities,
     const std::uint32_t *particle_count, const void *surface,
     const void *previous_surface, const std::uint32_t *surface_indices,
@@ -39,7 +39,7 @@ void detect_fluid_soft_contacts(
     const std::uint32_t *triangle_order, void *contacts,
     std::uint32_t *node_contact_counts, std::uint32_t *contact_count,
     float *maximum_penetration) noexcept {
-    fluid_soft_detect<<<grid, block, 0U, stream>>>(
+    fluid_soft_detect<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous)),
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)),
@@ -58,14 +58,14 @@ void detect_fluid_soft_contacts(
 }
 
 void solve_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, void *accelerations, float *foam,
     const std::uint32_t *particle_count, const void *contacts,
     const std::uint32_t *node_contact_counts, const float *inverse_masses,
     const void *soft_velocities, float maximum_soft_speed,
     float inverse_particle_mass, float friction, float maximum_projection,
     float timestep, void *node_position_deltas, void *node_impulses) noexcept {
-    fluid_soft_solve<<<grid, block, 0U, stream>>>(
+    fluid_soft_solve<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         as<Vec3_0>(accelerations), foam,
         const_cast<std::uint32_t *>(particle_count),
@@ -78,11 +78,11 @@ void solve_fluid_soft_contacts(
 }
 
 void apply_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const float *inverse_masses,
     const void *position_deltas, const void *impulses, void *forces,
     std::uint32_t node_count, float inverse_frame_timestep) noexcept {
-    fluid_soft_apply<<<grid, block, 0U, stream>>>(
+    fluid_soft_apply<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses),
         const_cast<Vec3_0 *>(as<Vec3_0>(position_deltas)),
@@ -91,13 +91,13 @@ void apply_fluid_soft_contacts(
 }
 
 void recover_fluid_soft_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous, const std::uint32_t *particle_count,
     const void *surface, const void *previous_surface,
     const std::uint32_t *surface_indices, std::uint32_t surface_index_count,
     float orientation, float distance, const void *bounds, bool sweep,
     const void *tree, const std::uint32_t *triangle_order) noexcept {
-    fluid_soft_recover<<<grid, block, 0U, stream>>>(
+    fluid_soft_recover<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), const_cast<Vec3_0 *>(as<Vec3_0>(previous)),
         const_cast<std::uint32_t *>(particle_count),
         const_cast<Vec3_0 *>(as<Vec3_0>(surface)),

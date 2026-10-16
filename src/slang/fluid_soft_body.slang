@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared fluid/soft-body coupling kernels.
 
@@ -184,8 +185,9 @@ public FluidSoftNearest fluid_soft_nearest(
 void fluid_soft_refit(
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> indices,
     uniform PMBuffer<uint> order, uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> parents,
-    uniform PMBuffer<uint> ready, uniform uint tree_count, uniform PMBuffer<Vec3> bounds)
+    uniform PMBuffer<uint> ready, uniform uint tree_count, uniform PMBuffer<Vec3> bounds PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= tree_count || tree[index].triangle_count == 0u) return;
     Vec3 low = {3.402823466e+38f, 3.402823466e+38f, 3.402823466e+38f};
@@ -229,8 +231,9 @@ void fluid_soft_detect(
     uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
     uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order,
     uniform PMBuffer<FluidSoftContact> contacts, uniform PMBuffer<uint> counts,
-    uniform PMBuffer<uint> contact_count, uniform PMBuffer<float> maximum_penetration)
+    uniform PMBuffer<uint> contact_count, uniform PMBuffer<float> maximum_penetration PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
     FluidSoftContact contact = {};
@@ -284,8 +287,9 @@ void fluid_soft_solve(
     uniform float maximum_soft_speed, uniform float inverse_particle_mass,
     uniform float friction, uniform float maximum_projection,
     uniform float dt, uniform PMBuffer<Vec3> node_positions,
-    uniform PMBuffer<Vec3> node_impulses)
+    uniform PMBuffer<Vec3> node_impulses PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
     FluidSoftContact contact = contacts[particle];
@@ -345,8 +349,9 @@ void fluid_soft_apply(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> position_deltas,
     uniform PMBuffer<Vec3> impulses, uniform PMBuffer<Vec3> forces, uniform uint count,
-    uniform float inverse_frame_dt)
+    uniform float inverse_frame_dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= count) return;
     positions[node] = add(positions[node], position_deltas[node]);
@@ -363,8 +368,9 @@ void fluid_soft_recover(
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> old_surface,
     uniform PMBuffer<uint> indices, uniform uint index_count, uniform float orientation,
     uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
-    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order)
+    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
     FluidSoftNearest hit = fluid_soft_nearest(positions[particle],

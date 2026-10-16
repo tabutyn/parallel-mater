@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Included by runtime.cu; kept in one CUDA translation unit.
+// Included by runtime.cpp; shared backend-neutral runtime implementation.
 
 Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion,
                          device::ExecutionQueue queue) noexcept {
-    const cudaStream_t stream = native_stream(queue);
+    const device::ExecutionQueue stream = queue;
     if (!impl_) {
         return failure(StatusCode::invalid_argument, "simulation is not initialized");
     }
@@ -35,18 +35,21 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
                                    static_cast<std::uint32_t>(required));
     }
     for (auto &cloth : impl_->cloths) if (cloth && cloth->alive) {
-        status = rebuild_cloth_topology(*cloth);
+        status = rebuild_cloth_topology(*cloth, queue);
         if (!status) return status;
     }
     const bool debug_enabled =
         impl_->options.physics_debug.frame_capacity != 0U;
     if (impl_->rigid_body_count == 0U) {
-        *impl_->rigid_contact_count = 0U;
+        const auto cleared = clear_bytes(impl_->rigid_contact_count, 0,
+                                         sizeof(std::uint32_t), queue);
+        if (cleared != PM_SUCCESS) return backend_failure(cleared, "contact count clear failed");
     }
-    *impl_->fluid_neighbor_overflow = 0U;
-    *impl_->fluid_maximum_neighbor_count = 0U;
-    *impl_->fluid_contact_count = 0U;
-    *impl_->fluid_contact_overflow = 0U;
+    for (auto *counter : {impl_->fluid_neighbor_overflow, impl_->fluid_maximum_neighbor_count,
+                          impl_->fluid_contact_count, impl_->fluid_contact_overflow}) {
+        const auto cleared = clear_bytes(counter, 0, sizeof(std::uint32_t), queue);
+        if (cleared != PM_SUCCESS) return backend_failure(cleared, "fluid count clear failed");
+    }
 
     std::unique_ptr<FrameToken::Impl> token_impl;
     if (completion.impl_) {
@@ -68,6 +71,7 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
                        "failed to allocate frame completion state");
     }
     frame->fluid_neighbor_overflow = impl_->fluid_neighbor_overflow;
+    frame->execution = impl_->execution;
     if (debug_enabled) {
         try {
             frame->on_complete = [implementation = impl_.get(), options, queue]() {
@@ -78,21 +82,20 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
                            "physics debug completion allocation failed");
         }
     }
-    cudaError_t error =
-        cudaEventCreateWithFlags(&frame->event, cudaEventDisableTiming);
-    if (error != cudaSuccess) {
-        return cuda_failure(error, "failed to create frame completion event");
+    PmResult error = impl_->execution.services->create_event(false, frame->event);
+    if (error != PM_SUCCESS) {
+        return backend_failure(error, "failed to create frame completion event");
     }
     NativeScheduleBackend backend(queue);
     status = simulation::schedule_frame(*impl_, backend, options);
     if (!status) {
-        (void)cudaStreamSynchronize(stream);
+        (void)wait_queue(stream);
         return status;
     }
-    error = cudaEventRecord(frame->event, stream);
-    if (error != cudaSuccess) {
-        cudaStreamSynchronize(stream);
-        return cuda_failure(error, "failed to record frame completion event");
+    error = impl_->execution.services->record_event(frame->event);
+    if (error != PM_SUCCESS) {
+        wait_queue(stream);
+        return backend_failure(error, "failed to record frame completion event");
     }
 
     impl_->frame = frame;

@@ -25,13 +25,18 @@ foreach(record IN LISTS records)
         message(FATAL_ERROR "Missing DXIL schedule: ${input}")
     endif()
     file(READ "${input}" bytes HEX)
+    string(REGEX REPLACE "\\.dxil$" ".json" reflection_file "${input}")
+    file(READ "${reflection_file}" reflection)
+    string(JSON threads_x GET "${reflection}" entryPoints 0 threadGroupSize 0)
+    string(JSON threads_y GET "${reflection}" entryPoints 0 threadGroupSize 1)
+    string(JSON threads_z GET "${reflection}" entryPoints 0 threadGroupSize 2)
     string(REGEX REPLACE "(..)" "0x\\1," bytes "${bytes}")
     string(REGEX REPLACE "((0x[0-9a-f][0-9a-f],){16})" "\\1\n"
            bytes "${bytes}")
     string(APPEND declarations
         "inline constexpr std::uint8_t kernel_${index}[] = {\n${bytes}\n};\n")
     string(APPEND table
-        "    {\"${module}\", \"${entry}\", kernel_${index}, sizeof(kernel_${index})},\n")
+        "    {\"${module}\", \"${entry}\", kernel_${index}, sizeof(kernel_${index}), ${threads_x}, ${threads_y}, ${threads_z}},\n")
     math(EXPR index "${index} + 1")
 endforeach()
 
@@ -46,6 +51,7 @@ file(WRITE "${OUTPUT_FILE}"
 "    const char* entry;\n"
 "    const std::uint8_t* code;\n"
 "    std::size_t size;\n"
+"    std::uint32_t threads_x, threads_y, threads_z;\n"
 "};\n"
 "${declarations}"
 "inline constexpr SlangKernelBytecode slang_kernels[] = {\n${table}};\n"

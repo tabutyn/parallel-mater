@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "fluid_surface.hpp"
+#include "fluid_surface_generated.cu"
 
 #include <cub/cub.cuh>
 
@@ -14,7 +15,6 @@ namespace {
 
 // Budget for the late scene, where the stream spans almost the whole level.
 constexpr std::uint32_t k_samples = 128U * 128U * 128U;
-constexpr int k_cell_bias = 1 << 20;
 
 void check(cudaError_t result, const char *operation) {
     if (result != cudaSuccess)
@@ -29,103 +29,6 @@ template <class T> T *allocate(std::size_t count) {
     return result;
 }
 
-__device__ std::uint64_t cell_key(int x, int y, int z) {
-    x = max(-k_cell_bias, min(k_cell_bias - 1, x));
-    y = max(-k_cell_bias, min(k_cell_bias - 1, y));
-    z = max(-k_cell_bias, min(k_cell_bias - 1, z));
-    return (static_cast<std::uint64_t>(x + k_cell_bias) << 42U) |
-           (static_cast<std::uint64_t>(y + k_cell_bias) << 21U) |
-           static_cast<std::uint64_t>(z + k_cell_bias);
-}
-
-__global__ void index_particles(const Vec3 *positions, std::uint32_t count,
-                                float inverse_support, std::uint64_t *keys,
-                                std::uint32_t *indices) {
-    const std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= count) return;
-    const Vec3 p = positions[i];
-    keys[i] = cell_key(__float2int_rd(p.x * inverse_support),
-                       __float2int_rd(p.y * inverse_support),
-                       __float2int_rd(p.z * inverse_support));
-    indices[i] = i;
-}
-
-__device__ std::uint32_t lower_bound(const std::uint64_t *keys,
-                                     std::uint32_t count, std::uint64_t key) {
-    std::uint32_t first = 0U;
-    while (first < count) {
-        const std::uint32_t middle = first + (count - first) / 2U;
-        if (keys[middle] < key) first = middle + 1U;
-        else count = middle;
-    }
-    return first;
-}
-
-__global__ void build_field(const Vec3 *positions, std::uint32_t count,
-                            const std::uint64_t *keys,
-                            const std::uint32_t *indices,
-                            optix_shared::FluidSurfaceGrid grid,
-                            std::uint32_t samples, float *values) {
-    const std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= samples) return;
-    const std::uint32_t nx = grid.dimensions.x;
-    const std::uint32_t ny = grid.dimensions.y;
-    const Vec3 p{grid.minimum.x + (i % nx) * grid.cell_size.x,
-                 grid.minimum.y + ((i / nx) % ny) * grid.cell_size.y,
-                 grid.minimum.z + (i / (nx * ny)) * grid.cell_size.z};
-    const float inverse = 1.0F / grid.support_radius;
-    const int cx = __float2int_rd(p.x * inverse);
-    const int cy = __float2int_rd(p.y * inverse);
-    const int cz = __float2int_rd(p.z * inverse);
-    const float radius_squared = grid.support_radius * grid.support_radius;
-    float weight = 0.0F;
-    float3 offset = make_float3(0.0F, 0.0F, 0.0F);
-    for (int dz = -1; dz <= 1; ++dz) {
-        for (int dy = -1; dy <= 1; ++dy) {
-            for (int dx = -1; dx <= 1; ++dx) {
-                const std::uint64_t key = cell_key(cx + dx, cy + dy, cz + dz);
-                for (std::uint32_t item = lower_bound(keys, count, key);
-                     item < count && keys[item] == key; ++item) {
-                    const Vec3 q = positions[indices[item]];
-                    const float rx = p.x - q.x;
-                    const float ry = p.y - q.y;
-                    const float rz = p.z - q.z;
-                    const float distance_squared = rx * rx + ry * ry + rz * rz;
-                    if (distance_squared >= radius_squared) continue;
-                    const float a = 1.0F - distance_squared / radius_squared;
-                    const float w = a * a * a;
-                    weight += w;
-                    offset.x += w * rx;
-                    offset.y += w * ry;
-                    offset.z += w * rz;
-                }
-            }
-        }
-    }
-    float value = grid.support_radius;
-    if (weight > 1.0e-10F) {
-        const float x = offset.x / weight;
-        const float y = offset.y / weight;
-        const float z = offset.z / weight;
-        // Keep the original broad Zhu-Bridson surface on top, but use the
-        // physical particle radius below the weighted center. A broad lower
-        // lobe can reappear under sloped terrain even with a vertical clamp.
-        const float upper_radius = grid.support_radius / 3.0F;
-        const float lower_radius = fminf(upper_radius,
-                                         grid.particle_radius * 0.8F);
-        const float upper_weight = fminf(1.0F,
-            fmaxf(0.0F, y / grid.particle_radius));
-        const float smooth_surface = sqrtf(x * x + y * y + z * z) -
-            (lower_radius + (upper_radius - lower_radius) * upper_weight);
-        // The weighted-center field can bulge far below a particle layer.
-        // Keep its lower boundary within one physical particle radius of
-        // the local weighted particle center. A 2 mm field clearance also
-        // survives grid interpolation against sloped triangle terrain.
-        value = fmaxf(smooth_surface, -y - grid.particle_radius * 0.9F)
-            + 0.002F;
-    }
-    values[i] = value;
-}
 
 } // namespace
 
@@ -268,18 +171,21 @@ float FluidSurface::update(const Vec3 *device_positions,
         grid.dimensions.x * grid.dimensions.y * grid.dimensions.z;
     check(cudaEventRecord(impl_->begin), "begin fluid surface timing");
     constexpr std::uint32_t block = 128U;
-    index_particles<<<(particle_count + block - 1U) / block, block>>>(
-        device_positions, particle_count, 1.0F / radius,
-        impl_->keys[0], impl_->indices[0]);
+    surface_index_particles<<<(particle_count + block - 1U) / block, block>>>(
+        reinterpret_cast<float3 *>(const_cast<Vec3 *>(device_positions)), particle_count, 1.0F / radius,
+        reinterpret_cast<ulonglong *>(impl_->keys[0]), impl_->indices[0]);
     check(cudaGetLastError(), "index fluid surface particles");
     check(cub::DeviceRadixSort::SortPairs(
               impl_->sort_workspace, impl_->sort_workspace_size,
               impl_->keys[0], impl_->keys[1], impl_->indices[0],
               impl_->indices[1], particle_count, 0, 64),
           "sort fluid surface particles");
-    build_field<<<(samples + block - 1U) / block, block>>>(
-        device_positions, particle_count, impl_->keys[1],
-        impl_->indices[1], grid, samples, impl_->values);
+    const SurfaceGrid_0 shared_grid{grid.minimum, grid.cell_size, grid.dimensions,
+        grid.support_radius, grid.particle_radius};
+    surface_build_field<<<(samples + block - 1U) / block, block>>>(
+        reinterpret_cast<float3 *>(const_cast<Vec3 *>(device_positions)), particle_count,
+        reinterpret_cast<ulonglong *>(impl_->keys[1]), impl_->indices[1],
+        shared_grid, samples, impl_->values);
     check(cudaGetLastError(), "build fluid surface field");
     check(cudaEventRecord(impl_->end), "end fluid surface timing");
     check(cudaEventSynchronize(impl_->end), "complete fluid surface field");

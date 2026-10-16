@@ -354,7 +354,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindGeometryMemory(
         geometry->arena =
             std::make_unique<parallel_mater::simulation::MemoryArena>(
                 static_cast<std::byte *>(memory->allocation) + offset,
-                static_cast<std::size_t>(requirements.size), nullptr, 0U);
+                static_cast<std::size_t>(requirements.size), nullptr, 0U,
+                device->services.get());
     } catch (const std::bad_alloc &) {
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
@@ -600,7 +601,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
                     simulation->requirements.persistent.size),
                 static_cast<std::byte *>(binding->scratchMemory->allocation) +
                     binding->scratchOffset,
-                static_cast<std::size_t>(simulation->requirements.scratch.size));
+                static_cast<std::size_t>(simulation->requirements.scratch.size),
+                device->services.get());
     } catch (const std::bad_alloc &) {
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }

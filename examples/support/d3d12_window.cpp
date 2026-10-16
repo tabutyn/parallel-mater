@@ -245,13 +245,30 @@ bool GalleryWindow::create(std::uint32_t window_width,
 }
 
 bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba,
-                            std::string &error) {
+                            std::string &error, NativeRenderImage image) {
     error.clear();
     if (!impl_ || rgba.size() !=
             static_cast<std::size_t>(impl_->image_width) *
                 impl_->image_height) {
         error = "presentation image size does not match the window adapter";
         return false;
+    }
+    ComPtr<ID3D12Resource> gpu_image;
+    if (image.handle != 0U) {
+        if (image.backend != PM_NATIVE_BACKEND_D3D12) {
+            error = "D3D12 presentation received an incompatible native image";
+            return false;
+        }
+        const auto opened = impl_->device->OpenSharedHandle(
+            reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(image.handle)),
+            IID_PPV_ARGS(&gpu_image));
+        if (FAILED(opened)) { error = hresult_error("OpenSharedHandle(render image)", opened); return false; }
+        const auto description = gpu_image->GetDesc();
+        if (description.Width != impl_->image_width || description.Height != impl_->image_height ||
+            description.Format != DXGI_FORMAT_R8G8B8A8_UNORM) {
+            error = "native render image does not match the presentation target";
+            return false;
+        }
     }
 
     std::byte *mapped = nullptr;
@@ -263,16 +280,26 @@ bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba,
         return false;
     }
     mapped += impl_->upload_footprint.Offset;
-    const auto *source = reinterpret_cast<const std::byte *>(rgba.data());
     const std::size_t source_pitch =
         static_cast<std::size_t>(impl_->image_width) * sizeof(std::uint32_t);
     for (std::uint32_t row = 0U; row < impl_->image_height; ++row) {
-        std::memcpy(mapped + static_cast<std::size_t>(row) *
-                                 impl_->upload_footprint.Footprint.RowPitch,
-                    source + static_cast<std::size_t>(
-                                 impl_->image_height - 1U - row) *
-                                 source_pitch,
-                    source_pitch);
+        auto *target = mapped + static_cast<std::size_t>(row) *
+            impl_->upload_footprint.Footprint.RowPitch;
+        const auto *pixels = rgba.data() + static_cast<std::size_t>(
+            impl_->image_height - 1U - row) * impl_->image_width;
+        if (!gpu_image) {
+            std::memcpy(target, pixels, source_pitch);
+            continue;
+        }
+        // Upload only UI spans. The transparent canvas is not image data and
+        // should consume neither upload bandwidth nor a full-image GPU copy.
+        for (UINT column = 0U; column < impl_->image_width;) {
+            if (pixels[column] == 0U) { ++column; continue; }
+            const UINT first = column++;
+            while (column < impl_->image_width && pixels[column] != 0U) ++column;
+            std::memcpy(target + first * sizeof(std::uint32_t), pixels + first,
+                (column - first) * sizeof(std::uint32_t));
+        }
     }
     impl_->upload->Unmap(0U, nullptr);
 
@@ -307,8 +334,32 @@ bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba,
     source_location.pResource = impl_->upload.Get();
     source_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     source_location.PlacedFootprint = impl_->upload_footprint;
-    impl_->command_list->CopyTextureRegion(
-        &destination, 0U, 0U, 0U, &source_location, nullptr);
+    if (!gpu_image) {
+        impl_->command_list->CopyTextureRegion(
+            &destination, 0U, 0U, 0U, &source_location, nullptr);
+    } else {
+        D3D12_RESOURCE_BARRIER source_barrier{};
+        source_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        source_barrier.Transition = {gpu_image.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_SOURCE};
+        impl_->command_list->ResourceBarrier(1U, &source_barrier);
+        impl_->command_list->CopyResource(back_buffer.Get(), gpu_image.Get());
+        std::swap(source_barrier.Transition.StateBefore, source_barrier.Transition.StateAfter);
+        impl_->command_list->ResourceBarrier(1U, &source_barrier);
+        // Shared UI code emits opaque pixels over a transparent canvas. Copy
+        // only its occupied row spans; the scene image never visits the CPU.
+        for (UINT row = 0U; row < impl_->image_height; ++row) {
+            const auto *pixels = rgba.data() +
+                static_cast<std::size_t>(impl_->image_height - 1U - row) * impl_->image_width;
+            for (UINT column = 0U; column < impl_->image_width;) {
+                if (pixels[column] == 0U) { ++column; continue; }
+                const UINT first = column++;
+                while (column < impl_->image_width && pixels[column] != 0U) ++column;
+                const D3D12_BOX box{first, row, 0U, column, row + 1U, 1U};
+                impl_->command_list->CopyTextureRegion(&destination, first, row, 0U, &source_location, &box);
+            }
+        }
+    }
     std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
     impl_->command_list->ResourceBarrier(1U, &barrier);
     result = impl_->command_list->Close();

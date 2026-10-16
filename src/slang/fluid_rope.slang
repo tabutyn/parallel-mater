@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared fluid/rope coupling kernels.
 
@@ -19,8 +20,9 @@ void fluid_rope_contacts(
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform float distance, uniform float friction,
     uniform PMBuffer<Vec3> node_impulses, uniform PMBuffer<uint> contact_count,
-    uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse)
+    uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
     Vec3 position = positions[particle];
@@ -84,8 +86,9 @@ void fluid_rope_apply(
     uniform float rope_maximum_speed, uniform bool first_attached,
     uniform bool last_attached,
     uniform PMBuffer<Vec3> node_impulses, uniform float maximum_acceleration,
-    uniform float dt, uniform float frame_inverse_dt)
+    uniform float dt, uniform float frame_inverse_dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= rope_count || (node == 0u && first_attached) ||
         (node + 1u == rope_count && last_attached))

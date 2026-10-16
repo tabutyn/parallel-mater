@@ -3,7 +3,7 @@
 
 #include "smoke_dispatch.hpp"
 
-#include <cuda_runtime_api.h>
+#include "device/device.hpp"
 
 #include <cstdint>
 
@@ -22,20 +22,20 @@ struct FluidSmokeDispatchOptions {
 };
 
 void drag_fluid_with_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const std::uint32_t *particle_count,
     const FluidSmokeDispatchOptions &options, const void *smoke_positions,
     const void *smoke_velocities, const std::uint64_t *smoke_keys,
     const std::uint32_t *smoke_indices, float timestep) noexcept;
 
 void drag_fluid_with_smoke_grid(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const std::uint32_t *particle_count,
     const FluidSmokeDispatchOptions &options,
     const SmokeGridDispatchField &smoke_grid, float timestep) noexcept;
 
 void exchange_fluid_with_smoke(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, float *temperatures,
     const std::uint32_t *particle_count, float particle_radius,
     const FluidSmokeDispatchOptions &options, void *smoke_positions,
@@ -46,7 +46,7 @@ void exchange_fluid_with_smoke(
     const float gravity[3]) noexcept;
 
 void clear_inactive_fluid_keep(
-    dim3 grid, dim3 block, cudaStream_t stream, std::uint8_t *keep,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, std::uint8_t *keep,
     const std::uint32_t *particle_count, std::uint32_t capacity) noexcept;
 
 } // namespace parallel_mater::simulation

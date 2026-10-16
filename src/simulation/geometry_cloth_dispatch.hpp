@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <cuda_runtime_api.h>
+#include "device/device.hpp"
 
 #include <cstdint>
 
 namespace parallel_mater::simulation {
 
 void constrain_rigid_bodies_with_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *cloth_positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     const std::uint32_t *vertex_sources, const void *surface_positions,
     const float *inverse_masses, std::uint32_t vertex_count,
@@ -22,7 +22,7 @@ void constrain_rigid_bodies_with_cloth(
     void *corrections) noexcept;
 
 void apply_cloth_body_corrections(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t vertex_count,
     const void *corrections, std::uint32_t body_count) noexcept;
 

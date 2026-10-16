@@ -271,7 +271,7 @@ add_library(
     src/simulation/smoke_grid_dispatch.cu
     src/simulation/memory_arena.cpp
     src/simulation/primitives.cu
-    src/simulation/runtime.cu
+    src/simulation/runtime.cpp
     src/simulation/runtime_domains.cu.inc
     src/simulation/runtime_deformables.cu.inc
     src/simulation/runtime_rigid.cu.inc
@@ -467,24 +467,14 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         PRIVATE parallel-mater-host-preparation)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
-    if(BUILD_TESTING AND PARALLEL_MATER_BUILD_CUDA)
+    if(BUILD_TESTING)
         add_executable(parallel-mater-command-gallery-tests
                        tests/gallery/command_gallery_tests.cpp)
         target_link_libraries(parallel-mater-command-gallery-tests
                               PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(parallel-mater-command-gallery-tests PRIVATE
             PARALLEL_MATER_GALLERY_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
-        add_dependencies(parallel-mater-command-gallery-tests
-                         parallel-mater-driver-slang-cuda)
         parallel_mater_enable_warnings(parallel-mater-command-gallery-tests)
-        add_test(NAME parallel-mater-command-gallery-tests
-                 COMMAND parallel-mater-command-gallery-tests)
-        set_tests_properties(parallel-mater-command-gallery-tests PROPERTIES
-            LABELS "api;gallery;cuda"
-            SKIP_RETURN_CODE 77
-            TIMEOUT 300
-            ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
 
         add_executable(parallel-mater-rigid-constraint-command-tests
                        tests/gallery/rigid_constraint_command_tests.cpp)
@@ -493,10 +483,57 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         target_compile_definitions(
             parallel-mater-rigid-constraint-command-tests PRIVATE
             PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb")
-        add_dependencies(parallel-mater-rigid-constraint-command-tests
-                         parallel-mater-driver-slang-cuda)
         parallel_mater_enable_warnings(
             parallel-mater-rigid-constraint-command-tests)
+
+        add_executable(parallel-mater-conformance
+                       conformance/v1/src/command_runner.cpp)
+        target_link_libraries(parallel-mater-conformance PRIVATE
+            parallel-mater-conformance-registry parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-conformance PRIVATE
+            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+        parallel_mater_enable_warnings(parallel-mater-conformance)
+        add_test(NAME parallel-mater-conformance-command-inputs
+                 COMMAND parallel-mater-conformance --check-inputs)
+        set_tests_properties(parallel-mater-conformance-command-inputs
+            PROPERTIES LABELS "api;conformance")
+    endif()
+
+    if(BUILD_TESTING AND WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+        foreach(test_target parallel-mater-command-gallery-tests
+                parallel-mater-rigid-constraint-command-tests parallel-mater-conformance)
+            add_dependencies(${test_target} parallel-mater-driver-slang-d3d12)
+        endforeach()
+        foreach(scene RigidBody ConstraintFixed ConstraintPoint ConstraintHinge
+                ConstraintPiston ConstraintGeneric ConstraintMotorSpring DumpTruck
+                Fluid FluidRigid Cloth ClothTear ClothWater)
+            add_test(NAME parallel-mater-d3d12-gallery-${scene}
+                COMMAND parallel-mater-command-gallery-tests --backend d3d12
+                    --scene ${scene}.glb --frames 300)
+            set_tests_properties(parallel-mater-d3d12-gallery-${scene} PROPERTIES
+                LABELS "api;gallery;d3d12;regression" SKIP_RETURN_CODE 77 TIMEOUT 1800
+                RUN_SERIAL TRUE
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+        endforeach()
+        add_test(NAME parallel-mater-d3d12-rigid-constraints
+            COMMAND parallel-mater-rigid-constraint-command-tests --backend d3d12)
+        set_tests_properties(parallel-mater-d3d12-rigid-constraints PROPERTIES
+            LABELS "api;gallery;d3d12;constraints" SKIP_RETURN_CODE 77 TIMEOUT 3600
+            RUN_SERIAL TRUE
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+    endif()
+
+    if(BUILD_TESTING AND PARALLEL_MATER_BUILD_CUDA)
+        foreach(test_target parallel-mater-command-gallery-tests
+                parallel-mater-rigid-constraint-command-tests parallel-mater-conformance)
+            add_dependencies(${test_target} parallel-mater-driver-slang-cuda)
+        endforeach()
+        add_test(NAME parallel-mater-command-gallery-tests
+                 COMMAND parallel-mater-command-gallery-tests)
+        set_tests_properties(parallel-mater-command-gallery-tests PROPERTIES
+            LABELS "api;gallery;cuda" SKIP_RETURN_CODE 77 TIMEOUT 300
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
         add_test(NAME parallel-mater-rigid-constraint-command-tests
                  COMMAND parallel-mater-rigid-constraint-command-tests)
         set_tests_properties(
@@ -570,21 +607,6 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
 
-        add_executable(parallel-mater-conformance
-                       conformance/v1/src/command_runner.cpp)
-        target_link_libraries(parallel-mater-conformance PRIVATE
-            parallel-mater-conformance-registry
-            parallel-mater-gallery-scene)
-        target_compile_definitions(parallel-mater-conformance PRIVATE
-            PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
-            PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-        add_dependencies(parallel-mater-conformance
-                         parallel-mater-driver-slang-cuda)
-        parallel_mater_enable_warnings(parallel-mater-conformance)
-        add_test(NAME parallel-mater-conformance-command-inputs
-                 COMMAND parallel-mater-conformance --check-inputs)
-        set_tests_properties(parallel-mater-conformance-command-inputs
-            PROPERTIES LABELS "api;conformance")
     endif()
 
     if(PARALLEL_MATER_GALLERY_RENDERER STREQUAL "OPTIX")
@@ -650,10 +672,22 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         add_custom_target(parallel-mater-optix-ptx
                           DEPENDS ${PARALLEL_MATER_OPTIX_PTX})
 
+        set(pm_surface_cuda "${CMAKE_CURRENT_BINARY_DIR}/generated/gallery/fluid_surface_generated.cu")
+        add_custom_command(OUTPUT "${pm_surface_cuda}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated/gallery"
+            COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/examples/gallery/render/fluid_surface_cuda.slang"
+                -I "${CMAKE_CURRENT_SOURCE_DIR}/examples/gallery/render"
+                -target cuda -entry surface_index_particles -entry surface_build_field
+                -o "${pm_surface_cuda}"
+            DEPENDS examples/gallery/render/fluid_surface_cuda.slang
+                examples/gallery/render/fluid_surface_field.slang
+            VERBATIM)
+        set_source_files_properties("${pm_surface_cuda}" PROPERTIES HEADER_FILE_ONLY TRUE)
         add_library(parallel-mater-gallery-renderer STATIC
                     examples/support/optix_renderer.cpp
                     examples/support/foam_visuals.cpp
-                    examples/support/fluid_surface.cu)
+                    examples/support/fluid_surface.cu "${pm_surface_cuda}")
         add_dependencies(parallel-mater-gallery-renderer
                          parallel-mater-optix-ptx)
         target_include_directories(
@@ -661,6 +695,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PUBLIC examples/support/include
             PRIVATE
                 examples/support
+                "${CMAKE_CURRENT_BINARY_DIR}/generated/gallery"
                 ${pm_optix_SOURCE_DIR}/include)
         target_link_libraries(
             parallel-mater-gallery-renderer
@@ -680,6 +715,9 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PUBLIC parallel-mater-gallery-scene)
     endif()
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
+    if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
+        include(cmake/ParallelMaterD3D12Renderer.cmake)
+    endif()
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
     if(ANDROID)
@@ -689,6 +727,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_compile_features(parallel-mater-gallery-window PUBLIC cxx_std_20)
     target_include_directories(parallel-mater-gallery-window
         PUBLIC examples/support/include)
+    target_link_libraries(parallel-mater-gallery-window PUBLIC ParallelMater::parallel_mater)
     if(WIN32)
         target_sources(parallel-mater-gallery-window PRIVATE
             examples/support/d3d12_window.cpp)
@@ -919,22 +958,40 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
     set(PARALLEL_MATER_D3D12_STUB_SOURCE
         "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_unadvertised_dispatch.cpp")
     set(PARALLEL_MATER_D3D12_STUB_HEADERS
-        src/simulation/cloth_dispatch.hpp
-        src/simulation/fluid_cloth_dispatch.hpp
-        src/simulation/fluid_dispatch.hpp
         src/simulation/fluid_rope_dispatch.hpp
         src/simulation/fluid_smoke_dispatch.hpp
         src/simulation/fluid_soft_body_dispatch.hpp
-        src/simulation/geometry_cloth_dispatch.hpp
-        src/simulation/geometry_fluid_dispatch.hpp
         src/simulation/geometry_smoke_dispatch.hpp
-        src/simulation/geometry_soft_body_dispatch.hpp
         src/simulation/rope_coupling_dispatch.hpp
         src/simulation/rope_dispatch.hpp
         src/simulation/smoke_coupling_dispatch.hpp
         src/simulation/smoke_grid_dispatch.hpp
-        src/simulation/soft_body_cloth_dispatch.hpp
-        src/simulation/soft_body_dispatch.hpp)
+        src/simulation/soft_body_cloth_dispatch.hpp)
+    set(PARALLEL_MATER_D3D12_DOMAIN_SOURCES
+        src/simulation/fluid_dispatch.cu
+        src/simulation/cloth_dispatch.cu
+        src/simulation/soft_body_dispatch.cu
+        src/simulation/fluid_cloth_dispatch.cu
+        src/simulation/geometry_fluid_dispatch.cu
+        src/simulation/geometry_cloth_dispatch.cu
+        src/simulation/geometry_soft_body_dispatch.cu
+        src/simulation/exports.cu)
+    set(PARALLEL_MATER_D3D12_DOMAIN_DISPATCH
+        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_domain_dispatch.cpp")
+    add_custom_command(
+        OUTPUT "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_dxil_dispatch.py"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}"
+            --reflection "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil"
+            --output "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
+            ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
+        DEPENDS tools/generate_dxil_dispatch.py
+            ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
+            ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Binding shared domain schedules using Slang DXIL reflection"
+        VERBATIM)
     add_custom_command(
         OUTPUT "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
         COMMAND "${Python3_EXECUTABLE}"
@@ -964,11 +1021,11 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         src/driver/d3d12/schedule_context.cpp
         src/device/d3d12_device.cpp
         src/device/submission.cpp
-        src/simulation/d3d12_runtime.cpp
+        src/simulation/runtime.cpp
         src/simulation/d3d12_geometry_dispatch.cpp
-        src/simulation/d3d12_exports.cpp
         src/simulation/memory_arena.cpp
         "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
+        "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
         "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}")
     add_dependencies(parallel-mater-driver-slang-d3d12
                      parallel-mater-slang-dxil-schedules)
@@ -983,7 +1040,6 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/device/d3d12_compat
             ${CMAKE_CURRENT_SOURCE_DIR}/src
             ${PARALLEL_MATER_API_GENERATED_DIR}
             "${PARALLEL_MATER_D3D12_GENERATED_DIR}")

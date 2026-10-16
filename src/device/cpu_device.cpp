@@ -145,6 +145,12 @@ class CpuServices final : public Services {
                     CopyDirection::host_to_device);
     }
     [[nodiscard]] PmResult wait_idle() noexcept override { return PM_SUCCESS; }
+    [[nodiscard]] PmResult clear(void *destination, int value,
+                                 PmDeviceSize size) noexcept override {
+        if (destination == nullptr && size != 0U) return PM_ERROR_INVALID_ARGUMENT;
+        if (size != 0U) std::memset(destination, value, static_cast<std::size_t>(size));
+        return PM_SUCCESS;
+    }
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept override {
         total = installed_memory();

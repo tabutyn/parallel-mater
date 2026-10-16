@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Slang mirror of src/geometry_smoke.cuh. Rigid-contact entries follow the
 // standalone particle solver and shared wind sampler below.
@@ -100,8 +101,9 @@ public Vec3 smoke_wind_delta(
 void smoke_emit_cells(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
     uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
-    uniform PMBuffer<uint> indices)
+    uniform PMBuffer<uint> indices PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= options.capacity) return;
     indices[particle] = particle;
@@ -123,8 +125,9 @@ void smoke_density_pressure(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
     uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
     uniform PMBuffer<uint> indices, uniform PMBuffer<float> densities,
-    uniform PMBuffer<float> pressures, uniform float dt)
+    uniform PMBuffer<float> pressures, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count) return;
     if (ages[particle] >= options.lifetime)
@@ -150,8 +153,9 @@ void smoke_pair_forces(
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
     uniform PMBuffer<float> densities, uniform PMBuffer<float> pressures,
     uniform PMBuffer<Vec3> vorticities, uniform PMBuffer<float> vorticity_magnitudes,
-    uniform PMBuffer<Vec3> accelerations)
+    uniform PMBuffer<Vec3> accelerations PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count) return;
     accelerations[particle] = {};
@@ -216,8 +220,9 @@ void smoke_compute_vorticity(
     uniform PMBuffer<float> ages, uniform uint count, uniform SmokeOptions options,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
     uniform PMBuffer<float> densities, uniform PMBuffer<Vec3> vorticities,
-    uniform PMBuffer<float> magnitudes)
+    uniform PMBuffer<float> magnitudes PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count) return;
     vorticities[particle] = {};
@@ -267,8 +272,9 @@ void smoke_advect(
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
     uniform PMBuffer<float> thermal_lift, uniform uint count,
     uniform SmokeOptions options, uniform PMBuffer<Vec3> accelerations,
-    uniform float dt, uniform Vec3 gravity)
+    uniform float dt, uniform Vec3 gravity PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count || ages[index] >= options.lifetime) return;
     Vec3 point = positions[index];
@@ -296,8 +302,9 @@ void smoke_emit(
     uniform PMBuffer<float> thermal_lift, uniform PMBuffer<float> densities,
     uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> vorticities,
     uniform SmokeOptions options, uniform uint first_slot,
-    uniform uint count, uniform uint64_t first_serial)
+    uniform uint count, uniform uint64_t first_serial PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= count) return;
     uint slot = (first_slot + index) % options.capacity;
@@ -320,8 +327,9 @@ void smoke_emit(
 [numthreads(1, 1, 1)]
 void smoke_deformable_bounds(
     uniform PMBuffer<Vec3> surface, uniform uint count,
-    uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum)
+    uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     Vec3 low = surface[0];
     Vec3 high = surface[0];
@@ -345,8 +353,9 @@ void smoke_rigid_contact(
     uniform float clearance, uniform float particle_mass,
     uniform float wall_drag, uniform float pressure_stiffness,
     uniform float dt, uniform float maximum_speed,
-    uniform SmokeGridField grid, uniform PMBuffer<FluidBodyImpulse> impulses)
+    uniform SmokeGridField grid, uniform PMBuffer<FluidBodyImpulse> impulses PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count) return;
     impulses[particle] = {};
@@ -480,8 +489,9 @@ void smoke_rigid_contact(
 void smoke_apply_rigid_impulses(
     uniform PMBuffer<FluidBodyImpulse> impulses, uniform uint count,
     uniform uint body, uniform PMBuffer<BodyParameters> parameters,
-    uniform PMBuffer<RigidBodyState> states)
+    uniform PMBuffer<RigidBodyState> states PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u ||
         parameters[body].motion != MotionType.dynamic) return;
     uint lane = pmGroupThreadIndex().x;

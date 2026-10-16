@@ -13,12 +13,18 @@ failures: list[str] = []
 cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
 loader_cmake = (ROOT / "cmake" / "ParallelMaterLoader.cmake").read_text(encoding="utf-8")
 build_contract = cmake + "\n" + loader_cmake
-runtime_path = ROOT / "src" / "simulation" / "runtime.cu"
+runtime_path = ROOT / "src" / "simulation" / "runtime.cpp"
 runtime_paths = [runtime_path]
 runtime_paths.extend(sorted(
     (ROOT / "src" / "simulation").glob("runtime_*.cu.inc")
 ))
 runtime = "\n".join(path.read_text(encoding="utf-8") for path in runtime_paths)
+for native_token in ("cuda_runtime", "cudaStream", "cudaEvent", "cudaMemcpy", "cudaError", "<<<"):
+    if native_token in runtime:
+        failures.append(f"shared runtime contains backend-specific token {native_token}")
+if (ROOT / "src" / "device" / "d3d12_compat").exists() and any(
+        (ROOT / "src" / "device" / "d3d12_compat").rglob("*.*")):
+    failures.append("Windows CUDA compatibility headers must not be reintroduced")
 schedule_path = ROOT / "src" / "simulation" / "reference_schedule.hpp"
 schedule_text = schedule_path.read_text(encoding="utf-8")
 for native_token in ("cuda_runtime", "cudaStream", "cudaEvent", "cudaMemcpy", "cudaError", "<<<"):

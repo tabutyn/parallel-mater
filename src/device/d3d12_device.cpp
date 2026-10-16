@@ -63,17 +63,8 @@ class D3D12Services final : public Services {
     [[nodiscard]] PmResult initialize() noexcept {
         PmResult result = context_.initialize(adapter_.Get());
         if (result != PM_SUCCESS) return result;
-        cudaEvent_t event{};
-        const cudaError_t created = cudaEventCreateWithFlags(
-            &event, cudaEventDisableTiming);
-        if (created != cudaSuccess) return from_driver_error(created);
-        const cudaError_t recorded = cudaEventRecord(event, &context_);
-        if (recorded != cudaSuccess) {
-            (void)cudaEventDestroy(event);
-            return from_driver_error(recorded);
-        }
-        epoch_ = to_event(event);
-        return PM_SUCCESS;
+        result = create_event(false, epoch_);
+        return result == PM_SUCCESS ? record_event(epoch_) : result;
     }
 
     ~D3D12Services() override {
@@ -99,21 +90,19 @@ class D3D12Services final : public Services {
 
     [[nodiscard]] PmResult create_event(bool enable_timing,
                                         Event &output) noexcept override {
-        cudaEvent_t event{};
-        const cudaError_t result = cudaEventCreateWithFlags(
-            &event, enable_timing ? cudaEventDefault : cudaEventDisableTiming);
-        if (result != cudaSuccess) return from_driver_error(result);
-        output = to_event(event);
+        auto *event = new (std::nothrow) d3d12::FenceEvent{};
+        if (event == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
+        event->timing = enable_timing;
+        output = {reinterpret_cast<std::uintptr_t>(event)};
         return PM_SUCCESS;
     }
 
     void destroy_event(Event event) noexcept override {
-        if (event) (void)cudaEventDestroy(to_cuda(event));
+        delete native_event(event);
     }
 
     [[nodiscard]] PmResult record_event(Event event) noexcept override {
-        return event ? from_driver_error(
-                           cudaEventRecord(to_cuda(event), &context_))
+        return event ? context_.record(native_event(event))
                      : PM_ERROR_INVALID_ARGUMENT;
     }
 
@@ -122,24 +111,25 @@ class D3D12Services final : public Services {
     }
 
     [[nodiscard]] PmResult wait_event(Event event) noexcept override {
-        return event ? from_driver_error(cudaEventSynchronize(to_cuda(event)))
+        return event ? context_.wait(native_event(event))
                      : PM_ERROR_INVALID_ARGUMENT;
     }
 
     [[nodiscard]] PmResult query_event(Event event,
                                        bool &ready) noexcept override {
         if (!event) return PM_ERROR_INVALID_ARGUMENT;
-        const cudaError_t result = cudaEventQuery(to_cuda(event));
-        ready = result == cudaSuccess;
-        return result == cudaSuccess || result == cudaErrorNotReady
-            ? PM_SUCCESS : from_driver_error(result);
+        const auto result = context_.query(native_event(event));
+        ready = result == PM_SUCCESS;
+        return result == PM_SUCCESS || result == PM_NOT_READY
+            ? PM_SUCCESS : result;
     }
 
     [[nodiscard]] PmResult elapsed_time(Event begin, Event end,
                                         float &milliseconds) noexcept override {
         if (!begin || !end) return PM_ERROR_INVALID_ARGUMENT;
-        return from_driver_error(cudaEventElapsedTime(
-            &milliseconds, to_cuda(begin), to_cuda(end)));
+        milliseconds = std::chrono::duration<float, std::milli>(
+            native_event(end)->recorded - native_event(begin)->recorded).count();
+        return PM_SUCCESS;
     }
 
     [[nodiscard]] PmResult allocate(PmDeviceSize size, bool,
@@ -149,12 +139,15 @@ class D3D12Services final : public Services {
 
     void free(void *allocation) noexcept override { context_.free(allocation); }
 
-    [[nodiscard]] PmResult activate() noexcept override { return PM_SUCCESS; }
+    [[nodiscard]] PmResult activate() noexcept override {
+        context_.prepare_host_access();
+        return PM_SUCCESS;
+    }
 
     [[nodiscard]] PmResult copy(
         void *destination, const void *source, PmDeviceSize size,
-        CopyDirection) noexcept override {
-        return context_.copy_host(destination, source, size);
+        CopyDirection direction) noexcept override {
+        return context_.copy(destination, source, size, direction);
     }
 
     [[nodiscard]] PmResult copy_and_wait(
@@ -176,17 +169,32 @@ class D3D12Services final : public Services {
         return context_.wait_idle();
     }
 
+    [[nodiscard]] PmResult clear(void *destination, int value,
+                                 PmDeviceSize size) noexcept override {
+        return context_.clear_device(destination, value, static_cast<std::size_t>(size));
+    }
+    [[nodiscard]] PmResult read_host(void *pointer, PmDeviceSize size) noexcept override {
+        return context_.read_host(pointer, size);
+    }
+    [[nodiscard]] PmResult write_host(void *pointer, PmDeviceSize size) noexcept override {
+        return context_.write_host(pointer, size);
+    }
+    [[nodiscard]] PmResult map_host(void *pointer, PmDeviceSize size) noexcept override {
+        return context_.map_host(pointer, size);
+    }
+    void unmap_host(void *pointer) noexcept override { context_.unmap_host(pointer); }
+    [[nodiscard]] PmResult last_error(bool take) noexcept override {
+        return context_.error(take);
+    }
+
     [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
                                          PmDeviceSize &total) noexcept override {
         return context_.memory_budget(available, total);
     }
 
   private:
-    [[nodiscard]] static Event to_event(cudaEvent_t event) noexcept {
-        return {reinterpret_cast<std::uintptr_t>(event)};
-    }
-    [[nodiscard]] static cudaEvent_t to_cuda(Event event) noexcept {
-        return reinterpret_cast<cudaEvent_t>(event.value);
+    [[nodiscard]] static d3d12::FenceEvent *native_event(Event event) noexcept {
+        return reinterpret_cast<d3d12::FenceEvent *>(event.value);
     }
 
     int ordinal_{};
@@ -198,17 +206,7 @@ class D3D12Services final : public Services {
 } // namespace
 
 PmResult from_driver_error(std::int32_t error) noexcept {
-    switch (static_cast<cudaError_t>(error)) {
-    case cudaSuccess: return PM_SUCCESS;
-    case cudaErrorMemoryAllocation: return PM_ERROR_OUT_OF_DEVICE_MEMORY;
-    case cudaErrorInvalidValue:
-    case cudaErrorInvalidDevice:
-    case cudaErrorInvalidResourceHandle: return PM_ERROR_INVALID_ARGUMENT;
-    case cudaErrorNotSupported: return PM_ERROR_FEATURE_NOT_PRESENT;
-    case cudaErrorLaunchFailure:
-    case cudaErrorIllegalAddress: return PM_ERROR_DEVICE_LOST;
-    default: return PM_ERROR_INVALID_STATE;
-    }
+    return static_cast<PmResult>(error);
 }
 
 PmResult enumerate(std::uint32_t *count, Description *descriptions) noexcept {

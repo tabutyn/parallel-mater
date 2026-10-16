@@ -13,9 +13,9 @@ template <typename... Pointers>
     return ((pointers != nullptr) && ...);
 }
 
-[[nodiscard]] dim3 blocks_for(std::uint32_t count) noexcept {
+[[nodiscard]] device::DispatchSize blocks_for(std::uint32_t count) noexcept {
     constexpr std::uint32_t block_size = 256U;
-    return dim3{((count == 0U ? 1U : count) + block_size - 1U) / block_size};
+    return device::DispatchSize{((count == 0U ? 1U : count) + block_size - 1U) / block_size};
 }
 
 template <typename T> T *mutable_pointer(const T *value) noexcept {
@@ -41,7 +41,7 @@ PmResult query_rigid_hit_box(
         reinterpret_cast<RigidBodyState_0 *>(const_cast<void *>(body_states)),
         reinterpret_cast<TriangleMeshResource_0 *>(const_cast<void *>(meshes)),
         body_count, matches};
-    device::dispatch_cpu(blocks_for(body_count), dim3{256U},
+    device::dispatch_cpu(blocks_for(body_count), device::DispatchSize{256U},
                          query_rigid_hit_box_kernel_Thread, &args);
     return PM_SUCCESS;
 }
@@ -59,7 +59,7 @@ PmResult query_particle_hit_box(
     EntryPointParams_7 args{converted,
         reinterpret_cast<Vec3_0 *>(mutable_pointer(positions)),
         particle_count, matches};
-    device::dispatch_cpu(blocks_for(particle_count), dim3{256U},
+    device::dispatch_cpu(blocks_for(particle_count), device::DispatchSize{256U},
                          query_particle_hit_box_kernel_Thread, &args);
     return PM_SUCCESS;
 }
@@ -84,7 +84,7 @@ PmResult export_fluid_particles(
         mutable_pointer(stable_ids), count, capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<PortableParticleState_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_fluid_particles_Thread, &args);
     return PM_SUCCESS;
 }
@@ -110,7 +110,7 @@ PmResult export_cloth_vertices(
         capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<PortableClothVertexState_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_cloth_vertices_Thread, &args);
     return PM_SUCCESS;
 }
@@ -127,7 +127,7 @@ PmResult export_surface_positions(
         count, capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<Vec3_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_surface_positions_Thread, &args);
     return PM_SUCCESS;
 }
@@ -152,7 +152,7 @@ PmResult export_rope_nodes(
         capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<PortableRopeNodeState_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_rope_nodes_Thread, &args);
     return PM_SUCCESS;
 }
@@ -177,7 +177,7 @@ PmResult export_soft_body_nodes(
         capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<PortableSoftBodyNodeState_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_soft_body_nodes_Thread, &args);
     return PM_SUCCESS;
 }
@@ -201,7 +201,7 @@ PmResult export_smoke_particles(
         capacity, revision,
         reinterpret_cast<PortableDomainOutputHeader_0 *>(header),
         reinterpret_cast<PortableSmokeParticleState_0 *>(destination)};
-    device::dispatch_cpu(blocks_for(count), dim3{256U},
+    device::dispatch_cpu(blocks_for(count), device::DispatchSize{256U},
                          export_smoke_particles_Thread, &args);
     return PM_SUCCESS;
 }

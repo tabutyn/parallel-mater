@@ -10,7 +10,7 @@ groupshared uint pmCompactionCount;
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_compact_count_blocks(
-    uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
+    uniform PMByteBuffer flags, uniform uint count, uniform uint tile_size,
     uniform PMBuffer<uint> block_counts PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -31,7 +31,7 @@ public void pm_compact_count_blocks(
 [shader("compute")]
 [numthreads(256, 1, 1)]
 public void pm_compact_scatter_indices(
-    uniform PMBuffer<PMResourceUint8> flags, uniform uint count, uniform uint tile_size,
+    uniform PMByteBuffer flags, uniform uint count, uniform uint tile_size,
     uniform PMBuffer<uint> block_offsets, uniform PMBuffer<uint> output
     PM_D3D12_DISPATCH_PARAMETER)
 {

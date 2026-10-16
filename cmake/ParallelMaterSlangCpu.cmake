@@ -195,7 +195,7 @@ add_library(parallel-mater-driver-slang-cpu SHARED
     src/driver/slang/entry.cpp
     src/device/cpu_device.cpp
     src/device/submission.cpp
-    src/simulation/cpu_runtime.cpp
+    src/simulation/runtime.cpp
     src/simulation/cpu_geometry_dispatch.cpp
     src/simulation/cpu_geometry_constraints_dispatch.cpp
     src/simulation/cpu_primitives.cpp

@@ -3,6 +3,9 @@
 
 #include "render/render_scene.hpp"
 #include "vector_math.hpp"
+#if defined(_WIN32) && defined(PARALLEL_MATER_GALLERY_D3D12_RENDERER)
+#include "d3d12_renderer.hpp"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -347,10 +350,23 @@ class SoftwareRenderer final : public Renderer {
 } // namespace
 
 bool create_renderer(const SceneDefinition &scene,
-                     const CommandSceneInstance &, std::uint32_t width,
+                     const CommandSceneInstance &instance, std::uint32_t width,
                      std::uint32_t height, RendererHandle &output,
                      std::string &error) {
     error.clear();
+#if defined(_WIN32) && defined(PARALLEL_MATER_GALLERY_D3D12_RENDERER)
+    PmNativeDeviceInfo native{};
+    if (instance.render_buffers.device &&
+        pmGetNativeDevice(instance.render_buffers.device, &native) == PM_SUCCESS &&
+        native.backend == PM_NATIVE_BACKEND_D3D12) {
+        auto renderer = create_d3d12_renderer(scene, instance.render_buffers, width, height, error);
+        if (!renderer) return false;
+        output = RendererHandle(std::move(renderer));
+        return true;
+    }
+#else
+    (void)instance;
+#endif
     if (scene.meshes.empty() || width == 0U || height == 0U) {
         error = "renderer requires scene geometry and nonzero image dimensions";
         return false;

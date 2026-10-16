@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared soft-body/cloth coupling kernels.
 
@@ -17,8 +18,9 @@ void soft_cloth_detect(
     uniform PMBuffer<float> cloth_inverse_masses, uniform PMBuffer<uint> indices,
     uniform PMBuffer<Vec3> surface, uniform uint triangle_count,
     uniform float distance, uniform float friction,
-    uniform PMBuffer<SoftClothContact> contacts, uniform PMBuffer<uint> contact_counts)
+    uniform PMBuffer<SoftClothContact> contacts, uniform PMBuffer<uint> contact_counts PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= count) return;
     contacts[node] = {};
@@ -129,8 +131,9 @@ void soft_cloth_apply_soft(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
-    uniform PMBuffer<uint> counts, uniform float dt, uniform float maximum_speed)
+    uniform PMBuffer<uint> counts, uniform float dt, uniform float maximum_speed PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= count || !contacts[node].active) return;
     SoftClothContact contact = contacts[node];
@@ -149,8 +152,9 @@ void soft_cloth_apply_cloth(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
-    uniform uint contact_count, uniform PMBuffer<uint> counts, uniform float dt)
+    uniform uint contact_count, uniform PMBuffer<uint> counts, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= count) return;
     Vec3 positionImpulse = {};
