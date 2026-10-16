@@ -1,7 +1,7 @@
 {
   "id": "F1-01",
   "title": "Plan triangle geometry allocations once",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "runtime-memory"
@@ -15,6 +15,14 @@
     "Query and allocation traverse the same plan, including alignment and scratch."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "7799617a-e90f-49f8-8834-2d780f90f52c",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-01/thomas-laptop",
+    "claimed_at": "2026-10-16T22:39:34Z",
+    "heartbeat_at": "2026-10-16T22:39:34Z",
+    "expires_at": "2026-10-17T22:39:34Z"
+  },
   "history": []
 }
