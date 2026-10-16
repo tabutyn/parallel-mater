@@ -1,7 +1,7 @@
 {
   "id": "F5-10",
   "title": "Correct shared contacts and CUDA/D3D12 drift",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "quality-bricks",
@@ -20,16 +20,13 @@
     "Run the generic domain/coupling lifecycle regressions on CUDA. On D3D12, record their unsupported rope/soft-body/smoke requirements explicitly: skips are not passes or qualification. Do not add new D3D12 domains to complete this correction.",
     "Commit a scoped, revisioned evidence report with reproduction commands, device/toolchain and case hashes. No backend-specific physics fork, tolerance relaxation, full-domain qualification or performance claim."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "296ad65a-0d29-493d-80e5-fe10329053b6",
-    "owner": "codex-windows-physics",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-10/windows-gtx1080",
-    "claimed_at": "2026-10-16T22:11:48Z",
-    "heartbeat_at": "2026-10-16T22:11:48Z",
-    "expires_at": "2026-10-17T22:11:48Z"
-  },
+  "evidence": [
+    "PASS: conformance/v1/compare.py --cases conformance/v1/cases --expected build-cuda-slang-vs2022/physics-qualified-cuda --actual build-cuda-slang-vs2022/physics-qualified-d3d12 --report build-cuda-slang-vs2022/physics-qualified-report.json; GTX 1080, CUDA 12.9.86, Slang 2026.18, MSVC 19.44; 17 passed, 0 failed, 0 unsupported. Source/case/binary hashes and original divergences: conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json.",
+    "PASS: parallel-mater-command-gallery-tests.exe --backend cuda|d3d12 --scene RigidBody.glb --frames 300; eight bricks/four substeps, both 0.205278 mm below unchanged 2 mm gate; focused rotation/floor/seam/open-edge/sweep invariants pass. Independent oracle and canonical inputs/tolerances/goldens unchanged. Tracked report: conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json.",
+    "PASS: 34 named regression checks in the tracked report, including 13 D3D12 scene/reset gates, 2400-frame hinge/slider, repeated API submissions, CUDA lifecycle and D3D12 resource lifecycle with/without validation. Two D3D12 generic lifecycle tests explicitly unsupported (rope/soft/smoke), not passes. Initial Windows test DLL discovery timeout fixed without changing assertions/timeouts.",
+    "PASS: tests/gallery/windows_input_smoke.ps1 -Executable C:/Users/tabut/AppData/Local/Programs/Parallel-Mater/Parallel-Mater.exe -Output build-cuda-slang-vs2022/physics-qualified-window -Backend d3d12 -DwellSeconds 5; all 13 supported scenes load/reset, 43 dwell periods, F/Tab/point release/fluid/cloth controls, empty stderr; installed/build executable and both drivers match. Hashes and observations in tracked report."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -45,6 +42,26 @@
       "at": "2026-10-16T22:09:28Z",
       "reason": "Retain work/F5-10/windows-gtx1080. Clarify lifecycle acceptance: new generic fixtures require unsupported D3D12 rope/soft/smoke. Selected physics gates pass; preserve those gates and record unsupported coverage explicitly.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "296ad65a-0d29-493d-80e5-fe10329053b6",
+        "owner": "codex-windows-physics",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-10/windows-gtx1080",
+        "claimed_at": "2026-10-16T22:11:48Z",
+        "heartbeat_at": "2026-10-16T22:11:48Z",
+        "expires_at": "2026-10-17T22:11:48Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-16T22:18:43Z",
+      "reason": "Shared Slang rotation/contact fixes resolve all ten comparison failures and the independent brick penetration failure; tested scope and unsupported D3D12 lifecycle requirements retained explicitly.",
+      "evidence": [
+        "PASS: conformance/v1/compare.py --cases conformance/v1/cases --expected build-cuda-slang-vs2022/physics-qualified-cuda --actual build-cuda-slang-vs2022/physics-qualified-d3d12 --report build-cuda-slang-vs2022/physics-qualified-report.json; GTX 1080, CUDA 12.9.86, Slang 2026.18, MSVC 19.44; 17 passed, 0 failed, 0 unsupported. Source/case/binary hashes and original divergences: conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json.",
+        "PASS: parallel-mater-command-gallery-tests.exe --backend cuda|d3d12 --scene RigidBody.glb --frames 300; eight bricks/four substeps, both 0.205278 mm below unchanged 2 mm gate; focused rotation/floor/seam/open-edge/sweep invariants pass. Independent oracle and canonical inputs/tolerances/goldens unchanged. Tracked report: conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json.",
+        "PASS: 34 named regression checks in the tracked report, including 13 D3D12 scene/reset gates, 2400-frame hinge/slider, repeated API submissions, CUDA lifecycle and D3D12 resource lifecycle with/without validation. Two D3D12 generic lifecycle tests explicitly unsupported (rope/soft/smoke), not passes. Initial Windows test DLL discovery timeout fixed without changing assertions/timeouts.",
+        "PASS: tests/gallery/windows_input_smoke.ps1 -Executable C:/Users/tabut/AppData/Local/Programs/Parallel-Mater/Parallel-Mater.exe -Output build-cuda-slang-vs2022/physics-qualified-window -Backend d3d12 -DwellSeconds 5; all 13 supported scenes load/reset, 43 dwell periods, F/Tab/point release/fluid/cloth controls, empty stderr; installed/build executable and both drivers match. Hashes and observations in tracked report."
+      ]
     }
   ]
 }

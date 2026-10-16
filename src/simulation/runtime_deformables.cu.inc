@@ -216,7 +216,7 @@ Status SimulationRuntime::add_triangle_mesh(
         solid_planes = closed_convex_planes(host_vertices.data(),
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         unique_solid_planes = detail::unique_convex_planes(solid_planes);
-        shell_normals = convex_shell_normals(host_vertices.data(),
+        shell_normals = closed_shell_normals(host_vertices.data(),
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         for (std::uint32_t index = 0U; index < bvh_nodes.size(); ++index) {
             if (bvh_nodes[index].triangle_count != 0U) {
