@@ -383,40 +383,43 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
     if (slot == impl_->options.paint_field_capacity)
         return failure(StatusCode::capacity_exceeded,
                        "paint field capacity exhausted");
-    Vec2 *uvs = nullptr;
-    std::uint32_t *pixels = nullptr;
-    status = allocate_managed(uvs, vertex_count);
+    struct PaintStorageOwner {
+        simulation::PaintStoragePlan plan{};
+        ~PaintStorageOwner() {
+            release_managed(plan.pixels);
+            release_managed(plan.uvs);
+        }
+        void disarm() noexcept {
+            plan.uvs = nullptr;
+            plan.pixels = nullptr;
+        }
+    } owned;
+    StorageAllocator allocator;
+    status = simulation::visit_paint_storage(
+        owned.plan, vertex_count, options.width, options.height, allocator);
     if (!status) return status;
-    status = allocate_managed(pixels,
-        static_cast<std::size_t>(options.width) * options.height);
-    if (!status) { release_managed(uvs); return status; }
-    PmResult error = copy_bytes(uvs, options.vertex_uvs.data,
+    PmResult error = copy_bytes(owned.plan.uvs, options.vertex_uvs.data,
         vertex_count * sizeof(Vec2), device::CopyDirection::automatic, stream);
     if (error == PM_SUCCESS)
-        error = clear_bytes(pixels, 0,
-            static_cast<std::size_t>(options.width) * options.height *
-                sizeof(std::uint32_t), stream);
+        error = clear_bytes(owned.plan.pixels, 0,
+            owned.plan.pixel_capacity * sizeof(std::uint32_t), stream);
     if (error == PM_SUCCESS) error = wait_queue(stream);
-    if (error != PM_SUCCESS) {
-        release_managed(pixels);
-        release_managed(uvs);
+    if (error != PM_SUCCESS)
         return backend_failure(error, "paint field upload failed");
-    }
     for (std::uint32_t i = 0; i < vertex_count; ++i)
-        if (!finite(uvs[i].x) || !finite(uvs[i].y)) {
-            release_managed(pixels);
-            release_managed(uvs);
+        if (!finite(owned.plan.uvs[i].x) ||
+            !finite(owned.plan.uvs[i].y))
             return failure(StatusCode::invalid_argument,
                            "paint field contains non-finite UVs");
-        }
     PaintFieldResource &field = impl_->paint_fields[slot];
-    options.vertex_uvs = {uvs, vertex_count};
+    options.vertex_uvs = {owned.plan.uvs, vertex_count};
     field.options = options;
-    field.uvs = uvs;
-    field.pixels = pixels;
+    field.uvs = owned.plan.uvs;
+    field.pixels = owned.plan.pixels;
     field.alive = true;
     output = {slot, field.generation};
     ++impl_->revision;
+    owned.disarm();
     return success();
 }
 

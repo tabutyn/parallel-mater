@@ -106,12 +106,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [F1-00](roadmap/tasks/F1-00.json) | Storage reclamation and domain capacity baseline | done | — | — |
 | [F1-01](roadmap/tasks/F1-01.json) | Plan triangle geometry allocations once | done | — | — |
-| [F1-02](roadmap/tasks/F1-02.json) | Plan paint allocations once | leased | — | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-17T23:08:10Z |
-| [F1-03](roadmap/tasks/F1-03.json) | Retire geometry dependencies safely | waiting on lock | F1-01 | — |
+| [F1-02](roadmap/tasks/F1-02.json) | Plan paint allocations once | done | — | — |
+| [F1-03](roadmap/tasks/F1-03.json) | Retire geometry dependencies safely | ready | F1-01 | — |
 | [F1-04](roadmap/tasks/F1-04.json) | Retire paint dependencies safely | waiting on dependencies | F1-02, F1-03 | — |
-| [F1-05](roadmap/tasks/F1-05.json) | Rebind emitters and destroy planes | waiting on lock | — | — |
+| [F1-05](roadmap/tasks/F1-05.json) | Rebind emitters and destroy planes | ready | — | — |
 | [F1-06](roadmap/tasks/F1-06.json) | Qualify allocation failure and pending lifetime | waiting on dependencies | F1-03, F1-04, F1-05 | — |
-| [F1-07](roadmap/tasks/F1-07.json) | Bound host auxiliary metadata | waiting on lock | — | — |
+| [F1-07](roadmap/tasks/F1-07.json) | Bound host auxiliary metadata | ready | — | — |
 | [F1-99](roadmap/tasks/F1-99.json) | Review F1 exit evidence | waiting on dependencies | F1-01, F1-02, F1-03, F1-04, F1-05, F1-06, F1-07 | — |
 
 ### F2. Interaction graph and system coupling
