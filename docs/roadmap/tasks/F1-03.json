@@ -1,0 +1,23 @@
+{
+  "id": "F1-03",
+  "title": "Retire geometry dependencies safely",
+  "status": "open",
+  "dependencies": [
+    "F1-01"
+  ],
+  "locks": [
+    "runtime-memory",
+    "runtime-geometry"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define and implement replace/remove/reset lifetime for geometry referenced by live bodies.",
+  "acceptance": [
+    "Tests cover referenced mesh replacement, removal, stale generations and unrelated-body preservation.",
+    "Pending work and recorded references follow documented lifetime rules."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

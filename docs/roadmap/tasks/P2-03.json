@@ -1,0 +1,27 @@
+{
+  "id": "P2-03",
+  "title": "Build Unreal minimal SDK integration",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99",
+    "P2-01"
+  ],
+  "locks": [
+    "unreal-plugin"
+  ],
+  "requires": [
+    "Unreal development host"
+  ],
+  "scope": "Implement the RHI/RDG bridge for one qualified scene and ownership contract.",
+  "acceptance": [
+    "Imported resource/queue synchronization and teardown follow the common tested contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

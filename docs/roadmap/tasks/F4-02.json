@@ -1,0 +1,23 @@
+{
+  "id": "F4-02",
+  "title": "Retain resources through completion",
+  "status": "open",
+  "dependencies": [
+    "F4-01"
+  ],
+  "locks": [
+    "device-contract",
+    "submission-runtime"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement common command-list/completion ownership for referenced allocations and indirect bindings.",
+  "acceptance": [
+    "Dropping a token or client handle cannot free resources used by pending work.",
+    "Submit failure/device teardown drain or cancel safely with mock lifetime tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

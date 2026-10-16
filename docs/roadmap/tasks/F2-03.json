@@ -1,0 +1,22 @@
+{
+  "id": "F2-03",
+  "title": "Validate graph modes against capabilities",
+  "status": "open",
+  "dependencies": [
+    "F2-02"
+  ],
+  "locks": [
+    "runtime-graph"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Reject unsupported edge modes before mutation; preserve the previous usable graph on failure.",
+  "acceptance": [
+    "Invalid mode/material, duplicate and over-capacity graph requests are tested.",
+    "Public feature reporting agrees with accepted graph descriptors."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

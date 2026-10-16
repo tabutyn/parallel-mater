@@ -1,0 +1,20 @@
+{
+  "id": "F1-07",
+  "title": "Bound host auxiliary metadata",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Audit host owner/slot tables under sustained churn and reclaim generation/tombstone bookkeeping.",
+  "acceptance": [
+    "Repeated create/retire leaves bounded host metadata at fixed declared capacity.",
+    "Old handles remain invalid after slot reuse; exhaustion is explicit."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

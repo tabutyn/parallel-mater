@@ -1,0 +1,22 @@
+{
+  "id": "F2-11",
+  "title": "Specify different-material and interface modes",
+  "status": "open",
+  "dependencies": [
+    "F2-05"
+  ],
+  "locks": [
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define miscible/immiscible fluid behavior, interfaces and optional thermal exchange; implementation remains separate.",
+  "acceptance": [
+    "Each material/interface mode has units, invariants and unsupported behavior.",
+    "Create separate implementation/qualification leaf tasks before enabling any new mode."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

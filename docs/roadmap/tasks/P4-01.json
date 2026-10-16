@@ -1,0 +1,26 @@
+{
+  "id": "P4-01",
+  "title": "Prepare independent vendor-driver handoff",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99"
+  ],
+  "locks": [
+    "adoption-docs"
+  ],
+  "requires": [
+    "Independent implementation reviewer"
+  ],
+  "scope": "Package public SDK/specification/conformance evidence for an independent implementation exercise.",
+  "acceptance": [
+    "A reviewer outside the reference-driver implementation can identify every required contract and test."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

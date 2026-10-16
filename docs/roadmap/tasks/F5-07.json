@@ -1,0 +1,23 @@
+{
+  "id": "F5-07",
+  "title": "Gate performance on physical quality",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-02"
+  ],
+  "locks": [
+    "benchmark-client"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add an independent headless benchmark consumer that refuses qualified scores when required quality cases fail.",
+  "acceptance": [
+    "Throughput, memory and median/p95 timings carry a fixed quality-profile hash.",
+    "Failed, missing and unsupported quality results block qualified performance output."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

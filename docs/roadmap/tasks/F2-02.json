@@ -1,0 +1,23 @@
+{
+  "id": "F2-02",
+  "title": "Expose pair and material capability queries",
+  "status": "open",
+  "dependencies": [
+    "F2-01"
+  ],
+  "locks": [
+    "api-registry",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add registry-generated per-pair/per-mode/material capability discovery and negative tests.",
+  "acceptance": [
+    "An external SDK consumer enumerates exact modes and limits.",
+    "Unknown pairs/modes and unsupported material combinations return documented results."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

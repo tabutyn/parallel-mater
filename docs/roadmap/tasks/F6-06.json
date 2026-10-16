@@ -1,0 +1,20 @@
+{
+  "id": "F6-06",
+  "title": "Reconcile legacy launcher and branding patches",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "legacy-patch-review"
+  ],
+  "requires": [
+    "Linux desktop; preserved older-worktree snapshot"
+  ],
+  "scope": "Compare the preserved older desktop patch with current deployment/UI behavior; port only unique relevant changes.",
+  "acceptance": [
+    "Every preserved file has a recorded port/superseded/preserve disposition.",
+    "Do not restore retired World/compiler shims; verify the active launcher identity."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

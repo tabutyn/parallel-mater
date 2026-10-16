@@ -1,0 +1,22 @@
+{
+  "id": "F2-07",
+  "title": "Exchange fluid pressure and contact forces",
+  "status": "open",
+  "dependencies": [
+    "F2-06"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement balanced cross-system pressure/contact operators using the agreed equal-material profile.",
+  "acceptance": [
+    "No external force: pair exchange conserves momentum within the specified tolerance.",
+    "Split versus combined populations pass pressure/contact fixtures."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

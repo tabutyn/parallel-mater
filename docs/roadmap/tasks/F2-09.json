@@ -1,0 +1,25 @@
+{
+  "id": "F2-09",
+  "title": "Integrate fluid–fluid graph storage and scheduling",
+  "status": "open",
+  "dependencies": [
+    "F2-03",
+    "F2-08"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-schedule",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Connect qualified equal-material operators to simulation edges and shared scheduling; leave feature reporting gated.",
+  "acceptance": [
+    "Edge creation/removal/replacement/reset is bounded and generation-safe.",
+    "All reference adapters compile the shared schedule or explicitly reject the mode."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

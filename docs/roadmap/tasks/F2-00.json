@@ -1,0 +1,19 @@
+{
+  "id": "F2-00",
+  "title": "Simulation-owned graph baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Explicit graph updates, pipeline reconciliation and endpoint replacement recovery.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "1fde50c; docs/RESOURCE-LIFETIME.md"
+  ],
+  "lease": null,
+  "history": []
+}

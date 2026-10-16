@@ -1,0 +1,28 @@
+{
+  "id": "F1-99",
+  "title": "Review F1 exit evidence",
+  "status": "open",
+  "dependencies": [
+    "F1-01",
+    "F1-02",
+    "F1-03",
+    "F1-04",
+    "F1-05",
+    "F1-06",
+    "F1-07"
+  ],
+  "locks": [
+    "foundation-1-review"
+  ],
+  "requires": [
+    "Access to the relevant driver evidence; cross-machine review where needed"
+  ],
+  "scope": "Review this foundation against its original exit contract; split any remaining gaps into new leaf tasks before closing.",
+  "acceptance": [
+    "All dependency tasks are merged done with reviewable evidence.",
+    "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

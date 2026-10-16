@@ -1,0 +1,22 @@
+{
+  "id": "F5-01",
+  "title": "Map advertised modes to conformance cases",
+  "status": "open",
+  "dependencies": [
+    "F2-02"
+  ],
+  "locks": [
+    "conformance-report"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Create machine-readable capability-to-case obligations and revisioned result records.",
+  "acceptance": [
+    "Every advertised mode has required lifecycle/physical cases or an explicit missing-evidence failure.",
+    "Compilation, execution, regression, physical quality and timing remain distinct scopes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

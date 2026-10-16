@@ -1,0 +1,23 @@
+{
+  "id": "F3-06",
+  "title": "Close threading and deferred-error contract gaps",
+  "status": "open",
+  "dependencies": [
+    "F1-06",
+    "F3-04"
+  ],
+  "locks": [
+    "api-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Audit normative threading, snapshot, destruction/wait, capacity and reset clauses against current behavior.",
+  "acceptance": [
+    "Stable rule IDs link executable positive/negative cases and distinguish reference-solver profiles.",
+    "Generated text/header checks pass; uncovered clauses become explicit leaf tasks."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "F2-01",
+  "title": "Specify the pair and mode matrix",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define all 15 distinct-family pairs and same-family modes, units, materials and one-way/two-way semantics.",
+  "acceptance": [
+    "Matrix distinguishes collision, attachment, drag, containment, thermal and phase modes.",
+    "Unsupported and proposed modes remain explicit; no broad capability claim substitutes for a mode."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,19 @@
+{
+  "id": "F3-00",
+  "title": "Version and typed validation baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Version negotiation, layer namespace, typed arguments and memory/buffer state validation.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "4449b74, a973248; docs/API-CONTRACT.md"
+  ],
+  "lease": null,
+  "history": []
+}
