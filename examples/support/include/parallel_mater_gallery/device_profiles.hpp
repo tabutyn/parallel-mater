@@ -93,11 +93,30 @@ struct BrickMeasurement {
     bool stable{};
 };
 
+// Explicit startup budgets, not measured or verified performance claims.
+// Selectors use exact platform/model/backend strings; "*" matches any model
+// or backend. A device-specific record takes precedence over platform defaults.
+struct GalleryWorkloadLimits {
+    std::string name;
+    std::string platform;
+    std::string machine_model;
+    std::string backend;
+    std::uint32_t brick_count{};
+    std::uint32_t fluid_particles{};
+    std::uint32_t coupled_bodies{};
+    std::uint32_t smoke_particles{};
+    std::uint32_t dump_spheres{};
+    std::uint32_t render_width{};
+    std::uint32_t render_height{};
+    std::uint32_t target_fps{};
+};
+
 struct DeviceProfileCatalog {
     std::uint32_t schema_version{brick_profile_schema_version};
     std::vector<HardwareRecord> hardware{};
     std::vector<VerifiedBrickProfile> verified_profiles{};
     std::vector<BrickMeasurement> measurements{};
+    std::vector<GalleryWorkloadLimits> startup_limits{};
 };
 
 enum class BrickSelectionSource { fallback, measured, verified };
@@ -139,6 +158,9 @@ struct CalibrationSample {
     std::uint32_t width = brick_render_width,
     std::uint32_t height = brick_render_height);
 [[nodiscard]] const char *brick_selection_label(BrickSelectionSource source) noexcept;
+[[nodiscard]] const GalleryWorkloadLimits *select_workload_limits(
+    const DeviceProfileCatalog &catalog, std::string_view platform,
+    std::string_view machine_model, std::string_view backend) noexcept;
 [[nodiscard]] std::filesystem::path default_local_profiles_path();
 
 } // namespace parallel_mater::gallery

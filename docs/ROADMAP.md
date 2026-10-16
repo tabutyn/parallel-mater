@@ -232,5 +232,19 @@ preview is described above. Existing shader generation, historical
 galleries, and older worktrees do not establish current backend qualification.
 Completion evidence belongs beside each milestone.
 
+## Desktop Vulkan integration progress (2026-10-16)
+
+The loadable Vulkan preview now uses the existing public loader, portable
+scheduler, and common Slang kernels for rigid bodies, constraints, liquids, and
+liquid–rigid coupling. The shared Windows backend picker also selects CUDA or
+Vulkan on Linux. Backend capabilities control scene availability, and the shared
+hardware-profile resource limits preview workloads. Details and checks are in
+[VULKAN.md](VULKAN.md).
+
+This does not complete the full-domain qualification milestone. Android still
+ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
+remaining particle domains/couplings, engine handoff, and sustained performance
+remain open.
+
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

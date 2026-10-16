@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Scheduler-visible collection of shared scan, compaction, and sort kernels.
 
 #ifndef PM_TARGET_D3D12

@@ -9,7 +9,8 @@ function(parallel_mater_add_slang_metal_kernels)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/metal")
     file(GLOB_RECURSE dependencies CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     if(APPLE)
         find_program(PARALLEL_MATER_XCRUN_EXECUTABLE xcrun REQUIRED)
     endif()

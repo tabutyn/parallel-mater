@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Shared particle-liquid simulation kernels.
 
 import types;
@@ -37,7 +38,7 @@ public uint fluid_lower_bound(PMBuffer<uint64_t> keys, uint size, uint64_t key)
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_emit_cells(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> count, uniform uint capacity,
     uniform float inverse_radius, uniform PMBuffer<uint64_t> keys,
@@ -59,7 +60,7 @@ void fluid_emit_cells(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_compute_forces(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> count,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices, uniform PMBuffer<float> foam,
@@ -140,7 +141,7 @@ void fluid_compute_forces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_integrate(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> foam, uniform PMBuffer<Vec3> forces,
@@ -167,7 +168,7 @@ void fluid_integrate(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void fluid_reserve_contact_events(
     uniform PMBuffer<uint> selected_count, uniform PMBuffer<uint> offset,
     uniform PMBuffer<uint> world_count, uniform PMBuffer<uint> overflow,
@@ -183,7 +184,7 @@ void fluid_reserve_contact_events(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_gather_contact_events(
     uniform PMBuffer<uint> selected, uniform PMBuffer<uint> selected_count,
     uniform PMBuffer<uint> offset, uniform PMBuffer<FluidContactSample> samples,
@@ -206,7 +207,7 @@ void fluid_gather_contact_events(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_source_vacancies(
     uniform PMBuffer<Vec3> points, uniform uint amount, uniform float spacing,
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
@@ -237,7 +238,7 @@ void fluid_source_vacancies(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void fluid_source_emit(
     uniform PMBuffer<Vec3> points, uniform PMBuffer<PMResourceUint8> vacant, uniform uint amount,
     uniform float spacing, uniform Vec3 velocity, uniform PMBuffer<Vec3> positions,
@@ -278,7 +279,7 @@ void fluid_source_emit(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_destroy_flags(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform uint capacity, uniform ParticleDestroyPlaneOptions plane,
@@ -309,7 +310,7 @@ void fluid_destroy_flags(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_gather(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> ids,
     uniform PMBuffer<float> foam, uniform PMBuffer<float> temperatures,
@@ -338,7 +339,7 @@ void fluid_gather(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_copy_initial(
     uniform PMBuffer<FluidParticle> input, uniform uint count,
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> ids,
@@ -461,7 +462,7 @@ uint pmFluidLowerBound(RWStructuredBuffer<uint64_t> keys,
 }
 
 [shader("compute")]
-[numthreads(64, 1, 1)]
+[numthreads(PM_THREADS(64), 1, 1)]
 void pm_fluid_cell_keys(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
@@ -495,7 +496,7 @@ void pm_fluid_cell_keys(
 }
 
 [shader("compute")]
-[numthreads(64, 1, 1)]
+[numthreads(PM_THREADS(64), 1, 1)]
 void pm_fluid_forces(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA
@@ -582,9 +583,15 @@ void pm_fluid_forces(
         }
     }
 
+#if defined(PM_TARGET_CPU)
+    pmAtomicMax(&maximumNeighborCount[0], neighbors);
+    if (neighbors > constants.maximumNeighbors)
+        pmAtomicAdd(&neighborOverflow[0], 1u);
+#else
     InterlockedMax(maximumNeighborCount[0], neighbors);
     if (neighbors > constants.maximumNeighbors)
         InterlockedAdd(neighborOverflow[0], 1u);
+#endif
     if (constants.maximumPairAcceleration > 0.0f)
         acceleration = pmLimit(acceleration,
                                constants.maximumPairAcceleration);
@@ -602,7 +609,7 @@ void pm_fluid_forces(
 }
 
 [shader("compute")]
-[numthreads(64, 1, 1)]
+[numthreads(PM_THREADS(64), 1, 1)]
 void pm_fluid_integrate(
     uint3 dispatchThreadId : SV_DispatchThreadID
 #if PM_TARGET_CUDA

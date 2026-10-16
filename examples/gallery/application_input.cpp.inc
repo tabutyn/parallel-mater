@@ -51,6 +51,7 @@
         } else if (argument == "--contact-passes" && index + 1 < argc) {
             if (!parse_count(argv[++index], 0U, 64U, output.contact_pass_limit)) return false;
         } else if (argument == "--dump-spheres" && index + 1 < argc) {
+            output.dump_spheres_overridden = true;
             const GalleryEntry &entry = gallery_entry(GalleryContext::dump);
             if (!parse_count(argv[++index], entry.minimum_count,
                              entry.maximum_count, output.dump_spheres)) {
@@ -84,6 +85,7 @@
         } else if (argument == "--print-brick-profile") {
             output.print_brick_profile = true;
         } else if (argument == "--fluid-particles" && index + 1 < argc) {
+            output.fluid_particles_overridden = true;
             const GalleryEntry &entry = gallery_entry(GalleryContext::fluid);
             if (!parse_count(argv[++index], entry.minimum_count,
                              entry.maximum_count,

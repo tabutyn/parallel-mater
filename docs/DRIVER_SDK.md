@@ -106,12 +106,12 @@ execute and no unported simulation domain. Platform device code may allocate,
 transfer, bind, dispatch, and synchronize but cannot contain collision,
 constraint, material, or coupling equations.
 
-The previous standalone Vulkan executor scaffold has been removed. Vulkan
-interop remains part of the public API contract, but a Vulkan driver must be a
-thin native wrapper around the shared Slang schedule rather than a second
-physics runtime. The Vulkan physical device remains unadvertised until that
-wrapper binds the complete shared schedule and independently passes conformance
-and every gallery scene.
+The previous standalone Vulkan executor scaffold has been removed. The
+[loadable Vulkan preview](VULKAN.md) binds the shared portable schedule to
+SPIR-V and advertises rigid bodies, constraints, liquids, and liquid–rigid
+coupling. Other domains and native imports remain unavailable. Desktop checks
+cover this preview scope; full conformance, engine handoff, sustained performance,
+and phone qualification remain separate gates.
 
 A hardware vendor may reuse its compiler, memory manager, queue scheduler, and
 kernel runtime between its Vulkan driver and its Parallel Mater driver. Parallel

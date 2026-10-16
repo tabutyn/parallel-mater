@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Complete AVBD rigid contact and joint schedule. The numerical block/dual
 // core is shared with the cross-target conformance runner.
 
@@ -635,7 +636,11 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
 }
 
 #ifndef PM_AVBD_PREPARE_SMALL_CACHE
-#define PM_AVBD_PREPARE_SMALL_CACHE PM_TARGET_D3D12
+#if PM_TARGET_D3D12 || defined(PM_TARGET_VULKAN)
+#define PM_AVBD_PREPARE_SMALL_CACHE 1
+#else
+#define PM_AVBD_PREPARE_SMALL_CACHE 0
+#endif
 #endif
 #ifndef PM_AVBD_PREPARE_CACHE_SIZE
 #if PM_AVBD_PREPARE_SMALL_CACHE
@@ -916,7 +921,7 @@ void rigid_avbd_graph_set_joint_next(uint index, bool first, uint value,
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void prepare_avbd_kernel(
     uniform PM_AVBD_BUFFER(BodyParameters) parameters,
     uniform PM_AVBD_BUFFER(RigidBodyState) previous,

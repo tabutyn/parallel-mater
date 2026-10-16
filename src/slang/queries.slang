@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Shared scene-query kernels.
 
 import types;
@@ -61,7 +62,7 @@ bool hit_box_overlaps_triangle(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void query_rigid_hit_box_kernel(
     uniform HitBox box, uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<TriangleMeshResource> meshes,
@@ -105,7 +106,7 @@ void query_rigid_hit_box_kernel(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void query_particle_hit_box_kernel(
     uniform HitBox box, uniform PMBuffer<Vec3> positions,
     uniform uint particle_count, uniform PMBuffer<PMResourceUint8> matches)
@@ -117,7 +118,7 @@ void query_particle_hit_box_kernel(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_fluid_particles(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> accelerations, uniform PMBuffer<float> temperatures,
@@ -147,7 +148,7 @@ void export_fluid_particles(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_cloth_vertices(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> rigid_forces, uniform PMBuffer<Vec3> liquid_forces,
@@ -177,7 +178,7 @@ void export_cloth_vertices(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_surface_positions(
     uniform PMBuffer<Vec3> positions, uniform uint count, uniform uint capacity,
     uniform uint64_t revision, uniform PMBuffer<PortableDomainOutputHeader> header,
@@ -196,7 +197,7 @@ void export_surface_positions(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_rope_nodes(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> constraint_forces, uniform PMBuffer<Vec3> contact_forces,
@@ -226,7 +227,7 @@ void export_rope_nodes(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_soft_body_nodes(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> rigid_forces, uniform PMBuffer<Vec3> cloth_forces,
@@ -256,7 +257,7 @@ void export_soft_body_nodes(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void export_smoke_particles(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> ages, uniform PMBuffer<float> number_densities,

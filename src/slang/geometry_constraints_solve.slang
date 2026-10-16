@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Shared AVBD operations. Cooperative CUDA and multi-dispatch adapters use
 // these exact equations; only the synchronization schedule differs.
 
@@ -576,7 +577,7 @@ void rigid_avbd_solve_stage(
 }
 
 [shader("compute")]
-[numthreads(32, 1, 1)]
+[numthreads(PM_THREADS(32), 1, 1)]
 void solve_avbd_stage_kernel(
     uniform PM_AVBD_BUFFER(BodyParameters) parameters,
     uniform PM_AVBD_BUFFER(RigidBodyState) previous,
@@ -598,7 +599,7 @@ void solve_avbd_stage_kernel(
 }
 
 [shader("compute")]
-[numthreads(32, 1, 1)]
+[numthreads(PM_THREADS(32), 1, 1)]
 void solve_avbd_kernel(
     uniform PM_AVBD_BUFFER(BodyParameters) parameters,
     uniform PM_AVBD_BUFFER(RigidBodyState) previous,

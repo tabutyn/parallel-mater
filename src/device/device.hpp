@@ -54,6 +54,7 @@ class Services {
 
     [[nodiscard]] virtual int ordinal() const noexcept = 0;
     [[nodiscard]] virtual void *native_device_handle() const noexcept = 0;
+    virtual void describe_native_device(PmNativeDeviceInfo &) const noexcept {}
     [[nodiscard]] virtual void *native_queue_handle() const noexcept = 0;
     [[nodiscard]] virtual void *native_allocation_handle(
         const void *allocation) const noexcept {
@@ -107,6 +108,8 @@ class Services {
 [[nodiscard]] std::unique_ptr<Services> create_metal(
     int ordinal, PmResult &result) noexcept;
 [[nodiscard]] std::unique_ptr<Services> create_d3d12(
+    int ordinal, PmResult &result) noexcept;
+[[nodiscard]] std::unique_ptr<Services> create_vulkan(
     int ordinal, PmResult &result) noexcept;
 
 } // namespace parallel_mater::device

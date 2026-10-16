@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/overlay.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 #include <scene_builder.hpp>
 #include <parallel_mater_gallery/bitmap_font.hpp>
@@ -246,7 +247,8 @@ void draw_frame_timing_overlay(std::vector<std::uint32_t> &rgba,
 
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
-                          GalleryContext selection) {
+                          GalleryContext selection,
+                          const PmPhysicalDeviceFeatures *features) {
     const MenuScale ui = menu_scale(width, height);
     const int center = static_cast<int>(width) / 2;
     const int row_height = ui.pixels(68);
@@ -289,8 +291,12 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
     int y = top + ui.pixels(78);
     for (int index = first; index < first + visible; ++index) {
         const GalleryEntry &entry = gallery_entries[static_cast<std::size_t>(index)];
-        row(y, entry.context, color(entry.background), color(entry.icon),
-            entry.name, entry.help, {105, 255, 155, 255});
+        const bool available = !features || gallery_backend_supports(entry.context, *features);
+        row(y, entry.context,
+            available ? color(entry.background) : Color{25, 30, 35, 255},
+            available ? color(entry.icon) : Color{70, 75, 80, 255}, entry.name,
+            available ? entry.help : "UNAVAILABLE ON THIS BACKEND",
+            available ? Color{105, 255, 155, 255} : Color{180, 185, 190, 255});
         y += row_height;
     }
 }

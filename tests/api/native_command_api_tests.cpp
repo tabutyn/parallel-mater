@@ -59,6 +59,9 @@ int main() {
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
     device_info.enabledFeatures.debugData = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
+    CHECK(features.timestampQueries ==
+        (PM_TEST_NATIVE_BACKEND == PM_NATIVE_BACKEND_METAL ? PM_FALSE : PM_TRUE));
+    device_info.enabledFeatures.timestampQueries = features.timestampQueries;
     PmDevice device{};
     // The same public command fixture runs against each selected native driver.
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
@@ -224,6 +227,11 @@ int main() {
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) == PM_SUCCESS);
+    const PmQueryPoolCreateInfo timing_info{PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+        nullptr, PM_QUERY_TIMESTAMP, 2U};
+    PmQueryPool timing{};
+    if (features.timestampQueries)
+        CHECK(pmCreateQueryPool(device, &timing_info, &timing) == PM_SUCCESS);
     CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -246,6 +254,8 @@ int main() {
     CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) ==
           PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    if (timing)
+        CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 0U) == PM_SUCCESS);
     const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
@@ -290,6 +300,28 @@ int main() {
                      states[1].linearVelocity[1]);
     CHECK(states[1].position[1] < first_position - 1.0e-4F);
     CHECK(states[1].linearVelocity[1] < first_velocity - 1.0e-4F);
+    // Continue through contact, then read a timestamp spanning submissions.
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
+        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    if (timing)
+        CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 1U) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    CHECK(std::isfinite(states[1].position[1]));
+    CHECK(states[1].position[1] > -0.5F);
+    if (timing) {
+        std::uint64_t timestamps[2]{};
+        CHECK(pmGetQueryPoolResults(device, timing, 0U, 2U, sizeof timestamps,
+            timestamps, sizeof timestamps[0], PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(timestamps[1] > timestamps[0]);
+        pmDestroyQueryPool(device, timing);
+    }
 
 #if defined(PM_TEST_METAL_PREVIEW)
     // Separate contact case: preserve upstream free-fall/multiple-submission

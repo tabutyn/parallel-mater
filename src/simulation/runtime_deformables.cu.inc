@@ -67,8 +67,25 @@ Status SimulationRuntime::add_triangle_mesh(
         release_managed(owned_vertices);
         return cuda_failure(error, "triangle mesh upload failed");
     }
+    // Native adapters may map uncached device-local memory. BVH and convex
+    // preparation revisit vertices many times; take one contiguous host copy
+    // instead of repeatedly reading those mappings over the device bus.
+    std::vector<Vec3> host_vertices;
+    std::vector<std::uint32_t> host_indices;
+    try {
+        host_vertices.resize(static_cast<std::size_t>(vertices.size));
+        host_indices.resize(static_cast<std::size_t>(triangle_indices.size));
+        std::memcpy(host_vertices.data(), owned_vertices, sizeof(Vec3) * vertices.size);
+        std::memcpy(host_indices.data(), owned_indices,
+                    sizeof(std::uint32_t) * triangle_indices.size);
+    } catch (...) {
+        release_managed(owned_indices);
+        release_managed(owned_vertices);
+        return failure(StatusCode::out_of_memory,
+                       "failed to stage triangle mesh host preparation");
+    }
     for (std::uint64_t index = 0; index < vertices.size; ++index) {
-        if (!finite(owned_vertices[index])) {
+        if (!finite(host_vertices[index])) {
             release_managed(owned_indices);
             release_managed(owned_vertices);
             return failure(StatusCode::invalid_argument,
@@ -76,16 +93,16 @@ Status SimulationRuntime::add_triangle_mesh(
         }
     }
 
-    Vec3 minimum = owned_vertices[0];
-    Vec3 maximum = owned_vertices[0];
+    Vec3 minimum = host_vertices[0];
+    Vec3 maximum = host_vertices[0];
     for (std::uint64_t index = 1; index < vertices.size; ++index) {
-        minimum = component_min(minimum, owned_vertices[index]);
-        maximum = component_max(maximum, owned_vertices[index]);
+        minimum = component_min(minimum, host_vertices[index]);
+        maximum = component_max(maximum, host_vertices[index]);
     }
     for (std::uint64_t index = 0; index < triangle_indices.size; index += 3U) {
-        const std::uint32_t first = owned_indices[index];
-        const std::uint32_t second = owned_indices[index + 1U];
-        const std::uint32_t third = owned_indices[index + 2U];
+        const std::uint32_t first = host_indices[index];
+        const std::uint32_t second = host_indices[index + 1U];
+        const std::uint32_t third = host_indices[index + 2U];
         if (first >= vertices.size || second >= vertices.size ||
             third >= vertices.size) {
             release_managed(owned_indices);
@@ -93,10 +110,10 @@ Status SimulationRuntime::add_triangle_mesh(
             return failure(StatusCode::invalid_argument,
                            "triangle mesh index is outside the vertex buffer");
         }
-        const Vec3 area = cross(subtract(owned_vertices[second],
-                                         owned_vertices[first]),
-                                subtract(owned_vertices[third],
-                                         owned_vertices[first]));
+        const Vec3 area = cross(subtract(host_vertices[second],
+                                         host_vertices[first]),
+                                subtract(host_vertices[third],
+                                         host_vertices[first]));
         if (length_squared(area) <= k_epsilon * k_epsilon) {
             release_managed(owned_indices);
             release_managed(owned_vertices);
@@ -120,9 +137,9 @@ Status SimulationRuntime::add_triangle_mesh(
         const auto centroid = [&](std::uint32_t triangle) {
             const std::uint32_t offset = triangle * 3U;
             return multiply(
-                add(add(owned_vertices[owned_indices[offset]],
-                        owned_vertices[owned_indices[offset + 1U]]),
-                    owned_vertices[owned_indices[offset + 2U]]),
+                add(add(host_vertices[host_indices[offset]],
+                        host_vertices[host_indices[offset + 1U]]),
+                    host_vertices[host_indices[offset + 2U]]),
                 1.0F / 3.0F);
         };
         std::function<std::uint32_t(std::uint32_t, std::uint32_t)> build =
@@ -134,7 +151,7 @@ Status SimulationRuntime::add_triangle_mesh(
                     const std::uint32_t offset = triangle_order[item] * 3U;
                     for (std::uint32_t corner = 0; corner < 3U; ++corner) {
                         const Vec3 vertex =
-                            owned_vertices[owned_indices[offset + corner]];
+                            host_vertices[host_indices[offset + corner]];
                         node.minimum = component_min(node.minimum, vertex);
                         node.maximum = component_max(node.maximum, vertex);
                     }
@@ -171,9 +188,9 @@ Status SimulationRuntime::add_triangle_mesh(
         for (std::uint32_t triangle = 0; triangle < triangle_count; ++triangle) {
             const std::uint32_t source = triangle_order[triangle] * 3U;
             const std::uint32_t destination = triangle * 3U;
-            reordered_indices[destination] = owned_indices[source];
-            reordered_indices[destination + 1U] = owned_indices[source + 1U];
-            reordered_indices[destination + 2U] = owned_indices[source + 2U];
+            reordered_indices[destination] = host_indices[source];
+            reordered_indices[destination + 1U] = host_indices[source + 1U];
+            reordered_indices[destination + 2U] = host_indices[source + 2U];
         }
     } catch (...) {
         release_managed(owned_indices);
@@ -187,10 +204,10 @@ Status SimulationRuntime::add_triangle_mesh(
     std::vector<CollisionPlane> unique_solid_planes;
     std::vector<Vec3> shell_normals;
     try {
-        solid_planes = closed_convex_planes(owned_vertices,
+        solid_planes = closed_convex_planes(host_vertices.data(),
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         unique_solid_planes = detail::unique_convex_planes(solid_planes);
-        shell_normals = convex_shell_normals(owned_vertices,
+        shell_normals = convex_shell_normals(host_vertices.data(),
             static_cast<std::uint32_t>(vertices.size), reordered_indices);
         for (std::uint32_t index = 0U; index < bvh_nodes.size(); ++index) {
             if (bvh_nodes[index].triangle_count != 0U) {

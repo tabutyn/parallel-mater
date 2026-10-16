@@ -19,7 +19,8 @@ function(parallel_mater_add_slang_geometry_constraints)
     set(wgsl_reflection "${generated_dir}/parallel_mater_geometry_constraints.wgsl.json")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
          "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
-         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
 
     add_custom_command(
         OUTPUT

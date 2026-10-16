@@ -14,6 +14,13 @@ if(NOT EXISTS "${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}/slang-cpp-prelude.h")
         "Slang C++ prelude is missing beside ${PARALLEL_MATER_SLANGC_EXECUTABLE}")
 endif()
 
+# Honor the Android build's shared single-job pool for shader generation too.
+# Makefile builds still use their caller's -j setting.
+set(cpu_codegen_pool)
+if(CMAKE_GENERATOR MATCHES "Ninja" AND CMAKE_JOB_POOL_COMPILE)
+    set(cpu_codegen_pool JOB_POOL "${CMAKE_JOB_POOL_COMPILE}")
+endif()
+
 set(PARALLEL_MATER_SLANG_CPU_GENERATED_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/slang-cpu")
 set(PARALLEL_MATER_GEOMETRY_CPU_SOURCE
@@ -42,6 +49,36 @@ set(PARALLEL_MATER_CPU_STUB_HEADERS
     src/simulation/soft_body_cloth_dispatch.hpp
     src/simulation/soft_body_dispatch.hpp)
 
+option(PARALLEL_MATER_SLANG_CPU_LIQUIDS
+    "Enable experimental serial Slang liquid execution for small previews" OFF)
+if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+    list(REMOVE_ITEM PARALLEL_MATER_CPU_STUB_HEADERS
+        src/simulation/fluid_dispatch.hpp
+        src/simulation/geometry_fluid_dispatch.hpp)
+    include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
+    file(GLOB_RECURSE cpu_liquid_dependencies CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
+    foreach(module fluid geometry_fluid)
+        parallel_mater_slang_entry_arguments(${module} CUDA cpu_entries)
+        set(generated "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}/parallel_mater_${module}_runtime.cpp")
+        add_custom_command(OUTPUT "${generated}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}"
+            COMMAND "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/${module}.slang"
+                -I "${CMAKE_CURRENT_SOURCE_DIR}/src/slang"
+                -DPM_TARGET_CPU=1 ${cpu_entries}
+                -target cpp -fp-mode precise -O2 -line-directive-mode none
+                -o "${generated}"
+            DEPENDS ${cpu_liquid_dependencies} "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
+            COMMAND_EXPAND_LISTS ${cpu_codegen_pool} VERBATIM)
+        set_source_files_properties("${generated}" PROPERTIES
+            GENERATED TRUE HEADER_FILE_ONLY TRUE)
+        list(APPEND cpu_liquid_sources "${generated}"
+            "src/simulation/cpu_${module}_dispatch.cpp")
+    endforeach()
+endif()
+
 add_custom_command(
     OUTPUT "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
     COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -67,11 +104,11 @@ add_custom_command(
             -entry pm_build_fixed_collision_groups
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
-    DEPENDS src/slang/geometry.slang src/slang/types.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/geometry.slang src/slang/types.slang
             src/slang/math.slang src/slang/device_intrinsics.slang
             "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
     COMMENT "Compiling shared rigid geometry kernels from Slang to C++"
-    VERBATIM)
+    ${cpu_codegen_pool} VERBATIM)
 
 add_custom_command(
     OUTPUT "${PARALLEL_MATER_CPU_STUB_SOURCE}"
@@ -83,7 +120,7 @@ add_custom_command(
             ${PARALLEL_MATER_CPU_STUB_HEADERS}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Generating guarded stubs for unadvertised CPU domains"
-    VERBATIM)
+    ${cpu_codegen_pool} VERBATIM)
 
 add_custom_command(
     OUTPUT "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
@@ -97,7 +134,7 @@ add_custom_command(
             -entry solve_avbd_kernel
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
-    DEPENDS src/slang/geometry_constraints.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/geometry_constraints.slang
             src/slang/geometry_constraints_solve.slang
             src/slang/avbd_stages.inc
             src/slang/constraint_math.slang src/slang/geometry.slang
@@ -105,7 +142,7 @@ add_custom_command(
             src/slang/device_intrinsics.slang
             "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
     COMMENT "Compiling shared rigid constraint solver from Slang to C++"
-    VERBATIM)
+    ${cpu_codegen_pool} VERBATIM)
 
 add_custom_command(
     OUTPUT "${PARALLEL_MATER_QUERIES_CPU_SOURCE}"
@@ -125,11 +162,11 @@ add_custom_command(
             -entry query_particle_hit_box_kernel
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_QUERIES_CPU_SOURCE}"
-    DEPENDS src/slang/queries.slang src/slang/types.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/queries.slang src/slang/types.slang
             src/slang/math.slang src/slang/device_intrinsics.slang
             "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
     COMMENT "Compiling shared query/export kernels from Slang to C++"
-    VERBATIM)
+    ${cpu_codegen_pool} VERBATIM)
 
 set_source_files_properties(
     "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
@@ -169,7 +206,11 @@ add_library(parallel-mater-driver-slang-cpu SHARED
     "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
     "${PARALLEL_MATER_QUERIES_CPU_SOURCE}")
 target_sources(parallel-mater-driver-slang-cpu PRIVATE
-    "${PARALLEL_MATER_CPU_STUB_SOURCE}")
+    "${PARALLEL_MATER_CPU_STUB_SOURCE}" ${cpu_liquid_sources})
+if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+    target_compile_definitions(parallel-mater-driver-slang-cpu PRIVATE
+        PARALLEL_MATER_SLANG_CPU_LIQUIDS=1)
+endif()
 
 target_compile_features(parallel-mater-driver-slang-cpu PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-cpu PRIVATE

@@ -158,6 +158,12 @@ struct SceneDefinition {
                                   SceneDefinition &output,
                                   std::string &error);
 
+// Cap independent liquid-scene bodies before allocating simulation resources.
+// Static/kinematic scenery stays intact; referenced body graphs are rejected
+// when reduction would be necessary, rather than leaving dangling indices.
+[[nodiscard]] bool apply_liquid_workload_limits(SceneDefinition &scene,
+    const GalleryWorkloadLimits &limits, std::string &error);
+
 // Examples-only rigid stress scene. The installed physics API has no scene
 // concepts; the legacy hopper fixture builds reusable triangle meshes through
 // SceneDefinition. The gallery's DUMP entry now loads DumpTruck.glb instead.

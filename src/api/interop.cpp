@@ -13,6 +13,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetPhysicalDeviceInteropProperties(
 #elif defined(PARALLEL_MATER_METAL_DRIVER)
     if (backend != PM_NATIVE_BACKEND_METAL) return PM_ERROR_FEATURE_NOT_PRESENT;
     return PM_SUCCESS; // Borrowed handles only; imports remain unsupported.
+#elif defined(PARALLEL_MATER_VULKAN_DRIVER)
+    if (backend != PM_NATIVE_BACKEND_VULKAN)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    return PM_SUCCESS;
 #elif defined(PARALLEL_MATER_D3D12_DRIVER)
     if (backend != PM_NATIVE_BACKEND_D3D12)
         return PM_ERROR_FEATURE_NOT_PRESENT;
@@ -46,6 +50,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
 #else
 #if defined(PARALLEL_MATER_METAL_DRIVER)
     native_device->backend = PM_NATIVE_BACKEND_METAL;
+#elif defined(PARALLEL_MATER_VULKAN_DRIVER)
+    native_device->backend = PM_NATIVE_BACKEND_VULKAN;
 #elif defined(PARALLEL_MATER_D3D12_DRIVER)
     native_device->backend = PM_NATIVE_BACKEND_D3D12;
 #else
@@ -56,6 +62,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
     native_device->device = static_cast<PmNativeHandle>(
         reinterpret_cast<std::uintptr_t>(
             device->services->native_device_handle()));
+    device->services->describe_native_device(*native_device);
     if (native_device->device == 0U) {
         *native_device = {};
         return PM_ERROR_INVALID_STATE;
@@ -79,7 +86,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
         info->nativeUsage != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
-    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_METAL_DRIVER)
+    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_METAL_DRIVER) || \
+    defined(PARALLEL_MATER_VULKAN_DRIVER)
     return PM_ERROR_FEATURE_NOT_PRESENT;
 #else
     auto *created = parallel_mater::api::make_object<PmBuffer_T>(device);

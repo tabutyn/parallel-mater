@@ -44,8 +44,9 @@ The reference implementation still waits on its worker between frames and
 performs explicit readbacks for emission, phase transfer, diagnostics, and
 some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
-full native adapters for other graphics APIs remain separate work. Vulkan
-still has no loadable physics driver.
+full native adapters for other graphics APIs remain separate work. The
+[Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies, constraints,
+liquids, and liquid–rigid coupling.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
 Its public command path binds and dispatches the shared rigid-body,
@@ -57,7 +58,8 @@ The opt-in Metal preview connects the same public API and reference scheduler
 to native Apple-GPU dispatch for rigid bodies/constraints, liquids, cloth,
 soft bodies, ropes, particle/grid smoke, existing cross-domain couplings and paint.
 It bundles generated Slang Metal libraries, not generated CPU physics. The CPU
-driver similarly advertises only its implemented rigid capabilities.
+driver advertises rigid capabilities, with experimental liquids enabled for
+Android; its other domains remain unavailable.
 All existing domain and coupling entries now compile separately to Metal.
 Native kernel tests use actual
 Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
