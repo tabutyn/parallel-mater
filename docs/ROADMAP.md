@@ -223,11 +223,12 @@ CPU-only build passed 15 tests. The shader mirror build failed on Vulkan
 SPIR-V because descriptor atomic overloads leaked into the pointer target.
 GPU runtime and performance were not revalidated during that audit.
 
-CUDA contains the full reference physics path. D3D12 has shared DXIL
-infrastructure and core transfer services but advertises no physics features.
-Vulkan has no runtime driver; Metal has no current driver. Existing shader
-generation, historical galleries, and older worktrees do not establish current
-backend qualification. Completion evidence belongs beside each milestone.
+CUDA contains the full reference physics path. D3D12 advertises its tested
+shared DXIL rigid-body and rigid-constraint schedules plus core transfer
+services; the other physics domains remain unadvertised. Vulkan has no runtime
+driver; Metal has no current driver. Existing shader generation, historical
+galleries, and older worktrees do not establish current backend qualification.
+Completion evidence belongs beside each milestone.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

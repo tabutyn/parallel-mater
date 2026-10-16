@@ -69,6 +69,12 @@ option(PARALLEL_MATER_BUILD_D3D12
        ${PARALLEL_MATER_D3D12_DEFAULT})
 option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
+if(WIN32)
+    option(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY
+           "Refresh the current-user Start Menu gallery after every build" ON)
+else()
+    set(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY OFF)
+endif()
 option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
        "Build the serial Slang CPU reference driver" ${APPLE})
 option(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW
@@ -435,6 +441,42 @@ execute_process(
 if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
     set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
 endif()
+execute_process(
+    COMMAND git rev-parse --git-path HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PARALLEL_MATER_GIT_HEAD_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(PARALLEL_MATER_GIT_HEAD_PATH)
+    if(NOT IS_ABSOLUTE "${PARALLEL_MATER_GIT_HEAD_PATH}")
+        set(PARALLEL_MATER_GIT_HEAD_PATH
+            "${CMAKE_CURRENT_SOURCE_DIR}/${PARALLEL_MATER_GIT_HEAD_PATH}")
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${PARALLEL_MATER_GIT_HEAD_PATH}")
+endif()
+execute_process(
+    COMMAND git symbolic-ref -q HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PARALLEL_MATER_GIT_HEAD_REF
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(PARALLEL_MATER_GIT_HEAD_REF)
+    execute_process(
+        COMMAND git rev-parse --git-path "${PARALLEL_MATER_GIT_HEAD_REF}"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE PARALLEL_MATER_GIT_HEAD_REF_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if(PARALLEL_MATER_GIT_HEAD_REF_PATH)
+        if(NOT IS_ABSOLUTE "${PARALLEL_MATER_GIT_HEAD_REF_PATH}")
+            set(PARALLEL_MATER_GIT_HEAD_REF_PATH
+                "${CMAKE_CURRENT_SOURCE_DIR}/${PARALLEL_MATER_GIT_HEAD_REF_PATH}")
+        endif()
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                     "${PARALLEL_MATER_GIT_HEAD_REF_PATH}")
+    endif()
+endif()
 
 if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-scene STATIC
@@ -752,6 +794,10 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         set(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY "../Resources/assets")
         set(PARALLEL_MATER_GALLERY_PROFILE_PATH
             "../Resources/config/device-profiles.json")
+    elseif(WIN32)
+        set(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY "assets")
+        set(PARALLEL_MATER_GALLERY_PROFILE_PATH
+            "config/device-profiles.json")
     else()
         set(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY
             "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
@@ -763,6 +809,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RigidBody.glb"
             PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_PATH}"
+            PARALLEL_MATER_GALLERY_VERSION="${PROJECT_VERSION}"
             PARALLEL_MATER_GALLERY_GIT_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}"
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintFixed.glb"
             PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/Celestial.glb"
@@ -792,6 +839,19 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeCloth.glb"
             PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/SmokeRope.glb")
     if(NOT APPLE)
+        if(WIN32)
+            file(GLOB PARALLEL_MATER_WINDOWS_GALLERY_ASSETS
+                 CONFIGURE_DEPENDS
+                 "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/*.glb")
+            add_custom_command(
+                TARGET parallel-mater-gallery POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory
+                        "$<TARGET_FILE_DIR:parallel-mater-gallery>/assets"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${PARALLEL_MATER_WINDOWS_GALLERY_ASSETS}
+                        "$<TARGET_FILE_DIR:parallel-mater-gallery>/assets"
+                VERBATIM)
+        endif()
         add_custom_command(
             TARGET parallel-mater-gallery POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -802,15 +862,44 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             VERBATIM)
     endif()
     if(WIN32)
-        add_custom_target(install-windows-gallery
-            COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
-                -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1"
-                -BuildDirectory "$<TARGET_FILE_DIR:parallel-mater-gallery>"
-                -Version "${PROJECT_VERSION}"
-            DEPENDS parallel-mater-gallery
-            COMMENT "Installing Parallel-Mater for the current user"
-            USES_TERMINAL
-            VERBATIM)
+        set(PARALLEL_MATER_WINDOWS_GALLERY_INSTALL_COMMAND
+            powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1"
+            -BuildDirectory "$<TARGET_FILE_DIR:parallel-mater-gallery>"
+            -BuildConfiguration "$<CONFIG>"
+            -Version "${PROJECT_VERSION}")
+        set(PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/windows_gallery_deploy.cpp")
+        file(WRITE "${PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER}"
+             "extern \"C\" const char *parallel_mater_windows_gallery_build_stamp() noexcept {\n"
+             "    return __DATE__ \" \" __TIME__;\n"
+             "}\n")
+        set_source_files_properties(
+            "${PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER}"
+            PROPERTIES GENERATED TRUE)
+        target_sources(parallel-mater-gallery PRIVATE
+            "${PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER}")
+        if(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY)
+            add_custom_target(parallel-mater-windows-gallery-deploy-trigger
+                COMMAND ${CMAKE_COMMAND} -E touch
+                    "${PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER}"
+                VERBATIM)
+            add_dependencies(parallel-mater-gallery
+                             parallel-mater-windows-gallery-deploy-trigger)
+            add_custom_command(TARGET parallel-mater-gallery POST_BUILD
+                COMMAND ${PARALLEL_MATER_WINDOWS_GALLERY_INSTALL_COMMAND}
+                COMMENT "Refreshing the installed Parallel-Mater gallery"
+                VERBATIM)
+            add_custom_target(install-windows-gallery
+                DEPENDS parallel-mater-gallery)
+        else()
+            add_custom_target(install-windows-gallery
+                COMMAND ${PARALLEL_MATER_WINDOWS_GALLERY_INSTALL_COMMAND}
+                DEPENDS parallel-mater-gallery
+                COMMENT "Installing Parallel-Mater for the current user"
+                USES_TERMINAL
+                VERBATIM)
+        endif()
     endif()
 endif()
 
@@ -935,6 +1024,10 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         POSITION_INDEPENDENT_CODE ON)
     add_library(ParallelMater::slang_d3d12_driver ALIAS
                 parallel-mater-driver-slang-d3d12)
+    if(TARGET parallel-mater-gallery)
+        add_dependencies(parallel-mater-gallery
+                         parallel-mater-driver-slang-d3d12)
+    endif()
     list(APPEND PARALLEL_MATER_INSTALL_TARGETS
          parallel-mater-driver-slang-d3d12)
     file(GENERATE

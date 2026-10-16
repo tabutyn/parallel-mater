@@ -8,8 +8,9 @@ import graphics_resources;
 [numthreads(1, 1, 1)]
 public void pm_exclusive_scan_u32(
     uniform PMBuffer<uint> input, uniform uint count, uniform PMBuffer<uint> output,
-    uniform PMBuffer<uint> total)
+    uniform PMBuffer<uint> total PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmThreadIndex() != 0u) return;
     uint sum = 0u;
     for (uint index = 0u; index < count; ++index)

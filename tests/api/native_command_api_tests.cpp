@@ -38,6 +38,7 @@ int main() {
     pmGetPhysicalDeviceFeatures(physical, &features);
     CHECK(features.rigidBodies == PM_TRUE);
     CHECK(features.rigidConstraints == PM_TRUE);
+    CHECK(features.debugData == PM_TRUE);
     CHECK(features.memoryBudget == PM_TRUE);
     std::uint32_t family_count{};
     CHECK(pmGetPhysicalDeviceQueueFamilies(
@@ -56,6 +57,7 @@ int main() {
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
+    device_info.enabledFeatures.debugData = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
     PmDevice device{};
     // The same public command fixture runs against each selected native driver.
@@ -174,6 +176,7 @@ int main() {
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     simulation_info.rigidBodyCapacity = 2U;
     simulation_info.contactCapacity = 8U;
+    simulation_info.debugFrameCapacity = 2U;
     PmSimulation simulation{};
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) == PM_SUCCESS);
     PmSimulationMemoryRequirements simulation_requirements{};
@@ -239,14 +242,13 @@ int main() {
     bodies[0].motionType = PM_MOTION_STATIC;
     bodies[0].state.position[1] = -1.0F;
     bodies[1].motionType = PM_MOTION_DYNAMIC;
-    bodies[1].state.position[1] = -0.25F;
+    bodies[1].state.position[1] = 1.0F;
     CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) ==
           PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
-    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
-        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     const PmBufferRange state_output{
         destination, 0U, 2U * sizeof(PmRigidState)};
     CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) ==
@@ -258,9 +260,52 @@ int main() {
     const auto *states = static_cast<const PmRigidState *>(mapped_readback);
     CHECK(states[0].position[1] == -1.0F);
     CHECK(std::isfinite(states[1].position[1]));
-    CHECK(states[1].position[1] > -0.5F);
+    const bool dynamic_body_advanced =
+        std::abs(states[1].position[1] - bodies[1].state.position[1]) > 1.0e-4F ||
+        std::abs(states[1].linearVelocity[1]) > 1.0e-4F;
+    if (!dynamic_body_advanced)
+        std::fprintf(stderr, "Native rigid body did not advance: y=%g vy=%g\n",
+                     states[1].position[1], states[1].linearVelocity[1]);
+    CHECK(dynamic_body_advanced);
+    const float first_position = states[1].position[1];
+    const float first_velocity = states[1].linearVelocity[1];
+
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) ==
+          PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    if (!(states[1].position[1] < first_position - 1.0e-4F &&
+          states[1].linearVelocity[1] < first_velocity - 1.0e-4F))
+        std::fprintf(stderr,
+                     "Native rigid body did not advance across submissions: "
+                     "first y=%g vy=%g, second y=%g vy=%g\n",
+                     first_position, first_velocity, states[1].position[1],
+                     states[1].linearVelocity[1]);
+    CHECK(states[1].position[1] < first_position - 1.0e-4F);
+    CHECK(states[1].linearVelocity[1] < first_velocity - 1.0e-4F);
+
 #if defined(PM_TEST_METAL_PREVIEW)
-    // Both cubes have half-height 0.5; the dynamic center settles near zero.
+    // Separate contact case: preserve upstream free-fall/multiple-submission
+    // checks above as well as the preview's independent settling check.
+    bodies[1].state.position[1] = -0.25F;
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    for (std::uint32_t frame = 0U; frame < 30U; ++frame)
+        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
     CHECK(states[1].position[1] > -0.025F && states[1].position[1] < 0.08F);
     CHECK(std::abs(states[1].linearVelocity[1]) < 0.15F);
 #endif

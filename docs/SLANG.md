@@ -47,13 +47,11 @@ Current storage remains pointer-oriented; descriptor resource mapping and
 full native adapters for other graphics APIs remain separate work. Vulkan
 still has no loadable physics driver.
 
-The Windows D3D12 driver embeds DXIL generated from the common kernel manifest,
-including AVBD prepare and solve. Device creation qualifies descriptor binding,
-dispatch, barriers, and readback with the shared `pm_clear_rigid_inputs` kernel.
-Its public command path now connects the shared schedule to rigid-body and
-constraint dispatch and advertises those features. Other domains remain
-unadvertised; native Windows physics qualification is separate from the macOS
-compiler and regression checks.
+The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
+Its public command path binds and dispatches the shared rigid-body,
+rigid-constraint, contact, debug, and query schedules and advertises those
+tested capabilities. Fluid, cloth, rope, soft-body, smoke, and their couplings
+remain unadvertised.
 
 The opt-in Metal preview connects the same public API and reference scheduler
 to native Apple-GPU dispatch, advertising only rigid bodies and constraints.

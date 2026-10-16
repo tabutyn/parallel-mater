@@ -67,10 +67,10 @@ shared Slang schedule is present.
 
 On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
 implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
-and memory budgets, and qualifies device creation by dispatching the embedded
-shared AVBD DXIL prepare/solve schedule. It deliberately does not advertise
-physics features until the remaining shared domain schedules are wired through
-the command API.
+and memory budgets. Its command path dispatches the common rigid-body,
+rigid-constraint, contact, debug, and query schedules compiled to DXIL. It
+advertises those tested rigid capabilities while the remaining simulation
+domains stay unavailable.
 The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
 runtime definition.
 
@@ -108,9 +108,10 @@ replacement for a native Apple GPU adapter, and it does not advertise fluid,
 cloth, rope, soft-body, smoke, or paint capabilities. All shared Slang modules
 are also compiled to Vulkan SPIR-V as a portability check, but there is no
 Vulkan driver until a complete shared schedule passes the same conformance and
-gallery gates. The D3D12 driver currently qualifies the AVBD DXIL schedule and
-core transfer API but advertises no physics domains; Metal and WebGPU have no
-drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
+gallery gates. The D3D12 driver advertises the shared rigid-body and
+rigid-constraint DXIL schedules, but no fluid, cloth, rope, soft-body, smoke,
+or coupling domains; Metal and WebGPU have no drivers. The backend-neutral AVBD
+numerical core is also compiled to WGSL
 as a WebGPU portability gate; the complete pointer-based domain schedules do
 not yet have WebGPU resource wrappers. Retired backend-specific physics targets
 are absent rather than available as fallbacks. Native
@@ -146,6 +147,23 @@ cmake --build build-gallery
 ctest --test-dir build-gallery --output-on-failure
 ./build-gallery/parallel-mater-gallery
 ```
+
+### Windows Gallery application
+
+Windows gallery builds automatically refresh the current user's canonical
+Start Menu installation at
+`%LOCALAPPDATA%\Programs\Parallel-Mater\Parallel-Mater.exe`. This is enabled by
+default with `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=ON`, so building the
+`parallel-mater-gallery` target cannot leave the Start Menu shortcut pointing
+at an older tested build. The deployment packages every built portable driver
+manifest, excludes test-only drivers, atomically replaces files, and verifies
+their SHA-256 hashes and the executable's reported build identity.
+
+Use `Parallel-Mater.exe --version` to identify the installed revision and exact
+build timestamp. To
+repair the installation explicitly, build the `install-windows-gallery`
+target. Set `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=OFF` only for build
+directories that must never update the current user's application.
 
 ### macOS Gallery application
 
@@ -254,7 +272,7 @@ same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
 
 ```bash
 ./build-gallery/parallel-mater-gallery \
-  --headless /tmp/parallel-mater-gallery.ppm --frames 120
+  --backend cuda --headless /tmp/parallel-mater-gallery.ppm --frames 120
 
 ./build-gallery/parallel-mater-gallery \
   --dump-spheres 100 \

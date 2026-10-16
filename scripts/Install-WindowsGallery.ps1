@@ -3,6 +3,7 @@
 param(
     [string]$BuildDirectory,
     [string]$RuntimeDirectory,
+    [string]$BuildConfiguration = 'Release',
     [string]$Version = '0.1.0'
 )
 $ErrorActionPreference = 'Stop'
@@ -14,6 +15,33 @@ $installRoot = [IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('
 $shortcutPath = Join-Path ([Environment]::GetFolderPath('Programs')) 'Parallel-Mater.lnk'
 $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Parallel-Mater'
 $manifestPath = Join-Path $installRoot 'installation.json'
+function Get-GalleryVersion([string]$Path) {
+    $start = New-Object Diagnostics.ProcessStartInfo
+    $start.FileName = $Path
+    $start.Arguments = '--version'
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::Start($start)
+    $output = $process.StandardOutput.ReadToEnd().Trim()
+    $diagnostic = $process.StandardError.ReadToEnd().Trim()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0 -or !$output) {
+        throw "Could not identify gallery build '$Path' (exit $($process.ExitCode)): $diagnostic"
+    }
+    return $output
+}
+function Get-Sha256([string]$Path) {
+    $stream = [IO.File]::OpenRead($Path)
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-','')
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
 foreach ($directory in @($installRoot,(Join-Path $installRoot 'assets'))) {
     if ((Test-Path -LiteralPath $directory) -and ((Get-Item -LiteralPath $directory).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         throw "Refusing a linked installation directory: $directory"
@@ -53,25 +81,56 @@ if (!$galleryExecutable) {
     throw "Missing gallery executable in build directory: $BuildDirectory"
 }
 $files['Parallel-Mater.exe'] = (Resolve-Path -LiteralPath $galleryExecutable).Path
-foreach ($dll in Get-ChildItem -LiteralPath $BuildDirectory -Filter '*.dll' -File) {
+foreach ($dll in Get-ChildItem -LiteralPath $BuildDirectory -Filter '*.dll' -File |
+    Where-Object { $_.Name -ne 'parallel-mater-mock-driver.dll' }) {
     $files[$dll.Name] = $dll.FullName
 }
 if ($RuntimeDirectory) {
-    foreach ($dll in Get-ChildItem -LiteralPath $RuntimeDirectory -Filter '*.dll' -File) {
+    foreach ($dll in Get-ChildItem -LiteralPath $RuntimeDirectory -Filter '*.dll' -File |
+        Where-Object { $_.Name -ne 'parallel-mater-mock-driver.dll' }) {
         $files[$dll.Name] = $dll.FullName
     }
 }
-foreach ($asset in Get-ChildItem -LiteralPath "$sourceRoot\examples\assets" -Filter '*.glb' -File) {
+$packagedAssetDirectory = Join-Path $BuildDirectory 'assets'
+if (!(Test-Path -LiteralPath $packagedAssetDirectory -PathType Container)) {
+    throw "Missing packaged gallery assets: $packagedAssetDirectory"
+}
+$packagedAssetCount = 0
+foreach ($asset in Get-ChildItem -LiteralPath $packagedAssetDirectory -Filter '*.glb' -File) {
     $files["assets\$($asset.Name)"] = $asset.FullName
+    $packagedAssetCount++
+}
+if ($packagedAssetCount -eq 0) {
+    throw "No packaged gallery scenes were found in: $packagedAssetDirectory"
 }
 $files['config\device-profiles.json'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'config\device-profiles.json')).Path
-$files['manifests\slang-cuda.json'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'manifests\portable\slang-cuda.json')).Path
+$driverManifestCount = 0
+foreach ($manifestName in @('slang-cuda.json','slang-d3d12.json','slang-cpu.json')) {
+    $driverManifest = Join-Path $BuildDirectory "manifests\portable\$manifestName"
+    if (Test-Path -LiteralPath $driverManifest -PathType Leaf) {
+        $files["manifests\$manifestName"] = (Resolve-Path -LiteralPath $driverManifest).Path
+        $driverManifestCount++
+    }
+}
+if ($driverManifestCount -eq 0) {
+    throw "No portable Parallel-Mater driver manifest was found in: $BuildDirectory"
+}
 $files['manifests\validation.json'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'manifests\portable\validation.json')).Path
 $files['LICENSE'] = "$sourceRoot\LICENSE"
 $files['GALLERY.md'] = "$sourceRoot\docs\GALLERY.md"
 $files['Uninstall.ps1'] = "$PSScriptRoot\Uninstall-WindowsGallery.ps1"
 # Resolve every input before making installation changes.
 foreach ($source in $files.Values) { if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing package file: $source" } }
+$reportedVersion = Get-GalleryVersion $galleryExecutable
+$revision = 'unknown'
+try {
+    $candidateRevision = (& git -C $sourceRoot rev-parse HEAD 2>$null).Trim()
+    if ($LASTEXITCODE -eq 0 -and $candidateRevision) { $revision = $candidateRevision }
+} catch {}
+$sourceHashes = [ordered]@{}
+foreach ($name in $files.Keys) {
+    $sourceHashes[$name] = Get-Sha256 $files[$name]
+}
 $obsoleteTargets = @($previousFiles | Where-Object {
     !$files.Contains($_)
 } | ForEach-Object {
@@ -81,18 +140,68 @@ $obsoleteTargets = @($previousFiles | Where-Object {
     }
     $target
 })
+$legacyTestDriver = Join-Path $installRoot 'parallel-mater-mock-driver.dll'
+if ((Test-Path -LiteralPath $legacyTestDriver -PathType Leaf) -and
+    $obsoleteTargets -notcontains $legacyTestDriver) {
+    $obsoleteTargets += $legacyTestDriver
+}
 foreach ($directory in @($installRoot,'assets','config','manifests')) {
     $path = if ($directory -eq $installRoot) { $installRoot } else { Join-Path $installRoot $directory }
     New-Item -ItemType Directory -Path $path -Force | Out-Null
 }
+$manifestFilesDuringInstall = @($previousFiles + @($files.Keys) | Sort-Object -Unique)
 $manifest = [ordered]@{ application='Parallel-Mater'; directory=$installRoot; version=$Version;
-    files=@($files.Keys | Sort-Object -Unique) }
+    configuration=$BuildConfiguration; revision=$revision; reportedVersion=$reportedVersion;
+    executableSha256=$sourceHashes['Parallel-Mater.exe']; state='installing';
+    files=$manifestFilesDuringInstall; hashes=$sourceHashes }
 # Keep the ownership marker even if a copy fails, so rerunning can repair it.
-$manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-foreach ($name in $files.Keys) { Copy-Item -LiteralPath $files[$name] -Destination (Join-Path $installRoot $name) -Force }
+$manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+foreach ($name in $files.Keys) {
+    $target = Join-Path $installRoot $name
+    $temporary = Join-Path ([IO.Path]::GetDirectoryName($target)) ('.' + [IO.Path]::GetFileName($target) + ".installing.$PID")
+    $backup = Join-Path ([IO.Path]::GetDirectoryName($target)) ('.' + [IO.Path]::GetFileName($target) + ".replacing.$PID")
+    try {
+        Copy-Item -LiteralPath $files[$name] -Destination $temporary -Force
+        $copiedHash = Get-Sha256 $temporary
+        if ($copiedHash -ne $sourceHashes[$name]) {
+            throw "Package verification failed while copying: $name"
+        }
+        if (Test-Path -LiteralPath $target -PathType Leaf) {
+            [IO.File]::Replace($temporary,$target,$backup,$true)
+            Remove-Item -LiteralPath $backup -Force
+        } else {
+            [IO.File]::Move($temporary,$target)
+        }
+    } finally {
+        if (Test-Path -LiteralPath $temporary -PathType Leaf) {
+            Remove-Item -LiteralPath $temporary -Force
+        }
+    }
+}
+foreach ($name in $files.Keys) {
+    $installedHash = Get-Sha256 (Join-Path $installRoot $name)
+    if ($installedHash -ne $sourceHashes[$name]) {
+        throw "Installed package verification failed: $name"
+    }
+}
+$installedReportedVersion = Get-GalleryVersion (Join-Path $installRoot 'Parallel-Mater.exe')
+if ($installedReportedVersion -ne $reportedVersion) {
+    throw "Installed gallery identity mismatch: expected '$reportedVersion', got '$installedReportedVersion'"
+}
 foreach ($target in $obsoleteTargets) {
     if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target -Force }
 }
+foreach ($legacyName in @('drivers.d','layers.d')) {
+    $legacyDirectory = Join-Path $installRoot $legacyName
+    if ((Test-Path -LiteralPath $legacyDirectory -PathType Container) -and
+        !(Get-ChildItem -LiteralPath $legacyDirectory -Force | Select-Object -First 1)) {
+        Remove-Item -LiteralPath $legacyDirectory -Force
+    }
+}
+$manifest['state'] = 'installed'
+$manifest['installedUtc'] = [DateTime]::UtcNow.ToString('o')
+$manifest['files'] = @($files.Keys | Sort-Object -Unique)
+$manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
 $shortcut.TargetPath = Join-Path $installRoot 'Parallel-Mater.exe'
 $shortcut.WorkingDirectory = $installRoot
@@ -115,4 +224,5 @@ foreach ($entry in @{ NoModify=1; NoRepair=1; EstimatedSize=$size }.GetEnumerato
     New-ItemProperty -Path $registryPath -Name $entry.Key -Value $entry.Value -PropertyType DWord -Force | Out-Null
 }
 Write-Output "Installed Parallel-Mater: $installRoot"
+Write-Output "Build: $reportedVersion"
 Write-Output "Start menu: $shortcutPath"

@@ -589,8 +589,9 @@ void solve_avbd_stage_kernel(
     uniform PM_AVBD_BUFFER(AvbdBody) bodies,
     uniform PM_AVBD_BUFFER(ContactSchedule) schedule, uniform float dt,
     uniform uint operation, uniform uint phase,
-    uniform uint iteration, uniform uint color)
+    uniform uint iteration, uniform uint color PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     rigid_avbd_solve_stage(parameters, previous, states, count, manifolds, pairs,
         pair_count, joints, joint_capacity, bodies, schedule, dt,
         operation, phase, iteration, color);
@@ -608,8 +609,10 @@ void solve_avbd_kernel(
     uniform PM_AVBD_BUFFER(RigidConstraintResource) joints,
     uniform uint joint_capacity,
     uniform PM_AVBD_BUFFER(AvbdBody) bodies,
-    uniform PM_AVBD_BUFFER(ContactSchedule) schedule, uniform float dt)
+    uniform PM_AVBD_BUFFER(ContactSchedule) schedule, uniform float dt
+    PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     for (uint phase = 0u; phase < 2u; ++phase)
     {
         if (phase != 0u && schedule[0].counts[0] == 0u) break;

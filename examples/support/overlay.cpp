@@ -295,6 +295,50 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
     }
 }
 
+void draw_backend_overlay(
+    std::vector<std::uint32_t> &rgba, std::uint32_t width,
+    std::uint32_t height, std::span<const std::string> names,
+    std::span<const std::string> details, std::size_t selection) {
+    if (names.empty() || names.size() != details.size()) return;
+    const MenuScale ui = menu_scale(width, height);
+    const int center = static_cast<int>(width) / 2;
+    const int row_height = ui.pixels(88);
+    const int panel_height = ui.pixels(130) +
+        row_height * static_cast<int>(names.size());
+    const int top = std::max(ui.pixels(14),
+        (static_cast<int>(height) - panel_height) / 2);
+    rectangle(rgba, width, height, center - ui.pixels(330), top,
+              center + ui.pixels(330), top + panel_height,
+              {4, 10, 16, 242});
+    text(rgba, width, height, center - ui.pixels(292),
+         top + ui.pixels(28), "SELECT PHYSICS BACKEND",
+         {110, 225, 255, 255}, ui.font(3));
+    text(rgba, width, height, center - ui.pixels(292),
+         top + ui.pixels(67), "UP DOWN SELECT   ENTER START",
+         {185, 220, 235, 255}, ui.font(1));
+    for (std::size_t index = 0U; index < names.size(); ++index) {
+        const int y = top + ui.pixels(105) +
+            static_cast<int>(index) * row_height;
+        if (index == selection) {
+            rectangle(rgba, width, height, center - ui.pixels(296),
+                      y - ui.pixels(5), center + ui.pixels(296),
+                      y + ui.pixels(72), {105, 255, 155, 255});
+        }
+        rectangle(rgba, width, height, center - ui.pixels(290), y,
+                  center + ui.pixels(290), y + ui.pixels(62),
+                  index == selection ? Color{28, 64, 50, 255}
+                                     : Color{27, 38, 48, 255});
+        text(rgba, width, height, center - ui.pixels(262),
+             y + ui.pixels(8), names[index], {245, 247, 250, 255},
+             ui.font(2));
+        text(rgba, width, height, center - ui.pixels(262),
+             y + ui.pixels(37), details[index],
+             index == selection ? Color{130, 255, 185, 255}
+                                : Color{160, 190, 210, 255},
+             ui.font(1));
+    }
+}
+
 void draw_count_overlay(std::vector<std::uint32_t> &rgba,
                         std::uint32_t width, std::uint32_t height,
                         GalleryContext context, const std::string &value,
