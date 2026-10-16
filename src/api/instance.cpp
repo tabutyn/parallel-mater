@@ -22,6 +22,15 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.timestampQueries = PM_TRUE;
 #if defined(PARALLEL_MATER_METAL_DRIVER)
     features.timestampQueries = PM_FALSE; // Native timestamp API not qualified by this preview.
+    features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
+    features.particleEmitters = PM_TRUE;
+    features.cloth = PM_TRUE;
+    features.softBodies = PM_TRUE;
+    features.domainCouplings = PM_TRUE;
+    features.rope = PM_TRUE;
+    features.smoke = PM_TRUE;
+    features.paint = PM_TRUE;
 #endif
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;

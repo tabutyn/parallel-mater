@@ -5,6 +5,7 @@
 #include "vector_math.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -63,15 +64,17 @@ Projected project(Vec3 point, const CameraBasis &camera,
                   std::uint32_t width, std::uint32_t height) noexcept {
     const Vec3 relative = subtract(point, camera.eye);
     const float depth = dot(relative, camera.forward);
-    if (depth <= 0.01F) return {};
+    if (depth <= 0.005F) return {};
     const float ndc_x = dot(relative, camera.right) /
         (depth * camera.horizontal);
     const float ndc_y = dot(relative, camera.up) /
         (depth * camera.vertical);
+    if (!std::isfinite(ndc_x) || !std::isfinite(ndc_y) || !std::isfinite(depth))
+        return {};
     return {(ndc_x * 0.5F + 0.5F) * static_cast<float>(width),
             (ndc_y * 0.5F + 0.5F) * static_cast<float>(height),
             depth,
-            std::fabs(ndc_x) <= 2.0F && std::fabs(ndc_y) <= 2.0F};
+            true}; // Raster bounds clip off-screen vertices, not whole triangles.
 }
 
 Vec3 rotate(Quaternion quaternion, Vec3 vector) noexcept {
@@ -123,17 +126,19 @@ void draw_triangle(Projected a, Projected b, Projected c, Vec3 color,
                    std::uint32_t width, std::uint32_t height,
                    std::vector<float> &depth,
                    std::vector<std::uint32_t> &rgba) noexcept {
-    if (!a.visible && !b.visible && !c.visible) return;
+    if (!a.visible || !b.visible || !c.visible) return;
     const float area = edge(a, b, c.x, c.y);
     if (std::fabs(area) <= 1.0e-5F) return;
-    const int low_x = std::max(0, static_cast<int>(std::floor(
-        std::min({a.x, b.x, c.x}))));
-    const int high_x = std::min(static_cast<int>(width) - 1,
-        static_cast<int>(std::ceil(std::max({a.x, b.x, c.x}))));
-    const int low_y = std::max(0, static_cast<int>(std::floor(
-        std::min({a.y, b.y, c.y}))));
-    const int high_y = std::min(static_cast<int>(height) - 1,
-        static_cast<int>(std::ceil(std::max({a.y, b.y, c.y}))));
+    // Clip floating-point bounds before converting to int, including vertices
+    // far outside the view after near-plane clipping.
+    const int low_x = static_cast<int>(std::clamp(std::floor(
+        std::min({a.x, b.x, c.x})), 0.0F, static_cast<float>(width)));
+    const int high_x = static_cast<int>(std::clamp(std::ceil(
+        std::max({a.x, b.x, c.x})), -1.0F, static_cast<float>(width) - 1.0F));
+    const int low_y = static_cast<int>(std::clamp(std::floor(
+        std::min({a.y, b.y, c.y})), 0.0F, static_cast<float>(height)));
+    const int high_y = static_cast<int>(std::clamp(std::ceil(
+        std::max({a.y, b.y, c.y})), -1.0F, static_cast<float>(height) - 1.0F));
     if (low_x > high_x || low_y > high_y) return;
     const float inverse_area = 1.0F / area;
     const std::uint32_t fill = packed(color);
@@ -145,7 +150,7 @@ void draw_triangle(Projected a, Projected b, Projected c, Vec3 color,
             const float wb = edge(c, a, sample_x, sample_y) * inverse_area;
             const float wc = 1.0F - wa - wb;
             if (wa < 0.0F || wb < 0.0F || wc < 0.0F) continue;
-            const float candidate = wa * a.depth + wb * b.depth + wc * c.depth;
+            const float candidate = 1.0F / (wa / a.depth + wb / b.depth + wc / c.depth);
             const std::size_t index = static_cast<std::size_t>(y) * width +
                 static_cast<std::uint32_t>(x);
             if (candidate >= depth[index]) continue;
@@ -159,11 +164,14 @@ void draw_mesh(const TriangleMesh &mesh, const std::vector<Vec3> *positions,
                const RigidBodyState *transform, const CameraBasis &camera,
                std::uint32_t width, std::uint32_t height,
                std::vector<float> &depth,
-               std::vector<std::uint32_t> &rgba) noexcept {
+               std::vector<std::uint32_t> &rgba, bool corner_positions = false) noexcept {
     if (!mesh.visible || mesh.indices.size() < 3U) return;
-    const auto point = [&](std::uint32_t index) {
-        Vec3 value = positions != nullptr && index < positions->size()
-            ? (*positions)[index] : mesh.vertices[index].position;
+    const auto point = [&](std::uint32_t index, std::size_t corner) {
+        // Tearing cloth exports one position per triangle corner for torn seams.
+        // Ordinary cloth and soft-body surfaces retain authored vertex indexing.
+        const auto position_index = corner_positions ? corner : index;
+        Vec3 value = positions != nullptr && position_index < positions->size()
+            ? (*positions)[position_index] : mesh.vertices[index].position;
         if (transform != nullptr)
             value = add(rotate(transform->orientation, value),
                         transform->position);
@@ -178,17 +186,36 @@ void draw_mesh(const TriangleMesh &mesh, const std::vector<Vec3> *positions,
         if (ia >= mesh.vertices.size() || ib >= mesh.vertices.size() ||
             ic >= mesh.vertices.size())
             continue;
-        const Vec3 a = point(ia);
-        const Vec3 b = point(ib);
-        const Vec3 c = point(ic);
+        const Vec3 a = point(ia, triangle);
+        const Vec3 b = point(ib, triangle + 1U);
+        const Vec3 c = point(ic, triangle + 2U);
         const Vec3 normal = normalize_or(
             cross(subtract(b, a), subtract(c, a)), {0.0F, 1.0F, 0.0F});
         const float shade = 0.28F + 0.72F * std::max(0.0F, dot(normal, light));
-        draw_triangle(project(a, camera, width, height),
-                      project(b, camera, width, height),
-                      project(c, camera, width, height),
-                      multiply(mesh.base_color, shade), width, height,
-                      depth, rgba);
+        // Clip against the near plane before projection. Substituting (0,0,0)
+        // for a vertex behind the eye makes giant zero-depth triangles obscure
+        // otherwise valid scenes (notably the Cloth Tear scenery).
+        constexpr float near_depth = 0.01F;
+        const std::array input{a, b, c};
+        std::array<Vec3, 4> clipped{};
+        std::size_t count = 0;
+        Vec3 previous = c;
+        float previous_depth = dot(subtract(previous, camera.eye), camera.forward);
+        for (const Vec3 current : input) {
+            const float current_depth = dot(subtract(current, camera.eye), camera.forward);
+            if ((current_depth >= near_depth) != (previous_depth >= near_depth)) {
+                const float fraction = (near_depth - previous_depth) / (current_depth - previous_depth);
+                clipped[count++] = add(previous, multiply(subtract(current, previous), fraction));
+            }
+            if (current_depth >= near_depth) clipped[count++] = current;
+            previous = current;
+            previous_depth = current_depth;
+        }
+        for (std::size_t corner = 1; corner + 1 < count; ++corner)
+            draw_triangle(project(clipped[0], camera, width, height),
+                          project(clipped[corner], camera, width, height),
+                          project(clipped[corner + 1], camera, width, height),
+                          multiply(mesh.base_color, shade), width, height, depth, rgba);
     }
 }
 
@@ -198,6 +225,9 @@ void draw_particle(Vec3 position, float radius, Vec3 color,
                    std::vector<std::uint32_t> &rgba) noexcept {
     const Projected center = project(position, camera, width, height);
     if (!center.visible) return;
+    if (center.x < -12.0F || center.y < -12.0F ||
+        center.x > static_cast<float>(width) + 12.0F ||
+        center.y > static_cast<float>(height) + 12.0F) return;
     const int pixels = std::clamp(static_cast<int>(
         radius * static_cast<float>(height) /
         (center.depth * camera.vertical)), 1, 12);
@@ -275,7 +305,9 @@ class SoftwareRenderer final : public Renderer {
                 index < frame.cloth_surface_vertices.size()
                 ? &frame.cloth_surface_vertices[index] : nullptr;
             draw_mesh(scene_.meshes[mesh_index], positions, nullptr, basis,
-                      width_, height_, depth_, rgba);
+                      width_, height_, depth_, rgba,
+                      scene_.cloths[index].break_strain > 0.0F ||
+                      scene_.cloths[index].impact_break_impulse > 0.0F);
         }
         for (std::size_t index = 0U; index < scene_.soft_bodies.size(); ++index) {
             const auto mesh_index = scene_.soft_bodies[index].mesh_index;

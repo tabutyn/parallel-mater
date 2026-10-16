@@ -54,17 +54,19 @@ tested capabilities. Fluid, cloth, rope, soft-body, smoke, and their couplings
 remain unadvertised.
 
 The opt-in Metal preview connects the same public API and reference scheduler
-to native Apple-GPU dispatch, advertising only rigid bodies and constraints.
+to native Apple-GPU dispatch for rigid bodies/constraints, liquids, cloth,
+soft bodies, ropes, particle/grid smoke, existing cross-domain couplings and paint.
 It bundles generated Slang Metal libraries, not generated CPU physics. The CPU
 driver similarly advertises only its implemented rigid capabilities.
-All existing domain and
-coupling entries now compile separately to Metal. Native kernel tests use actual
+All existing domain and coupling entries now compile separately to Metal.
+Native kernel tests use actual
 Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
 boundary. AVBD now has shared staged dispatches for adapters without cooperative
 grid barriers; the original cooperative entry uses the same stage equations.
 The preview Gallery uses the Metal driver for physics and software rendering
-for images. It still synchronizes for prepared solver counts and frame output;
-other domains, native import and GPU rendering handoff remain unfinished. See the
+for images. It still synchronizes for prepared solver counts and frame output.
+Missing roadmap interaction modes, full physics/performance qualification,
+native import and GPU rendering handoff remain unfinished. See the
 [Metal qualification checklist](METAL-QUALIFICATION.md) for the release gate.
 
 The AVBD numerical core also compiles to WGSL and its reflection contract is
@@ -123,8 +125,9 @@ errors. Native MSL compilation exempts only unused-variable diagnostics because
 Slang retains unused atomic fetch results. Compiler/reflection gates require
 neither a CUDA toolkit nor a GPU; CUDA source generation
 does not replace NVCC/PTX compilation or device execution in CUDA qualification.
-The existing optional PTX gate still runs when NVRTC is available. A complete
-Metal execution schedule and command-API driver remain unimplemented. Reflection
+The existing optional PTX gate still runs when NVRTC is available. The
+Metal command-API preview now executes the existing domain schedule; a fully
+asynchronous GPU-only schedule and all-domain qualification remain incomplete. Reflection
 and test logs are retained as CI artifacts.
 Repository branch rules should require the stable `Shader portability required`
 check; the workflow itself does not modify repository protection settings.

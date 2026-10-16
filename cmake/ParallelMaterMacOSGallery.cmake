@@ -142,6 +142,11 @@ if(BUILD_TESTING)
                 $<TARGET_FILE:parallel-mater-gallery> ${PM_PREVIEW_REFERENCE_ARGS})
         set_tests_properties(parallel-mater-slang-metal-gallery-preview PROPERTIES
             LABELS "gallery;metal;gpu;preview" TIMEOUT 900)
+        add_test(NAME parallel-mater-slang-metal-gallery-domains
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/metal_domain_smoke.py"
+                $<TARGET_FILE:parallel-mater-gallery>)
+        set_tests_properties(parallel-mater-slang-metal-gallery-domains PROPERTIES
+            LABELS "gallery;metal;gpu;preview" TIMEOUT 1200)
     endif()
     add_executable(parallel-mater-software-renderer-tests
         tests/gallery/software_renderer_tests.cpp)

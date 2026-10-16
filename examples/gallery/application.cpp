@@ -363,7 +363,7 @@ static int run_gallery_application(
     std::string error;
     std::string window_title =
 #ifdef PARALLEL_MATER_METAL_PREVIEW
-        "ParallelMater Gallery - Apple GPU Preview (rigid only; software render)";
+        "ParallelMater Gallery - Apple GPU Preview (qualification incomplete; software render)";
 #elif defined(PARALLEL_MATER_SLANG_TEST_BUILD)
         "ParallelMater Gallery - Slang Production Test";
 #else
@@ -741,7 +741,8 @@ static int run_gallery_application(
                 options.headless_cloth_tilt_degrees != 0U ? 1U : 0U;
             if (!runtime.renderer.paint_coverage(painted, error) ||
                 painted < minimum) {
-                std::cerr << "Paint coverage failed: " << error << '\n';
+                std::cerr << "Paint coverage failed: " << painted << " texels; need "
+                          << minimum << ". " << error << '\n';
                 return 1;
             }
             std::cout << "Painted texels=" << painted << '\n';
@@ -779,6 +780,9 @@ static int run_gallery_application(
                                         static_cast<std::size_t>(short_edge);
             if (cloth_pixels < projected_area / 50U) {
                 std::cerr << "Cloth Tear render lost the sheet\n";
+                if (write_ppm(options.headless_output, pixels,
+                              runtime.renderer.width(), runtime.renderer.height()))
+                    std::cerr << "Failed render saved for diagnosis: " << options.headless_output << '\n';
                 return 1;
             }
         }

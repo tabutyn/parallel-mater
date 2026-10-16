@@ -12,6 +12,12 @@
 namespace parallel_mater::metal {
 namespace compute = device::compute;
 
+struct HostMember { const char *path; std::size_t offset, size; };
+struct RelocatedRecord {
+    std::span<const std::byte> bytes;
+    std::span<const HostMember> members;
+};
+
 // Transitional pointer-oriented resource adapter for the shared scheduler.
 // Host addresses identify allocations; only gpuAddress values reach shaders.
 class ScheduleContext {
@@ -27,7 +33,9 @@ public:
     compute::Device &device() { return *device_; }
     compute::KernelPtr kernel(const std::string &entry);
     void bind(compute::Arguments &, const std::string &, const void *);
+    void record(compute::Arguments &, const std::string &, const RelocatedRecord &);
     void meshes(const void *, const void *parameters, std::uint32_t body_count);
+    void paint_fields(const void *table, std::uint32_t count, const void *meshes);
     void dispatch(const compute::Arguments &, dim3);
     void copy(void *, const void *, std::size_t);
     void clear(void *, int, std::size_t);
@@ -73,7 +81,8 @@ public:
             const auto set = [&](const auto &value) {
                 const auto &name = names.at(index++);
                 using Value = std::decay_t<decltype(value)>;
-                if constexpr (std::is_pointer_v<Value>) bind(arguments, name, value);
+                if constexpr (std::is_same_v<Value, RelocatedRecord>) record(arguments, name, value);
+                else if constexpr (std::is_pointer_v<Value>) bind(arguments, name, value);
                 else arguments.set(name, value);
             };
             (set(values), ...);
@@ -81,11 +90,12 @@ public:
         });
     }
 private:
+    compute::Record relocate_record(compute::Field, const RelocatedRecord &);
     cudaError_t remember(cudaError_t) noexcept;
     std::unique_ptr<compute::Device> device_;
     std::map<std::string, compute::KernelPtr> kernels_;
     std::map<std::string, std::string> paths_;
-    std::map<const void *, std::size_t> mesh_counts;
+    std::map<const void *, std::size_t> table_counts;
     std::unique_ptr<compute::CommandList> command_;
     std::vector<compute::SubmissionPtr> pending_;
     cudaError_t error_{cudaSuccess};

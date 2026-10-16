@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 
-def capture(executable, directory, name, options, frames, reference=None):
+def capture(executable, directory, name, options, frames, reference=None, domains=()):
     image = directory / (name + ".ppm")
     states = directory / (name + ".txt")
     environment = os.environ.copy()
@@ -19,15 +19,27 @@ def capture(executable, directory, name, options, frames, reference=None):
         environment["PM_DRIVER_FILES"] = reference
     result = subprocess.run([executable, *options, "--frames", str(frames),
                              "--physics-capture", str(states), "--headless", str(image)],
-                            env=environment, capture_output=True, text=True, timeout=180)
+                            env=environment, capture_output=True, text=True, timeout=300)
     if result.returncode:
         raise AssertionError(f"{name}: {result.stdout}\n{result.stderr}")
-    expected = "Slang CPU" if reference else "Metal GPU preview (rigid only)"
+    expected = "Slang CPU" if reference else "Metal GPU preview"
     assert expected in result.stdout, (name, "wrong physics driver", result.stdout)
     data = image.read_bytes()
     assert data.startswith(b"P6\n") and len(data) > 10000, (name, "missing rendered image")
     rows = {}
-    for line in states.read_text().splitlines():
+    lines = states.read_text().splitlines()
+    summary = lines[1].split()
+    counts = dict(zip(summary[::2], map(int, summary[1::2])))
+    for domain in domains:
+        assert counts.get(domain, 0) > 0, (name, "empty domain output", domain, counts)
+    for line in lines:
+        if line.startswith(("fluid ", "debug ", "contact ")):
+            for word in line.split()[1:]:
+                try:
+                    value = float(word)
+                except ValueError:
+                    continue
+                assert math.isfinite(value), (name, "nonfinite output", line)
         if not line.startswith("rigid "):
             continue
         words = line.split()
@@ -59,12 +71,7 @@ def main():
                 assert error < 0.005, (name, "short-run reference mismatch", error)
             capture(executable, directory, name + "-long", options, 120)
             print(f"{name}: 120 GPU frames, finite states, normalized rotations, final image passed", flush=True)
-        result = subprocess.run([executable, "--fluid", "--frames", "1", "--headless", str(directory / "unsupported.ppm")],
-                                capture_output=True, text=True, timeout=60,
-                                env={key: value for key, value in os.environ.items()
-                                     if key not in ("PM_DRIVER_FILES", "PM_DRIVER_PATH")})
-        assert result.returncode != 0 and "scene capability" in result.stderr, result.stderr
-    print("Metal Gallery preview smoke passed; unsupported fluid rejected without fallback")
+    print("Metal rigid Gallery preview smoke passed")
 
 
 if __name__ == "__main__":

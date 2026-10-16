@@ -191,9 +191,10 @@ runtime code or copying the reference solver's exact trajectories.
 
 Status: pending.
 
-An explicitly authorized macOS development preview (2026-10-16) connects rigid
-bodies/constraints to the Apple GPU through shared Slang and the reference
-schedule. It is labeled, rejects unsupported domains, and retains software
+An explicitly authorized macOS development preview (2026-10-16) connects all six
+existing physics domains, their implemented cross-domain couplings and paint to
+the Apple GPU through shared Slang and the reference schedule. It is labeled,
+keeps unsupported liquid–liquid coupling unadvertised, and retains software
 rendering/readbacks. It does not satisfy this all-domain milestone; evidence
 and remaining limits are in [Metal qualification](METAL-QUALIFICATION.md).
 
@@ -226,7 +227,8 @@ GPU runtime and performance were not revalidated during that audit.
 CUDA contains the full reference physics path. D3D12 advertises its tested
 shared DXIL rigid-body and rigid-constraint schedules plus core transfer
 services; the other physics domains remain unadvertised. Vulkan has no runtime
-driver; Metal has no current driver. Existing shader generation, historical
+driver. Metal had no driver at that audit; the subsequent opt-in development
+preview is described above. Existing shader generation, historical
 galleries, and older worktrees do not establish current backend qualification.
 Completion evidence belongs beside each milestone.
 

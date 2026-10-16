@@ -99,7 +99,7 @@ PmResult enumerate(std::uint32_t *count, Description *descriptions) noexcept {
         out = {};
         out.driver_version = 202618U;
         out.vendor_id = 0x106b;
-        out.name = gpu->name() + " - Metal GPU preview (rigid only)";
+        out.name = gpu->name() + " - Metal GPU preview (qualification incomplete)";
         out.total_memory = native.recommendedMaxWorkingSetSize;
         const auto registry = native.registryID;
         std::memcpy(out.uuid, &registry, sizeof(registry));

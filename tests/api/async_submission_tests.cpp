@@ -31,8 +31,10 @@ int main() {
     PmPhysicalDeviceFeatures supported{};
     pmGetPhysicalDeviceFeatures(physical, &supported);
     CHECK(supported.rigidBodies && supported.rigidConstraints);
-    CHECK(!supported.particleLiquids && !supported.cloth && !supported.rope &&
-          !supported.softBodies && !supported.smoke && !supported.domainCouplings);
+    CHECK(supported.particleLiquids && supported.liquidRigidCoupling);
+    CHECK(supported.cloth && supported.softBodies && supported.domainCouplings);
+    CHECK(supported.rope && supported.smoke && supported.paint);
+    CHECK(!supported.liquidLiquidCoupling);
 #endif
     float priority = 1.0F;
     PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};

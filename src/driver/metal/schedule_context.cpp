@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 #include "schedule_context.hpp"
-#include "simulation/geometry_storage.hpp"
+#include "resource_records.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>
 #include <cstring>
+#include <functional>
 
 namespace parallel_mater::metal {
 namespace {
@@ -88,50 +89,35 @@ void ScheduleContext::bind(compute::Arguments &arguments, const std::string &nam
     const auto &field = arguments.kernel()->parameter(name);
     auto slice = find(pointer, field.pointee_size);
     if (!slice.buffer || slice.owner != this) throw std::invalid_argument("unregistered Metal shader pointer: " + name);
-    // Mesh descriptors alone contain pointers in the rigid preview. Validate
-    // every host/native offset before relocation, never mutate the host table.
-    if (name == "meshes") {
-        using simulation::TriangleMeshResource;
-        if (field.pointee_size != sizeof(TriangleMeshResource))
-            throw std::invalid_argument("Metal mesh record size mismatch");
-        const std::pair<const char *, std::size_t> members[]{
-#define PM_MESH_FIELD(member) {#member, offsetof(TriangleMeshResource, member)}
-            PM_MESH_FIELD(vertices), PM_MESH_FIELD(indices), PM_MESH_FIELD(vertex_count),
-            PM_MESH_FIELD(index_count), PM_MESH_FIELD(generation), PM_MESH_FIELD(alive),
-            PM_MESH_FIELD(minimum), PM_MESH_FIELD(maximum), PM_MESH_FIELD(bounding_center),
-            PM_MESH_FIELD(bounding_radius), PM_MESH_FIELD(unit_inertia), PM_MESH_FIELD(bvh_nodes),
-            PM_MESH_FIELD(bvh_node_count), PM_MESH_FIELD(bvh_leaves), PM_MESH_FIELD(bvh_leaf_count),
-            PM_MESH_FIELD(solid_planes), PM_MESH_FIELD(solid_unique_plane_count), PM_MESH_FIELD(shell_normals)
-#undef PM_MESH_FIELD
-        };
-        for (auto [member, offset] : members)
-            if (field.fields.at(member).offset != offset) throw std::invalid_argument("Metal mesh field offset mismatch");
-        // Mesh arrays may live inside an arena. The allocation tail is not its
-        // extent: the resource manager registers the array length below.
-        const auto count_field = mesh_counts.find(pointer);
-        if (count_field == mesh_counts.end()) throw std::invalid_argument("Metal mesh table extent missing");
-        const auto count = count_field->second;
-        if (count > (slice.buffer->size() - slice.offset) / sizeof(TriangleMeshResource))
-            throw std::invalid_argument("Metal mesh table outside allocation");
-        auto translated = device_->allocate(count * sizeof(TriangleMeshResource), true);
+    if (name == "meshes" || name == "paint_fields") {
+        const auto extent = table_counts.find(pointer);
+        if (extent == table_counts.end())
+            throw std::invalid_argument("Metal resource table extent missing: " + name);
+        const auto count = extent->second;
+        if (count == 0) { arguments.bind(name, {}); return; }
+        const auto stride = name == "meshes" ? sizeof(simulation::TriangleMeshResource)
+                                            : sizeof(simulation::PaintFieldResource);
+        if (field.pointee_size != stride || count > (slice.buffer->size() - slice.offset) / stride)
+            throw std::invalid_argument("Metal resource table layout/range mismatch: " + name);
+        auto translated = device_->allocate(count * stride, true);
         auto *output = static_cast<std::byte *>(translated->host_address());
-        auto *input = static_cast<const TriangleMeshResource *>(pointer);
         for (std::size_t i = 0; i < count; ++i) {
-            compute::Record record(field, input[i]);
-            for (const auto &[member, layout] : field.fields) {
-                if (!layout.pointer) continue;
-                const void *value{};
-                std::memcpy(&value, reinterpret_cast<const std::byte *>(&input[i]) + layout.offset, sizeof(value));
-                const auto indirect = find(value, layout.pointee_size);
-                if (value && (!indirect.buffer || indirect.owner != this)) throw std::invalid_argument("unregistered nested Metal pointer");
-                record.bind(member, indirect.buffer, indirect.offset);
-            }
+            const auto host = name == "meshes"
+                ? mesh_record(static_cast<const simulation::TriangleMeshResource *>(pointer)[i])
+                : paint_record(static_cast<const simulation::PaintFieldResource *>(pointer)[i]);
+            const auto record = relocate_record(field, host);
             const auto bytes = record.bytes();
-            std::memcpy(output + i * sizeof(TriangleMeshResource), bytes.data(), bytes.size());
+            std::memcpy(output + i * stride, bytes.data(), bytes.size());
             for (const auto &resource : record.resources()) arguments.reference(resource);
         }
         arguments.bind(name, translated);
-    } else arguments.bind(name, slice.buffer, slice.offset);
+    } else {
+        // Unknown pointer-bearing arrays need an explicit extent and layout.
+        for (const auto &[member, child] : field.fields)
+            if (compute::contains_pointers(child))
+                throw std::invalid_argument("unrelocated Metal resource table: " + name + "." + member);
+        arguments.bind(name, slice.buffer, slice.offset);
+    }
 }
 void ScheduleContext::meshes(const void *table, const void *parameters, std::uint32_t count) {
     std::lock_guard lock(mutex);
@@ -139,7 +125,69 @@ void ScheduleContext::meshes(const void *table, const void *parameters, std::uin
     std::size_t size = 1;
     for (std::uint32_t i = 0; i < count; ++i)
         size = std::max(size, std::size_t(bodies[i].mesh.index) + 1);
-    mesh_counts[table] = size;
+    table_counts[table] = size;
+}
+void ScheduleContext::record(compute::Arguments &arguments, const std::string &name,
+                             const RelocatedRecord &host) {
+    arguments.record(name, relocate_record(arguments.kernel()->parameter(name), host));
+}
+void ScheduleContext::paint_fields(const void *table, std::uint32_t count, const void *meshes) {
+    std::lock_guard lock(mutex);
+    table_counts[table] = count;
+    // Painting may reference a UV-bearing mesh distinct from collision geometry.
+    // Include these resources in the relocated table, not only body mesh IDs.
+    const auto *fields = static_cast<const simulation::PaintFieldResource *>(table);
+    for (std::uint32_t i = 0; i < count; ++i)
+        if (fields[i].alive && fields[i].options.mesh.generation != 0)
+            table_counts[meshes] = std::max(table_counts[meshes],
+                std::size_t(fields[i].options.mesh.index) + 1);
+}
+compute::Record ScheduleContext::relocate_record(compute::Field layout, const RelocatedRecord &host) {
+    if (layout.pointer) {
+        layout.size = layout.pointee_size;
+        layout.alignment = layout.pointee_alignment;
+        layout.pointer = false;
+    }
+    const std::string name = "resource";
+    if (host.bytes.size() != layout.size)
+        throw std::invalid_argument("Metal host record size mismatch: " + name);
+    for (const auto &member : host.members) {
+        const compute::Field *field = &layout;
+        std::string_view path(member.path);
+        std::size_t offset = 0;
+        while (!path.empty()) {
+            const auto dot = path.find('.');
+            field = &field->fields.at(std::string(path.substr(0, dot)));
+            offset += field->offset;
+            if (dot == std::string_view::npos) break;
+            path.remove_prefix(dot + 1);
+        }
+        if (offset != member.offset || field->size != member.size)
+            throw std::invalid_argument("Metal host member layout mismatch: " + name + "." + member.path);
+    }
+    compute::Record translated(layout, host.bytes);
+    const std::function<void(const compute::Field &, const std::string &, std::size_t)> relocate =
+        [&](const compute::Field &field, const std::string &path, std::size_t offset) {
+            if (field.pointer) {
+                if (offset > host.bytes.size() || sizeof(void *) > host.bytes.size() - offset)
+                    throw std::invalid_argument("Metal nested pointer outside host record");
+                const void *pointer{};
+                std::memcpy(&pointer, host.bytes.data() + offset, sizeof(pointer));
+                const auto resource = find(pointer, field.pointee_size);
+                if (pointer && (!resource.buffer || resource.owner != this))
+                    throw std::invalid_argument("unregistered Metal record pointer: " + name + "." + path);
+                translated.bind(path, resource.buffer, resource.offset);
+            } else if (field.element) {
+                for (std::size_t i = 0; i < field.element_count; ++i)
+                    relocate(*field.element, path + "[" + std::to_string(i) + "]",
+                             offset + i * field.element_stride);
+            } else {
+                for (const auto &[child_name, child] : field.fields)
+                    relocate(child, path.empty() ? child_name : path + "." + child_name, offset + child.offset);
+            }
+        };
+    relocate(layout, "", 0);
+    return translated;
 }
 void ScheduleContext::dispatch(const compute::Arguments &arguments, dim3 groups) {
     if (!command_) command_ = device_->commands();

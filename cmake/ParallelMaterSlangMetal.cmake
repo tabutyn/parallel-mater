@@ -1,29 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Opt-in development driver. Only implemented rigid capabilities are advertised.
-set(PM_METAL_UNSUPPORTED_HEADERS
-    src/simulation/cloth_dispatch.hpp
-    src/simulation/fluid_cloth_dispatch.hpp
-    src/simulation/fluid_dispatch.hpp
-    src/simulation/fluid_rope_dispatch.hpp
-    src/simulation/fluid_smoke_dispatch.hpp
-    src/simulation/fluid_soft_body_dispatch.hpp
-    src/simulation/geometry_cloth_dispatch.hpp
-    src/simulation/geometry_fluid_dispatch.hpp
-    src/simulation/geometry_smoke_dispatch.hpp
-    src/simulation/geometry_soft_body_dispatch.hpp
-    src/simulation/rope_coupling_dispatch.hpp
-    src/simulation/rope_dispatch.hpp
-    src/simulation/smoke_coupling_dispatch.hpp
-    src/simulation/smoke_grid_dispatch.hpp
-    src/simulation/soft_body_cloth_dispatch.hpp
-    src/simulation/soft_body_dispatch.hpp)
-set(PM_METAL_STUB_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/slang-metal-preview/unsupported.cpp")
-add_custom_command(OUTPUT "${PM_METAL_STUB_SOURCE}"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
-        --output "${PM_METAL_STUB_SOURCE}" ${PM_METAL_UNSUPPORTED_HEADERS}
-    DEPENDS tools/generate_cpu_dispatch_stubs.py ${PM_METAL_UNSUPPORTED_HEADERS}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" VERBATIM)
-set_source_files_properties("${PM_METAL_STUB_SOURCE}" PROPERTIES GENERATED TRUE COMPILE_OPTIONS "-w")
+# Opt-in development driver. Only integrated domain capabilities are advertised.
 add_library(parallel-mater-driver-slang-metal SHARED
     src/api/instance.cpp src/api/device.cpp src/api/memory.cpp
     src/api/resources.cpp src/api/domains.cpp src/api/pipeline.cpp
@@ -32,7 +8,17 @@ add_library(parallel-mater-driver-slang-metal SHARED
     src/device/metal_device.mm src/device/submission.cpp
     src/simulation/metal_runtime.cpp src/simulation/metal_geometry_dispatch.cpp
     src/simulation/metal_geometry_constraints_dispatch.cpp src/simulation/metal_primitives.cpp
-    src/simulation/metal_exports.cpp src/simulation/memory_arena.cpp "${PM_METAL_STUB_SOURCE}")
+    src/simulation/metal_fluid_dispatch.cpp src/simulation/metal_geometry_fluid_dispatch.cpp
+    src/simulation/metal_cloth_dispatch.cpp src/simulation/metal_soft_body_dispatch.cpp
+    src/simulation/metal_geometry_cloth_dispatch.cpp src/simulation/metal_geometry_soft_body_dispatch.cpp
+    src/simulation/metal_fluid_cloth_dispatch.cpp src/simulation/metal_fluid_soft_body_dispatch.cpp
+    src/simulation/metal_soft_body_cloth_dispatch.cpp
+    src/simulation/metal_rope_dispatch.cpp src/simulation/metal_fluid_rope_dispatch.cpp
+    src/simulation/metal_cloth_rope_dispatch.cpp src/simulation/metal_soft_body_rope_dispatch.cpp
+    src/simulation/metal_smoke_grid_dispatch.cpp src/simulation/metal_geometry_smoke_dispatch.cpp
+    src/simulation/metal_cloth_smoke_dispatch.cpp src/simulation/metal_soft_body_smoke_dispatch.cpp
+    src/simulation/metal_rope_smoke_dispatch.cpp src/simulation/metal_fluid_smoke_dispatch.cpp
+    src/simulation/metal_exports.cpp src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-driver-slang-metal PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-metal PRIVATE
     PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_METAL_DRIVER=1)
@@ -50,6 +36,15 @@ file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json" CON
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-metal.json" CONTENT
 "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 if(BUILD_TESTING)
+    foreach(domain liquid deformable transport)
+        add_executable(parallel-mater-slang-metal-${domain}-tests tests/api/${domain}_command_api_tests.cpp)
+        target_compile_features(parallel-mater-slang-metal-${domain}-tests PRIVATE cxx_std_20)
+        target_link_libraries(parallel-mater-slang-metal-${domain}-tests PRIVATE parallel-mater)
+        add_dependencies(parallel-mater-slang-metal-${domain}-tests parallel-mater-driver-slang-metal)
+        add_test(NAME parallel-mater-slang-metal-${domain}-tests COMMAND parallel-mater-slang-metal-${domain}-tests)
+        set_tests_properties(parallel-mater-slang-metal-${domain}-tests PROPERTIES TIMEOUT 300
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json")
+    endforeach()
     add_executable(parallel-mater-slang-metal-command-tests tests/api/native_command_api_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-command-tests PRIVATE cxx_std_20)
     target_compile_definitions(parallel-mater-slang-metal-command-tests PRIVATE

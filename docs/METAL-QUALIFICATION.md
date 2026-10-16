@@ -17,9 +17,11 @@ not execute CPU-generated Slang as a hidden fallback. Host scheduling is not
 host physics execution.
 
 The opt-in `PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=ON` Gallery bundles a
-loader-discovered Metal driver for rigid bodies and constraints. Its device
-name and window title identify the preview; other domains remain unadvertised
-and requests for them fail, without CPU fallback. The default build still uses
+loader-discovered Metal driver for rigid bodies/constraints, liquids, cloth,
+soft bodies, rope, particle/grid smoke, implemented cross-domain couplings and
+paint. Its device name and window title identify the unqualified preview.
+Liquid–liquid coupling remains unadvertised and rejected, with no CPU fallback.
+The default build still uses
 the serial CPU driver. The preview starts on Point; its uncalibrated brick
 default is 16 rather than a production performance claim.
 
@@ -55,7 +57,8 @@ are exposed, but imports and timestamp queries remain unsupported.
 This is not the final asynchronous GPU-only architecture: the submission
 worker waits between frames, shared-memory transfers can synchronize, and
 AVBD reads prepared work counts before staged solving. Gallery still reads
-states back for its software renderer. Full domain integration, native engine
+states back for its software renderer. Existing domain dispatch integration is
+present; missing roadmap modes, complete physics qualification, native engine
 handoff and performance qualification remain pending.
 
 ### AVBD dispatch schedule
@@ -176,7 +179,7 @@ canonical CUDA-source, SPIR-V and native Metal compiler gates rebuild cleanly.
 Auto-deployment remains disabled. No installed app or main-branch release is
 qualified by these development tests.
 
-## Limited Gallery preview (2026-10-16)
+## Initial rigid Gallery preview (2026-10-16)
 
 On Apple M4, the opt-in preview configuration passes 30/30 CTest tests without
 GPU skips. This includes the public native-command/contact fixture, asynchronous
@@ -194,7 +197,7 @@ execution and the new seven-scene Gallery preview smoke test.
   16-brick Gallery runs, pass Metal API and GPU shader validation. The smaller
   transformed-leaf cache fixes the earlier instrumentation limit for these
   exercised rigid paths; full-manifest instrumentation has not been rerun.
-- The preview rejects unsupported fluid selection without CPU fallback.
+- That initial preview rejected unsupported fluid selection without CPU fallback.
   Its bundle contains only the Metal driver manifest and relative shader
   resource paths. The CPU reference is built separately for comparison tests.
 - Long-horizon numerical agreement remains unqualified: an exploratory
@@ -206,6 +209,46 @@ The installed preview is a development exception, not completion of the
 all-domain release gate. No Windows/Linux runtime qualification was performed.
 Unsupported scene selection retains the current scene and reports a capability
 error. Native GPU rendering and zero-readback scheduling remain future work.
+
+## Current-domain Gallery expansion (2026-10-16)
+
+Merged upstream `6f7af12` into the work branch at `818514d`, preserving upstream
+backend selection, version reporting and D3D12 dispatch parameters alongside
+shared staged AVBD. The expanded preview replaces every generated unsupported
+domain dispatch stub with native bindings to the canonical Slang kernels.
+No physics equations were copied into Metal or CPU implementation files.
+
+- All six existing domains and their implemented interactions are connected to
+  the public API, including emitters, destroyers, exports, queries and paint.
+  This does **not** implement the missing roadmap interactions listed above.
+- Rope/soft-target records, smoke grids (including pointer arrays), meshes and
+  nested paint tables validate host/native layouts and relocate GPU addresses.
+  Indirect allocations remain resident and retained through completion.
+  Paint-only UV meshes are included even when not used for body collisions.
+- Soft-body SIMD dispatches use four nodes per native 128-thread workgroup,
+  rather than the CUDA scheduler's eight-node grouping.
+- Public-API regressions check 513 liquid particles with unused capacity,
+  analytic free fall, sorting, queries, pair momentum, static contact and
+  two-way rigid impulse balance; cloth/soft-body free fall, pinned invariance,
+  bond lengths, surface export and replacement; rope free fall and uniform-wind
+  smoke transport with both particle and grid solvers. These fixtures also run
+  with Metal API and shader validation enabled on Apple M4.
+- Gallery integration revealed and fixed two software-rendering bugs: torn
+  cloth requires per-corner positions, and near-plane crossing triangles must
+  be clipped before projection. Renderer tests cover both; depth interpolation
+  is also perspective-correct. These changes do not make rendering GPU-native.
+
+The new Gallery domain matrix checks populated domain output, finite exported
+fluid/debug values, existing paint/cloth visibility checks, final image output,
+and the actual Metal device label. It is execution smoke, not comprehensive
+physical conformance, long-horizon stability or performance qualification.
+
+On Apple M4, all 34 CTest tests pass without GPU skips. The domain matrix runs
+20 liquid/deformable/transport/mixed scenes for 30 steps each (120 for both
+paint scenes), alongside the seven existing 120-step rigid-scene checks.
+All 20 domain cases also pass at those step counts with Metal API and shader
+validation enabled, alongside the five public native API fixtures and renderer
+regressions (7/7 selected CTest tests, including the scene matrix).
 
 Build, test and explicitly deploy the preview on macOS:
 
