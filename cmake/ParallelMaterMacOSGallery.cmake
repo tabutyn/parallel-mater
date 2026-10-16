@@ -114,6 +114,15 @@ elseif(TARGET parallel-mater-driver-slang-cpu)
         VERBATIM)
 endif()
 
+# Runtime relocation and resource copies invalidate any earlier linker/Xcode
+# signature. Seal only the finished bundle, so deployment can verify its input.
+add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
+    COMMAND /usr/bin/codesign --force --deep --sign -
+        "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>"
+    COMMAND /usr/bin/codesign --verify --deep --strict
+        "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>"
+    VERBATIM)
+
 set(PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY "/Applications" CACHE PATH
     "Directory containing the continuously refreshed macOS Gallery")
 option(PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY
@@ -135,6 +144,9 @@ add_custom_target(deploy-macos-gallery ${PARALLEL_MATER_MACOS_DEPLOY_KIND}
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_test(NAME parallel-mater-macos-gallery-signature
+        COMMAND /usr/bin/codesign --verify --deep --strict
+            "$<TARGET_BUNDLE_DIR:parallel-mater-gallery>")
     if(TARGET parallel-mater-driver-slang-metal)
         set(PM_PREVIEW_REFERENCE_ARGS)
         if(TARGET parallel-mater-driver-slang-cpu)
