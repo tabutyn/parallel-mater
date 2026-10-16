@@ -22,6 +22,9 @@ struct SmokePressureLevel {
 };
 
 struct SmokeGridStorage {
+    // Retirement reconstructs this owner without allocating. State that
+    // contract explicitly for the nested array of owning pressure levels.
+    SmokeGridStorage() noexcept = default;
     std::uint32_t resolution{};
     std::uint32_t height{};
     std::uint32_t cell_count{};
