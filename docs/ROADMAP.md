@@ -229,8 +229,9 @@ hardware-profile resource limits preview workloads. Details and checks are in
 This does not complete the full-domain qualification milestone. Android Vulkan
 packaging and the three Pixel 7 native API/liquid suites now pass after a
 transport-only workaround for the Mali compiler's forward-pointer handling.
-Gallery scene/lifecycle and sustained performance qualification, remaining
-particle domains/couplings, and engine handoff remain open.
+All eight mobile scenes pass short runtime checks. Phone performance remains
+below target; the remaining particle domains/couplings and engine handoff are
+still open. Device evidence is in [ANDROID-QUALIFICATION.md](ANDROID-QUALIFICATION.md).
 
 ## Linux/Android workstation checkpoint (2026-10-16)
 
@@ -245,7 +246,7 @@ and download files were removed. Local preservation records are under ignored
 
 `scripts/Setup-VulkanValidation.sh` and `scripts/Test-Vulkan.sh` pin and verify
 the working desktop validator without changing system packages. Desktop
-CUDA/Vulkan checks pass 12/12 after Android packaging changes. Both explicit
+CUDA/Vulkan checks pass 13/13 after the Android transport fixes. Both explicit
 Android CPU and Vulkan builds succeed. The Vulkan APK includes one loadable
 physics driver and no CUDA runtime dependency. Device-side public-API tests,
 debug scene/control requests, and frame-window measurements are available for
@@ -255,9 +256,20 @@ Phone qualification is underway: command/API, asynchronous submission, and
 analytic/bounded liquid/coupling/reset suites pass on Pixel 7/Mali-G710. The
 initial compiler crash was isolated to unnecessary forward pointer declarations;
 normalizing type order resolves it while preserving Slang physics instructions.
-Next on this machine: test all eight mobile scenes, reset/pause/background
-recovery, and sustained frame time, memory and thermals. Do not promote startup
-budgets to verified profiles before those results exist.
+All eight mobile scenes now render and complete 120-frame checks. Releasing the
+old GPU scene before replacement prevents the observed Android memory kill;
+direction controls and hinge framing were corrected from device screenshots.
+Pause/reset/resume and background/foreground recovery pass. A five-minute
+fluid–rigid run completed without errors or restart, with stable sampled memory
+and thermal status 0; its frame rate remained below target.
+
+Next on this machine: reduce Mali shader-private memory and execution cost, add
+smaller representative constraint workloads through the hardware-profile
+resource, and reduce software rendering cost. Current scene samples run roughly
+2–16 FPS against a 30 FPS target and use around 3.2 GiB PSS. Keep startup budgets
+provisional and verified profiles empty until the performance gates pass. See
+[the device qualification record](ANDROID-QUALIFICATION.md) for exact scope and
+measurements.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).
