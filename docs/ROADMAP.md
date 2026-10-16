@@ -69,9 +69,10 @@ balance, and energy behavior with external forces and dissipation accounted for.
 
 ## Current priority: project foundations
 
-Updated 2026-10-16 after reviewing `e9e0144`. This order takes precedence over
-platform expansion and shader performance work. Existing milestone numbers
-below remain as implementation history and coverage obligations. See the
+Updated 2026-10-16 after reviewing `e9e0144` and merging/reviewing the subsequent
+Windows work through `a137042`. This order takes precedence over platform
+expansion and shader performance work. Existing milestone numbers below remain
+as implementation history and coverage obligations. See the
 [project foundations audit](PROJECT-FOUNDATIONS-AUDIT.md) for code evidence and
 reproductions.
 
@@ -127,16 +128,19 @@ generation and command routing.
 
 ### F4. Complete common runtime resources and engine ownership rules
 
-Status: scheduler extraction is complete; resource-boundary work remains.
+Status: scheduler extraction and common C++ runtime/device-service conversion
+are implemented, including the newly merged Windows work. Resource planning,
+binding generation and engine-owned handoff qualification remain.
 
 - Define backend-neutral resource identities, typed dispatch bindings, memory
   plans, read/write dependencies and completion ownership behind the existing
-  scheduler. Reduce dependence on CUDA compatibility headers and parsing
-  generated CUDA source without moving physics out of Slang.
+  scheduler and device services. Finish neutral binding generation instead of
+  parsing generated CUDA source, without moving physics out of Slang.
 - Distinguish allocation requirements, usable memory budgets and untracked
   driver costs; keep workload admission conservative where data is unavailable.
-- Specify common borrowed-device/queue, shared-buffer and fence/timeline
-  ownership before writing engine-specific integrations.
+- Use the new D3D12 public-GPU-output gallery path to test common
+  borrowed-device/queue, shared-buffer and fence/timeline ownership before
+  writing engine-specific integrations.
 
 Exit: a mock adapter can verify resource and dependency behavior; native
 details remain in adapters; engine handoff has a tested common contract.
@@ -144,6 +148,8 @@ details remain in adapters; engine handoff has a tested common contract.
 ### F5. Make conformance and quality benchmarks independent SDK consumers
 
 Status: existing public-command runner/corpus need build and data separation.
+The merged runner no longer requires CUDA to exist, but still requires gallery
+support. Upstream quality and cross-driver comparison failures remain open.
 
 - Build the headless runner without gallery or CUDA dependencies; remove
   private simulation types from portable case data. Select installed drivers.
@@ -151,6 +157,9 @@ Status: existing public-command runner/corpus need build and data separation.
   regression and vendor-neutral physical compliance.
 - Expand analytic/invariant, lifecycle, adverse-capacity, mixed-family and
   same-family cases. Gate performance on fixed physical quality requirements.
+- Keep the newly reported shared brick penetration failure and 10/17 failing
+  CUDA/D3D12 comparisons visible. Correct behavior before optimization; do not
+  weaken tolerances to turn execution evidence into a correctness claim.
 - Publish revisioned evidence per driver and capability. Compilation, a demo
   and historical goldens are distinct evidence, not interchangeable approval.
 

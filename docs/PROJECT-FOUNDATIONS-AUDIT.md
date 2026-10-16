@@ -1,9 +1,11 @@
 # Project foundations audit — 2026-10-16
 
-Reviewed `e9e0144` after fetching and merging `origin/main`. This audit covers
-the library, reference runtime, loader, specification, conformance and SDK
-boundaries. Platform expansion and shader optimization are deferred behind the
-foundation work in [ROADMAP.md](ROADMAP.md#current-priority-project-foundations).
+Initial runtime probes used `e9e0144`. During review, `origin/main` advanced to
+`a137042`; those changes were merged and the affected findings rechecked against
+source. This audit covers the library, reference runtime, loader, specification,
+conformance and SDK boundaries. Platform expansion and shader optimization are
+deferred behind the foundation work in
+[ROADMAP.md](ROADMAP.md#current-priority-project-foundations).
 
 ## Assessment
 
@@ -30,15 +32,17 @@ The cause is visible in the shared implementation:
 
 - [resources.cpp](../src/api/resources.cpp), `pmCmdSetFluidParticles`, removes
   the old fluid and allocates a new fluid even when its capacity is unchanged.
-- [runtime.cu](../src/simulation/runtime.cu), `release_managed`, does not reclaim
+- [runtime.cpp](../src/simulation/runtime.cpp), `release_managed`, does not reclaim
   bound arena allocations.
 - [memory_arena.cpp](../src/simulation/memory_arena.cpp) advances allocation
   offsets and only reclaims them on a whole-arena reset.
 
 This is exhaustion within application-bound storage, not evidence that the GPU
 ran out of physical memory. The mechanism is shared; this audit reproduced the
-failure on CUDA only. Other domain replacements and failed partial allocations
-need the same lifecycle audit.
+failure on CUDA only before the final upstream merge. The merged source keeps
+the same remove/reallocate and non-reclaiming arena behavior; its new device
+services do not add reclamation. Other domain replacements and failed partial
+allocations need the same lifecycle audit.
 
 **Required outcome:** reserve reusable storage per declared resource capacity,
 or implement bounded reclamation with explicit completion rules. Derive memory
@@ -105,9 +109,10 @@ coverage are valuable, but do not test these behavioral promises.
 ## 4. Architectural follow-up: finish the neutral resource boundary
 
 [reference_schedule.hpp](../src/simulation/reference_schedule.hpp) is ordinary
-C++ and parameterized by a backend. That extraction is real progress. However,
-[vulkan_runtime.cpp](../src/simulation/vulkan_runtime.cpp) still includes
-`runtime.cu` through CUDA compatibility headers, and
+C++ and parameterized by a backend. The newly merged Windows work also moves
+the host runtime into [runtime.cpp](../src/simulation/runtime.cpp), removes the
+include-`runtime.cu` shims and introduces common queue, dispatch and device-service
+types. Do not repeat that completed extraction. The remaining
 [generate_vulkan_dispatch.py](../tools/generate_vulkan_dispatch.py) derives host
 signatures from generated CUDA text and existing CUDA wrappers. This does not
 introduce a CUDA runtime dependency, but couples adapter maintenance to CUDA
@@ -120,10 +125,12 @@ Retain the existing kernel manifest and schedule; avoid a wholesale scheduler
 rewrite. Test the boundary with a recording/mock adapter before adding another
 platform. Native API details should remain inside adapters.
 
-Specify the common engine handoff first: device identity, borrowed device/queue
-lifetime, buffer ownership, synchronization and output formats. Then implement
-Unity, Unreal and Godot packages against that contract. CPU readback demos do
-not prove the shared-GPU-output contract.
+The merged D3D12 gallery has a renderer consuming public GPU output. Use that
+vertical slice to test the common engine handoff: device identity, borrowed
+device/queue lifetime, buffer ownership, synchronization and output formats.
+Engine-owned device/queue integration and portable handoff qualification remain
+distinct from rendering on a device created by the reference driver. Implement
+Unity, Unreal and Godot packages against the resulting common contract.
 
 Memory reporting belongs to this boundary too. For example, Vulkan currently
 reports device-local heap size minus tracked allocations as available memory
@@ -136,11 +143,12 @@ the query as a reliable workload admission decision.
 
 The 30-case runner uses public `pm*` commands, with existing analytic cases,
 invariants and tolerance/envelope comparisons. Preserve that work. However,
-[CMakeLists.txt](../CMakeLists.txt) creates `parallel-mater-conformance` only
-inside gallery + testing + CUDA conditions, links gallery scene support and
-adds a CUDA driver dependency. Its scene model also includes private
-`simulation/types.hpp`. A loader-only build has the case registry and comparator
-tests, but no executable physics conformance runner.
+[CMakeLists.txt](../CMakeLists.txt) still creates `parallel-mater-conformance`
+inside gallery + testing conditions and links gallery scene support. The
+upstream merge removed the CUDA-only creation condition; preserve that progress.
+Its scene model still includes private `simulation/types.hpp`. A loader-only
+build has the case registry and comparator tests, but no executable physics
+conformance runner.
 
 **Required outcome:** build an installable headless runner against the public
 SDK only, with driver selection at runtime. Separate portable case data from
@@ -155,6 +163,14 @@ mixed three-or-more-family scenes and fluid–fluid behavior. Record source,
 driver, hardware, compiler, test revision and quality thresholds with every
 qualification result. Historical goldens are evidence for their recorded
 revision, not automatic qualification of a refactored driver.
+
+The merged [Windows qualification record](ROADMAP.md#windows-shared-runtime-cleanup-2026-10-16)
+reports only 7/17 same-build CUDA/D3D12 case comparisons passing, and a new
+independent brick test failing on both drivers: approximately 7 mm penetration
+against a 2 mm gate. Those are upstream-reported results, not reruns on this
+laptop. They strengthen the need for independent physical-quality gates:
+agreement between implementations alone cannot establish correctness. Keep
+these failures visible and fix common behavior without relaxing the gates.
 
 ## 6. SDK and repository cleanup need release gates
 
@@ -183,11 +199,14 @@ do not discard old physics work merely to make worktree status clean.
 ## Verification and scope
 
 - Fresh loader-only Release build, serial: **16/16 CTest checks passed**.
-  No reference physics driver was built in this configuration.
+  This was repeated after the upstream merge. No reference physics driver was
+  built in this configuration.
 - Clean install and relocated external C consumer: **passed** without a
   requested package version; requesting version **0.2 failed** as described.
 - Existing CUDA command API test adapted in a temporary file: **one write
-  passed; 256 identical replacements failed with deferred result -4**.
+  passed; 256 identical replacements failed with deferred result -4** on the
+  pre-merge driver. The newly merged GPU drivers were not rebuilt or runtime
+  qualified in this audit.
 - Coupling, layer, specification and resource-boundary findings are source
   inspection findings, not claims of new runtime qualification on all drivers.
 
