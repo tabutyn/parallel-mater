@@ -78,7 +78,14 @@ reproductions.
 
 ### F1. Make resource lifetime and declared capacity reliable
 
-Status: pending; a repeated-replacement failure is reproduced.
+Status: in progress. The shared arena now reclaims retired persistent/scratch
+allocations, coalesces free space, and leaves allocation state unchanged on
+failure. Simulation reset releases only its own geometry allocations. A new
+SDK-only test target supports installed-driver selection without gallery/CUDA;
+1,024 fluid replacements preserve a second population using exactly queried
+storage. Serial Slang CPU build passes 23/23 tests, including async lifetime,
+arena reclamation and the new public regression. GPU qualification, common
+allocation planning and broader mutation/failure cases remain open.
 
 - Extract headless public-API test support that builds without CUDA, gallery
   rendering or private simulation headers. Use mock/CPU drivers for suitable

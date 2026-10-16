@@ -864,11 +864,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
                     simulation->arena.get());
                 *simulation->runtime = parallel_mater::SimulationRuntime{};
             }
-            for (auto &[geometry, id] : simulation->geometries) {
-                (void)id;
-                if (geometry != nullptr && geometry->arena != nullptr)
-                    geometry->arena->reset();
-            }
+            // Runtime destruction releases its own geometry allocations. A
+            // geometry arena may also contain another simulation's live mesh.
             simulation->arena->reset();
             parallel_mater::SimulationRuntime initialized;
             {

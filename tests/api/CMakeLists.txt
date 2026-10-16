@@ -1,0 +1,23 @@
+# SDK-only tests can also be built against a separately installed loader.
+cmake_minimum_required(VERSION 3.25)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(ParallelMaterApiTests LANGUAGES CXX)
+    include(CTest)
+    find_package(ParallelMater CONFIG REQUIRED)
+endif()
+add_executable(parallel-mater-resource-lifecycle-tests resource_lifecycle_tests.cpp)
+target_compile_features(parallel-mater-resource-lifecycle-tests PRIVATE cxx_std_20)
+target_link_libraries(parallel-mater-resource-lifecycle-tests PRIVATE ParallelMater::parallel_mater)
+foreach(backend cpu cuda vulkan d3d12 metal)
+    if(TARGET parallel-mater-driver-slang-${backend})
+        add_dependencies(parallel-mater-resource-lifecycle-tests parallel-mater-driver-slang-${backend})
+        add_test(NAME parallel-mater-${backend}-resource-lifecycle-tests COMMAND parallel-mater-resource-lifecycle-tests)
+        set_tests_properties(parallel-mater-${backend}-resource-lifecycle-tests PROPERTIES
+            LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+    endif()
+endforeach()
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    add_test(NAME parallel-mater-external-resource-lifecycle-tests COMMAND parallel-mater-resource-lifecycle-tests)
+    set_tests_properties(parallel-mater-external-resource-lifecycle-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+endif()

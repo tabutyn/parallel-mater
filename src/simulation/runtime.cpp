@@ -434,6 +434,9 @@ using simulation::k_soft_contact_cleanup_passes;
 
 template <typename T>
 [[nodiscard]] Status allocate_managed(T *&pointer, std::size_t count) noexcept {
+    pointer = nullptr;
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(T))
+        return failure(StatusCode::out_of_memory, "simulation allocation size overflow");
     if (count == 0U) {
         pointer = nullptr;
         return success();
@@ -454,13 +457,18 @@ template <typename T>
 
 template <typename T> void release_managed(T *&pointer) noexcept {
     if (pointer != nullptr) {
-        // Simulation storage belongs to its bound arena, never this view.
+        // Resource owners retire queued work before releasing their storage.
+        // Locate the owning arena: geometry can live outside the active arena.
+        (void)simulation::release_bound(pointer);
         pointer = nullptr;
     }
 }
 
 template <typename T>
 [[nodiscard]] Status allocate_scratch(T *&pointer, std::size_t count) noexcept {
+    pointer = nullptr;
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(T))
+        return failure(StatusCode::out_of_memory, "simulation scratch size overflow");
     if (count == 0U) {
         pointer = nullptr;
         return success();

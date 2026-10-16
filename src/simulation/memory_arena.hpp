@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
+#include <vector>
 
 namespace parallel_mater::device { class Services; }
 
@@ -20,18 +22,24 @@ class MemoryArena {
 
     [[nodiscard]] void *allocate(std::size_t bytes, std::size_t alignment,
                                  MemoryClass memory_class) noexcept;
+    // Retire device accesses first. Only exact allocation addresses are accepted.
+    [[nodiscard]] bool release(const void *pointer) noexcept;
+    [[nodiscard]] bool contains(const void *pointer) const noexcept;
     [[nodiscard]] std::size_t persistent_used() const noexcept;
     [[nodiscard]] std::size_t scratch_used() const noexcept;
     void reset() noexcept;
 
   private:
+    struct Allocation { std::size_t offset{}, size{}; };
+    struct Pool {
+        std::byte *base{};
+        std::size_t size{}, used{};
+        std::vector<Allocation> allocations;
+    };
     device::Services *services_{};
-    std::byte *persistent_{};
-    std::size_t persistent_size_{};
-    std::size_t persistent_offset_{};
-    std::byte *scratch_{};
-    std::size_t scratch_size_{};
-    std::size_t scratch_offset_{};
+    mutable std::mutex mutex_;
+    Pool persistent_;
+    Pool scratch_;
 };
 
 class ScopedMemoryArena {
@@ -49,5 +57,6 @@ class ScopedMemoryArena {
                                    MemoryClass memory_class) noexcept;
 [[nodiscard]] bool has_active_arena() noexcept;
 [[nodiscard]] bool is_bound_pointer(const void *pointer) noexcept;
+[[nodiscard]] bool release_bound(const void *pointer) noexcept;
 
 } // namespace parallel_mater::simulation

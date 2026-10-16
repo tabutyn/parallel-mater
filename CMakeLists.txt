@@ -1240,6 +1240,7 @@ if(BUILD_TESTING)
         COMMAND parallel-mater-submission-queue-tests)
     set_tests_properties(parallel-mater-submission-queue-tests PROPERTIES TIMEOUT 30)
     add_subdirectory(tests/solver)
+    add_subdirectory(tests/api)
     add_executable(parallel-mater-gallery-frame-timing-tests
         tests/gallery/frame_timing_tests.cpp)
     add_test(NAME parallel-mater-gallery-deployment-tests
