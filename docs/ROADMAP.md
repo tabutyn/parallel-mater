@@ -265,10 +265,12 @@ explicit diagnostic reads, 360 repeated API steps and narrow-range/self-copy
 checks. The long hinge/slider fixture independently checks drift, contacts and
 penetration. These gates do not replace canonical conformance.
 
-Strict same-build CUDA/D3D12 comparisons remain unqualified: initial results
-pass cloth-core, cloth-water, compound-weld-lifecycle, constraint-breaking,
-constraint-piston, constraint-slider and fluid-lifecycle, but fail other rigid
-contact/state cases and cloth-tear topology. Existing tolerances and goldens
+Strict same-build CUDA/D3D12 comparisons remain unqualified: the final 17-case
+capture completed on both drivers, with 7 comparisons passing and 10 failing.
+Passing cases are cloth-core, cloth-water, compound-weld-lifecycle,
+constraint-breaking, constraint-piston, constraint-slider and fluid-lifecycle.
+Failures concern other rigid contact/state cases and cloth-tear topology.
+Existing tolerances and goldens
 are unchanged. Windows CUDA's managed-memory host-read ordering fault in the
 cloth-tear run was fixed in the device adapter and the case now completes;
 completion does not erase its cross-driver differences. Milestones 4 and 6
@@ -282,6 +284,20 @@ not be described as nonpenetration or full gallery parity. Keep this test red
 until the common solver is corrected. An isolated relaxed floating-point
 compilation experiment did not qualify rigid-direct, hinge or generic; the
 production precise settings remain unchanged.
+
+The final real-window run used installed build `8d5cfc6`, whose SHA-256 matched
+the build-tree executable. All 13 supported scenes passed load/reset dwell,
+including GPU-only rendering, scoped diagnostics, fluid surface/particle modes
+and cloth structure display. Captures and the unchanged-tolerance comparison
+report are in `build-cuda-slang-vs2022/d3d12-installed-final/` and
+`build-cuda-slang-vs2022/conformance-final-report.json`. Those local artifacts
+are evidence, not committed goldens or a claim that the failing cases pass.
+
+The final 2,400-step hinge/slider fixture and 360-step repeated-submission API
+test passed. The 20-test execution/architecture/reflection run passed before
+the new brick-mesh assertion was exercised; rerunning the strengthened
+`parallel-mater-d3d12-gallery-RigidBody` test fails at frame 102 as above. Do
+not report that older 20/20 result as a passing current physical-quality suite.
 
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).
