@@ -260,7 +260,7 @@ std::shared_ptr<Layer> Layer::open(const std::filesystem::path &filename,
     std::uint32_t version = PM_LAYER_INTERFACE_VERSION;
     if (negotiate == nullptr || layer->pre_call == nullptr ||
         layer->post_call == nullptr || negotiate(&version) != PM_SUCCESS ||
-        version == 0U) {
+        version == 0U || version > PM_LAYER_INTERFACE_VERSION) {
         error = "incompatible Parallel Mater layer interface";
         return {};
     }
@@ -302,7 +302,8 @@ std::shared_ptr<Driver> Driver::open(const std::filesystem::path &filename,
     }
     driver->interface_version = PM_DRIVER_INTERFACE_VERSION;
     if (negotiate(&driver->interface_version) != PM_SUCCESS ||
-        driver->interface_version == 0U) {
+        driver->interface_version == 0U ||
+        driver->interface_version > PM_DRIVER_INTERFACE_VERSION) {
         error = "incompatible Parallel Mater driver interface";
         return {};
     }

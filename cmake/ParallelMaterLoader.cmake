@@ -46,10 +46,10 @@ set(PARALLEL_MATER_BUILD_MANIFEST_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/manifests")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/validation.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     add_library(parallel-mater-mock-driver SHARED tests/api/mock_driver.cpp)
@@ -92,4 +92,38 @@ if(BUILD_TESTING)
         LABELS "api;loader;driver;windows"
         ENVIRONMENT
             "PM_DRIVER_PATH=${PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR}")
+    # Malformed successful negotiations must never enter the dispatch chain.
+    foreach(kind IN ITEMS driver layer)
+        foreach(version IN ITEMS 0 999)
+            set(mock_target parallel-mater-mock-${kind}-${version})
+            add_library(${mock_target} SHARED tests/api/mock_${kind}.cpp)
+            target_compile_features(${mock_target} PRIVATE cxx_std_20)
+            target_include_directories(${mock_target} PRIVATE include)
+            target_compile_definitions(${mock_target} PRIVATE
+                PM_MOCK_INTERFACE_VERSION=${version})
+            if(kind STREQUAL "driver")
+                set(manifest_key PMD)
+                set(test_environment "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${mock_target}.json")
+            else()
+                set(manifest_key layer)
+                set(test_environment
+                    "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${mock_target}.json")
+            endif()
+            file(GENERATE
+                OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${mock_target}.json"
+                CONTENT "{\"file_format_version\":\"1.0.0\",\"${manifest_key}\":{\"library_path\":\"$<TARGET_FILE:${mock_target}>\",\"api_version\":\"0.2.0\"}}\n")
+            add_dependencies(parallel-mater-loader-driver-discovery-tests ${mock_target})
+            add_test(NAME parallel-mater-reject-${kind}-abi-${version}
+                COMMAND parallel-mater-loader-driver-discovery-tests reject-${kind})
+            set_tests_properties(parallel-mater-reject-${kind}-abi-${version}
+                PROPERTIES LABELS "api;loader;abi" ENVIRONMENT "${test_environment}")
+        endforeach()
+    endforeach()
+    add_dependencies(parallel-mater-loader-driver-discovery-tests
+        parallel-mater-layer-validation)
+    add_test(NAME parallel-mater-loader-validation-discovery-tests
+        COMMAND parallel-mater-loader-driver-discovery-tests validation)
+    set_tests_properties(parallel-mater-loader-validation-discovery-tests
+        PROPERTIES LABELS "api;loader;layer" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
 endif()

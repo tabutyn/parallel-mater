@@ -39,45 +39,10 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
     catch (...) { return failure(StatusCode::out_of_memory, "fluid owner allocation failed"); }
     fluid->generation = impl_->fluids[slot] ? impl_->fluids[slot]->generation : 1U;
     fluid->options = options;
-    const std::size_t capacity = options.capacity;
-    if (!(status = allocate_managed(fluid->count, 1U)) ||
-        !(status = allocate_managed(fluid->positions, capacity)) ||
-        !(status = allocate_managed(fluid->velocities, capacity)) ||
-        !(status = allocate_managed(fluid->previous, capacity)) ||
-        !(status = allocate_managed(fluid->ids, capacity)) ||
-        !(status = allocate_managed(fluid->foam, capacity)) ||
-        !(status = allocate_managed(fluid->temperatures, capacity)) ||
-        !(status = allocate_managed(fluid->foam_source, capacity)) ||
-        !(status = allocate_managed(fluid->next_positions, capacity)) ||
-        !(status = allocate_managed(fluid->next_velocities, capacity)) ||
-        !(status = allocate_managed(fluid->next_ids, capacity)) ||
-        !(status = allocate_managed(fluid->next_foam, capacity)) ||
-        !(status = allocate_managed(fluid->next_temperatures, capacity)) ||
-        !(status = allocate_managed(fluid->keep, capacity)) ||
-        !(status = allocate_managed(fluid->selected, capacity)) ||
-        !(status = allocate_managed(fluid->keys[0], capacity)) ||
-        !(status = allocate_managed(fluid->keys[1], capacity)) ||
-        !(status = allocate_managed(fluid->indices[0], capacity)) ||
-        !(status = allocate_managed(fluid->indices[1], capacity)) ||
-        !(status = allocate_managed(fluid->forces, capacity)) ||
-        !(status = allocate_managed(fluid->body_impulses, capacity)) ||
-        !(status = allocate_managed(fluid->moving_contacts, capacity)) ||
-        !(status = allocate_managed(fluid->contact_samples, capacity)) ||
-        !(status = allocate_managed(fluid->contact_flags, capacity)) ||
-        !(status = allocate_managed(fluid->hit_box_flags, capacity)) ||
-        !(status = allocate_managed(fluid->next_contact_samples, capacity)) ||
-        !(status = allocate_managed(fluid->next_contact_flags, capacity)) ||
-        !(status = allocate_managed(fluid->contact_count, 1U)) ||
-        !(status = allocate_managed(fluid->contact_offset, 1U))) return status;
-    fluid->sort_workspace_size =
-        simulation::radix_sort_scratch_bytes(options.capacity);
-    fluid->select_workspace_size =
-        simulation::compaction_scratch_bytes(options.capacity);
+    StorageAllocator allocator;
+    status = simulation::visit_fluid_storage(*fluid, options.capacity, allocator);
+    if (!status) return status;
     PmResult error = PM_SUCCESS;
-    if (!(status = allocate_scratch(fluid->sort_workspace,
-                                    fluid->sort_workspace_size)) ||
-        !(status = allocate_scratch(fluid->select_workspace,
-                                    fluid->select_workspace_size))) return status;
     *fluid->count = static_cast<std::uint32_t>(initial_particles.size);
     fluid->next_id = static_cast<std::uint32_t>(initial_particles.size);
     fluid->initial_count = initial_particles.size;
@@ -174,18 +139,11 @@ Status SimulationRuntime::remove_fluid(
         if (coupling.alive && coupling.options.fluid == id)
             return failure(StatusCode::invalid_argument,
                 "fluid is still referenced by a cloth coupling");
-    std::unique_ptr<FluidStorage> tombstone(
-        new (std::nothrow) FluidStorage());
-    if (!tombstone)
-        return failure(StatusCode::out_of_memory,
-                       "fluid removal tombstone allocation failed");
-    const std::uint32_t generation = fluid->generation + 1U;
     status = read_host_objects(impl_->execution, fluid->count);
     if (!status) return status;
     impl_->destroyed_particle_count +=
         fluid->initial_count + fluid->emitted_count - *fluid->count;
-    tombstone->generation = generation;
-    impl_->fluids[id.index] = std::move(tombstone);
+    retire_owner(*fluid);
     for (ParticleSourceSlot &plane : impl_->particle_sources)
         if (plane.alive && plane.options.fluid == id) {
             plane.alive = false; ++plane.generation; plane.data.reset();
@@ -300,42 +258,6 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         for (int axis = 0; axis < 3; ++axis)
             grid.face_count[axis] = smoke_grid_face_count(axis,
                 int(grid.resolution), int(grid.height));
-        if (!(status = allocate_managed(grid.velocity, grid.cell_count)) ||
-            !(status = allocate_managed(grid.density, grid.cell_count)) ||
-            !(status = allocate_managed(grid.temperature, grid.cell_count)) ||
-            !(status = allocate_managed(grid.density_accumulator,
-                                        grid.cell_count)) ||
-            !(status = allocate_managed(grid.temperature_accumulator,
-                                        grid.cell_count)) ||
-            !(status = allocate_managed(grid.pressure[0], grid.cell_count)) ||
-            !(status = allocate_managed(grid.pressure[1], grid.cell_count)) ||
-            !(status = allocate_managed(grid.divergence, grid.cell_count)) ||
-            !(status = allocate_managed(grid.residual, grid.cell_count)) ||
-            !(status = allocate_managed(grid.vorticity, grid.cell_count)) ||
-            !(status = allocate_managed(grid.strain, grid.cell_count)) ||
-            !(status = allocate_managed(grid.subgrid_force, grid.cell_count)) ||
-            !(status = allocate_managed(grid.rhs_max, 1U)) ||
-            !(status = allocate_managed(grid.residual_max, 1U)) ||
-            !(status = allocate_managed(grid.pressure_converged, 1U)) ||
-            !(status = allocate_managed(grid.solid, grid.cell_count)))
-            return status;
-        for (int axis = 0; axis < 3; ++axis) {
-            if (!(status = allocate_managed(grid.face_velocity[axis][0],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_velocity[axis][1],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_reverse[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_open[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_wall_velocity[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_normal[axis],
-                                            grid.face_count[axis])) ||
-                !(status = allocate_managed(grid.face_nearest_triangle[axis],
-                                            grid.face_count[axis])))
-                return status;
-        }
         std::uint32_t level_n = grid.resolution;
         std::uint32_t level_h = grid.height;
         for (auto &level : grid.coarse) {
@@ -344,17 +266,12 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
             level.n = level_n;
             level.height = level_h;
             level.cell_count = level_n * level_h * level_n;
-            if (!(status = allocate_managed(level.pressure[0], level.cell_count)) ||
-                !(status = allocate_managed(level.pressure[1], level.cell_count)) ||
-                !(status = allocate_managed(level.rhs, level.cell_count)) ||
-                !(status = allocate_managed(level.residual, level.cell_count)))
-                return status;
             for (int axis = 0; axis < 3; ++axis)
-                if (!(status = allocate_managed(level.open[axis],
-                    smoke_grid_face_count(axis, int(level.n),
-                                          int(level.height)))))
-                    return status;
+                level.face_count[axis] = smoke_grid_face_count(axis, int(level_n), int(level_h));
         }
+        StorageAllocator allocator;
+        status = simulation::visit_smoke_grid_storage(grid, allocator);
+        if (!status) return status;
         const auto blocks = (grid.cell_count + 255U) / 256U;
         const float wind[3]{options.wind.x, options.wind.y, options.wind.z};
         simulation::initialize_smoke_grid_cells(
@@ -397,27 +314,9 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         if (grid_error != PM_SUCCESS)
             return backend_failure(grid_error, "smoke grid initialization failed");
     }
-    if (!(status = allocate_managed(smoke->positions, options.capacity)) ||
-        !(status = allocate_managed(smoke->previous_positions, options.capacity)) ||
-        !(status = allocate_managed(smoke->velocities, options.capacity)) ||
-        !(status = allocate_managed(smoke->ages, options.capacity)) ||
-        !(status = allocate_managed(smoke->thermal_lift, options.capacity)) ||
-        !(status = allocate_managed(smoke->number_densities, options.capacity)) ||
-        !(status = allocate_managed(smoke->pressures, options.capacity)) ||
-        !(status = allocate_managed(smoke->accelerations, options.capacity)) ||
-        !(status = allocate_managed(smoke->vorticities, options.capacity)) ||
-        !(status = allocate_managed(smoke->vorticity_magnitudes,
-                                    options.capacity)) ||
-        !(status = allocate_managed(smoke->keys[0], options.capacity)) ||
-        !(status = allocate_managed(smoke->keys[1], options.capacity)) ||
-        !(status = allocate_managed(smoke->indices[0], options.capacity)) ||
-        !(status = allocate_managed(smoke->indices[1], options.capacity)) ||
-        !(status = allocate_managed(smoke->rigid_impulses, options.capacity)))
-        return status;
-    smoke->sort_workspace_size =
-        simulation::radix_sort_scratch_bytes(options.capacity);
-    if (!(status = allocate_scratch(smoke->sort_workspace,
-                                    smoke->sort_workspace_size))) return status;
+    StorageAllocator allocator;
+    status = simulation::visit_smoke_particles_storage(*smoke, options.capacity, allocator);
+    if (!status) return status;
     smoke->alive = true;
     output = {slot, smoke->generation};
     impl_->smokes[slot] = std::move(smoke);
@@ -453,12 +352,7 @@ Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a rigid coupling");
-    std::unique_ptr<SmokeStorage> tombstone;
-    try { tombstone = std::make_unique<SmokeStorage>(); }
-    catch (...) { return failure(StatusCode::out_of_memory, "smoke tombstone allocation failed"); }
-    tombstone->generation = impl_->smokes[id.index]->generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->smokes[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smokes[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -568,12 +462,7 @@ Status SimulationRuntime::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) n
         !impl_->fluid_smoke_couplings[id.index]->alive ||
         impl_->fluid_smoke_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid smoke coupling handle is stale");
-    std::unique_ptr<FluidSmokeCouplingStorage> tombstone;
-    try { tombstone = std::make_unique<FluidSmokeCouplingStorage>(); }
-    catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->fluid_smoke_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->fluid_smoke_couplings[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -642,14 +531,8 @@ Status SimulationRuntime::remove_smoke_soft_body_coupling(
         impl_->smoke_soft_body_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke soft-body coupling handle is stale");
-    std::unique_ptr<SmokeSoftBodyCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeSoftBodyCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke soft-body coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_soft_body_couplings[id.index]->options.smoke;
-    impl_->smoke_soft_body_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_soft_body_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -717,14 +600,8 @@ Status SimulationRuntime::remove_smoke_cloth_coupling(SmokeClothCouplingId id) n
         impl_->smoke_cloth_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke cloth coupling handle is stale");
-    std::unique_ptr<SmokeClothCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeClothCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke cloth coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_cloth_couplings[id.index]->options.smoke;
-    impl_->smoke_cloth_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_cloth_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -791,13 +668,7 @@ Status SimulationRuntime::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noe
         impl_->smoke_rope_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke rope coupling handle is stale");
-    std::unique_ptr<SmokeRopeCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeRopeCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke rope coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
-    impl_->smoke_rope_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_rope_couplings[id.index]);
     ++impl_->revision;
     return success();
 }
@@ -858,14 +729,8 @@ Status SimulationRuntime::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) n
         impl_->smoke_rigid_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke rigid coupling handle is stale");
-    std::unique_ptr<SmokeRigidCouplingSlot> tombstone;
-    try { tombstone = std::make_unique<SmokeRigidCouplingSlot>(); }
-    catch (...) { return failure(StatusCode::out_of_memory,
-                                "smoke rigid coupling removal failed"); }
-    tombstone->generation = id.generation + 1U;
-    if (tombstone->generation == 0U) tombstone->generation = 1U;
     const auto smoke_id = impl_->smoke_rigid_couplings[id.index]->options.smoke;
-    impl_->smoke_rigid_couplings[id.index] = std::move(tombstone);
+    retire_owner(*impl_->smoke_rigid_couplings[id.index]);
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -905,9 +770,9 @@ Status SimulationRuntime::add_particle_source(ParticleSourceMesh mesh, ParticleS
         if (!data) return failure(StatusCode::out_of_memory, "fluid source allocation failed");
         data->count = static_cast<std::uint32_t>(points.size());
         data->spacing = mesh.spacing;
-        if (!(status = allocate_managed(data->points, points.size())) ||
-            !(status = allocate_managed(data->vacant, points.size())) ||
-            !(status = allocate_managed(data->capacity_misses, 1))) return status;
+        StorageAllocator allocator;
+        status = simulation::visit_emitter_storage(*data, points.size(), allocator);
+        if (!status) return status;
         std::copy(points.begin(), points.end(), data->points);
         *data->capacity_misses = 0;
         plane.options = options;

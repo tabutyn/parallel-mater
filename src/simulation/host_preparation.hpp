@@ -9,6 +9,8 @@
 
 namespace parallel_mater {
 
+inline constexpr std::uint32_t maximum_fluid_source_sites = 65'536U;
+
 // Deterministic CPU-side preparation shared by device drivers and tools.
 // These functions allocate no device resources and require no backend SDK.
 [[nodiscard]] Status sample_rope_centerline(

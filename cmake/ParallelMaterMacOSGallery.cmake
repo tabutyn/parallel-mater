@@ -55,7 +55,7 @@ set_target_properties(parallel-mater-gallery PROPERTIES
 set(PARALLEL_MATER_BUNDLE_LAYER_MANIFEST
     "${CMAKE_CURRENT_BINARY_DIR}/generated/macos/validation.json")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUNDLE_LAYER_MANIFEST}" CONTENT
-"{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_KHRONOS_validation\",\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+"{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 add_custom_target(refresh-macos-gallery-runtime ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks"

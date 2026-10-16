@@ -12,7 +12,7 @@ inline constexpr std::uint32_t primitive_tile_size = 256U;
 
 [[nodiscard]] constexpr std::uint32_t primitive_block_count(
     std::uint32_t count) noexcept {
-    return (count + primitive_tile_size - 1U) / primitive_tile_size;
+    return count / primitive_tile_size + (count % primitive_tile_size != 0U);
 }
 
 [[nodiscard]] constexpr std::size_t compaction_scratch_bytes(

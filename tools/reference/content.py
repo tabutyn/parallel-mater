@@ -43,7 +43,7 @@ SECTIONS = [
         c("legend", "Color key", "Function names: pmCreateInstance<br/>Structure and type names: PmInstanceCreateInfo<br/>Constants and return codes: PM_SUCCESS<br/>PFN_pmName: pointer type for pmName<br/>[n.n] Specification section"),
         c("conventions", "Calling conventions", "pmCreate*/pmDestroy* own objects; pmGet* queries; pmCmd* records work. Counts precede arrays. Input pointers are const. A null array requests an enumeration count; a short array returns PM_INCOMPLETE and the number written. Unless stated otherwise, input data is copied before a call returns."),
         c("validity", "Validity & availability", "Set sType to its matching PM_STRUCTURE_TYPE_* value; pNext = NULL in core 0.2. Unknown chains and reserved flags are errors. Initialize required nonzero fields. Null handles are allowed only where specified. Physics domains and couplings require their corresponding features or extensions. This reference specifies the behavior required of conforming implementations."),
-        c("units", "Units & lifetime", "Right-handed; +Y up; meters, seconds, kilograms, radians, kelvin. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order after GPU completion; destruction does not wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects."),
+        c("units", "Units & lifetime", "Right-handed; +Y up; meters, seconds, kilograms, radians, kelvin. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order. Destruction may wait for pending device work; explicit completion before destruction avoids this implicit wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects."),
     ]),
     Section("return_codes", "Return codes", "Results and failures", [
         c("results", "Success & error codes", types="""
@@ -90,7 +90,7 @@ SECTIONS = [
                 const PmAllocationCallbacks* pAllocator,
                 PmInstance* pInstance);
             void pmDestroyInstance(PmInstance instance);
-        """, text="pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.", links=("allocator", "discovery")),
+        """, text="pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference; zero selects 0.2. Other versions are unsupported, including older pre-stable versions. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.", links=("allocator", "discovery")),
         c("allocator", "Host allocation callbacks", types="""
             typedef void* (PMAPI_CALL *PmAllocateFn)(
                 void* user, size_t size, size_t alignment);
@@ -597,7 +597,7 @@ SECTIONS += [
                 float sleepAngularThreshold;
                 float sleepTimeSeconds;
             } PmRigidSolverState;
-        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled."),
+        """, text="One AVBD path solves rigid geometry contacts and joints. rigidIterations is the nonzero base body budget and is ≤ maxRigidIterations; constraint solverIterations can raise only their endpoint budgets. Sleeping thresholds are nonnegative m/s and rad/s; sleep time is positive when enabled. The current reference drivers require enableSleeping = PM_FALSE and reject enabled sleeping with FEATURE_NOT_PRESENT; omitted rigid state defaults to sleeping disabled."),
         c("liquid_material", "Particle-liquid material", types="""
             typedef struct PmLiquidMaterialState {
                 float restDensity;
@@ -679,7 +679,7 @@ SECTIONS += [
                 uint32_t second;
                 PmCouplingParameters parameters;
             } PmCouplingState;
-        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid."),
+        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph. The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair."),
         c("domain_materials", "Deformable, rope & smoke materials", types="""
             typedef struct PmClothMaterialState {
                 float vertexMass;
@@ -1074,7 +1074,7 @@ SECTIONS += [
             PmResult pmResetCommandBuffer(
                 PmCommandBuffer commandBuffer);
         """, text="Primary buffers only. Begin requires Initial. End requires Recording and no latched error or open query. Individual reset requires RESET_BUFFER on the pool. No simultaneous submission of one command buffer. Host input arrays are copied at record time; no device work occurs while recording."),
-        c("lifecycle", "Legal states & resource lifetime", rows=[("Initial", "Begin → Recording; may free/reset"), ("Recording", "pmCmd* only; End → Executable"), ("Executable", "QueueSubmit → Pending; may reset/free"), ("Pending", "No edits, reset, free or resubmit"), ("Completion", "Reusable → Executable; one-time → Invalid"), ("Invalid", "Reset → Initial, or free")], text="A recording failure makes End fail and leaves the buffer Invalid. Destroying a referenced nonpending resource invalidates dependent buffers. Destroying a pending resource is invalid usage. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.", links=("submission", "fences")),
+        c("lifecycle", "Legal states & resource lifetime", rows=[("Initial", "Begin → Recording; may free/reset"), ("Recording", "pmCmd* only; End → Executable"), ("Executable", "QueueSubmit → Pending; may reset/free"), ("Pending", "No edits, reset, free or resubmit"), ("Completion", "Reusable → Executable; one-time → Invalid"), ("Invalid", "Reset → Initial, or free")], text="Rejected argument/state validation does not enqueue a command and recording may continue. A latched recording allocation failure makes End fail. Destruction drains pending work in the reference drivers, but does not rewrite recorded references. After destroying a referenced resource, reset or free every dependent command buffer before reuse. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.", links=("submission", "fences")),
         c("simulation_init", "Reset & particle initialization", types="""
             typedef struct PmParticleState {
                 float position[3];

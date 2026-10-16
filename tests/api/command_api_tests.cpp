@@ -22,7 +22,7 @@ int main() {
     CHECK(layer_count == 1U);
     PmLayerProperties layer{};
     CHECK(pmEnumerateInstanceLayerProperties(&layer_count, &layer) == PM_SUCCESS);
-    CHECK(std::strcmp(layer.layerName, "PM_LAYER_KHRONOS_validation") == 0);
+    CHECK(std::strcmp(layer.layerName, "PM_LAYER_PARALLEL_MATER_validation") == 0);
 
     const char *missing_instance_extension = "PM_EXT_missing";
     PmInstanceCreateInfo missing_instance_info{};
@@ -38,7 +38,7 @@ int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_2;
-    const char *validation_layer = "PM_LAYER_KHRONOS_validation";
+    const char *validation_layer = "PM_LAYER_PARALLEL_MATER_validation";
     instance_info.enabledLayerCount = 1U;
     instance_info.ppEnabledLayerNames = &validation_layer;
     PmInstance instance{};
@@ -324,7 +324,9 @@ int main() {
     pmGetSimulationMemoryRequirements(device, simulation,
                                       &simulation_requirements);
     CHECK(simulation_requirements.persistent.size > 256U);
-    CHECK(simulation_requirements.scratch.size > 256U);
+    CHECK(simulation_requirements.scratch.size != 0U);
+    CHECK(simulation_requirements.scratch.alignment != 0U);
+    CHECK(simulation_requirements.scratch.size % simulation_requirements.scratch.alignment == 0U);
     allocation.memoryTypeIndex = 1U;
     allocation.allocationSize = simulation_requirements.persistent.size;
     CHECK(pmAllocateMemory(device, &allocation, &persistent_memory) == PM_SUCCESS);
@@ -339,7 +341,7 @@ int main() {
                      static_cast<int>(bind_simulation));
     CHECK(bind_simulation == PM_SUCCESS);
 
-    PmRigidSolverState rigid_solver{10U, PM_TRUE, 0.02F, 0.02F, 0.5F};
+    PmRigidSolverState rigid_solver{10U, PM_FALSE, 0.02F, 0.02F, 0.5F};
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;

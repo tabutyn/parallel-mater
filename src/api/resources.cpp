@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "simulation/resource_plan.hpp"
 #include "../simulation/exports.hpp"
 #include "../simulation/geometry_constraints_dispatch.hpp"
 #include "../simulation/geometry_storage.hpp"
@@ -83,87 +84,95 @@ using parallel_mater::Vec3;
                                          view.range.buffer->size);
 }
 
+[[nodiscard]] parallel_mater::SimulationOptions simulation_options(
+    const PmSimulationCreateInfo &info) noexcept {
+    parallel_mater::SimulationOptions options{};
+    options.rigid_body_capacity = std::max(1U, info.rigidBodyCapacity);
+    options.rigid_constraint_capacity = std::max(1U, info.constraintCapacity);
+    options.triangle_mesh_capacity = std::max(16U, info.rigidBodyCapacity);
+    options.contact_capacity = std::max(1U, info.contactCapacity);
+    options.fluid_capacity = std::max(1U, info.fluidCount);
+    options.cloth_capacity = std::max(1U, info.clothCount);
+    options.rope_capacity = std::max(1U, info.ropeCount);
+    options.soft_body_capacity = std::max(1U, info.softBodyCount);
+    options.smoke_capacity = std::max(1U, info.smokeCount);
+    options.particle_source_capacity = std::max(1U, info.emitterCapacity);
+    options.particle_destroy_plane_capacity = std::max(1U, info.destroyerCapacity);
+    options.paint_field_capacity = std::max(1U, info.paintFieldCount);
+    options.paint_rule_capacity = std::max(1U, info.paintRuleCapacity);
+    const std::uint32_t coupling_capacity = std::max(1U, info.couplingCapacity);
+    options.fluid_smoke_coupling_capacity = coupling_capacity;
+    options.smoke_soft_body_coupling_capacity = coupling_capacity;
+    options.smoke_cloth_coupling_capacity = coupling_capacity;
+    options.smoke_rope_coupling_capacity = coupling_capacity;
+    options.smoke_rigid_coupling_capacity = coupling_capacity;
+    options.fluid_cloth_coupling_capacity = coupling_capacity;
+    options.soft_body_cloth_coupling_capacity = coupling_capacity;
+    options.fluid_soft_body_coupling_capacity = coupling_capacity;
+    options.fluid_rope_coupling_capacity = coupling_capacity;
+    options.rope_soft_body_coupling_capacity = coupling_capacity;
+    options.rope_cloth_coupling_capacity = coupling_capacity;
+    options.physics_debug.frame_capacity = info.debugFrameCapacity;
+    options.rigid_sleeping = false;
+    return options;
+}
+
 [[nodiscard]] bool simulation_requirements(
     const PmSimulationCreateInfo &info,
     PmSimulationMemoryRequirements &output) noexcept {
-    PmDeviceSize persistent = 65536U;
-    PmDeviceSize scratch = 4096U;
+    parallel_mater::simulation::StorageRequirements base{};
+    if (!parallel_mater::SimulationRuntime::base_memory_requirements(
+            simulation_options(info), base)) return false;
+    PmDeviceSize persistent = base.persistent;
+    PmDeviceSize scratch = base.scratch;
     const PmDeviceSize rigid = info.rigidBodyCapacity;
-    const PmDeviceSize pairs = rigid * rigid;
-    const PmDeviceSize manifolds = rigid > 1U ? rigid * (rigid - 1U) / 2U : 0U;
-    const PmDeviceSize requested_leaf_pair_slots = std::max<PmDeviceSize>(
-        parallel_mater::simulation::k_minimum_leaf_pair_cache_slots,
-        rigid * parallel_mater::simulation::k_leaf_pair_cache_slots_per_body);
-    const PmDeviceSize leaf_pair_slots =
-        std::min(manifolds, requested_leaf_pair_slots);
-    const PmDeviceSize leaf_pairs_per_slot =
-        rigid <= parallel_mater::simulation::k_small_rigid_leaf_body_capacity
-            ? parallel_mater::simulation::k_small_rigid_leaf_pair_capacity
-            : parallel_mater::simulation::k_max_leaf_pairs_per_body_pair;
-    if (leaf_pair_slots != 0U &&
-        leaf_pairs_per_slot >
-            std::numeric_limits<PmDeviceSize>::max() / leaf_pair_slots)
-        return false;
-    const PmDeviceSize leaf_pairs = leaf_pair_slots * leaf_pairs_per_slot;
-    if (!add_bytes(persistent, rigid, 4096U) ||
-        !add_bytes(persistent, pairs, 16U) ||
-        !add_bytes(persistent, manifolds,
-                   sizeof(parallel_mater::simulation::ContactManifold)) ||
-        !add_bytes(persistent, leaf_pair_slots,
-                   sizeof(parallel_mater::simulation::CachedContactPair)) ||
-        !add_bytes(persistent, leaf_pairs,
-                   sizeof(parallel_mater::simulation::LeafPair)) ||
-        (rigid <= parallel_mater::simulation::k_small_rigid_leaf_body_capacity &&
-         !add_bytes(persistent, leaf_pairs,
-                    sizeof(parallel_mater::simulation::ContactManifold))) ||
-        !add_bytes(persistent, std::max(1U, info.constraintCapacity),
-                   sizeof(parallel_mater::simulation::RigidConstraintResource)) ||
-        !add_bytes(persistent, info.contactCapacity, 128U) ||
-        !add_bytes(scratch, pairs, 16U) ||
-        !add_bytes(scratch, rigid, 2048U))
-        return false;
-    for (const PmFluidCapacity capacity :
-         std::span(info.pFluidCapacities, info.fluidCount)) {
-        if (!add_bytes(persistent, capacity.particleCapacity, 512U) ||
-            !add_bytes(persistent,
-                static_cast<PmDeviceSize>(capacity.particleCapacity) *
-                    capacity.neighborCapacityPerParticle, 4U) ||
-            !add_bytes(scratch, capacity.particleCapacity, 128U))
+    for (const PmFluidCapacity capacity : std::span(info.pFluidCapacities, info.fluidCount)) {
+        parallel_mater::simulation::StorageRequirements fluid{};
+        if (!parallel_mater::SimulationRuntime::fluid_memory_requirements(capacity.particleCapacity, fluid) ||
+            !add_bytes(persistent, 1, fluid.persistent) || !add_bytes(scratch, 1, fluid.scratch))
             return false;
     }
-    for (const PmClothCapacity capacity :
-         std::span(info.pClothCapacities, info.clothCount)) {
-        if (!add_bytes(persistent, capacity.vertexCapacity, 768U) ||
-            !add_bytes(persistent, capacity.triangleIndexCapacity, 32U) ||
-            !add_bytes(persistent, capacity.bondCapacity, 96U) ||
-            !add_bytes(scratch, capacity.vertexCapacity, 192U))
-            return false;
+    for (const PmClothCapacity capacity : std::span(info.pClothCapacities, info.clothCount)) {
+        parallel_mater::simulation::StorageRequirements plan{};
+        if (!parallel_mater::SimulationRuntime::cloth_memory_requirements(capacity.vertexCapacity,
+                capacity.triangleIndexCapacity, capacity.bondCapacity, std::max(1U, info.rigidBodyCapacity), plan) ||
+            !add_bytes(persistent, 1, plan.persistent) || !add_bytes(scratch, 1, plan.scratch)) return false;
     }
-    for (const PmRopeCapacity capacity :
-         std::span(info.pRopeCapacities, info.ropeCount)) {
-        if (!add_bytes(persistent, capacity.nodeCapacity, 512U) ||
-            !add_bytes(scratch, capacity.nodeCapacity, 128U))
-            return false;
+    for (const PmRopeCapacity capacity : std::span(info.pRopeCapacities, info.ropeCount)) {
+        parallel_mater::simulation::StorageRequirements plan{};
+        if (!parallel_mater::SimulationRuntime::rope_memory_requirements(capacity.nodeCapacity,
+                std::max(1U, info.rigidBodyCapacity), plan) ||
+            !add_bytes(persistent, 1, plan.persistent) || !add_bytes(scratch, 1, plan.scratch)) return false;
     }
-    for (const PmSoftBodyCapacity capacity :
-         std::span(info.pSoftBodyCapacities, info.softBodyCount)) {
-        if (!add_bytes(persistent, capacity.nodeCapacity, 1024U) ||
-            !add_bytes(persistent, capacity.bondCapacity, 128U) ||
-            !add_bytes(persistent, capacity.surfaceVertexCapacity, 320U) ||
-            !add_bytes(persistent, capacity.surfaceTriangleIndexCapacity, 32U) ||
-            !add_bytes(scratch, capacity.nodeCapacity, 256U))
-            return false;
+    for (const PmSoftBodyCapacity capacity : std::span(info.pSoftBodyCapacities, info.softBodyCount)) {
+        parallel_mater::simulation::StorageRequirements plan{};
+        if (!parallel_mater::SimulationRuntime::soft_body_memory_requirements(capacity.nodeCapacity,
+                capacity.bondCapacity, capacity.surfaceVertexCapacity, capacity.surfaceTriangleIndexCapacity, plan) ||
+            !add_bytes(persistent, 1, plan.persistent) || !add_bytes(scratch, 1, plan.scratch)) return false;
     }
-    for (const PmSmokeCapacity capacity :
-         std::span(info.pSmokeCapacities, info.smokeCount)) {
-        if (!add_bytes(persistent, capacity.particleCapacity, 320U) ||
-            !add_bytes(persistent, capacity.gridCellCapacity, 320U) ||
-            !add_bytes(scratch, capacity.particleCapacity, 128U) ||
-            !add_bytes(scratch, capacity.gridCellCapacity, 96U))
-            return false;
+    for (const PmSmokeCapacity capacity : std::span(info.pSmokeCapacities, info.smokeCount)) {
+        parallel_mater::simulation::StorageRequirements plan{};
+        if (!parallel_mater::SimulationRuntime::smoke_memory_requirements(capacity.particleCapacity,
+                capacity.gridCellCapacity, plan) ||
+            !add_bytes(persistent, 1, plan.persistent) || !add_bytes(scratch, 1, plan.scratch)) return false;
     }
-    if (!add_bytes(persistent, info.couplingCapacity, 4096U) ||
-        !add_bytes(persistent, info.emitterCapacity, 2048U) ||
+    parallel_mater::simulation::CouplingStorageLimits limits{};
+    for (auto capacity : std::span(info.pFluidCapacities, info.fluidCount))
+        limits.fluid_particles = std::max(limits.fluid_particles, std::size_t(capacity.particleCapacity));
+    for (auto capacity : std::span(info.pClothCapacities, info.clothCount))
+        limits.cloth_vertices = std::max(limits.cloth_vertices, std::size_t(capacity.vertexCapacity));
+    for (auto capacity : std::span(info.pRopeCapacities, info.ropeCount))
+        limits.rope_nodes = std::max(limits.rope_nodes, std::size_t(capacity.nodeCapacity));
+    for (auto capacity : std::span(info.pSoftBodyCapacities, info.softBodyCount)) {
+        limits.soft_nodes = std::max(limits.soft_nodes, std::size_t(capacity.nodeCapacity));
+        limits.soft_vertices = std::max(limits.soft_vertices, std::size_t(capacity.surfaceVertexCapacity));
+        limits.soft_indices = std::max(limits.soft_indices, std::size_t(capacity.surfaceTriangleIndexCapacity));
+    }
+    parallel_mater::simulation::StorageRequirements coupling{}, emitter{};
+    if (!parallel_mater::SimulationRuntime::coupling_memory_requirements(limits, coupling) ||
+        !parallel_mater::SimulationRuntime::emitter_memory_requirements(emitter)) return false;
+    if (!add_bytes(persistent, info.couplingCapacity, coupling.persistent) ||
+        !add_bytes(persistent, info.emitterCapacity, emitter.persistent) ||
         !add_bytes(persistent, info.destroyerCapacity, 512U) ||
         !add_bytes(persistent, info.paintRuleCapacity, 512U) ||
         !add_bytes(persistent, info.debugFrameCapacity,
@@ -178,6 +187,8 @@ using parallel_mater::Vec3;
             return false;
     }
     constexpr PmDeviceSize alignment = 256U;
+    if (persistent > std::numeric_limits<PmDeviceSize>::max() - (alignment - 1U) ||
+        scratch > std::numeric_limits<PmDeviceSize>::max() - (alignment - 1U)) return false;
     persistent = (persistent + alignment - 1U) & ~(alignment - 1U);
     scratch = (scratch + alignment - 1U) & ~(alignment - 1U);
     output.persistent = {persistent, alignment, 0x2U, PM_FALSE};
@@ -499,35 +510,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    parallel_mater::SimulationOptions options{};
-    options.rigid_body_capacity = std::max(1U, info->rigidBodyCapacity);
-    options.rigid_constraint_capacity = std::max(1U, info->constraintCapacity);
-    options.triangle_mesh_capacity = std::max(16U, info->rigidBodyCapacity);
-    options.contact_capacity = std::max(1U, info->contactCapacity);
-    options.fluid_capacity = std::max(1U, info->fluidCount);
-    options.cloth_capacity = std::max(1U, info->clothCount);
-    options.rope_capacity = std::max(1U, info->ropeCount);
-    options.soft_body_capacity = std::max(1U, info->softBodyCount);
-    options.smoke_capacity = std::max(1U, info->smokeCount);
-    options.particle_source_capacity = std::max(1U, info->emitterCapacity);
-    options.particle_destroy_plane_capacity = std::max(1U, info->destroyerCapacity);
-    options.paint_field_capacity = std::max(1U, info->paintFieldCount);
-    options.paint_rule_capacity = std::max(1U, info->paintRuleCapacity);
-    const std::uint32_t coupling_capacity = std::max(1U, info->couplingCapacity);
-    options.fluid_smoke_coupling_capacity = coupling_capacity;
-    options.smoke_soft_body_coupling_capacity = coupling_capacity;
-    options.smoke_cloth_coupling_capacity = coupling_capacity;
-    options.smoke_rope_coupling_capacity = coupling_capacity;
-    options.smoke_rigid_coupling_capacity = coupling_capacity;
-    options.fluid_cloth_coupling_capacity = coupling_capacity;
-    options.soft_body_cloth_coupling_capacity = coupling_capacity;
-    options.fluid_soft_body_coupling_capacity = coupling_capacity;
-    options.fluid_rope_coupling_capacity = coupling_capacity;
-    options.rope_soft_body_coupling_capacity = coupling_capacity;
-    options.rope_cloth_coupling_capacity = coupling_capacity;
-    options.physics_debug.frame_capacity = info->debugFrameCapacity;
-    options.rigid_sleeping = true;
-    created->simulation_options = options;
+    created->simulation_options = simulation_options(*info);
     *simulation = created;
     return PM_SUCCESS;
 }
@@ -591,18 +574,68 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
         return PM_ERROR_INVALID_STATE;
     const PmResult current = device->services->activate();
     if (current != PM_SUCCESS) return current;
+    PmDomainMemory domain_memory;
     try {
-        simulation->arena =
-            std::make_unique<parallel_mater::simulation::MemoryArena>(
-                static_cast<std::byte *>(
-                    binding->persistentMemory->allocation) +
-                    binding->persistentOffset,
-                static_cast<std::size_t>(
-                    simulation->requirements.persistent.size),
-                static_cast<std::byte *>(binding->scratchMemory->allocation) +
-                    binding->scratchOffset,
-                static_cast<std::size_t>(simulation->requirements.scratch.size),
-                device->services.get());
+        using Plan = parallel_mater::simulation::StorageRequirements;
+        struct Region { std::vector<std::unique_ptr<PmDomainMemory::Arena>> *owners; Plan plan; };
+        std::vector<Region> regions;
+        PmDeviceSize domain_persistent = 0, domain_scratch = 0;
+        const auto append = [&](auto &owners, Plan plan) {
+            domain_persistent += plan.persistent;
+            domain_scratch += plan.scratch;
+            regions.push_back({&owners, plan});
+        };
+        const auto rigid = simulation->simulation_options.rigid_body_capacity;
+        for (const auto &capacity : simulation->fluids) {
+            Plan plan{};
+            if (!parallel_mater::SimulationRuntime::fluid_memory_requirements(capacity.particleCapacity, plan))
+                return PM_ERROR_INVALID_ARGUMENT;
+            append(domain_memory.fluids, plan);
+        }
+        for (const auto &capacity : simulation->cloth_capacities) {
+            Plan plan{};
+            if (!parallel_mater::SimulationRuntime::cloth_memory_requirements(capacity.vertexCapacity,
+                    capacity.triangleIndexCapacity, capacity.bondCapacity, rigid, plan))
+                return PM_ERROR_INVALID_ARGUMENT;
+            append(domain_memory.cloths, plan);
+        }
+        for (const auto &capacity : simulation->rope_capacities) {
+            Plan plan{};
+            if (!parallel_mater::SimulationRuntime::rope_memory_requirements(capacity.nodeCapacity, rigid, plan))
+                return PM_ERROR_INVALID_ARGUMENT;
+            append(domain_memory.ropes, plan);
+        }
+        for (const auto &capacity : simulation->soft_body_capacities) {
+            Plan plan{};
+            if (!parallel_mater::SimulationRuntime::soft_body_memory_requirements(capacity.nodeCapacity,
+                    capacity.bondCapacity, capacity.surfaceVertexCapacity, capacity.surfaceTriangleIndexCapacity, plan))
+                return PM_ERROR_INVALID_ARGUMENT;
+            append(domain_memory.soft_bodies, plan);
+        }
+        for (const auto &capacity : simulation->smoke_capacities) {
+            Plan plan{};
+            if (!parallel_mater::SimulationRuntime::smoke_memory_requirements(capacity.particleCapacity,
+                    capacity.gridCellCapacity, plan)) return PM_ERROR_INVALID_ARGUMENT;
+            append(domain_memory.smokes, plan);
+        }
+        const auto global_persistent = simulation->requirements.persistent.size - domain_persistent;
+        const auto global_scratch = simulation->requirements.scratch.size - domain_scratch;
+        auto *persistent = static_cast<std::byte *>(binding->persistentMemory->allocation) + binding->persistentOffset;
+        auto *scratch = static_cast<std::byte *>(binding->scratchMemory->allocation) + binding->scratchOffset;
+        auto *domain_persistent_begin = persistent + global_persistent;
+        auto *domain_scratch_begin = scratch + global_scratch;
+        // Disjoint per-slot pools keep resizing one population from fragmenting
+        // the space promised to another. Global and child arenas never overlap.
+        for (const auto &region : regions) {
+            region.owners->push_back(std::make_unique<PmDomainMemory::Arena>(
+                domain_persistent_begin, region.plan.persistent,
+                domain_scratch_begin, region.plan.scratch, device->services.get()));
+            domain_persistent_begin += region.plan.persistent;
+            domain_scratch_begin += region.plan.scratch;
+        }
+        simulation->arena = std::make_unique<PmDomainMemory::Arena>(
+            persistent, static_cast<std::size_t>(global_persistent),
+            scratch, static_cast<std::size_t>(global_scratch), device->services.get());
     } catch (const std::bad_alloc &) {
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
@@ -621,6 +654,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBindSimulationMemory(
         return result;
     }
     *simulation->runtime = std::move(initialized);
+    simulation->domain_memory = std::move(domain_memory);
     simulation->binding = *binding;
     return PM_SUCCESS;
 }
@@ -650,6 +684,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 simulation->arena.get());
             PmResult result = validate_bound(simulation);
             if (result != PM_SUCCESS) return result;
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 auto &slot = simulation->rigid_bodies[first + offset];
                 if (slot.has_value()) {
@@ -896,6 +932,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             for (auto &slot : simulation->destroyers) slot.reset();
             for (auto &slot : simulation->paint_fields) slot.reset();
             for (auto &slot : simulation->paint_rules) slot.reset();
+            simulation->requested_couplings.clear();
+            simulation->explicit_couplings = false;
+            simulation->active_couplings.clear();
+            simulation->coupling_pipeline_serial = 0;
             simulation->couplings_initialized = false;
             simulation->submitted_steps = 0U;
             simulation->last_substeps = 0U;
@@ -913,15 +953,17 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
         particles == nullptr || fluid >= simulation->fluids.size() ||
         command_buffer->bound_pipeline == nullptr ||
         fluid >= command_buffer->bound_pipeline->fluids.size() ||
-        particles->format != PM_FORMAT_PARTICLE_STATE ||
-        particles->stride != sizeof(PmParticleState) ||
-        particles->count > simulation->fluids[fluid].particleCapacity ||
-        particles->range.buffer == nullptr ||
-        particles->range.buffer->device != command_buffer->device ||
-        !parallel_mater::api::range_fits(
-            particles->range.offset,
-            static_cast<PmDeviceSize>(particles->count) * particles->stride,
-            particles->range.buffer->size))
+        particles->count > simulation->fluids[fluid].particleCapacity)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (particles->count != 0U &&
+        (particles->format != PM_FORMAT_PARTICLE_STATE ||
+         particles->stride != sizeof(PmParticleState) ||
+         particles->range.buffer == nullptr ||
+         particles->range.buffer->device != command_buffer->device ||
+         (particles->range.buffer->usage & PM_BUFFER_PARTICLE_INPUT_BIT) == 0U ||
+         static_cast<PmDeviceSize>(particles->count) * particles->stride > particles->range.size ||
+         !parallel_mater::api::range_fits(particles->range.offset, particles->range.size,
+                                         particles->range.buffer->size)))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmBufferView copied = *particles;
     const PmLiquidMaterialState material =
@@ -929,15 +971,16 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
     return parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, fluid, copied, material](
                             parallel_mater::device::Services &services) noexcept {
-            const PmResult ownership =
-                parallel_mater::api::require_device_ownership(
-                    copied.range.buffer);
+            const PmResult ownership = copied.count == 0U ? PM_SUCCESS :
+                parallel_mater::api::require_device_ownership(copied.range.buffer);
             if (ownership != PM_SUCCESS) return ownership;
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
-            parallel_mater::simulation::ScopedMemoryArena arena_scope(
-                simulation->arena.get());
             PmResult result = validate_bound(simulation);
             if (result != PM_SUCCESS) return result;
+            parallel_mater::simulation::ScopedMemoryArena arena_scope(
+                simulation->domain_memory.fluids[fluid].get());
+            const auto detached = parallel_mater::api::clear_couplings(simulation);
+            if (detached != PM_SUCCESS) return detached;
             auto &slot = simulation->fluid_ids[fluid];
             if (slot.has_value()) {
                 result = parallel_mater::api::from_status(
@@ -964,8 +1007,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
             static_assert(sizeof(PmParticleState) ==
                           sizeof(parallel_mater::FluidParticle));
             const auto *source = static_cast<const parallel_mater::FluidParticle *>(
-                parallel_mater::api::buffer_pointer(copied.range.buffer,
-                                                     copied.range.offset));
+                copied.count == 0U ? nullptr :
+                    parallel_mater::api::buffer_pointer(copied.range.buffer, copied.range.offset));
             parallel_mater::FluidId created{};
             result = parallel_mater::api::from_status(
                 simulation->runtime->add_fluid(

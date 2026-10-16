@@ -23,6 +23,7 @@
 #include "simulation/rope_dispatch.hpp"
 #include "simulation/exports.hpp"
 #include "simulation/memory_arena.hpp"
+#include "simulation/resource_plan.hpp"
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
 
@@ -42,6 +43,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <type_traits>
 #include <vector>
 
 namespace parallel_mater {
@@ -464,6 +466,17 @@ template <typename T> void release_managed(T *&pointer) noexcept {
     }
 }
 
+// Keep the host slot allocation when retiring an owner. Cleanup must not
+// require fresh host memory while recovering from an allocation failure.
+template<class T> void retire_owner(T &owner) noexcept {
+    static_assert(std::is_nothrow_default_constructible_v<T>);
+    auto generation = owner.generation + 1U;
+    if (!generation) generation = 1U;
+    std::destroy_at(&owner);
+    std::construct_at(&owner);
+    owner.generation = generation;
+}
+
 template <typename T>
 [[nodiscard]] Status allocate_scratch(T *&pointer, std::size_t count) noexcept {
     pointer = nullptr;
@@ -482,7 +495,16 @@ template <typename T>
                   "bound scratch simulation memory exhausted");
 }
 
-constexpr std::uint32_t k_fluid_body_buckets = 4096U;
+struct StorageAllocator {
+    static constexpr bool materialize = true;
+    template<class T> Status operator()(T *&pointer, std::size_t count,
+                                       simulation::MemoryClass kind) noexcept {
+        return kind == simulation::MemoryClass::persistent
+            ? allocate_managed(pointer, count) : allocate_scratch(pointer, count);
+    }
+};
+
+using simulation::k_fluid_body_buckets;
 
 struct FluidBodyImpulse {
     Vec3 linear{};
@@ -1610,6 +1632,131 @@ SimulationRuntime::~SimulationRuntime() = default;
 SimulationRuntime::SimulationRuntime(SimulationRuntime &&) noexcept = default;
 SimulationRuntime &SimulationRuntime::operator=(SimulationRuntime &&) noexcept = default;
 
+Status SimulationRuntime::cloth_memory_requirements(std::uint32_t vertices,
+    std::uint32_t indices, std::uint32_t bonds, std::uint32_t rigid,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    ClothStorage state;
+    state.vertex_count = state.vertex_capacity = vertices;
+    state.index_count = indices;
+    state.bond_count = bonds;
+    state.neighbor_capacity = 2 * (std::size_t(indices) + bonds);
+    if (state.neighbor_capacity > UINT32_MAX)
+        return failure(StatusCode::invalid_argument, "cloth neighbor capacity overflow");
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_cloth_storage(state, rigid,
+        true, true, true, true, true, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+Status SimulationRuntime::rope_memory_requirements(std::uint32_t nodes,
+    std::uint32_t rigid, simulation::StorageRequirements &output) noexcept {
+    output = {};
+    RopeStorage state;
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_rope_storage(state.data, nodes, rigid, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+Status SimulationRuntime::soft_body_memory_requirements(std::uint32_t nodes,
+    std::uint32_t bonds, std::uint32_t vertices, std::uint32_t indices,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    SoftBodyStorage state;
+    state.node_count = nodes;
+    state.bond_count = bonds;
+    state.surface_vertex_count = vertices;
+    state.surface_index_count = indices;
+    const std::size_t neighbors = 2 * std::size_t(bonds);
+    const std::size_t influences = 4 * std::size_t(indices);
+    if (neighbors > UINT32_MAX || influences > UINT32_MAX)
+        return failure(StatusCode::invalid_argument, "soft-body adjacency capacity overflow");
+    simulation::StoragePlanner planner;
+    auto status = simulation::visit_soft_body_storage(state, neighbors,
+        neighbors, influences, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
+Status SimulationRuntime::smoke_memory_requirements(std::uint32_t particles,
+    std::uint32_t cells, simulation::StorageRequirements &output) noexcept {
+    output = {};
+    if (particles > 1'000'000U || cells > 256U * 256U * 256U)
+        return failure(StatusCode::invalid_argument, "smoke capacity exceeds implementation limits");
+    SmokeStorage state;
+    simulation::StoragePlanner planner;
+    state.grid.cell_count = cells;
+    // The query declares cell count, not grid shape. Bound staggered faces
+    // using the minimum supported dimension (8); coarse dimensions stop at 2.
+    for (auto &count : state.grid.face_count) count = cells + (cells + 7) / 8;
+    auto coarse_cells = cells;
+    for (auto &level : state.grid.coarse) {
+        // At least two dimensions still halve until the final 2x2x2 level.
+        coarse_cells = std::max(8U, coarse_cells / 4U);
+        level.cell_count = coarse_cells;
+        for (auto &count : level.face_count) count = coarse_cells + (coarse_cells + 1) / 2;
+    }
+    auto status = simulation::visit_smoke_grid_storage(state.grid, planner);
+    if (status) status = simulation::visit_smoke_particles_storage(state, particles, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
+Status SimulationRuntime::coupling_memory_requirements(const simulation::CouplingStorageLimits &limits,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    simulation::StoragePlanner fluid_soft, rope_soft, fluid_rope, soft_cloth, smoke;
+    FluidSoftCouplingStorage fs;
+    RopeSoftBodyCouplingStorage rs;
+    FluidRopeCouplingStorage fr;
+    SoftClothCouplingStorage sc;
+    const auto triangles = limits.soft_indices / 3;
+    const auto tree_nodes = 2 * triangles; // Binary BVH has at most 2T-1 nodes.
+    Status status;
+    if (!(status = simulation::visit_fluid_soft_storage(fs, limits.fluid_particles, limits.soft_nodes,
+            limits.soft_vertices, tree_nodes, triangles, fluid_soft)) ||
+        !(status = simulation::visit_rope_soft_tree_storage(rs, tree_nodes, triangles, rope_soft)) ||
+        !(status = simulation::visit_rope_soft_data_storage(rs, limits.soft_nodes, limits.soft_vertices, rope_soft)) ||
+        !(status = simulation::visit_fluid_rope_storage(fr, limits.rope_nodes, fluid_rope)) ||
+        !(status = simulation::visit_soft_cloth_storage(sc, limits.soft_nodes, limits.cloth_vertices, soft_cloth)))
+        return status;
+    Vec3 *bounds = nullptr;
+    std::uint32_t *converted = nullptr;
+    if (!(status = smoke(bounds, 2, simulation::MemoryClass::persistent)) ||
+        !(status = smoke(converted, 1, simulation::MemoryClass::persistent))) return status;
+    for (const auto *plan : {&fluid_soft, &rope_soft, &fluid_rope, &soft_cloth, &smoke})
+        output.persistent = std::max(output.persistent, plan->requirements.persistent);
+    return {};
+}
+Status SimulationRuntime::emitter_memory_requirements(simulation::StorageRequirements &output) noexcept {
+    output = {};
+    ParticleSourceData state;
+    simulation::StoragePlanner planner;
+    const auto status = simulation::visit_emitter_storage(state, maximum_fluid_source_sites, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
+Status SimulationRuntime::base_memory_requirements(SimulationOptions options,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    Impl state;
+    state.options = options;
+    simulation::StoragePlanner planner;
+    const auto status = simulation::visit_global_storage(state, options, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+Status SimulationRuntime::fluid_memory_requirements(std::uint32_t capacity,
+    simulation::StorageRequirements &output) noexcept {
+    output = {};
+    FluidStorage state;
+    simulation::StoragePlanner planner;
+    const auto status = simulation::visit_fluid_storage(state, capacity, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
 Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &output,
                      device::ExecutionQueue queue) noexcept {
     if (queue.services == nullptr)
@@ -1682,226 +1829,25 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
     // geometry changes scheduling only; equations and budgets stay shared.
     implementation->rigid_contact_grid_limit = resident_blocks > 0
         ? scheduling_units : 1U;
-    Status status = allocate_managed(implementation->paint_fields,
-                                     options.paint_field_capacity);
+    StorageAllocator allocator;
+    Status status = simulation::visit_global_storage(*implementation, options, allocator);
     if (!status) return status;
     for (std::uint32_t i = 0; i < options.paint_field_capacity; ++i)
         implementation->paint_fields[i] = {};
-    status = allocate_managed(implementation->paint_rules,
-                              options.paint_rule_capacity);
-    if (!status) return status;
     for (std::uint32_t i = 0; i < options.paint_rule_capacity; ++i)
         implementation->paint_rules[i] = {};
-    status = allocate_managed(implementation->fluid_neighbor_overflow, 1U);
-    if (!status) return status;
     *implementation->fluid_neighbor_overflow = 0U;
-    status = allocate_managed(
-        implementation->fluid_maximum_neighbor_count, 1U);
-    if (!status) return status;
     *implementation->fluid_maximum_neighbor_count = 0U;
-    const std::size_t pair_capacity =
-        static_cast<std::size_t>(options.rigid_body_capacity) *
-        options.rigid_body_capacity;
-    // At most n(n-1)/2 pairs can involve a dynamic body: dynamic/dynamic
-    // pairs are unique, and every other pair needs exactly one dynamic body.
-    const std::size_t manifold_count =
-        static_cast<std::size_t>(options.rigid_body_capacity) *
-        (options.rigid_body_capacity - 1U) / 2U;
-    if (manifold_count >
-        std::numeric_limits<std::size_t>::max() / sizeof(ContactManifold)) {
-        return failure(StatusCode::invalid_argument,
-                       "rigid body capacity exceeds contact cache range");
-    }
-    const std::size_t requested_leaf_pair_slots = std::max(
-        static_cast<std::size_t>(k_minimum_leaf_pair_cache_slots),
-        static_cast<std::size_t>(options.rigid_body_capacity) *
-            k_leaf_pair_cache_slots_per_body);
-    const std::size_t leaf_pair_slot_capacity =
-        std::min(manifold_count, requested_leaf_pair_slots);
-    const std::uint32_t leaf_pairs_per_slot =
-        options.rigid_body_capacity <= k_small_rigid_leaf_body_capacity
-            ? k_small_rigid_leaf_pair_capacity : k_max_leaf_pairs_per_body_pair;
-    if (leaf_pair_slot_capacity > std::numeric_limits<std::size_t>::max() /
-                                      leaf_pairs_per_slot ||
-        leaf_pair_slot_capacity >
-            std::numeric_limits<std::uint32_t>::max()) {
-        return failure(StatusCode::invalid_argument,
-                       "rigid body capacity exceeds leaf-pair cache range");
-    }
-    implementation->rigid_leaf_pair_slot_capacity =
-        static_cast<std::uint32_t>(leaf_pair_slot_capacity);
-    implementation->rigid_leaf_pair_capacity =
-        leaf_pair_slot_capacity * leaf_pairs_per_slot;
-    implementation->rigid_leaf_pairs_per_slot = leaf_pairs_per_slot;
-    implementation->rigid_contact_capacity = options.contact_capacity;
-
-    status = allocate_managed(implementation->parameters,
-                                     options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->accumulators,
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->targets,
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_constraints,
-                              options.rigid_constraint_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->ids,
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->states[0],
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->states[1],
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->render_previous_states,
-                              options.rigid_body_capacity);
-    if (!status) return status;
-    if (options.physics_debug.frame_capacity != 0U) {
-        status = allocate_managed(implementation->debug_applied_forces,
-                                  options.rigid_body_capacity);
-        if (!status) return status;
-        status = allocate_managed(implementation->debug_applied_torques,
-                                  options.rigid_body_capacity);
-        if (!status) return status;
-        status = allocate_managed(implementation->debug_rigid_samples,
-                                  options.rigid_body_capacity);
-        if (!status) return status;
-    }
-    status = allocate_managed(implementation->fluid_previous_states,
-                              options.rigid_body_capacity);
-    if (!status) return status;
-    status = allocate_managed(implementation->rigid_manifolds, manifold_count);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->avbd_bodies, options.rigid_body_capacity);
-    if (!status) return status;
+    const std::size_t pair_capacity = std::size_t(options.rigid_body_capacity) * options.rigid_body_capacity;
+    const std::size_t manifold_count = std::size_t(options.rigid_body_capacity) * (options.rigid_body_capacity - 1) / 2;
+    const auto leaf_pair_slot_capacity = implementation->rigid_leaf_pair_slot_capacity;
     std::fill_n(implementation->avbd_bodies, options.rigid_body_capacity,
                 simulation::GeometryConstraintBody{});
-    status = allocate_managed(implementation->rigid_contact_cache, leaf_pair_slot_capacity);
-    if (!status) return status;
-    status = allocate_managed(implementation->rigid_contact_cache_slots, pair_capacity);
-    if (!status) return status;
     std::fill_n(implementation->rigid_contact_cache, leaf_pair_slot_capacity, CachedContactPair{});
     std::fill_n(implementation->rigid_contact_cache_slots, pair_capacity, k_invalid_dense);
-    status = allocate_managed(implementation->rigid_contact_schedule, 1U);
-    if (!status) return status;
     *implementation->rigid_contact_schedule = {};
-    status = allocate_managed(implementation->rigid_contact_event_offsets,
-                              manifold_count);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_world_bounds,
-                              options.rigid_body_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->hit_box_rigid_flags,
-                              options.rigid_body_capacity);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_body_bounds,
-                              options.rigid_body_capacity);
-    if (!status) return status;
-    if (options.rigid_constraint_capacity > 0U) {
-        status = allocate_managed(implementation->fixed_contact_projection,
-                                  options.rigid_body_capacity);
-        if (!status) return status;
-    }
-    const std::size_t fluid_body_words =
-        (static_cast<std::size_t>(options.rigid_body_capacity) + 63U) / 64U;
-    status = allocate_managed(implementation->fluid_body_masks,
-                              k_fluid_body_buckets * fluid_body_words);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_global_body_masks,
-                              fluid_body_words);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_body_contact_flags,
-                              options.rigid_body_capacity);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_contact_events,
-                              options.contact_capacity);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_contact_count, 1U);
-    if (!status) return status;
-    status = allocate_managed(implementation->fluid_contact_overflow, 1U);
-    if (!status) return status;
     *implementation->fluid_contact_count = 0U;
     *implementation->fluid_contact_overflow = 0U;
-    status = allocate_managed(implementation->rigid_active_pair_flags,
-                              pair_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_active_pairs,
-                              pair_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_active_pair_count, 1U);
-    if (!status) {
-        return status;
-    }
-    if (pair_capacity > static_cast<std::size_t>(
-                             std::numeric_limits<int>::max())) {
-        return failure(StatusCode::invalid_argument,
-                       "rigid body capacity exceeds broad-phase range");
-    }
-    implementation->rigid_broad_phase_workspace_size =
-        simulation::compaction_scratch_bytes(
-            static_cast<std::uint32_t>(pair_capacity));
-    status = allocate_scratch(implementation->rigid_broad_phase_workspace,
-                              implementation->rigid_broad_phase_workspace_size);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_leaf_pairs,
-                              implementation->rigid_leaf_pair_capacity);
-    if (!status) {
-        return status;
-    }
-    if (options.rigid_body_capacity <= k_small_rigid_leaf_body_capacity) {
-        status = allocate_managed(implementation->rigid_leaf_manifolds,
-                                  implementation->rigid_leaf_pair_capacity);
-        if (!status) return status;
-    }
-    status = allocate_managed(implementation->rigid_leaf_pair_counts,
-                              pair_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_contact_events,
-                              implementation->rigid_contact_capacity);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->rigid_contact_count, 1U);
-    if (!status) {
-        return status;
-    }
-    status = allocate_managed(implementation->meshes,
-                              options.triangle_mesh_capacity);
-    if (!status) {
-        return status;
-    }
-
     std::fill_n(implementation->parameters, options.rigid_body_capacity,
                 BodyParameters{});
     std::fill_n(implementation->accumulators, options.rigid_body_capacity,

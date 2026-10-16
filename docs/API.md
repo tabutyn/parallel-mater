@@ -53,8 +53,25 @@ invalidating operate on host-visible allocations.
 Geometry describes indexed triangles through typed buffer views. A simulation
 reserves explicit capacities for every enabled physics domain, coupling,
 event stream, and debug stream. A physics pipeline contains solver and material
-state for rigid bodies, fluid, cloth, rope, soft bodies, smoke, and their
-couplings. Resource creation does not execute simulation work.
+state for rigid bodies, fluid, cloth, rope, soft bodies, smoke, and a legacy
+default coupling list. Resource creation does not execute simulation work.
+
+`pmCmdSetCouplings` records a complete simulation-owned coupling list. It copies
+the descriptors; zero count selects an empty explicit graph. Subsequent pipeline
+binds do not replace that graph. Endpoint writes retire active edges, and the
+next step resolves the same slot descriptors against the new endpoint generations.
+Reset removes the override and restores pipeline-supplied default graphs. Graph
+creation failure releases every edge created by that attempt; it does not restore
+the previous graph. Intrinsic rigid/liquid contact remains enabled independently
+of explicit edges in the reference solver. Older drivers can lack this additive
+command; check `pmGetDeviceProcAddr` before use.
+
+The reference drivers currently reject enabled sleeping and one-way mechanical
+contact requests with `PM_ERROR_FEATURE_NOT_PRESENT`. Omitted rigid policy defaults
+to sleeping disabled. Liquid/cloth derives its interaction radius from the liquid
+support radius; its `maximumAcceleration` must be zero. Distinct fluid–fluid
+interactions remain unsupported until their material semantics and solver are
+qualified.
 
 ## Command buffers
 

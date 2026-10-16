@@ -25,6 +25,13 @@ PmResult enumerate_values(const std::vector<T> &available, std::uint32_t *count,
     return written == available.size() ? PM_SUCCESS : PM_INCOMPLETE;
 }
 
+bool validation_layer_name(const char *name) {
+    // Keep the original 0.2 spelling as an unadvertised compatibility alias.
+    return name != nullptr &&
+        (std::strcmp(name, "PM_LAYER_PARALLEL_MATER_validation") == 0 ||
+         std::strcmp(name, "PM_LAYER_KHRONOS_validation") == 0);
+}
+
 void copy_name(char (&destination)[256], const char *source) {
     std::strncpy(destination, source, sizeof destination - 1U);
     destination[sizeof destination - 1U] = '\0';
@@ -66,7 +73,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL
 pmEnumerateInstanceLayerProperties(std::uint32_t *count,
                                    PmLayerProperties *properties) {
     PmLayerProperties validation{};
-    copy_name(validation.layerName, "PM_LAYER_KHRONOS_validation");
+    copy_name(validation.layerName, "PM_LAYER_PARALLEL_MATER_validation");
     validation.specificationVersion = PM_API_VERSION_0_2;
     validation.implementationVersion = 1U;
     copy_name(validation.description, "Parallel Mater validation layer");
@@ -79,7 +86,7 @@ pmEnumerateInstanceExtensionProperties(const char *layer_name,
                                        std::uint32_t *count,
                                        PmExtensionProperties *properties) {
     if (layer_name != nullptr &&
-        std::strcmp(layer_name, "PM_LAYER_KHRONOS_validation") != 0)
+        !validation_layer_name(layer_name))
         return PM_ERROR_LAYER_NOT_PRESENT;
     return enumerate_values(std::vector<PmExtensionProperties>{}, count,
                             properties);
@@ -125,16 +132,16 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
     if (instance == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *instance = nullptr;
     if (info == nullptr || info->sType != PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO ||
-        info->apiVersion > PM_API_VERSION_0_2 ||
         (info->enabledLayerCount != 0U && info->ppEnabledLayerNames == nullptr) ||
         (info->enabledExtensionCount != 0U &&
          info->ppEnabledExtensionNames == nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (info->apiVersion != 0U && info->apiVersion != PM_API_VERSION_0_2)
+        return PM_ERROR_INCOMPATIBLE_VERSION;
     bool validation_enabled = info->enableValidation == PM_TRUE;
     for (std::uint32_t index = 0U; index < info->enabledLayerCount; ++index) {
         const char *name = info->ppEnabledLayerNames[index];
-        if (name == nullptr ||
-            std::strcmp(name, "PM_LAYER_KHRONOS_validation") != 0)
+        if (!validation_layer_name(name))
             return PM_ERROR_LAYER_NOT_PRESENT;
         validation_enabled = true;
     }

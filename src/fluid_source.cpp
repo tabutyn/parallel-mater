@@ -62,7 +62,7 @@ Status sample_fluid_source(ParticleSourceMesh mesh, std::vector<Vec3> &output) n
                     for(auto q:it->second) if(squared(p,q)<double(mesh.spacing)*mesh.spacing) {occupied=true;break;}
                 }
                 if (occupied) continue;
-                if (result.size()==65'536)
+                if (result.size()==maximum_fluid_source_sites)
                     return {StatusCode::capacity_exceeded,0,"too many fluid source sites"};
                 cells[cell].push_back(p);
                 result.push_back(p);

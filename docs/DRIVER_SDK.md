@@ -16,7 +16,7 @@ ordinary `pm*` application symbols.
 | `parallel_mater_driver_slang_cuda` | First reference driver and conformance baseline |
 | `parallel_mater_driver_slang_d3d12` | Windows transfer driver and shared DXIL rigid-body/constraint adapter |
 | `parallel_mater_driver_slang_cpu` | Serial macOS rigid-capability development driver |
-| `PM_LAYER_KHRONOS_validation` | Optional validation layer |
+| `PM_LAYER_PARALLEL_MATER_validation` | Optional validation layer |
 
 ## Required driver exports
 
@@ -31,7 +31,7 @@ PFN_pmVoidFunction pm_driverGetPhysicalDeviceProcAddr(
 ```
 
 `pm_driverNegotiateLoaderInterfaceVersion` replaces `*pVersion` with the newest
-interface version supported by both parties. Version zero is invalid. Driver
+interface version supported by both parties. Version zero and any returned version greater than the loader requested are invalid. The same rule applies to layer negotiation. Driver
 libraries use hidden symbol visibility and export only these four functions.
 
 Global lookup with a null instance exposes `pmGetInstanceProcAddr`,
@@ -132,3 +132,16 @@ The build target `parallel-mater-driver-abi-tests` verifies negotiation,
 function lookup, and the absence of ordinary `pm*` exports from a driver. The
 architecture test rejects CUDA types or physics details in the loader and native
 launch intrinsics outside the shared device-intrinsic module.
+
+## Compatibility and validation
+
+API 0.2 currently accepts `PM_API_VERSION_0_2` or zero (the 0.2 default).
+Other API versions return `PM_ERROR_INCOMPATIBLE_VERSION`; pre-stable minor
+versions do not imply backward compatibility. Loader/driver and loader/layer
+interface versions are separate from the application API version.
+
+The validation layer is advertised as `PM_LAYER_PARALLEL_MATER_validation`.
+The initial `PM_LAYER_KHRONOS_validation` spelling remains an unadvertised
+compatibility alias for existing 0.2 applications; it implies no Khronos
+ownership or endorsement. The command arguments and state validation contract
+is tracked in [API contract rules](API-CONTRACT.md).

@@ -335,6 +335,14 @@
       "status": "driver-routed"
     },
     {
+      "name": "pmCmdSetCouplings",
+      "section": "9.3",
+      "card": "coupling",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
       "name": "pmCreatePhysicsPipeline",
       "section": "9.5",
       "card": "pipeline_create",
@@ -1633,6 +1641,7 @@
     "PFN_pmCmdSetKinematicTargets",
     "PFN_pmCmdQueryHitBox",
     "PFN_pmCmdWriteRigidConstraints",
+    "PFN_pmCmdSetCouplings",
     "PFN_pmCreatePhysicsPipeline",
     "PFN_pmDestroyPhysicsPipeline",
     "PFN_pmCmdWriteCloths",

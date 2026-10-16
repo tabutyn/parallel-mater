@@ -3,6 +3,32 @@
 
 #include <cmath>
 
+namespace parallel_mater::api {
+PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept {
+    if (coupling.type < PM_COUPLING_LIQUID_RIGID || coupling.type > PM_COUPLING_SMOKE_SOFT_BODY)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (coupling.type == PM_COUPLING_LIQUID_LIQUID) return PM_ERROR_FEATURE_NOT_PRESENT;
+    if (coupling.type != PM_COUPLING_LIQUID_RIGID && !device->enabled.domainCouplings)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    switch (coupling.type) {
+    case PM_COUPLING_LIQUID_RIGID:
+    case PM_COUPLING_LIQUID_CLOTH:
+    case PM_COUPLING_LIQUID_ROPE:
+    case PM_COUPLING_LIQUID_SOFT_BODY:
+    case PM_COUPLING_SOFT_BODY_CLOTH:
+        if (coupling.parameters.mechanical.twoWay > PM_TRUE) return PM_ERROR_INVALID_ARGUMENT;
+        if (!coupling.parameters.mechanical.twoWay) return PM_ERROR_FEATURE_NOT_PRESENT;
+        break;
+    default: break;
+    }
+    // Cloth support radius is derived from the liquid material. Acceleration
+    // is a different unit and this pair does not implement that cap.
+    if (coupling.type == PM_COUPLING_LIQUID_CLOTH && coupling.parameters.mechanical.maximumAcceleration != 0)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    return PM_SUCCESS;
+}
+} // namespace parallel_mater::api
+
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
     PmDevice device, const PmPhysicsPipelineCreateInfo *info,
     PmPhysicsPipeline *pipeline) {
@@ -23,12 +49,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
     auto *created = parallel_mater::api::make_object<PmPhysicsPipeline_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
+    created->serial = device->next_pipeline_serial.fetch_add(1, std::memory_order_relaxed);
     created->rigid = info->pRigidState != nullptr
-        ? *info->pRigidState : PmRigidSolverState{10U, PM_TRUE, 0.02F, 0.02F, 0.5F};
+        ? *info->pRigidState : PmRigidSolverState{10U, PM_FALSE, 0.02F, 0.02F, 0.5F};
     if (created->rigid.rigidIterations == 0U ||
         created->rigid.rigidIterations > 64U) {
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_INVALID_ARGUMENT;
+    }
+    if (created->rigid.enableSleeping != PM_FALSE) {
+        const auto result = created->rigid.enableSleeping == PM_TRUE
+            ? PM_ERROR_FEATURE_NOT_PRESENT : PM_ERROR_INVALID_ARGUMENT;
+        parallel_mater::api::destroy_object(device, created);
+        return result;
     }
     try {
         if (info->fluidMaterialCount != 0U)
@@ -63,14 +96,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
         }
     }
     for (const auto &coupling : created->couplings) {
-        if (coupling.type == PM_COUPLING_LIQUID_LIQUID) {
+        const auto result = parallel_mater::api::validate_coupling(device, coupling);
+        if (result != PM_SUCCESS) {
             parallel_mater::api::destroy_object(device, created);
-            return PM_ERROR_FEATURE_NOT_PRESENT;
-        }
-        if (coupling.type < PM_COUPLING_LIQUID_RIGID ||
-            coupling.type > PM_COUPLING_SMOKE_SOFT_BODY) {
-            parallel_mater::api::destroy_object(device, created);
-            return PM_ERROR_INVALID_ARGUMENT;
+            return result;
         }
     }
     *pipeline = created;

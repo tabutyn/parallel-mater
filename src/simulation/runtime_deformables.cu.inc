@@ -772,72 +772,18 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
         ? options.target_volume : fabsf(initial_signed_volume);
     cloth->volume_compliance = options.volume_compliance;
     cloth->orientation = initial_signed_volume < 0.0F ? -1.0F : 1.0F;
-    status = allocate_managed(cloth->positions, capacity); if (!status) return status;
-    status = allocate_managed(cloth->scratch, capacity); if (!status) return status;
-    status = allocate_managed(cloth->previous, capacity); if (!status) return status;
-    status = allocate_managed(cloth->velocities, capacity); if (!status) return status;
-    status = allocate_managed(cloth->inverse_masses, capacity); if (!status) return status;
-    status = allocate_managed(cloth->indices, cloth->index_count); if (!status) return status;
-    if (fracture_enabled) {
-        status = allocate_managed(cloth->source_indices, cloth->index_count);
-        if (!status) return status;
-        status = allocate_managed(cloth->vertex_sources, capacity);
-        if (!status) return status;
-        status = allocate_managed(cloth->free_triangle_nodes, capacity);
-        if (!status) return status;
-        status = allocate_managed(cloth->surface_positions, surface_rest.size());
-        if (!status) return status;
-        status = allocate_managed(cloth->surface_triangle_indices,
-                                  surface_indices.size());
-        if (!status) return status;
-        status = allocate_managed(cloth->triangle_bonds, triangle_bonds.size());
-        if (!status) return status;
-    }
-    status = allocate_managed(cloth->bonds, bonds.size()); if (!status) return status;
-    status = allocate_managed(cloth->bond_active, bonds.size());
-    if (!status) return status;
-    status = allocate_managed(cloth->bond_damage, bonds.size());
-    if (!status) return status;
-    status = allocate_managed(cloth->offsets, static_cast<std::size_t>(capacity) + 1U); if (!status) return status;
-    status = allocate_managed(cloth->neighbors, cloth->neighbor_capacity); if (!status) return status;
-    status = allocate_managed(cloth->body_impulses, capacity); if (!status) return status;
-    status = allocate_managed(cloth->rigid_contact_forces, capacity);
-    if (!status) return status;
-    status = allocate_managed(cloth->soft_body_forces, capacity);
-    if (!status) return status;
-    if (impl_->options.rope_cloth_coupling_capacity != 0U) {
-        status = allocate_managed(cloth->rope_forces, capacity);
-        if (!status) return status;
-    }
-    status = allocate_managed(cloth->body_corrections,
-                              impl_->options.rigid_body_capacity);
+    StorageAllocator allocator;
+    status = simulation::visit_cloth_storage(*cloth, impl_->options.rigid_body_capacity,
+        fracture_enabled, options.preserve_volume,
+        impl_->options.rope_cloth_coupling_capacity != 0,
+        impl_->options.fluid_cloth_coupling_capacity != 0,
+        impl_->options.smoke_cloth_coupling_capacity != 0, allocator);
     if (!status) return status;
     if (options.preserve_volume) {
-        status = allocate_managed(cloth->volume_gradients, count);
-        if (!status) return status;
-        status = allocate_managed(cloth->volume_corner_offsets,
-            volume_corner_offsets.size());
-        if (!status) return status;
-        status = allocate_managed(cloth->volume_corner_indices,
-            volume_corner_indices.size());
-        if (!status) return status;
-        status = allocate_managed(cloth->volume_lambda, 1U);
-        if (!status) return status;
         *cloth->volume_lambda = 0.0F;
-        std::copy(volume_corner_offsets.begin(), volume_corner_offsets.end(),
-            cloth->volume_corner_offsets);
-        std::copy(volume_corner_indices.begin(), volume_corner_indices.end(),
-            cloth->volume_corner_indices);
+        std::copy(volume_corner_offsets.begin(), volume_corner_offsets.end(), cloth->volume_corner_offsets);
+        std::copy(volume_corner_indices.begin(), volume_corner_indices.end(), cloth->volume_corner_indices);
     }
-    if (impl_->options.fluid_cloth_coupling_capacity != 0U) {
-        status = allocate_managed(cloth->fluid_forces, capacity);
-        if (!status) return status;
-    }
-    if (impl_->options.smoke_cloth_coupling_capacity != 0U) {
-        status = allocate_managed(cloth->smoke_forces, capacity);
-        if (!status) return status;
-    }
-    status = allocate_managed(cloth->count, 1U); if (!status) return status;
     for (std::uint32_t index = 0U; index < count; ++index) {
         cloth->positions[index] = options.vertices.data[index];
         cloth->scratch[index] = options.vertices.data[index];
@@ -1277,47 +1223,10 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
     body->shape_rest_center = shape_rest_center;
     body->shape_inverse_rest = shape_inverse_rest;
     body->solver_iterations = options.solver_iterations;
-#define PM_ALLOC_SOFT(member, count)                                            \
-    status = allocate_managed(body->member, count);                             \
-    if (!status) return status
-    PM_ALLOC_SOFT(positions, body->node_count);
-    PM_ALLOC_SOFT(rest_positions, body->node_count);
-    PM_ALLOC_SOFT(scratch, body->node_count);
-    PM_ALLOC_SOFT(previous, body->node_count);
-    PM_ALLOC_SOFT(velocities, body->node_count);
-    PM_ALLOC_SOFT(velocity_scratch, body->node_count);
-    PM_ALLOC_SOFT(inverse_masses, body->node_count);
-    PM_ALLOC_SOFT(bonds, body->bond_count);
-    PM_ALLOC_SOFT(bond_active, body->bond_count);
-    PM_ALLOC_SOFT(offsets, offsets.size());
-    PM_ALLOC_SOFT(neighbors, neighbors.size());
-    if(!warp_neighbors.empty())PM_ALLOC_SOFT(warp_neighbors,warp_neighbors.size());
-    if(!minimum_rest_lengths.empty())
-        PM_ALLOC_SOFT(minimum_rest_lengths,minimum_rest_lengths.size());
-    PM_ALLOC_SOFT(surface_rest_positions, body->surface_vertex_count);
-    PM_ALLOC_SOFT(surface_positions, body->surface_vertex_count);
-    PM_ALLOC_SOFT(surface_indices, body->surface_index_count);
-    PM_ALLOC_SOFT(surface_bindings, body->surface_vertex_count);
-    PM_ALLOC_SOFT(surface_corner_corrections, body->surface_index_count);
-    PM_ALLOC_SOFT(surface_node_offsets, surface_offsets.size());
-    PM_ALLOC_SOFT(surface_node_influences, surface_influences.size());
-    PM_ALLOC_SOFT(body_impulses, body->node_count);
-    PM_ALLOC_SOFT(body_position_corrections, body->node_count);
-    PM_ALLOC_SOFT(cloth_forces, body->node_count);
-    PM_ALLOC_SOFT(rope_forces, body->node_count);
-    PM_ALLOC_SOFT(fluid_forces, body->node_count);
-    PM_ALLOC_SOFT(rigid_contact_forces, body->node_count);
-    PM_ALLOC_SOFT(contact_normals, body->node_count);
-    PM_ALLOC_SOFT(contact_arms, body->node_count);
-    PM_ALLOC_SOFT(contact_momentum_delta, body->node_count);
-    PM_ALLOC_SOFT(contact_friction_delta, body->node_count);
-    PM_ALLOC_SOFT(contact_normal_delta, body->node_count);
-    PM_ALLOC_SOFT(predicted_momentum, 1U);
-    PM_ALLOC_SOFT(shape_orientation, 1U);
-    PM_ALLOC_SOFT(dynamic_contact_flag, 1U);
-    PM_ALLOC_SOFT(contact_count, 1U);
-    PM_ALLOC_SOFT(count, 1U);
-#undef PM_ALLOC_SOFT
+    StorageAllocator allocator;
+    status = simulation::visit_soft_body_storage(*body, neighbors.size(),
+        warp_neighbors.size(), surface_influences.size(), allocator);
+    if (!status) return status;
     for (std::uint32_t node = 0U; node < body->node_count; ++node) {
         body->positions[node] = options.nodes.data[node];
         body->rest_positions[node] = options.nodes.data[node];
@@ -1422,18 +1331,11 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
     r.first_attachment_contact_skip=first_skip;
     r.last_attachment_contact_skip=last_skip;
     r.body_capacity=impl_->options.rigid_body_capacity;
-    for(Vec3 **p:{&r.positions,&r.previous,&r.velocities,&r.constraint_forces,&r.contact_forces,&r.fluid_contact_forces,&r.soft_body_contact_forces,&r.directions,&r.scratch,&r.normals,&r.normals2})
-        if(!(status=allocate_managed(*p,r.count)))return status;
-    for(Vec3 **p:{&r.soft_anchor_positions,&r.soft_anchor_velocities,&r.soft_anchor_impulses})
-        if(!(status=allocate_managed(*p,2U)))return status;
-    if(!(status=allocate_managed(r.soft_anchor_inverse_masses,2U)))return status;
-    r.soft_anchor_inverse_masses[0]=r.soft_anchor_inverse_masses[1]=0.0F;
-    for(float **p:{&r.rest,&r.lambda})
-        if(!(status=allocate_managed(*p,r.count)))return status;
-    if(!(status=allocate_managed(r.body_translation,impl_->options.rigid_body_capacity)) ||
-       !(status=allocate_managed(r.body_rotation,impl_->options.rigid_body_capacity)))return status;
-    if(!(status=allocate_managed(r.solid_hint,r.count*r.body_capacity)))return status;
-    std::fill_n(r.solid_hint,r.count*r.body_capacity,~0U);
+    StorageAllocator allocator;
+    status = simulation::visit_rope_storage(r, r.count, r.body_capacity, allocator);
+    if (!status) return status;
+    r.soft_anchor_inverse_masses[0] = r.soft_anchor_inverse_masses[1] = 0.0F;
+    std::fill_n(r.solid_hint,std::size_t(r.count)*r.body_capacity,~0U);
     for(unsigned i=0;i<r.count;++i){
         r.positions[i]=r.previous[i]=nodes[i];
         r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]=r.fluid_contact_forces[i]=r.soft_body_contact_forces[i]={};
@@ -1518,10 +1420,10 @@ Status SimulationRuntime::add_fluid_rope_coupling(
     std::unique_ptr<FluidRopeCouplingStorage> owner(
         new (std::nothrow) FluidRopeCouplingStorage());
     if (!owner) return failure(StatusCode::out_of_memory, "fluid rope coupling allocation failed");
-    if (!(status = allocate_managed(owner->node_impulses,
-            impl_->ropes[options.rope.index]->data.count)) ||
-        !(status = allocate_managed(owner->contact_count, 1U)) ||
-        !(status = allocate_managed(owner->maximum_penetration, 1U))) return status;
+    StorageAllocator allocator;
+    status = simulation::visit_fluid_rope_storage(*owner,
+        impl_->ropes[options.rope.index]->data.count, allocator);
+    if (!status) return status;
     *owner->contact_count = 0U;
     *owner->maximum_penetration = 0.0F;
     owner->options = options;
@@ -1693,10 +1595,9 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
         return failure(StatusCode::out_of_memory,"rope soft-body BVH build failed");
     }
     owner->tree_count=static_cast<unsigned>(tree.size());
-    if(!(status=allocate_managed(owner->tree,tree.size())) ||
-       !(status=allocate_managed(owner->order,order.size())) ||
-       !(status=allocate_managed(owner->parents,parents.size())) ||
-       !(status=allocate_managed(owner->ready,tree.size())))return status;
+    StorageAllocator allocator;
+    status = simulation::visit_rope_soft_tree_storage(*owner, tree.size(), order.size(), allocator);
+    if (!status) return status;
     std::copy(tree.begin(),tree.end(),owner->tree);
     std::copy(order.begin(),order.end(),owner->order);
     std::copy(parents.begin(),parents.end(),owner->parents);
@@ -1728,11 +1629,8 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
         if(owner->anchor_triangle[end]==~0U)
             return failure(StatusCode::invalid_argument,"soft body has no usable anchor triangle");
     }
-    if(!(status=allocate_managed(owner->node_impulses,body.node_count)) ||
-       !(status=allocate_managed(owner->previous_surface,body.surface_vertex_count)) ||
-       !(status=allocate_managed(owner->bounds,2U)) ||
-       !(status=allocate_managed(owner->contact_count,1U)) ||
-       !(status=allocate_managed(owner->maximum_penetration,1U)))return status;
+    status = simulation::visit_rope_soft_data_storage(*owner, body.node_count, body.surface_vertex_count, allocator);
+    if (!status) return status;
     std::fill_n(owner->node_impulses,body.node_count,Vec3{});
     std::copy_n(body.surface_positions,body.surface_vertex_count,
         owner->previous_surface);
@@ -2111,21 +2009,10 @@ Status SimulationRuntime::add_fluid_soft_body_coupling(
             };
         build(0U, static_cast<std::uint32_t>(order.size()), k_invalid_dense);
     } catch (...) { return failure(StatusCode::out_of_memory, "failed to build fluid soft-body coupling"); }
-#define PM_ALLOC_FLUID_SOFT(member, count) \
-    status = allocate_managed(coupling->member, count); if (!status) return status
-    PM_ALLOC_FLUID_SOFT(contacts, fluid->options.capacity);
-    PM_ALLOC_FLUID_SOFT(counts, body.node_count);
-    PM_ALLOC_FLUID_SOFT(position_deltas, body.node_count);
-    PM_ALLOC_FLUID_SOFT(impulses, body.node_count);
-    PM_ALLOC_FLUID_SOFT(previous_surface, body.surface_vertex_count);
-    PM_ALLOC_FLUID_SOFT(bounds, 2U);
-    PM_ALLOC_FLUID_SOFT(contact_count, 1U);
-    PM_ALLOC_FLUID_SOFT(maximum_penetration, 1U);
-    PM_ALLOC_FLUID_SOFT(tree, tree.size());
-    PM_ALLOC_FLUID_SOFT(parents, parents.size());
-    PM_ALLOC_FLUID_SOFT(ready, tree.size());
-    PM_ALLOC_FLUID_SOFT(triangle_order, order.size());
-#undef PM_ALLOC_FLUID_SOFT
+    StorageAllocator allocator;
+    status = simulation::visit_fluid_soft_storage(*coupling, fluid->options.capacity, body.node_count,
+        body.surface_vertex_count, tree.size(), order.size(), allocator);
+    if (!status) return status;
     std::copy(tree.begin(), tree.end(), coupling->tree);
     std::copy(parents.begin(), parents.end(), coupling->parents);
     std::copy(order.begin(), order.end(), coupling->triangle_order);
@@ -2214,10 +2101,9 @@ Status SimulationRuntime::add_soft_body_cloth_coupling(
     try { coupling = std::make_unique<SoftClothCouplingStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory,
                                 "failed to allocate soft-body cloth coupling"); }
-    status = allocate_managed(coupling->contacts, soft_view.node_count);
-    if (!status) return status;
-    status = allocate_managed(coupling->cloth_contact_counts,
-                              impl_->cloths[options.cloth.index]->vertex_capacity);
+    StorageAllocator allocator;
+    status = simulation::visit_soft_cloth_storage(*coupling, soft_view.node_count,
+        impl_->cloths[options.cloth.index]->vertex_capacity, allocator);
     if (!status) return status;
     if (impl_->soft_cloth_couplings[slot])
         coupling->generation = impl_->soft_cloth_couplings[slot]->generation;

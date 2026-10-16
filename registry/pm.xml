@@ -736,7 +736,9 @@ typedef struct PmCouplingState {
     uint32_t second;
     PmCouplingParameters parameters;
 } PmCouplingState;</types>
-      <commands />
+      <commands>PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingState *pCouplings);</commands>
     </card>
     <card key="domain_materials" section="pipelines" extension="false" emit-header="true">
       <types>typedef struct PmClothMaterialState {

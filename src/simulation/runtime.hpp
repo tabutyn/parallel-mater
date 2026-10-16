@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace parallel_mater {
+namespace simulation { struct StorageRequirements; struct CouplingStorageLimits; }
 
 template <typename T> struct DeviceSpan {
     T *data{};
@@ -192,6 +193,27 @@ class SimulationRuntime {
     SimulationRuntime &operator=(SimulationRuntime &&) noexcept;
     SimulationRuntime(const SimulationRuntime &) = delete;
     SimulationRuntime &operator=(const SimulationRuntime &) = delete;
+
+    [[nodiscard]] static Status base_memory_requirements(SimulationOptions options,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status fluid_memory_requirements(std::uint32_t capacity,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status cloth_memory_requirements(std::uint32_t vertices,
+        std::uint32_t indices, std::uint32_t bonds, std::uint32_t rigid,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status rope_memory_requirements(std::uint32_t nodes,
+        std::uint32_t rigid, simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status soft_body_memory_requirements(std::uint32_t nodes,
+        std::uint32_t bonds, std::uint32_t vertices, std::uint32_t indices,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status smoke_memory_requirements(std::uint32_t particles,
+        std::uint32_t cells, simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status coupling_memory_requirements(const simulation::CouplingStorageLimits &limits,
+        simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status emitter_memory_requirements(simulation::StorageRequirements &output) noexcept;
+
+
+
 
     [[nodiscard]] static Status create(SimulationOptions options, SimulationRuntime &output,
                                        device::ExecutionQueue queue = {}) noexcept;

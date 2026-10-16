@@ -78,20 +78,25 @@ reproductions.
 
 ### F1. Make resource lifetime and declared capacity reliable
 
-Status: in progress. The shared arena now reclaims retired persistent/scratch
-allocations, coalesces free space, and leaves allocation state unchanged on
-failure. Simulation reset releases only its own geometry allocations. A new
-SDK-only test target supports installed-driver selection without gallery/CUDA;
-1,024 fluid replacements preserve a second population using exactly queried
-storage. Serial Slang CPU build passes 23/23 tests, including async lifetime,
-arena reclamation and the new public regression. GPU qualification, common
-allocation planning and broader mutation/failure cases remain open.
+Status: in progress. Retired bound allocations are reclaimed, and simulation
+reset releases only its own geometry allocations. Typed allocation plans cover
+global storage, all five particle domains, emitters and major coupling buffers.
+Disjoint per-slot regions prevent cross-domain fragmentation. Rope resampling
+and cloth fracture respect declared capacity; gallery fracture budgets match.
+
+SDK-only regressions use exact queried memory: 4,096 fluid replacements plus
+128 deferred failures/recovery pass on Slang CPU, CUDA and Vulkan. A further
+1,024 mixed-domain writes with changing layouts pass on CUDA. The CPU build
+passes 23 checks and skips the unsupported mixed-domain case. Geometry/paint
+planning, auxiliary-resource lifecycle and coupled endpoint mutation remain
+open. See [resource lifetime and recovery](RESOURCE-LIFETIME.md) for semantics,
+evidence scope and remaining coverage.
 
 - Extract headless public-API test support that builds without CUDA, gallery
   rendering or private simulation headers. Use mock/CPU drivers for suitable
   host tests and select installed GPU drivers for advertised physics cases.
 - Add the fluid replacement regression: one write passes, but 256 replacements
-  in the same two-particle slot exhaust bound memory in the current CUDA path.
+  in the same two-particle slot exhausted bound memory in the audited CUDA path.
 - Make per-resource storage reusable within declared capacity. Share one
   allocation plan between memory-requirement queries and actual allocation.
 - Define replacement, removal, pending-resource lifetime, failed allocation,
@@ -103,7 +108,17 @@ recovery cases run through the public API. This is the next implementation slice
 
 ### F2. Make the interaction graph a first-class simulation resource
 
-Status: pending; extends milestone 2.
+Status: in progress; extends milestone 2. The reference API now tracks active
+coupling handles on the simulation, retires them before endpoint replacement,
+reconciles pipeline changes and rolls back partially created graphs. New
+`pmCmdSetCouplings` records a simulation-owned graph independently of pipeline
+creation. CPU host/loader checks pass (23 passed, two unsupported domain cases
+skipped); CUDA passes the fluid–rope graph lifecycle regression, including
+endpoint replacement, policy/explicit graph changes, snapshots and partial graph
+rollback. Retirement reuses host owners without allocating tombstones.
+Sleeping and one-way mechanical requests now fail explicitly, and
+liquid/cloth no longer interprets acceleration as a distance. Pair/mode capability
+queries and qualified fluid–fluid physics remain open.
 
 - Separate mutable coupling edges from immutable pipeline policy. Support
   create/update/remove/rebind and endpoint replacement with stable generations.
@@ -119,7 +134,11 @@ fluid–fluid and mixed-system lifecycle/physics cases pass their declared scope
 
 ### F3. Reconcile the specification, ABI and validation contract
 
-Status: pending.
+Status: in progress. Invalid API/driver/layer version negotiation is rejected
+with independent mock-library tests. Validation uses the project-owned namespace
+with an old-name compatibility alias. Lifetime prose and stable contract-rule
+identifiers now describe tested behavior; typed state validation remains next.
+See [API contract rules](API-CONTRACT.md).
 
 - Resolve conflicting destruction/wait semantics and error codes; specify
   threading, command snapshots, deferred failures, capacity overflow and reset.
