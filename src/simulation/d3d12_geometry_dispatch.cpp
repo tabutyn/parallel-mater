@@ -108,8 +108,7 @@ cudaError_t broad_phase_rigid_pairs(
     values.set(108U, constraint_capacity);
     values.buffer(112U, *execution, fixed_groups);
     values.set(124U, count);
-    values.set(128U, execution->widened_flags(
-                         active_flags, count * count));
+    values.buffer(128U, *execution, active_flags);
     return launch(stream, "geometry", "pm_broad_phase_rigid_pairs",
                   grid, block, values);
 }
@@ -462,9 +461,9 @@ cudaError_t compact_flagged_indices(
     if (execution == nullptr) return cudaErrorInvalidResourceHandle;
     auto *counts = static_cast<std::uint32_t *>(scratch);
     auto *offsets = counts + blocks;
-    const auto wide_flags = execution->widened_flags(flags, count);
+    const auto packed_flags = execution->address(flags);
     Constants<48> count_values;
-    count_values.set(0U, wide_flags);
+    count_values.set(0U, packed_flags);
     count_values.set(12U, count);
     count_values.set(16U, primitive_tile_size);
     count_values.buffer(32U, *execution, counts);
@@ -481,7 +480,7 @@ cudaError_t compact_flagged_indices(
                     dim3(1U), dim3(1U), scan_values);
     if (result != cudaSuccess) return result;
     Constants<64> scatter_values;
-    scatter_values.set(0U, wide_flags);
+    scatter_values.set(0U, packed_flags);
     scatter_values.set(12U, count);
     scatter_values.set(16U, primitive_tile_size);
     scatter_values.buffer(32U, *execution, offsets);
@@ -491,9 +490,64 @@ cudaError_t compact_flagged_indices(
 }
 
 cudaError_t radix_sort_pairs_u64_u32(
-    cudaStream_t, std::uint64_t *, std::uint64_t *, std::uint32_t *,
-    std::uint32_t *, std::uint32_t, void *, std::size_t) noexcept {
-    return cudaErrorNotSupported;
+    cudaStream_t stream, std::uint64_t *input_keys,
+    std::uint64_t *output_keys, std::uint32_t *input_values,
+    std::uint32_t *output_values, std::uint32_t count,
+    void *scratch, std::size_t scratch_bytes) noexcept {
+    if (count == 0U) return cudaSuccess;
+    if (input_keys == nullptr || output_keys == nullptr ||
+        input_values == nullptr || output_values == nullptr ||
+        scratch == nullptr || scratch_bytes < radix_sort_scratch_bytes(count))
+        return cudaErrorInvalidValue;
+    auto *execution = d3d12::context(stream);
+    if (execution == nullptr) return cudaErrorInvalidResourceHandle;
+    const auto blocks = primitive_block_count(count);
+    auto *histograms = static_cast<std::uint32_t *>(scratch);
+    auto *offsets = histograms + 16U * blocks;
+    auto *source_keys = input_keys;
+    auto *target_keys = output_keys;
+    auto *source_values = input_values;
+    auto *target_values = output_values;
+    for (std::uint32_t shift = 0U; shift < 64U; shift += 4U) {
+        Constants<44> histogram;
+        histogram.buffer(0U, *execution, source_keys);
+        histogram.set(12U, count);
+        histogram.set(16U, primitive_tile_size);
+        histogram.set(20U, shift);
+        histogram.set(24U, blocks);
+        histogram.buffer(32U, *execution, histograms);
+        auto result = launch(stream, "primitives", "pm_radix_histogram_u64",
+                             dim3(blocks), dim3(primitive_tile_size), histogram);
+        if (result != cudaSuccess) return result;
+        Constants<28> prefix;
+        prefix.buffer(0U, *execution, histograms);
+        prefix.set(12U, blocks);
+        prefix.buffer(16U, *execution, offsets);
+        result = launch(stream, "primitives", "pm_radix_prefix_u32",
+                        dim3(1U), dim3(1U), prefix);
+        if (result != cudaSuccess) return result;
+        Constants<92> scatter;
+        scatter.buffer(0U, *execution, source_keys);
+        scatter.buffer(16U, *execution, source_values);
+        scatter.set(28U, count);
+        scatter.set(32U, primitive_tile_size);
+        scatter.set(36U, shift);
+        scatter.set(40U, blocks);
+        scatter.buffer(48U, *execution, offsets);
+        scatter.buffer(64U, *execution, target_keys);
+        scatter.buffer(80U, *execution, target_values);
+        result = launch(stream, "primitives", "pm_radix_scatter_u64_u32",
+                        dim3(blocks), dim3(primitive_tile_size), scatter);
+        if (result != cudaSuccess) return result;
+        std::swap(source_keys, target_keys);
+        std::swap(source_values, target_values);
+    }
+    auto result = execution->copy_device(output_keys, input_keys,
+        static_cast<std::size_t>(count) * sizeof(*input_keys));
+    if (result == cudaSuccess)
+        result = execution->copy_device(output_values, input_values,
+            static_cast<std::size_t>(count) * sizeof(*input_values));
+    return result;
 }
 
 } // namespace parallel_mater::simulation

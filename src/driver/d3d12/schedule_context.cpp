@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <cstdio>
 #include <limits>
 #include <malloc.h>
 #include <mutex>
@@ -611,6 +612,12 @@ cudaError_t ScheduleContext::dispatch(
     std::string_view module, std::string_view entry, dim3 grid, dim3 block,
     std::span<const std::byte> entry_constants) noexcept {
     active_context = this;
+    if (!impl_->slang.matches_group_size(module, entry, block.x, block.y, block.z)) {
+        std::fprintf(stderr, "D3D12 Slang launch size mismatch: %.*s.%.*s (%u,%u,%u)\n",
+            static_cast<int>(module.size()), module.data(),
+            static_cast<int>(entry.size()), entry.data(), block.x, block.y, block.z);
+        return impl_->last_error = cudaErrorInvalidValue;
+    }
     const cudaError_t started = impl_->begin();
     if (started != cudaSuccess) return started;
     const DispatchConstants global{

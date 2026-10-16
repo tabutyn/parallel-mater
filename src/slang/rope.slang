@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared rope simulation, collision, coupling, and constraint kernels.
 
@@ -1098,8 +1099,9 @@ void rope_advance(
     uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
     uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
     uniform bool first_substep, uniform RopeSoftTarget soft_a,
-    uniform RopeSoftTarget soft_b)
+    uniform RopeSoftTarget soft_b PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint lane = pmGroupThreadIndex().x;
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)

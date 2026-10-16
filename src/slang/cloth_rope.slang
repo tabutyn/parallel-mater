@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared cloth/rope coupling kernels.
 
@@ -15,8 +16,9 @@ void rope_cloth_sample_anchor(
     uniform PMBuffer<float> soft_anchor_inverse_masses, uniform uint end,
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform uint vertex,
-    uniform float effective_mass)
+    uniform float effective_mass PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     soft_anchor_positions[end] = positions[vertex];
     soft_anchor_velocities[end] = velocities[vertex];
@@ -34,8 +36,9 @@ void rope_cloth_apply_anchor(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<Vec3> forces,
     uniform PMBuffer<float> inverse_masses, uniform uint vertex,
     uniform float maximum_acceleration, uniform float dt,
-    uniform float frame_inverse_dt)
+    uniform float frame_inverse_dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u || pmGroupThreadIndex().x != 0u) return;
     float inverseMass = inverse_masses[vertex];
     if (inverseMass <= 0.0f) return;

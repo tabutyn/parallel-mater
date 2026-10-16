@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared cloth simulation kernels.
 
@@ -22,8 +23,9 @@ void cloth_project_volume(
     uniform PMBuffer<uint> corner_indices, uniform PMBuffer<Vec3> gradients,
     uniform float target_volume, uniform float orientation,
     uniform float compliance, uniform float dt, uniform PMBuffer<float> lambda,
-    uniform bool reset_lambda)
+    uniform bool reset_lambda PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     if (pmBlockIndex().x != 0u) return;
     uint thread = pmGroupThreadIndex().x;
     if (thread == 0u)
@@ -117,14 +119,15 @@ void cloth_project_volume(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_break_bonds(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<ClothBond> bonds,
-    uniform PMBuffer<PMResourceUint8> active, uniform PMBuffer<PMResourceUint8> damage, uniform uint count,
+    uniform PMByteBuffer active, uniform PMByteBuffer damage, uniform uint count,
     uniform float break_strain, uniform uint persistence,
     uniform PMBuffer<FluidBodyImpulse> contact_impulses,
-    uniform float impact_threshold)
+    uniform float impact_threshold PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint edgeIndex = pmThreadIndex();
     if (edgeIndex >= count || active[edgeIndex] == 0u) return;
     ClothBond bond = bonds[edgeIndex];
@@ -155,13 +158,14 @@ void cloth_break_bonds(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_limit_strain(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> scratch,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> offsets,
-    uniform PMBuffer<DeformableNeighbor> neighbors, uniform PMBuffer<PMResourceUint8> free_nodes,
-    uniform uint count)
+    uniform PMBuffer<DeformableNeighbor> neighbors, uniform PMByteBuffer free_nodes,
+    uniform uint count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint thread = pmGroupThreadIndex().x;
     for (uint pass = 0u; pass < 32u; ++pass)
     {
@@ -207,11 +211,12 @@ void cloth_limit_strain(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void cloth_update_surface(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> source_indices,
-    uniform PMBuffer<Vec3> surface_positions, uniform uint triangle_count)
+    uniform PMBuffer<Vec3> surface_positions, uniform uint triangle_count PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint triangle = pmThreadIndex();
     if (triangle >= triangle_count) return;
     uint base = 3u * triangle;

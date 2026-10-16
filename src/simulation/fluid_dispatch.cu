@@ -14,18 +14,23 @@ template <typename T> T *as(void *value) noexcept {
 template <typename T> const T *as(const void *value) noexcept {
     return reinterpret_cast<const T *>(value);
 }
-PMPackedVec3_0 packed_vec3(const float value[3]) noexcept {
-    return {value[0], value[1], value[2]};
-}
 Vec3_0 vec3(const float value[3]) noexcept {
     return {value[0], value[1], value[2]};
 }
-PMFluidConstants_0 constants(const FluidDispatchConstants &value) noexcept {
-    return {value.timestep, packed_vec3(value.gravity), value.count,
-        value.particle_radius, value.support_radius, value.repulsion,
-        value.viscosity, value.normal_damping, value.velocity_damping,
-        value.maximum_speed, value.maximum_pair_acceleration,
-        value.rest_density, value.maximum_neighbors};
+FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
+    FluidOptions_0 result{};
+    result.capacity_1 = value.count;
+    result.particle_radius_0 = value.particle_radius;
+    result.support_radius_0 = value.support_radius;
+    result.repulsion_0 = value.repulsion;
+    result.viscosity_0 = value.viscosity;
+    result.normal_damping_0 = value.normal_damping;
+    result.velocity_damping_0 = value.velocity_damping;
+    result.maximum_speed_0 = value.maximum_speed;
+    result.maximum_pair_acceleration_0 = value.maximum_pair_acceleration;
+    result.rest_density_0 = value.rest_density;
+    result.maximum_neighbors_0 = value.maximum_neighbors;
+    return result;
 }
 
 } // namespace
@@ -34,8 +39,8 @@ void fluid_cell_keys(dim3 grid, dim3 block, cudaStream_t stream,
     void *positions, std::uint32_t *count, std::uint32_t capacity,
     float inverse_radius, std::uint64_t *keys,
     std::uint32_t *sorted_indices) noexcept {
-    pm_fluid_cell_keys<<<grid, block, 0U, stream>>>(
-        as<PMPackedVec3_0>(positions), count, capacity, inverse_radius,
+    fluid_emit_cells<<<grid, block, 0U, stream>>>(
+        as<Vec3_0>(positions), count, capacity, inverse_radius,
         reinterpret_cast<unsigned long long *>(keys), sorted_indices);
 }
 
@@ -45,22 +50,23 @@ void fluid_forces(dim3 grid, dim3 block, cudaStream_t stream,
     const float up[3], float *foam_sources, std::uint64_t *keys,
     std::uint32_t *sorted_indices, std::uint32_t *neighbor_overflow,
     std::uint32_t *maximum_neighbor_count) noexcept {
-    pm_fluid_forces<<<grid, block, 0U, stream>>>(
-        as<PMPackedVec3_0>(positions), as<PMPackedVec3_0>(velocities),
-        as<PMPackedVec3_0>(accelerations), foam, count, constants(values),
-        packed_vec3(up), foam_sources,
+    fluid_compute_forces<<<grid, block, 0U, stream>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(velocities), count,
         reinterpret_cast<unsigned long long *>(keys),
-        sorted_indices, neighbor_overflow, maximum_neighbor_count);
+        sorted_indices, foam, constants(values), vec3(up),
+        as<Vec3_0>(accelerations), foam_sources, neighbor_overflow,
+        maximum_neighbor_count);
 }
 
 void integrate_fluid(dim3 grid, dim3 block, cudaStream_t stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
     void *previous, float *foam_sources) noexcept {
-    pm_fluid_integrate<<<grid, block, 0U, stream>>>(
-        as<PMPackedVec3_0>(positions), as<PMPackedVec3_0>(velocities),
-        as<PMPackedVec3_0>(accelerations), foam, count, constants(values),
-        as<PMPackedVec3_0>(previous), foam_sources);
+    fluid_integrate<<<grid, block, 0U, stream>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(velocities),
+        as<Vec3_0>(previous), foam, as<Vec3_0>(accelerations),
+        foam_sources, count, constants(values), vec3(values.gravity),
+        values.timestep);
 }
 
 void reserve_fluid_contact_events(cudaStream_t stream,

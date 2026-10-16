@@ -22,6 +22,13 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.timestampQueries = PM_TRUE;
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
+#if defined(PARALLEL_MATER_D3D12_DRIVER)
+    features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
+    features.cloth = PM_TRUE;
+    features.domainCouplings = PM_TRUE;
+    features.particleEmitters = PM_TRUE;
+#endif
 #else
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;

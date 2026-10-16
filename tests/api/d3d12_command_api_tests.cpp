@@ -164,7 +164,8 @@ int main() {
 
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-    simulation_info.rigidBodyCapacity = 2U;
+    // Exercise the no-leaf-cache schedule used by real galleries (>8 slots).
+    simulation_info.rigidBodyCapacity = 12U;
     simulation_info.contactCapacity = 8U;
     simulation_info.debugFrameCapacity = 2U;
     PmSimulation simulation{};
@@ -280,6 +281,20 @@ int main() {
                      states[1].linearVelocity[1]);
     CHECK(states[1].position[1] < first_position - 1.0e-4F);
     CHECK(states[1].linearVelocity[1] < first_velocity - 1.0e-4F);
+
+    // Reuse the same executable command buffer over six simulated seconds.
+    // The cube must settle on the static cube, not merely remain finite.
+    for (std::uint32_t frame = 2U; frame < 360U; ++frame) {
+        CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+        CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+        CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                              PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+        CHECK(states[0].position[1] == -1.0F);
+        CHECK(std::isfinite(states[1].position[1]));
+        CHECK(states[1].position[1] > -0.025F);
+    }
+    CHECK(std::abs(states[1].position[1]) < 0.03F);
+    CHECK(std::abs(states[1].linearVelocity[1]) < 0.1F);
 
     pmDestroyPhysicsPipeline(device, pipeline);
     pmDestroySimulation(device, simulation);

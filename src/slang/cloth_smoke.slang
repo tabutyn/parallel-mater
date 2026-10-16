@@ -1,3 +1,4 @@
+#include "dispatch_entry.slang"
 // SPDX-License-Identifier: MIT
 // Shared cloth/smoke coupling kernels.
 
@@ -17,8 +18,9 @@ void smoke_cloth_wind(
     uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
     uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> keys,
     uniform PMBuffer<uint> indices, uniform SmokeGridField grid, uniform float drag,
-    uniform float maximum_acceleration, uniform float dt)
+    uniform float maximum_acceleration, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= vertex_count || inverse_masses[vertex] == 0.0f) return;
     velocities[vertex] = add(velocities[vertex], smoke_wind_delta(
@@ -37,8 +39,9 @@ void smoke_cloth_contact(
     uniform PMBuffer<uint> indices, uniform uint index_count, uniform PMBuffer<Vec3> minimum,
     uniform PMBuffer<Vec3> maximum, uniform float clearance,
     uniform float pressure_stiffness, uniform float maximum_speed,
-    uniform SmokeGridField grid)
+    uniform SmokeGridField grid PM_D3D12_DISPATCH_PARAMETER)
 {
+    PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= count || ages[particle] >= lifetime) return;
     Vec3 point = positions[particle];
