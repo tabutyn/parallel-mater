@@ -10,6 +10,16 @@
 
 namespace parallel_mater::device {
 
+class Services;
+
+struct DispatchSize {
+    std::uint32_t x{1U}, y{1U}, z{1U};
+    constexpr DispatchSize() noexcept = default;
+    constexpr DispatchSize(std::uint32_t x_value, std::uint32_t y_value = 1U,
+                           std::uint32_t z_value = 1U) noexcept
+        : x(x_value), y(y_value), z(z_value) {}
+};
+
 struct Event {
     std::uintptr_t value{};
 
@@ -23,6 +33,7 @@ struct Event {
 // device adapter may interpret the native handle.
 struct ExecutionQueue {
     void *native_handle{};
+    Services *services{};
 
     [[nodiscard]] explicit operator bool() const noexcept {
         return native_handle != nullptr;
@@ -90,13 +101,32 @@ class Services {
         void *destination, std::unique_ptr<std::byte[]> source,
         PmDeviceSize size) noexcept = 0;
     [[nodiscard]] virtual PmResult wait_idle() noexcept = 0;
+    [[nodiscard]] virtual PmResult clear(void *destination, int value,
+                                         PmDeviceSize size) noexcept = 0;
+    // Explicit host access to non-coherent device allocations. Coherent
+    // adapters need no transfer; graphics adapters synchronize only this range.
+    [[nodiscard]] virtual PmResult read_host(void *, PmDeviceSize) noexcept {
+        return PM_SUCCESS;
+    }
+    [[nodiscard]] virtual PmResult write_host(void *, PmDeviceSize) noexcept {
+        return PM_SUCCESS;
+    }
+    [[nodiscard]] virtual PmResult map_host(void *, PmDeviceSize) noexcept {
+        return PM_SUCCESS;
+    }
+    virtual void unmap_host(void *) noexcept {}
+    [[nodiscard]] virtual PmResult last_error(bool) noexcept { return PM_SUCCESS; }
+    [[nodiscard]] virtual PmResult scheduling_units(std::uint32_t &units) noexcept {
+        units = 1U;
+        return PM_SUCCESS;
+    }
     [[nodiscard]] virtual PmResult memory_budget(PmDeviceSize &available,
                                                  PmDeviceSize &total) noexcept = 0;
 };
 
 [[nodiscard]] inline ExecutionQueue execution_queue(
     Services &services) noexcept {
-    return {services.native_queue_handle()};
+    return {services.native_queue_handle(), &services};
 }
 
 [[nodiscard]] PmResult enumerate(std::uint32_t *count,

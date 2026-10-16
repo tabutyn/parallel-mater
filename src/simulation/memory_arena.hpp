@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace parallel_mater::device { class Services; }
+
 namespace parallel_mater::simulation {
 
 enum class MemoryClass : std::uint8_t { persistent, scratch };
@@ -11,7 +13,7 @@ enum class MemoryClass : std::uint8_t { persistent, scratch };
 class MemoryArena {
   public:
     MemoryArena(void *persistent, std::size_t persistent_size, void *scratch,
-                std::size_t scratch_size);
+                std::size_t scratch_size, device::Services *services = nullptr);
     ~MemoryArena();
     MemoryArena(const MemoryArena &) = delete;
     MemoryArena &operator=(const MemoryArena &) = delete;
@@ -23,6 +25,7 @@ class MemoryArena {
     void reset() noexcept;
 
   private:
+    device::Services *services_{};
     std::byte *persistent_{};
     std::size_t persistent_size_{};
     std::size_t persistent_offset_{};

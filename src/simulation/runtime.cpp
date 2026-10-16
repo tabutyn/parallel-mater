@@ -25,9 +25,6 @@
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
 
-#include <cuda_runtime.h>
-
-
 #include <algorithm>
 #include <array>
 #include <climits>
@@ -85,31 +82,87 @@ constexpr std::uint32_t k_invalid_dense = std::numeric_limits<std::uint32_t>::ma
 [[nodiscard]] Status success() noexcept { return {}; }
 
 [[nodiscard]] Status failure(StatusCode code, const char *message,
-                             cudaError_t cuda_error = cudaSuccess) noexcept {
-    return {code, static_cast<std::int32_t>(cuda_error), message};
+                             PmResult error = PM_SUCCESS) noexcept {
+    return {code, static_cast<std::int32_t>(error), message};
 }
 
-[[nodiscard]] Status cuda_failure(cudaError_t error, const char *message) noexcept {
+[[nodiscard]] Status backend_failure(PmResult error, const char *message) noexcept {
     return failure(StatusCode::backend_failure, message, error);
 }
 
-[[nodiscard]] cudaStream_t native_stream(
+[[nodiscard]] PmResult copy_bytes(void *destination, const void *source,
+    std::size_t size, device::CopyDirection direction,
     device::ExecutionQueue queue) noexcept {
-    return static_cast<cudaStream_t>(queue.native_handle);
+    return queue.services == nullptr ? PM_ERROR_INVALID_STATE
+        : queue.services->copy(destination, source, size, direction);
+}
+
+[[nodiscard]] PmResult wait_queue(device::ExecutionQueue queue) noexcept {
+    return queue.services == nullptr ? PM_ERROR_INVALID_STATE
+        : queue.services->wait_idle();
+}
+
+[[nodiscard]] PmResult copy_bytes_wait(void *destination, const void *source,
+    std::size_t size, device::CopyDirection direction,
+    device::ExecutionQueue queue) noexcept {
+    const auto result = copy_bytes(destination, source, size, direction, queue);
+    return result == PM_SUCCESS ? wait_queue(queue) : result;
+}
+
+[[nodiscard]] PmResult clear_bytes(void *destination, int value,
+    std::size_t size, device::ExecutionQueue queue) noexcept {
+    return queue.services == nullptr ? PM_ERROR_INVALID_STATE
+        : queue.services->clear(destination, value, size);
+}
+
+[[nodiscard]] float reciprocal_sqrt(float value) noexcept {
+    return 1.0F / std::sqrt(value);
 }
 
 template <typename T>
-[[nodiscard]] Status read_device_value(cudaStream_t stream,
+[[nodiscard]] Status read_host_span(device::ExecutionQueue queue, T *pointer,
+                                    std::size_t count) noexcept {
+    if (!pointer || count == 0U) return success();
+    const auto result = queue.services->read_host(pointer, count * sizeof(T));
+    return result == PM_SUCCESS ? success()
+        : backend_failure(result, "host range readback failed");
+}
+
+template <typename T>
+[[nodiscard]] Status write_host_span(device::ExecutionQueue queue, T *pointer,
+                                     std::size_t count) noexcept {
+    if (!pointer || count == 0U) return success();
+    const auto result = queue.services->write_host(pointer, count * sizeof(T));
+    return result == PM_SUCCESS ? success()
+        : backend_failure(result, "host range upload failed");
+}
+
+template <typename... T>
+[[nodiscard]] Status read_host_objects(device::ExecutionQueue queue, T *...pointers) noexcept {
+    Status status;
+    ((status ? static_cast<void>(status = read_host_span(queue, pointers, 1U)) : void()), ...);
+    return status;
+}
+
+template <typename... T>
+[[nodiscard]] Status write_host_objects(device::ExecutionQueue queue, T *...pointers) noexcept {
+    Status status;
+    ((status ? static_cast<void>(status = write_host_span(queue, pointers, 1U)) : void()), ...);
+    return status;
+}
+
+template <typename T>
+[[nodiscard]] Status read_device_value(device::ExecutionQueue stream,
                                        const T *source,
                                        T &destination,
                                        const char *message) noexcept {
-    cudaError_t error = cudaMemcpyAsync(&destination, source,
-        sizeof(destination), cudaMemcpyDeviceToHost, stream);
-    if (error == cudaSuccess) error = cudaStreamSynchronize(stream);
-    return error == cudaSuccess ? success() : cuda_failure(error, message);
+    PmResult error = copy_bytes(&destination, source,
+        sizeof(destination), device::CopyDirection::device_to_host, stream);
+    if (error == PM_SUCCESS) error = wait_queue(stream);
+    return error == PM_SUCCESS ? success() : backend_failure(error, message);
 }
 
-[[nodiscard]] Status read_device_u32(cudaStream_t stream,
+[[nodiscard]] Status read_device_u32(device::ExecutionQueue stream,
                                      const std::uint32_t *source,
                                      std::uint32_t &destination,
                                      const char *message) noexcept {
@@ -150,7 +203,7 @@ Vec3 normalized_or(Vec3 value, Vec3 fallback) noexcept {
     if (squared <= k_epsilon * k_epsilon) {
         return fallback;
     }
-    return multiply(value, rsqrtf(squared));
+    return multiply(value, reciprocal_sqrt(squared));
 }
 
 Quaternion normalized_quaternion(Quaternion value) noexcept {
@@ -159,21 +212,22 @@ Quaternion normalized_quaternion(Quaternion value) noexcept {
     if (squared <= k_epsilon * k_epsilon) {
         return {};
     }
-    const float inverse = rsqrtf(squared);
+    const float inverse = reciprocal_sqrt(squared);
     return {value.x * inverse, value.y * inverse, value.z * inverse,
             value.w * inverse};
 }
 
 struct CompletionState {
-    cudaEvent_t event{};
+    device::ExecutionQueue execution{};
+    device::Event event{};
     const std::uint32_t *fluid_neighbor_overflow{};
     bool acknowledged{};
     Status completion_status{};
     std::function<Status()> on_complete{};
 
     ~CompletionState() {
-        if (event != nullptr) {
-            cudaEventDestroy(event);
+        if (event && execution.services != nullptr) {
+            execution.services->destroy_event(event);
         }
     }
 };
@@ -189,16 +243,16 @@ using simulation::k_soft_contact_cleanup_passes;
     if (completion->acknowledged) {
         return completion->completion_status;
     }
-    const cudaError_t error = cudaEventSynchronize(completion->event);
-    completion->completion_status = error == cudaSuccess
-        ? success() : cuda_failure(error, "CUDA frame completion failed");
+    const PmResult error = completion->execution.services->wait_event(completion->event);
+    completion->completion_status = error == PM_SUCCESS
+        ? success() : backend_failure(error, "frame completion failed");
     Status debug_status{};
-    if (error == cudaSuccess && completion->on_complete)
+    if (error == PM_SUCCESS && completion->on_complete)
         debug_status = completion->on_complete();
-    if (error == cudaSuccess && completion->fluid_neighbor_overflow != nullptr) {
+    if (error == PM_SUCCESS && completion->fluid_neighbor_overflow != nullptr) {
         std::uint32_t overflow = 0U;
         const Status overflow_status = read_device_u32(
-            nullptr, completion->fluid_neighbor_overflow, overflow,
+            completion->execution, completion->fluid_neighbor_overflow, overflow,
             "fluid neighbor overflow readback failed");
         if (!overflow_status) {
             completion->completion_status = overflow_status;
@@ -390,19 +444,14 @@ template <typename T>
             : failure(StatusCode::out_of_memory,
                       "bound persistent simulation memory exhausted");
     }
-    const cudaError_t error = cudaMallocManaged(
-        reinterpret_cast<void **>(&pointer), sizeof(T) * count,
-        cudaMemAttachGlobal);
-    if (error != cudaSuccess) {
-        pointer = nullptr;
-        return cuda_failure(error, "CUDA managed allocation failed");
-    }
-    return success();
+    pointer = nullptr;
+    return failure(StatusCode::invalid_argument,
+                   "simulation allocation requires a bound memory arena");
 }
 
 template <typename T> void release_managed(T *&pointer) noexcept {
     if (pointer != nullptr) {
-        if (!simulation::is_bound_pointer(pointer)) cudaFree(pointer);
+        // Simulation storage belongs to its bound arena, never this view.
         pointer = nullptr;
     }
 }
@@ -556,8 +605,13 @@ struct ClothStorage {
 // Split vertex fans across failed seams. Each new node inherits its parent's
 // position/velocity; incident-face mass shares preserve total mass/momentum.
 // No triangle is discarded or fitted to remote vertices after a tear.
-static Status rebuild_cloth_topology(ClothStorage &cloth, bool initial = false) {
+static Status rebuild_cloth_topology(ClothStorage &cloth, device::ExecutionQueue queue,
+                                     bool initial = false) {
     if (!cloth.source_indices) return success();
+    if (!initial) {
+        const auto status = read_host_span(queue, cloth.bond_active, cloth.bond_count);
+        if (!status) return status;
+    }
     if (!initial && std::equal(cloth.topology_active.begin(),
                                cloth.topology_active.end(), cloth.bond_active))
         return success();
@@ -639,6 +693,9 @@ static Status rebuild_cloth_topology(ClothStorage &cloth, bool initial = false) 
         // with respect to API calls. No device work is in flight at this point.
         for (const auto &copy : copies) {
             const auto node = copy[0], old = copy[1];
+            auto status = read_host_objects(queue, cloth.positions + old,
+                cloth.previous + old, cloth.velocities + old);
+            if (!status) return status;
             cloth.positions[node] = cloth.positions[old];
             cloth.previous[node] = cloth.previous[old];
             cloth.scratch[node] = cloth.positions[old];
@@ -647,6 +704,14 @@ static Status rebuild_cloth_topology(ClothStorage &cloth, bool initial = false) 
             cloth.rigid_contact_forces[node] = {};
             cloth.soft_body_forces[node] = {};
             if (cloth.fluid_forces) cloth.fluid_forces[node] = {};
+            status = write_host_objects(queue, cloth.positions + node,
+                cloth.previous + node, cloth.scratch + node, cloth.velocities + node,
+                cloth.rigid_contact_forces + node, cloth.soft_body_forces + node);
+            if (!status) return status;
+            if (cloth.fluid_forces) {
+                status = write_host_objects(queue, cloth.fluid_forces + node);
+                if (!status) return status;
+            }
         }
         std::copy(indices.begin(), indices.end(), cloth.indices);
         std::copy(bonds.begin(), bonds.end(), cloth.bonds);
@@ -666,6 +731,8 @@ static Status rebuild_cloth_topology(ClothStorage &cloth, bool initial = false) 
         cloth.vertex_count = count;
         *cloth.count = count;
         cloth.topology_active.swap(active);
+        const auto status = write_host_span(queue, cloth.bond_active, cloth.bond_count);
+        if (!status) return status;
     } catch (...) {
         return failure(StatusCode::out_of_memory, "failed to split cloth topology");
     }
@@ -1076,7 +1143,7 @@ struct SimulationRuntime::Impl {
     };
 
     SimulationOptions options{};
-    int device_ordinal{-1};
+    device::ExecutionQueue execution{};
     std::uint32_t rigid_body_count{};
     std::uint32_t rigid_constraint_count{};
     std::uint32_t triangle_mesh_count{};
@@ -1161,7 +1228,7 @@ struct SimulationRuntime::Impl {
     std::uint32_t rigid_contact_capacity{};
     TriangleMeshResource *meshes{};
     std::shared_ptr<CompletionState> frame{};
-    std::vector<cudaEvent_t> timing_events{};
+    std::vector<device::Event> timing_events{};
     std::vector<TimingStage> timing_stages{};
     std::vector<std::uint32_t> timing_launch_counts{};
     std::size_t timing_boundary_count{};
@@ -1178,17 +1245,17 @@ struct SimulationRuntime::Impl {
             return success();
         try {
             PhysicsDebugFrame &output = debug_frames[debug_next_frame];
-            const cudaStream_t stream = native_stream(queue);
+            const device::ExecutionQueue stream = queue;
             const auto download = [stream](void *destination,
                                            const void *source,
                                            std::size_t bytes) -> Status {
                 if (bytes == 0U) return success();
-                auto error = cudaMemcpyAsync(destination, source, bytes,
-                                             cudaMemcpyDeviceToHost, stream);
-                if (error == cudaSuccess)
-                    error = cudaStreamSynchronize(stream);
-                return error == cudaSuccess ? success()
-                    : cuda_failure(error, "physics debug readback failed");
+                auto error = copy_bytes(destination, source, bytes,
+                                             device::CopyDirection::device_to_host, stream);
+                if (error == PM_SUCCESS)
+                    error = wait_queue(stream);
+                return error == PM_SUCCESS ? success()
+                    : backend_failure(error, "physics debug readback failed");
             };
             output.frame_index = frame_index;
             output.timestep = step_options.timestep;
@@ -1207,8 +1274,8 @@ struct SimulationRuntime::Impl {
                     (rigid_body_count + 127U) / 128U, 128U, stream,
                     ids, states[current_state], debug_applied_forces,
                     debug_applied_torques, rigid_body_count, debug_rigid_samples);
-                if (gather_error != cudaSuccess)
-                    return cuda_failure(gather_error,
+                if (gather_error != PM_SUCCESS)
+                    return backend_failure(gather_error,
                         "rigid debug sample gather launch failed");
                 const auto status = download(output.rigid_bodies.data(), debug_rigid_samples,
                     rigid_body_count * sizeof(PhysicsDebugRigidSample));
@@ -1224,6 +1291,16 @@ struct SimulationRuntime::Impl {
                     stream, fluid.count, count,
                     "physics debug fluid count readback failed");
                 if (!count_status) return count_status;
+                if (count > fluid.options.capacity)
+                    return failure(StatusCode::internal_error, "fluid output count exceeds capacity");
+                for (auto *values : {fluid.positions, fluid.velocities, fluid.forces}) {
+                    const auto status = read_host_span(stream, values, count);
+                    if (!status) return status;
+                }
+                auto status = read_host_span(stream, fluid.ids, count);
+                if (!status) return status;
+                status = read_host_span(stream, fluid.foam, count);
+                if (!status) return status;
                 output.fluid_particles.reserve(
                     output.fluid_particles.size() + count);
                 for (std::uint32_t index = 0U; index < count; ++index)
@@ -1237,6 +1314,11 @@ struct SimulationRuntime::Impl {
                 const auto &owner = cloths[slot];
                 if (!owner || !owner->alive) continue;
                 const ClothStorage &cloth = *owner;
+                for (auto *values : {cloth.positions, cloth.velocities, cloth.rigid_contact_forces,
+                                     cloth.fluid_forces, cloth.soft_body_forces}) {
+                    const auto status = read_host_span(stream, values, cloth.vertex_count);
+                    if (!status) return status;
+                }
                 output.cloth_vertices.reserve(
                     output.cloth_vertices.size() + cloth.vertex_count);
                 for (std::uint32_t index = 0U;
@@ -1254,6 +1336,11 @@ struct SimulationRuntime::Impl {
             for(unsigned slot=0;slot<ropes.size();++slot) {
                 if(!ropes[slot] || !ropes[slot]->alive)continue;
                 const auto &r=ropes[slot]->data;
+                for (auto *values : {r.positions, r.velocities, r.constraint_forces,
+                                     r.contact_forces, r.fluid_contact_forces}) {
+                    const auto status = read_host_span(stream, values, r.count);
+                    if (!status) return status;
+                }
                 for(unsigned i=0;i<r.count;++i)output.rope_nodes.push_back({
                     {slot,ropes[slot]->generation},i,r.positions[i],r.velocities[i],
                     r.constraint_forces[i],r.contact_forces[i],r.fluid_contact_forces[i]});
@@ -1262,6 +1349,11 @@ struct SimulationRuntime::Impl {
                 const auto &owner = soft_bodies[slot];
                 if (!owner || !owner->alive) continue;
                 const SoftBodyStorage &body = *owner;
+                for (auto *values : {body.positions, body.velocities, body.rigid_contact_forces,
+                                     body.cloth_forces, body.fluid_forces}) {
+                    const auto status = read_host_span(stream, values, body.node_count);
+                    if (!status) return status;
+                }
                 output.soft_body_nodes.reserve(
                     output.soft_body_nodes.size() + body.node_count);
                 for (std::uint32_t index = 0U; index < body.node_count; ++index)
@@ -1321,8 +1413,8 @@ struct SimulationRuntime::Impl {
         }
         release_managed(paint_fields);
         release_managed(paint_rules);
-        for (cudaEvent_t event : timing_events) {
-            cudaEventDestroy(event);
+        for (device::Event event : timing_events) {
+            execution.services->destroy_event(event);
         }
         release_managed(meshes);
         release_managed(fluid_neighbor_overflow);
@@ -1380,33 +1472,28 @@ struct SimulationRuntime::Impl {
                            "failed to allocate timing event storage");
         }
         while (timing_events.size() < boundary_count) {
-            cudaEvent_t event = nullptr;
-            const cudaError_t error = cudaEventCreate(&event);
-            if (error != cudaSuccess) {
-                return cuda_failure(error, "failed to create CUDA timing event");
+            device::Event event{};
+            const PmResult error = execution.services->create_event(true, event);
+            if (error != PM_SUCCESS) {
+                return backend_failure(error, "failed to create timing event");
             }
             try {
                 timing_events.push_back(event);
             } catch (...) {
-                cudaEventDestroy(event);
+                execution.services->destroy_event(event);
                 return failure(StatusCode::out_of_memory,
-                               "failed to retain CUDA timing event");
+                               "failed to retain timing event");
             }
         }
         return success();
     }
 
     [[nodiscard]] Status require_current_device() const noexcept {
-        int current_device = -1;
-        const cudaError_t error = cudaGetDevice(&current_device);
-        if (error != cudaSuccess) {
-            return cuda_failure(error, "failed to query the current CUDA device");
-        }
-        if (current_device != device_ordinal) {
-            return failure(StatusCode::invalid_argument,
-                           "world used from a different CUDA device");
-        }
-        return success();
+        if (execution.services == nullptr)
+            return failure(StatusCode::invalid_argument, "missing simulation device services");
+        const auto result = execution.services->activate();
+        return result == PM_SUCCESS ? success()
+            : backend_failure(result, "failed to activate simulation device");
     }
 
     [[nodiscard]] Status require_idle() noexcept {
@@ -1509,7 +1596,9 @@ bool FrameToken::ready() const noexcept {
     if (!pending()) {
         return true;
     }
-    return cudaEventQuery(impl_->completion->event) == cudaSuccess;
+    bool ready{};
+    const auto &frame = *impl_->completion;
+    return frame.execution.services->query_event(frame.event, ready) == PM_SUCCESS && ready;
 }
 
 Status FrameToken::wait() noexcept {
@@ -1526,7 +1615,8 @@ SimulationRuntime &SimulationRuntime::operator=(SimulationRuntime &&) noexcept =
 
 Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &output,
                      device::ExecutionQueue queue) noexcept {
-    (void)queue;
+    if (queue.services == nullptr)
+        return failure(StatusCode::invalid_argument, "simulation requires device services");
     if (options.rigid_body_capacity == 0U ||
         options.triangle_mesh_capacity == 0U) {
         return failure(StatusCode::invalid_argument,
@@ -1537,10 +1627,9 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         return failure(StatusCode::invalid_argument,
                        "physics debug frame capacity or stride is invalid");
     }
-    int device = -1;
-    cudaError_t error = cudaGetDevice(&device);
-    if (error != cudaSuccess) {
-        return cuda_failure(error, "failed to query the current CUDA device");
+    PmResult error = queue.services->activate();
+    if (error != PM_SUCCESS) {
+        return backend_failure(error, "failed to activate simulation device");
     }
 
     std::unique_ptr<Impl> implementation;
@@ -1583,22 +1672,19 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
                        "failed to allocate world host storage");
     }
     implementation->options = options;
-    implementation->device_ordinal = device;
-    int multiprocessors = 0;
-    error = cudaDeviceGetAttribute(&multiprocessors, cudaDevAttrMultiProcessorCount, device);
-    if (error != cudaSuccess) return cuda_failure(error, "failed to query contact multiprocessors");
-    int cooperative = 0;
-    error = cudaDeviceGetAttribute(&cooperative, cudaDevAttrCooperativeLaunch, device);
-    if (error != cudaSuccess) return cuda_failure(error, "query cooperative contact launch support");
+    implementation->execution = queue;
+    std::uint32_t scheduling_units = 1U;
+    error = queue.services->scheduling_units(scheduling_units);
+    if (error != PM_SUCCESS) return backend_failure(error, "failed to query contact multiprocessors");
     int resident_blocks = 1;
     implementation->rigid_contact_block_size = 32U;
     error = simulation::geometry_constraints_occupancy(
         &resident_blocks, implementation->rigid_contact_block_size);
-    if (error != cudaSuccess) return cuda_failure(error, "query contact kernel occupancy");
+    if (error != PM_SUCCESS) return backend_failure(error, "query contact kernel occupancy");
     // One resident block per SM avoids over-subscribing grid barriers. Launch
     // geometry changes scheduling only; equations and budgets stay shared.
-    implementation->rigid_contact_grid_limit = cooperative && resident_blocks > 0
-        ? static_cast<unsigned>(std::max(1, multiprocessors)) : 1U;
+    implementation->rigid_contact_grid_limit = resident_blocks > 0
+        ? scheduling_units : 1U;
     Status status = allocate_managed(implementation->paint_fields,
                                      options.paint_field_capacity);
     if (!status) return status;

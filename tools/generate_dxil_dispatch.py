@@ -158,11 +158,12 @@ def generate(root, reflection, sources):
             if len(args) != len(params):
                 raise ValueError(f'{entry}: {len(args)} args != {len(params)} parameters')
             config = split_arguments(launch[2])
-            if len(config) != 4 or config[3] != 'stream':
+            if len(config) != 4 or config[3] not in (
+                    'stream', 'static_cast<cudaStream_t>(stream.native_handle)'):
                 raise ValueError(f'Unsupported launch configuration {entry}: {config}')
             is_export = signature[1] == 'PmResult'
             out = [signature[0], '    auto *execution = d3d12::context(' +
-                   ('queue.native_handle' if is_export else 'stream') + ');',
+                   ('queue.native_handle' if is_export else 'stream.native_handle') + ');',
                    '    if (execution == nullptr) return' +
                    (' PM_ERROR_INVALID_ARGUMENT;' if is_export else ';')]
             if is_export:
@@ -193,8 +194,9 @@ def generate(root, reflection, sources):
                     raise ValueError(f'Unsupported argument {entry}: {arg}')
                 out.append(f'    const auto &arg{index} = {arg};')
                 out += pack(param['type'], f'arg{index}', param['binding']['offset'])
+            config = [c.replace('dim3(', 'device::DispatchSize(') for c in config]
             expression = (f'execution->dispatch("{module}", "{entry}", '
-                          f'dim3({config[0]}), dim3({config[1]}), bytes)')
+                          f'device::DispatchSize({config[0]}), device::DispatchSize({config[1]}), bytes)')
             out.append(('    return device::from_driver_error(' + expression + ');')
                        if is_export else '    (void)' + expression + ';')
             out.append('}\n')

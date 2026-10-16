@@ -925,7 +925,20 @@ void copy_particle_state(const std::vector<State> &states,
     provenance["deterministic"] = true;
     provenance["device_ordinal"] = static_cast<std::int64_t>(0);
     Json result = Json::object();
-    result["backend"] = "slang-cuda";
+    PmNativeDeviceInfo native{};
+    const PmResult native_result = pmGetNativeDevice(runtime.command_scene.device(), &native);
+    if (native_result == PM_ERROR_FEATURE_NOT_PRESENT) {
+        result["backend"] = "slang-cpu";
+    } else {
+        require(native_result == PM_SUCCESS, "query conformance backend", {});
+        switch (native.backend) {
+        case PM_NATIVE_BACKEND_CUDA: result["backend"] = "slang-cuda"; break;
+        case PM_NATIVE_BACKEND_D3D12: result["backend"] = "slang-d3d12"; break;
+        case PM_NATIVE_BACKEND_VULKAN: result["backend"] = "slang-vulkan"; break;
+        case PM_NATIVE_BACKEND_METAL: result["backend"] = "slang-metal"; break;
+        default: throw std::runtime_error("unrecognized conformance backend");
+        }
+    }
     result["case_id"] = definition.id;
     result["case_sha256"] = sha256(serialize_case(definition));
     result["checkpoints"] = std::move(checkpoints);

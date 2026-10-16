@@ -14,7 +14,7 @@ template <typename T> const T *as(const void *value) noexcept {
 } // namespace
 
 void collide_fluid_with_static_body(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const void *previous, float *foam,
     const std::uint32_t *count, float radius, float spawn_clearance,
     std::uint32_t first_spawned, bool recover_spawn, const void *up,
@@ -27,7 +27,7 @@ void collide_fluid_with_static_body(
     std::uint32_t paint_field_capacity, const void *paint_rules,
     std::uint32_t paint_rule_capacity) noexcept {
     const auto fluid_id = FluidId_0{fluid_index, fluid_generation};
-    fluid_static_contacts<<<grid, block, 0U, stream>>>(
+    fluid_static_contacts<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous)), foam,
         const_cast<std::uint32_t *>(count), radius, spawn_clearance,
@@ -49,10 +49,10 @@ void collide_fluid_with_static_body(
 }
 
 void calculate_fluid_body_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     const void *previous_states, const void *current_states,
     const void *meshes, std::uint32_t body_count, void *bounds) noexcept {
-    fluid_body_bounds_kernel<<<grid, block, 0U, stream>>>(
+    fluid_body_bounds_kernel<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(previous_states)),
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(current_states)),
@@ -62,10 +62,10 @@ void calculate_fluid_body_bounds(
 }
 
 void index_fluid_body_cells(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     const void *bounds, std::uint32_t body_count, std::uint32_t words,
     float padding, void *masks, void *global_masks) noexcept {
-    fluid_index_body_cells<<<grid, block, 0U, stream>>>(
+    fluid_index_body_cells<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
         const_cast<WorldAabb_0 *>(as<WorldAabb_0>(bounds)), body_count, words,
         padding, as<unsigned long long>(masks),
@@ -73,14 +73,14 @@ void index_fluid_body_cells(
 }
 
 void detect_fluid_moving_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const std::uint32_t *count, float radius,
     const void *body_parameters, const void *previous_states,
     const void *current_states, const void *meshes, const void *bounds,
     std::uint32_t body_count, const void *masks,
     const void *global_masks, std::uint32_t words,
     bool first_iteration, void *contacts, std::uint32_t *contact_counts) noexcept {
-    fluid_detect_moving_contacts<<<grid, block, 0U, stream>>>(
+    fluid_detect_moving_contacts<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous)),
         const_cast<std::uint32_t *>(count), radius,
@@ -97,7 +97,7 @@ void detect_fluid_moving_contacts(
 }
 
 void resolve_fluid_moving_contacts(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, float *foam, const std::uint32_t *count, float radius,
     float particle_mass, float timestep, float maximum_speed,
     const void *body_parameters, const void *body_states, const void *meshes,
@@ -108,7 +108,7 @@ void resolve_fluid_moving_contacts(
     const void *paint_fields, std::uint32_t paint_field_capacity,
     const void *paint_rules, std::uint32_t paint_rule_capacity) noexcept {
     const auto fluid_id = FluidId_0{fluid_index, fluid_generation};
-    fluid_resolve_moving_contacts<<<grid, block, 0U, stream>>>(
+    fluid_resolve_moving_contacts<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities), foam,
         const_cast<std::uint32_t *>(count), radius, particle_mass, timestep,
         maximum_speed,
@@ -132,11 +132,11 @@ void resolve_fluid_moving_contacts(
 }
 
 void reduce_fluid_body_impulses(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *impulses,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *impulses,
     const std::uint32_t *particle_count, const void *body_parameters,
     void *body_states, const std::uint32_t *contact_flags,
     std::uint32_t body_count, const void *position_corrections) noexcept {
-    reduce_point_body_impulses<<<grid, block, 0U, stream>>>(
+    reduce_point_body_impulses<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<FluidBodyImpulse_0 *>(as<FluidBodyImpulse_0>(impulses)),
         const_cast<std::uint32_t *>(particle_count),
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),

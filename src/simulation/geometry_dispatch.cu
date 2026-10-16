@@ -35,47 +35,47 @@ static_assert(sizeof(TriangleMeshResource) == sizeof(TriangleMeshResource_0));
 
 } // namespace
 
-cudaError_t integrate_rigid_bodies(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult integrate_rigid_bodies(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *accumulators, void *targets, void *input, void *output,
     std::uint32_t count, const float gravity[3], float timestep,
     std::uint32_t remaining_substeps, bool apply_impulses) noexcept {
     const Vec3_0 gravity_value{gravity[0], gravity[1], gravity[2]};
-    pm_integrate_rigid_bodies<<<grid, block, 0U, stream>>>(
+    pm_integrate_rigid_bodies<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<BodyAccumulator_0>(accumulators),
         as<KinematicTarget_0>(targets), as<RigidBodyState_0>(input),
         as<RigidBodyState_0>(output), count, gravity_value, timestep,
         remaining_substeps, apply_impulses);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t compute_rigid_world_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult compute_rigid_world_bounds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *previous_states, void *states, std::uint32_t count,
     void *meshes, void *world_bounds) noexcept {
-    pm_compute_rigid_world_bounds<<<grid, block, 0U, stream>>>(
+    pm_compute_rigid_world_bounds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
         as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
         as<WorldAabb_0>(world_bounds));
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t broad_phase_rigid_pairs(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult broad_phase_rigid_pairs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *world_bounds, void *previous_states, void *states, void *meshes,
     void *ids, void *constraints, std::uint32_t constraint_capacity,
     void *fixed_groups, std::uint32_t count, std::uint8_t *active_flags) noexcept {
-    pm_broad_phase_rigid_pairs<<<grid, block, 0U, stream>>>(
+    pm_broad_phase_rigid_pairs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<WorldAabb_0>(world_bounds),
         as<RigidBodyState_0>(previous_states), as<RigidBodyState_0>(states),
         as<TriangleMeshResource_0>(meshes), as<RigidBodyId_0>(ids),
         as<RigidConstraintResource_0>(constraints), constraint_capacity,
         as<FixedContactProjection_0>(fixed_groups), count, active_flags);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t generate_rigid_leaf_pairs(
-    dim3 grid, dim3 block, std::size_t shared_bytes, cudaStream_t stream,
+PmResult generate_rigid_leaf_pairs(
+    device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,
     std::uint32_t count, void *meshes, std::uint32_t mesh_capacity,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -83,17 +83,17 @@ cudaError_t generate_rigid_leaf_pairs(
     std::uint32_t leaf_pair_cache_slot_capacity,
     std::uint32_t leaf_pairs_per_slot,
     std::uint32_t shared_leaf_capacity) noexcept {
-    pm_generate_rigid_leaf_pairs<<<grid, block, shared_bytes, stream>>>(
+    pm_generate_rigid_leaf_pairs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), shared_bytes, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
         as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
         mesh_capacity, active_pairs, active_pair_count, as<LeafPair_0>(leaf_pairs),
         leaf_pair_counts, leaf_pair_cache_slot_capacity, leaf_pairs_per_slot,
         shared_leaf_capacity);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t evaluate_rigid_leaf_pairs(
-    dim3 grid, dim3 block, std::size_t shared_bytes, cudaStream_t stream,
+PmResult evaluate_rigid_leaf_pairs(
+    device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,
     std::uint32_t count, void *meshes, void *ids, void *constraints,
     std::uint32_t constraint_capacity, std::uint32_t *active_pairs,
@@ -101,7 +101,7 @@ cudaError_t evaluate_rigid_leaf_pairs(
     std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
     void *leaf_manifolds, std::uint32_t blocks_per_pair, float timestep,
     void *manifolds) noexcept {
-    pm_evaluate_rigid_leaf_pairs<<<grid, block, shared_bytes, stream>>>(
+    pm_evaluate_rigid_leaf_pairs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), shared_bytes, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
         as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
         as<RigidBodyId_0>(ids), as<RigidConstraintResource_0>(constraints),
@@ -109,82 +109,82 @@ cudaError_t evaluate_rigid_leaf_pairs(
         as<LeafPair_0>(leaf_pairs), leaf_pair_counts, leaf_pairs_per_slot,
         as<ContactManifold_0>(leaf_manifolds), blocks_per_pair, timestep,
         as<ContactManifold_0>(manifolds));
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t reduce_rigid_leaf_manifolds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult reduce_rigid_leaf_manifolds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
     void *manifolds) noexcept {
-    pm_reduce_rigid_leaf_manifolds<<<grid, block, 0U, stream>>>(
+    pm_reduce_rigid_leaf_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), count, active_pairs,
         active_pair_count, leaf_pair_counts, leaf_pairs_per_slot,
         as<ContactManifold_0>(leaf_manifolds), as<ContactManifold_0>(manifolds));
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t finalize_rigid_contact_manifolds(
-    dim3 grid, dim3 block, cudaStream_t stream, void *parameters,
+PmResult finalize_rigid_contact_manifolds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     void *previous_states, void *states, std::uint32_t count, void *meshes,
     void *ids, void *constraints, std::uint32_t constraint_capacity,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
     std::uint32_t *leaf_pair_counts, float timestep, void *manifolds,
     bool prepare_faces) noexcept {
-    pm_finalize_rigid_contact_manifolds<<<grid, block, 0U, stream>>>(
+    pm_finalize_rigid_contact_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
         as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
         as<RigidBodyId_0>(ids), as<RigidConstraintResource_0>(constraints),
         constraint_capacity, active_pairs, active_pair_count, leaf_pair_counts,
         timestep, as<ContactManifold_0>(manifolds), prepare_faces);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t clear_rigid_inputs(
-    dim3 grid, dim3 block, cudaStream_t stream, void *accumulators,
+PmResult clear_rigid_inputs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *accumulators,
     void *targets, std::uint32_t count) noexcept {
-    pm_clear_rigid_inputs<<<grid, block, 0U, stream>>>(
+    pm_clear_rigid_inputs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyAccumulator_0>(accumulators), as<KinematicTarget_0>(targets),
         count);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t capture_rigid_inputs(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *accumulators,
+PmResult capture_rigid_inputs(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *accumulators,
     void *forces, void *torques, std::uint32_t count) noexcept {
-    pm_capture_rigid_inputs<<<grid, block, 0U, stream>>>(
+    pm_capture_rigid_inputs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<BodyAccumulator_0 *>(
             as<BodyAccumulator_0>(accumulators)),
         as<Vec3_0>(forces), as<Vec3_0>(torques), count);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t prepare_parallel_contact_events(
-    dim3 grid, dim3 block, cudaStream_t stream, std::uint32_t body_count,
+PmResult prepare_parallel_contact_events(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, std::uint32_t body_count,
     void *manifolds, const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_ids,
     std::uint32_t *event_offsets, void *events,
     std::uint32_t event_capacity, std::uint32_t *event_count,
     bool collect_events, bool reset_events) noexcept {
-    pm_prepare_parallel_contact_events<<<grid, block, 0U, stream>>>(
+    pm_prepare_parallel_contact_events<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         body_count, as<ContactManifold_0>(manifolds),
         const_cast<std::uint32_t *>(active_pairs),
         const_cast<std::uint32_t *>(active_pair_count),
         const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)),
         event_offsets, as<RigidContactEvent_0>(events), event_capacity,
         event_count, collect_events, reset_events);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t load_rigid_contact_cache(
-    dim3 grid, dim3 block, cudaStream_t stream, void *manifolds,
+PmResult load_rigid_contact_cache(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *manifolds,
     const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_states,
     const void *body_ids, std::uint32_t body_count, const void *cache,
     const std::uint32_t *slots, std::uint32_t capacity,
     std::uint64_t epoch, float timestep) noexcept {
-    pm_load_rigid_contact_cache<<<grid, block, 0U, stream>>>(
+    pm_load_rigid_contact_cache<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<ContactManifold_0>(manifolds),
         const_cast<std::uint32_t *>(active_pairs),
         const_cast<std::uint32_t *>(active_pair_count),
@@ -193,18 +193,18 @@ cudaError_t load_rigid_contact_cache(
         const_cast<CachedContactPair_0 *>(as<CachedContactPair_0>(cache)),
         const_cast<std::uint32_t *>(slots), capacity,
         static_cast<unsigned long long>(epoch), timestep);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t save_rigid_contact_cache(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *manifolds,
+PmResult save_rigid_contact_cache(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *manifolds,
     const std::uint32_t *active_pairs,
     const std::uint32_t *active_pair_count, const void *body_states,
     const void *body_ids, std::uint32_t body_count, void *cache,
     std::uint32_t *slots, std::uint32_t capacity, std::uint64_t epoch,
     float timestep, const std::uint32_t *event_offsets, void *events,
     std::uint32_t event_capacity) noexcept {
-    pm_save_rigid_contact_cache<<<grid, block, 0U, stream>>>(
+    pm_save_rigid_contact_cache<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<ContactManifold_0 *>(as<ContactManifold_0>(manifolds)),
         const_cast<std::uint32_t *>(active_pairs),
         const_cast<std::uint32_t *>(active_pair_count),
@@ -214,42 +214,42 @@ cudaError_t save_rigid_contact_cache(
         static_cast<unsigned long long>(epoch), timestep,
         const_cast<std::uint32_t *>(event_offsets),
         as<RigidContactEvent_0>(events), event_capacity);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t gather_rigid_debug_samples(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_ids,
+PmResult gather_rigid_debug_samples(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_ids,
     const void *body_states, const void *forces, const void *torques,
     std::uint32_t count, void *samples) noexcept {
-    pm_gather_rigid_debug_samples<<<grid, block, 0U, stream>>>(
+    pm_gather_rigid_debug_samples<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)),
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(body_states)),
         const_cast<Vec3_0 *>(as<Vec3_0>(forces)),
         const_cast<Vec3_0 *>(as<Vec3_0>(torques)), count,
         as<PhysicsDebugRigidSample_0>(samples));
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t clamp_rigid_speeds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *body_parameters,
+PmResult clamp_rigid_speeds(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *body_parameters,
     void *body_states, std::uint32_t count) noexcept {
-    pm_clamp_rigid_speeds<<<grid, block, 0U, stream>>>(
+    pm_clamp_rigid_speeds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
         as<RigidBodyState_0>(body_states), count);
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
-cudaError_t build_fixed_collision_groups(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *constraints,
+PmResult build_fixed_collision_groups(
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *constraints,
     std::uint32_t constraint_capacity, const void *body_ids,
     std::uint32_t body_count, void *groups) noexcept {
-    pm_build_fixed_collision_groups<<<grid, block, 0U, stream>>>(
+    pm_build_fixed_collision_groups<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<RigidConstraintResource_0 *>(
             as<RigidConstraintResource_0>(constraints)),
         constraint_capacity,
         const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)), body_count,
         as<FixedContactProjection_0>(groups));
-    return cudaPeekAtLastError();
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
 } // namespace parallel_mater::simulation

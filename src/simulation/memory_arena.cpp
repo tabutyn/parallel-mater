@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "memory_arena.hpp"
+#include "device/device.hpp"
 
 #include <algorithm>
 #include <mutex>
@@ -53,8 +54,9 @@ void unregister_range(const void *pointer, std::size_t size) {
 } // namespace
 
 MemoryArena::MemoryArena(void *persistent, std::size_t persistent_size,
-                         void *scratch, std::size_t scratch_size)
-    : persistent_(static_cast<std::byte *>(persistent)),
+                         void *scratch, std::size_t scratch_size,
+                         device::Services *services)
+    : services_(services), persistent_(static_cast<std::byte *>(persistent)),
       persistent_size_(persistent_size), scratch_(static_cast<std::byte *>(scratch)),
       scratch_size_(scratch_size) {
     register_range(persistent_, persistent_size_);
@@ -68,10 +70,13 @@ MemoryArena::~MemoryArena() {
 
 void *MemoryArena::allocate(std::size_t bytes, std::size_t alignment,
                             MemoryClass memory_class) noexcept {
-    return memory_class == MemoryClass::scratch
+    void *result = memory_class == MemoryClass::scratch
         ? bump(scratch_, scratch_size_, scratch_offset_, bytes, alignment)
         : bump(persistent_, persistent_size_, persistent_offset_, bytes,
                alignment);
+    if (result && services_ && services_->write_host(result, bytes) != PM_SUCCESS)
+        return nullptr;
+    return result;
 }
 
 std::size_t MemoryArena::persistent_used() const noexcept {

@@ -23,30 +23,30 @@ Vec3_0 vec3(const float value[3]) noexcept {
 } // namespace
 
 void predict_deformable(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous, void *velocities, const float *inverse_masses,
     std::uint32_t count, const float gravity[3], float timestep,
     float damping) noexcept {
-    deformable_predict<<<grid, block, 0U, stream>>>(
+    deformable_predict<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(previous), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), count, vec3(gravity), timestep,
         damping);
 }
 
 void measure_soft_body_momentum(
-    dim3 block, cudaStream_t stream, const void *velocities,
+    device::DispatchSize block, device::ExecutionQueue stream, const void *velocities,
     const float *inverse_masses, std::uint32_t count, void *output) noexcept {
-    soft_body_measure_momentum<<<1U, block, 0U, stream>>>(
+    soft_body_measure_momentum<<<1U, dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)),
         const_cast<float *>(inverse_masses), count, as<Vec3_0>(output));
 }
 
 void restore_soft_body_momentum(
-    dim3 block, cudaStream_t stream, void *velocities,
+    device::DispatchSize block, device::ExecutionQueue stream, void *velocities,
     const float *inverse_masses, const void *contact_momentum_delta,
     std::uint32_t count, float movable_mass, const void *predicted_momentum,
     const std::uint32_t *dynamic_contact_flag, float maximum_speed) noexcept {
-    soft_body_restore_momentum<<<1U, block, 0U, stream>>>(
+    soft_body_restore_momentum<<<1U, dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(velocities), const_cast<float *>(inverse_masses),
         const_cast<Vec3_0 *>(as<Vec3_0>(contact_momentum_delta)), count,
         movable_mass,
@@ -55,7 +55,7 @@ void restore_soft_body_momentum(
 }
 
 void project_soft_body_rest_shape(
-    cudaStream_t stream, void *positions, void *corrections,
+    device::ExecutionQueue stream, void *positions, void *corrections,
     const void *rest_positions, const float *inverse_masses,
     std::uint32_t count, float movable_mass, const float rest_center[3],
     const void *inverse_rest, void *stored_orientation, float stiffness,
@@ -63,7 +63,7 @@ void project_soft_body_rest_shape(
     const std::uint32_t *dynamic_contact_flag) noexcept {
     ShapeMatrix_0 matrix{};
     std::memcpy(&matrix, inverse_rest, sizeof matrix);
-    soft_body_project_rest_shape<<<1U, 128U, 0U, stream>>>(
+    soft_body_project_rest_shape<<<1U, 128U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(corrections),
         const_cast<Vec3_0 *>(as<Vec3_0>(rest_positions)),
         const_cast<float *>(inverse_masses), count, movable_mass,
@@ -73,12 +73,12 @@ void project_soft_body_rest_shape(
 }
 
 void project_deformable_links(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *scratch, const float *inverse_masses,
     const std::uint32_t *offsets, const void *neighbors,
     const std::uint8_t *bond_active, std::uint32_t count, float timestep,
     float maximum_projection_fraction) noexcept {
-    deformable_project_links<<<grid, block, 0U, stream>>>(
+    deformable_project_links<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)), as<Vec3_0>(scratch),
         const_cast<float *>(inverse_masses),
         const_cast<unsigned int *>(offsets),
@@ -88,13 +88,13 @@ void project_deformable_links(
 }
 
 void project_deformable_links_warp(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *scratch, const float *inverse_masses,
     const std::uint32_t *offsets, const void *neighbors,
     const float *minimum_rest_lengths, std::uint32_t count,
     float compliance, float timestep,
     float maximum_projection_fraction) noexcept {
-    deformable_project_links_warp<<<grid, block, 0U, stream>>>(
+    deformable_project_links_warp<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)), as<Vec3_0>(scratch),
         const_cast<float *>(inverse_masses),
         const_cast<unsigned int *>(offsets),
@@ -104,11 +104,11 @@ void project_deformable_links_warp(
 }
 
 void finalize_soft_body_velocities(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, void *velocities, const float *inverse_masses,
     std::uint32_t count, float inverse_timestep, float projection_response,
     float maximum_speed) noexcept {
-    soft_body_finalize_velocities<<<grid, block, 0U, stream>>>(
+    soft_body_finalize_velocities<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous)), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), count, inverse_timestep,
@@ -116,7 +116,7 @@ void finalize_soft_body_velocities(
 }
 
 void apply_soft_body_contact_friction(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const float *inverse_masses, void *contact_forces,
     const void *contact_normals, const void *contact_arms,
     void *body_impulses, const void *body_parameters,
@@ -125,7 +125,7 @@ void apply_soft_body_contact_friction(
     const std::uint32_t *contact_count, std::uint32_t count,
     float movable_mass, const float gravity[3], float timestep,
     float contact_friction, float maximum_speed) noexcept {
-    soft_body_apply_contact_friction<<<grid, block, 0U, stream>>>(
+    soft_body_apply_contact_friction<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), as<Vec3_0>(contact_forces),
         const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
@@ -140,12 +140,12 @@ void apply_soft_body_contact_friction(
 }
 
 void damp_soft_body_springs(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, void *output, const float *inverse_masses,
     const std::uint32_t *offsets, const void *neighbors,
     const std::uint8_t *bond_active, std::uint32_t count, float damping,
     float maximum_speed) noexcept {
-    soft_body_damp_springs<<<grid, block, 0U, stream>>>(
+    soft_body_damp_springs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)), as<Vec3_0>(output),
         const_cast<float *>(inverse_masses),
@@ -156,11 +156,11 @@ void damp_soft_body_springs(
 }
 
 void damp_soft_body_springs_warp(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, void *output, const float *inverse_masses,
     const std::uint32_t *offsets, const void *neighbors,
     std::uint32_t count, float damping, float maximum_speed) noexcept {
-    soft_body_damp_springs_warp<<<grid, block, 0U, stream>>>(
+    soft_body_damp_springs_warp<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)), as<Vec3_0>(output),
         const_cast<float *>(inverse_masses),
@@ -170,11 +170,11 @@ void damp_soft_body_springs_warp(
 }
 
 void update_soft_body_surface(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *rest_positions, const void *surface_rest_positions,
     const void *bindings, void *surface_positions,
     std::uint32_t surface_vertex_count) noexcept {
-    soft_body_update_surface<<<grid, block, 0U, stream>>>(
+    soft_body_update_surface<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(rest_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(surface_rest_positions)),

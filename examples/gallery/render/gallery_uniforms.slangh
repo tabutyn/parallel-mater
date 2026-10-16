@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: MIT
+cbuffer CameraAndDraw : register(b0)
+{
+    float4 cameraEye;
+    float4 cameraRight;
+    float4 cameraUp;
+    float4 cameraForward;
+    float4 baseColor;
+    uint4 draw;
+    float4 settings;
+};

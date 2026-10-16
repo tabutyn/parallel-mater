@@ -104,13 +104,13 @@ static_assert(offsetof(Contact, avbd_cached) ==
 
 } // namespace
 
-cudaError_t geometry_constraints_occupancy(
+PmResult geometry_constraints_occupancy(
     int *resident_blocks, std::uint32_t block_size) noexcept {
-    return cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-        resident_blocks, solve_avbd_kernel, block_size, 0U);
+    return device::from_driver_error(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+        resident_blocks, solve_avbd_kernel, block_size, 0U));
 }
 
-cudaError_t prepare_geometry_constraints(cudaStream_t stream,
+PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
     const void *parameters, const RigidBodyState *previous,
     RigidBodyState *predicted, std::uint32_t body_count, void *manifolds,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -120,7 +120,7 @@ cudaError_t prepare_geometry_constraints(cudaStream_t stream,
     std::uint32_t requested_iterations,
     std::uint32_t grid_blocks) noexcept {
     const Vec3_0 shader_gravity{gravity.x, gravity.y, gravity.z};
-    prepare_avbd_kernel<<<1U, 128U, 0U, stream>>>(
+    prepare_avbd_kernel<<<1U, 128U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(parameters)),
         const_cast<RigidBodyState_0 *>(
             reinterpret_cast<const RigidBodyState_0 *>(previous)),
@@ -131,10 +131,10 @@ cudaError_t prepare_geometry_constraints(cudaStream_t stream,
         reinterpret_cast<AvbdBody_0 *>(bodies),
         as<ContactSchedule_0>(schedule), timestep, shader_gravity,
         base_iterations, requested_iterations, grid_blocks);
-    return cudaGetLastError();
+    return device::from_driver_error(cudaGetLastError());
 }
 
-cudaError_t solve_geometry_constraints(cudaStream_t stream,
+PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     const void *parameters, const RigidBodyState *previous,
     RigidBodyState *states, std::uint32_t body_count, void *manifolds,
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
@@ -152,20 +152,20 @@ cudaError_t solve_geometry_constraints(cudaStream_t stream,
     auto *shader_schedule = as<ContactSchedule_0>(schedule);
 
     if (grid_blocks == 1U) {
-        solve_avbd_kernel<<<1U, 32U, 0U, stream>>>(shader_parameters,
+        solve_avbd_kernel<<<1U, 32U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(shader_parameters,
             shader_previous, shader_states, body_count, shader_manifolds,
             active_pairs, active_pair_count, shader_constraints,
             constraint_capacity, shader_bodies, shader_schedule, timestep);
-        return cudaGetLastError();
+        return device::from_driver_error(cudaGetLastError());
     }
 
     void *arguments[]{&shader_parameters, &shader_previous, &shader_states,
         &body_count, &shader_manifolds, &active_pairs, &active_pair_count,
         &shader_constraints, &constraint_capacity, &shader_bodies,
         &shader_schedule, &timestep};
-    return cudaLaunchCooperativeKernel(
+    return device::from_driver_error(cudaLaunchCooperativeKernel(
         reinterpret_cast<void *>(solve_avbd_kernel), dim3(grid_blocks),
-        dim3(32U), arguments, 0U, stream);
+        dim3(32U), arguments, 0U, static_cast<cudaStream_t>(stream.native_handle)));
 }
 
 } // namespace parallel_mater::simulation

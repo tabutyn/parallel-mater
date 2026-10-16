@@ -231,5 +231,48 @@ ships the CPU preview; packaging and qualifying this Vulkan driver on the phone,
 remaining particle domains/couplings, engine handoff, and sustained performance
 remain open.
 
+## Windows shared-runtime cleanup (2026-10-16)
+
+Implementation now uses `src/simulation/runtime.cpp`, the common schedule,
+opaque execution queues, dispatch dimensions and device-service events/copies.
+The Windows CUDA-shaped compatibility headers and the include-`runtime.cu`
+driver shims are removed. CUDA/CPU/Vulkan dispatch interfaces use the same
+types; native API interpretation stays in each adapter. CPU and Vulkan runtime
+qualification still belongs on their native machines.
+
+D3D12 binds liquid, cloth and their rigid/liquid interactions to the shared
+DXIL schedules. Unsupported stubs for those paths are removed. Persistent GPU
+allocations no longer receive full readback/re-upload on synchronization:
+host edits upload dirty ranges, explicit mappings read requested ranges, and
+same-allocation copies use GPU scratch. Tear topology currently still needs
+selected host reads at frame boundaries; this is not GPU-only scheduling.
+
+The native drawing adapter consumes public GPU output and presents a shared
+texture. Rigid interpolation, invisible authored meshes, expanded tearable
+cloth surfaces, and liquid particle/surface/wireframe drawing are implemented.
+The liquid presentation field is shared Slang, including the CUDA renderer's
+field kernels. Normal interactive D3D12 frames do not read fluid/cloth records
+back to the CPU. Controllers, diagnostics and explicit captures retain scoped
+readback. Queue overlap, native GPU timings, OptiX lighting/foam equivalence and
+performance qualification remain separate work.
+
+Validation distinguishes working execution from parity. The real-window test
+has exercised all 13 advertised scenes, Tab/Enter switching, F timing, Point
+release and resets, with at least five seconds per scene/load. The regression
+suite now requires 300 frames per supported scene, reset/backend retention,
+finite/contact/static-body/pinned-cloth invariants, GPU-only output followed by
+explicit diagnostic reads, 360 repeated API steps and narrow-range/self-copy
+checks. The long hinge/slider fixture independently checks drift, contacts and
+penetration. These gates do not replace canonical conformance.
+
+Strict same-build CUDA/D3D12 comparisons remain unqualified: initial results
+pass cloth-core, cloth-water, compound-weld-lifecycle, constraint-breaking,
+constraint-piston, constraint-slider and fluid-lifecycle, but fail other rigid
+contact/state cases and cloth-tear topology. Existing tolerances and goldens
+are unchanged. Windows CUDA's managed-memory host-read ordering fault in the
+cloth-tear run was fixed in the device adapter and the case now completes;
+completion does not erase its cross-driver differences. Milestones 4 and 6
+remain open until those numerical failures are resolved.
+
 The completed pre-command-API implementation plan is retained in
 [the legacy roadmap](history/ROADMAP-LEGACY.md).

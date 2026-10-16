@@ -37,7 +37,7 @@ RopeSoftTarget_0 shader_target(
 
 } // namespace
 
-void advance_rope(cudaStream_t stream, const RopeDispatchData &rope,
+void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     float timestep, Vec3 gravity, int first, int last,
     const void *body_parameters, void *body_states,
     const void *previous_body_states, const void *meshes,
@@ -48,7 +48,7 @@ void advance_rope(cudaStream_t stream, const RopeDispatchData &rope,
     auto first_target = shader_target(soft_a);
     auto second_target = shader_target(soft_b);
     const Vec3_0 shader_gravity{gravity.x, gravity.y, gravity.z};
-    rope_advance<<<1U, 128U, 0U, stream>>>(data, timestep, shader_gravity,
+    rope_advance<<<1U, 128U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(data, timestep, shader_gravity,
         first, last,
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
         as<RigidBodyState_0>(body_states),

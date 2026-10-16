@@ -64,23 +64,23 @@ SmokeGridField_0 grid_field(const SmokeGridDispatchField &value) noexcept {
 } // namespace
 
 void index_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, void *keys,
     std::uint32_t *indices) noexcept {
-    smoke_emit_cells<<<grid, block, 0U, stream>>>(
+    smoke_emit_cells<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<float *>(ages), count, smoke_options(options),
         as<unsigned long long>(keys), indices);
 }
 
 void calculate_smoke_density_pressure(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, float *densities, float *pressures,
     float timestep) noexcept {
-    smoke_density_pressure<<<grid, block, 0U, stream>>>(
+    smoke_density_pressure<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<float *>(ages), count, smoke_options(options),
         const_cast<unsigned long long *>(as<unsigned long long>(keys)),
@@ -88,12 +88,12 @@ void calculate_smoke_density_pressure(
 }
 
 void calculate_smoke_vorticity(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, const float *densities,
     void *vorticities, float *magnitudes) noexcept {
-    smoke_compute_vorticity<<<grid, block, 0U, stream>>>(
+    smoke_compute_vorticity<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)),
         const_cast<float *>(ages), count, smoke_options(options),
@@ -103,13 +103,13 @@ void calculate_smoke_vorticity(
 }
 
 void calculate_smoke_pair_forces(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *velocities, const float *ages, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *keys,
     const std::uint32_t *indices, const float *densities,
     const float *pressures, const void *vorticities,
     const float *vorticity_magnitudes, void *accelerations) noexcept {
-    smoke_pair_forces<<<grid, block, 0U, stream>>>(
+    smoke_pair_forces<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(velocities)),
         const_cast<float *>(ages), count, smoke_options(options),
@@ -121,12 +121,12 @@ void calculate_smoke_pair_forces(
 }
 
 void advect_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, std::uint32_t count,
     const SmokeDomainDispatchOptions &options, const void *accelerations,
     float timestep, const float gravity[3]) noexcept {
-    smoke_advect<<<grid, block, 0U, stream>>>(
+    smoke_advect<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
         as<Vec3_0>(velocities), ages, thermal_lift, count,
         smoke_options(options),
@@ -135,13 +135,13 @@ void advect_smoke_particles(
 }
 
 void emit_smoke_particles(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, float *densities, float *pressures,
     void *vorticities, const SmokeDomainDispatchOptions &options,
     std::uint32_t first_slot, std::uint32_t count,
     std::uint64_t first_serial) noexcept {
-    smoke_emit<<<grid, block, 0U, stream>>>(
+    smoke_emit<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
         as<Vec3_0>(velocities), ages, thermal_lift, densities, pressures,
         as<Vec3_0>(vorticities), smoke_options(options), first_slot, count,
@@ -149,15 +149,15 @@ void emit_smoke_particles(
 }
 
 void calculate_smoke_deformable_bounds(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *surface,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *surface,
     std::uint32_t count, void *minimum, void *maximum) noexcept {
-    smoke_deformable_bounds<<<grid, block, 0U, stream>>>(
+    smoke_deformable_bounds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(surface)), count,
         as<Vec3_0>(minimum), as<Vec3_0>(maximum));
 }
 
 void collide_smoke_with_rigid_body(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     float *pressures, std::uint32_t count, float lifetime,
     const void *mesh, void *body_states, const void *previous_body_states,
@@ -165,7 +165,7 @@ void collide_smoke_with_rigid_body(
     float wall_drag, float pressure_stiffness, float timestep,
     float maximum_speed, const SmokeGridDispatchField &smoke_grid,
     void *impulses) noexcept {
-    smoke_rigid_contact<<<grid, block, 0U, stream>>>(
+    smoke_rigid_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
         as<Vec3_0>(velocities), const_cast<float *>(ages), pressures, count,
@@ -179,10 +179,10 @@ void collide_smoke_with_rigid_body(
 }
 
 void apply_smoke_rigid_body_impulses(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *impulses,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *impulses,
     std::uint32_t count, std::uint32_t body, const void *body_parameters,
     void *body_states) noexcept {
-    smoke_apply_rigid_impulses<<<grid, block, 0U, stream>>>(
+    smoke_apply_rigid_impulses<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<FluidBodyImpulse_0 *>(as<FluidBodyImpulse_0>(impulses)),
         count, body,
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),

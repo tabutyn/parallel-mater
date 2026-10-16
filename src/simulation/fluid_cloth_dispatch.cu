@@ -27,14 +27,14 @@ FluidClothCouplingOptions_0 converted(
 
 } // namespace
 
-void apply_fluid_cloth_forces(dim3 grid, dim3 block, cudaStream_t stream,
+void apply_fluid_cloth_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const void *particle_positions, const void *particle_velocities,
     const std::uint32_t *particle_count, void *particle_accelerations,
     float *foam_source, float particle_mass, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     std::uint32_t triangle_count, float cloth_orientation,
     const FluidClothDispatchOptions &options, void *cloth_forces) noexcept {
-    fluid_cloth_containment_forces<<<grid, block, 0U, stream>>>(
+    fluid_cloth_containment_forces<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(particle_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(particle_velocities)),
         const_cast<std::uint32_t *>(particle_count),
@@ -45,22 +45,22 @@ void apply_fluid_cloth_forces(dim3 grid, dim3 block, cudaStream_t stream,
         cloth_orientation, converted(options), as<Vec3_0>(cloth_forces));
 }
 
-void apply_fluid_forces_to_cloth(dim3 grid, dim3 block, cudaStream_t stream,
+void apply_fluid_forces_to_cloth(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *positions, void *velocities, const float *inverse_masses,
     const void *forces, std::uint32_t count, float timestep) noexcept {
-    cloth_apply_fluid_forces<<<grid, block, 0U, stream>>>(
+    cloth_apply_fluid_forces<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses),
         const_cast<Vec3_0 *>(as<Vec3_0>(forces)), count, timestep);
 }
 
-void project_fluid_inside_cloth(dim3 grid, dim3 block, cudaStream_t stream,
+void project_fluid_inside_cloth(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *particle_positions, void *particle_velocities,
     const std::uint32_t *particle_count, float contact_distance,
     const void *cloth_positions, const void *cloth_velocities,
     const std::uint32_t *cloth_indices, std::uint32_t triangle_count,
     float cloth_orientation) noexcept {
-    fluid_project_inside_cloth<<<grid, block, 0U, stream>>>(
+    fluid_project_inside_cloth<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(particle_positions), as<Vec3_0>(particle_velocities),
         const_cast<std::uint32_t *>(particle_count), contact_distance,
         const_cast<Vec3_0 *>(as<Vec3_0>(cloth_positions)),

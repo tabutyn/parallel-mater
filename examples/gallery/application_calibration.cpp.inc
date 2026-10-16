@@ -28,6 +28,8 @@ struct GallerySession {
         statistics = {};
         renderer_timings = {};
         ++revision;
+        std::cout << "Gallery scene ready index=" << gallery_context_index(context)
+                  << " revision=" << revision << '\n' << std::flush;
         return true;
     }
 };
@@ -134,7 +136,7 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         }
         if (!runtime.renderer.render(runtime.render_frame,
                                      camera.camera(), pixels, error)) return false;
-        if (!window.present(pixels, error)) return false;
+        if (!window.present(pixels, error, runtime.renderer.native_image())) return false;
         const double milliseconds = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - begin).count();
         samples.push_back({milliseconds, collision, true});

@@ -56,11 +56,11 @@ struct GalleryRuntime {
 
 [[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
                                 const StepOptions &options,
-                                std::string &error) {
+                                std::string &error, bool read_deformables = true) {
     if (!runtime.simulation.step(options.timestep, options.substeps,
                                  options.gravity, runtime.frame, error,
                                  options.collect_rigid_contacts ||
-                                     options.collect_fluid_contacts))
+                                     options.collect_fluid_contacts, read_deformables))
         return false;
     return parallel_mater::gallery::make_render_scene_frame(
         runtime.scene, runtime.frame, runtime.render_frame, error);

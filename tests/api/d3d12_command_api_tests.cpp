@@ -82,7 +82,7 @@ int main() {
         PM_BUFFER_GEOMETRY_INPUT_BIT;
     PmBuffer source{};
     CHECK(pmCreateBuffer(device, &buffer_info, &source) == PM_SUCCESS);
-    buffer_info.usage = PM_BUFFER_TRANSFER_DST_BIT |
+    buffer_info.usage = PM_BUFFER_TRANSFER_SRC_BIT | PM_BUFFER_TRANSFER_DST_BIT |
         PM_BUFFER_SIMULATION_OUTPUT_BIT;
     PmBuffer destination{};
     CHECK(pmCreateBuffer(device, &buffer_info, &destination) == PM_SUCCESS);
@@ -149,6 +149,37 @@ int main() {
     CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
     CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+
+    // Same-allocation GPU copies need a legal scratch path on D3D12. A later
+    // narrow host write must not overwrite neighboring GPU-owned bytes.
+    const PmBufferCopy self_copy{0U, 128U, 64U};
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdCopyBuffer(commands, destination, destination, 1U, &self_copy) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
+    CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    for (std::uint32_t index = 0U; index < 16U; ++index)
+        CHECK(static_cast<const std::uint32_t *>(mapped_readback)[32U + index] == 0xabc00000U + index);
+    static_cast<std::uint32_t *>(mapped_upload)[1U] = 0x12345678U;
+    const PmMappedMemoryRange narrow_upload{upload, 4U, 4U};
+    CHECK(pmFlushMappedMemoryRanges(device, 1U, &narrow_upload) == PM_SUCCESS);
+    pmUnmapMemory(device, readback);
+    const PmBufferCopy narrow_copy{4U, 252U, 4U};
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdCopyBuffer(commands, source, destination, 1U, &narrow_copy) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    for (unsigned repeat = 0U; repeat < 8U; ++repeat) {
+        CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
+        CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
+    }
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmMapMemory(device, readback, 0U, PM_WHOLE_SIZE, &mapped_readback) == PM_SUCCESS);
+    const PmMappedMemoryRange narrow_readback{readback, 252U, 4U};
+    CHECK(pmInvalidateMappedMemoryRanges(device, 1U, &narrow_readback) == PM_SUCCESS);
+    CHECK(static_cast<const std::uint32_t *>(mapped_readback)[63U] == 0x12345678U);
+    for (std::uint32_t index = 0U; index < 16U; ++index)
+        CHECK(static_cast<const std::uint32_t *>(mapped_readback)[32U + index] == 0xabc00000U + index);
 
     PmNativeDeviceInfo native_device{};
     PmNativeBufferInfo native_buffer{};
@@ -309,11 +340,19 @@ int main() {
     CHECK(pmGetQueryPoolResults(device, timing, 0U, 2U, sizeof timestamps,
         timestamps, sizeof timestamps[0], PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
     CHECK(timestamps[1] > timestamps[0]);
+    // Retire timestamp commands before destroying their query pool. The
+    // repeated-submission buffer below contains exactly one physics frame.
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
     pmDestroyQueryPool(device, timing);
 
     // Reuse the same executable command buffer over six simulated seconds.
     // The cube must settle on the static cube, not merely remain finite.
-    for (std::uint32_t frame = 2U; frame < 360U; ++frame) {
+    for (std::uint32_t frame = 32U; frame < 360U; ++frame) {
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
         CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
         CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,

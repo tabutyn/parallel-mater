@@ -135,11 +135,11 @@ def generate(args):
     # Vulkan has no cooperative grid barrier. The shared solver already has a
     # one-workgroup path; request exactly that path from the shared scheduler.
     if args.module == 'geometry_constraints':
-        wrapper = re.sub(r'return cudaOccupancyMaxActiveBlocksPerMultiprocessor\([^;]+;',
-                         'if (!resident_blocks || !block_size) return cudaErrorInvalidValue;\n    *resident_blocks = 1; return cudaSuccess;', wrapper)
+        wrapper = re.sub(r'return device::from_driver_error\(cudaOccupancyMaxActiveBlocksPerMultiprocessor\([^;]+;',
+                         'if (!resident_blocks || !block_size) return PM_ERROR_INVALID_ARGUMENT;\n    *resident_blocks = 1; return PM_SUCCESS;', wrapper)
         start = wrapper.index('    void *arguments[]')
         end = wrapper.index('\n}', start)
-        wrapper = wrapper[:start] + '    return cudaErrorNotSupported;' + wrapper[end:]
+        wrapper = wrapper[:start] + '    return PM_ERROR_FEATURE_NOT_PRESENT;' + wrapper[end:]
     def launch(match):
         kernel, config = match.groups()
         fields = split_args(config)

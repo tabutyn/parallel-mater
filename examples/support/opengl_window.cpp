@@ -61,7 +61,8 @@ bool GalleryWindow::create(std::uint32_t window_width,
 }
 
 bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba,
-                            std::string &error) {
+                            std::string &error, NativeRenderImage image) {
+    if (image.handle != 0U) { error = "native image is not supported by OpenGL presentation"; return false; }
     error.clear();
     if (!impl_ || rgba.size() !=
             static_cast<std::size_t>(impl_->image_width) *

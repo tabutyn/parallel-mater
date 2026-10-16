@@ -296,7 +296,7 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
     return pmAtomicMin(reinterpret<uint*>(value), asuint(candidate));
 }
 #endif
-public void pmSyncWarp(uint) { GroupMemoryBarrierWithGroupSync(); }
+public void pmSyncWarp(uint) { AllMemoryBarrierWithGroupSync(); }
 public uint3 pmGridDim() { return pmDispatchGroupCount; }
 
 // Graphics APIs have no in-dispatch grid barrier. Their thin device adapters
@@ -378,5 +378,15 @@ public uint pmThreadIndex() { return pmDispatchThreadId.x; }
 #endif
 
 #if !defined(PM_TARGET_CPU)
-public void pmGroupBarrier() { GroupMemoryBarrierWithGroupSync(); }
+public void pmGroupBarrier()
+{
+#if defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12
+    // The shared schedules exchange both group-shared metadata and device
+    // buffer records (AVBD bodies, cloth positions) between lanes. A TGSM-only
+    // barrier does not publish UAV stores to those subsequent reads.
+    AllMemoryBarrierWithGroupSync();
+#else
+    GroupMemoryBarrierWithGroupSync();
+#endif
+}
 #endif

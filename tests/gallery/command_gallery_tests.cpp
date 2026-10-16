@@ -2,6 +2,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <scene_builder.hpp>
+#include "backend_comparison.hpp"
 
 #include <array>
 #include <cmath>
@@ -73,6 +74,24 @@ template <std::size_t Size>
             error = "rigid output escaped the stability bounds";
             return false;
         }
+        float norm = 0.0F;
+        for (float component : state.orientation) norm += component * component;
+        if (std::abs(norm - 1.0F) > 0.001F) {
+            error = "rigid orientation lost unit length";
+            return false;
+        }
+    }
+    for (std::size_t index = 0U; index < scene.rigid_bodies.size(); ++index) {
+        const auto &body = scene.rigid_bodies[index];
+        if (body.options.motion != MotionType::static_body) continue;
+        const auto &position = body.options.initial_state.position;
+        const auto &actual = frame.rigid_states[index];
+        if (std::abs(actual.position[0] - position.x) > 1.0e-6F ||
+            std::abs(actual.position[1] - position.y) > 1.0e-6F ||
+            std::abs(actual.position[2] - position.z) > 1.0e-6F) {
+            error = "static rigid body moved: " + body.name;
+            return false;
+        }
     }
     for (const PmFluidParticleOutput &particle : frame.fluid_particles)
         if (!finite(particle.position) || !finite(particle.velocity)) {
@@ -85,6 +104,37 @@ template <std::size_t Size>
                 error = "cloth output contains a non-finite value";
                 return false;
             }
+    if (frame.cloth_vertices.size() != scene.cloths.size()) {
+        error = "cloth output count does not match the scene";
+        return false;
+    }
+    for (std::size_t cloth = 0U; cloth < scene.cloths.size(); ++cloth) {
+        const auto &definition = scene.cloths[cloth];
+        const auto &vertices = scene.meshes.at(definition.mesh_index).vertices;
+        if (frame.cloth_vertices[cloth].size() < vertices.size()) {
+            error = "cloth lost original vertices";
+            return false;
+        }
+        for (std::size_t vertex = 0U; vertex < definition.inverse_masses.size(); ++vertex) {
+            if (definition.inverse_masses[vertex] != 0.0F) continue;
+            const auto &expected = vertices.at(vertex).position;
+            const auto &actual = frame.cloth_vertices[cloth][vertex].position;
+            if (std::abs(actual.x - expected.x) > 1.0e-5F ||
+                std::abs(actual.y - expected.y) > 1.0e-5F ||
+                std::abs(actual.z - expected.z) > 1.0e-5F) {
+                error = "pinned cloth vertex moved";
+                return false;
+            }
+        }
+    }
+    for (const auto &contact : frame.contacts) {
+        if (!finite(contact.position) || !finite(contact.normal) ||
+            !finite(contact.frictionImpulse) || !std::isfinite(contact.penetration) ||
+            !std::isfinite(contact.normalImpulse) || contact.normalImpulse < -1.0e-6F) {
+            error = "contact record has an invalid position, normal or impulse";
+            return false;
+        }
+    }
     for (const auto &rope : frame.rope_nodes)
         for (const PmRopeNodeState &node : rope)
             if (!finite(node.position) || !finite(node.velocity)) {
@@ -108,18 +158,22 @@ int main(int argc, char **argv) {
 
     const std::filesystem::path asset_root{PARALLEL_MATER_GALLERY_ASSET_DIR};
     std::optional<PmNativeBackend> backend;
+    std::optional<PmNativeBackend> reference_backend;
     std::uint32_t requested_frames = 0U;
     bool rigid_only = false;
+    bool trace_comparison = false;
     std::string selected_scene;
     for (int argument = 1; argument < argc; ++argument) {
         const std::string option = argv[argument];
         if (option == "--rigid-only") rigid_only = true;
+        else if (option == "--trace-comparison") trace_comparison = true;
         else if (option == "--scene" && argument + 1 < argc)
             selected_scene = argv[++argument];
-        else if (option == "--backend" && argument + 1 < argc) {
+        else if ((option == "--backend" || option == "--compare-backend") && argument + 1 < argc) {
             const std::string value = argv[++argument];
-            if (value == "d3d12") backend = PM_NATIVE_BACKEND_D3D12;
-            else if (value == "cuda") backend = PM_NATIVE_BACKEND_CUDA;
+            auto &selected = option == "--backend" ? backend : reference_backend;
+            if (value == "d3d12") selected = PM_NATIVE_BACKEND_D3D12;
+            else if (value == "cuda") selected = PM_NATIVE_BACKEND_CUDA;
             else { std::cerr << "Unknown backend: " << value << '\n'; return 1; }
         } else if (option == "--frames" && argument + 1 < argc) {
             try { requested_frames = std::stoul(argv[++argument]); }
@@ -162,12 +216,20 @@ int main(int argc, char **argv) {
         CommandScene simulation;
         CommandSceneInstance instance;
         CommandSceneFrame frame;
+        CommandScene reference;
+        CommandSceneInstance reference_instance;
+        CommandSceneFrame reference_frame;
         if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) {
             if (index == 0U && error.find("physical device") != std::string::npos) {
                 std::cout << "SKIP: no Parallel Mater device\n";
                 return 77;
             }
             std::cerr << entry.name << ": create failed: " << error << '\n';
+            return 1;
+        }
+        if (reference_backend && !CommandScene::create(scene, 2U, reference,
+                reference_instance, error, reference_backend)) {
+            std::cerr << entry.name << ": reference create failed: " << error << '\n';
             return 1;
         }
         const std::uint32_t frame_count = requested_frames != 0U
@@ -186,6 +248,14 @@ int main(int argc, char **argv) {
             if ((frame_index + 1U) % 60U == 0U)
                 std::cout << entry.name << ": " << frame_index + 1U
                           << " frames submitted\n" << std::flush;
+            if (reference_backend &&
+                (!reference.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, reference_frame, error, true) ||
+                 !validate_frame(scene, reference_frame, error) ||
+                 !test::compare_frames(frame, reference_frame, error, trace_comparison))) {
+                std::cerr << entry.name << ": backend comparison frame " << frame_index
+                          << " failed: " << error << '\n';
+                return 1;
+            }
         }
 
         if (entry.context == GalleryContext::constraint_point) {
@@ -207,11 +277,28 @@ int main(int argc, char **argv) {
                 }
         }
 
+        // Native drawing must not require deformable CPU vectors. A later
+        // diagnostic read must recover the same latest output without stepping.
+        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, frame,
+                             error, true, false) || frame.full_host_output ||
+            !frame.fluid_particles.empty() || !frame.cloth_vertices.empty() ||
+            !simulation.read_output(frame, error) || !frame.full_host_output ||
+            !validate_frame(scene, frame, error)) {
+            std::cerr << entry.name << ": GPU-only/diagnostic read failed: " << error << '\n';
+            return 1;
+        }
         if (!simulation.reset(error)) {
             std::cerr << entry.name << ": reset failed: " << error << '\n';
             return 1;
         }
         // Reset must recreate the selected driver and resume submission.
+        if (backend) {
+            PmNativeDeviceInfo native{};
+            if (pmGetNativeDevice(simulation.device(), &native) != PM_SUCCESS || native.backend != *backend) {
+                std::cerr << entry.name << ": reset changed the selected backend\n";
+                return 1;
+            }
+        }
         if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
                              frame, error, true) ||
             !validate_frame(scene, frame, error)) {
@@ -225,5 +312,6 @@ int main(int argc, char **argv) {
 
     std::cout << passed
               << " public-command gallery scenes passed\n";
-    return 0;
+    if (passed == 0U) std::cerr << "No gallery scene matched the requested filters\n";
+    return passed == 0U ? 1 : 0;
 }

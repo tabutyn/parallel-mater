@@ -5,37 +5,33 @@ struct NativeScheduleBackend {
     device::ExecutionQueue execution;
     explicit NativeScheduleBackend(device::ExecutionQueue value) : execution(value) {}
     auto queue() const noexcept { return execution; }
-    static auto success_code() noexcept { return cudaSuccess; }
-    static Status failure(cudaError_t error, const char *message) noexcept {
-        return cuda_failure(error, message);
+    static auto success_code() noexcept { return PM_SUCCESS; }
+    static Status failure(PmResult error, const char *message) noexcept {
+        return backend_failure(error, message);
     }
     template <typename T> static decltype(auto) unwrap(T &&value) noexcept {
-        if constexpr (std::is_same_v<std::decay_t<T>, device::ExecutionQueue>)
-            return native_stream(value);
-        else
-            return std::forward<T>(value);
+        return std::forward<T>(value);
     }
     auto copy(void *destination, const void *source, std::size_t bytes,
-              device::CopyDirection, device::ExecutionQueue queue) noexcept {
-        return cudaMemcpyAsync(destination, source, bytes, cudaMemcpyDeviceToDevice,
-                               native_stream(queue));
+              device::CopyDirection direction, device::ExecutionQueue queue) noexcept {
+        return queue.services->copy(destination, source, bytes, direction);
     }
     auto clear(void *destination, int value, std::size_t bytes,
                device::ExecutionQueue queue) noexcept {
-        return cudaMemsetAsync(destination, value, bytes, native_stream(queue));
+        return queue.services->clear(destination, value, bytes);
     }
-    auto check_error() noexcept { return cudaPeekAtLastError(); }
-    auto take_error() noexcept { return cudaGetLastError(); }
+    auto check_error() noexcept { return execution.services->last_error(false); }
+    auto take_error() noexcept { return execution.services->last_error(true); }
     auto wait(device::ExecutionQueue queue) noexcept {
-        return cudaStreamSynchronize(native_stream(queue));
+        return queue.services->wait_idle();
     }
-    auto record_event(cudaEvent_t event, device::ExecutionQueue queue) noexcept {
-        return cudaEventRecord(event, native_stream(queue));
+    auto record_event(device::Event event, device::ExecutionQueue queue) noexcept {
+        return queue.services->record_event(event);
     }
     template <typename T>
     Status read_value(device::ExecutionQueue queue, const T *source, T &destination,
                       const char *message) noexcept {
-        return read_device_value(native_stream(queue), source, destination, message);
+        return read_device_value(queue, source, destination, message);
     }
     static auto multiply(Vec3 value, float scale) noexcept {
         return parallel_mater::multiply(value, scale);

@@ -48,15 +48,21 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmMapMemory(
     size = parallel_mater::api::resolved_size(offset, size, memory->size);
     if (!parallel_mater::api::range_fits(offset, size, memory->size))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (memory->mapped) return PM_ERROR_INVALID_STATE;
+    void *pointer = static_cast<std::byte *>(memory->allocation) + offset;
+    const auto result = device->services->map_host(pointer, size);
+    if (result != PM_SUCCESS) return result;
     memory->mapped = true;
-    *data = static_cast<std::byte *>(memory->allocation) + offset;
+    *data = pointer;
     return PM_SUCCESS;
 }
 
 extern "C" PMAPI_ATTR void PMAPI_CALL pmUnmapMemory(
     PmDevice device, PmDeviceMemory memory) {
-    if (device != nullptr && memory != nullptr && memory->device == device)
+    if (device != nullptr && memory != nullptr && memory->device == device) {
+        device->services->unmap_host(memory->allocation);
         memory->mapped = false;
+    }
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmFlushMappedMemoryRanges(
@@ -72,12 +78,36 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmFlushMappedMemoryRanges(
                     range.offset, range.size, range.memory->size), range.memory->size))
             return PM_ERROR_INVALID_ARGUMENT;
     }
+    for (std::uint32_t index = 0U; index < count; ++index) {
+        const auto &range = ranges[index];
+        const auto result = device->services->write_host(
+            static_cast<std::byte *>(range.memory->allocation) + range.offset,
+            parallel_mater::api::resolved_size(range.offset, range.size, range.memory->size));
+        if (result != PM_SUCCESS) return result;
+    }
     return PM_SUCCESS;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmInvalidateMappedMemoryRanges(
     PmDevice device, std::uint32_t count, const PmMappedMemoryRange *ranges) {
-    return pmFlushMappedMemoryRanges(device, count, ranges);
+    if (device == nullptr || (count != 0U && ranges == nullptr))
+        return PM_ERROR_INVALID_ARGUMENT;
+    for (std::uint32_t index = 0U; index < count; ++index) {
+        const auto &range = ranges[index];
+        if (range.memory == nullptr || range.memory->device != device ||
+            !range.memory->mapped || !parallel_mater::api::range_fits(
+                range.offset, parallel_mater::api::resolved_size(
+                    range.offset, range.size, range.memory->size), range.memory->size))
+            return PM_ERROR_INVALID_ARGUMENT;
+    }
+    for (std::uint32_t index = 0U; index < count; ++index) {
+        const auto &range = ranges[index];
+        const auto result = device->services->read_host(
+            static_cast<std::byte *>(range.memory->allocation) + range.offset,
+            parallel_mater::api::resolved_size(range.offset, range.size, range.memory->size));
+        if (result != PM_SUCCESS) return result;
+    }
+    return PM_SUCCESS;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateBuffer(

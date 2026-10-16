@@ -14,7 +14,7 @@ template <typename T> const T *as(const void *value) noexcept {
 } // namespace
 
 void constrain_rigid_bodies_with_cloth(
-    dim3 grid, dim3 block, cudaStream_t stream, const void *cloth_positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     const std::uint32_t *vertex_sources, const void *surface_positions,
     const float *inverse_masses, std::uint32_t vertex_count,
@@ -26,7 +26,7 @@ void constrain_rigid_bodies_with_cloth(
     const void *paint_fields, std::uint32_t paint_field_capacity,
     const void *paint_rules, std::uint32_t paint_rule_capacity,
     void *corrections) noexcept {
-    cloth_constrain_bodies<<<grid, block, 0U, stream>>>(
+    cloth_constrain_bodies<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(cloth_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(cloth_velocities)),
         const_cast<std::uint32_t *>(cloth_indices),
@@ -51,10 +51,10 @@ void constrain_rigid_bodies_with_cloth(
 }
 
 void apply_cloth_body_corrections(
-    dim3 grid, dim3 block, cudaStream_t stream, void *positions,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t vertex_count,
     const void *corrections, std::uint32_t body_count) noexcept {
-    cloth_apply_body_corrections<<<grid, block, 0U, stream>>>(
+    cloth_apply_body_corrections<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), vertex_count,
         const_cast<ClothBodyCorrection_0 *>(
