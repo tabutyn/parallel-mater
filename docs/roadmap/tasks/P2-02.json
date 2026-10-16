@@ -1,0 +1,27 @@
+{
+  "id": "P2-02",
+  "title": "Build Unity minimal SDK integration",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99",
+    "P2-01"
+  ],
+  "locks": [
+    "unity-plugin"
+  ],
+  "requires": [
+    "Unity development host"
+  ],
+  "scope": "Implement the native-plugin/C# bridge for one qualified scene and ownership contract.",
+  "acceptance": [
+    "Installed library loads independently, feature selection is explicit and scene teardown passes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

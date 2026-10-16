@@ -1,0 +1,22 @@
+{
+  "id": "F4-04",
+  "title": "Remove generated-source ABI parsing",
+  "status": "open",
+  "dependencies": [
+    "F4-01"
+  ],
+  "locks": [
+    "binding-generator"
+  ],
+  "requires": [
+    "Pinned Slang; native adapter build evidence supplied by its machine"
+  ],
+  "scope": "Move remaining CUDA/DXIL dispatch layout generation onto the common Slang reflection model.",
+  "acceptance": [
+    "Layout/offset/signature tests cover every migrated adapter.",
+    "Physics source remains shared Slang; unsupported reflection shapes fail generation."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

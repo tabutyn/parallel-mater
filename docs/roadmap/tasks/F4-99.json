@@ -1,0 +1,29 @@
+{
+  "id": "F4-99",
+  "title": "Review F4 exit evidence",
+  "status": "open",
+  "dependencies": [
+    "F4-01",
+    "F4-02",
+    "F4-03",
+    "F4-04",
+    "F4-05",
+    "F4-06",
+    "F4-07",
+    "F4-08"
+  ],
+  "locks": [
+    "foundation-4-review"
+  ],
+  "requires": [
+    "Access to the relevant driver evidence; cross-machine review where needed"
+  ],
+  "scope": "Review this foundation against its original exit contract; split any remaining gaps into new leaf tasks before closing.",
+  "acceptance": [
+    "All dependency tasks are merged done with reviewable evidence.",
+    "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

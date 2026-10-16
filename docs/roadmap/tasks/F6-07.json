@@ -1,0 +1,20 @@
+{
+  "id": "F6-07",
+  "title": "Reconcile legacy hinge and contact patches",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "legacy-patch-review"
+  ],
+  "requires": [
+    "Preserved hinge/contact snapshot; CUDA for reproduction"
+  ],
+  "scope": "Separate retained hinge fixtures, debug replay and physical changes into bounded follow-up tasks.",
+  "acceptance": [
+    "Record changed fixture hashes and preserve raw reproductions independently of solver changes.",
+    "Each unique patch hunk has a disposition; no unreviewed golden or solver transplant."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

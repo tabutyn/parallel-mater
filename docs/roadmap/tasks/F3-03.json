@@ -1,0 +1,24 @@
+{
+  "id": "F3-03",
+  "title": "Validate object dependencies and query state",
+  "status": "open",
+  "dependencies": [
+    "F3-01",
+    "F1-03",
+    "F1-04"
+  ],
+  "locks": [
+    "validation-layer"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Track geometry/simulation/material/buffer dependencies and query ownership/lifecycle.",
+  "acceptance": [
+    "Destroy/reset/rebind cannot silently retain stale tracked dependencies.",
+    "Cross-device, bad query range/state and failed creation leave consistent validation state."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "F5-02",
+  "title": "Add vendor-neutral conservation and stability cases",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "conformance-corpus"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add analytic/invariant momentum, energy accounting and timestep/mass-ratio fixtures independent of CUDA goldens.",
+  "acceptance": [
+    "Deliberately wrong outputs fail each invariant.",
+    "Numerical limits derive from documented profiles, not current reference outputs."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

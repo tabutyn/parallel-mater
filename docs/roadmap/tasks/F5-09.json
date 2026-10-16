@@ -1,0 +1,20 @@
+{
+  "id": "F5-09",
+  "title": "Isolate native Vulkan validation crash",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "vulkan-qualification"
+  ],
+  "requires": [
+    "Linux Vulkan device and native validation layer"
+  ],
+  "scope": "Reduce the fluid-pipeline creation crash inside the installed native validation layer; keep PM validation evidence separate.",
+  "acceptance": [
+    "Minimal reproduction records layer/driver versions and old/new binding-generator controls.",
+    "A corrected setup or confirmed upstream fix must pass the unchanged lifecycle case before closing qualification."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,25 @@
+{
+  "id": "F2-10",
+  "title": "Qualify and advertise equal-material fluid–fluid",
+  "status": "open",
+  "dependencies": [
+    "F2-04",
+    "F2-09",
+    "F5-02"
+  ],
+  "locks": [
+    "runtime-capabilities",
+    "conformance-corpus"
+  ],
+  "requires": [
+    "Each driver that will advertise this mode"
+  ],
+  "scope": "Run public-API lifecycle and physical cases before enabling the exact supported mode.",
+  "acceptance": [
+    "Split/combined, stability, momentum, failure/recovery and three-family cases pass on each advertising driver.",
+    "Per-mode capability reporting and evidence list unsupported adapters/materials."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

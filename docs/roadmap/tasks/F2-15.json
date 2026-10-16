@@ -1,0 +1,22 @@
+{
+  "id": "F2-15",
+  "title": "Specify smoke–smoke system modes",
+  "status": "open",
+  "dependencies": [
+    "F2-01"
+  ],
+  "locks": [
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define overlapping fields, exchange and conservation; retain unsupported capability states until implementation.",
+  "acceptance": [
+    "Separate self and inter-system behavior with measurable physical criteria.",
+    "Split missing operators and their public-API qualification into new leaf tasks."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

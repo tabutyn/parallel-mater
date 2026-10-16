@@ -5,6 +5,15 @@ retain dependency licenses and establish rights to any imported source/assets.
 The current project owns its specification and extension namespace. Future
 standards-group adoption is a goal, not current endorsement or governance.
 
+## Claiming roadmap work
+
+Roadmap work uses one leaf task per reservation and completion PR. Read the
+[lease workflow](docs/roadmap/WORKFLOW.md), push a claim-only PR, and wait for its
+merge before implementation. The task's lease token on current main establishes
+ownership. Renew, release, reclaim and complete through the documented PR flow;
+do not rely on an open PR or an expired reservation. The generated index and
+machine-readable cards let other machines see the same work queue.
+
 ## Change ownership
 
 `registry/pm.xml` defines the public command contract. Change it before generated

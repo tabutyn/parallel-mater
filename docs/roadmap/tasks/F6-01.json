@@ -1,0 +1,20 @@
+{
+  "id": "F6-01",
+  "title": "Qualify Windows SDK installation",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "sdk-packaging"
+  ],
+  "requires": [
+    "Windows C/C++ toolchain"
+  ],
+  "scope": "Run and fix the installed SDK gate on Windows, including DLL manifest resolution and independent clients/drivers.",
+  "acceptance": [
+    "Clean relocated install passes C, C++, external driver and conformance input checks.",
+    "Evidence identifies compiler/SDK/revision; add the same job to CI."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,23 @@
+{
+  "id": "F2-04",
+  "title": "Qualify graph rebinding across implemented pairs",
+  "status": "open",
+  "dependencies": [
+    "F1-05",
+    "F2-03"
+  ],
+  "locks": [
+    "lifecycle-tests"
+  ],
+  "requires": [
+    "Driver advertising the tested pairs; retain unsupported results separately"
+  ],
+  "scope": "Extend endpoint/pipeline/explicit-graph lifecycle tests beyond fluid–rope; no new pair physics.",
+  "acceptance": [
+    "Every implemented pair exercises create/update/clear and endpoint replacement.",
+    "Three-family graph mutation and partial-create rollback preserve unrelated edges."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

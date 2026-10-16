@@ -1,0 +1,23 @@
+{
+  "id": "F3-04",
+  "title": "Validate synchronization state",
+  "status": "open",
+  "dependencies": [
+    "F3-02"
+  ],
+  "locks": [
+    "validation-layer",
+    "submission-runtime"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Validate fence/timeline ownership and submit/wait/signal interleavings.",
+  "acceptance": [
+    "Host mock tests cover wait-before-signal, pending reuse, failed submit and device teardown.",
+    "Valid asynchronous schedules pass without accidental serialization requirements."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

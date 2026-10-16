@@ -1,0 +1,26 @@
+{
+  "id": "P1-02",
+  "title": "Plan remaining same-family operators",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99"
+  ],
+  "locks": [
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Turn reviewed same-family mode specs into separate operator and qualification tasks.",
+  "acceptance": [
+    "Cloth, soft body, rope and smoke inter-system/self modes each have leaf tasks; rigid–rigid gaps remain explicit."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

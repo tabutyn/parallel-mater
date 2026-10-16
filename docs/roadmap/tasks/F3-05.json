@@ -1,0 +1,23 @@
+{
+  "id": "F3-05",
+  "title": "Expose structured validation diagnostics",
+  "status": "open",
+  "dependencies": [
+    "F3-01"
+  ],
+  "locks": [
+    "api-registry",
+    "validation-layer"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Define and implement diagnostics with stable rule IDs, object context and thread-safe delivery.",
+  "acceptance": [
+    "External consumers receive machine-readable IDs and relevant arguments without parsing stderr.",
+    "Reentrancy, callback lifetime and OOM behavior are documented and tested."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

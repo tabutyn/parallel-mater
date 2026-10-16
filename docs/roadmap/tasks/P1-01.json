@@ -1,0 +1,26 @@
+{
+  "id": "P1-01",
+  "title": "Plan remaining driver/domain qualification",
+  "status": "deferred",
+  "dependencies": [
+    "F1-99",
+    "F2-99",
+    "F3-99",
+    "F4-99",
+    "F5-99",
+    "F6-99"
+  ],
+  "locks": [
+    "platform-plan"
+  ],
+  "requires": [
+    "Driver owners across available machines"
+  ],
+  "scope": "Inventory unsupported driver/domain pairs and split each missing adapter slice into implementation and hardware-test tasks.",
+  "acceptance": [
+    "Every CUDA/D3D12/Vulkan/Metal domain has explicit remaining work and evidence requirements."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

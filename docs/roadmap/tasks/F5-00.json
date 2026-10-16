@@ -1,0 +1,19 @@
+{
+  "id": "F5-00",
+  "title": "Independent headless conformance baseline",
+  "status": "done",
+  "dependencies": [],
+  "locks": [],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Installed scene SDK, standalone runner, input hashes and distinct execution outcomes.",
+  "acceptance": [
+    "Historical checkpoint only; remaining work is represented by the other leaf tasks."
+  ],
+  "evidence": [
+    "603fee5; conformance/v1/README.md"
+  ],
+  "lease": null,
+  "history": []
+}

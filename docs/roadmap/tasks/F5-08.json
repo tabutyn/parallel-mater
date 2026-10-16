@@ -1,0 +1,22 @@
+{
+  "id": "F5-08",
+  "title": "Publish per-driver evidence indexes",
+  "status": "open",
+  "dependencies": [
+    "F5-01"
+  ],
+  "locks": [
+    "conformance-report"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Produce a capability/evidence matrix from revisioned reports and check documentation claims against it.",
+  "acceptance": [
+    "Stale source/case hashes, absent cases and unsupported results cannot certify a mode.",
+    "Known failures remain visible and source/toolchain/device tuples are preserved."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

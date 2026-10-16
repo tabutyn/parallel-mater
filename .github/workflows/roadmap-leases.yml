@@ -1,0 +1,41 @@
+name: Roadmap leases
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lease-contract:
+    name: Roadmap lease contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Test lease races and state transitions
+        run: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'
+      - name: Check task catalog and generated roadmap
+        run: python3 tools/roadmap.py check
+      - name: Check PR against current main
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          git fetch origin main
+          if [ "$EVENT_NAME" = pull_request ]; then
+            python3 tools/roadmap.py check --base origin/main --branch "$HEAD_BRANCH"
+          else
+            python3 tools/roadmap.py check --base origin/main
+          fi

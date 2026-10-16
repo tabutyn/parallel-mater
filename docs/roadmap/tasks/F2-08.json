@@ -1,0 +1,22 @@
+{
+  "id": "F2-08",
+  "title": "Exchange fluid viscosity forces",
+  "status": "open",
+  "dependencies": [
+    "F2-07"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement viscosity exchange between compatible fluid populations.",
+  "acceptance": [
+    "Dissipation and momentum satisfy the profile across timestep/mass-ratio sweeps.",
+    "Isolated and coupled limits have analytic or invariant tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

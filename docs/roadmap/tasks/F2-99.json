@@ -1,0 +1,36 @@
+{
+  "id": "F2-99",
+  "title": "Review F2 exit evidence",
+  "status": "open",
+  "dependencies": [
+    "F2-01",
+    "F2-02",
+    "F2-03",
+    "F2-04",
+    "F2-05",
+    "F2-06",
+    "F2-07",
+    "F2-08",
+    "F2-09",
+    "F2-10",
+    "F2-11",
+    "F2-12",
+    "F2-13",
+    "F2-14",
+    "F2-15"
+  ],
+  "locks": [
+    "foundation-2-review"
+  ],
+  "requires": [
+    "Access to the relevant driver evidence; cross-machine review where needed"
+  ],
+  "scope": "Review this foundation against its original exit contract; split any remaining gaps into new leaf tasks before closing.",
+  "acceptance": [
+    "All dependency tasks are merged done with reviewable evidence.",
+    "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

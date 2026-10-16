@@ -1,0 +1,21 @@
+{
+  "id": "F3-01",
+  "title": "Finish manual command interception",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "loader-dispatch",
+    "validation-layer"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add typed pre/post validation coverage to manual loader entrypoints that currently bypass it.",
+  "acceptance": [
+    "Registry/manual entrypoint inventory names every covered or intentionally excluded call.",
+    "Permissive external-driver tests prove interception and version-1 layer compatibility."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
