@@ -188,7 +188,8 @@ endfunction()
 function(parallel_mater_compile_slang_cuda output_variable)
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
-         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     set(outputs)
     foreach(module IN LISTS PARALLEL_MATER_SLANG_KERNEL_MODULES)
         parallel_mater_slang_entry_arguments("${module}" CUDA entry_arguments)
@@ -232,7 +233,8 @@ function(parallel_mater_compile_slang_dxil output_variable)
     endif()
     set(generated_dir "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil")
     file(GLOB_RECURSE slang_dependencies CONFIGURE_DEPENDS
-         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     set(outputs)
     set(dxil_outputs)
     set(records)

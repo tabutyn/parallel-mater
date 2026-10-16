@@ -108,3 +108,10 @@ them.
 The 60/30 FPS result applies only to the recorded qualification workload,
 resolution, software versions, power mode, and test date. A profile does not
 claim the same result for arbitrary future workloads or operating-system stalls.
+
+The Linux Vulkan preview also consumes `startup_limits`, selecting the exact
+backend and machine before allocation. Its initial budget is four bricks,
+256 liquid particles, four moving bodies in Fluid + Rigid, and 1280x720
+rendering. These are conservative startup values, not measured performance
+claims. Explicit desktop counts override defaults; headless runs use their
+explicit workload and do not consume interactive startup limits.

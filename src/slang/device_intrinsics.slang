@@ -4,6 +4,10 @@
 import types;
 import graphics_resources;
 
+#if defined(PM_VULKAN_VARIABLE_GROUP_SIZE)
+[[vk::constant_id(0)]] public const uint pmVulkanWorkgroupSizeX = 256;
+#endif
+
 #ifndef PM_TARGET_D3D12
 #define PM_TARGET_D3D12 0
 #endif
@@ -117,9 +121,23 @@ public uint64_t pmAtomicAdd(uint64_t* value, uint64_t addend)
 }
 public float pmAtomicAdd(float* value, float addend)
 {
+#if defined(PM_TARGET_VULKAN)
+    uint* bits = reinterpret<uint*>(value);
+    uint expected;
+    InterlockedAdd(*bits, 0u, expected);
+    for (;;)
+    {
+        uint original;
+        InterlockedCompareExchange(*bits, expected,
+            asuint(asfloat(expected) + addend), original);
+        if (original == expected) return asfloat(original);
+        expected = original;
+    }
+#else
     float original;
     InterlockedAdd(*value, addend, original);
     return original;
+#endif
 }
 public uint pmAtomicMax(uint* value, uint candidate)
 {

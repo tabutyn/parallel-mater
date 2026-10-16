@@ -15,8 +15,8 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.rigidBodies = PM_TRUE;
     features.rigidConstraints = PM_TRUE;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER) || \
-    defined(PARALLEL_MATER_D3D12_DRIVER)
-#if defined(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+    defined(PARALLEL_MATER_D3D12_DRIVER) || defined(PARALLEL_MATER_VULKAN_DRIVER)
+#if defined(PARALLEL_MATER_SLANG_CPU_LIQUIDS) || defined(PARALLEL_MATER_VULKAN_DRIVER)
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;
     features.particleEmitters = PM_TRUE;

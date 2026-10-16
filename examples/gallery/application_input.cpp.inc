@@ -37,7 +37,11 @@
 [[nodiscard]] bool parse_options(int argc, char **argv, Options &output) {
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument(argv[index]);
-        if (argument == "--scene" && index + 1 < argc) {
+        if (argument == "--backend" && index + 1 < argc) {
+            output.backend = argv[++index];
+            if (output.backend != "cuda" && output.backend != "vulkan" &&
+                output.backend != "d3d12" && output.backend != "cpu") return false;
+        } else if (argument == "--scene" && index + 1 < argc) {
             output.scene = argv[++index];
         } else if (argument == "--headless" && index + 1 < argc) {
             output.headless_output = argv[++index];
@@ -77,6 +81,7 @@
         } else if (argument == "--print-brick-profile") {
             output.print_brick_profile = true;
         } else if (argument == "--fluid-particles" && index + 1 < argc) {
+            output.fluid_particles_overridden = true;
             const GalleryEntry &entry = gallery_entry(GalleryContext::fluid);
             if (!parse_count(argv[++index], entry.minimum_count,
                              entry.maximum_count,
@@ -120,7 +125,7 @@
         } else if (argument == "--physics-capture" && index + 1 < argc) {
             output.physics_capture_output = argv[++index];
         } else if (argument == "--help") {
-            std::cout << "parallel-mater-gallery [--scene file.glb] "
+            std::cout << "parallel-mater-gallery [--backend cuda|vulkan|d3d12|cpu] [--scene file.glb] "
                          "[--brick-count 1..4096] [--brick-scale 0.5..2] "
                          "[--brick-planes 1..16] [--calibrate] "
                          "[--profiles-file file.json] "

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Scheduler-visible collection of shared scan, compaction, and sort kernels.
 
 #include "primitives/scan.slang"

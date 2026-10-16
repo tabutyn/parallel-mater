@@ -59,6 +59,8 @@ option(PARALLEL_MATER_BUILD_CUDA
 option(PARALLEL_MATER_BUILD_D3D12
        "Build the D3D12 loader and shared-Slang qualification adapter"
        ${PARALLEL_MATER_D3D12_DEFAULT})
+option(PARALLEL_MATER_BUILD_VULKAN
+       "Build the loadable shared-Slang Vulkan qualification driver" OFF)
 option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
 option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
@@ -139,7 +141,7 @@ if(PARALLEL_MATER_BUILD_BENCHMARKS AND NOT PARALLEL_MATER_BUILD_CUDA)
         "The current profiler-backed benchmarks require PARALLEL_MATER_BUILD_CUDA")
 endif()
 
-if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR
+if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
    PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
    PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS OR
    PARALLEL_MATER_BUILD_SLANG_MIRRORS)
@@ -187,7 +189,7 @@ if(PARALLEL_MATER_BUILD_GALLERY OR
 endif()
 
 if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
-   PARALLEL_MATER_BUILD_D3D12 OR
+   PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUILD_VULKAN OR
    PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
     add_library(parallel-mater-host-preparation STATIC
         src/fluid_geometry.cpp
@@ -729,6 +731,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         parallel-mater-gallery-application
         PRIVATE
             PARALLEL_MATER_DEFAULT_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/RigidBody.glb"
+            PARALLEL_MATER_GALLERY_MANIFEST_DIR="${PARALLEL_MATER_BUILD_MANIFEST_DIR}"
             PARALLEL_MATER_DEVICE_PROFILES_PATH="${PARALLEL_MATER_GALLERY_PROFILE_PATH}"
             PARALLEL_MATER_GALLERY_GIT_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}"
             PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH="${PARALLEL_MATER_GALLERY_ASSET_DIRECTORY}/ConstraintFixed.glb"
@@ -789,6 +792,10 @@ if(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS)
         add_dependencies(parallel-mater-gallery-window
                          parallel-mater-slang-avbd-dxil)
     endif()
+endif()
+
+if(PARALLEL_MATER_BUILD_VULKAN)
+    include(cmake/ParallelMaterVulkan.cmake)
 endif()
 
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
@@ -1058,6 +1065,15 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
         "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_cpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
+endif()
+
+if(PARALLEL_MATER_BUILD_VULKAN)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${CMAKE_INSTALL_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_vulkan${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
 endif()
 
 install(

@@ -23,7 +23,7 @@ int main() {
           PM_SUCCESS);
     if (physical_count == 0U) {
         pmDestroyInstance(instance);
-        std::puts("SKIP: no D3D12 device with Shader Model 6.6");
+        std::puts("SKIP: no compatible graphics compute device");
         return 77;
     }
     std::vector<PmPhysicalDevice> physicals(physical_count);
@@ -53,6 +53,7 @@ int main() {
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
+    device_info.enabledFeatures.timestampQueries = PM_TRUE;
     PmDevice device{};
     // Device creation loads the embedded common Slang schedule library,
     // dispatches a descriptor-backed rigid-input kernel, and validates it.
@@ -150,7 +151,11 @@ int main() {
     PmNativeDeviceInfo native_device{};
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
+#if defined(PM_TEST_VULKAN)
+    CHECK(native_device.backend == PM_NATIVE_BACKEND_VULKAN);
+#else
     CHECK(native_device.backend == PM_NATIVE_BACKEND_D3D12);
+#endif
     CHECK(native_device.device != 0U);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U);
@@ -211,6 +216,10 @@ int main() {
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) == PM_SUCCESS);
+    const PmQueryPoolCreateInfo timing_info{PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+        nullptr, PM_QUERY_TIMESTAMP, 2U};
+    PmQueryPool timing{};
+    CHECK(pmCreateQueryPool(device, &timing_info, &timing) == PM_SUCCESS);
     CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -233,10 +242,12 @@ int main() {
     CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 2U, bodies) ==
           PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 0U) == PM_SUCCESS);
     const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
     for (std::uint32_t frame = 0U; frame < 30U; ++frame)
         CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 1U) == PM_SUCCESS);
     const PmBufferRange state_output{
         destination, 0U, 2U * sizeof(PmRigidState)};
     CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, 2U, &state_output) ==
@@ -249,6 +260,11 @@ int main() {
     CHECK(states[0].position[1] == -1.0F);
     CHECK(std::isfinite(states[1].position[1]));
     CHECK(states[1].position[1] > -0.5F);
+    std::uint64_t timestamps[2]{};
+    CHECK(pmGetQueryPoolResults(device, timing, 0U, 2U, sizeof timestamps,
+        timestamps, sizeof timestamps[0], PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+    CHECK(timestamps[1] > timestamps[0]);
+    pmDestroyQueryPool(device, timing);
 
     pmDestroyPhysicsPipeline(device, pipeline);
     pmDestroySimulation(device, simulation);
@@ -268,6 +284,6 @@ int main() {
     pmFreeMemory(device, upload);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: D3D12 transfer and shared Slang rigid schedule");
+    std::puts("PASS: graphics transfer and shared Slang rigid schedule");
     return 0;
 }

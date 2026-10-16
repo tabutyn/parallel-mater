@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "dispatch_shape.slangh"
 // Slang mirror of src/geometry_fluid.cuh. Geometry contact kernels follow the
 // shared closest-point helpers used by the coupling modules.
 
@@ -227,7 +228,7 @@ void stamp_paint_at_contact(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_static_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> previous, uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
@@ -362,7 +363,7 @@ void fluid_static_contacts(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_body_bounds_kernel(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> previous,
     uniform PMBuffer<RigidBodyState> current, uniform PMBuffer<TriangleMeshResource> meshes,
@@ -383,7 +384,7 @@ void fluid_body_bounds_kernel(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_index_body_cells(
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<WorldAabb> bounds,
     uniform uint body_count, uniform uint words, uniform float padding,
@@ -416,7 +417,7 @@ void fluid_index_body_cells(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_detect_moving_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform float radius, uniform PMBuffer<BodyParameters> parameters,
@@ -528,7 +529,7 @@ void fluid_detect_moving_contacts(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_resolve_moving_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> foam,
     uniform PMBuffer<uint> count, uniform float radius, uniform float particle_mass,
@@ -623,7 +624,7 @@ void fluid_resolve_moving_contacts(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void reduce_point_body_impulses(
     uniform PMBuffer<FluidBodyImpulse> impulses, uniform PMBuffer<uint> particle_count,
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,

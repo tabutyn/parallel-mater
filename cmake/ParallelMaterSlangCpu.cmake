@@ -57,7 +57,8 @@ if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
         src/simulation/geometry_fluid_dispatch.hpp)
     include(${CMAKE_CURRENT_LIST_DIR}/SlangKernelManifest.cmake)
     file(GLOB_RECURSE cpu_liquid_dependencies CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh")
     foreach(module fluid geometry_fluid)
         parallel_mater_slang_entry_arguments(${module} CUDA cpu_entries)
         set(generated "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}/parallel_mater_${module}_runtime.cpp")
@@ -103,7 +104,7 @@ add_custom_command(
             -entry pm_build_fixed_collision_groups
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
-    DEPENDS src/slang/geometry.slang src/slang/types.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/geometry.slang src/slang/types.slang
             src/slang/math.slang src/slang/device_intrinsics.slang
             "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
     COMMENT "Compiling shared rigid geometry kernels from Slang to C++"
@@ -133,7 +134,7 @@ add_custom_command(
             -entry solve_avbd_kernel
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
-    DEPENDS src/slang/geometry_constraints.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/geometry_constraints.slang
             src/slang/geometry_constraints_solve.slang
             src/slang/constraint_math.slang src/slang/geometry.slang
             src/slang/types.slang src/slang/math.slang
@@ -160,7 +161,7 @@ add_custom_command(
             -entry query_particle_hit_box_kernel
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_QUERIES_CPU_SOURCE}"
-    DEPENDS src/slang/queries.slang src/slang/types.slang
+    DEPENDS src/slang/dispatch_shape.slangh src/slang/queries.slang src/slang/types.slang
             src/slang/math.slang src/slang/device_intrinsics.slang
             "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
     COMMENT "Compiling shared query/export kernels from Slang to C++"

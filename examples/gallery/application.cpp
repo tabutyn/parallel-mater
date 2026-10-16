@@ -123,6 +123,9 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
 }
 
 struct Options {
+    std::string backend;
+    std::optional<parallel_mater::gallery::GalleryWorkloadLimits> workload_limits;
+    bool fluid_particles_overridden{};
     std::filesystem::path executable_path{};
     std::filesystem::path scene{PARALLEL_MATER_DEFAULT_SCENE_PATH};
     std::filesystem::path headless_output{};
@@ -260,6 +263,24 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         std::cerr << "Invalid arguments. Use --help.\n";
         return 2;
     }
+    if (!options.backend.empty()) {
+        const auto manifest = std::filesystem::path(PARALLEL_MATER_GALLERY_MANIFEST_DIR) /
+            ("slang-" + options.backend + ".json");
+        std::error_code manifest_error;
+        if (!std::filesystem::is_regular_file(manifest, manifest_error)) {
+            std::cerr << "Backend is not built: " << options.backend << " (" << manifest << ")\n";
+            return 1;
+        }
+#if defined(_WIN32)
+        _putenv_s("PM_DRIVER_FILES", manifest.string().c_str());
+        if (!std::getenv("PM_LAYER_FILES") && !std::getenv("PM_LAYER_PATH"))
+            _putenv_s("PM_LAYER_FILES", (manifest.parent_path() / "validation.json").string().c_str());
+#else
+        setenv("PM_DRIVER_FILES", manifest.string().c_str(), 1);
+        if (!std::getenv("PM_LAYER_FILES") && !std::getenv("PM_LAYER_PATH"))
+            setenv("PM_LAYER_FILES", (manifest.parent_path() / "validation.json").string().c_str(), 1);
+#endif
+    }
     if (options.calibrate && !options.headless_output.empty()) {
         std::cerr << "--calibrate requires the interactive gallery path\n";
         return 2;
@@ -271,17 +292,35 @@ int parallel_mater_gallery_application(int argc, char **argv) {
             return 1;
         }
         DeviceProfileCatalog catalog;
+        std::string profile_error;
+        if (!load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
+            std::cerr << "Device profile catalog unavailable: " << profile_error << '\n';
+        }
+        const char *platform =
+#if defined(_WIN32)
+            "Windows";
+#elif defined(__APPLE__)
+            "macOS";
+#else
+            "Linux";
+#endif
+        if (const auto *limits = select_workload_limits(catalog, platform,
+                hardware.machine_model, hardware.backend)) {
+            options.workload_limits = *limits;
+            options.width = limits->render_width;
+            options.height = limits->render_height;
+            if (!options.fluid_particles_overridden) options.fluid_particles = limits->fluid_particles;
+        }
         const char *selection_label = "command line";
         if (!options.bricks_overridden) {
-            std::string profile_error;
-            if (!load_device_profiles(device_profiles_path(options), catalog, profile_error)) {
-                std::cerr << "Device profile catalog unavailable: " << profile_error << '\n';
-                catalog = {};
-            }
             const auto selection = select_startup_bricks(
                 catalog, hardware, slang_solver_version, options.width, options.height);
             options.bricks = selection.scene;
             selection_label = brick_selection_label(selection.source);
+            if (options.workload_limits) {
+                options.bricks.brick_count = options.workload_limits->brick_count;
+                selection_label = options.workload_limits->name.c_str();
+            }
         }
         std::cout << "Brick startup: " << hardware.gpu_model << " (" << hardware.backend
                   << ") -> " << options.bricks.brick_count << " bricks, scale "
@@ -627,6 +666,10 @@ int parallel_mater_gallery_application(int argc, char **argv) {
         return 1;
     }
     GLFWwindow *window = presentation.native_handle();
+    if (!options.backend.empty()) {
+        const auto title = std::string(window_title) + " — " + options.backend;
+        glfwSetWindowTitle(window, title.c_str());
+    }
     glfwSetWindowUserPointer(window, &input_state);
     glfwSetMouseButtonCallback(window, &mouse_button);
     glfwSetCursorPosCallback(window, &cursor_position);
