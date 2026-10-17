@@ -1,7 +1,7 @@
 {
   "id": "F5-12",
   "title": "Publish current macOS Metal driver evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -25,15 +25,31 @@
     "Every advertised capability executes all currently applicable trajectory, analytic-quality and adverse-lifecycle obligations; failed, missing and unsupported scopes remain explicit and cannot certify a capability.",
     "Register and regenerate the per-driver evidence index from a fresh checkout; Metal API/shader-validation and Gallery results may be retained as supplemental execution evidence only."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bd7262f5-c4c0-4026-b13b-dd1a2c4c5fbd",
-    "owner": "codex-macos-physics",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-12/thomass-macbook-air",
-    "claimed_at": "2026-10-17T16:28:43Z",
-    "heartbeat_at": "2026-10-17T16:28:43Z",
-    "expires_at": "2026-10-18T16:28:43Z"
-  },
-  "history": []
+  "evidence": [
+    "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-evidence.json",
+    "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
+    "fresh checkout: evidence index, roadmap, 67 conformance unit tests and 34/34 sdk-ci CTests passed"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bd7262f5-c4c0-4026-b13b-dd1a2c4c5fbd",
+        "owner": "codex-macos-physics",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-12/thomass-macbook-air",
+        "claimed_at": "2026-10-17T16:28:43Z",
+        "heartbeat_at": "2026-10-17T16:28:43Z",
+        "expires_at": "2026-10-18T16:28:43Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T16:53:59Z",
+      "reason": "Published clean Apple M4 Metal capability, trajectory, physical-quality and lifecycle evidence; preserved all missing and failed scopes.",
+      "evidence": [
+        "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-evidence.json",
+        "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
+        "fresh checkout: evidence index, roadmap, 67 conformance unit tests and 34/34 sdk-ci CTests passed"
+      ]
+    }
+  ]
 }
