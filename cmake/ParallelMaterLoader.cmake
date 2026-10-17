@@ -69,6 +69,12 @@ if(BUILD_TESTING)
     target_compile_definitions(parallel-mater-mock-driver PRIVATE
         PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
     target_include_directories(parallel-mater-mock-driver PRIVATE include)
+    if(Vulkan_FOUND)
+        target_include_directories(parallel-mater-mock-driver PRIVATE
+            ${Vulkan_INCLUDE_DIRS})
+        target_compile_definitions(parallel-mater-mock-driver PRIVATE
+            PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+    endif()
     set(PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR
         "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-drivers")
     file(GENERATE
@@ -158,6 +164,44 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-layer-v1-compatibility
         COMMAND parallel-mater-loader-driver-discovery-tests validation)
     set_tests_properties(parallel-mater-layer-v1-compatibility PROPERTIES
+        LABELS "api;loader;abi" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json")
+
+    add_library(parallel-mater-manual-test-layer SHARED
+        tests/api/mock_manual_layer.cpp)
+    target_compile_features(parallel-mater-manual-test-layer PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-manual-test-layer PRIVATE
+        include ${PARALLEL_MATER_API_GENERATED_DIR})
+    if(Vulkan_FOUND)
+        target_include_directories(parallel-mater-manual-test-layer PRIVATE
+            ${Vulkan_INCLUDE_DIRS})
+        target_compile_definitions(parallel-mater-manual-test-layer PRIVATE
+            PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+    endif()
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/manual-test-layer.json"
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:parallel-mater-manual-test-layer>\"}}\n")
+    add_executable(parallel-mater-manual-layer-tests
+        tests/api/manual_layer_interception_tests.cpp)
+    target_compile_features(parallel-mater-manual-layer-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-manual-layer-tests PRIVATE
+        ParallelMater::parallel_mater parallel-mater-manual-test-layer)
+    if(Vulkan_FOUND)
+        target_include_directories(parallel-mater-manual-layer-tests PRIVATE
+            ${Vulkan_INCLUDE_DIRS})
+        target_compile_definitions(parallel-mater-manual-layer-tests PRIVATE
+            PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
+    endif()
+    add_dependencies(parallel-mater-manual-layer-tests
+        parallel-mater-mock-driver parallel-mater-legacy-layer)
+    add_test(NAME parallel-mater-manual-layer-interception
+        COMMAND parallel-mater-manual-layer-tests)
+    set_tests_properties(parallel-mater-manual-layer-interception PROPERTIES
+        LABELS "api;loader;validation" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/manual-test-layer.json")
+    add_test(NAME parallel-mater-manual-layer-v1-compatibility
+        COMMAND parallel-mater-manual-layer-tests legacy)
+    set_tests_properties(parallel-mater-manual-layer-v1-compatibility PROPERTIES
         LABELS "api;loader;abi" ENVIRONMENT
         "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json")
 endif()

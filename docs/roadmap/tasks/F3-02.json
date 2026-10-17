@@ -1,7 +1,7 @@
 {
   "id": "F3-02",
   "title": "Validate command recording state",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-01"
   ],
@@ -17,6 +17,14 @@
     "Legal reuse and deferred failure recovery pass."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "db99a066-c96d-4192-a4b9-38b974c78ec4",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-02/windows-gtx1080",
+    "claimed_at": "2026-10-17T23:22:12Z",
+    "heartbeat_at": "2026-10-17T23:22:12Z",
+    "expires_at": "2026-10-18T23:22:12Z"
+  },
   "history": []
 }

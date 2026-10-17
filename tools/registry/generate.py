@@ -11,16 +11,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from api_registry import declarations, interaction_capabilities  # noqa: E402
 
 
-SPECIAL = {
-    "pmGetInstanceProcAddr", "pmGetDeviceProcAddr",
-    "pmEnumerateInstanceVersion", "pmCreateInstance", "pmDestroyInstance",
-    "pmEnumeratePhysicalDevices", "pmCreateDevice", "pmDestroyDevice",
-    "pmGetDeviceQueue", "pmAllocateCommandBuffers", "pmFreeCommandBuffers",
-    "pmQueueSubmit", "pmImportNativeDevice", "pmImportVulkanDeviceEXT",
-    "pmEnumerateInstanceLayerProperties",
-    "pmEnumerateInstanceExtensionProperties",
-    "pmEnumerateDeviceExtensionProperties",
+MANUAL_LAYER_INTERCEPTED = {
+    "pmEnumerateDeviceExtensionProperties": "physical-device extension dispatch",
+    "pmDestroyInstance": "aggregate instance teardown",
+    "pmEnumeratePhysicalDevices": "aggregate physical-device enumeration",
+    "pmCreateDevice": "device wrapper creation",
+    "pmDestroyDevice": "device wrapper teardown",
+    "pmGetDeviceQueue": "queue wrapper lookup and creation",
+    "pmAllocateCommandBuffers": "command-buffer wrapper creation",
+    "pmFreeCommandBuffers": "command-buffer translation and teardown",
+    "pmQueueSubmit": "command-buffer translation before submission",
+    "pmImportNativeDevice": "native-device wrapper creation",
+    "pmImportVulkanDeviceEXT": "Vulkan-device wrapper creation",
 }
+
+MANUAL_LAYER_EXCLUDED = {
+    "pmGetInstanceProcAddr": "loader symbol discovery, not command execution",
+    "pmGetDeviceProcAddr": "loader symbol discovery, not command execution",
+    "pmEnumerateInstanceVersion": "global call with no enabled layer chain",
+    "pmEnumerateInstanceLayerProperties": "global call with no enabled layer chain",
+    "pmEnumerateInstanceExtensionProperties": "global call with no enabled layer chain",
+    "pmCreateInstance": "selects the layer chain that later calls use",
+}
+
+SPECIAL = set(MANUAL_LAYER_INTERCEPTED) | set(MANUAL_LAYER_EXCLUDED)
 
 LOADER_ONLY = {
     "pmEnumerateInstanceLayerProperties",
@@ -58,6 +72,8 @@ def emit(output: Path):
                   '#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)\n'
                   '#include <parallel_mater/interop_vulkan.h>\n#endif\n']
     layer_dispatch = ['// Generated typed validation dispatch.\n']
+    manual_layer_inventory = [
+        "// Generated manual-entrypoint validation inventory. Do not edit.\n"]
     forwards = ["// Generated from registry/pm.xml.\n"]
     interaction_inventory = ["// Generated from registry/pm.xml.\n"]
 
@@ -118,6 +134,21 @@ def emit(output: Path):
 '''
         forwards.append(guarded(command, body))
 
+    command_by_name = {command["name"]: command for command in commands}
+    unknown_manual = SPECIAL - command_by_name.keys()
+    if unknown_manual:
+        raise RuntimeError(
+            f"manual loader inventory contains unknown commands: "
+            f"{sorted(unknown_manual)}")
+    for index, (name, reason) in enumerate(MANUAL_LAYER_INTERCEPTED.items()):
+        manual_layer_inventory.append(guarded(
+            command_by_name[name],
+            f'PM_MANUAL_LAYER_INTERCEPTED({name}, {index}, "{reason}")\n'))
+    for name, reason in MANUAL_LAYER_EXCLUDED.items():
+        manual_layer_inventory.append(guarded(
+            command_by_name[name],
+            f'PM_MANUAL_LAYER_EXCLUDED({name}, "{reason}")\n'))
+
     for capability in interaction_capabilities():
         requirements = " | ".join(
             f"require_{name}" for name in capability["requires"])
@@ -143,6 +174,8 @@ def emit(output: Path):
     write_changed(output / "driver_lookup.inc", "".join(lookup))
     write_changed(output / "loader_lookup.inc", "".join(loader_lookup))
     write_changed(output / "loader_forward.inc", "".join(forwards))
+    write_changed(output / "manual_layer_inventory.inc",
+                  "".join(manual_layer_inventory))
     write_changed(output / "interaction_capabilities.inc",
                   "".join(interaction_inventory))
 
