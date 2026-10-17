@@ -2,6 +2,7 @@
 #include <parallel_mater/parallel_mater.h>
 #include <parallel_mater_conformance/case_registry.hpp>
 #include <parallel_mater_conformance/json.hpp>
+#include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
 #include <parallel_mater_scene/scene.hpp>
 
@@ -281,7 +282,13 @@ struct Aggregate {
     if (definition.kind == CaseKind::integrated_glb) {
         SceneDefinition scene{};
         std::string error;
-        if (!load_glb_scene(root / definition.glb_path, scene, error))
+        auto path = root / definition.glb_path;
+        // Application bundles keep the same immutable GLBs in Resources/assets
+        // instead of reproducing the checkout's examples/ directory hierarchy.
+        if (!std::filesystem::is_regular_file(path))
+            path = root / "assets" /
+                std::filesystem::path(definition.glb_path).filename();
+        if (!load_glb_scene(path, scene, error))
             throw std::runtime_error("load " + definition.glb_path + ": " + error);
         return scene;
     }
@@ -1266,7 +1273,53 @@ struct Arguments {
 
 } // namespace
 
-int main(int argc, char **argv) {
+namespace parallel_mater::conformance {
+
+std::vector<std::string> conformance_case_ids() {
+    std::vector<std::string> result;
+    result.reserve(case_registry().size());
+    for (const auto &definition : case_registry()) result.push_back(definition.id);
+    return result;
+}
+
+CaseExecution execute_conformance_case(
+    const std::string &case_id, const std::filesystem::path &root,
+    bool every_frame) {
+    const CaseDefinition *definition = find_case(case_id);
+    if (definition == nullptr)
+        throw std::runtime_error("unknown conformance case: " + case_id);
+    CaseExecution execution{};
+    execution.case_id = case_id;
+    Json result;
+    try {
+        result = run_case(*definition, root, every_frame);
+        execution.status = ExecutionStatus::completed;
+    } catch (const std::exception &error) {
+        const bool absent = dynamic_cast<const UnsupportedCase *>(&error) != nullptr;
+        execution.status = absent ? ExecutionStatus::unsupported
+                                  : ExecutionStatus::failed;
+        result = Json::object();
+        result["schema"] = "parallel-mater-conformance-execution/v1";
+        result["case_id"] = definition->id;
+        result["case_sha256"] = sha256(serialize_case(*definition));
+        result["execution_status"] = absent ? "unsupported" : "failed";
+        result["quality_status"] = "not_evaluated";
+        result["reason"] = error.what();
+    }
+    execution.json = result.serialize();
+    return execution;
+}
+
+std::string conformance_device_provenance(const std::filesystem::path &root) {
+    return device_provenance(root).serialize();
+}
+
+std::string conformance_advertised_capabilities(
+    const std::filesystem::path &root) {
+    return advertised_capabilities(root).serialize();
+}
+
+int conformance_command_main(int argc, char **argv) {
     try {
         const Arguments arguments = parse_arguments(argc, argv);
         const std::filesystem::path root = arguments.root;
@@ -1277,11 +1330,11 @@ int main(int argc, char **argv) {
         }
         if (arguments.check) return check_inputs(root) ? 0 : 1;
         if (arguments.provenance) {
-            std::cout << device_provenance(root).serialize();
+            std::cout << conformance_device_provenance(root);
             return 0;
         }
         if (arguments.capabilities) {
-            std::cout << advertised_capabilities(root).serialize();
+            std::cout << conformance_advertised_capabilities(root);
             return 0;
         }
         std::vector<const CaseDefinition *> definitions;
@@ -1298,24 +1351,19 @@ int main(int argc, char **argv) {
         std::uint32_t completed{}, unsupported{}, failed{};
         for (const CaseDefinition *definition : definitions) {
             std::cout << "RUN " << definition->id << std::endl;
-            Json result;
-            try {
-                result = run_case(*definition, root, arguments.every_frame);
+            const CaseExecution execution = execute_conformance_case(
+                definition->id, root, arguments.every_frame);
+            if (execution.status == ExecutionStatus::completed) {
                 ++completed;
-            } catch (const std::exception &error) {
-                const bool absent = dynamic_cast<const UnsupportedCase *>(&error) != nullptr;
-                if (absent) ++unsupported; else ++failed;
-                result = Json::object();
-                result["schema"] = "parallel-mater-conformance-execution/v1";
-                result["case_id"] = definition->id;
-                result["case_sha256"] = sha256(serialize_case(*definition));
-                result["execution_status"] = absent ? "unsupported" : "failed";
-                result["quality_status"] = "not_evaluated";
-                result["reason"] = error.what();
-                std::cerr << (absent ? "UNSUPPORTED " : "FAILED ") << definition->id
-                          << ": " << error.what() << '\n';
+            } else if (execution.status == ExecutionStatus::unsupported) {
+                ++unsupported;
+                std::cerr << "UNSUPPORTED " << definition->id << '\n';
+            } else {
+                ++failed;
+                std::cerr << "FAILED " << definition->id << '\n';
             }
-            write_file(arguments.output / (definition->id + ".json"), result.serialize());
+            write_file(arguments.output / (definition->id + ".json"),
+                       execution.json);
         }
         std::cout << "Execution: " << completed << " completed, " << unsupported
                   << " unsupported, " << failed << " failed; quality gates run separately\n";
@@ -1325,3 +1373,5 @@ int main(int argc, char **argv) {
         return 2;
     }
 }
+
+} // namespace parallel_mater::conformance

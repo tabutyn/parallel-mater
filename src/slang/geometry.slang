@@ -189,6 +189,18 @@ struct ContactManifold
     uint avbd_next_b;
 };
 
+void rigid_clear_manifold(out ContactManifold manifold)
+{
+    for (uint point = 0u; point < 8u; ++point)
+        manifold.contacts[point] = {};
+    manifold.count = 0u;
+    manifold.initial_relative_position = {};
+    manifold.face_patch = 0u;
+    manifold.response_slot = 0u;
+    manifold.avbd_next_a = 0u;
+    manifold.avbd_next_b = 0u;
+}
+
 struct CachedContact
 {
     Vec3 local_point;
@@ -1051,7 +1063,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
     HingeContactFrame colliderHinge, float margin,
     out ContactManifold output)
 {
-    output = {};
+    rigid_clear_manifold(output);
     if (!pmBufferPresent(bodyMesh.solid_planes) ||
         !pmBufferPresent(colliderMesh.solid_planes) ||
         bodyMesh.index_count > 96u || colliderMesh.index_count > 96u)
@@ -1119,7 +1131,6 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
     // contact generation, which can select opposing internal-edge normals.
     Vec3 normal = multiply(outward, referenceIsBody ? -1.0f : 1.0f);
     CollisionPlane incident = incidentMesh.solid_planes[incidentFace];
-    ContactManifold manifold = {};
     for (uint triangle = 0u; triangle < incidentMesh.index_count / 3u;
          ++triangle)
     {
@@ -1175,13 +1186,12 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
             contact.body_hinge = bodyHinge;
             contact.collider_hinge = colliderHinge;
             contact.impact_fraction = 1.0f;
-            rigid_add_contact(manifold, contact,
+            rigid_add_contact(output, contact,
                 max(margin * 2.0f, 1.0e-4f));
         }
     }
-    if (manifold.count == 0u) return false;
-    manifold.face_patch = true;
-    output = manifold;
+    if (output.count == 0u) return false;
+    output.face_patch = true;
     return true;
 }
 
@@ -1196,7 +1206,7 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
     HingeContactFrame colliderHinge, float margin,
     out ContactManifold output)
 {
-    output = {};
+    rigid_clear_manifold(output);
     Quaternion bodyDelta = relative_quaternion(previousBody.orientation,
         body.orientation, false);
     Quaternion colliderDelta = relative_quaternion(previousCollider.orientation,
@@ -1275,22 +1285,20 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
     impactBody.position = add(previousBody.position, multiply(bodyMotion, entry));
     impactCollider.position = add(previousCollider.position,
         multiply(colliderMotion, entry));
-    ContactManifold manifold;
     if (!rigid_convex_face_manifold(impactBody, bodyMesh, bodyHinge,
         impactCollider, colliderMesh, colliderHinge, restOffset + 1.0e-5f,
-        manifold) || manifold.count == 0u) return false;
-    for (uint point = 0u; point < manifold.count; ++point)
+        output) || output.count == 0u) return false;
+    for (uint point = 0u; point < output.count; ++point)
     {
-        Contact contact = manifold.contacts[point];
+        Contact contact = output.contacts[point];
         if (dot(contact.normal, entryNormal) < 0.99999f) return false;
         float remaining = -dot(subtract(bodyMotion, colliderMotion),
             contact.normal) * (1.0f - entry);
         contact.penetration = max(0.0f, remaining + contact.penetration) +
             restOffset + 1.0e-5f;
         contact.impact_fraction = entry;
-        manifold.contacts[point] = contact;
+        output.contacts[point] = contact;
     }
-    output = manifold;
     return true;
 }
 
@@ -1584,16 +1592,16 @@ void rigid_collide_triangle_ranges_swept(
     }
 }
 
-ContactManifold rigid_collide_meshes(
+void rigid_collide_meshes(
     BodyParameters body, RigidBodyState previousBodyState,
     RigidBodyState bodyState, Vec3 previousBodyReference,
     Vec3 bodyReference, HingeContactFrame bodyHinge,
     TriangleMeshResource bodyMesh, BodyParameters collider,
     RigidBodyState previousColliderState, RigidBodyState colliderState,
     TriangleMeshResource colliderMesh, HingeContactFrame colliderHinge,
-    float timestep)
+    float timestep, out ContactManifold manifold)
 {
-    ContactManifold manifold = {};
+    rigid_clear_manifold(manifold);
     float margin = body.collision_margin + collider.collision_margin;
     bool swept = rigid_guided_pair(bodyHinge, colliderHinge) ||
         rigid_requires_swept_pair_contact(previousBodyState, bodyState,
@@ -1616,10 +1624,15 @@ ContactManifold rigid_collide_meshes(
         previousColliderTransform, colliderTransform, swept, 0.0f,
         colliderMinimum, colliderMaximum);
     if (!bounds_overlap(bodyMinimum, bodyMaximum,
-        colliderMinimum, colliderMaximum)) return manifold;
+        colliderMinimum, colliderMaximum)) return;
 
-    uint stackBody[256] = {};
-    uint stackCollider[256] = {};
+#ifndef PM_RIGID_BVH_STACK_CAPACITY
+#define PM_RIGID_BVH_STACK_CAPACITY 64
+#endif
+    // Deep traversals fall back to the complete triangle pass below. Keep the
+    // private stack bounded so each GPU thread fits on mobile Apple GPUs.
+    uint stackBody[PM_RIGID_BVH_STACK_CAPACITY] = {};
+    uint stackCollider[PM_RIGID_BVH_STACK_CAPACITY] = {};
     uint stackSize = 1u;
     bool overflow = bodyMesh.bvh_node_count == 0u ||
                     colliderMesh.bvh_node_count == 0u;
@@ -1661,7 +1674,7 @@ ContactManifold rigid_collide_meshes(
             continue;
         }
         uint required = bodyLeaf || colliderLeaf ? 2u : 4u;
-        if (stackSize + required > 256u)
+        if (stackSize + required > PM_RIGID_BVH_STACK_CAPACITY)
         {
             overflow = true;
             break;
@@ -1694,7 +1707,7 @@ ContactManifold rigid_collide_meshes(
     }
     if (overflow)
     {
-        manifold = {};
+        rigid_clear_manifold(manifold);
         rigid_collide_triangle_ranges(bodyMesh, previousBodyState,
             bodyState, bodyReference, bodyHinge, 0u,
             bodyMesh.index_count / 3u, colliderMesh,
@@ -1708,7 +1721,6 @@ ContactManifold rigid_collide_meshes(
                 colliderMesh.index_count / 3u, colliderHinge,
                 margin, timestep, manifold);
     }
-    return manifold;
 }
 
 // Keep the native candidate traversal width. Candidate order determines
@@ -2020,11 +2032,13 @@ void pm_evaluate_rigid_leaf_pairs(
         {
             if (lane == 0u)
             {
-                ContactManifold reduced = {};
+                ContactManifold reduced;
+                rigid_clear_manifold(reduced);
                 float spacing = max(rigidLeafMargin * 2.0f, 1.0e-4f);
                 for (uint candidate = 0u; candidate < candidateCount; ++candidate)
                 {
-                    ContactManifold local = {};
+                    ContactManifold local;
+                    rigid_clear_manifold(local);
                     LeafPair range = leaf_pairs[
                         activeIndex * leaf_pairs_per_slot + candidate];
                     rigid_collide_triangle_ranges(
@@ -2063,7 +2077,8 @@ void pm_evaluate_rigid_leaf_pairs(
              wave += pmGroupSize().x * blocks_per_pair)
         {
             uint candidate = wave + lane;
-            ContactManifold local = {};
+            ContactManifold local;
+            rigid_clear_manifold(local);
             if (candidate < candidateCount)
             {
                 LeafPair range = leaf_pairs[
@@ -2109,10 +2124,11 @@ void pm_evaluate_rigid_leaf_pairs(
                     candidateCount - wave);
                 for (uint worker = 0u; worker < waveCount; ++worker)
                 {
-                    ContactManifold partial = rigidLeafWorkerManifolds[worker];
-                    for (uint point = 0u; point < partial.count; ++point)
+                    uint partialCount = rigidLeafWorkerManifolds[worker].count;
+                    for (uint point = 0u; point < partialCount; ++point)
                         rigid_add_contact(rigidLeafReducedManifold,
-                            partial.contacts[point], spacing);
+                            rigidLeafWorkerManifolds[worker].contacts[point],
+                            spacing);
                 }
             }
 #endif
@@ -2144,15 +2160,77 @@ void pm_reduce_rigid_leaf_manifolds(
     if (candidates == 0xffffffffu || candidates == 0xfffffffeu) return;
     float spacing = max((parameters[pair / count].collision_margin +
         parameters[pair % count].collision_margin) * 2.0f, 1.0e-4f);
-    ContactManifold result = {};
+    ContactManifold result;
+    rigid_clear_manifold(result);
     for (uint candidate = 0u; candidate < candidates; ++candidate)
     {
-        ContactManifold local = leaf_manifolds[
-            activeIndex * leaf_pairs_per_slot + candidate];
-        for (uint contact = 0u; contact < local.count; ++contact)
-            rigid_add_contact(result, local.contacts[contact], spacing);
+        uint localIndex = activeIndex * leaf_pairs_per_slot + candidate;
+        uint localCount = leaf_manifolds[localIndex].count;
+        for (uint contact = 0u; contact < localCount; ++contact)
+            rigid_add_contact(result,
+                leaf_manifolds[localIndex].contacts[contact], spacing);
     }
     manifolds[activeIndex] = result;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void pm_prepare_rigid_face_manifolds(
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
+    uniform uint count, uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<RigidBodyId> ids, uniform PMBuffer<RigidConstraintResource> constraints,
+    uniform uint constraint_capacity, uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<uint> leaf_pair_counts,
+    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds,
+    uniform bool prepare_faces PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    if (!prepare_faces) return;
+    uint activeIndex = pmThreadIndex();
+    if (activeIndex >= *active_pair_count) return;
+    uint pair = active_pairs[activeIndex];
+    uint a = pair / count;
+    uint b = pair % count;
+    TriangleMeshResource bodyMesh = meshes[parameters[a].mesh.index];
+    TriangleMeshResource colliderMesh = meshes[parameters[b].mesh.index];
+    float margin = parameters[a].collision_margin +
+                   parameters[b].collision_margin;
+    bool facePair = pmBufferPresent(bodyMesh.solid_planes) &&
+        pmBufferPresent(colliderMesh.solid_planes) &&
+        bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u;
+    if (!facePair) return;
+    Vec3 bodyReference;
+    Vec3 colliderReference;
+    HingeContactFrame bodyHinge = rigid_hinge_contact_frame(parameters,
+        ids, count, a, states, states[a], constraints,
+        constraint_capacity, bodyReference);
+    HingeContactFrame colliderHinge = rigid_hinge_contact_frame(parameters,
+        ids, count, b, states, states[b], constraints,
+        constraint_capacity, colliderReference);
+    if (rigid_guided_pair(bodyHinge, colliderHinge)) return;
+    ContactManifold faceManifold;
+    rigid_clear_manifold(faceManifold);
+    bool swept = rigid_requires_swept_pair_contact(previous_states[a], states[a],
+        bodyMesh, previous_states[b], states[b], colliderMesh, margin);
+    bool faceContact = false;
+    if (swept)
+        faceContact = rigid_swept_convex_face_manifold(previous_states[a], states[a],
+            bodyMesh, bodyHinge, previous_states[b], states[b],
+            colliderMesh, colliderHinge, margin, faceManifold);
+    // A rotating overlap is still a convex face contact, not a collection
+    // of internal triangle edges. Keep general CCD for separated end poses.
+    if (!faceContact)
+    {
+        faceContact = rigid_convex_face_manifold(states[a], bodyMesh, bodyHinge,
+            states[b], colliderMesh, colliderHinge, margin, faceManifold);
+        if (swept && faceManifold.count == 0u) faceContact = false;
+    }
+    if (faceContact)
+    {
+        manifolds[activeIndex] = faceManifold;
+        leaf_pair_counts[pair] = 0xfffffffeu;
+    }
 }
 
 [shader("compute")]
@@ -2168,6 +2246,7 @@ void pm_finalize_rigid_contact_manifolds(
     uniform bool prepare_faces PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
+    if (prepare_faces) return;
     uint activeIndex = pmThreadIndex();
     if (activeIndex >= *active_pair_count) return;
     uint pair = active_pairs[activeIndex];
@@ -2175,46 +2254,6 @@ void pm_finalize_rigid_contact_manifolds(
     uint b = pair % count;
     TriangleMeshResource bodyMesh = meshes[parameters[a].mesh.index];
     TriangleMeshResource colliderMesh = meshes[parameters[b].mesh.index];
-    float margin = parameters[a].collision_margin +
-                   parameters[b].collision_margin;
-    if (prepare_faces)
-    {
-        bool facePair = pmBufferPresent(bodyMesh.solid_planes) &&
-            pmBufferPresent(colliderMesh.solid_planes) &&
-            bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u;
-        if (!facePair) return;
-        Vec3 bodyReference;
-        Vec3 colliderReference;
-        HingeContactFrame bodyHinge = rigid_hinge_contact_frame(parameters,
-            ids, count, a, states, states[a], constraints,
-            constraint_capacity, bodyReference);
-        HingeContactFrame colliderHinge = rigid_hinge_contact_frame(parameters,
-            ids, count, b, states, states[b], constraints,
-            constraint_capacity, colliderReference);
-        if (rigid_guided_pair(bodyHinge, colliderHinge)) return;
-        ContactManifold faceManifold = {};
-        bool swept = rigid_requires_swept_pair_contact(previous_states[a], states[a],
-            bodyMesh, previous_states[b], states[b], colliderMesh, margin);
-        bool faceContact = false;
-        if (swept)
-            faceContact = rigid_swept_convex_face_manifold(previous_states[a], states[a],
-                bodyMesh, bodyHinge, previous_states[b], states[b],
-                colliderMesh, colliderHinge, margin, faceManifold);
-        // A rotating overlap is still a convex face contact, not a collection
-        // of internal triangle edges. Keep general CCD for separated end poses.
-        if (!faceContact)
-        {
-            faceContact = rigid_convex_face_manifold(states[a], bodyMesh, bodyHinge,
-                states[b], colliderMesh, colliderHinge, margin, faceManifold);
-            if (swept && faceManifold.count == 0u) faceContact = false;
-        }
-        if (faceContact)
-        {
-            manifolds[activeIndex] = faceManifold;
-            leaf_pair_counts[pair] = 0xfffffffeu;
-        }
-        return;
-    }
     bool persistent = pmBufferPresent(bodyMesh.solid_planes) &&
         bodyMesh.index_count <= 96u &&
         (parameters[b].motion != MotionType.dynamic ||
@@ -2236,10 +2275,10 @@ void pm_finalize_rigid_contact_manifolds(
         HingeContactFrame colliderHinge = rigid_hinge_contact_frame(
             parameters, ids, count, b, states, states[b], constraints,
             constraint_capacity, colliderReference);
-        manifold = rigid_collide_meshes(parameters[a], previous_states[a],
+        rigid_collide_meshes(parameters[a], previous_states[a],
             states[a], previousBodyReference, bodyReference, bodyHinge,
             bodyMesh, parameters[b], previous_states[b], states[b],
-            colliderMesh, colliderHinge, timestep);
+            colliderMesh, colliderHinge, timestep, manifold);
     }
     manifold.initial_relative_position = subtract(
         states[a].position, states[b].position);

@@ -133,11 +133,16 @@ static int run(std::uint32_t rigid_capacity, std::uint32_t particle_capacity) {
     return 0;
 }
 
+#ifdef PM_CONFORMANCE_EMBEDDED
+int parallel_mater_resource_lifecycle_fixture() {
+#else
 int main() {
+#endif
     // Include the rigid storage strategy boundary and radix tile boundary.
     for (const auto [rigid, particles] : std::array<std::pair<std::uint32_t, std::uint32_t>, 4>{{
             {1, 2}, {2, 2}, {17, 63}, {65, 257}}}) {
         if (run(rigid, particles) == 77) return 77;
     }
     std::puts("PASS: exact queried storage, capacity sweep and 4096 fluid replacements");
+    return 0;
 }

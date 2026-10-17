@@ -14,6 +14,65 @@ spec.loader.exec_module(deploy)
 
 
 class DeploymentTests(unittest.TestCase):
+    def physics_report(self):
+        artifacts = [
+            {"path": f"physics-qualification/cases/case-{index}.json",
+             "kind": "trajectory", "status": "completed", "sha256": "a" * 64}
+            for index in range(30)]
+        artifacts += [
+            {"path": "physics-qualification/provenance.json", "kind": "device-provenance",
+             "status": "completed", "sha256": "b" * 64},
+            {"path": "physics-qualification/capabilities.json", "kind": "advertised-capabilities",
+             "status": "completed", "sha256": "c" * 64},
+            {"path": "physics-qualification/quality/rigid.json", "kind": "physical-quality",
+             "status": "completed", "sha256": "d" * 64},
+            {"path": "physics-qualification/quality/fluid.json", "kind": "physical-quality",
+             "status": "unsupported", "sha256": "e" * 64},
+            {"path": "physics-qualification/lifecycle/adverse.json", "kind": "adverse-lifecycle",
+             "status": "missing-checkpoints", "sha256": "f" * 64},
+        ]
+        return {
+            "schema": "parallel-mater-ipados-qualification-run/v1",
+            "report_kind": "public-api-conformance", "gallery_scene_sweep": False,
+            "nonce": "fresh", "revision": "revision", "backend": "slang-metal",
+            "completed": True, "binary_identity": {"app_executable_sha256": "1" * 64,
+                                                     "driver_sha256": "2" * 64},
+            "trajectory": {"case_count": 30, "completed": 30, "unsupported": 0, "failed": 0},
+            "device": {"model": "iPad13,8", "gpu": "Apple M1", "operating_system": "iPadOS",
+                       "operating_system_version": "26.5", "metal_api": "Metal"},
+            "toolchain": {"compiler": "AppleClang", "compiler_version": "21", "slang_version": "2026.18"},
+            "artifacts": artifacts,
+        }
+
+    def test_physics_qualification_accepts_complete_public_api_report(self):
+        report = self.physics_report()
+        self.assertEqual(len(deploy.validate_physics_qualification(
+            report, "fresh", "revision", report["binary_identity"])), 35)
+
+    def test_physics_qualification_rejects_stale_partial_mismatched_and_gallery_only(self):
+        for field, value, message in (
+            ("nonce", "old", "stale"),
+            ("completed", False, "partial"),
+            ("revision", "old", "revision"),
+            ("report_kind", "gallery-scene-sweep", "Gallery-only"),
+        ):
+            report = self.physics_report()
+            report[field] = value
+            with self.assertRaisesRegex(RuntimeError, message):
+                deploy.validate_physics_qualification(
+                    report, "fresh", "revision", report["binary_identity"])
+
+    def test_physics_qualification_rejects_binary_mismatch_and_private_ids(self):
+        report = self.physics_report()
+        with self.assertRaisesRegex(RuntimeError, "hash differs"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", {"app_executable_sha256": "0" * 64,
+                                                 "driver_sha256": "2" * 64})
+        report["device"]["serial_number"] = "private"
+        with self.assertRaisesRegex(RuntimeError, "private device"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
     def test_dead_process_stops_wait_and_preserves_partial_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = pathlib.Path(tmp)

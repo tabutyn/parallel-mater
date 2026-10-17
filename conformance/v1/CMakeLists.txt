@@ -9,13 +9,18 @@ endif()
 set(PARALLEL_MATER_CONFORMANCE_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.."
     CACHE PATH "Root containing conformance/v1 and examples/assets (override at runtime with --root)")
 set(PARALLEL_MATER_CONFORMANCE_REVISION "unknown" CACHE STRING "Conformance source revision")
-add_executable(parallel-mater-conformance src/command_runner.cpp src/case_registry.cpp)
-target_compile_features(parallel-mater-conformance PRIVATE cxx_std_20)
-target_include_directories(parallel-mater-conformance PRIVATE include)
-target_compile_definitions(parallel-mater-conformance PRIVATE
+add_library(parallel-mater-conformance-runner STATIC
+    src/command_runner.cpp src/case_registry.cpp)
+target_compile_features(parallel-mater-conformance-runner PUBLIC cxx_std_20)
+target_include_directories(parallel-mater-conformance-runner PUBLIC include)
+target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${PARALLEL_MATER_CONFORMANCE_DATA_ROOT}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_REVISION}")
-target_link_libraries(parallel-mater-conformance PRIVATE ParallelMater::scene)
+target_link_libraries(parallel-mater-conformance-runner PRIVATE ParallelMater::scene)
+add_executable(parallel-mater-conformance src/command_main.cpp)
+target_compile_features(parallel-mater-conformance PRIVATE cxx_std_20)
+target_link_libraries(parallel-mater-conformance PRIVATE
+    parallel-mater-conformance-runner)
 if(BUILD_TESTING)
     add_test(NAME parallel-mater-conformance-command-inputs
         COMMAND parallel-mater-conformance --check-inputs)

@@ -223,7 +223,9 @@ PmResult finalize_rigid_contact_manifolds(
     values.set(140U, timestep);
     values.buffer(144U, *execution, manifolds);
     values.boolean(156U, prepare_faces);
-    return launch(stream, "geometry", "pm_finalize_rigid_contact_manifolds",
+    const char *entry = prepare_faces ? "pm_prepare_rigid_face_manifolds"
+                                      : "pm_finalize_rigid_contact_manifolds";
+    return launch(stream, "geometry", entry,
                   grid, block, values);
 }
 

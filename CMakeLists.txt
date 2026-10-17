@@ -87,6 +87,11 @@ option(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER
        "Build the serial Slang CPU reference driver" ${APPLE})
 option(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW
        "Build the limited Apple-GPU Gallery development driver" OFF)
+option(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION
+       "Expose the development-only iPadOS public-API qualification channel" OFF)
+if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION AND NOT PARALLEL_MATER_IOS)
+    message(FATAL_ERROR "The iPadOS qualification channel requires an iOS build")
+endif()
 if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
     if(NOT APPLE)
         message(FATAL_ERROR "The Metal preview requires an Apple platform")
@@ -209,7 +214,8 @@ endif()
 
 # The conformance case registry intentionally has no CUDA or engine dependency.
 # Every backend byte-checks and executes the same canonical inputs.
-if(PARALLEL_MATER_BUILD_CONFORMANCE OR BUILD_TESTING)
+if(PARALLEL_MATER_BUILD_CONFORMANCE OR BUILD_TESTING OR
+   PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
     add_library(parallel-mater-conformance-registry STATIC
                 conformance/v1/src/case_registry.cpp)
     target_compile_features(parallel-mater-conformance-registry PUBLIC cxx_std_20)

@@ -65,6 +65,12 @@ add_custom_target(refresh-macos-gallery-runtime ALL
         "$<TARGET_FILE:parallel-mater>"
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater>"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_SONAME_FILE:parallel-mater>"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_SONAME_FILE_NAME:parallel-mater>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_LINKER_FILE:parallel-mater>"
+        "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_LINKER_FILE_NAME:parallel-mater>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:parallel-mater-layer-validation>"
         "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Frameworks/$<TARGET_FILE_NAME:parallel-mater-layer-validation>"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

@@ -119,6 +119,34 @@ variant. The app writes `Documents/smoke-report.json`, `runtime-info.json` and
 These bounded sustained/control checks do not qualify touch accuracy, thermal
 behavior, numerical agreement or all missing interactions.
 
+The separate public-API physics runner is available only when
+`PARALLEL_MATER_ENABLE_IOS_QUALIFICATION=ON`; the development preview preset
+enables it, while ordinary iOS builds default it off. Run and collect it with:
+
+```sh
+python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID \
+  --physics-qualification --timeout 3600
+```
+
+This path does not reuse Gallery scene results. It executes the canonical
+30-case registry through the public `pm*` API, the fixed 300-frame/eight-brick
+independent penetration oracle, the equal-fluid quality fixture, and both
+adverse lifecycle fixtures. Metal currently does not advertise separate-system
+equal-fluid coupling, so that fixture records `unsupported`. The adverse
+lifecycle operations execute, but remain `missing-checkpoints` until they emit
+the exact F5-03 state fingerprints and write ordinals; a console pass is not
+promoted to lifecycle qualification.
+
+The app writes 35 raw artifacts under
+`Documents/physics-qualification/` and updates a nonce-bound manifest only
+after all attempts finish. The host verifies the installed app executable and
+embedded Metal-driver SHA-256 against the staged bundle, source revision,
+artifact hashes, public iPad model, iPadOS/Metal and compiler/Slang metadata.
+It rejects stale, partial, mismatched-revision, binary-mismatched and
+Gallery-only reports and rejects private device-identifier fields. Collected
+files remain ignored under `out/gallery-deployment/` until a roadmap evidence
+task explicitly reviews and registers them.
+
 2026-10-16 evidence: the original `43dcfac` iPad preview launched after unlocking
 and passed all 27 scenes × three frames on the connected Apple M1 iPad Pro
 12.9-inch (5th generation), `iPad13,8`, iPadOS 26.6.2. The shared-session/icon

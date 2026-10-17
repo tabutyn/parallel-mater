@@ -1,7 +1,7 @@
 {
   "id": "F5-13",
   "title": "Expose capability qualification on iPadOS",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-08"
@@ -18,15 +18,31 @@
     "Host collection verifies exact app/driver hashes, device model, iPadOS and Metal versions and toolchain while excluding serial numbers, pairing identifiers and other private device identifiers.",
     "Unit and connected-device negative checks reject stale, partial, mismatched-revision and Gallery-only reports; release builds do not expose the diagnostic channel."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "35134c5e-26f1-4d0a-b2da-eaa8b3c4e336",
-    "owner": "codex-ipados-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-13/thomass-macbook-air",
-    "claimed_at": "2026-10-17T17:04:58Z",
-    "heartbeat_at": "2026-10-17T17:04:58Z",
-    "expires_at": "2026-10-18T17:04:58Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-13-ipad-runner.json",
+    "PASS: physical iPad13,8 Apple M1 run exported and hash-verified 35 nonce/source-bound artifacts; all 30 shared trajectories executed.",
+    "PASS: 34/34 portable CTests, 67/67 conformance tests, 7/7 deployment guards; actual-device stale/revision/binary mismatches rejected; ordinary iOS binary excludes runner markers."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "35134c5e-26f1-4d0a-b2da-eaa8b3c4e336",
+        "owner": "codex-ipados-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-13/thomass-macbook-air",
+        "claimed_at": "2026-10-17T17:04:58Z",
+        "heartbeat_at": "2026-10-17T17:04:58Z",
+        "expires_at": "2026-10-18T17:04:58Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T21:55:05Z",
+      "reason": "Implemented and physically verified the development-only iPad public-API qualification runner and host collector.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-13-ipad-runner.json",
+        "PASS: physical iPad13,8 Apple M1 run exported and hash-verified 35 nonce/source-bound artifacts; all 30 shared trajectories executed.",
+        "PASS: 34/34 portable CTests, 67/67 conformance tests, 7/7 deployment guards; actual-device stale/revision/binary mismatches rejected; ordinary iOS binary excludes runner markers."
+      ]
+    }
+  ]
 }
