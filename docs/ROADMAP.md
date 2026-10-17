@@ -128,7 +128,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | done | F2-06 | — |
 | [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | done | F2-07 | — |
 | [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | done | F2-03, F2-08 | — |
-| [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | ready | F2-04, F2-09, F5-02 | — |
+| [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on lock | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | done | F2-05 | — |
 | [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | done | F2-01 | — |
 | [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | done | F2-01 | — |
@@ -172,7 +172,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-00](roadmap/tasks/F5-00.json) | Independent headless conformance baseline | done | — | — |
 | [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | ready | F2-02 | — |
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | done | — | — |
-| [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | ready | F1-06, F2-04 | — |
+| [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | leased | F1-06, F2-04 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:47:53Z |
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | ready | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | ready | — | — |
