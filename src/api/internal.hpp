@@ -130,6 +130,10 @@ struct PmSimulation_T {
     std::unique_ptr<parallel_mater::SimulationRuntime> runtime;
     std::unordered_map<PmGeometry, parallel_mater::TriangleMeshId> geometries;
     std::vector<std::optional<parallel_mater::RigidBodyId>> rigid_bodies;
+    // Public geometry handles outlive every recorded/pending command that uses
+    // them. This parallel slot table lets replacement retire the runtime mesh
+    // after its final rigid reference without retaining all historical meshes.
+    std::vector<PmGeometry> rigid_body_geometries;
     std::vector<parallel_mater::RigidBodyId> rigid_dense_ids;
     std::vector<std::uint32_t> rigid_dense_indices;
     bool rigid_dense_mapping_dirty{true};
