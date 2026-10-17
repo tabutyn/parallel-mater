@@ -1217,6 +1217,56 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-ipad-session-tests PROPERTIES TIMEOUT 600
             ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
     endif()
+    if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-gallery-session)
+        unset(gallery_session_test_driver)
+        unset(gallery_session_test_native_backend)
+        if(TARGET parallel-mater-driver-slang-vulkan)
+            set(gallery_session_test_driver parallel-mater-driver-slang-vulkan)
+            set(gallery_session_test_manifest slang-vulkan.json)
+            set(gallery_session_test_native_backend PM_NATIVE_BACKEND_VULKAN)
+            set(gallery_session_test_backend vulkan)
+        elseif(TARGET parallel-mater-driver-slang-d3d12)
+            set(gallery_session_test_driver parallel-mater-driver-slang-d3d12)
+            set(gallery_session_test_manifest slang-d3d12.json)
+            set(gallery_session_test_native_backend PM_NATIVE_BACKEND_D3D12)
+            set(gallery_session_test_backend d3d12)
+        elseif(TARGET parallel-mater-driver-slang-metal)
+            set(gallery_session_test_driver parallel-mater-driver-slang-metal)
+            set(gallery_session_test_manifest slang-metal.json)
+            set(gallery_session_test_native_backend PM_NATIVE_BACKEND_METAL)
+            set(gallery_session_test_backend metal)
+        elseif(TARGET parallel-mater-driver-slang-cuda)
+            set(gallery_session_test_driver parallel-mater-driver-slang-cuda)
+            set(gallery_session_test_manifest slang-cuda.json)
+            set(gallery_session_test_native_backend PM_NATIVE_BACKEND_CUDA)
+            set(gallery_session_test_backend cuda)
+        elseif(TARGET parallel-mater-driver-slang-cpu)
+            set(gallery_session_test_driver parallel-mater-driver-slang-cpu)
+            set(gallery_session_test_manifest slang-cpu.json)
+            set(gallery_session_test_backend slang-cpu)
+        endif()
+        if(gallery_session_test_driver)
+            add_executable(parallel-mater-gallery-session-contract-tests
+                tests/gallery/gallery_session_contract_tests.cpp)
+            target_link_libraries(parallel-mater-gallery-session-contract-tests PRIVATE
+                parallel-mater-gallery-session)
+            target_compile_definitions(parallel-mater-gallery-session-contract-tests PRIVATE
+                PM_GALLERY_SESSION_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+                PM_GALLERY_SESSION_TEST_BACKEND="${gallery_session_test_backend}")
+            if(gallery_session_test_native_backend)
+                target_compile_definitions(parallel-mater-gallery-session-contract-tests PRIVATE
+                    PM_GALLERY_SESSION_TEST_NATIVE_BACKEND=${gallery_session_test_native_backend})
+            endif()
+            add_dependencies(parallel-mater-gallery-session-contract-tests
+                ${gallery_session_test_driver} parallel-mater-layer-validation)
+            add_test(NAME parallel-mater-gallery-session-contract-tests
+                COMMAND parallel-mater-gallery-session-contract-tests)
+            set_tests_properties(parallel-mater-gallery-session-contract-tests PROPERTIES
+                LABELS "gallery;runtime;contract" TIMEOUT 120
+                SKIP_RETURN_CODE 77
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+        endif()
+    endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)
         add_executable(parallel-mater-mobile-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
