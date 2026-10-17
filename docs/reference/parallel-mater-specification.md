@@ -608,6 +608,8 @@ PmResult pmCmdBuildGeometry(
 
 Build after uploading and making input writes visible. Build creates acceleration data in bound storage and includes its internal dependencies. Barrier GEOMETRY_BUILD/WRITE → PHYSICS/READ before the first solve. Rebuild only when no dependent simulation is using the geometry. Inputs and their bindings remain alive for the entire geometry lifetime, not just the build. One geometry can be instanced by many bodies.
 
+The application keeps the geometry object, its bound memory, and its input buffers alive while a recorded or pending command refers to it and while any live simulation body or paint field uses it. An executed body replacement or removal retires that body's reference; other bodies that instance the same geometry remain valid. Simulation reset retires all of that simulation's geometry references. Destroy geometry and its dependencies only after those commands complete and the references are retired.
+
 Related sections: [13.2](#spec-barriers), [9.6](#spec-pipeline_flow).
 
 <a id="spec-resource_recipe"></a>

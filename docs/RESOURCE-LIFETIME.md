@@ -14,7 +14,7 @@ one slot cannot fragment another slot's promised capacity. Smoke planning bounds
 staggered faces and multigrid levels for any supported shape within cell capacity.
 Coupling storage is bounded using the largest declared endpoint capacities.
 Emitter storage covers the reference sampler's maximum of 65,536 sites per
-emitter. Geometry and paint planning still need the same typed traversal.
+emitter. Geometry and paint allocations use the same typed planning traversal.
 Memory requirements describe application-bound storage; they do not include
 every host allocation or native-driver cost.
 
@@ -54,6 +54,16 @@ and are resolved against current generations on the next step. A failed graph
 creation removes its partial edges; recovery can install a valid graph. Broader
 auxiliary references, including emitters and paint, still need lifecycle coverage.
 
+Each rigid slot also records the public geometry used to create its private mesh
+handle. Executing a body replacement or removal retires the old private mesh only
+after the final rigid reference disappears; a shared mesh and unrelated bodies
+remain live. The runtime refuses body-driven retirement while a paint field still
+owns the mesh; F1-04 covers releasing that final paint dependency. Freed mesh
+slots advance their generation before reuse, and reset clears the full
+per-simulation geometry registry. Geometry objects, their bound memory, and input
+buffers remain application-owned and must outlive recorded and pending commands
+plus every live simulation reference.
+
 ## Current evidence
 
 `tests/api/resource_lifecycle_tests.cpp` uses only installed public SDK headers
@@ -70,7 +80,10 @@ soft-body and smoke writes using exact queried memory. It alternates fracture
 storage, rope lengths and smoke grid layouts and rejects generated capacity
 overflow. CUDA passes. CPU and Vulkan do not advertise all required domains,
 so this case is unsupported on those drivers, not a passing physics result.
-Geometry, paint, emitter and coupling lifecycle cases remain qualification
+`tests/api/geometry_lifecycle_tests.cpp` instances one mesh across two bodies,
+then cycles 20 public geometries through one body slot. It covers final-reference
+removal, shared-body preservation, stale-generation reuse and reset using exact
+queried bindings. Paint and emitter lifecycle cases remain qualification
 obligations; these tests do not establish numerical solver quality.
 
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data

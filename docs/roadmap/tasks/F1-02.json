@@ -1,7 +1,7 @@
 {
   "id": "F1-02",
   "title": "Plan paint allocations once",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "runtime-memory"
@@ -14,7 +14,33 @@
     "Exact-query paint setup succeeds.",
     "Undersized/capacity-overflow cases fail without corrupting unrelated resources."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: ctest --test-dir build-foundations --output-on-failure -R 'parallel-mater-(paint-resource-plan|async-submission)-tests' -j1; ThomasLaptop Slang CPU; exact typed plan plus one-byte-short public binding rejection",
+    "PASS: Shader compilation (macos-26), run 38981279548 job 117242464735; macOS 26 Metal; async exact-query paint setup, rejected over-capacity write, unrelated-field copy, and paint plan tests; https://github.com/tabutyn/parallel-mater/actions/runs/38981279548/job/117242464735",
+    "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 38/38 passed, 2 unsupported domain cases skipped",
+    "PASS: cmake --build build-desktop-switch --target parallel-mater-command-api-tests parallel-mater-vulkan-command-api-tests -j1; ThomasLaptop; CUDA and Vulkan shared runtime compiled"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "2d4225ef-790b-4808-a267-41c98576dae5",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-02/thomas-laptop",
+        "claimed_at": "2026-10-16T23:08:10Z",
+        "heartbeat_at": "2026-10-16T23:08:10Z",
+        "expires_at": "2026-10-17T23:08:10Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-16T23:33:37Z",
+      "reason": "One typed plan now drives paint requirements and allocation with checked pixel capacity and rollback.",
+      "evidence": [
+        "PASS: ctest --test-dir build-foundations --output-on-failure -R 'parallel-mater-(paint-resource-plan|async-submission)-tests' -j1; ThomasLaptop Slang CPU; exact typed plan plus one-byte-short public binding rejection",
+        "PASS: Shader compilation (macos-26), run 38981279548 job 117242464735; macOS 26 Metal; async exact-query paint setup, rejected over-capacity write, unrelated-field copy, and paint plan tests; https://github.com/tabutyn/parallel-mater/actions/runs/38981279548/job/117242464735",
+        "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 38/38 passed, 2 unsupported domain cases skipped",
+        "PASS: cmake --build build-desktop-switch --target parallel-mater-command-api-tests parallel-mater-vulkan-command-api-tests -j1; ThomasLaptop; CUDA and Vulkan shared runtime compiled"
+      ]
+    }
+  ]
 }

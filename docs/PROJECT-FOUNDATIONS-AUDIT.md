@@ -5,7 +5,7 @@ Initial runtime probes used `e9e0144`. During review, `origin/main` advanced to
 source. This audit covers the library, reference runtime, loader, specification,
 conformance and SDK boundaries. Platform expansion and shader optimization are
 deferred behind the foundation work in
-[ROADMAP.md](ROADMAP.md#current-priority-project-foundations).
+[ROADMAP.md](ROADMAP.md).
 
 ## Implementation follow-up
 
@@ -23,6 +23,12 @@ rejection, and searchable-spec consistency checks. See
 The first F4 checkpoint removes generated CUDA from Vulkan ABI generation;
 [COMMON-RESOURCE-BOUNDARY.md](COMMON-RESOURCE-BOUNDARY.md) records the new neutral
 reflection model, runtime evidence and remaining engine ownership work.
+
+Windows F5-10 subsequently corrects the shared rigid/contact behavior: the
+selected CUDA/D3D12 comparisons pass 17/17 and both drivers' independent brick
+penetration checks pass at 0.205278 mm against the unchanged 2 mm limit. The
+[revisioned evidence](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
+retains the original failures and limits qualification to the tested scope.
 `603fee5` separates the headless conformance/scene SDK and execution outcomes.
 The F6 follow-up aligns package/API 0.2, adds relocatable installed-consumer and
 external-driver gates, and removes active old-worktree toolchain dependencies.
@@ -188,7 +194,7 @@ driver, hardware, compiler, test revision and quality thresholds with every
 qualification result. Historical goldens are evidence for their recorded
 revision, not automatic qualification of a refactored driver.
 
-The merged [Windows qualification record](ROADMAP.md#windows-shared-runtime-cleanup-2026-10-16)
+The audited [Windows qualification record](history/ROADMAP-2026-10-16.md#windows-shared-runtime-cleanup-2026-10-16)
 reports only 7/17 same-build CUDA/D3D12 case comparisons passing, and a new
 independent brick test failing on both drivers: approximately 7 mm penetration
 against a 2 mm gate. Those are upstream-reported results, not reruns on this

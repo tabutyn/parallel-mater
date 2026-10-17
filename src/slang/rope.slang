@@ -323,10 +323,10 @@ void rope_closest_segment_triangle(Vec3 a, Vec3 b, Vec3 x, Vec3 y,
     }
     float best = 3.402823466e+38f;
     p = a;
-    q = rigid_closest_triangle(a, x, y, z, false);
+    q = rigid_closest_triangle(a, x, y, z);
     Vec3 firstCandidate = q;
     rigid_consider_pair(a, firstCandidate, best, p, q);
-    rigid_consider_pair(b, rigid_closest_triangle(b, x, y, z, false), best,
+    rigid_consider_pair(b, rigid_closest_triangle(b, x, y, z), best,
         p, q);
     Vec3 corners[3] = {x, y, z};
     for (uint edge = 0u; edge < 3u; ++edge)
@@ -487,7 +487,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
                 Vec3 q = {};
                 if (segment)
                     rope_closest_segment_triangle(a, b, x, y, z, p, q);
-                else q = rigid_closest_triangle(a, x, y, z, false);
+                else q = rigid_closest_triangle(a, x, y, z);
                 Vec3 delta = subtract(p, q);
                 float distance = vector_length(delta);
                 Vec3 face = normalized_or(cross(subtract(y, x),
@@ -511,7 +511,7 @@ RopeHit rope_find_contact(RopeData rope, uint index, bool segment,
                     Vec3 crossing = add(origin, multiply(subtract(a, origin),
                         before / (before - after)));
                     if (length_squared(subtract(
-                        rigid_closest_triangle(crossing, x, y, z, false),
+                        rigid_closest_triangle(crossing, x, y, z),
                         crossing))
                         <= radius * radius)
                     {
@@ -864,7 +864,7 @@ RopeSoftHit rope_soft_find_contact(RopeData rope, RopeSoftTarget target,
             Vec3 q = {};
             if (segment)
                 rope_closest_segment_triangle(a, b, x, y, z, p, q);
-            else q = rigid_closest_triangle(a, x, y, z, false);
+            else q = rigid_closest_triangle(a, x, y, z);
             Vec3 delta = subtract(p, q);
             float distance = vector_length(delta);
             if (distance >= radius && segment) continue;
@@ -890,7 +890,7 @@ RopeSoftHit rope_soft_find_contact(RopeData rope, RopeSoftTarget target,
                         multiply(subtract(a, oldPosition),
                             before / max(before - after, 1.0e-12f)));
                     if (length_squared(subtract(crossing,
-                        rigid_closest_triangle(crossing, x, y, z, false)))
+                        rigid_closest_triangle(crossing, x, y, z)))
                         <= radius * radius)
                     {
                         normal = face;

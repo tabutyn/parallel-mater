@@ -353,6 +353,11 @@ set_target_properties(
         VISIBILITY_INLINES_HIDDEN YES
         POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET parallel-mater-driver-slang-cuda PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_20)
+# Keep Slang's ordered multiply/add operations through native CUDA compilation.
+# Use GPU reciprocal/square-root arithmetic as on the graphics shader targets;
+# this is deliberately not --use_fast_math (which also enables contraction/FTZ).
+target_compile_options(parallel-mater-driver-slang-cuda PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--fmad=false;--prec-div=false;--prec-sqrt=false>)
 target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE Threads::Threads)
 target_include_directories(
     parallel-mater-driver-slang-cuda

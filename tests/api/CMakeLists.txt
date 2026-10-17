@@ -5,7 +5,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(CTest)
     find_package(ParallelMater CONFIG REQUIRED)
 endif()
-foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle)
+foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle geometry-lifecycle)
     string(REPLACE "-" "_" source_name "${suite}")
     add_executable(parallel-mater-${suite}-tests ${source_name}_tests.cpp)
     target_compile_features(parallel-mater-${suite}-tests PRIVATE cxx_std_20)
@@ -32,3 +32,13 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle)
         set_tests_properties(parallel-mater-external-${suite}-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endif()
 endforeach()
+
+if(WIN32)
+    # SDK-only executables live in this subdirectory, separate from the loader
+    # DLL. Windows has no build-tree RPATH; use the selected SDK's DLL directory
+    # for tests instead of depending on a developer's global PATH or installation.
+    get_property(api_lifecycle_tests DIRECTORY PROPERTY TESTS)
+    set_tests_properties(${api_lifecycle_tests} PROPERTIES
+        ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:$<TARGET_FILE_DIR:ParallelMater::parallel_mater>")
+endif()

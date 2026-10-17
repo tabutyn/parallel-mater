@@ -112,12 +112,19 @@ void check(bool condition, const char *message) {
 
 int main(int argc, char **argv) try {
     std::optional<PmNativeBackend> backend;
-    if (argc == 3 && std::string(argv[1]) == "--backend") {
-        const std::string value = argv[2];
-        if (value == "d3d12") backend = PM_NATIVE_BACKEND_D3D12;
-        else if (value == "cuda") backend = PM_NATIVE_BACKEND_CUDA;
-        else throw std::runtime_error("unknown backend");
-    } else if (argc != 1) throw std::runtime_error("expected --backend d3d12|cuda");
+    unsigned frame_count = 2400U;
+    for (int argument = 1; argument < argc; ++argument) {
+        const std::string option = argv[argument];
+        if (option == "--backend" && argument + 1 < argc) {
+            const std::string value = argv[++argument];
+            if (value == "d3d12") backend = PM_NATIVE_BACKEND_D3D12;
+            else if (value == "cuda") backend = PM_NATIVE_BACKEND_CUDA;
+            else throw std::runtime_error("unknown backend");
+        } else if (option == "--frames" && argument + 1 < argc) {
+            frame_count = std::stoul(argv[++argument]);
+            check(frame_count != 0U, "frame count must be positive");
+        } else throw std::runtime_error("expected --backend d3d12|cuda or --frames N");
+    }
     SceneDefinition scene;
     std::string error;
     check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
@@ -206,7 +213,7 @@ int main(int argc, char **argv) try {
     const rigid_mesh_checks::MeshSamples slider_mesh(scene, rod_index);
     const rigid_mesh_checks::MeshSamples slider_gear_mesh(
         scene, gear_indices[2]);
-    for (std::uint32_t frame_index = 0U; frame_index < 2400U; ++frame_index) {
+    for (std::uint32_t frame_index = 0U; frame_index < frame_count; ++frame_index) {
         if (frame_index % 300U == 0U)
             std::cout << "constraint regression frame " << frame_index << '\n' << std::flush;
         check(simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
@@ -275,9 +282,23 @@ int main(int argc, char **argv) try {
                 saw_gear_contact[pair] = saw_gear_contact[pair] ||
                     matches(gear_indices[pair], gear_indices[pair + 1U]);
         }
+        // Stop at the first physical failure instead of spending the rest of
+        // the 2,400-frame regression evolving an already invalid trajectory.
+        check(maximum_hinge_anchor_error < 0.002F,
+              "hinge anchors drifted by more than 2 mm");
+        check(maximum_hinge_axis_error < 0.014F,
+              "hinge axes lost alignment");
+        check(maximum_slider_sideways_drift < 0.002F,
+              "slider drifted sideways by more than 2 mm");
+        check(maximum_slider_axis_error < 1.0e-3F,
+              "slider axis lost alignment");
+        check(maximum_slider_travel < 1.0F,
+              "return spring did not bound slider travel");
+        check(maximum_slider_mesh_penetration < 0.002F,
+              "slider and gear meshes interpenetrated by more than 2 mm");
     }
 
-    std::cout << "hinge_anchor_error=" << maximum_hinge_anchor_error
+    std::cout << "frames=" << frame_count << " hinge_anchor_error=" << maximum_hinge_anchor_error
               << " hinge_axis_error=" << maximum_hinge_axis_error
               << " slider_sideways_drift=" << maximum_slider_sideways_drift
               << " slider_axis_error=" << maximum_slider_axis_error
@@ -285,20 +306,8 @@ int main(int argc, char **argv) try {
               << " slider_mesh_penetration="
               << maximum_slider_mesh_penetration
               << " slider_contact_impulse=" << slider_contact_impulse << '\n';
-    check(maximum_hinge_anchor_error < 0.002F,
-          "hinge anchors drifted by more than 2 mm");
-    check(maximum_hinge_axis_error < 0.014F,
-          "hinge axes lost alignment");
-    check(maximum_slider_sideways_drift < 0.002F,
-          "slider drifted sideways by more than 2 mm");
-    check(maximum_slider_axis_error < 1.0e-3F,
-          "slider axis lost alignment");
     check(maximum_slider_travel > 0.01F,
           "slider did not travel along its axis");
-    check(maximum_slider_travel < 1.0F,
-          "return spring did not bound slider travel");
-    check(maximum_slider_mesh_penetration < 0.002F,
-          "slider and gear meshes interpenetrated by more than 2 mm");
     check(slider_contact_impulse > 0.1F,
           "slider and gear did not exchange contact impulse");
     check(std::all_of(saw_gear_contact.begin(), saw_gear_contact.end(),

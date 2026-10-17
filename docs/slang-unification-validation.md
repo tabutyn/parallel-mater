@@ -63,21 +63,63 @@ command API.
 
 ## Current cross-driver qualification (2026-10-16)
 
-The same-build public-command runner completed all 17 selected cases on both
-GTX 1080 backends. Using unchanged canonical tolerances, CUDA/D3D12 comparison
-passes 7 cases: cloth-core, cloth-water, compound-weld-lifecycle,
-constraint-breaking, constraint-piston, constraint-slider and fluid-lifecycle.
-The other 10 fail rigid state/contact or cloth-tear topology comparisons.
-The Windows CUDA managed-memory ordering fault in cloth-tear is fixed; the
-case completes but does not pass cross-driver topology comparison.
+The same-build SDK/public-command runner completes all 17 selected cases on
+both GTX 1080 backends, with 17/17 CUDA/D3D12 comparisons passing and no
+unsupported cases. All ten former failures, including cloth-tear topology,
+are resolved. Canonical inputs, numerical tolerances and historical goldens
+are unchanged; execution remains separate from physical qualification.
 
-An independent closed-mesh brick-separation check also fails on both drivers:
-with eight bricks and four substeps, the 2 mm gate observes 7.21844 mm on D3D12
-at frame 102 and 7.02056 mm on CUDA at frame 101 (zero-based). Earlier finite
-state and interactive acceptance do not establish nonpenetration. Neither this
-gate nor canonical tolerances/goldens have been relaxed. Full backend parity
-and the shared brick solver's physical quality remain unqualified; see the
-[Windows roadmap evidence](ROADMAP.md#windows-shared-runtime-cleanup-2026-10-16).
+The independent closed-mesh brick-separation check passes on both drivers:
+eight bricks, four substeps and 300 frames produce 0.205278 mm maximum sampled
+penetration against the unchanged 2 mm gate. Additional regressions check
+torque-free rotation, floor clearance, closed/open concave seams, two-sided
+surfaces, real open-edge impacts across a triangulation diagonal, and centered
+fast convex impacts (including an initially touching complete crossing).
+These results qualify the selected cases, not all domains or performance
+targets. The [revisioned Windows report](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
+retains source, binary and case hashes, the original first divergences,
+comparison results, independent physical metrics and reproduction commands.
+Raw captures remain in `build-cuda-slang-vs2022/physics-qualified-{cuda,d3d12}/`;
+they are not replacement goldens.
+
+The correction addresses three interacting causes:
+
+- Nearly equal world-space rotations and anchors lost small differences to
+  cancellation, creating spin/friction and target-dependent contact branches.
+  Shared relative-rotation arithmetic and identity-relative solver corrections
+  preserve those differences, including exactly zero free-spin correction.
+- Convex face manifolds, signed exterior separation and concave/open feature
+  classification prevent missing face support and false lateral seam normals.
+  Two-sided sheets and genuine open boundary impacts remain active; negative
+  controls caught a candidate fix that incorrectly discarded diagonal-floor
+  edge contacts. The independent mesh oracle is unchanged.
+- CUDA's explicit multiply/add, reciprocal and square-root compilation contract
+  aligns with the graphics target. Slang precise mode remains enabled; the
+  Coulomb projection and curvature use one common radial scale. No global
+  iteration-budget increase or backend-specific physics implementation is used.
+
+The exact numerical and contact contracts are in [CONTACT_SOLVER.md](CONTACT_SOLVER.md).
+The tested physics revision is `2a6819f14c0cd48dced13d5c1c80d6695326d6bf`;
+later roadmap/lease-only merges do not change its shader or runtime trees.
+
+The broader run passes 34 distinct checks: all 13 D3D12 300-frame scene/reset
+gates, the 2,400-frame hinge/slider fixture, 360 repeated API steps, resource
+lifecycle with/without validation on both drivers, CUDA domain/coupling
+lifecycle, numerical fixtures, reflection, architecture and conformance/layer
+contracts. The long fixture records zero sampled gear/slider penetration and
+0.0181449 mm maximum slider sideways drift. Two additional D3D12 lifecycle
+tests explicitly skip unsupported rope/soft-body/smoke requirements; those
+skips are not passes. An initial lifecycle startup timeout was traced to the
+new SDK test directory missing the loader DLL search path; CTest now supplies
+the selected loader directory, with unchanged assertions and 120-second limit.
+
+The installed `2a6819f` gallery then passes all 13 supported scenes with at
+least five seconds for each load/reset, plus F/Tab/point-release and fluid/cloth
+display modes (43 observed dwell periods). The installed executable, loader
+and both driver DLLs match the tested build byte-for-byte. Captures are in
+`build-cuda-slang-vs2022/physics-qualified-window/`; hashes and results are in
+the committed report. This window result is execution/input evidence, separate
+from the comparison and physical-quality gates above.
 
 ## Target status
 
@@ -85,6 +127,6 @@ and the shared brick solver's physical quality remain unqualified; see the
 |---|---|
 | CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
-| DirectX 12 | Shared rigid/constraint/liquid/cloth preview and native GPU drawing; 13-scene window gate passes, strict physical parity remains unqualified |
+| DirectX 12 | Shared rigid/constraint/liquid/cloth preview and native GPU drawing; 17 targeted CUDA/D3D12 comparisons and independent brick/contact gates pass; remaining domains and performance unqualified |
 | Vulkan | Shared rigid/constraint/liquid preview; focused GPU and shader validation, not full backend qualification. See [Vulkan](VULKAN.md) |
 | WebGPU | AVBD numerical core compiles to WGSL; full schedule and driver unavailable |

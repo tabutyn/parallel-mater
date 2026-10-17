@@ -5,6 +5,7 @@
 #include "backend_comparison.hpp"
 #include "rigid_mesh_checks.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -151,6 +152,327 @@ template <std::size_t Size>
     return true;
 }
 
+bool validate_torque_free_rotation(const TriangleMesh &mesh,
+                                  std::optional<PmNativeBackend> backend,
+                                  std::string &error) {
+    for (const Vec3 spin : {Vec3{}, Vec3{0.3F, -0.7F, 1.1F}}) {
+        SceneDefinition scene;
+        scene.meshes.push_back(mesh);
+        RigidBodyDefinition body;
+        body.name = "TorqueFree";
+        body.mesh_indices = {0U};
+        body.options.inertia_diagonal = {1.0F, 1.0F, 1.0F};
+        body.options.linear_damping = 0.0F;
+        body.options.angular_damping = 0.0F;
+        body.options.initial_state.orientation = {0.3F, 0.4F, 0.5F, std::sqrt(0.5F)};
+        body.options.initial_state.angular_velocity = spin;
+        scene.rigid_bodies.push_back(body);
+        CommandScene simulation;
+        CommandSceneInstance instance;
+        CommandSceneFrame frame;
+        if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) return false;
+        float maximum_drift{};
+        for (unsigned step = 0U; step < 60U; ++step) {
+            if (!simulation.step(1.0F / 60.0F, 4U, {}, frame, error)) return false;
+            const auto &actual = frame.rigid_states.at(0U);
+            maximum_drift = std::max({maximum_drift,
+                std::abs(actual.angularVelocity[0] - spin.x),
+                std::abs(actual.angularVelocity[1] - spin.y),
+                std::abs(actual.angularVelocity[2] - spin.z)});
+        }
+        std::cout << "Torque-free angular drift=" << maximum_drift << " rad/s\n";
+        if (maximum_drift > 1.0e-6F) {
+            error = "AVBD changed angular velocity without torque or contact";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool validate_swept_face_impact_case(std::optional<PmNativeBackend> backend,
+                                    float start, unsigned substeps, std::string &error) {
+    SceneDefinition scene;
+    TriangleMesh box;
+    box.vertices = {{{-0.25F, -0.25F, -0.25F}}, {{0.25F, -0.25F, -0.25F}},
+                    {{0.25F, 0.25F, -0.25F}}, {{-0.25F, 0.25F, -0.25F}},
+                    {{-0.25F, -0.25F, 0.25F}}, {{0.25F, -0.25F, 0.25F}},
+                    {{0.25F, 0.25F, 0.25F}}, {{-0.25F, 0.25F, 0.25F}}};
+    box.indices = {0,1,2,0,2,3,4,6,5,4,7,6,0,4,5,0,5,1,
+                   1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0};
+    scene.meshes.push_back(box);
+    RigidBodyDefinition body;
+    body.name = "CenteredTarget";
+    body.mesh_indices = {0U};
+    body.options.linear_damping = 0.0F;
+    body.options.angular_damping = 0.0F;
+    body.options.inertia_diagonal = {1.0F / 24.0F, 1.0F / 24.0F, 1.0F / 24.0F};
+    scene.rigid_bodies.push_back(body);
+    body.name = "TranslatingStriker";
+    body.options.motion = MotionType::kinematic;
+    body.options.initial_state.position = {start, 0.0F, 0.0F};
+    scene.rigid_bodies.push_back(body);
+    CommandScene simulation;
+    CommandSceneInstance instance;
+    CommandSceneFrame frame;
+    RigidBodyState target;
+    target.position = {1.0F, 0.0F, 0.0F};
+    if (!CommandScene::create(scene, 2U, simulation, instance, error, backend) ||
+        !simulation.set_kinematic_target(instance.rigid_bodies.at(1U), target, error) ||
+        !simulation.step(1.0F / 60.0F, substeps, {}, frame, error, true)) return false;
+    const auto &actual = frame.rigid_states.at(0U);
+    float transverse_speed = std::max(std::abs(actual.linearVelocity[1]),
+                                     std::abs(actual.linearVelocity[2]));
+    float angular_speed = std::max({std::abs(actual.angularVelocity[0]),
+        std::abs(actual.angularVelocity[1]), std::abs(actual.angularVelocity[2])});
+    std::cout << "Swept face impact: start=" << start << " substeps=" << substeps
+              << " forward=" << actual.linearVelocity[0]
+              << " transverse=" << transverse_speed << " angular=" << angular_speed << '\n';
+    if (actual.linearVelocity[0] <= 1.0F || transverse_speed > 1.0e-3F ||
+        angular_speed > 0.01F) {
+        error = "centered convex sweep missed the target or invented lateral motion";
+        return false;
+    }
+    return true;
+}
+
+bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
+                               std::string &error) {
+    return validate_swept_face_impact_case(backend, -1.0F, 4U, error) &&
+        validate_swept_face_impact_case(backend, -1.0F, 1U, error) &&
+        validate_swept_face_impact_case(backend, -0.5F, 1U, error);
+}
+
+bool validate_face_contact_normals(const TriangleMesh &mesh,
+                                  std::optional<PmNativeBackend> backend,
+                                  std::string &error) {
+    SceneDefinition scene;
+    TriangleMesh refined = mesh;
+    // Exercise the triangle path, not the <=96-index convex-face fast path.
+    while (refined.indices.size() <= 96U) {
+        std::vector<std::uint32_t> indices;
+        for (std::size_t triangle = 0U; triangle < refined.indices.size(); triangle += 3U) {
+            const auto a = refined.indices[triangle];
+            const auto b = refined.indices[triangle + 1U];
+            const auto c = refined.indices[triangle + 2U];
+            const auto midpoint = [&](std::uint32_t first, std::uint32_t second) {
+                const auto p = refined.vertices[first].position;
+                const auto q = refined.vertices[second].position;
+                const auto index = static_cast<std::uint32_t>(refined.vertices.size());
+                Vertex vertex;
+                vertex.position = {(p.x + q.x) * 0.5F, (p.y + q.y) * 0.5F,
+                                   (p.z + q.z) * 0.5F};
+                refined.vertices.push_back(vertex);
+                return index;
+            };
+            const auto ab = midpoint(a, b), bc = midpoint(b, c), ca = midpoint(c, a);
+            indices.insert(indices.end(), {a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca});
+        }
+        refined.indices = std::move(indices);
+    }
+    const TriangleMesh surface_box = refined;
+    // A small dent makes this a closed non-convex surface, like the authored
+    // point-scene spheres. Convex/concave classification must not reverse the
+    // reaction of the flat ground underneath it.
+    auto highest = std::max_element(refined.vertices.begin(), refined.vertices.end(),
+        [](const Vertex &a, const Vertex &b) { return a.position.y < b.position.y; })->position;
+    for (const auto &vertex : refined.vertices)
+        if (vertex.position.y == highest.y &&
+            vertex.position.x * vertex.position.x + vertex.position.z * vertex.position.z <
+                highest.x * highest.x + highest.z * highest.z) highest = vertex.position;
+    for (auto &vertex : refined.vertices)
+        if (vertex.position.x == highest.x && vertex.position.y == highest.y &&
+            vertex.position.z == highest.z) vertex.position.y -= 0.02F;
+    scene.meshes.push_back(refined);
+    TriangleMesh floor;
+    floor.vertices = {{{-10.0F, 0.0F, -10.0F}}, {{10.0F, 0.0F, -10.0F}},
+                      {{10.0F, 0.0F, 10.0F}}, {{-10.0F, 0.0F, 10.0F}},
+                      {{-10.0F, -0.3F, -10.0F}}, {{10.0F, -0.3F, -10.0F}},
+                      {{10.0F, -0.3F, 10.0F}}, {{-10.0F, -0.3F, 10.0F}}};
+    floor.indices = {0U, 2U, 1U, 0U, 3U, 2U, 4U, 5U, 6U, 4U, 6U, 7U,
+                     0U, 1U, 5U, 0U, 5U, 4U, 1U, 2U, 6U, 1U, 6U, 5U,
+                     2U, 3U, 7U, 2U, 7U, 6U, 3U, 0U, 4U, 3U, 4U, 7U};
+    scene.meshes.push_back(floor);
+    float minimum_y = refined.vertices.front().position.y;
+    for (const auto &vertex : refined.vertices)
+        minimum_y = std::min(minimum_y, vertex.position.y);
+    RigidBodyDefinition body;
+    body.name = "RefinedBox";
+    body.mesh_indices = {0U};
+    body.options.initial_state.position = {-2.2F, -0.001F - minimum_y, 0.137F};
+    scene.rigid_bodies.push_back(body);
+    body = {};
+    body.name = "Plane";
+    body.mesh_indices = {1U};
+    body.options.motion = MotionType::static_body;
+    scene.rigid_bodies.push_back(body);
+    CommandScene simulation;
+    CommandSceneInstance instance;
+    CommandSceneFrame frame;
+    if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) return false;
+    std::size_t contacts{};
+    float minimum_clearance = 0.0F;
+    for (unsigned step = 0U; step < 60U; ++step) {
+        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, frame, error, true))
+            return false;
+        const auto &state = frame.rigid_states.at(0U);
+        const Quaternion orientation{state.orientation[0], state.orientation[1],
+            state.orientation[2], state.orientation[3]};
+        for (const auto &vertex : refined.vertices)
+            minimum_clearance = std::min(minimum_clearance, state.position[1] +
+                rigid_mesh_checks::rotate(orientation, vertex.position).y);
+        if (minimum_clearance < -0.002F) {
+            error = "planar floor penetration=" + std::to_string(-minimum_clearance) +
+                " m at frame " + std::to_string(step);
+            return false;
+        }
+        for (const auto &contact : frame.contacts) {
+            ++contacts;
+            if (std::abs(contact.normal.x) > 1.0e-6F ||
+                std::abs(contact.normal.z) > 1.0e-6F ||
+                std::abs(contact.normal.y - 1.0F) > 1.0e-6F) {
+                error = "planar ground contact generated normal " +
+                    std::to_string(contact.normal.x) + "," + std::to_string(contact.normal.y) +
+                    "," + std::to_string(contact.normal.z) + " at frame " + std::to_string(step) +
+                    " body y=" + std::to_string(frame.rigid_states.at(0U).position[1]);
+                return false;
+            }
+        }
+    }
+    if (contacts == 0U) { error = "face-normal regression produced no contacts"; return false; }
+    std::cout << "Planar face normals passed (" << contacts << " contacts), penetration="
+              << -minimum_clearance << " m\n";
+    // Adjacent closed boxes share coplanar top/bottom/front/back surfaces.
+    // Those co-facing surfaces are not opposing collision boundaries.
+    SceneDefinition seam_scene;
+    seam_scene.meshes = {surface_box, surface_box};
+    float minimum_x = surface_box.vertices.front().position.x;
+    float maximum_x = minimum_x;
+    float minimum_y_seam = surface_box.vertices.front().position.y;
+    float maximum_y_seam = minimum_y_seam;
+    for (const auto &vertex : surface_box.vertices) {
+        minimum_x = std::min(minimum_x, vertex.position.x);
+        maximum_x = std::max(maximum_x, vertex.position.x);
+        minimum_y_seam = std::min(minimum_y_seam, vertex.position.y);
+        maximum_y_seam = std::max(maximum_y_seam, vertex.position.y);
+    }
+    body = {};
+    body.name = "SeamDynamic";
+    body.mesh_indices = {0U};
+    seam_scene.rigid_bodies.push_back(body);
+    body.name = "SeamStatic";
+    body.mesh_indices = {1U};
+    body.options.motion = MotionType::static_body;
+    body.options.initial_state.position.x = maximum_x - minimum_x - 0.001F;
+    body.options.initial_state.position.y = 0.9F * (maximum_y_seam - minimum_y_seam);
+    seam_scene.rigid_bodies.push_back(body);
+    for (bool open : {false, true}) {
+        if (open) {
+            // An uncapped volume still has exterior support faces. Missing
+            // faces elsewhere must not make its front/back seam collide.
+            auto &indices = seam_scene.meshes[0].indices;
+            std::vector<std::uint32_t> remaining;
+            for (std::size_t i = 0; i < indices.size(); i += 3U) {
+                bool top = true;
+                for (std::size_t corner = 0; corner < 3U; ++corner)
+                    top = top && surface_box.vertices[indices[i + corner]].position.y ==
+                        maximum_y_seam;
+                if (!top) remaining.insert(remaining.end(),
+                    indices.begin() + i, indices.begin() + i + 3U);
+            }
+            indices = std::move(remaining);
+            // An extruded concave side wall is not a support plane. Its
+            // interior edges must still not collide with the other box's
+            // front/back surfaces, as in the authored gear/rack mesh pair.
+            for (auto &vertex : seam_scene.meshes[0].vertices)
+                if (vertex.position.x == maximum_x &&
+                    vertex.position.y > minimum_y_seam &&
+                    vertex.position.y < maximum_y_seam)
+                    vertex.position.x -= 0.02F;
+        }
+        CommandScene seam_simulation;
+        if (!CommandScene::create(seam_scene, 2U, seam_simulation, instance, error, backend) ||
+            !seam_simulation.step(1.0F / 60.0F, 1U, {}, frame, error, true)) return false;
+        if (frame.contacts.empty()) { error = "surface seam produced no contacts"; return false; }
+        for (const auto &contact : frame.contacts)
+            if (std::abs(contact.normal.z) > 1.0e-6F) {
+                error = std::string(open ? "open" : "closed") +
+                    " co-facing surface seam generated normal " +
+                    std::to_string(contact.normal.x) + "," + std::to_string(contact.normal.y) +
+                    "," + std::to_string(contact.normal.z);
+                return false;
+            }
+        std::cout << (open ? "Open" : "Closed") << " co-facing surface seams passed\n";
+    }
+    // A truly flat open sheet has no certified inside. Keep collision from
+    // both sides, irrespective of its authored triangle winding.
+    for (unsigned probe = 0U; probe < 4U; ++probe) {
+        const float side = probe == 0U ? -1.0F : 1.0F;
+        SceneDefinition sheet_scene;
+        sheet_scene.meshes = {surface_box, floor};
+        if (probe < 2U) {
+            sheet_scene.meshes[1].indices.resize(6U);
+            sheet_scene.meshes[1].vertices.resize(4U);
+        } else {
+            // A vertical open sheet must keep its real boundary-edge impact
+            // against the closed floor; only interior/tangent seams are culled.
+            // Also align with the floor's internal diagonal. Contact must
+            // depend on the whole collider, not its arbitrary triangulation.
+            const float diagonal = probe == 3U ? 0.1F : 0.0F;
+            sheet_scene.meshes[0].vertices = {
+                {{-diagonal, minimum_y_seam, -0.1F}},
+                {{-diagonal, maximum_y_seam, -0.1F}},
+                {{diagonal, maximum_y_seam, 0.1F}},
+                {{diagonal, minimum_y_seam, 0.1F}}};
+            sheet_scene.meshes[0].indices = {0U, 1U, 2U, 0U, 2U, 3U};
+        }
+        body = {};
+        body.name = "SheetProbe";
+        body.mesh_indices = {0U};
+        body.options.linear_damping = 0.0F;
+        body.options.angular_damping = 0.0F;
+        body.options.initial_state.position.y = side > 0.0F
+            ? 0.02F - minimum_y_seam : -0.02F - maximum_y_seam;
+        body.options.initial_state.linear_velocity.y = -side;
+        sheet_scene.rigid_bodies.push_back(body);
+        body = {};
+        body.name = "TwoSidedSheet";
+        body.mesh_indices = {1U};
+        body.options.motion = MotionType::static_body;
+        sheet_scene.rigid_bodies.push_back(body);
+        CommandScene sheet_simulation;
+        if (!CommandScene::create(sheet_scene, 2U, sheet_simulation, instance, error, backend))
+            return false;
+        bool saw_contact = false;
+        for (unsigned step = 0U; step < 30U; ++step) {
+            if (!sheet_simulation.step(1.0F / 60.0F, 4U, {}, frame, error, true)) return false;
+            for (const auto &contact : frame.contacts) {
+                saw_contact = true;
+                if (contact.normal.y * side < 0.99F) {
+                    error = "open sheet reversed a two-sided contact";
+                    return false;
+                }
+            }
+            const auto &state = frame.rigid_states[0];
+            const Quaternion orientation{state.orientation[0], state.orientation[1],
+                state.orientation[2], state.orientation[3]};
+            for (const auto &vertex : sheet_scene.meshes[0].vertices) {
+                const float height = state.position[1] +
+                    rigid_mesh_checks::rotate(orientation, vertex.position).y;
+                if (height * side < -0.002F) {
+                    error = "open-surface probe " + std::to_string(probe) +
+                        " penetration=" + std::to_string(-height * side) +
+                        " m at frame " + std::to_string(step);
+                    return false;
+                }
+            }
+        }
+        if (!saw_contact) { error = "two-sided sheet contact missing"; return false; }
+        std::cout << "Open-surface probe " << probe << " passed\n";
+    }
+    std::cout << "Two-sided open sheet contacts passed\n";
+    return true;
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -267,6 +589,23 @@ int main(int argc, char **argv) {
             if ((frame_index + 1U) % 60U == 0U)
                 std::cout << entry.name << ": " << frame_index + 1U
                           << " frames submitted\n" << std::flush;
+            if (entry.context == GalleryContext::constraint_point) {
+                for (std::size_t body = 0U; body < scene.rigid_bodies.size(); ++body) {
+                    if (!scene.rigid_bodies[body].name.starts_with("Ground")) continue;
+                    for (const auto &contact : frame.contacts) {
+                        if (std::abs(contact.position.x) >= 5.0F ||
+                            std::abs(contact.position.z) >= 5.0F) continue;
+                        const auto ground = instance.rigid_bodies[body];
+                        const float upward = contact.second == ground ? contact.normal.y
+                            : contact.first == ground ? -contact.normal.y : 1.0F;
+                        if (upward < 0.99F) {
+                            std::cerr << "Point-scene ground reaction reversed at frame "
+                                      << frame_index << " normal.y=" << upward << '\n';
+                            return 1;
+                        }
+                    }
+                }
+            }
             if (!brick_geometry.empty()) {
                 const auto state = [&](std::size_t body) {
                     const auto &value = frame.rigid_states[body];
@@ -285,6 +624,28 @@ int main(int argc, char **argv) {
                         if (depth > 0.002F) {
                             std::cerr << "Brick separation failed at frame " << frame_index
                                       << " bodies=" << a << ',' << b << " penetration=" << depth << '\n';
+                            for (const auto body : {a, b}) {
+                                const auto &value = frame.rigid_states[body];
+                                std::cerr << scene.rigid_bodies[body].name << " position=";
+                                for (float v : value.position) std::cerr << v << ',';
+                                std::cerr << " orientation=";
+                                for (float v : value.orientation) std::cerr << v << ',';
+                                std::cerr << " velocity=";
+                                for (float v : value.linearVelocity) std::cerr << v << ',';
+                                std::cerr << " angular=";
+                                for (float v : value.angularVelocity) std::cerr << v << ',';
+                                std::cerr << '\n';
+                            }
+                            for (const auto &contact : frame.contacts)
+                                if ((contact.first == a && contact.second == b) ||
+                                    (contact.first == b && contact.second == a)) {
+                                    std::cerr << "contact penetration=" << contact.penetration
+                                              << " impulse=" << contact.normalImpulse << " normal=";
+                                    for (float v : {contact.normal.x, contact.normal.y, contact.normal.z}) std::cerr << v << ',';
+                                    std::cerr << " position=";
+                                    for (float v : {contact.position.x, contact.position.y, contact.position.z}) std::cerr << v << ',';
+                                    std::cerr << '\n';
+                                }
                             return 1;
                         }
                     }
@@ -364,6 +725,20 @@ int main(int argc, char **argv) {
         ++passed;
         if (!brick_geometry.empty())
             std::cout << "Independent brick penetration=" << maximum_brick_penetration << " m\n";
+        if (!brick_geometry.empty() && !validate_torque_free_rotation(
+                scene.meshes.at(scene.rigid_bodies.back().mesh_indices.front()), backend, error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
+        if (!brick_geometry.empty() && !validate_swept_face_impact(backend, error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
+        if (!brick_geometry.empty() && !validate_face_contact_normals(
+                scene.meshes.at(scene.rigid_bodies.back().mesh_indices.front()), backend, error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
         std::cout << entry.name << ": " << frame_count
                   << " frames and reset passed" << std::endl;
     }

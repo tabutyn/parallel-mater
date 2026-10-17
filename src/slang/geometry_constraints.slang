@@ -36,7 +36,7 @@ static const uint kAvbdImpactJoint = 3u;
 struct AvbdBody
 {
     RigidBodyState target;
-    Quaternion current_orientation;
+    Quaternion orientation_delta;
     AvbdVector6 displacement;
     AvbdBlock inertia;
     uint contact_head;
@@ -60,37 +60,10 @@ Vec3 rigid_avbd_basis_axis(uint axis)
             Vec3(0.0f, 0.0f, 1.0f));
 }
 
-Quaternion rigid_avbd_ordered_quaternion_multiply(Quaternion a, Quaternion b)
-{
-    // Contact preparation is sensitive to a one-ULP change in relative
-    // rotation. Spell out the Hamilton-product accumulation so every target
-    // receives the same operation order instead of choosing its own tree.
-    return {
-        fma(-a.z, b.y, fma(a.y, b.z, fma(a.x, b.w, a.w * b.x))),
-        fma(a.z, b.x, fma(a.y, b.w, fma(-a.x, b.z, a.w * b.y))),
-        fma(a.z, b.w, fma(-a.y, b.x, fma(a.x, b.y, a.w * b.z))),
-        fma(-a.z, b.z, fma(-a.y, b.y, fma(-a.x, b.x, a.w * b.w)))};
-}
-
 Vec3 rigid_avbd_contact_delta_velocity(Quaternion from, Quaternion to,
     float timestep)
 {
-    Quaternion delta = rigid_avbd_ordered_quaternion_multiply(
-        to, conjugate(from));
-    if (delta.w < 0.0f)
-        delta = {-delta.x, -delta.y, -delta.z, -delta.w};
-    delta = normalized_quaternion(delta);
-    float vectorSize = sqrt(
-        delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
-    if (timestep <= 0.0f) return {};
-    if (vectorSize <= kEpsilon)
-        return {delta.x * (2.0f / timestep),
-                delta.y * (2.0f / timestep),
-                delta.z * (2.0f / timestep)};
-    float angle = 2.0f * atan2(vectorSize,
-        clamp_scalar(delta.w, -1.0f, 1.0f));
-    float scale = angle / (vectorSize * timestep);
-    return {delta.x * scale, delta.y * scale, delta.z * scale};
+    return quaternion_delta_velocity(from, to, timestep);
 }
 
 bool rigid_avbd_axis_enabled(uint mask, uint axis)
@@ -101,19 +74,7 @@ bool rigid_avbd_axis_enabled(uint mask, uint axis)
 Vec3 rigid_avbd_relative_rotation_vector(Quaternion frameA,
     Quaternion frameB)
 {
-    Quaternion relative = normalized_quaternion(
-        quaternion_multiply(conjugate(frameA), frameB));
-    if (relative.w < 0.0f)
-        relative = {-relative.x, -relative.y, -relative.z, -relative.w};
-    float size = sqrt(relative.x * relative.x + relative.y * relative.y +
-        relative.z * relative.z);
-    if (size <= kEpsilon)
-        return {2.0f * relative.x, 2.0f * relative.y,
-            2.0f * relative.z};
-    float angle = 2.0f * atan2(size,
-        clamp_scalar(relative.w, -1.0f, 1.0f));
-    return {relative.x * angle / size, relative.y * angle / size,
-        relative.z * angle / size};
+    return quaternion_rotation_vector(relative_quaternion(frameA, frameB, true));
 }
 
 uint rigid_avbd_find_dense(RigidBodyId id, PM_AVBD_BUFFER(RigidBodyId) ids,
@@ -165,7 +126,10 @@ RigidBodyState rigid_avbd_pose(AvbdBody body)
     RigidBodyState state = body.target;
     state.position = add(state.position,
         rigid_avbd_translation(body.displacement));
-    state.orientation = body.current_orientation;
+    Quaternion delta = body.orientation_delta;
+    if (delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f)
+        state.orientation = normalized_quaternion(
+            quaternion_multiply(delta, state.orientation));
     return state;
 }
 
@@ -174,18 +138,23 @@ void rigid_avbd_apply_pose_update(inout AvbdBody body, AvbdVector6 update)
     for (uint axis = 0u; axis < 3u; ++axis)
         body.displacement.values[axis] += update.values[axis];
     Vec3 rotation = rigid_avbd_rotation(update);
+    if (rotation.x == 0.0f && rotation.y == 0.0f && rotation.z == 0.0f)
+        return;
+    // Accumulate the small correction around identity. Updating a world-space
+    // orientation and subtracting the target after every iteration loses the
+    // small correction before it can contribute to angular velocity.
+    Quaternion relative = body.orientation_delta;
     Quaternion derivative = quaternion_multiply(
         {rotation.x, rotation.y, rotation.z, 0.0f},
-        body.current_orientation);
-    body.current_orientation = normalized_quaternion({
-        body.current_orientation.x + 0.5f * derivative.x,
-        body.current_orientation.y + 0.5f * derivative.y,
-        body.current_orientation.z + 0.5f * derivative.z,
-        body.current_orientation.w + 0.5f * derivative.w});
-    Quaternion relative = quaternion_multiply(body.current_orientation,
-        conjugate(body.target.orientation));
+        relative);
+    relative = normalized_quaternion({
+        relative.x + 0.5f * derivative.x,
+        relative.y + 0.5f * derivative.y,
+        relative.z + 0.5f * derivative.z,
+        relative.w + 0.5f * derivative.w});
     if (relative.w < 0.0f)
         relative = {-relative.x, -relative.y, -relative.z, -relative.w};
+    body.orientation_delta = relative;
     body.displacement.values[3] = 2.0f * relative.x;
     body.displacement.values[4] = 2.0f * relative.y;
     body.displacement.values[5] = 2.0f * relative.z;
@@ -194,8 +163,14 @@ void rigid_avbd_apply_pose_update(inout AvbdBody body, AvbdVector6 update)
 Vec3 rigid_avbd_log_axis(Quaternion frame, Vec3 logarithm, uint axis)
 {
     float squared = length_squared(logarithm);
-    float coefficient = 1.0f / 12.0f + squared / 720.0f;
-    if (squared > 1.0e-6f)
+    // 1 - (angle/2) * cot(angle/2) loses its significant bits near zero.
+    // The series remains accurate throughout the small-angle region.
+    float coefficient = 1.0f / 12.0f + squared * (1.0f / 720.0f + squared *
+        (1.0f / 30240.0f + squared * (1.0f / 1209600.0f +
+        squared / 47900160.0f)));
+    // Through one radian the omitted term is below float roundoff. Evaluating
+    // 1-half*cot(half) directly loses significant bits well beyond 0.1 rad.
+    if (squared > 1.0f)
     {
         float angle = sqrt(squared);
         float half = 0.5f * angle;
@@ -606,13 +581,11 @@ float rigid_avbd_visit_joint(inout RigidConstraintResource joint,
                 float bound = (angular
                     ? options.motor.angular_maximum_impulse
                     : options.motor.linear_maximum_impulse) / dt;
-                Quaternion relative = quaternion_multiply(
-                    conjugate(frameA), frameB);
-                Quaternion oldRelative = quaternion_multiply(
-                    conjugate(oldFrameA), oldFrameB);
+                Quaternion relative = relative_quaternion(frameA, frameB, true);
+                Quaternion oldRelative = relative_quaternion(oldFrameA, oldFrameB, true);
                 Vec3 motorRotation = rigid_avbd_relative_rotation_vector(
                     {0.0f, 0.0f, 0.0f, 1.0f},
-                    quaternion_multiply(relative, conjugate(oldRelative)));
+                    relative_quaternion(oldRelative, relative, false));
                 Vec3 motorAxis = rigid_avbd_log_axis(
                     frameA, motorRotation, axis);
                 AvbdVector6 motorA = angular
@@ -951,7 +924,7 @@ void prepare_avbd_kernel(
         body.contact_head = kInvalidDense;
         body.joint_head = kInvalidDense;
         body.target = states[bodyIndex];
-        body.current_orientation = states[bodyIndex].orientation;
+        body.orientation_delta = {0.0f, 0.0f, 0.0f, 1.0f};
         bodies[bodyIndex] = body;
         if (bodyIndex < kAvbdPrepareBodyCacheSize)
         {
@@ -1038,24 +1011,30 @@ void prepare_avbd_kernel(
             Vec3 tangent0;
             Vec3 tangent1;
             rigid_avbd_basis(contact.normal, tangent0, tangent1);
-            Vec3 anchorDelta = subtract(add(states[b].position,
-                rotate(states[b].orientation, contact.avbd_anchor_b)),
-                add(states[a].position,
-                    rotate(states[a].orientation, contact.avbd_anchor_a)));
-            Vec3 oldAnchorDelta = subtract(add(previous[b].position,
-                rotate(previous[b].orientation, contact.avbd_anchor_b)),
-                add(previous[a].position,
+            Vec3 anchorMotion = add(subtract(motionB, motionA), subtract(
+                rotation_displacement(previous[b].orientation,
+                    states[b].orientation, contact.avbd_anchor_b),
+                rotation_displacement(previous[a].orientation,
+                    states[a].orientation, contact.avbd_anchor_a)));
+            // New anchors represent the same world point by construction.
+            // Do not turn inverse-rotation roundoff into initial friction.
+            Vec3 oldAnchorDelta = contact.avbd_cached == 0u ? Vec3() : add(
+                subtract(previous[b].position, previous[a].position),
+                subtract(rotate(previous[b].orientation, contact.avbd_anchor_b),
                     rotate(previous[a].orientation, contact.avbd_anchor_a)));
+            // Algebraically currentDelta - alpha*oldDelta, without subtracting
+            // nearly coincident world-space anchor positions. Penalty stiffness
+            // otherwise amplifies their roundoff into artificial friction.
+            Vec3 tangentError = add(anchorMotion,
+                multiply(oldAnchorDelta, 1.0f - kAvbdAlpha));
             contact.initial_normal_speed = -closing / dt;
             float skin = rigid_avbd_contact_skin(
                 contact, parameters[a], parameters[b]);
             contact.avbd_error = {
                 contact.penetration -
                     clamp_scalar(oldPenetration, 0.0f, skin),
-                dot(subtract(anchorDelta,
-                    multiply(oldAnchorDelta, kAvbdAlpha)), tangent0),
-                dot(subtract(anchorDelta,
-                    multiply(oldAnchorDelta, kAvbdAlpha)), tangent1)};
+                dot(tangentError, tangent0),
+                dot(tangentError, tangent1)};
             for (uint axis = 0u; axis < 3u; ++axis)
             {
                 AvbdDual dual = {contact.avbd_dual[axis].lambda,

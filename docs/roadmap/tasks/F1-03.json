@@ -1,7 +1,7 @@
 {
   "id": "F1-03",
   "title": "Retire geometry dependencies safely",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F1-01"
   ],
@@ -17,7 +17,33 @@
     "Tests cover referenced mesh replacement, removal, stale generations and unrelated-body preservation.",
     "Pending work and recorded references follow documented lifetime rules."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: ctest --test-dir build-foundations --output-on-failure -R parallel-mater-cpu-geometry-lifecycle-tests; ThomasLaptop Slang CPU; shared mesh, 20 replacements, stale-generation reuse, removal and reset",
+    "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 39/39 passed, 2 unsupported domain/coupling cases skipped",
+    "PASS: cmake --build build-desktop-switch --target parallel-mater-geometry-lifecycle-tests -j1; ThomasLaptop; CUDA and Vulkan shared drivers compiled; runtime cases skipped because no device was selected",
+    "PASS: ctest --test-dir build-foundations --output-on-failure -R parallel-mater-generated-api-check; generated lifetime specification matches source"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "0b5fc516-552e-49e8-b5f8-64ab0b9ffad7",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-03/thomas-laptop",
+        "claimed_at": "2026-10-16T23:43:07Z",
+        "heartbeat_at": "2026-10-16T23:43:07Z",
+        "expires_at": "2026-10-17T23:43:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-16T23:56:38Z",
+      "reason": "Rigid replacements now retire final-reference meshes while preserving shared dependencies and reset state.",
+      "evidence": [
+        "PASS: ctest --test-dir build-foundations --output-on-failure -R parallel-mater-cpu-geometry-lifecycle-tests; ThomasLaptop Slang CPU; shared mesh, 20 replacements, stale-generation reuse, removal and reset",
+        "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 39/39 passed, 2 unsupported domain/coupling cases skipped",
+        "PASS: cmake --build build-desktop-switch --target parallel-mater-geometry-lifecycle-tests -j1; ThomasLaptop; CUDA and Vulkan shared drivers compiled; runtime cases skipped because no device was selected",
+        "PASS: ctest --test-dir build-foundations --output-on-failure -R parallel-mater-generated-api-check; generated lifetime specification matches source"
+      ]
+    }
+  ]
 }

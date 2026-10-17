@@ -1,7 +1,7 @@
 {
   "id": "F1-04",
   "title": "Retire paint dependencies safely",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F1-02",
     "F1-03"
@@ -19,6 +19,14 @@
     "Stale paint endpoints fail deterministically and unrelated fields survive."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "de863daa-72d6-4f2b-b23f-c37fb290a279",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-04/thomas-laptop",
+    "claimed_at": "2026-10-17T00:07:51Z",
+    "heartbeat_at": "2026-10-17T00:07:51Z",
+    "expires_at": "2026-10-18T00:07:51Z"
+  },
   "history": []
 }

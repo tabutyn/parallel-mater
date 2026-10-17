@@ -87,6 +87,23 @@ Quaternion normalized_quaternion(Quaternion value)
             value.w * inverse};
 }
 
+Quaternion relative_quaternion(Quaternion from, Quaternion to, bool local)
+{
+    float cosine = from.x * to.x + from.y * to.y +
+        from.z * to.z + from.w * to.w;
+    if (cosine < 0.0f) to = {-to.x, -to.y, -to.z, -to.w};
+    // Subtract before the Hamilton product. Directly multiplying nearly equal
+    // orientations cancels large terms and invents a small rotation even when
+    // the poses are identical (especially with fused multiply-add).
+    Quaternion difference = {to.x - from.x, to.y - from.y,
+        to.z - from.z, to.w - from.w};
+    Quaternion result = local
+        ? quaternion_multiply(conjugate(from), difference)
+        : quaternion_multiply(difference, conjugate(from));
+    result.w = abs(cosine);
+    return normalized_quaternion(result);
+}
+
 Vec3 rotate(Quaternion orientation, Vec3 value)
 {
     Vec3 q = {orientation.x, orientation.y, orientation.z};
@@ -98,6 +115,23 @@ Vec3 rotate(Quaternion orientation, Vec3 value)
 Vec3 inverse_rotate(Quaternion orientation, Vec3 value)
 {
     return rotate(conjugate(orientation), value);
+}
+
+// R(to)*value - R(from)*value, evaluated from the small quaternion change.
+// Subtracting two full rotated arms loses the displacement of resting contacts.
+Vec3 rotation_displacement(Quaternion from, Quaternion to, Vec3 value)
+{
+    if (from.x * to.x + from.y * to.y + from.z * to.z + from.w * to.w < 0.0f)
+        to = {-to.x, -to.y, -to.z, -to.w};
+    Vec3 oldVector = {from.x, from.y, from.z};
+    Vec3 newVector = {to.x, to.y, to.z};
+    Vec3 difference = subtract(newVector, oldVector);
+    Vec3 oldCross = cross(oldVector, value);
+    Vec3 differenceCross = cross(difference, value);
+    return multiply(add(add(multiply(oldCross, to.w - from.w),
+                            multiply(differenceCross, to.w)),
+                        add(cross(difference, oldCross),
+                            cross(newVector, differenceCross))), 2.0f);
 }
 
 Vec3 transform_point(RigidBodyState state, Vec3 point)
@@ -159,13 +193,11 @@ float rotational_motion_bound(
     RigidBodyState previous, RigidBodyState current,
     TriangleMeshResource mesh)
 {
-    float orientationDot = clamp_scalar(abs(
-        previous.orientation.x * current.orientation.x +
-        previous.orientation.y * current.orientation.y +
-        previous.orientation.z * current.orientation.z +
-        previous.orientation.w * current.orientation.w), 0.0f, 1.0f);
-    float sineHalfAngle = sqrt(max(
-        0.0f, 1.0f - orientationDot * orientationDot));
+    Quaternion delta = relative_quaternion(previous.orientation,
+        current.orientation, false);
+    // sqrt(1-dot(q0,q1)^2) invents motion for identical rounded unit
+    // quaternions and can switch a resting pair into the swept narrow phase.
+    float sineHalfAngle = vector_length({delta.x, delta.y, delta.z});
     Vec3 maximumAbsolute = {
         max(abs(mesh.minimum.x), abs(mesh.maximum.x)),
         max(abs(mesh.minimum.y), abs(mesh.maximum.y)),
@@ -184,23 +216,27 @@ Vec3 inverse_inertia_world(
     return rotate(state.orientation, transformed);
 }
 
+// Logarithm of a normalized, shortest-arc quaternion. The small-angle series
+// avoids a square root and target-specific atan approximation near identity.
+Vec3 quaternion_rotation_vector(Quaternion delta)
+{
+    float squared = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
+    float scale = 2.0f + squared * (1.0f / 3.0f + squared *
+        (3.0f / 20.0f + squared * (5.0f / 56.0f + squared * (35.0f / 576.0f))));
+    if (squared > 0.01f)
+    {
+        float vectorSize = sqrt(squared);
+        scale = 2.0f * atan2(vectorSize, clamp_scalar(delta.w, 0.0f, 1.0f)) /
+            vectorSize;
+    }
+    return {delta.x * scale, delta.y * scale, delta.z * scale};
+}
+
 Vec3 quaternion_delta_velocity(Quaternion from, Quaternion to, float timestep)
 {
-    Quaternion delta = quaternion_multiply(to, conjugate(from));
-    if (delta.w < 0.0f)
-        delta = {-delta.x, -delta.y, -delta.z, -delta.w};
-    delta = normalized_quaternion(delta);
-    float vectorSize = sqrt(
-        delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
     if (timestep <= 0.0f) return {};
-    if (vectorSize <= kEpsilon)
-        return {delta.x * (2.0f / timestep),
-                delta.y * (2.0f / timestep),
-                delta.z * (2.0f / timestep)};
-    float angle = 2.0f * atan2(vectorSize,
-        clamp_scalar(delta.w, -1.0f, 1.0f));
-    float scale = angle / (vectorSize * timestep);
-    return {delta.x * scale, delta.y * scale, delta.z * scale};
+    return multiply(quaternion_rotation_vector(relative_quaternion(from, to, false)),
+        1.0f / timestep);
 }
 
 Vec3 clamp_length(Vec3 value, float maximum)

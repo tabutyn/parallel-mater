@@ -113,8 +113,8 @@ void rigid_avbd_solve_stage(
             {
                 bodies[bodyIndex].target = states[bodyIndex];
                 bodies[bodyIndex].displacement = avbdZeroVector6();
-                bodies[bodyIndex].current_orientation =
-                    states[bodyIndex].orientation;
+                bodies[bodyIndex].orientation_delta =
+                    Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
             }
         }
     }
@@ -355,9 +355,9 @@ void rigid_avbd_solve_stage(
                     contact.avbd_dual[1].penalty * error[1];
                 float tangentY = contact.avbd_dual[2].lambda +
                     contact.avbd_dual[2].penalty * error[2];
-                float tangential = sqrt(
-                    tangentX * tangentX + tangentY * tangentY);
-                bool stick = tangential <= friction * force.normal;
+                float frictionBound = friction * force.normal;
+                bool stick = tangentX * tangentX + tangentY * tangentY <=
+                    frictionBound * frictionBound;
                 contact.avbd_dual[0].lambda = force.normal;
                 contact.avbd_dual[1].lambda = force.tangent0;
                 contact.avbd_dual[2].lambda = force.tangent1;
@@ -552,12 +552,12 @@ void rigid_avbd_solve_stage(
             }
             state.position = add(state.position,
                 rigid_avbd_translation(delta));
-            state.orientation = bodies[bodyIndex].current_orientation;
+            state.orientation = rigid_avbd_pose(bodies[bodyIndex]).orientation;
             state.linear_velocity = add(state.linear_velocity,
                 multiply(rigid_avbd_translation(delta), 1.0f / dt));
             state.angular_velocity = add(state.angular_velocity,
-                quaternion_delta_velocity(bodies[bodyIndex].target.orientation,
-                    state.orientation, dt));
+                multiply(quaternion_rotation_vector(
+                    bodies[bodyIndex].orientation_delta), 1.0f / dt));
             states[bodyIndex] = state;
         }
     }

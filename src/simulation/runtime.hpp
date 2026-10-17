@@ -211,6 +211,9 @@ class SimulationRuntime {
     [[nodiscard]] static Status coupling_memory_requirements(const simulation::CouplingStorageLimits &limits,
         simulation::StorageRequirements &output) noexcept;
     [[nodiscard]] static Status emitter_memory_requirements(simulation::StorageRequirements &output) noexcept;
+    [[nodiscard]] static Status paint_field_memory_requirements(
+        std::uint32_t vertices, std::uint32_t width, std::uint32_t height,
+        simulation::StorageRequirements &output) noexcept;
 
 
 

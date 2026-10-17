@@ -17,7 +17,7 @@ namespace parallel_mater::simulation {
 // It is scheduling state only; the constraint equations live in Slang.
 struct GeometryConstraintBody {
     RigidBodyState target{};
-    Quaternion current_orientation{};
+    Quaternion orientation_delta{};
     avbd::Vector6 displacement{};
     avbd::Block inertia{};
     std::uint32_t contact_head{UINT32_MAX};
@@ -208,6 +208,7 @@ struct TriangleMeshResource {
     std::uint32_t bvh_leaf_count{};
     CollisionPlane *solid_planes{};
     std::uint32_t solid_unique_plane_count{};
+    // Unit: exterior; length 1/4: two-sided interior face; zero: open boundary.
     Vec3 *shell_normals{};
 };
 

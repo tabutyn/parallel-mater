@@ -105,10 +105,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F1-00](roadmap/tasks/F1-00.json) | Storage reclamation and domain capacity baseline | done | — | — |
-| [F1-01](roadmap/tasks/F1-01.json) | Plan triangle geometry allocations once | leased | — | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-17T22:39:34Z |
-| [F1-02](roadmap/tasks/F1-02.json) | Plan paint allocations once | waiting on lock | — | — |
-| [F1-03](roadmap/tasks/F1-03.json) | Retire geometry dependencies safely | waiting on dependencies | F1-01 | — |
-| [F1-04](roadmap/tasks/F1-04.json) | Retire paint dependencies safely | waiting on dependencies | F1-02, F1-03 | — |
+| [F1-01](roadmap/tasks/F1-01.json) | Plan triangle geometry allocations once | done | — | — |
+| [F1-02](roadmap/tasks/F1-02.json) | Plan paint allocations once | done | — | — |
+| [F1-03](roadmap/tasks/F1-03.json) | Retire geometry dependencies safely | done | F1-01 | — |
+| [F1-04](roadmap/tasks/F1-04.json) | Retire paint dependencies safely | leased | F1-02, F1-03 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T00:07:51Z |
 | [F1-05](roadmap/tasks/F1-05.json) | Rebind emitters and destroy planes | waiting on lock | — | — |
 | [F1-06](roadmap/tasks/F1-06.json) | Qualify allocation failure and pending lifetime | waiting on dependencies | F1-03, F1-04, F1-05 | — |
 | [F1-07](roadmap/tasks/F1-07.json) | Bound host auxiliary metadata | waiting on lock | — | — |
@@ -174,12 +174,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | ready | — | — |
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | waiting on dependencies | F1-06, F2-04 | — |
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
-| [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | waiting on lock | — | — |
-| [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | waiting on lock | — | — |
+| [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | ready | — | — |
+| [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | ready | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | waiting on dependencies | F5-01, F5-02 | — |
 | [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | waiting on dependencies | F5-01 | — |
 | [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
-| [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | leased | — | codex-windows-physics / windows-gtx1080 / 2026-10-17T22:11:48Z |
+| [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10 | — |
 
 ### F6. SDK releases and repository ownership
@@ -238,10 +238,12 @@ and relocatable reproducible SDK releases (F6). A completed task closes only its
 listed acceptance checks, not its entire area or a driver's physical compliance.
 
 The [qualification index](QUALIFICATION.md) keeps known failures visible.
-Current limits include CPU rigid-direct divergence, 10/17 CUDA/D3D12 comparison
-failures, shared brick penetration, native Vulkan validation failure and
-unqualified engine handoff. Do not relax tolerances or promote execution to
-physical correctness to complete a lease.
+Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
+independent shared-brick penetration gate without changing inputs, tolerances
+or historical goldens. Current limits include CPU rigid-direct divergence,
+remaining driver/domain qualification, native Vulkan validation failure and
+unqualified engine handoff. Do not promote execution to physical correctness
+to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves
 prior implementation checkpoints, original exits and platform evidence. It is
