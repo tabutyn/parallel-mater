@@ -50,3 +50,32 @@ Report v1 adds per-case `status` and `reason`, an `unsupported` total, and
 `scope: "reference_regression"`. The existing `passed` boolean is false for
 unsupported cases. `failed` excludes unsupported cases; qualification callers
 must require both totals to be zero.
+
+## Quality profile: `parallel-mater-conformance-quality-profile/v1`
+
+The quality profile is an immutable, hashed contract independent of trajectory
+goldens. It declares the required fixture IDs, exact timestep/mass-ratio matrix
+and numerical limits. Each threshold names its specification source. The core
+profile covers equal-material pressure/contact and viscosity with linear and
+angular momentum, dissipative kinetic energy and split-versus-combined state.
+
+## Quality result: `parallel-mater-conformance-quality-result/v1`
+
+A result names the profile ID and exact SHA-256, reports completed execution,
+and supplies every required fixture/sample. Each sample contains two endpoint
+aggregates: positive mass, linear/angular momentum before and after, external
+impulse/angular impulse, kinetic energy before and after, and external work.
+The evaluator derives internal exchange and residuals from those values.
+
+Split/combined state contains the support radius and two particle arrays keyed
+by input identity. Position, velocity and acceleration errors are normalized by
+`h`, `h/dt` and `h/dt^2`; temperature is exact and foam uses the profile's
+absolute tolerance. Missing identities or sweep points fail.
+
+## Quality report: `parallel-mater-conformance-quality-report/v1`
+
+The report has `scope: "analytic_invariants"`, the profile ID/hash, driver and
+device identity, fixture and sample counts, a pass flag, and structured
+failures with path, message, actual value and limit. Unsupported/incomplete
+execution is a failure. This report is separate from
+`parallel-mater-conformance-report/v1` reference regression.

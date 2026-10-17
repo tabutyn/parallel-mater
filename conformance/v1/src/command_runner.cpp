@@ -1044,6 +1044,22 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
+    const std::filesystem::path quality_relative =
+        "conformance/v1/quality/core-conservation-v1.json";
+    const auto quality_path = root / quality_relative;
+    if (!std::filesystem::is_regular_file(quality_path)) {
+        std::cerr << "missing quality profile: " << quality_path << '\n';
+        valid = false;
+    } else {
+        const std::string quality_hash = sha256_file(quality_path);
+        const std::string entry = "\"" + quality_relative.generic_string() +
+                                  "\":\"" + quality_hash + "\"";
+        if (manifest.find(entry) == std::string::npos) {
+            std::cerr << "manifest quality-profile checksum mismatch: "
+                      << quality_path << '\n';
+            valid = false;
+        }
+    }
     return valid;
 }
 
