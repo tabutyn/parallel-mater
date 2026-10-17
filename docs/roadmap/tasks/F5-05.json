@@ -1,7 +1,7 @@
 {
   "id": "F5-05",
   "title": "Isolate shared brick penetration failure",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "quality-bricks"
@@ -14,15 +14,29 @@
     "The reproduction distinguishes contact generation, solver response and fixture problems.",
     "Retain the failing gate and propose separate bounded corrective work; no tolerance relaxation."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "fc00a7be-6395-4fa1-b5c3-d4d7fec4434a",
-    "owner": "codex-windows-physics",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-05/windows-gtx1080",
-    "claimed_at": "2026-10-17T12:19:00Z",
-    "heartbeat_at": "2026-10-17T12:19:00Z",
-    "expires_at": "2026-10-18T12:19:00Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python -m unittest conformance.v1.tests.test_quality; 16 tests; rigid-brick-penetration-v1 SHA-256 59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659; rejects altered fixture settings, invalid frames, incomplete execution, nonfinite/negative depth and penetration above 0.002 m.",
+    "PASS: retained Windows GTX 1080 report records unchanged oracle/scene and original CUDA 0.00702056 m at frame 101 plus D3D12 0.00721844 m at frame 102; corrected F5-10 measurements are 0.000205278 m on both. docs/QUALIFICATION.md separates fixture, contact-generation and solver-response causes; no tolerance, iteration-budget or backend-specific physics change."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "fc00a7be-6395-4fa1-b5c3-d4d7fec4434a",
+        "owner": "codex-windows-physics",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-05/windows-gtx1080",
+        "claimed_at": "2026-10-17T12:19:00Z",
+        "heartbeat_at": "2026-10-17T12:19:00Z",
+        "expires_at": "2026-10-18T12:19:00Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T12:24:16Z",
+      "reason": "Versioned the unchanged independent brick-penetration gate and reconciled the original shared failure with completed F5-10 corrections.",
+      "evidence": [
+        "PASS: python -m unittest conformance.v1.tests.test_quality; 16 tests; rigid-brick-penetration-v1 SHA-256 59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659; rejects altered fixture settings, invalid frames, incomplete execution, nonfinite/negative depth and penetration above 0.002 m.",
+        "PASS: retained Windows GTX 1080 report records unchanged oracle/scene and original CUDA 0.00702056 m at frame 101 plus D3D12 0.00721844 m at frame 102; corrected F5-10 measurements are 0.000205278 m on both. docs/QUALIFICATION.md separates fixture, contact-generation and solver-response causes; no tolerance, iteration-budget or backend-specific physics change."
+      ]
+    }
+  ]
 }

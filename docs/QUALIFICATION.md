@@ -29,7 +29,7 @@ promoting those results to capability certification.
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. F5-03 adds the immutable adverse-capacity lifecycle profile and evaluator. | No driver is newly qualified by the profile alone; each advertising driver must emit a complete passing result. Numerical physics, remaining driver/domain pairs and host/OS budget accuracy remain separate; see F2-04, F4-05 and P1-01. |
 | SDK/loader/host contracts | 33 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs | New remote workflow not yet verified; Windows/macOS installed packages not run here; physics not evaluated by this gate |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti CUDA executes all 12 implemented pairs through pipeline and explicit create/update/clear, six-family endpoint replacement, three-family mutation and partial-create rollback. F5-03 makes the adverse sequence a hashed two-case lifecycle contract with exact preservation checks. | Existing runtime evidence predates the F5-03 result schema. Production CPU and Vulkan report the complete-domain case unsupported; D3D12 and Metal were not run. Unsupported never passes the lifecycle evaluator; lifecycle execution does not qualify numerical accuracy. |
-| Vendor-neutral physical quality (F5-02) | Hashed `core-conservation-stability-v1` profile and independent evaluator cover pressure/contact and viscosity across 18 timestep/mass-ratio samples; negative tests reject momentum, angular-momentum, energy, split/combined, sweep, provenance and inactive-exchange faults | This defines the gate but does not qualify a driver; F2-10 must produce public-API results for each advertising driver, and later profiles still need their own fixtures |
+| Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. The rigid profile fixes eight bricks, 300 frames, four substeps and the unchanged 2 mm closed-mesh gate; negative tests reject altered fixtures, invalid frames and excessive/nonfinite penetration. | Profiles define gates but do not qualify a driver. F2-10 and F5-11 must submit current public-API results for each advertising driver; remaining interaction modes still need their own fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Revision, contract, binary, device and toolchain provenance are mandatory. | This defines validation, not new driver evidence. Known missing lifecycle/analytic contracts fail explicitly; F2-10 and later qualification leaves must supply complete per-driver results. |
 | Quality-gated performance (F5-07) | Independent headless gate computes throughput, median/p95 timing and public memory peaks from raw samples; every metric carries the fixed quality-profile hash and exact source/binary/device/toolchain tuple | This defines score admission but publishes no production benchmark. Missing, failed, unsupported, stale or mismatched physical-quality evidence leaves measurements unqualified. |
 | Distinct fluid–fluid systems | F2-05–F2-09 specify and schedule equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership, lifecycle recovery and CPU Slang physical fixtures. F2-11 specifies miscible, immiscible-interface and optional conservative thermal contracts and splits their deferred API/operator/schedule/qualification work into P1-04–P1-18. | Every production driver still reports the separate-fluid records unsupported pending F2-10 qualification. Different-material enums remain reservations only; their typed state, shared operators and per-driver evidence remain P1-04–P1-18, and phase transfer remains undefined. |
@@ -116,6 +116,27 @@ The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-
 records tested source/binary/case hashes, original first divergences, comparison
 results, independent physical metrics and reproduction commands. See also the
 [shared correction and regression scope](slang-unification-validation.md#current-cross-driver-qualification-2026-10-16).
+
+### F5-05 brick penetration classification
+
+The retained eight-brick reproduction failed before F5-10 on both adapters at
+7.02056 mm (CUDA, frame 101) and 7.21844 mm (D3D12, frame 102), against the
+existing 2 mm limit. The authored scene, brick generator and independent
+closed-mesh sampling oracle were unchanged by the correction, so the fixture
+was not the source of the failure. Focused contact tests isolated missing convex
+face support and false concave/open seam normals in contact generation. Separate
+free-rotation and tangent-response tests isolated cancellation in relative
+rotation/anchor updates and backend-sensitive radial projection in solver
+response. F5-10 applied those bounded shared-Slang corrections; neither adapter
+received a backend-specific physics fork and the global iteration budget did
+not change.
+
+The corrected run measures 0.205278 mm on both adapters. The immutable
+`rigid-brick-penetration-v1` profile now fixes the scene, body count, frame and
+substep counts, timestep, independent oracle and 2 mm limit. Its evaluator
+rejects altered fixtures, incomplete execution, invalid frames, nonfinite or
+negative depths and excessive penetration. This closes the F5-05 investigation;
+current-build per-driver submissions remain separate F5-11 work.
 
 Reports must distinguish compilation, execution, reference regression, analytic
 or invariant physical quality, and performance. An unsupported case counts as

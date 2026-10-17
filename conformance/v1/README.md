@@ -18,9 +18,9 @@ conformance remains required; passing the portable row tests is not sufficient.
   but matching is tolerance-based rather than bit-identical.
 - `compare.py` compares a driver's result directory against a reference and
   writes an optional machine-readable report.
-- `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy
-  and split-population invariants without a reference backend. The immutable
-  profile is in `quality/core-conservation-v1.json`.
+- `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy,
+  split-population and rigid surface-separation invariants without a reference
+  backend. Immutable profiles live in `quality/`.
 - `lifecycle.py` evaluates adverse capacity recovery and mixed-family graph
   rollback without a reference backend. The immutable profile is in
   `lifecycle/adverse-capacity-three-family-v1.json`.
@@ -125,6 +125,23 @@ fixed sweep is the reviewed F2-08 matrix. The quality report embeds the exact
 profile SHA-256. Missing, duplicate, unsupported, malformed or nonfinite
 samples fail. This gate never reads CUDA goldens and never treats better
 reference agreement as proof of conservation or stability.
+
+Rigid contact uses the separate `rigid-brick-penetration-v1` profile. Its
+result repeats the fixed `RigidBody.glb`, eight-brick, 300-frame, four-substep
+configuration and reports the maximum pairwise penetration observed by the
+independent closed-mesh sampler in `tests/gallery/rigid_mesh_checks.hpp`.
+Evaluate a captured result with:
+
+```text
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rigid-brick-penetration-v1.json \
+  --actual /path/to/rigid-brick-result.json \
+  --report /path/to/rigid-brick-report.json
+```
+
+The existing 2 mm threshold is unchanged. A driver-contact depth is diagnostic;
+it cannot replace the independent mesh measurement. The original CUDA/D3D12
+failures and corrected observations remain in the revisioned Windows report.
 
 Run the capacity and graph-lifecycle gate with:
 

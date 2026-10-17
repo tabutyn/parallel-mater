@@ -58,6 +58,10 @@ goldens. It declares the required fixture IDs, exact timestep/mass-ratio matrix
 and numerical limits. Each threshold names its specification source. The core
 profile covers equal-material pressure/contact and viscosity with linear and
 angular momentum, dissipative kinetic energy and split-versus-combined state.
+The rigid brick profile instead fixes one authored scene, eight generated
+bricks, 300 frames, four substeps, timestep and an independent closed-mesh
+sampling oracle. Its measured maximum pairwise surface penetration must remain
+at or below the unchanged 2 mm limit.
 
 ## Quality result: `parallel-mater-conformance-quality-result/v1`
 
@@ -71,6 +75,11 @@ Split/combined state contains the support radius and two particle arrays keyed
 by input identity. Position, velocity and acceleration errors are normalized by
 `h`, `h/dt` and `h/dt^2`; temperature is exact and foam uses the profile's
 absolute tolerance. Missing identities or sweep points fail.
+
+For a maximum-pairwise-penetration profile, `fixture` repeats every fixed run
+setting and reports `maximum_penetration_m` plus its zero-based frame. Setting
+changes, an out-of-range frame, nonfinite/negative depth, incomplete execution,
+or a depth above the profile limit fail.
 
 ## Quality report: `parallel-mater-conformance-quality-report/v1`
 
