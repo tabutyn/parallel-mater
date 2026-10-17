@@ -1436,7 +1436,9 @@ PmResult clear_couplings(PmSimulation simulation) noexcept {
     while (!simulation->active_couplings.empty()) {
         const auto status = std::visit([&](auto id) -> Status {
             using Id = decltype(id);
-            if constexpr (std::is_same_v<Id, FluidClothCouplingId>)
+            if constexpr (std::is_same_v<Id, FluidPairCouplingId>)
+                return simulation->runtime->remove_fluid_pair_coupling(id);
+            else if constexpr (std::is_same_v<Id, FluidClothCouplingId>)
                 return simulation->runtime->remove_fluid_cloth_coupling(id);
             else if constexpr (std::is_same_v<Id, FluidRopeCouplingId>)
                 return simulation->runtime->remove_fluid_rope_coupling(id);
@@ -1475,7 +1477,17 @@ PmResult validate_coupling_endpoints(
     case PM_COUPLING_LIQUID_RIGID:
         return PM_SUCCESS; // One intrinsic edge covers all live rigid bodies.
     case PM_COUPLING_LIQUID_LIQUID:
-        return PM_ERROR_FEATURE_NOT_PRESENT;
+        if (source.first >= source.second) return PM_ERROR_INVALID_ARGUMENT;
+        {
+            FluidId first{};
+            FluidId second{};
+            if ((result = require_slot(simulation->fluid_ids, source.first,
+                                       first)) != PM_SUCCESS ||
+                (result = require_slot(simulation->fluid_ids, source.second,
+                                       second)) != PM_SUCCESS)
+                return result;
+        }
+        return PM_SUCCESS;
     case PM_COUPLING_LIQUID_CLOTH: {
         FluidId fluid{}; ClothId cloth{};
         if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
@@ -1595,7 +1607,21 @@ PmResult install_couplings(
             // Rigid/liquid contact is a core edge in the shared scheduler.
             break;
         case PM_COUPLING_LIQUID_LIQUID:
-            return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
+        {
+            FluidId first{};
+            FluidId second{};
+            if ((result = require_slot(simulation->fluid_ids, source.first,
+                                       first)) != PM_SUCCESS ||
+                (result = require_slot(simulation->fluid_ids, source.second,
+                                       second)) != PM_SUCCESS)
+                return rollback(result);
+            FluidPairCouplingId created{};
+            result = from_status(simulation->runtime->add_fluid_pair_coupling(
+                {.first = first, .second = second, .enabled = true}, created));
+            if (result == PM_SUCCESS)
+                simulation->active_couplings.emplace_back(created);
+            break;
+        }
         case PM_COUPLING_LIQUID_CLOTH: {
             FluidId fluid{}; ClothId cloth{};
             if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||

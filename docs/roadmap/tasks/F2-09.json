@@ -1,7 +1,7 @@
 {
   "id": "F2-09",
   "title": "Integrate fluid–fluid graph storage and scheduling",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-03",
     "F2-08"
@@ -19,15 +19,31 @@
     "Edge creation/removal/replacement/reset is bounded and generation-safe.",
     "All reference adapters compile the shared schedule or explicitly reject the mode."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e6405460-3307-41c8-b530-02be3ebfa3a3",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-09/thomas-laptop",
-    "claimed_at": "2026-10-17T04:35:30Z",
-    "heartbeat_at": "2026-10-17T04:35:30Z",
-    "expires_at": "2026-10-18T04:35:30Z"
-  },
-  "history": []
+  "evidence": [
+    "Private CPU resource-driver lifecycle passes 32 alternating endpoint generations, edge removal, reset, unequal-material rejection and recovery.",
+    "All 51 foundation tests pass or report expected production capability skips.",
+    "Slang CPU, CUDA and Vulkan driver targets compile the shared schedule; generated API and Slang architecture checks pass."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e6405460-3307-41c8-b530-02be3ebfa3a3",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-09/thomas-laptop",
+        "claimed_at": "2026-10-17T04:35:30Z",
+        "heartbeat_at": "2026-10-17T04:35:30Z",
+        "expires_at": "2026-10-18T04:35:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T04:46:24Z",
+      "reason": "Fluid pair edges now own bounded combined-neighbor storage and execute shared self-force, cross-force, integration phases with generation-safe graph replacement.",
+      "evidence": [
+        "Private CPU resource-driver lifecycle passes 32 alternating endpoint generations, edge removal, reset, unequal-material rejection and recovery.",
+        "All 51 foundation tests pass or report expected production capability skips.",
+        "Slang CPU, CUDA and Vulkan driver targets compile the shared schedule; generated API and Slang architecture checks pass."
+      ]
+    }
+  ]
 }

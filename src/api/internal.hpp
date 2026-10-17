@@ -102,6 +102,7 @@ struct PmDomainMemory {
 };
 
 using PmRuntimeCoupling = std::variant<
+    parallel_mater::FluidPairCouplingId,
     parallel_mater::FluidClothCouplingId,
     parallel_mater::FluidRopeCouplingId,
     parallel_mater::FluidSoftBodyCouplingId,

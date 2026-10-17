@@ -233,6 +233,11 @@ class SimulationRuntime {
     [[nodiscard]] Status remove_fluid(FluidId fluid,
                                       device::ExecutionQueue queue = {}) noexcept;
     [[nodiscard]] Status fluid_view(FluidId fluid, FluidDeviceView &output) const noexcept;
+    [[nodiscard]] Status add_fluid_pair_coupling(
+        FluidPairCouplingOptions options,
+        FluidPairCouplingId &output) noexcept;
+    [[nodiscard]] Status remove_fluid_pair_coupling(
+        FluidPairCouplingId coupling) noexcept;
     [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
     [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
     [[nodiscard]] Status smoke_view(SmokeId smoke, SmokeDeviceView &output) const noexcept;

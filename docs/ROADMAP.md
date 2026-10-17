@@ -127,7 +127,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | done | F2-05, F1-00 | — |
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | done | F2-06 | — |
 | [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | done | F2-07 | — |
-| [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | leased | F2-03, F2-08 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T04:35:30Z |
+| [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | done | F2-03, F2-08 | — |
 | [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on dependencies | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | ready | F2-05 | — |
 | [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | ready | F2-01 | — |

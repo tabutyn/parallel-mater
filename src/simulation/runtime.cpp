@@ -872,6 +872,25 @@ struct FluidClothCouplingResource {
     bool alive{};
 };
 
+struct FluidPairCouplingStorage {
+    FluidPairCouplingOptions options{};
+    std::uint32_t generation{1U};
+    bool alive{};
+    simulation::FluidPairNeighborIndexPlan index{};
+
+    void release() noexcept {
+        for (auto *&pointer : index.keys) release_managed(pointer);
+        for (auto *&pointer : index.identities) release_managed(pointer);
+        for (auto *&pointer : index.total_neighbors) release_managed(pointer);
+        for (auto *&pointer : index.cross_neighbors) release_managed(pointer);
+        for (auto *&pointer : index.neighbor_overflow) release_managed(pointer);
+        for (auto *&pointer : index.maximum_neighbor_count)
+            release_managed(pointer);
+        release_managed(index.sort_workspace);
+    }
+    ~FluidPairCouplingStorage() { release(); }
+};
+
 struct FluidSoftContact {
     std::uint32_t nodes[12]{};
     float weights[12]{};
@@ -984,6 +1003,12 @@ struct FluidStorage {
     std::uint32_t next_id{};
     std::uint64_t initial_count{};
     std::uint64_t emitted_count{};
+    // Host-only frame state lets the shared schedule advance every fluid in
+    // lockstep without allocating temporary storage during submission.
+    std::uint32_t frame_live{};
+    std::uint32_t frame_first_spawned{};
+    std::uint32_t frame_iterations{};
+    bool frame_spawned{};
 
     ~FluidStorage() {
         release_managed(count);
@@ -1166,6 +1191,8 @@ struct SimulationRuntime::Impl {
     std::uint32_t soft_cloth_kernels_per_substep{};
     std::vector<Slot> slots{};
     std::vector<simulation::OwnerSlot<FluidStorage>> fluids{};
+    std::vector<simulation::OwnerSlot<FluidPairCouplingStorage>>
+        fluid_pair_couplings{};
     std::vector<simulation::OwnerSlot<SmokeStorage>> smokes{};
     std::vector<simulation::OwnerSlot<FluidSmokeCouplingStorage>> fluid_smoke_couplings{};
     std::vector<simulation::OwnerSlot<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
@@ -1694,7 +1721,9 @@ Status SimulationRuntime::smoke_memory_requirements(std::uint32_t particles,
 Status SimulationRuntime::coupling_memory_requirements(const simulation::CouplingStorageLimits &limits,
     simulation::StorageRequirements &output) noexcept {
     output = {};
-    simulation::StoragePlanner fluid_soft, rope_soft, fluid_rope, soft_cloth, smoke;
+    simulation::StoragePlanner fluid_pair, fluid_soft, rope_soft, fluid_rope,
+        soft_cloth, smoke;
+    simulation::FluidPairNeighborIndexPlan fp;
     FluidSoftCouplingStorage fs;
     RopeSoftBodyCouplingStorage rs;
     FluidRopeCouplingStorage fr;
@@ -1702,7 +1731,15 @@ Status SimulationRuntime::coupling_memory_requirements(const simulation::Couplin
     const auto triangles = limits.soft_indices / 3;
     const auto tree_nodes = 2 * triangles; // Binary BVH has at most 2T-1 nodes.
     Status status;
-    if (!(status = simulation::visit_fluid_soft_storage(fs, limits.fluid_particles, limits.soft_nodes,
+    if (limits.fluid_particles > std::numeric_limits<std::uint32_t>::max())
+        return failure(StatusCode::invalid_argument,
+                       "fluid coupling capacity exceeds index range");
+    const auto fluid_particles =
+        static_cast<std::uint32_t>(limits.fluid_particles);
+    if ((fluid_particles != 0U &&
+         !(status = simulation::visit_fluid_pair_neighbor_index_storage(
+             fp, fluid_particles, fluid_particles, fluid_pair))) ||
+        !(status = simulation::visit_fluid_soft_storage(fs, limits.fluid_particles, limits.soft_nodes,
             limits.soft_vertices, tree_nodes, triangles, fluid_soft)) ||
         !(status = simulation::visit_rope_soft_tree_storage(rs, tree_nodes, triangles, rope_soft)) ||
         !(status = simulation::visit_rope_soft_data_storage(rs, limits.soft_nodes, limits.soft_vertices, rope_soft)) ||
@@ -1713,8 +1750,10 @@ Status SimulationRuntime::coupling_memory_requirements(const simulation::Couplin
     std::uint32_t *converted = nullptr;
     if (!(status = smoke(bounds, 2, simulation::MemoryClass::persistent)) ||
         !(status = smoke(converted, 1, simulation::MemoryClass::persistent))) return status;
-    for (const auto *plan : {&fluid_soft, &rope_soft, &fluid_rope, &soft_cloth, &smoke})
+    for (const auto *plan : {&fluid_pair, &fluid_soft, &rope_soft,
+                             &fluid_rope, &soft_cloth, &smoke})
         output.persistent = std::max(output.persistent, plan->requirements.persistent);
+    output.scratch = fluid_pair.requirements.scratch;
     return {};
 }
 Status SimulationRuntime::emitter_memory_requirements(simulation::StorageRequirements &output) noexcept {
@@ -1776,6 +1815,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         implementation = std::make_unique<Impl>();
         implementation->slots.resize(options.rigid_body_capacity);
         implementation->fluids.resize(options.fluid_capacity);
+        implementation->fluid_pair_couplings.resize(
+            options.fluid_pair_coupling_capacity);
         implementation->smokes.resize(options.smoke_capacity);
         implementation->fluid_smoke_couplings.resize(
             options.fluid_smoke_coupling_capacity);

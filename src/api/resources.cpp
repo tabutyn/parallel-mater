@@ -125,6 +125,7 @@ using parallel_mater::Vec3;
     options.paint_field_capacity = std::max(1U, info.paintFieldCount);
     options.paint_rule_capacity = std::max(1U, info.paintRuleCapacity);
     const std::uint32_t coupling_capacity = std::max(1U, info.couplingCapacity);
+    options.fluid_pair_coupling_capacity = coupling_capacity;
     options.fluid_smoke_coupling_capacity = coupling_capacity;
     options.smoke_soft_body_coupling_capacity = coupling_capacity;
     options.smoke_cloth_coupling_capacity = coupling_capacity;
@@ -196,6 +197,7 @@ using parallel_mater::Vec3;
     if (!parallel_mater::SimulationRuntime::coupling_memory_requirements(limits, coupling) ||
         !parallel_mater::SimulationRuntime::emitter_memory_requirements(emitter)) return false;
     if (!add_bytes(persistent, info.couplingCapacity, coupling.persistent) ||
+        !add_bytes(scratch, info.couplingCapacity, coupling.scratch) ||
         !add_bytes(persistent, info.emitterCapacity, emitter.persistent) ||
         !add_bytes(persistent, info.destroyerCapacity, 512U) ||
         !add_bytes(persistent, info.debugFrameCapacity,
