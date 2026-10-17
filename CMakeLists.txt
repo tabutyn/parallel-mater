@@ -369,7 +369,8 @@ target_include_directories(
         ${PARALLEL_MATER_SLANG_GENERATED_DIR}
         ${PARALLEL_MATER_API_GENERATED_DIR})
 target_compile_definitions(parallel-mater-driver-slang-cuda PRIVATE
-    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
+    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
+    PARALLEL_MATER_QUALIFIED_EQUAL_FLUID=1)
 target_link_libraries(parallel-mater-driver-slang-cuda PRIVATE
     parallel-mater-host-preparation
     CUDA::cuda_driver
