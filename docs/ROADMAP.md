@@ -119,7 +119,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F2-00](roadmap/tasks/F2-00.json) | Simulation-owned graph baseline | done | — | — |
-| [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | ready | — | — |
+| [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | leased | — | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T02:08:08Z |
 | [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | waiting on dependencies | F2-01 | — |
 | [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | waiting on dependencies | F2-02 | — |
 | [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | waiting on dependencies | F1-05, F2-03 | — |
