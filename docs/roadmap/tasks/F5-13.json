@@ -1,7 +1,7 @@
 {
   "id": "F5-13",
   "title": "Expose capability qualification on iPadOS",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-08"
@@ -19,6 +19,14 @@
     "Unit and connected-device negative checks reject stale, partial, mismatched-revision and Gallery-only reports; release builds do not expose the diagnostic channel."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "35134c5e-26f1-4d0a-b2da-eaa8b3c4e336",
+    "owner": "codex-ipados-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-13/thomass-macbook-air",
+    "claimed_at": "2026-10-17T17:04:58Z",
+    "heartbeat_at": "2026-10-17T17:04:58Z",
+    "expires_at": "2026-10-18T17:04:58Z"
+  },
   "history": []
 }

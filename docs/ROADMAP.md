@@ -182,7 +182,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
 | [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | — |
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
-| [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | ready | F5-01, F5-08 | — |
+| [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | leased | F5-01, F5-08 | codex-ipados-qualification / Thomass-MacBook-Air / 2026-10-18T17:04:58Z |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | waiting on dependencies | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
 | [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
