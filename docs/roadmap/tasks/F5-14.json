@@ -27,7 +27,7 @@
   "evidence": [
     "PASS: python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --physics-qualification --timeout 3600 --output out/f5-14-ipad-9f7e72e; iPad13,8 / Apple M1 GPU / iPadOS 26.6.2 / Metal 4 Apple7 / AppleClang 21.0.0.21000101 / Slang 2026.18; conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/capture-index.json records 42/42 verified files and exact app/driver hashes",
     "PASS: python3 conformance/v1/evidence_index.py --check; registered qualification record reports 0/46 without promotion, retaining 78 missing-contract and 19 required-evidence failures; conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
-    "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py (67/67), ctest --test-dir build-gallery-portable-verify --output-on-failure (34/34), deployment guards (9/9), roadmap lease tests (19/19); docs/QUALIFICATION.md separates physics from Gallery/rendering/thermal/timing claims"
+    "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py (67/67), ctest --test-dir build-gallery-portable-verify --output-on-failure (34/34), deployment guards (8/8), roadmap lease tests (19/19); docs/QUALIFICATION.md separates physics from Gallery/rendering/thermal/timing claims"
   ],
   "lease": null,
   "history": [
@@ -47,7 +47,7 @@
       "evidence": [
         "PASS: python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --physics-qualification --timeout 3600 --output out/f5-14-ipad-9f7e72e; iPad13,8 / Apple M1 GPU / iPadOS 26.6.2 / Metal 4 Apple7 / AppleClang 21.0.0.21000101 / Slang 2026.18; conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/capture-index.json records 42/42 verified files and exact app/driver hashes",
         "PASS: python3 conformance/v1/evidence_index.py --check; registered qualification record reports 0/46 without promotion, retaining 78 missing-contract and 19 required-evidence failures; conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
-        "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py (67/67), ctest --test-dir build-gallery-portable-verify --output-on-failure (34/34), deployment guards (9/9), roadmap lease tests (19/19); docs/QUALIFICATION.md separates physics from Gallery/rendering/thermal/timing claims"
+        "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py (67/67), ctest --test-dir build-gallery-portable-verify --output-on-failure (34/34), deployment guards (8/8), roadmap lease tests (19/19); docs/QUALIFICATION.md separates physics from Gallery/rendering/thermal/timing claims"
       ]
     }
   ]
