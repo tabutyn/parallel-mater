@@ -1,7 +1,7 @@
 {
   "id": "F5-02",
   "title": "Add vendor-neutral conservation and stability cases",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "conformance-corpus"
@@ -15,6 +15,14 @@
     "Numerical limits derive from documented profiles, not current reference outputs."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "4de29272-9781-40e4-9e6c-019fcb3650b7",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-02/thomas-laptop",
+    "claimed_at": "2026-10-17T05:37:12Z",
+    "heartbeat_at": "2026-10-17T05:37:12Z",
+    "expires_at": "2026-10-18T05:37:12Z"
+  },
   "history": []
 }
