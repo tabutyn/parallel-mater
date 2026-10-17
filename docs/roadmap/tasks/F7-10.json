@@ -1,16 +1,30 @@
 {
   "id": "F7-10",
   "title": "Enable Vulkan cloth Gallery domains",
-  "status": "open",
-  "dependencies": ["F7-03"],
-  "locks": ["vulkan-gallery-cloth"],
-  "requires": ["Linux or Android Vulkan device"],
+  "status": "leased",
+  "dependencies": [
+    "F7-03"
+  ],
+  "locks": [
+    "vulkan-gallery-cloth"
+  ],
+  "requires": [
+    "Linux or Android Vulkan device"
+  ],
   "scope": "Compile, bind and qualify existing shared Slang cloth, geometry-cloth and fluid-cloth schedules for the Vulkan driver.",
   "acceptance": [
     "Cloth, tear, paint and cloth-water scenes pass bounded lifecycle and visible-output checks on Vulkan.",
     "Vulkan advertises only the exact cloth and coupling capabilities supported by passing public-API contracts."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "838a3832-3d85-42cd-ae70-e4e53a01b477",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-10/thomas-laptop",
+    "claimed_at": "2026-10-17T23:56:58Z",
+    "heartbeat_at": "2026-10-17T23:56:58Z",
+    "expires_at": "2026-10-18T23:56:58Z"
+  },
   "history": []
 }
