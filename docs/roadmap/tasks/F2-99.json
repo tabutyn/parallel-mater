@@ -1,7 +1,7 @@
 {
   "id": "F2-99",
   "title": "Review F2 exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01",
     "F2-02",
@@ -30,15 +30,33 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "f958423c-f52d-453c-b26d-d08c8c1a9db7",
-    "owner": "codex-windows-review",
-    "machine": "windows-gtx1080",
-    "branch": "work/F2-99/windows-gtx1080",
-    "claimed_at": "2026-10-17T16:26:06Z",
-    "heartbeat_at": "2026-10-17T16:26:06Z",
-    "expires_at": "2026-10-18T16:26:06Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: F2-01 through F2-15 are merged done with nonempty reviewable evidence at origin/main 30bd5c2.",
+    "PASS: cmake build of interaction-graph-lifecycle, graph-validation, fluid-pair-graph-lifecycle and fluid-pair-quality plus bounded CTest slice; Windows GTX 1080; 5 applicable CUDA/D3D12 tests passed and 3 unsupported D3D12 scopes skipped explicitly.",
+    "PASS: 19 roadmap unit tests, 67 conformance unit tests, and tools/reference/build.py --check-generated.",
+    "REVIEW: docs/QUALIFICATION.md records exact F2 scope, adds the omitted smoke-system boundary, and maps unresolved evidence/implementation to F5-12 through F5-16 and P1-01/P1-04 through P1-55; no uncovered F2 leaf found."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f958423c-f52d-453c-b26d-d08c8c1a9db7",
+        "owner": "codex-windows-review",
+        "machine": "windows-gtx1080",
+        "branch": "work/F2-99/windows-gtx1080",
+        "claimed_at": "2026-10-17T16:26:06Z",
+        "heartbeat_at": "2026-10-17T16:26:06Z",
+        "expires_at": "2026-10-18T16:26:06Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T16:38:43Z",
+      "reason": "F2 graph and coupling exit reviewed; merged leaves cover the declared foundation and remaining driver, material, and same-family work is already assigned to F5 and P1.",
+      "evidence": [
+        "PASS: F2-01 through F2-15 are merged done with nonempty reviewable evidence at origin/main 30bd5c2.",
+        "PASS: cmake build of interaction-graph-lifecycle, graph-validation, fluid-pair-graph-lifecycle and fluid-pair-quality plus bounded CTest slice; Windows GTX 1080; 5 applicable CUDA/D3D12 tests passed and 3 unsupported D3D12 scopes skipped explicitly.",
+        "PASS: 19 roadmap unit tests, 67 conformance unit tests, and tools/reference/build.py --check-generated.",
+        "REVIEW: docs/QUALIFICATION.md records exact F2 scope, adds the omitted smoke-system boundary, and maps unresolved evidence/implementation to F5-12 through F5-16 and P1-01/P1-04 through P1-55; no uncovered F2 leaf found."
+      ]
+    }
+  ]
 }

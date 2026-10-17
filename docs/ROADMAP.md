@@ -134,7 +134,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | done | F2-01 | — |
 | [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | done | F2-01 | — |
 | [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | done | F2-01 | — |
-| [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | leased | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | codex-windows-review / windows-gtx1080 / 2026-10-18T16:26:06Z |
+| [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | done | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation
 
