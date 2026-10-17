@@ -1,0 +1,29 @@
+{
+  "id": "F5-11",
+  "title": "Publish current Windows driver evidence",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-02",
+    "F5-03",
+    "F5-05",
+    "F5-06",
+    "F5-08",
+    "F5-10"
+  ],
+  "locks": [
+    "driver-evidence-windows"
+  ],
+  "requires": [
+    "Windows CUDA and D3D12 on the same GPU"
+  ],
+  "scope": "Rebuild the current clean revision for CUDA and D3D12, execute applicable public-API reference, physical-quality and adverse-lifecycle contracts, and publish revisioned per-driver qualification inputs without hiding failed, missing or unsupported scope.",
+  "acceptance": [
+    "Each submitted driver result pins the clean source revision, driver binary, device, driver and toolchain plus immutable contract hashes.",
+    "Applicable trajectory, analytic-quality and adverse-lifecycle contracts are executed on both drivers; failures, missing contracts and unsupported cases remain explicit and cannot certify a capability.",
+    "Register the results in the generated per-driver evidence index and verify the index from a Windows checkout without weakening byte-stable contract identity."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
