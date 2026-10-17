@@ -1,7 +1,7 @@
 {
   "id": "F5-14",
   "title": "Publish current iPadOS Metal driver evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-02",
     "F5-03",
@@ -25,6 +25,14 @@
     "Register and regenerate the per-driver evidence index, preserve the on-device raw artifacts and reproduction command, and keep Gallery controls, rendering, thermal and timing claims separately labeled."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "fd915641-987b-4082-b250-a0dfa48ece40",
+    "owner": "codex-ipados-evidence",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-14/thomass-macbook-air",
+    "claimed_at": "2026-10-17T22:04:44Z",
+    "heartbeat_at": "2026-10-17T22:04:44Z",
+    "expires_at": "2026-10-18T22:04:44Z"
+  },
   "history": []
 }
