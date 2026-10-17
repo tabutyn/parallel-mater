@@ -743,22 +743,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                     slot.reset();
                 }
                 geometry_slot = nullptr;
+                result = parallel_mater::api::retire_geometry_if_unused(
+                    simulation, retired_geometry);
+                if (result != PM_SUCCESS) return result;
                 const PmRigidBodyInfo &source = copied[offset];
-                if (source.active == PM_FALSE) {
-                    result = parallel_mater::api::retire_geometry_if_unused(
-                        simulation, retired_geometry);
-                    if (result != PM_SUCCESS) return result;
-                    continue;
-                }
+                if (source.active == PM_FALSE) continue;
                 TriangleMeshId mesh{};
                 result = parallel_mater::api::register_geometry(
                     simulation, source.geometry, services, mesh);
-                if (result != PM_SUCCESS) {
-                    const PmResult cleanup =
-                        parallel_mater::api::retire_geometry_if_unused(
-                            simulation, retired_geometry);
-                    return cleanup == PM_SUCCESS ? result : cleanup;
-                }
+                if (result != PM_SUCCESS) return result;
                 RigidBodyOptions options{};
                 options.motion = motion_type(source.motionType);
                 options.mesh = mesh;
@@ -777,19 +770,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 result = parallel_mater::api::from_status(
                     simulation->runtime->add_rigid_body(options, created));
                 if (result != PM_SUCCESS) {
-                    PmResult cleanup =
+                    const PmResult cleanup =
                         parallel_mater::api::retire_geometry_if_unused(
                             simulation, source.geometry);
-                    if (cleanup == PM_SUCCESS)
-                        cleanup = parallel_mater::api::retire_geometry_if_unused(
-                            simulation, retired_geometry);
                     return cleanup == PM_SUCCESS ? result : cleanup;
                 }
                 slot = created;
                 geometry_slot = source.geometry;
-                result = parallel_mater::api::retire_geometry_if_unused(
-                    simulation, retired_geometry);
-                if (result != PM_SUCCESS) return result;
             }
             simulation->rigid_dense_mapping_dirty = true;
             return PM_SUCCESS;

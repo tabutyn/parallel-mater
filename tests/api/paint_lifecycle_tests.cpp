@@ -212,7 +212,7 @@ int main() {
 
     // A live field pins its target generation. Replacing that body fails before
     // mutation, and both the old body and an unrelated field remain usable.
-    const auto replacement = body(geometries[1], 71.0F);
+    const auto replacement = body(geometries[18], 71.0F);
     context.begin();
     PM_CHECK(pmCmdWriteRigidBodies(context.commands, simulation, 1U, 1U,
                                    &replacement) == PM_SUCCESS);
@@ -226,6 +226,25 @@ int main() {
     PM_CHECK(std::abs(reinterpret_cast<const PmRigidState *>(
                           static_cast<const std::byte *>(output.mapped) +
                           rigid_output.offset)->position[0] - 1.0F) < 1.0e-6F);
+
+    // Retarget the field without changing its mesh, then replace body 1 with a
+    // new mesh while all runtime mesh slots are occupied. The old body mesh
+    // must retire before the new mesh is registered.
+    fields[1] = field(0U, geometries[17]);
+    context.begin();
+    PM_CHECK(pmCmdWritePaintFields(context.commands, simulation, 1U, 1U,
+                                   &fields[1]) == PM_SUCCESS);
+    PM_CHECK(pmCmdWriteRigidBodies(context.commands, simulation, 1U, 1U,
+                                   &replacement) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    context.begin();
+    PM_CHECK(pmCmdCopyRigidStates(context.commands, simulation, 1U, 1U,
+                                  &rigid_output) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    context.invalidate(output);
+    PM_CHECK(std::abs(reinterpret_cast<const PmRigidState *>(
+                          static_cast<const std::byte *>(output.mapped) +
+                          rigid_output.offset)->position[0] - 71.0F) < 1.0e-6F);
 
     // A valid rigid-to-cloth rule pins its target field generation. Convert the
     // unrelated field to a cloth target, then remove the rule before the field.
@@ -270,7 +289,7 @@ int main() {
     PM_CHECK(context.submit() == PM_SUCCESS);
     context.begin();
     PM_CHECK(pmCmdWriteRigidBodies(context.commands, simulation, 1U, 1U,
-                                   &replacement) == PM_SUCCESS);
+                                   &bodies[1]) == PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
 
     // Reset retires all paint and body generations and clears the public mesh
