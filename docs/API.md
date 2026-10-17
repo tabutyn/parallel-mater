@@ -70,10 +70,12 @@ The reference drivers currently reject enabled sleeping and one-way mechanical
 contact requests with `PM_ERROR_FEATURE_NOT_PRESENT`. Omitted rigid policy defaults
 to sleeping disabled. Liquid/cloth derives its interaction radius from the liquid
 support radius; its `maximumAcceleration` must be zero. Distinct fluid–fluid
-interactions remain unsupported until their material semantics and solver are
-qualified. The [interaction contract](INTERACTION-MODES.md) defines the exhaustive
-pair matrix, independent modes, direction rules, material profiles and units used
-by future fine-grained capability queries.
+interactions remain unsupported. Their
+[interaction contract](INTERACTION-MODES.md#equal-material-separate-fluid-systems)
+now fixes equal-material pressure, contact, viscosity, conservation, ownership
+and capacity semantics; implementation and physical qualification remain open.
+The surrounding matrix defines independent modes, directions, material profiles
+and units used by fine-grained capability queries.
 
 ## Command buffers
 

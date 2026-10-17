@@ -137,6 +137,133 @@ The fixed API 0.2 fluid–smoke law is identified by its `thermal` or `phase`
 mode while its material profile remains `smoke-particle` or `smoke-grid`; this
 preserves independent discovery of the smoke representation.
 
+## Equal-material separate fluid systems
+
+This section defines the `equal-material` profile reserved by F2-05. It is the
+contract for a future `PM_COUPLING_LIQUID_LIQUID` edge; it does not make that
+edge supported in API 0.2. A driver must continue to report the separate-system
+records unsupported until the implementation and qualification tasks close.
+
+### Edge and material validity
+
+An equal-material edge joins two different live fluid slots in one simulation.
+`first` must be less than `second`; equal or reversed slots are invalid. The
+edge uses this exact bundle:
+
+- `modeFlags` is `CONTACT | PRESSURE | VISCOSITY`;
+- `materialProfile` is `EQUAL_MATERIAL`;
+- `mechanical.twoWay` is `PM_TRUE`; and
+- every other coupling parameter is reserved and zero.
+
+All fields of the two referenced `PmLiquidMaterialState` values must be
+numerically equal after API validation: `restDensity`, `particleRadius`,
+`supportRadius`, `restParticleVolume`, `pressureStiffness`,
+`kinematicViscosity`, `normalDamping`, `velocityDamping`, `maximumSpeed`,
+`maximumPairAcceleration`, and `densityIterations`. Material indices and fluid
+slot indices need not be equal. A well-formed edge with unequal material state
+is an unsupported material combination and returns
+`PM_ERROR_FEATURE_NOT_PRESENT`; it must not average values or replace the live
+graph with a partial edge. F2-11 defines different-material profiles.
+
+The current pipeline supplies the endpoint material values. An existing graph
+is rechecked when a pipeline or endpoint generation changes. A step whose edge
+no longer resolves to two live, equal-material endpoints fails instead of using
+stale material or silently isolating the populations. Restoring compatible
+endpoints makes the unchanged graph usable again.
+
+### Physical behavior
+
+The ownership label is invisible to the mechanical solve. For every particle,
+same-system and cross-system neighbors participate in the same support kernel,
+iteration budget, ordering rules and material law:
+
+- `contact` applies the same short-range exclusion response used inside one
+  population; it does not create a membrane at the ownership boundary;
+- `pressure` includes cross-system neighbors in density/pressure estimation
+  and applies the same pressure-gradient response used for same-system
+  neighbors; a surface penalty alone is insufficient; and
+- `viscosity` includes cross-system relative velocity in the same Newtonian
+  dissipative operator used inside one population. With no other work, it must
+  not increase relative kinetic energy beyond the numerical tolerance below.
+
+Each unordered cross-particle pair contributes once to the physical operator.
+Its impulses on the two particles are equal and opposite within tolerance.
+Implementations may fuse or reorder work, but must not solve A against B and
+then B against A as two independent full-strength interactions. There is no
+surface tension, thermal exchange, material mixing rule, phase change or
+particle transfer in this profile.
+
+### Numerical acceptance
+
+Qualification compares two runs on the same device and driver. The split run
+uses fluid A, fluid B and the edge above. The combined run concatenates the same
+particle records into one fluid with the same material. Both runs use identical
+time step, one substep, pipeline, external inputs and initially representable
+capacities. Emitters, destroyers, other domains and other couplings are absent;
+gravity and velocity damping are zero; speed and pair-acceleration caps do not
+activate. The corpus contains both a zero-relative-velocity pressure/contact
+case and a nonzero-relative-velocity viscosity case. Each case has cross-system
+neighbors and changes at least one particle velocity by `1e-3 m/s` versus the
+isolated split control.
+
+Map particles by their input record, not by their numeric stable ID. Let `h` be
+`supportRadius`, `dt` the step time, and `||.||inf` the largest absolute vector
+component. After one step, the split and combined outputs must satisfy:
+
+```text
+max particle ||split.position     - combined.position||inf / h          <= 5e-4
+max particle ||split.velocity     - combined.velocity||inf / (h / dt)   <= 5e-4
+max particle ||split.acceleration - combined.acceleration||inf / (h/dt²) <= 5e-4
+max particle |split.foam - combined.foam|                                <= 5e-4
+```
+
+Particle counts and temperatures are exact. These are same-driver
+split-versus-combined criteria, not cross-vendor bitwise-output requirements.
+F2-10 adds timestep, population-ratio and long-run cases before a driver may
+advertise the profile.
+
+For the momentum fixture, particle mass is
+`m = restDensity * restParticleVolume` when `restParticleVolume > 0`, otherwise
+`m = restDensity * (2 * particleRadius)^3`. With no external force or boundary
+impulse, let `delta_v_i` be each particle's velocity change,
+`I = m * sum(||delta_v_i||2)`, and
+`R = ||m * sum(delta_v_i)||2`. The fixture must produce `I >= 1e-4 kg*m/s` and
+must satisfy:
+
+```text
+R <= max(1e-7 kg*m/s, 5e-5 * I)
+```
+
+The same residual limit applies to the pressure/contact and viscosity fixtures.
+Energy lost by viscosity is dissipation, not a momentum sink.
+
+### Ownership and capacity boundaries
+
+The edge never merges storage. A and B retain independent particle counts,
+declared capacities, output ranges, temperature/foam state and stable-ID
+namespaces. Stable IDs may have the same numeric value in both systems; the
+portable identity is `(fluid slot, stable ID)`. Coupling must not renumber a
+live particle. Replacing a population creates that slot's new generation under
+the normal resource-lifetime rules and must not retain particles or IDs from
+the retired generation.
+
+One fluid–fluid edge consumes one `couplingCapacity` entry. Each live count must
+fit its own `PmFluidCapacity::particleCapacity`; the sum need not fit one
+fluid's capacity. A particle's `neighborCapacityPerParticle` covers all of its
+same-system and cross-system neighbors. Overflow returns
+`PM_ERROR_CAPACITY_EXCEEDED` for the step and invalidates its output; silently
+dropping cross neighbors is forbidden. Queried persistent and scratch memory
+requirements must cover the declared pair without hidden allocation during a
+step.
+
+An edge with an empty but live population is a no-op for that endpoint and does
+not move particles from the other population. Removing the edge isolates the
+systems on the next step. Other graph edges and physical boundaries remain
+owned per system: coupling A to a rigid, cloth or world boundary does not make
+B inherit that interaction. A split-versus-combined comparison is valid only
+when corresponding external boundary behavior is applied to both split
+systems.
+
 ## Capability query contract
 
 `pmEnumeratePhysicalDeviceInteractionCapabilities` returns only supported
