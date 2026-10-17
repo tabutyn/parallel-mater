@@ -1,0 +1,29 @@
+{
+  "id": "F5-14",
+  "title": "Publish current iPadOS Metal driver evidence",
+  "status": "open",
+  "dependencies": [
+    "F5-02",
+    "F5-03",
+    "F5-05",
+    "F5-06",
+    "F5-10",
+    "F5-13"
+  ],
+  "locks": [
+    "driver-evidence-registry",
+    "driver-evidence-metal-ipados"
+  ],
+  "requires": [
+    "Physical iPad with the F5-13 development qualification runner"
+  ],
+  "scope": "Run the shared public-API capability obligations on a clean development-signed Slang Metal build on identified iPad hardware and publish the raw revisioned result separately from macOS and from Gallery sustained-run evidence.",
+  "acceptance": [
+    "The result pins clean source, exact app and embedded driver hashes, iPad model, Apple GPU, iPadOS and Metal versions, compiler and Slang toolchain plus immutable contract hashes without private device identifiers.",
+    "All advertised iPad Metal capabilities carry explicit execution, reference, lifecycle and analytic results where contracts exist; failure, missing and unsupported remain visible and cannot certify support.",
+    "Register and regenerate the per-driver evidence index, preserve the on-device raw artifacts and reproduction command, and keep Gallery controls, rendering, thermal and timing claims separately labeled."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

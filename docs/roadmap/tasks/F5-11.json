@@ -12,6 +12,7 @@
     "F5-10"
   ],
   "locks": [
+    "driver-evidence-registry",
     "driver-evidence-windows"
   ],
   "requires": [

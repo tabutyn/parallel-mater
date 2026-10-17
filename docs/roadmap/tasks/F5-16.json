@@ -1,0 +1,32 @@
+{
+  "id": "F5-16",
+  "title": "Publish current Linux driver evidence",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-02",
+    "F5-03",
+    "F5-04",
+    "F5-05",
+    "F5-06",
+    "F5-08",
+    "F5-09",
+    "F5-10"
+  ],
+  "locks": [
+    "driver-evidence-registry",
+    "driver-evidence-linux"
+  ],
+  "requires": [
+    "Linux host exposing Slang CPU plus production CUDA and Vulkan on identified physical hardware"
+  ],
+  "scope": "Build one clean Linux revision and publish separate Slang CPU, CUDA and Vulkan qualification inputs from the same host where available, executing applicable public-API reference, physical-quality and adverse-lifecycle contracts without inferring one driver from another.",
+  "acceptance": [
+    "Each result pins clean source, exact driver binary, CPU/GPU and OS, native driver and compiler/Slang/CUDA/Vulkan toolchain plus immutable contract hashes.",
+    "All applicable obligations execute independently per advertised driver; cross-driver agreement is retained as reference evidence but cannot replace analytic physical quality, and all failures, missing and unsupported scope remains visible.",
+    "Register and regenerate the per-driver evidence index from a Linux and a second-OS checkout without weakening byte-stable identity; unavailable production drivers remain explicit rather than fabricated or skipped as passes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
