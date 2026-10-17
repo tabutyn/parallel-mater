@@ -1,7 +1,7 @@
 {
   "id": "F2-14",
   "title": "Specify rope–rope system modes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-01"
   ],
@@ -17,6 +17,14 @@
     "Split missing operators and their public-API qualification into new leaf tasks."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "77b704f9-a3b7-460c-8043-3d1fb53ac28a",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-14/thomas-laptop",
+    "claimed_at": "2026-10-17T05:23:14Z",
+    "heartbeat_at": "2026-10-17T05:23:14Z",
+    "expires_at": "2026-10-18T05:23:14Z"
+  },
   "history": []
 }
