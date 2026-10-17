@@ -1,7 +1,7 @@
 {
   "id": "F2-09",
   "title": "Integrate fluid–fluid graph storage and scheduling",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-03",
     "F2-08"
@@ -20,6 +20,14 @@
     "All reference adapters compile the shared schedule or explicitly reject the mode."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e6405460-3307-41c8-b530-02be3ebfa3a3",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-09/thomas-laptop",
+    "claimed_at": "2026-10-17T04:35:30Z",
+    "heartbeat_at": "2026-10-17T04:35:30Z",
+    "expires_at": "2026-10-18T04:35:30Z"
+  },
   "history": []
 }
