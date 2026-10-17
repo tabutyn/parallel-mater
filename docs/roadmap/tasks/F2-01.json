@@ -1,7 +1,7 @@
 {
   "id": "F2-01",
   "title": "Specify the pair and mode matrix",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "interaction-spec"
@@ -15,6 +15,14 @@
     "Unsupported and proposed modes remain explicit; no broad capability claim substitutes for a mode."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "4ace0243-df78-4838-b7d7-ce9df2e3a287",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-01/thomas-laptop",
+    "claimed_at": "2026-10-17T02:08:08Z",
+    "heartbeat_at": "2026-10-17T02:08:08Z",
+    "expires_at": "2026-10-18T02:08:08Z"
+  },
   "history": []
 }
