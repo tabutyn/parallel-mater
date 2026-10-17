@@ -1584,16 +1584,16 @@ void rigid_collide_triangle_ranges_swept(
     }
 }
 
-ContactManifold rigid_collide_meshes(
+void rigid_collide_meshes(
     BodyParameters body, RigidBodyState previousBodyState,
     RigidBodyState bodyState, Vec3 previousBodyReference,
     Vec3 bodyReference, HingeContactFrame bodyHinge,
     TriangleMeshResource bodyMesh, BodyParameters collider,
     RigidBodyState previousColliderState, RigidBodyState colliderState,
     TriangleMeshResource colliderMesh, HingeContactFrame colliderHinge,
-    float timestep)
+    float timestep, out ContactManifold manifold)
 {
-    ContactManifold manifold = {};
+    ContactManifold result = {};
     float margin = body.collision_margin + collider.collision_margin;
     bool swept = rigid_guided_pair(bodyHinge, colliderHinge) ||
         rigid_requires_swept_pair_contact(previousBodyState, bodyState,
@@ -1616,7 +1616,11 @@ ContactManifold rigid_collide_meshes(
         previousColliderTransform, colliderTransform, swept, 0.0f,
         colliderMinimum, colliderMaximum);
     if (!bounds_overlap(bodyMinimum, bodyMaximum,
-        colliderMinimum, colliderMaximum)) return manifold;
+        colliderMinimum, colliderMaximum))
+    {
+        manifold = result;
+        return;
+    }
 
     uint stackBody[256] = {};
     uint stackCollider[256] = {};
@@ -1648,7 +1652,7 @@ ContactManifold rigid_collide_meshes(
                 bodyNode.first_triangle, bodyNode.triangle_count,
                 colliderMesh, previousColliderState, colliderState,
                 colliderHinge, colliderNode.first_triangle,
-                colliderNode.triangle_count, margin, timestep, manifold);
+                colliderNode.triangle_count, margin, timestep, result);
             if (swept)
                 rigid_collide_triangle_ranges_swept(previousBodyState,
                     bodyState, previousBodyReference, bodyReference,
@@ -1657,7 +1661,7 @@ ContactManifold rigid_collide_meshes(
                     colliderState, colliderMesh,
                     colliderNode.first_triangle,
                     colliderNode.triangle_count, colliderHinge,
-                    margin, timestep, manifold);
+                    margin, timestep, result);
             continue;
         }
         uint required = bodyLeaf || colliderLeaf ? 2u : 4u;
@@ -1694,21 +1698,21 @@ ContactManifold rigid_collide_meshes(
     }
     if (overflow)
     {
-        manifold = {};
+        result = {};
         rigid_collide_triangle_ranges(bodyMesh, previousBodyState,
             bodyState, bodyReference, bodyHinge, 0u,
             bodyMesh.index_count / 3u, colliderMesh,
             previousColliderState, colliderState, colliderHinge, 0u,
-            colliderMesh.index_count / 3u, margin, timestep, manifold);
+            colliderMesh.index_count / 3u, margin, timestep, result);
         if (swept)
             rigid_collide_triangle_ranges_swept(previousBodyState,
                 bodyState, previousBodyReference, bodyReference,
                 bodyHinge, bodyMesh, 0u, bodyMesh.index_count / 3u,
                 previousColliderState, colliderState, colliderMesh, 0u,
                 colliderMesh.index_count / 3u, colliderHinge,
-                margin, timestep, manifold);
+                margin, timestep, result);
     }
-    return manifold;
+    manifold = result;
 }
 
 // Keep the native candidate traversal width. Candidate order determines
@@ -2236,10 +2240,10 @@ void pm_finalize_rigid_contact_manifolds(
         HingeContactFrame colliderHinge = rigid_hinge_contact_frame(
             parameters, ids, count, b, states, states[b], constraints,
             constraint_capacity, colliderReference);
-        manifold = rigid_collide_meshes(parameters[a], previous_states[a],
+        rigid_collide_meshes(parameters[a], previous_states[a],
             states[a], previousBodyReference, bodyReference, bodyHinge,
             bodyMesh, parameters[b], previous_states[b], states[b],
-            colliderMesh, colliderHinge, timestep);
+            colliderMesh, colliderHinge, timestep, manifold);
     }
     manifold.initial_relative_position = subtract(
         states[a].position, states[b].position);
