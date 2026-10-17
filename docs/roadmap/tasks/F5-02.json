@@ -1,7 +1,7 @@
 {
   "id": "F5-02",
   "title": "Add vendor-neutral conservation and stability cases",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "conformance-corpus"
@@ -14,15 +14,33 @@
     "Deliberately wrong outputs fail each invariant.",
     "Numerical limits derive from documented profiles, not current reference outputs."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "4de29272-9781-40e4-9e6c-019fcb3650b7",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-02/thomas-laptop",
-    "claimed_at": "2026-10-17T05:37:12Z",
-    "heartbeat_at": "2026-10-17T05:37:12Z",
-    "expires_at": "2026-10-18T05:37:12Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' (33); deliberate linear/angular momentum, inactive exchange, energy injection, split/combined state, sweep, hash, execution and provenance corruptions fail.",
+    "PASS: core-conservation-stability-v1 evaluates 18 pressure/contact and viscosity samples across 0.001/0.01/0.05 s and 1:1/1:2/1:4 endpoint mass ratios; valid CLI result passes and corrupted momentum result exits 1.",
+    "PASS: ctest --test-dir build-foundations -R 'parallel-mater-conformance-(case-registry|comparator-tests|command-inputs)' (3/3); installed corpus includes the hashed profile and tools/check_sdk_install.py passed all stages.",
+    "REVIEW: the profile/evaluator define the driver-neutral gate but do not qualify a driver; F2-10 must produce public-API results per advertising driver."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4de29272-9781-40e4-9e6c-019fcb3650b7",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-02/thomas-laptop",
+        "claimed_at": "2026-10-17T05:37:12Z",
+        "heartbeat_at": "2026-10-17T05:37:12Z",
+        "expires_at": "2026-10-18T05:37:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:45:54Z",
+      "reason": "Added a hashed vendor-neutral conservation/stability profile and independent quality evaluator",
+      "evidence": [
+        "PASS: python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' (33); deliberate linear/angular momentum, inactive exchange, energy injection, split/combined state, sweep, hash, execution and provenance corruptions fail.",
+        "PASS: core-conservation-stability-v1 evaluates 18 pressure/contact and viscosity samples across 0.001/0.01/0.05 s and 1:1/1:2/1:4 endpoint mass ratios; valid CLI result passes and corrupted momentum result exits 1.",
+        "PASS: ctest --test-dir build-foundations -R 'parallel-mater-conformance-(case-registry|comparator-tests|command-inputs)' (3/3); installed corpus includes the hashed profile and tools/check_sdk_install.py passed all stages.",
+        "REVIEW: the profile/evaluator define the driver-neutral gate but do not qualify a driver; F2-10 must produce public-API results per advertising driver."
+      ]
+    }
+  ]
 }
