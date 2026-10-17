@@ -37,6 +37,54 @@ void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize block, devi
     device::dispatch_cpu(grid, block, fluid_emit_cells_Thread, &args);
 }
 
+void fluid_pair_cell_keys(device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const void *first_positions,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, float inverse_radius,
+    std::uint64_t *keys, std::uint32_t *identities) noexcept {
+    EntryPointParams_10 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        inverse_radius, reinterpret_cast<std::uint64_t *>(keys), identities};
+    device::dispatch_cpu(grid, block, fluid_emit_pair_cells_Thread, &args);
+}
+
+void fluid_pair_neighbor_counts(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue,
+    const void *first_positions, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, std::uint32_t first_maximum_neighbors,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t *first_total_neighbors,
+    std::uint32_t *first_cross_neighbors,
+    std::uint32_t *second_total_neighbors,
+    std::uint32_t *second_cross_neighbors,
+    std::uint32_t *first_neighbor_overflow,
+    std::uint32_t *second_neighbor_overflow,
+    std::uint32_t *first_maximum_neighbor_count,
+    std::uint32_t *second_maximum_neighbor_count) noexcept {
+    EntryPointParams_11 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        first_maximum_neighbors,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        second_maximum_neighbors,
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        support_radius, first_total_neighbors, first_cross_neighbors,
+        second_total_neighbors, second_cross_neighbors,
+        first_neighbor_overflow, second_neighbor_overflow,
+        first_maximum_neighbor_count, second_maximum_neighbor_count};
+    device::dispatch_cpu(grid, block, fluid_count_pair_neighbors_Thread, &args);
+}
+
 void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,

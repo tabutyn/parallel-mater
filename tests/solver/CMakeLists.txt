@@ -37,6 +37,25 @@ target_include_directories(parallel-mater-paint-resource-plan-tests
 add_test(NAME parallel-mater-paint-resource-plan-tests
     COMMAND parallel-mater-paint-resource-plan-tests)
 
+if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+    add_executable(parallel-mater-fluid-pair-neighbor-index-tests
+        fluid_pair_neighbor_index_tests.cpp
+        ../../src/simulation/cpu_fluid_dispatch.cpp
+        ../../src/simulation/cpu_primitives.cpp)
+    add_dependencies(parallel-mater-fluid-pair-neighbor-index-tests
+        parallel-mater-driver-slang-cpu)
+    target_compile_features(parallel-mater-fluid-pair-neighbor-index-tests
+        PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-fluid-pair-neighbor-index-tests PRIVATE
+        ../../src/device/cpu_compat ../../src ../../include
+        "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}"
+        "${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}")
+    add_test(NAME parallel-mater-fluid-pair-neighbor-index-tests
+        COMMAND parallel-mater-fluid-pair-neighbor-index-tests)
+    set_tests_properties(parallel-mater-fluid-pair-neighbor-index-tests
+        PROPERTIES LABELS "slang;fluid;coupling")
+endif()
+
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
     add_executable(parallel-mater-slang-metal-kernel-tests metal_kernel_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-kernel-tests PRIVATE cxx_std_20)

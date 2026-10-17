@@ -260,6 +260,71 @@ Status visit_fluid_storage(State &state, std::uint32_t capacity, Visitor &visit)
     return {};
 }
 
+// Private storage owned by one fluid-fluid graph edge. The combined index uses
+// a population bit in each value, so equal local particle indices remain
+// distinct while both populations share one spatial ordering.
+struct FluidPairNeighborIndexPlan {
+    std::uint64_t *keys[2]{};
+    std::uint32_t *identities[2]{};
+    std::uint32_t *total_neighbors[2]{};
+    std::uint32_t *cross_neighbors[2]{};
+    std::uint32_t *neighbor_overflow[2]{};
+    std::uint32_t *maximum_neighbor_count[2]{};
+    std::uint8_t *sort_workspace{};
+    std::uint32_t total_capacity{};
+    std::size_t sort_workspace_size{};
+};
+
+template<class State, class Visitor>
+Status visit_fluid_pair_neighbor_index_storage(
+    State &state, std::uint32_t first_capacity,
+    std::uint32_t second_capacity, Visitor &visit) noexcept {
+    constexpr auto primitive_maximum =
+        static_cast<std::uint32_t>(std::numeric_limits<int>::max());
+    if (!first_capacity || !second_capacity ||
+        first_capacity > primitive_maximum ||
+        second_capacity > primitive_maximum)
+        return {StatusCode::invalid_argument, 0,
+                "fluid pair capacity exceeds primitive range"};
+    const auto combined = std::uint64_t(first_capacity) + second_capacity;
+    if (combined > std::numeric_limits<std::uint32_t>::max())
+        return {StatusCode::invalid_argument, 0,
+                "fluid pair combined capacity exceeds index range"};
+    state.total_capacity = static_cast<std::uint32_t>(combined);
+#define PM_STORAGE(member, count, kind) do { \
+    const auto result = visit(state.member, count, MemoryClass::kind); \
+    if (!result) return result; \
+} while (false)
+    PM_STORAGE(keys[0], state.total_capacity, persistent);
+    PM_STORAGE(keys[1], state.total_capacity, persistent);
+    PM_STORAGE(identities[0], state.total_capacity, persistent);
+    PM_STORAGE(identities[1], state.total_capacity, persistent);
+    PM_STORAGE(total_neighbors[0], first_capacity, persistent);
+    PM_STORAGE(total_neighbors[1], second_capacity, persistent);
+    PM_STORAGE(cross_neighbors[0], first_capacity, persistent);
+    PM_STORAGE(cross_neighbors[1], second_capacity, persistent);
+    PM_STORAGE(neighbor_overflow[0], 1U, persistent);
+    PM_STORAGE(neighbor_overflow[1], 1U, persistent);
+    PM_STORAGE(maximum_neighbor_count[0], 1U, persistent);
+    PM_STORAGE(maximum_neighbor_count[1], 1U, persistent);
+    state.sort_workspace_size = radix_sort_scratch_bytes(state.total_capacity);
+    PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);
+#undef PM_STORAGE
+    return {};
+}
+
+inline Status fluid_pair_neighbor_index_storage_requirements(
+    std::uint32_t first_capacity, std::uint32_t second_capacity,
+    StorageRequirements &output) noexcept {
+    output = {};
+    FluidPairNeighborIndexPlan state;
+    StoragePlanner planner;
+    const auto status = visit_fluid_pair_neighbor_index_storage(
+        state, first_capacity, second_capacity, planner);
+    if (status) output = planner.requirements;
+    return status;
+}
+
 // Capacity is the allocated node count, including possible fracture vertices.
 template<class State, class Visitor>
 Status visit_cloth_storage(State &state, std::size_t rigid, bool fracture,

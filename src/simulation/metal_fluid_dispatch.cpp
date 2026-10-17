@@ -32,6 +32,41 @@ void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize, device::Ex
     (void)metal::launch(stream, "fluid_emit_cells", grid,
         positions, count, capacity, inverse_radius, keys, indices);
 }
+void fluid_pair_cell_keys(device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream, const void *first_positions,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, float inverse_radius,
+    std::uint64_t *keys, std::uint32_t *identities) noexcept {
+    (void)metal::launch(stream, "fluid_emit_pair_cells", grid,
+        first_positions, first_count, first_capacity, second_positions,
+        second_count, second_capacity, inverse_radius, keys, identities);
+}
+void fluid_pair_neighbor_counts(device::DispatchSize grid,
+    device::DispatchSize, device::ExecutionQueue stream,
+    const void *first_positions, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, std::uint32_t first_maximum_neighbors,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t *first_total_neighbors,
+    std::uint32_t *first_cross_neighbors,
+    std::uint32_t *second_total_neighbors,
+    std::uint32_t *second_cross_neighbors,
+    std::uint32_t *first_neighbor_overflow,
+    std::uint32_t *second_neighbor_overflow,
+    std::uint32_t *first_maximum_neighbor_count,
+    std::uint32_t *second_maximum_neighbor_count) noexcept {
+    (void)metal::launch(stream, "fluid_count_pair_neighbors", grid,
+        first_positions, first_count, first_capacity, first_maximum_neighbors,
+        second_positions, second_count, second_capacity,
+        second_maximum_neighbors, keys, identities, total_capacity,
+        support_radius, first_total_neighbors, first_cross_neighbors,
+        second_total_neighbors, second_cross_neighbors,
+        first_neighbor_overflow, second_neighbor_overflow,
+        first_maximum_neighbor_count, second_maximum_neighbor_count);
+}
 void fluid_forces(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
