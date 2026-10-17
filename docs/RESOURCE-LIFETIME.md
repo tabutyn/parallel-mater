@@ -96,8 +96,8 @@ two paint meshes simultaneously, then covers successful and failed field
 replacement, stale endpoint rejection, rule removal order, unrelated-field
 preservation and repeated reset using exact queried bindings. A non-installed
 Slang CPU fixture advertises cloth and paint solely for this host-side resource
-lifecycle test, so the API/runtime path runs on every development host without
-overstating production CPU solver support. Paint execution remains a qualification
+lifecycle test, so the API/runtime path runs on development hosts with that
+fixture without overstating production CPU solver support. Paint execution remains a qualification
 result only on production drivers that advertise the paint feature. Emitter
 lifecycle remains a qualification obligation; these tests do not establish
 numerical solver quality.
