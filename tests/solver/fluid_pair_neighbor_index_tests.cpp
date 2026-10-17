@@ -128,6 +128,67 @@ Result count_neighbors(const std::vector<Vec3> &first,
     return result;
 }
 
+void apply_pair_viscosity(FluidState &first, FluidState &second,
+    const FluidDispatchConstants &constants) {
+    const auto first_count = static_cast<std::uint32_t>(first.positions.size());
+    const auto second_count = static_cast<std::uint32_t>(second.positions.size());
+    const auto total = first_count + second_count;
+    std::vector<std::uint64_t> keys[2];
+    std::vector<std::uint32_t> identities[2];
+    for (unsigned slot = 0U; slot < 2U; ++slot) {
+        keys[slot].resize(total);
+        identities[slot].resize(total);
+    }
+    fluid_pair_cell_keys((total + 127U) / 128U, 128U, {},
+        first.positions.data(), &first_count, first_count,
+        second.positions.data(), &second_count, second_count,
+        1.0F / constants.support_radius, keys[0].data(), identities[0].data());
+    std::vector<std::byte> workspace(radix_sort_scratch_bytes(total));
+    CHECK(radix_sort_pairs_u64_u32({}, keys[0].data(), keys[1].data(),
+        identities[0].data(), identities[1].data(), total,
+        workspace.data(), workspace.size()) == PM_SUCCESS);
+    fluid_pair_viscosity((total + 127U) / 128U, 128U, {},
+        first.positions.data(), first.velocities.data(), &first_count,
+        first_count, first.forces.data(), second.positions.data(),
+        second.velocities.data(), &second_count, second_count,
+        second.forces.data(), keys[1].data(), identities[1].data(), total,
+        constants);
+}
+
+Vec3 momentum(const FluidState &first, const FluidState &second,
+    float timestep) {
+    Vec3 result{};
+    for (std::size_t index = 0U; index < first.velocities.size(); ++index) {
+        result.x += first.velocities[index].x + timestep * first.forces[index].x;
+        result.y += first.velocities[index].y + timestep * first.forces[index].y;
+        result.z += first.velocities[index].z + timestep * first.forces[index].z;
+    }
+    for (std::size_t index = 0U; index < second.velocities.size(); ++index) {
+        result.x += second.velocities[index].x + timestep * second.forces[index].x;
+        result.y += second.velocities[index].y + timestep * second.forces[index].y;
+        result.z += second.velocities[index].z + timestep * second.forces[index].z;
+    }
+    return result;
+}
+
+float kinetic_energy(const FluidState &first, const FluidState &second,
+    float timestep) {
+    float result = 0.0F;
+    const auto accumulate = [&](const FluidState &state) {
+        for (std::size_t index = 0U; index < state.velocities.size(); ++index) {
+            const Vec3 velocity{
+                state.velocities[index].x + timestep * state.forces[index].x,
+                state.velocities[index].y + timestep * state.forces[index].y,
+                state.velocities[index].z + timestep * state.forces[index].z};
+            result += 0.5F * (velocity.x * velocity.x +
+                velocity.y * velocity.y + velocity.z * velocity.z);
+        }
+    };
+    accumulate(first);
+    accumulate(second);
+    return result;
+}
+
 void test_mixed_populations_and_limits() {
     const std::vector<Vec3> first{{0.0F, 0.0F, 0.0F},
         {0.75F, 0.0F, 0.0F}, {100.0F, 0.0F, 0.0F}};
@@ -310,6 +371,124 @@ void test_pressure_contact_matches_combined_and_balances_momentum() {
             1.0e-6F);
     }
 }
+
+void test_viscosity_matches_combined_population() {
+    FluidDispatchConstants constants{};
+    constants.timestep = 0.02F;
+    constants.count = 4U;
+    constants.particle_radius = 0.1F;
+    constants.support_radius = 1.0F;
+    constants.viscosity = 0.6F;
+    constants.maximum_speed = 100.0F;
+    constants.rest_density = 1'000.0F;
+    constants.maximum_neighbors = 16U;
+
+    FluidState first{{{-0.55F, 0.0F, 0.0F},
+                          {-0.15F, 0.0F, 0.0F}},
+        {{0.10F, 0.0F, 0.0F}, {-0.04F, 0.0F, 0.0F}}};
+    FluidState second{{{0.15F, 0.0F, 0.0F},
+                           {0.65F, 0.0F, 0.0F}},
+        {{-0.08F, 0.0F, 0.0F}, {0.02F, 0.0F, 0.0F}}};
+    FluidState combined;
+    combined.positions = first.positions;
+    combined.positions.insert(combined.positions.end(),
+        second.positions.begin(), second.positions.end());
+    combined.velocities = first.velocities;
+    combined.velocities.insert(combined.velocities.end(),
+        second.velocities.begin(), second.velocities.end());
+
+    compute_self_forces(first, constants);
+    compute_self_forces(second, constants);
+    compute_self_forces(combined, constants);
+    apply_pair_viscosity(first, second, constants);
+
+    for (std::size_t index = 0U; index < first.forces.size(); ++index)
+        check_close(first.forces[index], combined.forces[index], 1.0e-5F);
+    for (std::size_t index = 0U; index < second.forces.size(); ++index)
+        check_close(second.forces[index],
+            combined.forces[first.forces.size() + index], 1.0e-5F);
+
+    integrate(first, constants);
+    integrate(second, constants);
+    integrate(combined, constants);
+    for (std::size_t index = 0U; index < first.positions.size(); ++index) {
+        check_close(first.positions[index], combined.positions[index], 1.0e-6F);
+        check_close(first.velocities[index], combined.velocities[index], 1.0e-6F);
+    }
+    for (std::size_t index = 0U; index < second.positions.size(); ++index) {
+        check_close(second.positions[index],
+            combined.positions[first.positions.size() + index], 1.0e-6F);
+        check_close(second.velocities[index],
+            combined.velocities[first.positions.size() + index], 1.0e-6F);
+    }
+}
+
+void test_viscosity_analytic_and_isolated_limits() {
+    FluidDispatchConstants constants{};
+    constants.timestep = 0.1F;
+    constants.particle_radius = 0.1F;
+    constants.support_radius = 1.0F;
+    constants.viscosity = 0.4F;
+    constants.maximum_speed = 100.0F;
+    constants.rest_density = 1'000.0F;
+    constants.maximum_neighbors = 4U;
+    FluidState first{{{0.0F, 0.0F, 0.0F}}, {{1.0F, 0.0F, 0.0F}}};
+    FluidState second{{{0.5F, 0.0F, 0.0F}}, {{-1.0F, 0.0F, 0.0F}}};
+    first.forces.assign(1U, {});
+    second.forces.assign(1U, {});
+    apply_pair_viscosity(first, second, constants);
+    check_close(first.forces[0], {-0.4F, 0.0F, 0.0F}, 1.0e-6F);
+    check_close(second.forces[0], {0.4F, 0.0F, 0.0F}, 1.0e-6F);
+    check_close(momentum(first, second, constants.timestep), {}, 1.0e-6F);
+    CHECK(kinetic_energy(first, second, constants.timestep) < 1.0F);
+
+    constants.viscosity = 0.0F;
+    first.forces.assign(1U, {});
+    second.forces.assign(1U, {});
+    apply_pair_viscosity(first, second, constants);
+    check_close(first.forces[0], {}, 0.0F);
+    check_close(second.forces[0], {}, 0.0F);
+
+    constants.viscosity = 0.4F;
+    second.positions[0] = {constants.support_radius, 0.0F, 0.0F};
+    apply_pair_viscosity(first, second, constants);
+    check_close(first.forces[0], {}, 0.0F);
+    check_close(second.forces[0], {}, 0.0F);
+}
+
+void test_viscosity_timestep_and_population_mass_ratio_sweeps() {
+    for (const std::uint32_t second_count : {1U, 2U, 4U}) {
+        for (const float timestep : {0.001F, 0.01F, 0.05F}) {
+            FluidDispatchConstants constants{};
+            constants.timestep = timestep;
+            constants.particle_radius = 0.1F;
+            constants.support_radius = 1.0F;
+            constants.viscosity = 0.4F;
+            constants.maximum_speed = 100.0F;
+            constants.rest_density = 1'000.0F;
+            constants.maximum_neighbors = 8U;
+            FluidState first{{{0.0F, 0.0F, 0.0F}},
+                {{1.0F, 0.25F, 0.0F}}};
+            FluidState second;
+            for (std::uint32_t index = 0U; index < second_count; ++index) {
+                second.positions.push_back(
+                    {0.2F, 0.05F * static_cast<float>(index), 0.0F});
+                second.velocities.push_back(
+                    {-1.0F / static_cast<float>(second_count),
+                     -0.25F / static_cast<float>(second_count), 0.0F});
+            }
+            first.forces.assign(1U, {});
+            second.forces.assign(second_count, {});
+            const Vec3 before = momentum(first, second, 0.0F);
+            const float energy_before = kinetic_energy(first, second, 0.0F);
+            apply_pair_viscosity(first, second, constants);
+            const Vec3 after = momentum(first, second, timestep);
+            const float energy_after = kinetic_energy(first, second, timestep);
+            check_close(before, after, 2.0e-6F);
+            CHECK(energy_after <= energy_before + 1.0e-6F);
+        }
+    }
+}
 } // namespace
 
 int main() {
@@ -318,5 +497,8 @@ int main() {
     test_empty_live_populations();
     test_bounded_storage_plan();
     test_pressure_contact_matches_combined_and_balances_momentum();
-    std::puts("PASS: two-fluid neighbor index and balanced pressure/contact exchange");
+    test_viscosity_matches_combined_population();
+    test_viscosity_analytic_and_isolated_limits();
+    test_viscosity_timestep_and_population_mass_ratio_sweeps();
+    std::puts("PASS: two-fluid neighbor index and balanced force exchange");
 }

@@ -311,6 +311,7 @@ migrated_launches = {
     "fluid_source_vacancies", "fluid_source_emit", "fluid_destroy_flags",
     "fluid_gather", "fluid_copy_initial", "fluid_emit_pair_cells",
     "fluid_count_pair_neighbors", "fluid_apply_pair_pressure_contact",
+    "fluid_apply_pair_viscosity",
     "fluid_cloth_containment_forces", "cloth_apply_fluid_forces",
     "fluid_project_inside_cloth", "fluid_rope_contacts", "fluid_rope_apply",
     "fluid_smoke_drag", "fluid_smoke_grid_drag", "fluid_smoke_exchange",
