@@ -1,7 +1,7 @@
 {
   "id": "F6-02",
   "title": "Qualify macOS SDK installation",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "sdk-packaging"
@@ -14,15 +14,29 @@
     "Clean relocated install passes the same public SDK contract scope.",
     "Evidence identifies architecture/compiler/revision; add the same job to CI."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c3e4ec85-59db-4df2-86c1-a515582bbdc3",
-    "owner": "codex-macos-sdk",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F6-02/thomass-macbook-air",
-    "claimed_at": "2026-10-16T22:43:28Z",
-    "heartbeat_at": "2026-10-16T22:43:28Z",
-    "expires_at": "2026-10-17T22:43:28Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Installed SDK contracts run 39031853796 jobs 117393727789 (macOS ARM64) and 117393727551 (Linux); both build the minimal and headless SDK, run CTest, relocate the install, build independent C/C++ consumers and mock driver, validate ABI/version and conformance inputs, and retain logs; https://github.com/tabutyn/parallel-mater/actions/runs/39031853796",
+    "PASS: macOS CI artifact sdk-install-contracts-macos-arm64 reports clean source 5a9b400ce0eb35e675e23a9a7227132a94fd9898, macOS 26.6.2 arm64, AppleClang 21.0.0.21000101, 12/12 install/consumer/conformance/negative checks, 100 SDK file hashes, and physics_quality not_evaluated; https://github.com/tabutyn/parallel-mater/actions/runs/39031853796/job/117393727789"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c3e4ec85-59db-4df2-86c1-a515582bbdc3",
+        "owner": "codex-macos-sdk",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F6-02/thomass-macbook-air",
+        "claimed_at": "2026-10-16T22:43:28Z",
+        "heartbeat_at": "2026-10-16T22:43:28Z",
+        "expires_at": "2026-10-17T22:43:28Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T12:20:47Z",
+      "reason": "Added revisioned Apple Silicon SDK evidence and a macOS CI gate matching the Linux installed-SDK contract.",
+      "evidence": [
+        "PASS: Installed SDK contracts run 39031853796 jobs 117393727789 (macOS ARM64) and 117393727551 (Linux); both build the minimal and headless SDK, run CTest, relocate the install, build independent C/C++ consumers and mock driver, validate ABI/version and conformance inputs, and retain logs; https://github.com/tabutyn/parallel-mater/actions/runs/39031853796",
+        "PASS: macOS CI artifact sdk-install-contracts-macos-arm64 reports clean source 5a9b400ce0eb35e675e23a9a7227132a94fd9898, macOS 26.6.2 arm64, AppleClang 21.0.0.21000101, 12/12 install/consumer/conformance/negative checks, 100 SDK file hashes, and physics_quality not_evaluated; https://github.com/tabutyn/parallel-mater/actions/runs/39031853796/job/117393727789"
+      ]
+    }
+  ]
 }

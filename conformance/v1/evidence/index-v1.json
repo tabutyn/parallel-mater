@@ -478,7 +478,7 @@
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
       "qualified_count": 0,
       "scope": "Selected 17 same-build CUDA/D3D12 reference regressions and independent rigid-contact quality; not all domains or performance.",
-      "sha256": "97d8e12814902ef8b7ccbfdf876f2c9efd781b08535c7c8d10f066e1fca2166b",
+      "sha256": "c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620",
       "source": {
         "commit": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
         "dirty": null
@@ -512,7 +512,7 @@
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
       "qualified_count": 0,
       "scope": "Selected 17 same-build CUDA/D3D12 reference regressions and independent rigid-contact quality; not all domains or performance.",
-      "sha256": "97d8e12814902ef8b7ccbfdf876f2c9efd781b08535c7c8d10f066e1fca2166b",
+      "sha256": "c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620",
       "source": {
         "commit": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
         "dirty": null
@@ -529,7 +529,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "176734a3e0ba55bbc3e565fee1425857831c23fd7033279902854c0ebc5c1f7d",
+  "sources_sha256": "693650453e7eb85097a31ec94c84c335d011c6ff26bfa4b1037df9efb6b6cdbe",
   "valid": true,
   "validation_failures": []
 }

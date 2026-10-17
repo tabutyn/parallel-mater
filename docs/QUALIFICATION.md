@@ -27,7 +27,7 @@ promoting those results to capability certification.
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. F5-03 adds the immutable adverse-capacity lifecycle profile and evaluator. | No driver is newly qualified by the profile alone; each advertising driver must emit a complete passing result. Numerical physics, remaining driver/domain pairs and host/OS budget accuracy remain separate; see F2-04, F4-05 and P1-01. |
-| SDK/loader/host contracts | 33 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs | New remote workflow not yet verified; Windows/macOS installed packages not run here; physics not evaluated by this gate |
+| SDK/loader/host contracts | 34 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs; Linux and Apple Silicon macOS CI preserve revisioned compiler/architecture reports | Windows installed packages are not run here; physics is not evaluated by this gate |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti CUDA executes all 12 implemented pairs through pipeline and explicit create/update/clear, six-family endpoint replacement, three-family mutation and partial-create rollback. F5-03 makes the adverse sequence a hashed two-case lifecycle contract with exact preservation checks. | Existing runtime evidence predates the F5-03 result schema. Production CPU and Vulkan report the complete-domain case unsupported; D3D12 and Metal were not run. Unsupported never passes the lifecycle evaluator; lifecycle execution does not qualify numerical accuracy. |
 | Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. The fluid profile covers 18 timestep/mass-ratio samples; Linux RTX 3050 Ti CUDA passes all 18. The rigid profile fixes eight bricks, 300 frames, four substeps and the unchanged 2 mm closed-mesh gate. Negative tests cover both evaluators. | Other drivers advertising equal-fluid modes must produce their own public-API results. Current-build rigid submissions remain F5-11 work; remaining interaction modes still need their own fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Revision, contract, binary, device and toolchain provenance are mandatory. | This defines validation, not new driver evidence. Known missing lifecycle/analytic contracts fail explicitly; F2-10 and later qualification leaves must supply complete per-driver results. |
@@ -137,6 +137,25 @@ substep counts, timestep, independent oracle and 2 mm limit. Its evaluator
 rejects altered fixtures, incomplete execution, invalid frames, nonfinite or
 negative depths and excessive penetration. This closes the F5-05 investigation;
 current-build per-driver submissions remain separate F5-11 work.
+
+### F5-06 CUDA/D3D12 divergence classification
+
+The revisioned Windows report retains every original first difference, all 17
+case hashes and both qualified driver hashes. The ten baseline failures reduce
+to these primary causes:
+
+| Primary reduced cause | Cases |
+|---|---|
+| Relative pose/anchor cancellation and solver response | `constraint-fixed`, `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`, `constraint-motor`, `constraint-point`, `passive-active` |
+| Contact feature and manifold classification | `cloth-tear`, `fluid-rigid` |
+| Cross-target floating-point compilation contract | `rigid-direct` |
+
+These groups identify the earliest independent reproduction, not mutually
+exclusive later symptoms: small pose or arithmetic drift can change a later
+contact branch. The report records this qualification explicitly and preserves
+unchanged inputs, tolerances and historical goldens. JSON/XML contract hashes
+now normalize only Git's CRLF checkout conversion to canonical LF; binary
+hashes and every other byte remain exact.
 
 Reports must distinguish compilation, execution, reference regression, analytic
 or invariant physical quality, and performance. An unsupported case counts as

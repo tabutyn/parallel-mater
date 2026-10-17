@@ -39,7 +39,7 @@
       "id": "windows-gtx1080-physics-2026-10-16",
       "kind": "legacy-physics-v1",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
-      "sha256": "97d8e12814902ef8b7ccbfdf876f2c9efd781b08535c7c8d10f066e1fca2166b",
+      "sha256": "c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620",
       "drivers": [
         {
           "id": "slang-cuda",

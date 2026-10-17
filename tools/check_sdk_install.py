@@ -7,9 +7,40 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
+
+
+def compiler_metadata(build_dir):
+    """Read the compiler identity CMake used for the SDK under test."""
+    compiler_files = sorted(
+        (build_dir / "CMakeFiles").glob("*/CMakeCXXCompiler.cmake"))
+    if len(compiler_files) != 1:
+        raise RuntimeError(
+            f"expected one CMake C++ compiler record, found {len(compiler_files)}")
+    values = {}
+    pattern = re.compile(r'^set\((CMAKE_CXX_COMPILER(?:_[A-Z_]+)?) "(.*)"\)$')
+    for line in compiler_files[0].read_text(encoding="utf-8").splitlines():
+        match = pattern.match(line)
+        if match:
+            values[match.group(1)] = match.group(2)
+    required = ("CMAKE_CXX_COMPILER", "CMAKE_CXX_COMPILER_ID",
+                "CMAKE_CXX_COMPILER_VERSION")
+    missing = [key for key in required if not values.get(key)]
+    if missing:
+        raise RuntimeError("missing CMake compiler metadata: " + ", ".join(missing))
+    result = {
+        "path": values["CMAKE_CXX_COMPILER"],
+        "id": values["CMAKE_CXX_COMPILER_ID"],
+        "version": values["CMAKE_CXX_COMPILER_VERSION"],
+        "architecture": (values.get("CMAKE_CXX_COMPILER_ARCHITECTURE_ID")
+                         or platform.machine()),
+    }
+    if values.get("CMAKE_CXX_COMPILER_TARGET"):
+        result["target"] = values["CMAKE_CXX_COMPILER_TARGET"]
+    return result
 
 
 def main():
@@ -48,6 +79,8 @@ def main():
             raise RuntimeError(f"{name}: see {log}")
 
     try:
+        report["architecture"] = platform.machine()
+        report["compiler"] = compiler_metadata(args.build_dir.resolve())
         report["source_revision"] = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
         report["source_dirty"] = bool(subprocess.check_output(

@@ -175,12 +175,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | done | F1-06, F2-04 | — |
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | done | — | — |
-| [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | leased | — | codex-windows-physics / windows-gtx1080 / 2026-10-18T12:28:19Z |
+| [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
 | [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | done | F5-01 | — |
 | [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
-| [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | — |
+| [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | codex-windows-physics / windows-gtx1080 / 2026-10-18T12:37:36Z |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11 | — |
 
 ### F6. SDK releases and repository ownership
@@ -188,9 +188,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F6-00](roadmap/tasks/F6-00.json) | Versioned SDK and release baseline | done | — | — |
-| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | waiting on lock | — | — |
-| [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | leased | — | codex-macos-sdk / Thomass-MacBook-Air / 2026-10-17T22:43:28Z |
-| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | waiting on lock | F5-07 | — |
+| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | ready | — | — |
+| [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | done | — | — |
+| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | ready | F5-07 | — |
 | [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | ready | — | — |
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | waiting on dependencies | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
