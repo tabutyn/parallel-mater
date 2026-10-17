@@ -189,7 +189,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass
         case 3: g.steer(x, y); break;
         case 4: g.orbit(x, y); break;
         case 5: g.zoom(x); break;
-        case 6: g.release(); break;
+        case 6: (void)g.primary_action(); break;
         case 7: g.set_bricks(static_cast<unsigned>(std::max(1.0F, x))); s.logged_frames = 0; break;
         case 8: g.focus(); break;
         case 9: g.set_active(x != 0); s.logged_frames = 0; break;

@@ -74,13 +74,19 @@ int main() {
             require(gallery::GalleryRuntime::live_runtime_count() == 1U,
                     "Scene replacement retained more than one runtime");
             session.frame();
-            session.release();
+            require(session.primary_action() ==
+                        gallery::GalleryActionOutcome::applied &&
+                        session.controller_state().constraints_released,
+                    "Mobile semantic action did not release point constraints");
             session.frame();
             require(session.frames == 2U,
                     "Point release did not preserve the live scene");
-            session.release(); // Restore is a scene reset.
+            require(session.primary_action() ==
+                        gallery::GalleryActionOutcome::reset_requested,
+                    "Mobile semantic action did not request point restore");
             require(session.selection() == 2U && session.frames == 0U &&
-                        !session.timing.latest(),
+                        !session.timing.latest() &&
+                        !session.controller_state().constraints_released,
                     "Point restore did not reset the selected scene");
 
             const auto selected = session.selection();
@@ -167,6 +173,51 @@ int main() {
         runtime.clear();
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Repeated teardown released the runtime more than once");
+
+        gallery::GalleryRuntimeCreateInfo kinematic = valid;
+        kinematic.asset = root / "examples/assets/PassiveActive.glb";
+        kinematic.create_host_renderer = false;
+        gallery::GalleryRuntime kinematic_runtime;
+        require(kinematic_runtime.replace(kinematic, failure) &&
+                    kinematic_runtime.controller_state().moves_kinematic &&
+                    kinematic_runtime.kinematic_index <
+                        kinematic_runtime.instance.rigid_bodies.size(),
+                "Rigid semantic action did not bind an authored kinematic body");
+        const auto initial_kinematic =
+            kinematic_runtime.kinematic_target.position;
+        require(kinematic_runtime.controlled_step({
+                    .right = 1.0F,
+                    .forward = 1.0F,
+                    .camera = kinematic_runtime.camera.camera(),
+                }, {}, failure) &&
+                    kinematic_runtime.kinematic_target.position.x >
+                        initial_kinematic.x &&
+                    kinematic_runtime.kinematic_target.position.z <
+                        initial_kinematic.z,
+                "Shared directional action did not move the kinematic target");
+        kinematic_runtime.clear();
+
+        gallery::GalleryRuntimeCreateInfo desktop_point = valid;
+        desktop_point.context = gallery::GalleryContext::constraint_point;
+        desktop_point.asset = root / "examples/assets/Celestial.glb";
+        desktop_point.create_host_renderer = false;
+        gallery::GalleryRuntime desktop_runtime;
+        require(desktop_runtime.replace(desktop_point, failure),
+                "Desktop adapter point runtime creation failed");
+        require(desktop_runtime.controller_state().primary ==
+                    gallery::GalleryPrimaryAction::release_restore_constraints &&
+                    desktop_runtime.primary_action(failure) ==
+                    gallery::GalleryActionOutcome::applied &&
+                    desktop_runtime.controller_state().constraints_released,
+                "Desktop semantic action did not match mobile release");
+        require(desktop_runtime.primary_action(failure) ==
+                    gallery::GalleryActionOutcome::reset_requested &&
+                    desktop_runtime.reset(failure) &&
+                    !desktop_runtime.controller_state().constraints_released,
+                "Desktop semantic action did not match mobile reset");
+        desktop_runtime.clear();
+        require(gallery::GalleryRuntime::live_runtime_count() == 0U,
+                "Desktop adapter controller test leaked its runtime");
         return EXIT_SUCCESS;
     } catch (const std::exception &error) {
         if (std::string_view(error.what()) == "no Parallel Mater physical device") {

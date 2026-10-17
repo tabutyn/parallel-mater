@@ -8,33 +8,6 @@
              source.angularVelocity[2]}};
 }
 
-[[nodiscard]] bool apply_acceleration(
-    GalleryRuntime &runtime, const std::vector<std::uint32_t> &bodies,
-    Vec3 acceleration, std::string &error) {
-    if (bodies.empty()) return true;
-    std::vector<PmRigidInput> inputs;
-    try {
-        inputs.reserve(bodies.size());
-        for (std::uint32_t body : bodies) {
-            if (body >= runtime.scene.rigid_bodies.size()) {
-                error = "rigid acceleration body index is invalid";
-                return false;
-            }
-            PmRigidInput input{};
-            input.bodyIndex = body;
-            const float mass = runtime.scene.rigid_bodies[body].options.mass;
-            input.force[0] = acceleration.x * mass;
-            input.force[1] = acceleration.y * mass;
-            input.force[2] = acceleration.z * mass;
-            inputs.push_back(input);
-        }
-    } catch (const std::bad_alloc &) {
-        error = "rigid acceleration allocation failed";
-        return false;
-    }
-    return runtime.simulation.apply_rigid_inputs(inputs, error);
-}
-
 [[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
                                 const StepOptions &options,
                                 std::string &error, bool read_deformables = true, bool read_host = true) {
@@ -53,50 +26,6 @@
                    entry.command_line_option == option;
         });
     return found == gallery_entries.end() ? nullptr : &*found;
-}
-
-[[nodiscard]] parallel_mater::Quaternion rotation_z(float radians) {
-    return {0.0F, 0.0F, std::sin(radians * 0.5F),
-            std::cos(radians * 0.5F)};
-}
-
-[[nodiscard]] parallel_mater::Quaternion conjugate(
-    parallel_mater::Quaternion value) noexcept {
-    return {-value.x, -value.y, -value.z, value.w};
-}
-
-[[nodiscard]] parallel_mater::Quaternion multiply(
-    parallel_mater::Quaternion left,
-    parallel_mater::Quaternion right) noexcept {
-    return {
-        left.w * right.x + left.x * right.w + left.y * right.z -
-            left.z * right.y,
-        left.w * right.y - left.x * right.z + left.y * right.w +
-            left.z * right.x,
-        left.w * right.z + left.x * right.y - left.y * right.x +
-            left.z * right.w,
-        left.w * right.w - left.x * right.x - left.y * right.y -
-            left.z * right.z};
-}
-
-[[nodiscard]] parallel_mater::Vec3 rotate(
-    parallel_mater::Quaternion rotation,
-    parallel_mater::Vec3 point) noexcept {
-    const parallel_mater::Quaternion vector{point.x, point.y, point.z, 0.0F};
-    const parallel_mater::Quaternion result =
-        multiply(multiply(rotation, vector), conjugate(rotation));
-    return {result.x, result.y, result.z};
-}
-
-[[nodiscard]] parallel_mater::Vec3 subtract(
-    parallel_mater::Vec3 left, parallel_mater::Vec3 right) noexcept {
-    return {left.x - right.x, left.y - right.y, left.z - right.z};
-}
-
-[[nodiscard]] parallel_mater::Vec3 midpoint(
-    parallel_mater::Vec3 left, parallel_mater::Vec3 right) noexcept {
-    return {(left.x + right.x) * 0.5F, (left.y + right.y) * 0.5F,
-            (left.z + right.z) * 0.5F};
 }
 
 struct FluidEscapeTrace {
@@ -202,49 +131,20 @@ struct FluidEscapeTrace {
     return true;
 }
 
-[[nodiscard]] DirectionalInput directional_input(
+[[nodiscard]] parallel_mater::gallery::GalleryControlInput directional_input(
     GLFWwindow *window, bool normalize_diagonal = true) {
-    DirectionalInput input{
-        static_cast<float>(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) -
+    parallel_mater::gallery::GalleryControlInput input{
+        .right =
+            static_cast<float>(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) -
             static_cast<float>(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS),
-        static_cast<float>(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) -
-            static_cast<float>(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)};
-    const float length = std::sqrt(input.x * input.x + input.z * input.z);
+        .forward =
+            static_cast<float>(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) -
+            static_cast<float>(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS),
+    };
+    const float length = std::hypot(input.right, input.forward);
     if (normalize_diagonal && length > 1.0F) {
-        input.x /= length;
-        input.z /= length;
+        input.right /= length;
+        input.forward /= length;
     }
     return input;
-}
-
-[[nodiscard]] parallel_mater::Vec3 gravity_for(
-    DirectionalInput input, float gravity_scale,
-    parallel_mater::gallery::Camera camera) {
-    return screen_space_gravity(camera, input.x, -input.z,
-                                k_gravity * gravity_scale,
-                                k_rigid_gravity_tilt_degrees);
-}
-
-[[nodiscard]] bool apply_gravity_tilt_overrides(
-    GalleryRuntime &runtime, Vec3 world_gravity,
-    std::string &error) noexcept {
-    if (runtime.gravity_tilt_bodies.empty()) return true;
-    const Vec3 vertical_gravity{
-        0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
-    const Vec3 compensation{
-        vertical_gravity.x - world_gravity.x,
-        vertical_gravity.y - world_gravity.y,
-        vertical_gravity.z - world_gravity.z};
-    if (compensation.x == 0.0F && compensation.y == 0.0F &&
-        compensation.z == 0.0F) return true;
-    return apply_acceleration(runtime, runtime.gravity_tilt_bodies,
-                              compensation, error);
-}
-
-[[nodiscard]] parallel_mater::Vec3 collector_gravity_for(
-    DirectionalInput input, float gravity_scale,
-    parallel_mater::gallery::Camera camera) {
-    return screen_space_gravity(camera, input.x, -input.z,
-                                k_gravity * gravity_scale,
-                                k_collector_gravity_tilt_degrees);
 }

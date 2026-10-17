@@ -47,7 +47,8 @@ int main() {
         try { session.select(999); } catch (const std::runtime_error &) { rejected = true; }
         if (!rejected || session.selection() != old_selection)
             throw std::runtime_error("Invalid scene replaced live state");
-        session.select(2); session.release(); session.frame(); session.release();
+        session.select(2); (void)session.primary_action(); session.frame();
+        (void)session.primary_action();
         if (session.frames != 0) throw std::runtime_error("Point restore did not reset");
         // Exercise the Android catalog and budgets through the same session on
         // the available host GPU; this is not Android hardware qualification.

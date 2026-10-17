@@ -281,7 +281,7 @@ UIImage *frame_image(const GallerySession &session) {
                 }
                 session.resize(width, height);
                 if (focus) session.focus();
-                if (release) session.release();
+                if (release) (void)session.primary_action();
                 session.orbit(x * session.height / height, y * session.height / height);
                 session.zoom(z); session.steer(right, up); session.set_paused(paused);
                 session.frame();

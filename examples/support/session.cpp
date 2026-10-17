@@ -8,8 +8,6 @@
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #endif
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/arrow_forces.hpp>
-#include <parallel_mater_gallery/fixed_collector.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -106,7 +104,7 @@ void GallerySession::select(unsigned index) {
     const bool gpu_rendering = config_.gpu_rendering;
     const auto native_backend = config_.native_backend;
     request.prepare_runtime =
-        [this, context = selected.context, gpu_rendering, native_backend]
+        [this, gpu_rendering, native_backend]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
         pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
@@ -119,11 +117,6 @@ void GallerySession::select(unsigned index) {
                 return false;
             }
         }
-        if (!next.arrow_forces.initialize(next.scene, next.instance, failure))
-            return false;
-        if (context == GalleryContext::constraint_fixed &&
-            !next.fixed_collector.initialize(
-                next.scene, next.instance, failure)) return false;
 #ifdef PM_GALLERY_METAL_RENDERER
         if (gpu_rendering)
             next.native_renderer = std::make_shared<GpuGalleryRenderer>(
@@ -234,15 +227,16 @@ void GallerySession::focus() {
     }
     runtime_.camera.set_preset(preset);
 }
-void GallerySession::release() {
+GalleryActionOutcome GallerySession::primary_action() {
     require_scene();
-    if (entry(selected_).context != GalleryContext::constraint_point) return;
-    if (released_) { reset(); return; }
     std::string error;
-    for (auto slot : runtime_.instance.rigid_constraints)
-        require(runtime_.simulation.set_constraint_active(slot, false, error), error);
-    released_ = true;
+    const GalleryActionOutcome outcome = runtime_.primary_action(error);
+    require(error.empty(), error);
+    if (outcome == GalleryActionOutcome::reset_requested) reset();
+    released_ = runtime_.controller_state().constraints_released;
+    return outcome;
 }
+void GallerySession::release() { (void)primary_action(); }
 void GallerySession::set_paused(bool value) {
     if (paused_ == value) return;
     paused_ = value; timing.clear_history();
@@ -265,31 +259,19 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
         std::string error;
         if (!paused_) {
             timing.begin_phase(FramePhase::physics);
-            const float magnitude = 9.81F * runtime_.scene.gravity_scale;
-            const Vec3 gravity = screen_space_gravity(runtime_.camera.camera(),
-                runtime_.arrow_forces.active() ? 0 : right_,
-                runtime_.arrow_forces.active() ? 0 : up_,
-                magnitude, 30.0F);
-            if (runtime_.fixed_collector.active())
-                require(runtime_.fixed_collector.apply_loose_gravity(
-                    runtime_.simulation, runtime_.scene, runtime_.instance,
-                    {0, -magnitude, 0}, gravity, error), error);
-            require(runtime_.arrow_forces.apply(
-                runtime_.simulation, runtime_.camera.camera(), right_, up_, error), error);
+            const auto controls = runtime_.controller_state();
             const bool read_host = !config_.gpu_rendering || diagnostics_ ||
-                runtime_.fixed_collector.active();
-            require(runtime_.step({
+                controls.directional == GalleryControlPolicy::collector_gravity;
+            require(runtime_.controlled_step({
+                .right = right_,
+                .forward = up_,
+                .camera = runtime_.camera.camera(),
+            }, {
                 .timestep = 1.0F / limits.target_fps,
                 .substeps = (240U + limits.target_fps - 1) / limits.target_fps,
-                .gravity = gravity,
-                .collect_rigid_contacts = runtime_.fixed_collector.active(),
                 .read_deformables = read_host,
                 .read_host = read_host,
             }, error), error);
-            if (runtime_.fixed_collector.active())
-                require(runtime_.fixed_collector.collect(
-                    runtime_.simulation, runtime_.scene, runtime_.instance,
-                    runtime_.frame, error), error);
             ++frames;
             timing.end_phase();
         }
@@ -366,7 +348,7 @@ std::string GallerySession::status() const {
     if (config_.gpu_rendering) text << " · GPU graphics";
     else if (!runtime_.frame.fluid_particles.empty())
         text << " · " << runtime_.frame.fluid_particles.size() << " particles";
-    text << "\n" << (runtime_.arrow_forces.active()
+    text << "\n" << (runtime_.controller_state().authored_force
         ? "Push objects" : "Tilt gravity");
     return text.str();
 }

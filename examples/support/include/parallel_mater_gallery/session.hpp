@@ -35,6 +35,7 @@ public:
     void orbit(float x, float y);
     void zoom(float amount);
     void focus();
+    GalleryActionOutcome primary_action();
     void release();
     void frame(const std::function<void(const GallerySession &)> &present = {});
     void set_paused(bool value);
@@ -55,6 +56,9 @@ public:
     std::uint64_t allocated_bytes() const;
     std::size_t moving_bodies() const;
     std::size_t particle_count() const;
+    GalleryControllerState controller_state() const {
+        return runtime_.controller_state();
+    }
     bool ready() const { return runtime_.ready(); }
     bool active() const { return active_; }
     bool is_paused() const { return paused_; }

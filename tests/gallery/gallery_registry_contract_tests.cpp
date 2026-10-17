@@ -25,5 +25,12 @@ static_assert(gallery_entry(GalleryContext::dump).source ==
               GallerySceneSource::dump_truck);
 static_assert(gallery_entry(GalleryContext::dump).controls ==
               GalleryControlPolicy::motor_drive);
+static_assert(gallery_entry(GalleryContext::dump).primary_action ==
+              GalleryPrimaryAction::toggle_dump_bed);
+static_assert(gallery_entry(GalleryContext::constraint_point).primary_action ==
+              GalleryPrimaryAction::release_restore_constraints);
+static_assert(gallery_entry(GalleryContext::constraint_generic).controls ==
+              GalleryControlPolicy::authored_force);
+static_assert(gallery_entry(GalleryContext::rigid_body).moves_kinematic);
 
 int main() { return 0; }

@@ -12,9 +12,10 @@ Every shell now delegates low-level scene lifecycle to
 physics resources, host-renderer creation, replacement, reset, stepping, frame
 assembly, and teardown. Android and iPad reach it through the reusable
 `GallerySession`; desktop keeps `DesktopGalleryState` for its current UI and
-calibration data. Controllers, timing policy, catalog presentation, and native
-renderers remain partly shell-specific and move behind common contracts in the
-remaining F7 tasks.
+calibration data. `GalleryRuntime` also owns semantic scene actions and all
+per-step controllers. Timing policy, catalog presentation, and native renderers
+remain partly shell-specific and move behind common contracts in the remaining
+F7 tasks.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -24,7 +25,7 @@ remaining F7 tasks.
 | Workload limits and user-adjustable counts | Desktop options, calibration, and local profile logic | `GallerySession` device-profile selection | Common runtime policy; shell edits declared parameters |
 | Asset loading and scene construction | `GalleryRuntime`, configured by desktop | `GalleryRuntime`, configured by `GallerySession` | Common runtime catalog and workload policy |
 | Physics device, resources, command submission, scene replacement, reset, and teardown | `GalleryRuntime` through `DesktopGalleryState` | `GalleryRuntime` through `GallerySession` | Common runtime (done) |
-| Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Mostly desktop application loop with shared helper types | Gravity/force, fixed collector, and point release in `GallerySession` | Common runtime semantic commands |
+| Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GalleryRuntime` | Semantic input adapter around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
 | Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | Desktop application loop | One profiled step per `GallerySession::frame` | Common runtime clock and workload policy |
 | Camera state and focus policy | `GalleryRuntime::camera`, driven by desktop input | `GalleryRuntime::camera`, driven by `GallerySession` touch methods | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
@@ -58,6 +59,15 @@ those commands outside the runtime. The runtime interprets a command according
 to the selected catalog entry's control policy. It must never let one input
 simultaneously drive an authored force, tilt gravity, move a kinematic body, or
 steer a vehicle unless the catalog explicitly declares that combination.
+
+`GalleryControlInput` is the shared directional command. Its `right` and
+`forward` values are camera-relative semantics rather than key or widget codes;
+an optional gravity override supports deterministic scripted/headless runs.
+`GalleryRuntime::primary_action` interprets the catalog's declared primary
+action, and `GalleryRuntime::controlled_step` applies every controller before
+and after the shared physics step. A point-scene restore returns
+`reset_requested`, so each shell clears its own presentation counters while the
+runtime recreates the same selected scene.
 
 ## Observable behavior
 
