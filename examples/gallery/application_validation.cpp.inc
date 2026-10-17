@@ -121,84 +121,8 @@
         options.backend == PM_NATIVE_BACKEND_METAL && !options.calibrate &&
         options.headless_output.empty();
     request.prepare_runtime =
-        [context, create_native_renderer](GalleryRuntime &next,
-                                          std::string &failure) {
-        const GalleryEntry &selected = gallery_entry(context);
-        if (context == GalleryContext::dump &&
-            !next.dump_bed.initialize(next.scene)) {
-            failure = "dump truck needs its authored DumpLift joint";
-            return false;
-        }
-        if (selected.controls == GalleryControlPolicy::motor_drive) {
-            for (std::size_t spring_index = 0U;
-                 spring_index < next.scene.rigid_constraints.size();
-                 ++spring_index) {
-                const auto &spring =
-                    next.scene.rigid_constraints[spring_index];
-                if (spring.options.type !=
-                    RigidConstraintType::generic_spring) {
-                    continue;
-                }
-                const auto motor = std::find_if(
-                    next.scene.rigid_constraints.begin(),
-                    next.scene.rigid_constraints.end(),
-                    [&](const auto &candidate) {
-                        return candidate.options.type ==
-                                   RigidConstraintType::motor &&
-                               candidate.body_a == spring.body_b;
-                    });
-                if (motor == next.scene.rigid_constraints.end() ||
-                    (motor->name.find("Front") == std::string::npos &&
-                     motor->name.find("Rear") == std::string::npos)) {
-                    failure = spring.name +
-                        ": suspension hub needs a named Front or Rear motor";
-                    return false;
-                }
-                next.suspension_steering_joints.push_back({
-                    spring_index, spring.options.local_orientation_a,
-                    motor->name.find("Front") != std::string::npos});
-            }
-            if (next.suspension_steering_joints.size() != 4U) {
-                failure = "vehicle scene needs four steerable suspension hubs";
-                return false;
-            }
-        }
-        if (!next.arrow_forces.initialize(
-                next.scene, next.instance, failure)) return false;
-        next.gravity_tilt_bodies.reserve(next.scene.rigid_bodies.size());
-        for (std::size_t index = 0U;
-             index < next.scene.rigid_bodies.size(); ++index) {
-            const auto &body = next.scene.rigid_bodies[index];
-            if (body.options.motion == MotionType::dynamic &&
-                !body.follows_gravity_tilt) {
-                next.gravity_tilt_bodies.push_back(
-                    next.instance.rigid_bodies[index]);
-            }
-        }
-        if (context == GalleryContext::constraint_fixed &&
-            !next.fixed_collector.initialize(
-                next.scene, next.instance, failure)) return false;
-        if (context == GalleryContext::rigid_body) {
-            const auto dynamic_count = std::count_if(
-                next.scene.rigid_bodies.begin(),
-                next.scene.rigid_bodies.end(), [](const auto &body) {
-                    return body.options.motion == MotionType::dynamic;
-                });
-            std::cout << "Rigid gravity tilt: "
-                      << dynamic_count - next.gravity_tilt_bodies.size()
-                      << " follow, " << next.gravity_tilt_bodies.size()
-                      << " keep vertical\n";
-        }
-        if (next.arrow_forces.active()) {
-            for (const auto &body : next.scene.rigid_bodies) {
-                if (body.arrow_force > 0.0F) {
-                    std::cout
-                        << "Arrow force: " << body.source_name << " "
-                        << body.arrow_force
-                        << " N (camera-relative ground plane; gravity stays vertical)\n";
-                }
-            }
-        }
+        [create_native_renderer](GalleryRuntime &next,
+                                 std::string &failure) {
 #ifdef PM_GALLERY_METAL_RENDERER
         if (create_native_renderer) {
             try {
@@ -212,17 +136,8 @@
         }
 #else
         (void)create_native_renderer;
+        (void)failure;
 #endif
-        for (std::size_t index = 0;
-             index < next.scene.rigid_bodies.size(); ++index) {
-            if (next.scene.rigid_bodies[index].options.motion ==
-                parallel_mater::gallery::MotionType::kinematic) {
-                next.kinematic_index = index;
-                next.kinematic_target =
-                    next.scene.rigid_bodies[index].options.initial_state;
-                break;
-            }
-        }
         return true;
     };
     return output.replace(std::move(request), error);

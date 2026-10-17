@@ -77,10 +77,10 @@ GPU physics is not GPU rendering: the image renderer remains CPU-based.
 
 ## First gallery sequence
 
-The ordered catalog metadata and scene construction are shared today. The F7
-work makes controls and simulation lifecycle common across interactive,
-headless, desktop, and mobile runs; the contract above records the current
-ownership split until that migration finishes.
+The ordered catalog metadata, scene lifecycle, scene construction, and semantic
+controllers are shared today. Remaining F7 work unifies availability, timing,
+presentation, and the thin platform adapters; the runtime contract records the
+current ownership split until that migration finishes.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.

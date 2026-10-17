@@ -32,10 +32,42 @@ struct GalleryStepOptions {
     bool read_host{true};
 };
 
+// Platform-neutral input for one physics step. Positive forward means screen
+// up. Scripted/headless clients may supply an exact gravity while retaining the
+// same motor, force, dump-bed, collector, and kinematic controller path.
+struct GalleryControlInput {
+    float right{};
+    float forward{};
+    Camera camera{};
+    std::optional<Vec3> gravity_override{};
+};
+
+enum class GalleryActionOutcome : std::uint8_t {
+    ignored,
+    applied,
+    reset_requested,
+};
+
+struct GalleryControllerState {
+    GalleryControlPolicy directional{GalleryControlPolicy::none};
+    GalleryPrimaryAction primary{GalleryPrimaryAction::none};
+    bool constraints_released{};
+    bool authored_force{};
+    bool moves_kinematic{};
+    float steering_angle{};
+    float dump_bed_angle{};
+    Vec3 gravity{};
+};
+
 struct SuspensionSteeringJoint {
     std::size_t constraint_index{};
     Quaternion authored_local_orientation_a{};
     bool front{};
+};
+
+struct GravityTiltBody {
+    std::uint32_t body{};
+    float mass{};
 };
 
 enum class GalleryReplacementPolicy : std::uint8_t {
@@ -68,6 +100,10 @@ class GalleryRuntime {
     struct LifetimeToken;
     std::unique_ptr<LifetimeToken> lifetime_;
     std::optional<GalleryRuntimeCreateInfo> recipe_;
+    bool constraints_released_{};
+    Vec3 control_gravity_{};
+
+    [[nodiscard]] bool initialize_controllers(std::string &error);
 
   public:
     GalleryRuntime() noexcept;
@@ -83,6 +119,11 @@ class GalleryRuntime {
     void clear() noexcept;
     [[nodiscard]] bool step(const GalleryStepOptions &options,
                             std::string &error);
+    [[nodiscard]] bool controlled_step(const GalleryControlInput &input,
+                                       GalleryStepOptions options,
+                                       std::string &error);
+    [[nodiscard]] GalleryActionOutcome primary_action(std::string &error);
+    [[nodiscard]] GalleryControllerState controller_state() const noexcept;
     [[nodiscard]] bool ready() const noexcept { return lifetime_ != nullptr; }
     [[nodiscard]] static std::size_t live_runtime_count() noexcept;
 
@@ -101,7 +142,7 @@ class GalleryRuntime {
     DumpTruckBed dump_bed{};
     std::vector<SuspensionSteeringJoint> suspension_steering_joints{};
     float steering_angle{};
-    std::vector<std::uint32_t> gravity_tilt_bodies{};
+    std::vector<GravityTiltBody> gravity_tilt_bodies{};
     std::size_t kinematic_index{static_cast<std::size_t>(-1)};
     RigidBodyState kinematic_target{};
 };

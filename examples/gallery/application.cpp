@@ -52,16 +52,9 @@ extern "C" const char *parallel_mater_windows_gallery_build_stamp() noexcept;
 namespace {
 
 using parallel_mater::RigidBodyState;
-using parallel_mater::gallery::RigidConstraintType;
-using parallel_mater::gallery::MotionType;
-using parallel_mater::Quaternion;
 using parallel_mater::Vec3;
 using parallel_mater::gallery::CameraController;
 using parallel_mater::gallery::CameraDragMode;
-using parallel_mater::gallery::screen_space_gravity;
-using parallel_mater::gallery::FixedContactCollector;
-using parallel_mater::gallery::steer_gravity;
-using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::GalleryControlPolicy;
 using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
@@ -85,7 +78,6 @@ using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
 using parallel_mater::gallery::is_smoke_context;
-using parallel_mater::gallery::toggles_constraint;
 using parallel_mater::gallery::uses_rigid_gravity;
 using parallel_mater::gallery::RendererHandle;
 using parallel_mater::gallery::SmokeDebugMode;
@@ -112,16 +104,8 @@ using StepOptions = GalleryStepOptions;
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
 constexpr double k_maximum_frame_delta = 0.25;
-constexpr float k_kinematic_speed = 2.0F;
 constexpr float k_gravity = 9.81F;
-constexpr float k_cloth_gravity_tilt_degrees = 45.0F;
-constexpr float k_rigid_gravity_tilt_degrees = 30.0F;
-constexpr float k_collector_gravity_tilt_degrees =
-    parallel_mater::gallery::collector_gravity_tilt_degrees;
 constexpr float k_pi = 3.14159265358979323846F;
-constexpr float k_motor_speed = 8.0F;
-constexpr float k_motor_steering_angle = 25.0F * k_pi / 180.0F;
-constexpr float k_motor_steering_speed = 90.0F * k_pi / 180.0F;
 constexpr std::uint32_t k_default_dump_spheres =
     parallel_mater::gallery::default_dump_payload_count;
 constexpr std::uint32_t k_default_fluid_particles = 30'000U;
@@ -186,13 +170,6 @@ struct InputState {
     std::size_t brick_field{};
     bool brick_dialog{};
 };
-
-struct DirectionalInput {
-    float x{};
-    float z{};
-};
-
-using parallel_mater::gallery::SuspensionSteeringJoint;
 
 enum class KeyAction : std::size_t {
     escape,
@@ -536,8 +513,6 @@ static int run_gallery_application(
     std::cout << "Build revision: " << PARALLEL_MATER_GALLERY_GIT_COMMIT << '\n';
     std::uint32_t &dump_spheres = session.dump_spheres;
     std::uint32_t &fluid_particles = session.fluid_particles;
-    Vec3 &peg_gravity = session.peg_gravity;
-    Vec3 &cloth_gravity = session.cloth_gravity;
     std::optional<CalibrationResult> last_calibration;
 
     const StepOptions step_options{.timestep = k_timestep,
@@ -564,7 +539,8 @@ static int run_gallery_application(
                                              FluidRenderMode::surface);
         };
         StepOptions headless_step = step_options;
-        const bool fixed_collection = runtime.fixed_collector.active();
+        const bool fixed_collection = runtime.controller_state().directional ==
+            GalleryControlPolicy::collector_gravity;
         headless_step.collect_rigid_contacts = fixed_collection;
         Vec3 fixed_headless_gravity = step_options.gravity;
         if (gallery_entry(runtime.context).controls ==
@@ -633,66 +609,44 @@ static int run_gallery_application(
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
                     options.headless_constraint_action_after_frames)) {
-                if (runtime.context == GalleryContext::dump) runtime.dump_bed.toggle();
-                else if (toggles_constraint(gallery_entry(runtime.context).controls) &&
-                         !toggle_constraints(runtime)) return 1;
-            }
-            if (gallery_entry(runtime.context).controls ==
-                GalleryControlPolicy::motor_drive) {
-                const DirectionalInput motor_input{
-                    options.headless_motor_right ? 1.0F : 0.0F,
-                    options.headless_motor_forward ? -1.0F : 0.0F};
-                if (!drive_motors(runtime, motor_input) ||
-                    !steer_motor_suspension(runtime, motor_input.x)) return 1;
-            }
-            if (runtime.context == GalleryContext::dump &&
-                !runtime.dump_bed.advance(runtime.simulation, runtime.scene,
-                    runtime.instance, k_timestep, error)) {
-                std::cerr << "tilt dump bucket failed: " << error << '\n';
-                return 1;
+                const auto outcome = runtime.primary_action(error);
+                if (!error.empty()) {
+                    std::cerr << "scene action failed: " << error << '\n';
+                    return 1;
+                }
+                if (outcome == parallel_mater::gallery::GalleryActionOutcome::reset_requested &&
+                    !session.rebuild(options, runtime.context, dump_spheres,
+                                     fluid_particles, error)) {
+                    std::cerr << "scene action reset failed: " << error << '\n';
+                    return 1;
+                }
             }
             StepOptions frame_step = headless_step;
+            parallel_mater::gallery::GalleryControlInput controls{
+                .right = options.headless_motor_right ? 1.0F : 0.0F,
+                .forward = options.headless_motor_forward ? 1.0F : 0.0F,
+                .camera = input_state.shared.camera.camera(),
+            };
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
             else if (options.headless_cloth_tilt_left &&
                      gallery_entry(runtime.context).controls ==
                          GalleryControlPolicy::cloth_gravity) {
-                headless_step.gravity = steer_gravity(
-                    headless_step.gravity, input_state.shared.camera.camera(),
-                    -1.0F, 0.0F, k_gravity * runtime.scene.gravity_scale,
-                    k_cloth_gravity_tilt_degrees, k_timestep);
-                frame_step.gravity = headless_step.gravity;
+                controls.right = -1.0F;
             }
             if (fixed_collection) {
                 frame_step.gravity =
                     frame < static_cast<int>(
                                 options.headless_cloth_tilt_after_frames)
                     ? step_options.gravity : fixed_headless_gravity;
-                if (!runtime.fixed_collector.apply_loose_gravity(
-                        runtime.simulation, runtime.scene, runtime.instance,
-                        step_options.gravity, frame_step.gravity, error)) {
-                    std::cerr << "apply loose fixed-scene gravity failed: "
-                              << error << '\n';
-                    return 1;
-                }
             }
-            if (!apply_gravity_tilt_overrides(
-                    runtime, frame_step.gravity, error)) {
-                std::cerr << "preserve authored rigid gravity failed: "
-                          << error << '\n';
-                return 1;
-            }
-            if (!step_runtime(runtime, frame_step, error)) {
+            if (options.headless_cloth_tilt_degrees != 0U ||
+                fixed_collection)
+                controls.gravity_override = frame_step.gravity;
+            if (!runtime.controlled_step(controls, frame_step, error)) {
                 std::cerr << "Headless frame " << frame + 1
                           << " failed: " << error << "; peak contacts="
                           << runtime.frame.statistics.peakContactCount << '\n';
-                return 1;
-            }
-            if (fixed_collection &&
-                !runtime.fixed_collector.collect(
-                    runtime.simulation, runtime.scene, runtime.instance,
-                    runtime.frame, error)) {
-                std::cerr << "collect fixed contacts failed: " << error << '\n';
                 return 1;
             }
             if (measure_frames) {
@@ -1112,9 +1066,17 @@ static int run_gallery_application(
             }
             if (!input_state.shared.catalog_visible &&
                 keys.pressed(KeyAction::action)) {
-                if (runtime.context == GalleryContext::dump) runtime.dump_bed.toggle();
-                else if (toggles_constraint(gallery_entry(runtime.context).controls) &&
-                         !toggle_constraints(runtime)) break;
+                const auto outcome = runtime.primary_action(error);
+                if (!error.empty()) {
+                    std::cerr << "scene action failed: " << error << '\n';
+                    break;
+                }
+                if (outcome == parallel_mater::gallery::GalleryActionOutcome::reset_requested &&
+                    !session.rebuild(options, runtime.context, dump_spheres,
+                                     fluid_particles, error)) {
+                    std::cerr << "scene action reset failed: " << error << '\n';
+                    break;
+                }
             }
             const bool smoke_debug = is_smoke_context(runtime.context);
             if (keys.pressed(KeyAction::primary_debug)) {
@@ -1159,139 +1121,47 @@ static int run_gallery_application(
         } else {
             physics_accumulator += frame_delta;
             const GalleryEntry &entry = gallery_entry(runtime.context);
-            const DirectionalInput directional = input_state.shared.catalog_visible
-                ? DirectionalInput{}
+            auto directional = input_state.shared.catalog_visible
+                ? parallel_mater::gallery::GalleryControlInput{}
                 : directional_input(
                       window, entry.controls != GalleryControlPolicy::motor_drive);
-            // An authored force controller owns the arrow keys. It must not
-            // simultaneously tilt gravity or drive an unrelated kinematic body.
-            const DirectionalInput steering = runtime.arrow_forces.active()
-                ? DirectionalInput{} : directional;
+            directional.camera = input_state.shared.camera.camera();
+            if (entry.controls == GalleryControlPolicy::peg_gravity &&
+                !input_state.shared.catalog_visible) {
+                directional.right +=
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
+                directional.forward +=
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
+            }
             parallel_mater::gallery::PhysicsFrameBudget physics_budget(k_maximum_catch_up_steps);
             bool step_failed = false;
             while (physics_accumulator >= k_timestep &&
                    physics_budget.can_step()) {
                 frame_timings.begin_phase(FramePhase::physics);
-                if (entry.controls == GalleryControlPolicy::motor_drive &&
-                    (!drive_motors(runtime, steering) ||
-                     !steer_motor_suspension(runtime, steering.x))) {
-                    step_failed = true;
-                    break;
-                }
-                if (runtime.context == GalleryContext::dump &&
-                    !runtime.dump_bed.advance(runtime.simulation, runtime.scene,
-                        runtime.instance, k_timestep, error)) {
-                    std::cerr << "tilt dump bucket failed: " << error << '\n';
-                    step_failed = true;
-                    break;
-                }
-                if (runtime.kinematic_index <
-                    runtime.instance.rigid_bodies.size()) {
-                    runtime.kinematic_target.position.x +=
-                        steering.x * k_kinematic_speed * k_timestep;
-                    runtime.kinematic_target.position.z +=
-                        steering.z * k_kinematic_speed * k_timestep;
-                    if (!runtime.simulation.set_kinematic_target(
-                            runtime.instance.rigid_bodies[
-                                runtime.kinematic_index],
-                            runtime.kinematic_target, error)) {
-                        std::cerr << "move kinematic body failed: "
-                                  << error << '\n';
-                        step_failed = true;
-                        break;
-                    }
-                }
                 StepOptions interactive_step = step_options;
                 interactive_step.substeps = scene_substeps(runtime.context);
-                interactive_step.gravity = {
-                    0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
-                if (entry.controls == GalleryControlPolicy::cloth_gravity) {
-                    cloth_gravity = steer_gravity(
-                        cloth_gravity, input_state.shared.camera.camera(),
-                        steering.x, -steering.z,
-                        k_gravity * runtime.scene.gravity_scale,
-                        k_cloth_gravity_tilt_degrees, k_timestep);
-                    interactive_step.gravity = cloth_gravity;
-                } else if (entry.controls ==
-                           GalleryControlPolicy::collector_gravity) {
-                    interactive_step.collect_rigid_contacts = true;
-                    interactive_step.gravity = collector_gravity_for(
-                        steering, runtime.scene.gravity_scale,
-                        input_state.shared.camera.camera());
-                    const Vec3 loose_gravity{
-                        0.0F, -k_gravity * runtime.scene.gravity_scale, 0.0F};
-                    if (!runtime.fixed_collector.apply_loose_gravity(
-                            runtime.simulation, runtime.scene,
-                            runtime.instance, loose_gravity,
-                            interactive_step.gravity, error)) {
-                        std::cerr << "apply loose fixed-scene gravity failed: "
-                                  << error << '\n';
-                        step_failed = true;
-                        break;
-                    }
-                } else if (uses_rigid_gravity(entry.controls)) {
-                    interactive_step.gravity = gravity_for(
-                        steering, runtime.scene.gravity_scale,
-                        input_state.shared.camera.camera());
-                } else if (entry.controls ==
-                           GalleryControlPolicy::peg_gravity) {
-                    const float right = steering.x + (!input_state.shared.catalog_visible ?
-                        static_cast<float>(glfwGetKey(
-                            window, GLFW_KEY_D) == GLFW_PRESS) -
-                        static_cast<float>(glfwGetKey(
-                            window, GLFW_KEY_A) == GLFW_PRESS) : 0.0F);
-                    const float forward = -steering.z + (!input_state.shared.catalog_visible ?
-                        static_cast<float>(glfwGetKey(
-                            window, GLFW_KEY_W) == GLFW_PRESS) -
-                        static_cast<float>(glfwGetKey(
-                            window, GLFW_KEY_S) == GLFW_PRESS) : 0.0F);
-                    peg_gravity = steer_gravity(
-                        peg_gravity, input_state.shared.camera.camera(), right,
-                        forward, k_gravity * runtime.scene.gravity_scale,
-                        peg_paint_gravity_tilt_degrees, k_timestep);
-                    interactive_step.gravity = peg_gravity;
-                }
-                if (!apply_gravity_tilt_overrides(
-                        runtime, interactive_step.gravity, error)) {
-                    std::cerr << "preserve authored rigid gravity failed: "
-                              << error << '\n';
-                    step_failed = true;
-                    break;
-                }
                 interactive_step.collect_rigid_contacts =
-                    interactive_step.collect_rigid_contacts ||
                     debug.rigid_contacts;
                 interactive_step.collect_fluid_contacts =
                     debug.rigid_contacts;
-                if (!runtime.arrow_forces.apply(
-                        runtime.simulation,
-                        input_state.shared.camera.camera(), directional.x,
-                        -directional.z, error)) {
-                    std::cerr << "apply screen-space arrow force failed: "
-                              << error << '\n';
-                    step_failed = true;
-                    break;
-                }
                 const bool host_diagnostics = capture_requested || debug.structure || debug.cloth_bonds ||
                     debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
                 bool native_render = runtime.renderer.native_image().handle != 0U;
                 bool read_host = true;
 #ifdef PM_GALLERY_METAL_RENDERER
                 native_render = native_render || bool(runtime.native_renderer);
-                read_host = !runtime.native_renderer || runtime.fixed_collector.active() || host_diagnostics;
+                read_host = !runtime.native_renderer ||
+                    entry.controls == GalleryControlPolicy::collector_gravity ||
+                    host_diagnostics;
 #endif
-                if (!step_runtime(runtime, interactive_step, error, !native_render || host_diagnostics, read_host)) {
+                interactive_step.read_deformables =
+                    !native_render || host_diagnostics;
+                interactive_step.read_host = read_host;
+                if (!runtime.controlled_step(
+                        directional, interactive_step, error)) {
                     std::cerr << "step gallery failed: " << error << '\n';
-                    step_failed = true;
-                    break;
-                }
-                if (entry.controls ==
-                        GalleryControlPolicy::collector_gravity &&
-                    !runtime.fixed_collector.collect(
-                        runtime.simulation, runtime.scene, runtime.instance,
-                        runtime.frame, error)) {
-                    std::cerr << "collect fixed contacts failed: "
-                              << error << '\n';
                     step_failed = true;
                     break;
                 }

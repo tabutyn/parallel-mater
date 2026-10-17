@@ -1,7 +1,7 @@
 {
   "id": "F7-04",
   "title": "Move Gallery controllers into common runtime",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-03"
   ],
@@ -16,15 +16,31 @@
     "Every catalog scene declares actions without platform key, touch or widget codes in the runtime.",
     "Desktop and mobile adapter tests drive the same controller transitions and reset results."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a2819346-387a-4cdd-b8a3-92e47245c64c",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-04/thomas-laptop",
-    "claimed_at": "2026-10-17T23:11:30Z",
-    "heartbeat_at": "2026-10-17T23:11:30Z",
-    "expires_at": "2026-10-18T23:11:30Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ctest --test-dir build-desktop-switch --output-on-failure -R 'parallel-mater-(camera-controller|gallery-registry|gallery-input|gallery-frame-timing)-tests' (4/4); catalog action contracts in tests/gallery/camera_controller_tests.cpp and tests/gallery/gallery_registry_contract_tests.cpp",
+    "PASS: Vulkan parallel-mater-gallery-session-contract-tests on NVIDIA RTX 3050 Ti Laptop GPU; mobile GallerySession and direct desktop runtime produce matching point release/reset transitions in tests/gallery/gallery_session_contract_tests.cpp",
+    "PASS: ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh (arm64-v8a debug APK); Android JNI dispatches the shared primary action and common controlled-step session path"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a2819346-387a-4cdd-b8a3-92e47245c64c",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-04/thomas-laptop",
+        "claimed_at": "2026-10-17T23:11:30Z",
+        "heartbeat_at": "2026-10-17T23:11:30Z",
+        "expires_at": "2026-10-18T23:11:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T23:42:52Z",
+      "reason": "Common GalleryRuntime now owns semantic gravity, force, constraint, motor, steering, dump-bed, kinematic, collector, paint and deformable control transitions for desktop and mobile shells",
+      "evidence": [
+        "PASS: ctest --test-dir build-desktop-switch --output-on-failure -R 'parallel-mater-(camera-controller|gallery-registry|gallery-input|gallery-frame-timing)-tests' (4/4); catalog action contracts in tests/gallery/camera_controller_tests.cpp and tests/gallery/gallery_registry_contract_tests.cpp",
+        "PASS: Vulkan parallel-mater-gallery-session-contract-tests on NVIDIA RTX 3050 Ti Laptop GPU; mobile GallerySession and direct desktop runtime produce matching point release/reset transitions in tests/gallery/gallery_session_contract_tests.cpp",
+        "PASS: ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh (arm64-v8a debug APK); Android JNI dispatches the shared primary action and common controlled-step session path"
+      ]
+    }
+  ]
 }
