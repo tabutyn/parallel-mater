@@ -23,6 +23,16 @@ struct FluidId {
     }
 };
 
+struct FluidPairCouplingId {
+    std::uint32_t index{};
+    std::uint32_t generation{};
+
+    [[nodiscard]] friend constexpr bool operator==(
+        FluidPairCouplingId left, FluidPairCouplingId right) noexcept {
+        return left.index == right.index && left.generation == right.generation;
+    }
+};
+
 struct SmokeId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -255,6 +265,7 @@ struct PhysicsDebugOptions {
 
 struct SimulationOptions {
     std::uint32_t fluid_capacity{1U};
+    std::uint32_t fluid_pair_coupling_capacity{1U};
     std::uint32_t smoke_capacity{1U};
     std::uint32_t fluid_smoke_coupling_capacity{1U};
     std::uint32_t smoke_soft_body_coupling_capacity{1U};
@@ -420,6 +431,12 @@ struct FluidClothCouplingOptions {
     float damping{12.0F};
     float tangential_drag{1.44F};
     float maximum_force{960.0F};
+    bool enabled{true};
+};
+
+struct FluidPairCouplingOptions {
+    FluidId first{};
+    FluidId second{};
     bool enabled{true};
 };
 

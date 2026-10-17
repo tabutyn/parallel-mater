@@ -25,7 +25,12 @@ constexpr CouplingContract coupling_contracts[] = {
      PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT,
      false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
              {PM_INTERACTION_MODE_CONTAINMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
-    {}, // Liquid/liquid graph behavior is specified by F2-05 and later tasks.
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_PRESSURE_BIT |
+         PM_INTERACTION_MODE_VISCOSITY_BIT,
+     false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_PRESSURE, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_VISCOSITY, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 3U},
     {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_CLOTH,
      PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT,
      false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
@@ -76,6 +81,40 @@ constexpr PmInteractionModeFlags all_mode_flags =
     PM_INTERACTION_MODE_PRESSURE_BIT | PM_INTERACTION_MODE_VISCOSITY_BIT |
     PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
 
+bool zero_equal_material_parameters(
+    const PmCouplingParameters &parameters) noexcept {
+    const auto &mechanical = parameters.mechanical;
+    const auto &smoke = parameters.smoke;
+    const auto &attachment = parameters.attachment;
+    const auto &thermal = parameters.thermal;
+    return mechanical.contactDistance == 0.0F &&
+        mechanical.stiffness == 0.0F && mechanical.damping == 0.0F &&
+        mechanical.friction == 0.0F && mechanical.tangentialDrag == 0.0F &&
+        mechanical.maximumForce == 0.0F &&
+        mechanical.maximumAcceleration == 0.0F &&
+        mechanical.twoWay == PM_TRUE && smoke.windDrag == 0.0F &&
+        smoke.maximumWindAcceleration == 0.0F && smoke.airDensity == 0.0F &&
+        smoke.dragCoefficient == 0.0F && smoke.contactDistance == 0.0F &&
+        smoke.tracerContact == PM_FALSE && attachment.firstVertex == 0U &&
+        attachment.lastVertex == 0U && attachment.effectiveMass == 0.0F &&
+        attachment.supportRadiusScale == 0.0F &&
+        attachment.contactSupportRadiusScale == 0.0F &&
+        attachment.maximumAcceleration == 0.0F &&
+        attachment.attachFirst == PM_FALSE &&
+        attachment.attachLast == PM_FALSE && thermal.heaterCenter[0] == 0.0F &&
+        thermal.heaterCenter[1] == 0.0F && thermal.heaterCenter[2] == 0.0F &&
+        thermal.heaterOrientation[0] == 0.0F &&
+        thermal.heaterOrientation[1] == 0.0F &&
+        thermal.heaterOrientation[2] == 0.0F &&
+        thermal.heaterOrientation[3] == 0.0F &&
+        thermal.heaterHalfExtents[0] == 0.0F &&
+        thermal.heaterHalfExtents[1] == 0.0F &&
+        thermal.heaterTemperature == 0.0F &&
+        thermal.boilingTemperature == 0.0F &&
+        thermal.heatTransferRate == 0.0F && thermal.windDrag == 0.0F &&
+        thermal.steamRiseSpeed == 0.0F;
+}
+
 static_assert(sizeof(coupling_contracts) / sizeof(coupling_contracts[0]) ==
               PM_COUPLING_SMOKE_SOFT_BODY + 1U);
 
@@ -85,7 +124,6 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
     if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.type < PM_COUPLING_LIQUID_RIGID || coupling.type > PM_COUPLING_SMOKE_SOFT_BODY)
         return PM_ERROR_INVALID_ARGUMENT;
-    if (coupling.type == PM_COUPLING_LIQUID_LIQUID) return PM_ERROR_FEATURE_NOT_PRESENT;
     if (coupling.modeFlags == 0U || (coupling.modeFlags & ~all_mode_flags) != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
@@ -95,7 +133,9 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
     const auto &contract = coupling_contracts[static_cast<std::size_t>(coupling.type)];
     if (coupling.modeFlags != contract.mode_flags)
         return PM_ERROR_FEATURE_NOT_PRESENT;
-    const bool valid_profile = contract.smoke_profile
+    const bool valid_profile = coupling.type == PM_COUPLING_LIQUID_LIQUID
+        ? coupling.materialProfile == PM_INTERACTION_MATERIAL_EQUAL
+        : contract.smoke_profile
         ? coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_PARTICLE ||
               coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_GRID
         : coupling.materialProfile == PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
@@ -104,7 +144,9 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
     for (std::uint32_t index = 0U; index < contract.interaction_count; ++index) {
         const PmInteractionCapabilityKey key{
             contract.first, contract.second,
-            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            coupling.type == PM_COUPLING_LIQUID_LIQUID
+                ? PM_INTERACTION_SCOPE_SEPARATE_SYSTEM
+                : PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
             contract.interactions[index].mode,
             contract.interactions[index].direction,
             coupling.materialProfile};
@@ -117,6 +159,10 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
             return PM_ERROR_FEATURE_NOT_PRESENT;
     }
     switch (coupling.type) {
+    case PM_COUPLING_LIQUID_LIQUID:
+        if (!zero_equal_material_parameters(coupling.parameters))
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        break;
     case PM_COUPLING_LIQUID_RIGID:
     case PM_COUPLING_LIQUID_CLOTH:
     case PM_COUPLING_LIQUID_ROPE:

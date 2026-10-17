@@ -129,6 +129,11 @@ Status SimulationRuntime::remove_fluid(
         if (coupling && coupling->alive && coupling->options.fluid == id)
             return failure(StatusCode::invalid_argument,
                            "fluid is still referenced by a smoke coupling");
+    for (const auto &coupling : impl_->fluid_pair_couplings)
+        if (coupling && coupling->alive &&
+            (coupling->options.first == id || coupling->options.second == id))
+            return failure(StatusCode::invalid_argument,
+                           "fluid is still referenced by a fluid coupling");
     for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
         if (impl_->paint_rules[i].alive &&
             impl_->paint_rules[i].options.source == id)
@@ -174,6 +179,97 @@ Status SimulationRuntime::fluid_view(FluidId id, FluidDeviceView &output) const 
               {fluid->foam, count}, {fluid->temperatures, count},
               count, fluid->options.particle_radius,
               fluid->options.support_radius, impl_->revision};
+    return success();
+}
+
+namespace {
+bool equal_fluid_material(const FluidOptions &first,
+                          const FluidOptions &second) noexcept {
+    return first.particle_radius == second.particle_radius &&
+        first.rest_density == second.rest_density &&
+        first.support_radius == second.support_radius &&
+        first.rest_particle_volume == second.rest_particle_volume &&
+        first.repulsion == second.repulsion &&
+        first.viscosity == second.viscosity &&
+        first.normal_damping == second.normal_damping &&
+        first.velocity_damping == second.velocity_damping &&
+        first.maximum_speed == second.maximum_speed &&
+        first.maximum_pair_acceleration == second.maximum_pair_acceleration &&
+        first.solver_iterations == second.solver_iterations;
+}
+} // namespace
+
+Status SimulationRuntime::add_fluid_pair_coupling(
+    FluidPairCouplingOptions options, FluidPairCouplingId &output) noexcept {
+    output = {};
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "simulation is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (options.first.index >= options.second.index)
+        return failure(StatusCode::invalid_argument,
+                       "fluid pair endpoints must be distinct and canonical");
+    FluidStorage *first = nullptr;
+    FluidStorage *second = nullptr;
+    if (!(status = impl_->validate_handle(options.first, first)) ||
+        !(status = impl_->validate_handle(options.second, second)))
+        return status;
+    if (!equal_fluid_material(first->options, second->options))
+        return failure(StatusCode::not_supported,
+                       "fluid pair requires equal material state");
+    for (const auto &coupling : impl_->fluid_pair_couplings)
+        if (coupling && coupling->alive &&
+            coupling->options.first == options.first &&
+            coupling->options.second == options.second)
+            return failure(StatusCode::invalid_argument,
+                           "fluid pair is already coupled");
+    std::uint32_t slot = 0U;
+    while (slot < impl_->fluid_pair_couplings.size() &&
+           impl_->fluid_pair_couplings[slot] &&
+           impl_->fluid_pair_couplings[slot]->alive)
+        ++slot;
+    if (slot == impl_->fluid_pair_couplings.size())
+        return failure(StatusCode::capacity_exceeded,
+                       "fluid pair coupling capacity exhausted");
+    std::unique_ptr<FluidPairCouplingStorage> coupling(
+        new (std::nothrow) FluidPairCouplingStorage());
+    if (!coupling)
+        return failure(StatusCode::out_of_memory,
+                       "fluid pair coupling allocation failed");
+    StorageAllocator allocator;
+    status = simulation::visit_fluid_pair_neighbor_index_storage(
+        coupling->index, first->options.capacity, second->options.capacity,
+        allocator);
+    if (!status) return status;
+    for (std::uint32_t endpoint = 0U; endpoint < 2U; ++endpoint) {
+        *coupling->index.neighbor_overflow[endpoint] = 0U;
+        *coupling->index.maximum_neighbor_count[endpoint] = 0U;
+    }
+    coupling->options = options;
+    coupling->generation = impl_->fluid_pair_couplings[slot].generation();
+    coupling->alive = true;
+    output = {slot, coupling->generation};
+    impl_->fluid_pair_couplings[slot] = std::move(coupling);
+    ++impl_->revision;
+    return success();
+}
+
+Status SimulationRuntime::remove_fluid_pair_coupling(
+    FluidPairCouplingId id) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "simulation is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->fluid_pair_couplings.size() ||
+        !impl_->fluid_pair_couplings[id.index] ||
+        !impl_->fluid_pair_couplings[id.index]->alive ||
+        impl_->fluid_pair_couplings[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle,
+                       "fluid pair coupling is stale");
+    impl_->fluid_pair_couplings[id.index].retire();
+    ++impl_->revision;
     return success();
 }
 

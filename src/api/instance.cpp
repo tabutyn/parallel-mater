@@ -129,6 +129,7 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     // Private host fixture: exercise resource lifetime without claiming
     // production Slang CPU simulation support for these domains.
     features.particleLiquids = PM_TRUE;
+    features.liquidLiquidCoupling = PM_TRUE;
     features.particleEmitters = PM_TRUE;
     features.cloth = PM_TRUE;
     features.paint = PM_TRUE;

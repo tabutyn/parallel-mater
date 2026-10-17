@@ -94,6 +94,15 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                          2U * impl_->fluid_rope_couplings.size());
             }
         }
+        for (const auto &coupling : impl_->fluid_pair_couplings) {
+            if (!coupling || !coupling->alive || !coupling->options.enabled)
+                continue;
+            const auto &first = impl_->fluids[coupling->options.first.index];
+            if (first && first->alive)
+                maximum_stages +=
+                    static_cast<std::size_t>(options.substeps) *
+                    first->options.solver_iterations * 2U;
+        }
         for (const auto &smoke : impl_->smokes)
             if (smoke && smoke->alive) maximum_stages += 3U;
         for (const auto &cloth : impl_->cloths) {
@@ -1721,6 +1730,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             sizeof(float), stream);
         if (error != backend.success_code()) return backend.failure(error, "fluid rope diagnostics clear failed");
     }
+    std::uint32_t maximum_fluid_iterations{};
     for (std::uint32_t fluid_index = 0U;
          fluid_index < impl_->fluids.size(); ++fluid_index) {
         if (!impl_->fluids[fluid_index] || !impl_->fluids[fluid_index]->alive)
@@ -1794,48 +1804,42 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             status = record_timing_stage(TimingStage::fluid_spawn);
             if (!status) return status;
         }
+        fluid.frame_live = live;
+        fluid.frame_first_spawned = first_spawned;
+        fluid.frame_spawned = spawned;
+        fluid.frame_iterations = 0U;
         if (live == 0U) continue;
         const std::uint32_t iterations =
             options.substeps * fluid.options.solver_iterations;
-        const float dt = options.timestep / static_cast<float>(iterations);
-        const typename Backend::FluidDispatchConstants fluid_constants = backend.fluid_constants(
-            fluid.options, options.gravity, dt, live);
-        const Vec3 fluid_up =
-            backend.normalized_or(backend.multiply(options.gravity, -1.0F),
-                          {0.0F, 1.0F, 0.0F});
-        const float diameter = 2.0F * fluid.options.particle_radius;
-        const float particle_mass = fluid.options.rest_density *
-            (fluid.options.rest_particle_volume > 0.0F
-                ? fluid.options.rest_particle_volume
-                : diameter * diameter * diameter);
-        const std::uint32_t body_words =
-            (impl_->options.rigid_body_capacity + 63U) / 64U;
-        if (has_rigid_bodies) {
-            error = backend.clear(impl_->fluid_body_masks, 0,
-                Backend::fluid_body_buckets * body_words * sizeof(unsigned long long),
-                stream);
-            if (error == backend.success_code())
-                error = backend.clear(impl_->fluid_global_body_masks, 0,
-                    body_words * sizeof(unsigned long long), stream);
-            if (error != backend.success_code())
-                return backend.failure(error, "fluid body index clear failed");
-            backend.index_fluid_body_cells(
-                block_count, block_size, stream,
-                impl_->parameters, impl_->fluid_body_bounds,
-                impl_->rigid_body_count, body_words,
-                fluid.options.particle_radius + fluid.options.maximum_speed * dt,
-                impl_->fluid_body_masks, impl_->fluid_global_body_masks);
-            status = record_timing_stage(TimingStage::fluid_body_index);
-            if (!status) return status;
-        }
+        fluid.frame_iterations = iterations;
+        maximum_fluid_iterations = std::max(maximum_fluid_iterations, iterations);
         if (collect_fluid_contacts) {
             error = backend.clear(fluid.contact_flags, 0,
                 fluid.options.capacity * sizeof(std::uint8_t), stream);
             if (error != backend.success_code())
                 return backend.failure(error, "fluid event flags clear failed");
         }
-        for (std::uint32_t iteration = 0U; iteration < iterations;
-             ++iteration) {
+    }
+    for (std::uint32_t iteration = 0U;
+         iteration < maximum_fluid_iterations; ++iteration) {
+        for (std::uint32_t fluid_index = 0U;
+             fluid_index < impl_->fluids.size(); ++fluid_index) {
+            if (!impl_->fluids[fluid_index] ||
+                !impl_->fluids[fluid_index]->alive)
+                continue;
+            auto &fluid = *impl_->fluids[fluid_index];
+            if (fluid.frame_live == 0U || iteration >= fluid.frame_iterations)
+                continue;
+            const std::uint32_t live = fluid.frame_live;
+            const std::uint32_t iterations = fluid.frame_iterations;
+            const float dt = options.timestep / static_cast<float>(iterations);
+            const std::uint32_t blocks =
+                (fluid.options.capacity + block_size - 1U) / block_size;
+            const typename Backend::FluidDispatchConstants fluid_constants =
+                backend.fluid_constants(fluid.options, options.gravity, dt, live);
+            const Vec3 fluid_up = backend.normalized_or(
+                backend.multiply(options.gravity, -1.0F),
+                {0.0F, 1.0F, 0.0F});
             backend.fluid_cell_keys(blocks, block_size, stream,
                 fluid.positions,
                 fluid.count, fluid.options.capacity,
@@ -1861,6 +1865,138 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 impl_->fluid_maximum_neighbor_count);
             status = record_timing_stage(TimingStage::fluid_neighbor_forces);
             if (!status) return status;
+        }
+        // Every fluid owns its self-force buffer before an edge adds cross-
+        // population forces. All edges finish before either endpoint integrates.
+        for (const auto &owner : impl_->fluid_pair_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &pair = *owner;
+            const auto first_index = pair.options.first.index;
+            const auto second_index = pair.options.second.index;
+            if (first_index >= impl_->fluids.size() ||
+                second_index >= impl_->fluids.size())
+                return schedule_failure(StatusCode::invalid_handle,
+                    "fluid pair endpoint is stale");
+            const auto &first_owner = impl_->fluids[first_index];
+            const auto &second_owner = impl_->fluids[second_index];
+            if (!first_owner || !second_owner || !first_owner->alive ||
+                !second_owner->alive ||
+                first_owner->generation != pair.options.first.generation ||
+                second_owner->generation != pair.options.second.generation)
+                return schedule_failure(StatusCode::invalid_handle,
+                    "fluid pair endpoint is stale");
+            auto &first = *first_owner;
+            auto &second = *second_owner;
+            if (first.frame_live == 0U || second.frame_live == 0U ||
+                iteration >= first.frame_iterations ||
+                iteration >= second.frame_iterations)
+                continue;
+            const auto pair_blocks =
+                (pair.index.total_capacity + block_size - 1U) / block_size;
+            backend.fluid_pair_cell_keys(
+                pair_blocks, block_size, stream,
+                first.positions, first.count, first.options.capacity,
+                second.positions, second.count, second.options.capacity,
+                1.0F / first.options.support_radius,
+                pair.index.keys[0], pair.index.identities[0]);
+            error = backend.radix_sort_pairs_u64_u32(
+                stream, pair.index.keys[0], pair.index.keys[1],
+                pair.index.identities[0], pair.index.identities[1],
+                pair.index.total_capacity, pair.index.sort_workspace,
+                pair.index.sort_workspace_size);
+            if (error != backend.success_code()) {
+                backend.wait(stream);
+                return backend.failure(error,
+                    "fluid pair neighbor cell sort failed");
+            }
+            status = record_timing_stage(TimingStage::fluid_neighbor_sort);
+            if (!status) return status;
+            backend.fluid_pair_neighbor_counts(
+                pair_blocks, block_size, stream,
+                first.positions, first.count, first.options.capacity,
+                first.options.maximum_neighbors,
+                second.positions, second.count, second.options.capacity,
+                second.options.maximum_neighbors,
+                pair.index.keys[1], pair.index.identities[1],
+                pair.index.total_capacity, first.options.support_radius,
+                pair.index.total_neighbors[0], pair.index.cross_neighbors[0],
+                pair.index.total_neighbors[1], pair.index.cross_neighbors[1],
+                impl_->fluid_neighbor_overflow,
+                impl_->fluid_neighbor_overflow,
+                impl_->fluid_maximum_neighbor_count,
+                impl_->fluid_maximum_neighbor_count);
+            const auto constants = backend.fluid_constants(
+                first.options, options.gravity,
+                options.timestep /
+                    static_cast<float>(first.frame_iterations),
+                first.frame_live);
+            backend.fluid_pair_pressure_contact(
+                pair_blocks, block_size, stream,
+                first.positions, first.velocities, first.count,
+                first.options.capacity, first.forces,
+                second.positions, second.velocities, second.count,
+                second.options.capacity, second.forces,
+                pair.index.keys[1], pair.index.identities[1],
+                pair.index.total_capacity, constants);
+            backend.fluid_pair_viscosity(
+                pair_blocks, block_size, stream,
+                first.positions, first.velocities, first.count,
+                first.options.capacity, first.forces,
+                second.positions, second.velocities, second.count,
+                second.options.capacity, second.forces,
+                pair.index.keys[1], pair.index.identities[1],
+                pair.index.total_capacity, constants);
+            status = record_timing_stage(
+                TimingStage::fluid_neighbor_forces, 3U);
+            if (!status) return status;
+        }
+        for (std::uint32_t fluid_index = 0U;
+             fluid_index < impl_->fluids.size(); ++fluid_index) {
+            if (!impl_->fluids[fluid_index] ||
+                !impl_->fluids[fluid_index]->alive)
+                continue;
+            auto &fluid = *impl_->fluids[fluid_index];
+            if (fluid.frame_live == 0U || iteration >= fluid.frame_iterations)
+                continue;
+            const FluidId fluid_id{fluid_index, fluid.generation};
+            const std::uint32_t live = fluid.frame_live;
+            const std::uint32_t first_spawned = fluid.frame_first_spawned;
+            const bool spawned = fluid.frame_spawned;
+            const std::uint32_t iterations = fluid.frame_iterations;
+            const float dt = options.timestep / static_cast<float>(iterations);
+            const std::uint32_t blocks =
+                (fluid.options.capacity + block_size - 1U) / block_size;
+            const typename Backend::FluidDispatchConstants fluid_constants =
+                backend.fluid_constants(fluid.options, options.gravity, dt, live);
+            const float diameter = 2.0F * fluid.options.particle_radius;
+            const float particle_mass = fluid.options.rest_density *
+                (fluid.options.rest_particle_volume > 0.0F
+                    ? fluid.options.rest_particle_volume
+                    : diameter * diameter * diameter);
+            const std::uint32_t body_words =
+                (impl_->options.rigid_body_capacity + 63U) / 64U;
+            // These masks are shared scratch. Rebuild them for this fluid
+            // after pair-force staging and before its contact phase.
+            if (has_rigid_bodies) {
+                error = backend.clear(impl_->fluid_body_masks, 0,
+                    Backend::fluid_body_buckets * body_words *
+                        sizeof(unsigned long long), stream);
+                if (error == backend.success_code())
+                    error = backend.clear(impl_->fluid_global_body_masks, 0,
+                        body_words * sizeof(unsigned long long), stream);
+                if (error != backend.success_code())
+                    return backend.failure(error,
+                        "fluid body index clear failed");
+                backend.index_fluid_body_cells(
+                    block_count, block_size, stream,
+                    impl_->parameters, impl_->fluid_body_bounds,
+                    impl_->rigid_body_count, body_words,
+                    fluid.options.particle_radius +
+                        fluid.options.maximum_speed * dt,
+                    impl_->fluid_body_masks, impl_->fluid_global_body_masks);
+                status = record_timing_stage(TimingStage::fluid_body_index);
+                if (!status) return status;
+            }
             for (auto &coupling :
                  impl_->fluid_cloth_couplings) {
                 if (!coupling.alive || !coupling.options.enabled ||
@@ -2197,6 +2333,17 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 if (!status) return status;
             }
         }
+    }
+    for (std::uint32_t fluid_index = 0U;
+         fluid_index < impl_->fluids.size(); ++fluid_index) {
+        if (!impl_->fluids[fluid_index] || !impl_->fluids[fluid_index]->alive ||
+            impl_->fluids[fluid_index]->frame_live == 0U)
+            continue;
+        auto &fluid = *impl_->fluids[fluid_index];
+        const FluidId fluid_id{fluid_index, fluid.generation};
+        const std::uint32_t blocks =
+            (fluid.options.capacity + block_size - 1U) / block_size;
+
         if (collect_fluid_contacts) {
             error = backend.compact_flagged_indices(
                 stream, fluid.contact_flags, fluid.options.capacity, fluid.selected,
