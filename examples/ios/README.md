@@ -96,12 +96,13 @@ ctest --test-dir build-macos-metal-preview --output-on-failure \
   -R 'ipad-session|gallery-workload'
 ```
 
-The session test loads all 27 exposed scenes with software and native Metal
+The session test loads all 28 shared catalog scenes supported by the queried
+Metal device with software and native Metal
 rendering, checks finite domain output and image dimensions, and exercises
 pause, reset, timing-history reset, invalid selection, and Point release/restore.
-It also checks Android's eight-scene catalog and budgets, plus image-readback
-exclusion on ordinary GPU frames. This tests shared code with the Mac GPU,
-not Android hardware or UIKit.
+It also checks Android's workload budget against the same catalog, plus
+image-readback exclusion on ordinary GPU frames. This tests shared code with
+the Mac GPU, not Android hardware or UIKit.
 
 For an on-device diagnostic run:
 
@@ -109,7 +110,9 @@ For an on-device diagnostic run:
 python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID --qualify 120
 ```
 
-The app runs 120 frames per scene, validates output/images, and checks shared
+The app records all 28 catalog entries, runs 120 frames for each available
+scene, records exact capability reasons for unavailable scenes, validates
+output/images, and checks shared
 pause, inactive/resume and reset behavior. The host then backgrounds Gallery
 using Settings and returns to Gallery, checking actual OS lifecycle counters and
 that simulation did not advance while inactive. Reports are nonce-bound and

@@ -11,43 +11,20 @@
 #include <parallel_mater_gallery/arrow_forces.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <sstream>
 #include <stdexcept>
 
 namespace parallel_mater::gallery {
 namespace {
-constexpr std::array files{"RigidBody.glb", "ConstraintFixed.glb", "Celestial.glb",
-    "ConstraintHinge.glb", "ConstraintPiston.glb", "ConstraintGeneric.glb",
-    "ConstraintMotorSpring.glb", "DumpTruck.glb", "Fluid.glb", "FluidRigid.glb",
-    "Pegs.glb", "Cloth.glb", "ClothTear.glb", "ClothPaint.glb", "ClothWater.glb",
-    "Softbody.glb", "SoftbodyRigidBody.glb", "SoftbodyCloth.glb", "SoftbodyFluid.glb",
-    "Rope.glb", "RopeFluid.glb", "RopeSoftbody.glb", "RopeCloth.glb", "Smoke.glb",
-    "SmokeWater.glb", "SmokeSoftbody.glb", "SmokeCloth.glb", "SmokeRope.glb"};
-static_assert(files.size() == gallery_entries.size());
-const GalleryEntry &scene_entry(GallerySceneSet scenes, unsigned index) {
-    constexpr std::array<unsigned, 8> rigid_liquid{0, 1, 2, 3, 4, 5, 8, 9};
-    if (scenes == GallerySceneSet::rigid_liquid) {
-        if (index >= rigid_liquid.size()) throw std::runtime_error("Unknown scene");
-        return gallery_entries[rigid_liquid[index]];
-    }
-    // Dump requires vehicle controls, which this touch preview does not expose.
-    if (index >= gallery_entries.size() - 1) throw std::runtime_error("Unknown scene");
-    return gallery_entries[index >= 7 ? index + 1 : index];
-}
 void require(bool ok, const std::string &error) {
     if (!ok) throw std::runtime_error(error.empty() ? "Gallery operation failed" : error);
 }
 }
-std::vector<std::string> GallerySession::scene_names(GallerySceneSet scenes) {
-    std::vector<std::string> names;
-    const unsigned count = scenes == GallerySceneSet::rigid_liquid ? 8 : gallery_entries.size() - 1;
-    for (unsigned i = 0; i < count; ++i)
-        names.emplace_back(scene_entry(scenes, i).name);
-    return names;
+const GalleryCatalogItem &GallerySession::catalog_item(unsigned index) const {
+    if (index >= catalog_.size()) throw std::runtime_error("Unknown scene");
+    return catalog_[index];
 }
-const GalleryEntry &GallerySession::entry(unsigned index) const { return scene_entry(config_.scenes, index); }
 GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(config)) {
 #ifndef PM_GALLERY_METAL_RENDERER
     if (config_.gpu_rendering) throw std::runtime_error("Native GPU Gallery renderer is not built");
@@ -69,12 +46,15 @@ void GallerySession::require_scene() const {
         throw std::runtime_error("Choose a scene or Reset to continue");
 }
 void GallerySession::select(unsigned index) {
-    const auto &selected = entry(index);
+    const auto &item = catalog_item(index);
+    if (!item.available)
+        throw std::runtime_error(std::string(item.scene.name) + ": " +
+                                 item.unavailable_reason);
+    const auto &selected = item.scene;
     std::string error;
     GalleryRuntimeCreateInfo request;
     request.context = selected.context;
-    request.asset =
-        config_.assets / files[static_cast<unsigned>(selected.source)];
+    request.asset = config_.assets / item.asset_file;
     request.backend = config_.native_backend;
     request.width = width;
     request.height = height;
@@ -83,6 +63,11 @@ void GallerySession::select(unsigned index) {
         GalleryReplacementPolicy::release_before_device_create;
     const unsigned brick_count = bricks_;
     const GalleryWorkloadLimits selected_limits = limits;
+    struct PendingDevice {
+        std::optional<GalleryCatalog> catalog;
+        std::string name;
+    };
+    const auto pending_device = std::make_shared<PendingDevice>();
     request.configure_scene =
         [context = selected.context, has_fluid = selected.has_fluid,
          brick_count, selected_limits](SceneDefinition &scene,
@@ -106,10 +91,14 @@ void GallerySession::select(unsigned index) {
     const bool gpu_rendering = config_.gpu_rendering;
     const auto native_backend = config_.native_backend;
     request.prepare_runtime =
-        [this, context = selected.context, gpu_rendering, native_backend]
+        [pending_device, context = selected.context,
+         gpu_rendering, native_backend]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
         pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
+        PmPhysicalDeviceFeatures features{};
+        pmGetPhysicalDeviceFeatures(next.simulation.physical_device(), &features);
+        pending_device->catalog = make_gallery_catalog(&features);
         if (native_backend) {
             PmNativeDeviceInfo native{};
             if (pmGetNativeDevice(next.simulation.device(), &native) != PM_SUCCESS ||
@@ -135,7 +124,7 @@ void GallerySession::select(unsigned index) {
                 -9.81F * next.scene.gravity_scale, 0.0F}}, failure)) {
             return false;
         }
-        device_ = device.deviceName;
+        pending_device->name = device.deviceName;
         return true;
     };
     const unsigned previous_selection = selected_;
@@ -152,6 +141,10 @@ void GallerySession::select(unsigned index) {
         }
         require(false, error);
     }
+    if (!pending_device->catalog)
+        throw std::runtime_error("Gallery backend did not report scene capabilities");
+    catalog_ = *pending_device->catalog;
+    device_ = pending_device->name;
     selected_ = index;
     frames = 0;
     pixels.clear();
@@ -314,7 +307,9 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
         timing.finish_frame(); // No scan-out claim. UI handoff excluded unless supplied above.
     } catch (...) { timing.cancel_frame(); throw; }
 }
-std::string GallerySession::scene_file() const { return files[static_cast<unsigned>(entry(selected_).source)]; }
+std::string GallerySession::scene_file() const {
+    return std::string(catalog_item(selected_).asset_file);
+}
 FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
     if (frame_count == 0 || frame_count > 100000)
         throw std::runtime_error("Qualification frame count must be 1..100000");
@@ -415,7 +410,10 @@ void GallerySession::validate_snapshot() const {
 std::string GallerySession::details() const {
     require_scene();
     std::ostringstream text;
-    text << device_ << (config_.gpu_rendering
+    const auto &selected = catalog_item(selected_);
+    text << device_ << "\nScene: " << selected.id << " · available"
+         << "\nRequires: " << selected.required_feature_names
+         << (config_.gpu_rendering
         ? "\nShared Slang physics; direct Metal GPU graphics (fenced preview).\n\nProfile: "
         : "\nShared Slang physics; software image renderer.\n\nProfile: ") << limits.name
          << "\n" << limits.fluid_particles << " liquid particles · " << limits.coupled_bodies

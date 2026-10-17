@@ -158,7 +158,7 @@ def wait_report(device, name, nonce, directory, predicate, timeout, health=None,
                     save.write_text(json.dumps(report, indent=2) + "\n")
                 if "scenes" in report and len(report["scenes"]) != last_progress:
                     last_progress = len(report["scenes"])
-                    print(f"Device qualification: {last_progress}/27 scenes completed", flush=True)
+                    print(f"Device qualification: {last_progress}/28 scenes completed", flush=True)
                 if predicate(report):
                     return report
         except (subprocess.CalledProcessError, OSError, ValueError):
@@ -227,7 +227,13 @@ def main():
                                      health=lambda: assert_process_running(args.device, runtime["pid"], directory),
                                      save=args.output / "ipad-qualification.json")
                 (args.output / "ipad-qualification.json").write_text(json.dumps(report, indent=2) + "\n")
-                if len(report["scenes"]) != 27 or not all(s["passed"] for s in report["scenes"]):
+                scenes = report["scenes"]
+                supported = [scene for scene in scenes if scene.get("available")]
+                unavailable = [scene for scene in scenes if not scene.get("available")]
+                if (len(scenes) != 28 or not supported or
+                    not all(scene.get("passed") for scene in supported) or
+                    not all(scene.get("skipped") and scene.get("reason")
+                            for scene in unavailable)):
                     raise RuntimeError("iPad scene qualification failed; see saved report")
                 # Exercise the OS lifecycle, separately from session-only checks.
                 run("xcrun", "devicectl", "device", "process", "launch", "--device", args.device, "com.apple.Preferences")

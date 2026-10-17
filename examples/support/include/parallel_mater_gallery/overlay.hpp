@@ -2,7 +2,7 @@
 #pragma once
 
 #include <parallel_mater/parallel_mater.h>
-#include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/gallery_catalog.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 
@@ -75,7 +75,7 @@ void draw_physics_debug_overlay(
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection,
-                          const PmPhysicalDeviceFeatures *features = nullptr);
+                          std::span<const GalleryCatalogItem> catalog);
 
 void draw_backend_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,

@@ -43,7 +43,13 @@ def main():
     report = wait("qualification.json", lambda r: r.get("completed"), args.timeout)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "qualification.json").write_text(json.dumps(report, indent=2) + "\n")
-    if len(report["scenes"]) != 8 or not all(s["passed"] for s in report["scenes"]):
+    scenes = report["scenes"]
+    if len(scenes) != 28:
+        raise RuntimeError("Shared scene catalog is incomplete; see qualification.json")
+    supported = [scene for scene in scenes if scene.get("available")]
+    unsupported = [scene for scene in scenes if not scene.get("available")]
+    if (not supported or not all(scene.get("passed") for scene in supported) or
+            not all(scene.get("skipped") and scene.get("reason") for scene in unsupported)):
         raise RuntimeError("Scene checks failed; see qualification.json")
     before = wait("runtime-info.json", lambda r: r["active"])
     adb("shell", "input", "keyevent", "KEYCODE_HOME")
@@ -54,7 +60,9 @@ def main():
     if foreground["frames"] != background["frames"]:
         raise RuntimeError("Simulation advanced while backgrounded")
     (args.output / "lifecycle.json").write_text(json.dumps({"background": background, "foreground": foreground}, indent=2) + "\n")
-    print("PASS: 8 scenes, shared pause/reset checks, and OS background recovery", report["revision"], report["backend"])
+    print(f"PASS: {len(scenes)} catalog scenes ({len(supported)} supported), "
+          "shared pause/reset checks, and OS background recovery",
+          report["revision"], report["backend"])
 
 
 if __name__ == "__main__":
