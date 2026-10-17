@@ -1,16 +1,30 @@
 {
   "id": "F7-03",
   "title": "Extract common Gallery scene lifecycle",
-  "status": "open",
-  "dependencies": ["F7-01"],
-  "locks": ["gallery-session-runtime"],
-  "requires": ["Any development host"],
+  "status": "leased",
+  "dependencies": [
+    "F7-01"
+  ],
+  "locks": [
+    "gallery-session-runtime"
+  ],
+  "requires": [
+    "Any development host"
+  ],
   "scope": "Make one reusable C++ runtime own scene load/create, replacement, reset, frame state, public-command submission and teardown for every Gallery shell.",
   "acceptance": [
     "Desktop and mobile no longer define separate scene/session ownership structures or duplicate create-step-destroy paths.",
     "Failure, replacement and teardown tests prove recoverable state and exactly-once resource release."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5f45b919-acfa-4aba-ab09-e5f102e33dc9",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-03/thomas-laptop",
+    "claimed_at": "2026-10-17T22:40:15Z",
+    "heartbeat_at": "2026-10-17T22:40:15Z",
+    "expires_at": "2026-10-18T22:40:15Z"
+  },
   "history": []
 }
