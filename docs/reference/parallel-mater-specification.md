@@ -82,7 +82,7 @@ Set sType to its matching PM_STRUCTURE_TYPE_* value; pNext = NULL in core 0.2. U
 
 ### 1.5 Units & lifetime
 
-Right-handed; +Y up; meters, seconds, kilograms, radians, kelvin. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order. Destruction may wait for pending device work; explicit completion before destruction avoids this implicit wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects.
+Right-handed; +Y up; meters, seconds, kilograms and radians. Particle fields named temperatureCelsius and the API 0.2 coupling fields heaterTemperature and boilingTemperature use degrees Celsius; temperature differences have the same magnitude in kelvin. Future absolute thermodynamic fields must state their scale. Quaternions: normalized x,y,z,w, local-to-world. No implicit coordinate conversion. Device children share one device. Destroy in reverse dependency order. Destruction may wait for pending device work; explicit completion before destruction avoids this implicit wait. Command buffers borrow resources. Externally synchronize host access to queues, pools, and mutable objects.
 
 <a id="spec-return_codes"></a>
 
@@ -1113,7 +1113,11 @@ PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     const PmCouplingState *pCouplings);
 ```
 
-first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph. The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair.
+first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
+
+Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.
+
+The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Other API 0.2 directions are fixed by coupling type and must not be inferred from a zero parameter. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit.
 
 <a id="spec-domain_materials"></a>
 
