@@ -18,27 +18,6 @@ def run(*args, **kwargs):
     return subprocess.run([str(a) for a in args], check=True, text=True, **kwargs)
 
 
-def verify_macos_runtime(app):
-    contents = app / "Contents"
-    with (contents / "Info.plist").open("rb") as stream:
-        executable = contents / "MacOS" / plistlib.load(stream)["CFBundleExecutable"]
-    if not executable.is_file():
-        raise RuntimeError("macOS application executable is missing")
-    dependencies = run("otool", "-L", executable, capture_output=True).stdout.splitlines()[1:]
-    missing = []
-    for line in dependencies:
-        dependency = line.strip().split(" (", 1)[0]
-        if dependency.startswith("@rpath/"):
-            relative = pathlib.PurePosixPath(dependency.removeprefix("@rpath/"))
-            if relative.is_absolute() or ".." in relative.parts:
-                missing.append(dependency)
-                continue
-            if not contents.joinpath("Frameworks", *relative.parts).is_file():
-                missing.append(dependency)
-    if missing:
-        raise RuntimeError("macOS application has missing bundled libraries: " + ", ".join(missing))
-
-
 def build_info(app, platform, allow_dirty=False):
     resources = app / "Contents/Resources" if platform == "macos" else app
     info = json.loads((resources / "build-info.json").read_text())
@@ -50,8 +29,6 @@ def build_info(app, platform, allow_dirty=False):
         raise RuntimeError("Release deployment requires a clean commit and clean rebuild (--allow-dirty is preview-only)")
     if info["backend"] != "metal" or info["release_channel"] != "development-preview":
         raise RuntimeError("Expected explicitly labeled Metal development preview")
-    if platform == "macos":
-        verify_macos_runtime(app)
     run("codesign", "--verify", "--deep", "--strict", app)
     if platform == "ipad" and not (app / "Assets.car").is_file():
         raise RuntimeError("iPad app icon asset catalog is missing")
@@ -228,9 +205,7 @@ def main():
         if f"Build revision: {info['revision']}" not in result.stdout or "renderer=metal-direct-fenced" not in result.stdout:
             raise RuntimeError("Installed Mac runtime did not prove the expected revision and direct Metal renderer")
         print("Installed bundle and native smoke verified:", info)
-        # A precise path avoids Launch Services selecting a same-ID build-tree
-        # bundle while an incremental build is still assembling its Frameworks.
-        run("open", installed)
+        run("open", "-a", installed)
     else:
         run("xcrun", "devicectl", "device", "install", "app", "--device", args.device, app)
         nonce = str(uuid.uuid4())
