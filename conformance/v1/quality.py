@@ -278,6 +278,63 @@ def _check_split_combined(profile: dict[str, Any], sample: dict[str, Any],
                                         error, limit))
 
 
+def _evaluate_penetration(profile: dict[str, Any], result: dict[str, Any],
+                          expected_hash: str, driver: Any,
+                          failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture", "expected an object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected an object", actual))
+        actual = {}
+
+    exact_fields = ("id", "scene", "body_count", "frames", "substeps",
+                    "timestep_seconds", "oracle")
+    for field in exact_fields:
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting does not match profile",
+                                    actual.get(field), definition.get(field)))
+
+    frames = definition.get("frames")
+    frame = actual.get("maximum_penetration_frame")
+    if (not isinstance(frame, int) or isinstance(frame, bool) or
+            not isinstance(frames, int) or frame < 0 or frame >= frames):
+        failures.append(Failure("$.fixture.maximum_penetration_frame",
+                                "maximum penetration frame is outside the run",
+                                frame, f"0 <= frame < {frames}"))
+
+    penetration = _scalar(actual.get("maximum_penetration_m"),
+                          "$.fixture.maximum_penetration_m", failures)
+    limit = profile.get("tolerances", {}).get("maximum_penetration_m")
+    if not _number(limit) or float(limit) < 0.0:
+        failures.append(Failure("$.profile.tolerances.maximum_penetration_m",
+                                "expected a nonnegative finite limit", limit))
+    elif penetration is not None:
+        if penetration < 0.0:
+            failures.append(Failure("$.fixture.maximum_penetration_m",
+                                    "penetration cannot be negative", penetration, 0.0))
+        elif penetration > float(limit):
+            failures.append(Failure("$.fixture.maximum_penetration_m",
+                                    "maximum penetration exceeds profile",
+                                    penetration, float(limit)))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": 1 if penetration is not None else 0,
+        "failure_count": len(failures),
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -303,6 +360,13 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             not isinstance(driver.get("device"), str) or not driver["device"].strip()):
         failures.append(Failure("$.driver",
                                 "driver name and device are required", driver))
+
+    evaluation = profile.get("evaluation", "system_exchange")
+    if evaluation == "maximum_pairwise_penetration":
+        return _evaluate_penetration(profile, result, expected_hash, driver, failures)
+    if evaluation != "system_exchange":
+        failures.append(Failure("$.profile.evaluation",
+                                "unsupported quality evaluation", evaluation))
 
     definitions = {fixture["id"]: fixture for fixture in profile.get("fixtures", [])
                    if isinstance(fixture, dict) and isinstance(fixture.get("id"), str)}
