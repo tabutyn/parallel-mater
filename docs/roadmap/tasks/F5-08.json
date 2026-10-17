@@ -1,7 +1,7 @@
 {
   "id": "F5-08",
   "title": "Publish per-driver evidence indexes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01"
   ],
@@ -17,6 +17,14 @@
     "Known failures remain visible and source/toolchain/device tuples are preserved."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "a406c8d0-34cc-4d3a-95e0-16560c438e24",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-08/thomas-laptop",
+    "claimed_at": "2026-10-17T06:06:57Z",
+    "heartbeat_at": "2026-10-17T06:06:57Z",
+    "expires_at": "2026-10-18T06:06:57Z"
+  },
   "history": []
 }
