@@ -60,7 +60,7 @@ int main() {
     pmGetPhysicalDeviceFeatures(physical, &supported);
     CHECK(supported.rigidBodies == PM_TRUE);
     CHECK(supported.rigidConstraints == PM_TRUE);
-    CHECK(supported.liquidLiquidCoupling == PM_FALSE);
+    CHECK(supported.liquidLiquidCoupling == PM_TRUE);
     CHECK(supported.timelineSemaphores == PM_TRUE);
     CHECK(supported.timestampQueries == PM_TRUE);
     std::uint32_t interaction_count{};
@@ -89,7 +89,7 @@ int main() {
             interaction.key.mode == PM_INTERACTION_MODE_CONTACT;
     }
     CHECK(found_rigid_contact);
-    PmInteractionCapabilityKey unsupported_interaction{
+    PmInteractionCapabilityKey equal_fluid_interaction{
         PM_INTERACTION_FAMILY_FLUID,
         PM_INTERACTION_FAMILY_FLUID,
         PM_INTERACTION_SCOPE_SEPARATE_SYSTEM,
@@ -98,9 +98,9 @@ int main() {
         PM_INTERACTION_MATERIAL_EQUAL};
     PmInteractionCapability interaction_result{};
     CHECK(pmGetPhysicalDeviceInteractionCapability(
-              physical, &unsupported_interaction, &interaction_result) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
-    auto malformed_interaction = unsupported_interaction;
+              physical, &equal_fluid_interaction, &interaction_result) ==
+          PM_SUCCESS);
+    auto malformed_interaction = equal_fluid_interaction;
     malformed_interaction.mode = static_cast<PmInteractionMode>(99);
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               physical, &malformed_interaction, &interaction_result) ==

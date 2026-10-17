@@ -1,0 +1,74 @@
+[OUTPUT]
+Internal ctest changing into directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch
+
+[HANDLER_VERBOSE_OUTPUT]
+UpdateCTestConfiguration  from :/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+
+Parse Config file:/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+Parse Config file:/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+[HANDLER_OUTPUT]
+Test project /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch
+
+[HANDLER_VERBOSE_OUTPUT]
+Constructing a list of tests
+
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 76
+[HANDLER_OUTPUT]
+    Start 76: parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests
+
+[HANDLER_VERBOSE_OUTPUT]
+
+76: Test command: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/parallel-mater-fluid-pair-graph-lifecycle-tests
+
+76: Working Directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api
+76: Environment variables:
+76:  PM_DRIVER_FILES=/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/Release/manifests/slang-vulkan.json
+76: Test timeout computed to be: 120
+[HANDLER_OUTPUT]
+1/2 Test #76: parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests ...
+***Skipped   0.72 sec
+[HANDLER_VERBOSE_OUTPUT]
+test 78
+
+[HANDLER_OUTPUT]
+    Start 78: parallel-mater-vulkan-fluid-pair-quality-tests
+
+[HANDLER_VERBOSE_OUTPUT]
+
+78: Test command: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/parallel-mater-fluid-pair-quality-tests "--output" "/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/vulkan-fluid-pair-quality.json"
+
+78: Working Directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api
+78: Environment variables:
+78:  PM_DRIVER_FILES=/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/Release/manifests/slang-vulkan.json
+78: Test timeout computed to be: 180
+[HANDLER_OUTPUT]
+2/2 Test #78: parallel-mater-vulkan-fluid-pair-quality-tests ...........
+***Skipped   0.19 sec
+[HANDLER_VERBOSE_OUTPUT]
+
+The following tests passed:
+
+	parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests
+	parallel-mater-vulkan-fluid-pair-quality-tests
+[HANDLER_OUTPUT]
+
+100% tests passed, 0 tests failed out of 2
+
+
+Label Time Summary:
+api          =   0.90 sec*proc (2 tests)
+lifecycle    =   0.72 sec*proc (1 test)
+quality      =   0.19 sec*proc (1 test)
+vulkan       =   0.90 sec*proc (2 tests)
+
+Total Test time (real) =   0.91 sec
+
+The following tests did not run:
+	 76 - parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests (Skipped)
+	 78 - parallel-mater-vulkan-fluid-pair-quality-tests (Skipped)

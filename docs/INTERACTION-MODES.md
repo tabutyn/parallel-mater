@@ -605,7 +605,7 @@ The initial profiles are:
 | `smoke-particle` | Smoke is the particle tracer model. | Reference profile for implemented smoke pairs. |
 | `smoke-grid` | Smoke is the projected Eulerian grid model. | Reference profile for implemented smoke pairs; support is independent from `smoke-particle`. |
 | `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Future profile specified by F2-15; only reciprocal drag and thermal exchange are defined. |
-| `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | Proposed by F2-05 through F2-10. |
+| `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | CUDA qualification complete for `contact`, `pressure` and `viscosity`; other production drivers remain unsupported. |
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Specified by F2-11; reserved and unsupported in API 0.2. |
 | `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Specified by F2-11; reserved and unsupported in API 0.2. |
 | `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
@@ -619,10 +619,11 @@ preserves independent discovery of the smoke representation.
 
 ## Equal-material separate fluid systems
 
-This section defines the `equal-material` profile reserved by F2-05. It is the
-contract for a future `PM_COUPLING_LIQUID_LIQUID` edge; it does not make that
-edge supported in API 0.2. A driver must continue to report the separate-system
-records unsupported until the implementation and qualification tasks close.
+This section defines the `equal-material` profile reserved by F2-05. CUDA API
+0.2 advertises `contact`, `pressure` and `viscosity` for a
+`PM_COUPLING_LIQUID_LIQUID` edge after passing the F2-10 public-API quality and
+lifecycle gates. A production driver without equivalent qualification must
+omit these separate-system records and reject the edge as unsupported.
 
 ### Edge and material validity
 
@@ -699,7 +700,8 @@ max particle |split.foam - combined.foam|                                <= 5e-4
 
 Particle counts and temperatures are exact. These are same-driver
 split-versus-combined criteria, not cross-vendor bitwise-output requirements.
-F2-10 adds timestep, population-ratio and long-run cases before a driver may
+Qualification sweeps timesteps `0.001`, `0.01` and `0.05` seconds and
+population mass ratios `1`, `2` and `4` for both fixtures before a driver may
 advertise the profile.
 
 For the momentum fixture, particle mass is

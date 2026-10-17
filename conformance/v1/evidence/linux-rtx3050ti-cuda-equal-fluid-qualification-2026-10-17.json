@@ -1,0 +1,148 @@
+{
+  "advertised_capabilities": [
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "EQUAL",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "SEPARATE_SYSTEM",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "EQUAL",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "PRESSURE",
+      "scope": "SEPARATE_SYSTEM",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "EQUAL",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "VISCOSITY",
+      "scope": "SEPARATE_SYSTEM",
+      "second_family": "FLUID"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "quality_result",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-quality-2026-10-17.json",
+      "sha256": "cc5846bc7a70e1a416301f51af3f959436d0ad0a82c56cf9414735304dc38e50"
+    },
+    {
+      "kind": "quality_report",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-quality-report-2026-10-17.json",
+      "sha256": "3b27099228bf35f8cd67d1e2655ebbaa2fbbac7eef95ce161cd490df94fbdd03"
+    },
+    {
+      "kind": "lifecycle_test_log",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-lifecycle-2026-10-17.txt",
+      "sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e"
+    },
+    {
+      "kind": "unsupported_boundary_log",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-vulkan-equal-fluid-unsupported-2026-10-17.txt",
+      "sha256": "7be162ae6a70a69e003ade71380c5218e07621ac5b763109d298d27b10eb6f73"
+    }
+  ],
+  "device": {
+    "device_id": 9632,
+    "driver_version": "590.44.01",
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318
+  },
+  "driver": {
+    "binary_sha256": "42413e111ad27b4471f1fef574a54d28f086516d1bd5b65b73c233380c224357",
+    "name": "slang-cuda",
+    "version": "0.2.0"
+  },
+  "evidence": [
+    {
+      "artifact_sha256": "42413e111ad27b4471f1fef574a54d28f086516d1bd5b65b73c233380c224357",
+      "contract": "registry:interaction-capabilities",
+      "contract_sha256": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
+      "scope": "compilation",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "cc5846bc7a70e1a416301f51af3f959436d0ad0a82c56cf9414735304dc38e50",
+      "contract": "quality:core-conservation-stability-v1#equal-material-pressure-contact",
+      "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+      "scope": "execution",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "cc5846bc7a70e1a416301f51af3f959436d0ad0a82c56cf9414735304dc38e50",
+      "contract": "quality:core-conservation-stability-v1#equal-material-viscosity",
+      "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+      "scope": "execution",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "3b27099228bf35f8cd67d1e2655ebbaa2fbbac7eef95ce161cd490df94fbdd03",
+      "contract": "quality:core-conservation-stability-v1#equal-material-pressure-contact",
+      "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+      "scope": "analytic_invariants",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "3b27099228bf35f8cd67d1e2655ebbaa2fbbac7eef95ce161cd490df94fbdd03",
+      "contract": "quality:core-conservation-stability-v1#equal-material-viscosity",
+      "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+      "scope": "analytic_invariants",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+      "status": "passed"
+    }
+  ],
+  "execution_status": "completed",
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz",
+    "hostname": "ThomasLaptop",
+    "kernel": "Linux 6.1.0-53-amd64",
+    "operating_system": "Debian GNU/Linux 12"
+  },
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
+  "reproduction": [
+    "cmake --build build-desktop-switch --target parallel-mater-fluid-pair-quality-tests parallel-mater-resource-lifecycle-tests parallel-mater-interaction-graph-lifecycle-tests parallel-mater-fluid-pair-graph-lifecycle-tests -j2",
+    "env PM_DRIVER_FILES=build-desktop-switch/Release/manifests/slang-cuda.json build-desktop-switch/tests/api/parallel-mater-fluid-pair-quality-tests --output <quality.json> --driver-name slang-cuda",
+    "python3 conformance/v1/quality.py --actual <quality.json> --report <quality-report.json>",
+    "ctest --test-dir build-desktop-switch -R 'parallel-mater-cuda-(resource-lifecycle|interaction-graph-lifecycle|fluid-pair-graph-lifecycle)-tests$' --output-on-failure",
+    "ctest --test-dir build-desktop-switch -R 'parallel-mater-vulkan-(fluid-pair-graph-lifecycle|fluid-pair-quality)-tests$' --output-on-failure"
+  ],
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "source": {
+    "commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
+    "dirty": false
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1; Slang 2026.18"
+  }
+}

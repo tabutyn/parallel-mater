@@ -1,7 +1,7 @@
 {
   "id": "F2-10",
   "title": "Qualify and advertise equal-material fluid–fluid",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-04",
     "F2-09",
@@ -19,15 +19,33 @@
     "Split/combined, stability, momentum, failure/recovery and three-family cases pass on each advertising driver.",
     "Per-mode capability reporting and evidence list unsupported adapters/materials."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "f8564cd8-83b7-49a6-b3b3-cb769271d27d",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-10/thomas-laptop",
-    "claimed_at": "2026-10-17T12:11:04Z",
-    "heartbeat_at": "2026-10-17T12:11:04Z",
-    "expires_at": "2026-10-18T12:11:04Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Linux RTX 3050 Ti CUDA produced 18/18 passing public-API equal-fluid quality samples across two fixtures, three timesteps, and three mass ratios.",
+    "PASS: CUDA resource, interaction-graph, and fluid-pair lifecycle tests passed 3/3, including replacement/recovery and three-family rollback coverage.",
+    "PASS: capability qualification evaluates CONTACT, PRESSURE, and VISCOSITY at 3/3 qualified with zero failures; source, binary, device, toolchain, contracts, and artifacts are hash-pinned.",
+    "BOUNDARY: Vulkan fluid-pair lifecycle and quality tests both report unsupported; miscible, immiscible-interface, and thermal-phase records remain unadvertised."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f8564cd8-83b7-49a6-b3b3-cb769271d27d",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-10/thomas-laptop",
+        "claimed_at": "2026-10-17T12:11:04Z",
+        "heartbeat_at": "2026-10-17T12:11:04Z",
+        "expires_at": "2026-10-18T12:11:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T12:26:58Z",
+      "reason": "Qualified and advertised CUDA equal-material fluid contact, pressure, and viscosity after public-API physical and lifecycle validation on the RTX 3050 Ti laptop.",
+      "evidence": [
+        "PASS: Linux RTX 3050 Ti CUDA produced 18/18 passing public-API equal-fluid quality samples across two fixtures, three timesteps, and three mass ratios.",
+        "PASS: CUDA resource, interaction-graph, and fluid-pair lifecycle tests passed 3/3, including replacement/recovery and three-family rollback coverage.",
+        "PASS: capability qualification evaluates CONTACT, PRESSURE, and VISCOSITY at 3/3 qualified with zero failures; source, binary, device, toolchain, contracts, and artifacts are hash-pinned.",
+        "BOUNDARY: Vulkan fluid-pair lifecycle and quality tests both report unsupported; miscible, immiscible-interface, and thermal-phase records remain unadvertised."
+      ]
+    }
+  ]
 }

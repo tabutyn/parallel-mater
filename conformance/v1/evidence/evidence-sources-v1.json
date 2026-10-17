@@ -6,13 +6,34 @@
     "sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e"
   },
   "expected_drivers": [
-    {"id": "slang-cpu", "label": "Slang CPU"},
-    {"id": "slang-cuda", "label": "CUDA"},
-    {"id": "slang-d3d12", "label": "D3D12"},
-    {"id": "slang-vulkan", "label": "Vulkan"},
-    {"id": "slang-metal", "label": "Metal"}
+    {
+      "id": "slang-cpu",
+      "label": "Slang CPU"
+    },
+    {
+      "id": "slang-cuda",
+      "label": "CUDA"
+    },
+    {
+      "id": "slang-d3d12",
+      "label": "D3D12"
+    },
+    {
+      "id": "slang-vulkan",
+      "label": "Vulkan"
+    },
+    {
+      "id": "slang-metal",
+      "label": "Metal"
+    }
   ],
-  "qualification_results": [],
+  "qualification_results": [
+    {
+      "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
+      "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
+    }
+  ],
   "supplemental_reports": [
     {
       "id": "windows-gtx1080-physics-2026-10-16",
