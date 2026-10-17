@@ -1,7 +1,7 @@
 {
   "id": "F7-03",
   "title": "Extract common Gallery scene lifecycle",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-01"
   ],
@@ -16,15 +16,31 @@
     "Desktop and mobile no longer define separate scene/session ownership structures or duplicate create-step-destroy paths.",
     "Failure, replacement and teardown tests prove recoverable state and exactly-once resource release."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "5f45b919-acfa-4aba-ab09-e5f102e33dc9",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-03/thomas-laptop",
-    "claimed_at": "2026-10-17T22:40:15Z",
-    "heartbeat_at": "2026-10-17T22:40:15Z",
-    "expires_at": "2026-10-18T22:40:15Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: env PM_DRIVER_FILES=$PWD/build-foundations/Release/manifests/slang-cpu.json PM_LAYER_FILES=$PWD/build-foundations/Release/manifests/validation.json ctest --test-dir build-foundations --output-on-failure -R '^(parallel-mater-gallery-session-contract-tests|parallel-mater-camera-controller-tests|parallel-mater-gallery-input-tests|parallel-mater-gallery-frame-timing-tests|parallel-mater-gallery-frame-timing-headless)$'; Slang CPU; 5/5 tests.",
+    "PASS: ./scripts/Run-DesktopGallery.sh --backend cuda --brick-count 4 --frames 2 --headless /tmp/f7-03-cuda.ppm and the equivalent --backend vulkan command; NVIDIA GeForce RTX 3050 Ti Laptop GPU; both rendered 6.0 MiB PPMs.",
+    "PASS: ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh; NDK 29 ARM64 Vulkan debug APK; BUILD SUCCESSFUL."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "5f45b919-acfa-4aba-ab09-e5f102e33dc9",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-03/thomas-laptop",
+        "claimed_at": "2026-10-17T22:40:15Z",
+        "heartbeat_at": "2026-10-17T22:40:15Z",
+        "expires_at": "2026-10-18T22:40:15Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T22:59:11Z",
+      "reason": "Desktop, Android and Apple shells now delegate scene creation, replacement, reset, stepping and teardown to one reusable GalleryRuntime.",
+      "evidence": [
+        "PASS: env PM_DRIVER_FILES=$PWD/build-foundations/Release/manifests/slang-cpu.json PM_LAYER_FILES=$PWD/build-foundations/Release/manifests/validation.json ctest --test-dir build-foundations --output-on-failure -R '^(parallel-mater-gallery-session-contract-tests|parallel-mater-camera-controller-tests|parallel-mater-gallery-input-tests|parallel-mater-gallery-frame-timing-tests|parallel-mater-gallery-frame-timing-headless)$'; Slang CPU; 5/5 tests.",
+        "PASS: ./scripts/Run-DesktopGallery.sh --backend cuda --brick-count 4 --frames 2 --headless /tmp/f7-03-cuda.ppm and the equivalent --backend vulkan command; NVIDIA GeForce RTX 3050 Ti Laptop GPU; both rendered 6.0 MiB PPMs.",
+        "PASS: ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh; NDK 29 ARM64 Vulkan debug APK; BUILD SUCCESSFUL."
+      ]
+    }
+  ]
 }

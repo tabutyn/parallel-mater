@@ -7,15 +7,14 @@ control semantics when its selected driver advertises the required features.
 
 ## Current ownership
 
-The code is only partly common today. Android and iPad use
-`parallel_mater::gallery::GallerySession` from `examples/support/session.cpp`.
-Desktop uses a second private `GallerySession` and `GalleryRuntime` in
-`examples/gallery/application_calibration.cpp.inc` and
-`examples/gallery/application_runtime.cpp.inc`. The shared scene builder,
-catalog metadata, command-based simulation wrapper, camera utilities, timing
-collector, and software renderer reduce duplication, but the two session paths
-still disagree about catalog size, controls, stepping, failure handling, and
-rendering. F7 tasks remove that split in bounded changes.
+Every shell now delegates low-level scene lifecycle to
+`parallel_mater::gallery::GalleryRuntime`. It owns GLB loading, scene creation,
+physics resources, host-renderer creation, replacement, reset, stepping, frame
+assembly, and teardown. Android and iPad reach it through the reusable
+`GallerySession`; desktop keeps `DesktopGalleryState` for its current UI and
+calibration data. Controllers, timing policy, catalog presentation, and native
+renderers remain partly shell-specific and move behind common contracts in the
+remaining F7 tasks.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -23,12 +22,12 @@ rendering. F7 tasks remove that split in bounded changes.
 | Driver discovery, explicit backend choice, and capability query | Desktop startup and backend picker | Platform startup configuration; Android fixes Vulkan | Platform shell requests a backend; common runtime reports devices and scene availability |
 | Asset and device-profile paths | Desktop options and compile-time resource paths | Android/iPad shell configuration | Platform shell supplies paths once |
 | Workload limits and user-adjustable counts | Desktop options, calibration, and local profile logic | `GallerySession` device-profile selection | Common runtime policy; shell edits declared parameters |
-| Asset loading and scene construction | Shared scene builder called by desktop `build_runtime` | Shared scene builder called by `GallerySession::select` | Common runtime |
-| Physics device, resources, command submission, scene replacement, and reset | Desktop `GalleryRuntime` and private `GallerySession::rebuild` | `GallerySession::Scene` and `select` | Common runtime |
+| Asset loading and scene construction | `GalleryRuntime`, configured by desktop | `GalleryRuntime`, configured by `GallerySession` | Common runtime catalog and workload policy |
+| Physics device, resources, command submission, scene replacement, reset, and teardown | `GalleryRuntime` through `DesktopGalleryState` | `GalleryRuntime` through `GallerySession` | Common runtime (done) |
 | Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Mostly desktop application loop with shared helper types | Gravity/force, fixed collector, and point release in `GallerySession` | Common runtime semantic commands |
 | Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | Desktop application loop | One profiled step per `GallerySession::frame` | Common runtime clock and workload policy |
-| Camera state and focus policy | Desktop `GalleryInputState`; shared camera utility | `GallerySession::Scene`; shared camera utility | Common runtime, driven by semantic pointer/zoom commands |
-| Host render-frame assembly | Desktop `step_runtime` | `GallerySession::frame` | Common runtime when the renderer requests host views |
+| Camera state and focus policy | `GalleryRuntime::camera`, driven by desktop input | `GalleryRuntime::camera`, driven by `GallerySession` touch methods | Common runtime, driven by semantic pointer/zoom commands |
+| Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path; optional Metal path | Software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
