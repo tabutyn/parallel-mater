@@ -1,7 +1,7 @@
 {
   "id": "F5-11",
   "title": "Publish current Windows driver evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -12,7 +12,6 @@
     "F5-10"
   ],
   "locks": [
-    "driver-evidence-registry",
     "driver-evidence-windows"
   ],
   "requires": [
@@ -25,6 +24,14 @@
     "Register the results in the generated per-driver evidence index and verify the index from a Windows checkout without weakening byte-stable contract identity."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e0b17502-c6ee-466c-b98c-1a4c0ad190ad",
+    "owner": "codex-windows-physics",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-11/windows-gtx1080",
+    "claimed_at": "2026-10-17T12:37:36Z",
+    "heartbeat_at": "2026-10-17T12:37:36Z",
+    "expires_at": "2026-10-18T12:37:36Z"
+  },
   "history": []
 }
