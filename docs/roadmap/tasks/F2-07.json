@@ -1,7 +1,7 @@
 {
   "id": "F2-07",
   "title": "Exchange fluid pressure and contact forces",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-06"
   ],
@@ -16,15 +16,31 @@
     "No external force: pair exchange conserves momentum within the specified tolerance.",
     "Split versus combined populations pass pressure/contact fixtures."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c377a24a-d573-469a-ac4f-8e18c4e7ee97",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-07/thomas-laptop",
-    "claimed_at": "2026-10-17T04:04:32Z",
-    "heartbeat_at": "2026-10-17T04:04:32Z",
-    "expires_at": "2026-10-18T04:04:32Z"
-  },
-  "history": []
+  "evidence": [
+    "CPU Slang split-versus-combined fixture matches acceleration, one-step position, velocity and foam, including a coincident cross-system pair.",
+    "The fixture applies the specified particle-mass impulse calculation and passes the 5e-5 balanced-momentum residual limit with nonzero exchange.",
+    "All 49 foundation tests pass or report their existing capability skips; Slang CPU, CUDA and Vulkan driver targets build."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c377a24a-d573-469a-ac4f-8e18c4e7ee97",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-07/thomas-laptop",
+        "claimed_at": "2026-10-17T04:04:32Z",
+        "heartbeat_at": "2026-10-17T04:04:32Z",
+        "expires_at": "2026-10-18T04:04:32Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T04:10:11Z",
+      "reason": "Balanced cross-population pressure/contact acceleration now reuses the shared two-fluid neighbor index without advertising the public edge.",
+      "evidence": [
+        "CPU Slang split-versus-combined fixture matches acceleration, one-step position, velocity and foam, including a coincident cross-system pair.",
+        "The fixture applies the specified particle-mass impulse calculation and passes the 5e-5 balanced-momentum residual limit with nonzero exchange.",
+        "All 49 foundation tests pass or report their existing capability skips; Slang CPU, CUDA and Vulkan driver targets build."
+      ]
+    }
+  ]
 }
