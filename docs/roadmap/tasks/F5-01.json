@@ -1,7 +1,7 @@
 {
   "id": "F5-01",
   "title": "Map advertised modes to conformance cases",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-02"
   ],
@@ -16,15 +16,33 @@
     "Every advertised mode has required lifecycle/physical cases or an explicit missing-evidence failure.",
     "Compilation, execution, regression, physical quality and timing remain distinct scopes."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1b8769ae-4af2-418e-b005-16c6f10a140a",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-01/thomas-laptop",
-    "claimed_at": "2026-10-17T05:55:52Z",
-    "heartbeat_at": "2026-10-17T05:55:52Z",
-    "expires_at": "2026-10-18T05:55:52Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: 54 Python conformance tests; all 49 canonical capability records match exactly one rule and invalid Cartesian combinations match none.",
+    "PASS: compiled conformance input, registry and comparator tests (3/3); manifest validates the hashed obligations profile.",
+    "PASS: relocatable SDK install/build/input checks and installed qualification validator; positive result qualifies 1/1 and missing rigid physical contract fails 0/1.",
+    "LIMITATION: most existing modes remain explicitly unqualified until exact lifecycle and analytic contracts are added; this task qualifies no production driver."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "1b8769ae-4af2-418e-b005-16c6f10a140a",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-01/thomas-laptop",
+        "claimed_at": "2026-10-17T05:55:52Z",
+        "heartbeat_at": "2026-10-17T05:55:52Z",
+        "expires_at": "2026-10-18T05:55:52Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T06:05:28Z",
+      "reason": "Mapped every API 0.2 interaction capability to revisioned, scope-separated conformance obligations.",
+      "evidence": [
+        "PASS: 54 Python conformance tests; all 49 canonical capability records match exactly one rule and invalid Cartesian combinations match none.",
+        "PASS: compiled conformance input, registry and comparator tests (3/3); manifest validates the hashed obligations profile.",
+        "PASS: relocatable SDK install/build/input checks and installed qualification validator; positive result qualifies 1/1 and missing rigid physical contract fails 0/1.",
+        "LIMITATION: most existing modes remain explicitly unqualified until exact lifecycle and analytic contracts are added; this task qualifies no production driver."
+      ]
+    }
+  ]
 }
