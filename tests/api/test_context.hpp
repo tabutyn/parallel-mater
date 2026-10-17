@@ -52,6 +52,7 @@ public:
                 (needed.softBodies && !features.softBodies) ||
                 (needed.smoke && !features.smoke) ||
                 (needed.domainCouplings && !features.domainCouplings) ||
+                (needed.paint && !features.paint) ||
                 (needed.timelineSemaphores && !features.timelineSemaphores)) continue;
             physical = candidate; supported = features; break;
         }

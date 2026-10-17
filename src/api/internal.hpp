@@ -146,6 +146,10 @@ struct PmSimulation_T {
     std::vector<std::optional<parallel_mater::ParticleSourceId>> emitters;
     std::vector<std::optional<parallel_mater::ParticleDestroyPlaneId>> destroyers;
     std::vector<std::optional<parallel_mater::PaintFieldId>> paint_fields;
+    // Rigid paint targets borrow public geometry just like bodies do. Keeping
+    // the public handle per slot lets replacement retire the private mesh only
+    // after the final body or paint reference disappears.
+    std::vector<PmGeometry> paint_field_geometries;
     std::vector<std::optional<parallel_mater::PaintRuleId>> paint_rules;
     std::vector<PmCouplingState> requested_couplings;
     bool explicit_couplings{};
@@ -364,5 +368,7 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
     PmSimulation simulation, PmGeometry geometry,
     parallel_mater::device::Services &services,
     parallel_mater::TriangleMeshId &output) noexcept;
+[[nodiscard]] PmResult retire_geometry_if_unused(
+    PmSimulation simulation, PmGeometry geometry) noexcept;
 
 } // namespace parallel_mater::api

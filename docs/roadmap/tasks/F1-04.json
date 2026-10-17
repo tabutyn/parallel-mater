@@ -1,7 +1,7 @@
 {
   "id": "F1-04",
   "title": "Retire paint dependencies safely",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F1-02",
     "F1-03"
@@ -18,15 +18,33 @@
     "Repeated create/replace/reset remains within declared memory.",
     "Stale paint endpoints fail deterministically and unrelated fields survive."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "de863daa-72d6-4f2b-b23f-c37fb290a279",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F1-04/thomas-laptop",
-    "claimed_at": "2026-10-17T00:07:51Z",
-    "heartbeat_at": "2026-10-17T00:07:51Z",
-    "expires_at": "2026-10-18T00:07:51Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: PM_DRIVER_FILES=$PWD/build-foundations/Release/manifests/test-slang-cpu-paint-resources.json ./build-foundations/tests/api/parallel-mater-paint-lifecycle-tests; ThomasLaptop Slang CPU host fixture; full 18-slot mesh table, failed replacements, endpoint guards and reset/reuse",
+    "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 41/41 passed with three unsupported production CPU domain cases skipped",
+    "PASS: Shader portability run 38987743747; Ubuntu 43/43 and macOS 44/44 execute host paint lifecycle; Windows 43/43 compile/runtime contracts; https://github.com/tabutyn/parallel-mater/actions/runs/38987743747",
+    "PASS: cmake --build build-desktop-switch --target parallel-mater-paint-lifecycle-tests -j1; CUDA and Vulkan drivers compile; runtime cases explicitly skip because no paint-capable device is available"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "de863daa-72d6-4f2b-b23f-c37fb290a279",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-04/thomas-laptop",
+        "claimed_at": "2026-10-17T00:07:51Z",
+        "heartbeat_at": "2026-10-17T00:07:51Z",
+        "expires_at": "2026-10-18T00:07:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T00:56:09Z",
+      "reason": "Paint fields now retain and retire mesh/body/field generations safely across replacement, failure and reset.",
+      "evidence": [
+        "PASS: PM_DRIVER_FILES=$PWD/build-foundations/Release/manifests/test-slang-cpu-paint-resources.json ./build-foundations/tests/api/parallel-mater-paint-lifecycle-tests; ThomasLaptop Slang CPU host fixture; full 18-slot mesh table, failed replacements, endpoint guards and reset/reuse",
+        "PASS: ctest --test-dir build-foundations --output-on-failure -j1; ThomasLaptop; 41/41 passed with three unsupported production CPU domain cases skipped",
+        "PASS: Shader portability run 38987743747; Ubuntu 43/43 and macOS 44/44 execute host paint lifecycle; Windows 43/43 compile/runtime contracts; https://github.com/tabutyn/parallel-mater/actions/runs/38987743747",
+        "PASS: cmake --build build-desktop-switch --target parallel-mater-paint-lifecycle-tests -j1; CUDA and Vulkan drivers compile; runtime cases explicitly skip because no paint-capable device is available"
+      ]
+    }
+  ]
 }

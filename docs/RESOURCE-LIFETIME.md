@@ -51,18 +51,26 @@ Generation changes invalidate private runtime handles when a slot is retired;
 public commands continue to address their declared slot indices. Active coupling
 handles are retired before endpoint writes. Graph descriptors retain slot indices
 and are resolved against current generations on the next step. A failed graph
-creation removes its partial edges; recovery can install a valid graph. Broader
-auxiliary references, including emitters and paint, still need lifecycle coverage.
+creation removes its partial edges; recovery can install a valid graph. Emitter
+references still need lifecycle coverage.
 
-Each rigid slot also records the public geometry used to create its private mesh
-handle. Executing a body replacement or removal retires the old private mesh only
-after the final rigid reference disappears; a shared mesh and unrelated bodies
-remain live. The runtime refuses body-driven retirement while a paint field still
-owns the mesh; F1-04 covers releasing that final paint dependency. Freed mesh
-slots advance their generation before reuse, and reset clears the full
-per-simulation geometry registry. Geometry objects, their bound memory, and input
-buffers remain application-owned and must outlive recorded and pending commands
-plus every live simulation reference.
+Each rigid slot and rigid-target paint slot records the public geometry used to
+create its private mesh handle. Executing a body or field replacement/removal
+retires the old private mesh only after the final body or paint reference
+disappears; shared meshes and unrelated slots remain live. The private mesh table
+is sized for all simultaneously declared rigid bodies and paint fields. Failed
+paint construction retires a newly registered mesh before reporting the error.
+Freed mesh slots advance their generation before reuse, and reset clears the full
+per-simulation geometry registry.
+
+A live paint field pins its body or cloth generation. A live paint rule likewise
+pins its source and target field. Replacing a pinned endpoint fails before that
+endpoint is changed, so applications remove rules before fields and fields before
+their bodies or cloths. Once an old field has been removed, a later failure while
+constructing its replacement leaves that slot inactive and preserves unrelated
+fields. Geometry objects, their bound memory, and input buffers remain
+application-owned and must outlive recorded and pending commands plus every live
+simulation reference.
 
 ## Current evidence
 
@@ -83,8 +91,16 @@ so this case is unsupported on those drivers, not a passing physics result.
 `tests/api/geometry_lifecycle_tests.cpp` instances one mesh across two bodies,
 then cycles 20 public geometries through one body slot. It covers final-reference
 removal, shared-body preservation, stale-generation reuse and reset using exact
-queried bindings. Paint and emitter lifecycle cases remain qualification
-obligations; these tests do not establish numerical solver quality.
+queried bindings. `tests/api/paint_lifecycle_tests.cpp` holds 16 body meshes and
+two paint meshes simultaneously, then covers successful and failed field
+replacement, stale endpoint rejection, rule removal order, unrelated-field
+preservation and repeated reset using exact queried bindings. A non-installed
+Slang CPU fixture advertises cloth and paint solely for this host-side resource
+lifecycle test, so the API/runtime path runs on development hosts with that
+fixture without overstating production CPU solver support. Paint execution remains a qualification
+result only on production drivers that advertise the paint feature. Emitter
+lifecycle remains a qualification obligation; these tests do not establish
+numerical solver quality.
 
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data
 isolation, exact-capacity allocation, alignment, rejected oversized allocations,
