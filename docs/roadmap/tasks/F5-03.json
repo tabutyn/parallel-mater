@@ -1,7 +1,7 @@
 {
   "id": "F5-03",
   "title": "Add capacity and three-family corpus cases",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F1-06",
     "F2-04"
@@ -18,6 +18,14 @@
     "Execution/unsupported outcomes never become physical passes."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "9b5b0ae3-c353-4409-9eca-d7f36fb5a860",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-03/thomas-laptop",
+    "claimed_at": "2026-10-17T05:47:53Z",
+    "heartbeat_at": "2026-10-17T05:47:53Z",
+    "expires_at": "2026-10-18T05:47:53Z"
+  },
   "history": []
 }
