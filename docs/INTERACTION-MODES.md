@@ -213,6 +213,114 @@ public-API qualification leaf advertises each exact scope only on drivers that
 pass folded-self, two-sheet, high-speed, friction, momentum, topology-change,
 capacity and lifecycle cases.
 
+## Soft-body surface-contact scopes
+
+Soft-body contact likewise has two future identities. Intrinsic self-contact
+uses `(soft body, soft body, self, contact, bidirectional, endpoint-native)`
+within one live soft-body slot. Contact between two separately owned soft-body
+slots uses `(soft body, soft body, separate-system, contact, bidirectional,
+endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
+advertises neither identity and has no soft-body/soft-body edge. Drivers omit
+both records and reject extension requests with
+`PM_ERROR_FEATURE_NOT_PRESENT` without changing the live graph. There is no
+aggregate soft-body domain, so `same-domain` remains unsupported.
+
+These modes operate on each endpoint's current bound surface, not on every
+pair of interior nodes. Surface vertex positions and velocities are evaluated
+from `PmSoftBodySurfaceBinding`; contact corrections and impulses return to the
+bound nodes with the same normalized weights and their actual input inverse
+masses. Numeric surface, node and stable indices are local to an endpoint and
+cannot alias the other endpoint. The contact mode requires a finite,
+consistently wound, closed two-manifold surface. Open or non-manifold input may
+still render, but is an unsupported material/geometry combination for this
+capability and must fail before replacing a usable graph or self-contact state.
+Every nonzero binding weight is finite and nonnegative, references an in-range
+node and the four weights sum to one within `1e-5`; repeated node entries are
+combined before contact mass is evaluated. Surface triangles use three
+distinct in-range vertices and have nonzero rest area.
+
+Let `r_a` and `r_b` be the positive `nodeRadius` values of the endpoint
+materials. Surface contact uses the symmetric target separation
+
+```text
+d_ab = r_a + r_b
+```
+
+and self-contact uses `d_aa = 2 * r_a`. Candidate generation covers swept
+vertex-triangle and edge-edge pairs from previous to predicted surface
+positions over the whole substep. It must detect one closed surface entering
+another even when no end-position vertex lies inside. Shape matching, spring
+projection and contact are interleaved or followed by a final cleanup so a
+later internal constraint pass cannot invalidate the reported contact result.
+
+Self-contact excludes local surface topology. A vertex-triangle pair is
+excluded when the vertex belongs to the triangle or any node with nonzero
+binding weight for that vertex is also bound to a triangle corner or connected
+to one by an active material bond. Edge-edge pairs sharing a surface vertex,
+surface edge or bound node are excluded. All other nonadjacent surface pairs
+remain eligible. Distinct systems have no topology exclusion even when local
+indices or binding-node numbers match.
+
+### Surface response and invariants
+
+At successful substep completion, every detected nonexcluded pair has
+separation at least `d_ab - epsilon`, with
+
+```text
+epsilon = max(1e-5 m, 0.05 * d_ab).
+```
+
+A swept qualification case moves one surface at least `4 * d_ab` in a substep
+and must not tunnel. Corrections use contact barycentrics, binding weights and
+inverse mass. Nodes with zero inverse mass do not move; their reaction is an
+external/kinematic impulse and must be reported separately from conserved
+dynamic momentum.
+
+With no fixed nodes or external impulse, the total node impulse and torque from
+self or inter-system contact are equal and opposite. For dynamic node mass
+`m_i = 1 / inverseMass_i`, velocity change `delta_v_i`,
+`I = sum(m_i * ||delta_v_i||2)` and
+`R = ||sum(m_i * delta_v_i)||2`, a fixture with
+`I >= 1e-4 kg*m/s` satisfies
+
+```text
+R <= max(1e-7 kg*m/s, 5e-5 * I).
+```
+
+Angular impulse about the fixture centre obeys the same relative tolerance and
+an absolute `1e-7 kg*m^2/s` floor. Reversing graph endpoints cannot change the
+result beyond those limits. Surface binding resolution may change convergence,
+but cannot multiply physical mass or impulse because several surface vertices
+share one node.
+
+Friction remains part of contact. Self-contact uses the endpoint
+`contactFriction`; distinct materials use
+`mu_ab = sqrt(contactFriction_a * contactFriction_b)`. The Coulomb bound is
+`||J_t|| <= mu_ab * J_n`. Without external work, friction cannot increase
+relative tangential kinetic energy; zero friction preserves tangential motion
+within tolerance.
+
+This capability does not claim attachment, adhesion, merging, fracture,
+cutting, plasticity, volume preservation or containment by an open skin.
+`shapeMatchingStiffness`, bonds and material damping keep their existing
+ownership. Contact with A does not give B any of A's rigid, cloth, rope, fluid
+or smoke edges. Self-contact does not replace inversion prevention or certify
+that every internal tetrahedron retains orientation.
+
+Candidate, contact, gather and diagnostic arrays are planned and bounded.
+Overflow returns `PM_ERROR_CAPACITY_EXCEEDED`, invalidates the affected output
+and permits retry without rebuilding otherwise valid state; silent contact
+dropping is forbidden. Empty live bodies are no-ops. Graph removal isolates
+distinct bodies on the next step, while replacement/reset follow normal
+generation and rollback rules.
+
+A versioned typed extension must opt a body into self-contact and represent a
+soft-body/soft-body graph edge before support is enabled. Separate leaves add
+bounded surface candidate generation, shared Slang self and inter-system
+operators, portable scheduling and public-API qualification. Advertisement is
+per scope and driver after closed-surface, folded-self, two-volume, high-speed,
+friction, conservation, binding-resolution, capacity and lifecycle cases pass.
+
 ## Materials and combination profiles
 
 Every endpoint keeps its pipeline material. An edge selects a pair mode and a

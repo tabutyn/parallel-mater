@@ -1,0 +1,23 @@
+{
+  "id": "P1-26",
+  "title": "Build bounded soft-surface contacts",
+  "status": "deferred",
+  "dependencies": [
+    "P1-25"
+  ],
+  "locks": [
+    "soft-body-kernels",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Generate swept surface vertex-triangle and edge-edge contacts with binding-aware self-topology exclusions.",
+  "acceptance": [
+    "Fixtures cover folded skins, entering closed volumes, crossing edges, identical local indices, bindings and empty bodies.",
+    "Memory queries bound candidates, gathers and diagnostics; overflow is explicit and retryable."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

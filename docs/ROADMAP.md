@@ -225,6 +225,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-22](roadmap/tasks/P1-22.json) | Solve contact between cloth systems | deferred | P1-20 | — |
 | [P1-23](roadmap/tasks/P1-23.json) | Schedule cloth contact scopes | deferred | P1-21, P1-22 | — |
 | [P1-24](roadmap/tasks/P1-24.json) | Qualify and advertise cloth contact | deferred | P1-23, F5-02, F5-03 | — |
+| [P1-25](roadmap/tasks/P1-25.json) | Expose soft-body contact scopes | deferred | P1-02 | — |
+| [P1-26](roadmap/tasks/P1-26.json) | Build bounded soft-surface contacts | deferred | P1-25 | — |
+| [P1-27](roadmap/tasks/P1-27.json) | Solve soft-body self-contact | deferred | P1-26 | — |
+| [P1-28](roadmap/tasks/P1-28.json) | Solve contact between soft bodies | deferred | P1-26 | — |
+| [P1-29](roadmap/tasks/P1-29.json) | Schedule soft-body contact scopes | deferred | P1-27, P1-28 | — |
+| [P1-30](roadmap/tasks/P1-30.json) | Qualify and advertise soft-body contact | deferred | P1-29, F5-02, F5-03 | — |
 
 ### P2. Deferred engine integration
 

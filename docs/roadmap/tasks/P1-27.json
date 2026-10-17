@@ -1,0 +1,22 @@
+{
+  "id": "P1-27",
+  "title": "Solve soft-body self-contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-26"
+  ],
+  "locks": [
+    "soft-body-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement binding-aware self-surface contact and friction in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Folded and swept closed-surface fixtures meet separation, conservation and no-tunnelling limits.",
+    "Friction is dissipative, zero friction preserves tangential motion and shared-node bindings do not duplicate impulse."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
