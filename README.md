@@ -30,7 +30,9 @@ AVBD and triangle/BVH contact geometry, fluid, cloth, soft bodies, ropes,
 smoke, and implemented couplings. Distinct fluid–fluid systems remain unsupported. A CMake gate compiles the shared entries to CUDA and
 PTX; an architecture test rejects native physics kernels and direct launches.
 Current evidence scope and open failures are recorded in the
-[qualification index](docs/QUALIFICATION.md). Earlier compiler evidence remains
+[qualification index](docs/QUALIFICATION.md); exact pair, mode, direction and
+material semantics are defined by the [interaction contract](docs/INTERACTION-MODES.md).
+Earlier compiler evidence remains
 in the [Slang validation report](docs/slang-unification-validation.md).
 
 Measured performance, validation limits and earlier solver experiments are

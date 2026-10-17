@@ -71,7 +71,9 @@ contact requests with `PM_ERROR_FEATURE_NOT_PRESENT`. Omitted rigid policy defau
 to sleeping disabled. Liquid/cloth derives its interaction radius from the liquid
 support radius; its `maximumAcceleration` must be zero. Distinct fluid–fluid
 interactions remain unsupported until their material semantics and solver are
-qualified.
+qualified. The [interaction contract](INTERACTION-MODES.md) defines the exhaustive
+pair matrix, independent modes, direction rules, material profiles and units used
+by future fine-grained capability queries.
 
 ## Command buffers
 
