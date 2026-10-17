@@ -911,8 +911,24 @@
       "status": "driver-routed"
     },
     {
-      "name": "pmGetPhysicalDeviceLimits",
+      "name": "pmEnumeratePhysicalDeviceInteractionCapabilities",
       "section": "16.1",
+      "card": "interaction_capabilities",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmGetPhysicalDeviceInteractionCapability",
+      "section": "16.1",
+      "card": "interaction_capabilities",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmGetPhysicalDeviceLimits",
+      "section": "16.2",
       "card": "limits",
       "header": "parallel_mater.h",
       "source": "generated/api/loader_forward.inc",
@@ -920,7 +936,7 @@
     },
     {
       "name": "pmGetPhysicalDeviceFormatProperties",
-      "section": "16.2",
+      "section": "16.3",
       "card": "formats",
       "header": "parallel_mater.h",
       "source": "generated/api/loader_forward.inc",
@@ -1489,13 +1505,48 @@
       "card": "memory_budget"
     },
     {
-      "name": "PmPhysicalDeviceLimits",
+      "name": "PmInteractionCapability",
       "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionCapabilityKey",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionDirection",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionFamily",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionMaterialProfile",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionMode",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmInteractionScope",
+      "section": "16.1",
+      "card": "interaction_capabilities"
+    },
+    {
+      "name": "PmPhysicalDeviceLimits",
+      "section": "16.2",
       "card": "limits"
     },
     {
       "name": "PmFormatProperties",
-      "section": "16.2",
+      "section": "16.3",
       "card": "formats"
     },
     {
@@ -1713,6 +1764,8 @@
     "PFN_pmGetSimulationStatus",
     "PFN_pmGetQueryPoolResults",
     "PFN_pmGetDeviceMemoryBudget",
+    "PFN_pmEnumeratePhysicalDeviceInteractionCapabilities",
+    "PFN_pmGetPhysicalDeviceInteractionCapability",
     "PFN_pmGetPhysicalDeviceLimits",
     "PFN_pmGetPhysicalDeviceFormatProperties"
   ],

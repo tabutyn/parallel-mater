@@ -47,12 +47,54 @@ int main(int argc, char **argv) {
     CHECK(pmEnumeratePhysicalDevices(instance, &count, physicals.data()) ==
           PM_SUCCESS);
     bool found_mock = false;
+    PmPhysicalDevice mock_physical{};
     for (PmPhysicalDevice physical : physicals) {
         PmPhysicalDeviceProperties properties{};
         pmGetPhysicalDeviceProperties(physical, &properties);
-        found_mock |= properties.vendorId == 0x504dU;
+        if (properties.vendorId == 0x504dU) {
+            found_mock = true;
+            mock_physical = physical;
+        }
     }
     CHECK(found_mock);
+    std::uint32_t interaction_count{};
+    CHECK(pmEnumeratePhysicalDeviceInteractionCapabilities(
+              mock_physical, &interaction_count, nullptr) == PM_SUCCESS);
+    CHECK(interaction_count == 1U);
+    PmInteractionCapability interaction{};
+    CHECK(pmEnumeratePhysicalDeviceInteractionCapabilities(
+              mock_physical, &interaction_count, &interaction) == PM_SUCCESS);
+    CHECK(interaction.key.firstFamily == PM_INTERACTION_FAMILY_FLUID);
+    CHECK(interaction.key.secondFamily == PM_INTERACTION_FAMILY_RIGID_BODY);
+    CHECK(interaction.key.mode == PM_INTERACTION_MODE_CONTACT);
+    CHECK(interaction.maxGraphEdgesPerSimulation == 64U);
+    PmInteractionCapability queried{};
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              mock_physical, &interaction.key, &queried) == PM_SUCCESS);
+    CHECK(queried.maxGraphEdgesPerSimulation == 64U);
+    auto unsupported = interaction.key;
+    unsupported.mode = PM_INTERACTION_MODE_PHASE;
+    queried.maxGraphEdgesPerSimulation = 99U;
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              mock_physical, &unsupported, &queried) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(queried.maxGraphEdgesPerSimulation == 0U);
+    auto unsupported_material = interaction.key;
+    unsupported_material.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              mock_physical, &unsupported_material, &queried) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    auto malformed_pair = interaction.key;
+    malformed_pair.firstFamily = PM_INTERACTION_FAMILY_RIGID_BODY;
+    malformed_pair.secondFamily = PM_INTERACTION_FAMILY_FLUID;
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              mock_physical, &malformed_pair, &queried) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    auto malformed = interaction.key;
+    malformed.mode = static_cast<PmInteractionMode>(99);
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              mock_physical, &malformed, &queried) ==
+          PM_ERROR_INVALID_ARGUMENT);
     pmDestroyInstance(instance);
     // Zero remains the documented default; the legacy layer spelling is accepted
     // but enumeration must advertise the project-owned name.

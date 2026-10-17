@@ -30,6 +30,33 @@ int main(void) {
             pmGetPhysicalDeviceProperties(devices[index], &properties);
             printf("%s (vendor %u, device %u)\n", properties.deviceName,
                    properties.vendorId, properties.deviceId);
+            uint32_t capability_count = 0;
+            result = pmEnumeratePhysicalDeviceInteractionCapabilities(
+                devices[index], &capability_count, NULL);
+            PmInteractionCapability *capabilities = capability_count
+                ? calloc(capability_count, sizeof(*capabilities)) : NULL;
+            if (result != PM_SUCCESS ||
+                (capability_count != 0 && capabilities == NULL)) {
+                free(capabilities);
+                break;
+            }
+            if (capability_count != 0)
+                result = pmEnumeratePhysicalDeviceInteractionCapabilities(
+                    devices[index], &capability_count, capabilities);
+            for (uint32_t capability_index = 0;
+                 result == PM_SUCCESS && capability_index < capability_count;
+                 ++capability_index) {
+                PmInteractionCapability queried = {0};
+                result = pmGetPhysicalDeviceInteractionCapability(
+                    devices[index], &capabilities[capability_index].key,
+                    &queried);
+                if (result == PM_SUCCESS &&
+                    queried.maxGraphEdgesPerSimulation !=
+                        capabilities[capability_index].maxGraphEdgesPerSimulation)
+                    result = PM_ERROR_INVALID_STATE;
+            }
+            free(capabilities);
+            if (result != PM_SUCCESS) break;
         }
     }
     free(devices);

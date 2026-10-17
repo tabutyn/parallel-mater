@@ -10,6 +10,78 @@
 
 namespace parallel_mater::api {
 
+namespace {
+
+enum InteractionRequirement : std::uint32_t {
+    require_rigidBodies = 1U << 0U,
+    require_rigidConstraints = 1U << 1U,
+    require_particleLiquids = 1U << 2U,
+    require_liquidRigidCoupling = 1U << 3U,
+    require_liquidLiquidCoupling = 1U << 4U,
+    require_cloth = 1U << 5U,
+    require_rope = 1U << 6U,
+    require_softBodies = 1U << 7U,
+    require_smoke = 1U << 8U,
+    require_domainCouplings = 1U << 9U,
+};
+
+struct InteractionCandidate {
+    PmInteractionCapability capability;
+    std::uint32_t requirements;
+};
+
+constexpr InteractionCandidate interaction_candidates[] = {
+#define PM_INTERACTION_CAPABILITY(first, second, scope, mode, direction, profile, maximum, requirements) \
+    {{{first, second, scope, mode, direction, profile}, maximum}, requirements},
+#include "interaction_capabilities.inc"
+#undef PM_INTERACTION_CAPABILITY
+};
+
+bool requirements_supported(std::uint32_t requirements,
+                            const PmPhysicalDeviceFeatures &features) noexcept {
+    return (!(requirements & require_rigidBodies) || features.rigidBodies) &&
+           (!(requirements & require_rigidConstraints) || features.rigidConstraints) &&
+           (!(requirements & require_particleLiquids) || features.particleLiquids) &&
+           (!(requirements & require_liquidRigidCoupling) || features.liquidRigidCoupling) &&
+           (!(requirements & require_liquidLiquidCoupling) || features.liquidLiquidCoupling) &&
+           (!(requirements & require_cloth) || features.cloth) &&
+           (!(requirements & require_rope) || features.rope) &&
+           (!(requirements & require_softBodies) || features.softBodies) &&
+           (!(requirements & require_smoke) || features.smoke) &&
+           (!(requirements & require_domainCouplings) || features.domainCouplings);
+}
+
+bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
+    const auto first = static_cast<int>(key.firstFamily);
+    const auto second = static_cast<int>(key.secondFamily);
+    if (first < PM_INTERACTION_FAMILY_FLUID ||
+        first > PM_INTERACTION_FAMILY_RIGID_BODY ||
+        second < PM_INTERACTION_FAMILY_FLUID ||
+        second > PM_INTERACTION_FAMILY_RIGID_BODY ||
+        key.scope < PM_INTERACTION_SCOPE_SELF ||
+        key.scope > PM_INTERACTION_SCOPE_DISTINCT_FAMILY ||
+        key.mode < PM_INTERACTION_MODE_CONTACT ||
+        key.mode > PM_INTERACTION_MODE_PHASE ||
+        key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
+        key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
+        key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
+        key.materialProfile > PM_INTERACTION_MATERIAL_THERMAL_PHASE)
+        return false;
+    return key.scope == PM_INTERACTION_SCOPE_DISTINCT_FAMILY
+        ? first < second : first == second;
+}
+
+bool same_interaction_key(const PmInteractionCapabilityKey &left,
+                          const PmInteractionCapabilityKey &right) noexcept {
+    return left.firstFamily == right.firstFamily &&
+           left.secondFamily == right.secondFamily &&
+           left.scope == right.scope && left.mode == right.mode &&
+           left.direction == right.direction &&
+           left.materialProfile == right.materialProfile;
+}
+
+} // namespace
+
 PmPhysicalDeviceFeatures supported_features() noexcept {
     PmPhysicalDeviceFeatures features{};
     features.rigidBodies = PM_TRUE;
@@ -90,6 +162,8 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmGetPhysicalDeviceProperties);
     PM_LOOKUP(pmGetPhysicalDeviceQueueFamilies);
     PM_LOOKUP(pmGetPhysicalDeviceFeatures);
+    PM_LOOKUP(pmEnumeratePhysicalDeviceInteractionCapabilities);
+    PM_LOOKUP(pmGetPhysicalDeviceInteractionCapability);
     PM_LOOKUP(pmCreateDevice);
     PM_LOOKUP(pmDestroyDevice);
     PM_LOOKUP(pmGetDeviceQueue);
@@ -361,4 +435,58 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmGetPhysicalDeviceFeatures(
     if (features == nullptr) return;
     *features = physical == nullptr ? PmPhysicalDeviceFeatures{}
                                     : parallel_mater::api::supported_features();
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL
+pmEnumeratePhysicalDeviceInteractionCapabilities(
+    PmPhysicalDevice physical, std::uint32_t *count,
+    PmInteractionCapability *capabilities) {
+    if (physical == nullptr || count == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const auto features = parallel_mater::api::supported_features();
+    std::uint32_t available = 0U;
+    for (const auto &candidate : parallel_mater::api::interaction_candidates)
+        if (parallel_mater::api::requirements_supported(
+                candidate.requirements, features))
+            ++available;
+    if (capabilities == nullptr) {
+        *count = available;
+        return PM_SUCCESS;
+    }
+    const std::uint32_t capacity = *count;
+    std::uint32_t written = 0U;
+    for (const auto &candidate : parallel_mater::api::interaction_candidates) {
+        if (!parallel_mater::api::requirements_supported(
+                candidate.requirements, features))
+            continue;
+        if (written == capacity) break;
+        capabilities[written++] = candidate.capability;
+    }
+    *count = written;
+    return written == available ? PM_SUCCESS : PM_INCOMPLETE;
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL
+pmGetPhysicalDeviceInteractionCapability(
+    PmPhysicalDevice physical, const PmInteractionCapabilityKey *key,
+    PmInteractionCapability *capability) {
+    if (key == nullptr || capability == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const PmInteractionCapabilityKey requested = *key;
+    *capability = {};
+    if (physical == nullptr ||
+        !parallel_mater::api::valid_interaction_key(requested))
+        return PM_ERROR_INVALID_ARGUMENT;
+    const auto features = parallel_mater::api::supported_features();
+    for (const auto &candidate : parallel_mater::api::interaction_candidates) {
+        if (!parallel_mater::api::same_interaction_key(
+                requested, candidate.capability.key))
+            continue;
+        if (!parallel_mater::api::requirements_supported(
+                candidate.requirements, features))
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        *capability = candidate.capability;
+        return PM_SUCCESS;
+    }
+    return PM_ERROR_FEATURE_NOT_PRESENT;
 }

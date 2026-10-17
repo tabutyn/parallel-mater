@@ -977,6 +977,63 @@ typedef struct PmMemoryBudget {
     PmDeviceSize borrowedBufferBytes;
 } PmMemoryBudget;
 
+typedef enum PmInteractionFamily {
+    PM_INTERACTION_FAMILY_FLUID = 0,
+    PM_INTERACTION_FAMILY_CLOTH = 1,
+    PM_INTERACTION_FAMILY_SOFT_BODY = 2,
+    PM_INTERACTION_FAMILY_ROPE = 3,
+    PM_INTERACTION_FAMILY_SMOKE = 4,
+    PM_INTERACTION_FAMILY_RIGID_BODY = 5
+} PmInteractionFamily;
+typedef enum PmInteractionScope {
+    PM_INTERACTION_SCOPE_SELF = 0,
+    PM_INTERACTION_SCOPE_SAME_DOMAIN = 1,
+    PM_INTERACTION_SCOPE_SEPARATE_SYSTEM = 2,
+    PM_INTERACTION_SCOPE_DISTINCT_FAMILY = 3
+} PmInteractionScope;
+typedef enum PmInteractionMode {
+    PM_INTERACTION_MODE_CONTACT = 0,
+    PM_INTERACTION_MODE_ATTACHMENT = 1,
+    PM_INTERACTION_MODE_DRAG = 2,
+    PM_INTERACTION_MODE_CONTAINMENT = 3,
+    PM_INTERACTION_MODE_PRESSURE = 4,
+    PM_INTERACTION_MODE_VISCOSITY = 5,
+    PM_INTERACTION_MODE_THERMAL = 6,
+    PM_INTERACTION_MODE_PHASE = 7
+} PmInteractionMode;
+typedef enum PmInteractionDirection {
+    PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND = 1,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST = 2,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER = 3,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST_TRANSFER = 4,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST = 5,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND = 6
+} PmInteractionDirection;
+typedef enum PmInteractionMaterialProfile {
+    PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE = 0,
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE = 1,
+    PM_INTERACTION_MATERIAL_SMOKE_GRID = 2,
+    PM_INTERACTION_MATERIAL_EQUAL = 3,
+    PM_INTERACTION_MATERIAL_MISCIBLE = 4,
+    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
+    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6
+} PmInteractionMaterialProfile;
+#define PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE 0u
+#define PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY PM_INVALID_INDEX
+typedef struct PmInteractionCapabilityKey {
+    PmInteractionFamily firstFamily;
+    PmInteractionFamily secondFamily;
+    PmInteractionScope scope;
+    PmInteractionMode mode;
+    PmInteractionDirection direction;
+    PmInteractionMaterialProfile materialProfile;
+} PmInteractionCapabilityKey;
+typedef struct PmInteractionCapability {
+    PmInteractionCapabilityKey key;
+    uint32_t maxGraphEdgesPerSimulation;
+} PmInteractionCapability;
+
 typedef struct PmPhysicalDeviceLimits {
     PmDeviceSize maxAllocationSize;
     PmDeviceSize maxBufferSize;
@@ -1438,6 +1495,15 @@ typedef PmResult (PMAPI_CALL *PFN_pmGetQueryPoolResults)(PmDevice device,
 typedef PmResult (PMAPI_CALL *PFN_pmGetDeviceMemoryBudget)(
     PmDevice device, PmMemoryBudget* pBudget);
 
+typedef PmResult (PMAPI_CALL *PFN_pmEnumeratePhysicalDeviceInteractionCapabilities)(
+    PmPhysicalDevice physicalDevice, uint32_t* pCount,
+    PmInteractionCapability* pCapabilities);
+
+typedef PmResult (PMAPI_CALL *PFN_pmGetPhysicalDeviceInteractionCapability)(
+    PmPhysicalDevice physicalDevice,
+    const PmInteractionCapabilityKey* pKey,
+    PmInteractionCapability* pCapability);
+
 typedef void (PMAPI_CALL *PFN_pmGetPhysicalDeviceLimits)(
     PmPhysicalDevice physicalDevice,
     PmPhysicalDeviceLimits* pLimits);
@@ -1818,6 +1884,14 @@ PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(PmDevice device,
 
 PMAPI_ATTR PmResult PMAPI_CALL pmGetDeviceMemoryBudget(
     PmDevice device, PmMemoryBudget* pBudget);
+
+PMAPI_ATTR PmResult PMAPI_CALL pmEnumeratePhysicalDeviceInteractionCapabilities(
+    PmPhysicalDevice physicalDevice, uint32_t* pCount,
+    PmInteractionCapability* pCapabilities);
+PMAPI_ATTR PmResult PMAPI_CALL pmGetPhysicalDeviceInteractionCapability(
+    PmPhysicalDevice physicalDevice,
+    const PmInteractionCapabilityKey* pKey,
+    PmInteractionCapability* pCapability);
 
 PMAPI_ATTR void PMAPI_CALL pmGetPhysicalDeviceLimits(
     PmPhysicalDevice physicalDevice,

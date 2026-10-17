@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 #define CHECK(expression) do { if (!(expression)) { \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #expression); return 1; \
@@ -62,6 +63,48 @@ int main() {
     CHECK(supported.liquidLiquidCoupling == PM_FALSE);
     CHECK(supported.timelineSemaphores == PM_TRUE);
     CHECK(supported.timestampQueries == PM_TRUE);
+    std::uint32_t interaction_count{};
+    CHECK(pmEnumeratePhysicalDeviceInteractionCapabilities(
+              physical, &interaction_count, nullptr) == PM_SUCCESS);
+    CHECK(interaction_count >= 2U);
+    std::array<PmInteractionCapability, 1> short_interactions{};
+    std::uint32_t short_count = 1U;
+    CHECK(pmEnumeratePhysicalDeviceInteractionCapabilities(
+              physical, &short_count, short_interactions.data()) == PM_INCOMPLETE);
+    CHECK(short_count == 1U);
+    std::vector<PmInteractionCapability> interactions(interaction_count);
+    CHECK(pmEnumeratePhysicalDeviceInteractionCapabilities(
+              physical, &interaction_count, interactions.data()) == PM_SUCCESS);
+    bool found_rigid_contact = false;
+    for (const auto &interaction : interactions) {
+        PmInteractionCapability queried{};
+        CHECK(pmGetPhysicalDeviceInteractionCapability(
+                  physical, &interaction.key, &queried) == PM_SUCCESS);
+        CHECK(queried.maxGraphEdgesPerSimulation ==
+              interaction.maxGraphEdgesPerSimulation);
+        found_rigid_contact |=
+            interaction.key.firstFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
+            interaction.key.secondFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
+            interaction.key.scope == PM_INTERACTION_SCOPE_SAME_DOMAIN &&
+            interaction.key.mode == PM_INTERACTION_MODE_CONTACT;
+    }
+    CHECK(found_rigid_contact);
+    PmInteractionCapabilityKey unsupported_interaction{
+        PM_INTERACTION_FAMILY_FLUID,
+        PM_INTERACTION_FAMILY_FLUID,
+        PM_INTERACTION_SCOPE_SEPARATE_SYSTEM,
+        PM_INTERACTION_MODE_PRESSURE,
+        PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+        PM_INTERACTION_MATERIAL_EQUAL};
+    PmInteractionCapability interaction_result{};
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              physical, &unsupported_interaction, &interaction_result) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    auto malformed_interaction = unsupported_interaction;
+    malformed_interaction.mode = static_cast<PmInteractionMode>(99);
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              physical, &malformed_interaction, &interaction_result) ==
+          PM_ERROR_INVALID_ARGUMENT);
     PmNativeInteropProperties cuda_interop{};
     CHECK(pmGetPhysicalDeviceInteropProperties(
               physical, PM_NATIVE_BACKEND_CUDA, &cuda_interop) == PM_SUCCESS);

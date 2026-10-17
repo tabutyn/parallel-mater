@@ -129,10 +129,32 @@ The initial profiles are:
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | Proposed by F2-05 through F2-10. |
 | `miscible` | Different fluid materials mix under a specified combination law. | Proposed specification in F2-11; unsupported in API 0.2. |
 | `immiscible-interface` | Different fluids retain an interface with defined density, viscosity and surface behavior. | Proposed specification in F2-11; unsupported in API 0.2. |
-| `thermal-phase` | The pair defines heat and/or phase transfer, including external sources and capacity behavior. | Current only for the fixed fluid–smoke heater/boiling path; broader profiles are proposed in F2-11. |
+| `thermal-phase` | The material combination itself defines heat and/or phase transfer, including external sources and capacity behavior. | Reserved for broader combinations proposed in F2-11. |
 
 A driver must expose the supported smoke representation and fluid material
 profile. Reporting only `domainCouplings`, or only a pair, is insufficient.
+The fixed API 0.2 fluid–smoke law is identified by its `thermal` or `phase`
+mode while its material profile remains `smoke-particle` or `smoke-grid`; this
+preserves independent discovery of the smoke representation.
+
+## Capability query contract
+
+`pmEnumeratePhysicalDeviceInteractionCapabilities` returns only supported
+records. Each record is the exact six-part identity above plus
+`maxGraphEdgesPerSimulation`. `PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE`
+means the mode is intrinsic and is not expressed as a graph edge.
+`PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY` means the device imposes no
+narrower limit than `PmSimulationCreateInfo.couplingCapacity`. Any other value
+is an additional per-simulation ceiling for that exact record.
+
+`pmGetPhysicalDeviceInteractionCapability` queries one identity. Families use
+the enum's canonical order: equal families for self, same-domain and
+separate-system scopes; increasing family values for a distinct-family pair.
+Unknown enum values, reversed distinct pairs and a scope/pair shape mismatch
+return `PM_ERROR_INVALID_ARGUMENT`. A valid but unadvertised pair, mode,
+direction or material combination returns `PM_ERROR_FEATURE_NOT_PRESENT`.
+Applications must not infer support from a related record or a broad feature
+bit.
 
 ## Units and parameter ownership
 
@@ -170,8 +192,8 @@ types that read it. The reference implementation accepts `PM_TRUE` and rejects
 into two-way contact. Rope attachments and smoke/thermal modes have the fixed
 directions shown above because API 0.2 has no direction selector for them.
 
-F2-02 replaces broad discovery with exact pair/mode/profile queries. F2-03
-then validates every graph edge against those queries before changing the live
-graph. Later implementation tasks may change `P` to a reference path only after
-their public behavior and negative cases are reviewable; driver advertisement
-still waits for qualification evidence.
+These exact pair/mode/profile queries replace broad discovery. F2-03 validates
+every graph edge against them before changing the live graph. Later
+implementation tasks may change `P` to a reference path only after their public
+behavior and negative cases are reviewable; driver advertisement still waits
+for qualification evidence.

@@ -8,7 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from api_registry import declarations  # noqa: E402
+from api_registry import declarations, interaction_capabilities  # noqa: E402
 
 
 SPECIAL = {
@@ -59,6 +59,7 @@ def emit(output: Path):
                   '#include <parallel_mater/interop_vulkan.h>\n#endif\n']
     layer_dispatch = ['// Generated typed validation dispatch.\n']
     forwards = ["// Generated from registry/pm.xml.\n"]
+    interaction_inventory = ["// Generated from registry/pm.xml.\n"]
 
     for command in commands:
         name = command["name"]
@@ -117,6 +118,22 @@ def emit(output: Path):
 '''
         forwards.append(guarded(command, body))
 
+    for capability in interaction_capabilities():
+        requirements = " | ".join(
+            f"require_{name}" for name in capability["requires"])
+        maximum = ("PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE"
+                   if capability["graph"] == "none" else
+                   "PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY")
+        interaction_inventory.append(
+            "PM_INTERACTION_CAPABILITY("
+            f"PM_INTERACTION_FAMILY_{capability['first']}, "
+            f"PM_INTERACTION_FAMILY_{capability['second']}, "
+            f"PM_INTERACTION_SCOPE_{capability['scope']}, "
+            f"PM_INTERACTION_MODE_{capability['mode']}, "
+            f"PM_INTERACTION_DIRECTION_{capability['direction']}, "
+            f"PM_INTERACTION_MATERIAL_{capability['profile']}, "
+            f"{maximum}, {requirements})\n")
+
     layer_args.append("#endif\n")
     (output / "parallel_mater").mkdir(exist_ok=True)
     write_changed(output / "parallel_mater/pm_layer_args.h", "".join(layer_args))
@@ -126,6 +143,8 @@ def emit(output: Path):
     write_changed(output / "driver_lookup.inc", "".join(lookup))
     write_changed(output / "loader_lookup.inc", "".join(loader_lookup))
     write_changed(output / "loader_forward.inc", "".join(forwards))
+    write_changed(output / "interaction_capabilities.inc",
+                  "".join(interaction_inventory))
 
 
 def main():
