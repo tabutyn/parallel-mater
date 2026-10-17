@@ -1,6 +1,157 @@
 {
-  "capabilities": [],
-  "capability_count": 0,
+  "capabilities": [
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "EQUAL",
+        "mode": "CONTACT",
+        "scope": "SEPARATE_SYSTEM",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/CONTACT/BIDIRECTIONAL/EQUAL",
+      "qualified": true,
+      "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
+      "rule_id": "fluid-pair-equal-pressure-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [],
+          "status": "not_required"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "EQUAL",
+        "mode": "PRESSURE",
+        "scope": "SEPARATE_SYSTEM",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/PRESSURE/BIDIRECTIONAL/EQUAL",
+      "qualified": true,
+      "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
+      "rule_id": "fluid-pair-equal-pressure-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [],
+          "status": "not_required"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "EQUAL",
+        "mode": "VISCOSITY",
+        "scope": "SEPARATE_SYSTEM",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/VISCOSITY/BIDIRECTIONAL/EQUAL",
+      "qualified": true,
+      "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
+      "rule_id": "fluid-pair-equal-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-viscosity"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "quality:core-conservation-stability-v1#equal-material-viscosity"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [],
+          "status": "not_required"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    }
+  ],
+  "capability_count": 3,
   "driver_count": 5,
   "drivers": [
     {
@@ -15,12 +166,15 @@
     {
       "id": "slang-cuda",
       "label": "CUDA",
-      "qualification_result_ids": [],
-      "qualified_capability_count": 0,
+      "qualification_result_ids": [
+        "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
+      ],
+      "qualified_capability_count": 3,
       "report_ids": [
+        "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "windows-gtx1080-physics-2026-10-16"
       ],
-      "status": "supplemental_only",
+      "status": "qualified",
       "unqualified_capability_count": 0
     },
     {
@@ -149,12 +303,6 @@
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
-      "driver": "slang-cuda",
-      "kind": "missing_qualification_result",
-      "message": "No current capability-qualification result is registered.",
-      "report": null
-    },
-    {
       "case": "cloth-tear",
       "driver": "slang-d3d12",
       "kind": "historical_baseline_failure",
@@ -278,9 +426,38 @@
   "obligations_id": "capability-obligations-v1",
   "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
   "qualification_complete": false,
-  "qualified_capability_count": 0,
-  "report_count": 2,
+  "qualified_capability_count": 3,
+  "report_count": 3,
   "reports": [
+    {
+      "capability_count": 3,
+      "device": {
+        "device_id": 9632,
+        "driver_version": "590.44.01",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "42413e111ad27b4471f1fef574a54d28f086516d1bd5b65b73c233380c224357",
+        "name": "slang-cuda",
+        "version": "0.2.0"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
+      "qualified_count": 3,
+      "sha256": "e0e661b196739c289f153b6639f7d6756b7c5d607386e402bd6269c3a6868b8e",
+      "source": {
+        "commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1; Slang 2026.18"
+      },
+      "validated": true
+    },
     {
       "capability_count": 0,
       "case_coverage_count": 17,
@@ -352,7 +529,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "14582711f75a0e205c77ed8974709b244243a93429c7457abf056310cebab744",
+  "sources_sha256": "eba7ead2ae776cc9ba6214911c23a9d61999229ac3901ee50138b99bf16fc8d4",
   "valid": true,
   "validation_failures": []
 }
