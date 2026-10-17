@@ -193,6 +193,12 @@ no qualified capability row. Older reports may be registered as supplemental
 evidence; their source, binary, device and toolchain tuple remains visible, but
 they cannot certify a current capability.
 
+Text-contract hashes are checkout-stable: JSON and XML use UTF-8 bytes with
+CRLF normalized to repository-canonical LF. Other bytes remain significant,
+and binary artifacts are always hashed exactly. This permits the same pinned
+contract to validate on Windows without making semantic text or binary changes
+invisible.
+
 Performance publication has a separate headless gate:
 
 ```text

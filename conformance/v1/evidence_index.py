@@ -18,7 +18,10 @@ LEGACY_SCHEMA = "parallel-mater-physics-qualification/v1"
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    data = path.read_bytes()
+    if path.suffix.lower() in {".json", ".xml"}:
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def _load(path: Path) -> dict[str, Any]:

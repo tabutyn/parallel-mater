@@ -6,6 +6,7 @@ import importlib.util
 import json
 import pathlib
 import sys
+import tempfile
 import unittest
 
 
@@ -115,6 +116,16 @@ class LifecycleTests(unittest.TestCase):
         self.assertTrue(report["passed"], report)
         self.assertEqual(report["case_count"], 2)
         self.assertEqual(report["checkpoint_count"], 9)
+
+    def test_profile_hash_is_checkout_line_ending_stable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            lf = root / "lf.json"
+            crlf = root / "crlf.json"
+            lf.write_bytes(b'{\n  "value": 1\n}\n')
+            crlf.write_bytes(b'{\r\n  "value": 1\r\n}\r\n')
+            self.assertEqual(lifecycle.profile_sha256(lf),
+                             lifecycle.profile_sha256(crlf))
 
     def test_suite_or_case_unsupported_never_passes(self):
         result = valid_result(self.profile)

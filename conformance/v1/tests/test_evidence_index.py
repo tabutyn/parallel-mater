@@ -51,7 +51,7 @@ def valid_result(profile: dict) -> dict:
     return {
         "schema": "parallel-mater-conformance-qualification-result/v1",
         "obligations_id": profile["id"],
-        "obligations_sha256": hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(),
+        "obligations_sha256": evidence_index._sha256(PROFILE_PATH),
         "execution_status": "completed",
         "source": {"commit": SOURCE_COMMIT, "dirty": False},
         "driver": {"name": "test-driver", "version": "1.0",
@@ -79,7 +79,7 @@ class EvidenceIndexTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
-        cls.profile_hash = hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest()
+        cls.profile_hash = evidence_index._sha256(PROFILE_PATH)
 
     def build(self, result: dict) -> dict:
         with tempfile.TemporaryDirectory() as directory:
@@ -94,7 +94,7 @@ class EvidenceIndexTests(unittest.TestCase):
                 "expected_drivers": [{"id": "test-driver", "label": "Test"}],
                 "qualification_results": [{
                     "id": "test-result", "path": str(result_path),
-                    "sha256": hashlib.sha256(result_path.read_bytes()).hexdigest(),
+                    "sha256": evidence_index._sha256(result_path),
                 }],
                 "supplemental_reports": [],
             }
@@ -112,6 +112,20 @@ class EvidenceIndexTests(unittest.TestCase):
         self.assertEqual(report["driver"]["binary_sha256"], digest("driver"))
         self.assertEqual(report["device"]["name"], "test-device")
         self.assertEqual(report["toolchain"]["compiler"], "test-compiler")
+
+    def test_text_hash_is_portable_but_binary_hash_is_exact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            lf = root / "lf.json"
+            crlf = root / "crlf.json"
+            binary = root / "contract.bin"
+            lf.write_bytes(b'{\n  "value": 1\n}\n')
+            crlf.write_bytes(b'{\r\n  "value": 1\r\n}\r\n')
+            binary.write_bytes(crlf.read_bytes())
+            self.assertEqual(evidence_index._sha256(lf),
+                             evidence_index._sha256(crlf))
+            self.assertNotEqual(evidence_index._sha256(lf),
+                                evidence_index._sha256(binary))
 
     def test_stale_missing_and_unsupported_evidence_never_qualify(self):
         mutations = []

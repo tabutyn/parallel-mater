@@ -148,6 +148,11 @@ profile, raw qualification results and supplemental historical reports. Every
 input path carries a SHA-256. Changing or replacing any result requires an
 explicit registry and generated-index update.
 
+Pinned JSON and XML contracts use their repository-canonical UTF-8 bytes with
+CRLF checkout conversion normalized to LF before hashing. Lone carriage returns
+and every other byte remain significant. Binary artifacts and all other file
+types are hashed byte-for-byte without normalization.
+
 ## Driver evidence index: `parallel-mater-driver-evidence-index/v1`
 
 The generated index preserves each result's source, driver binary, device and
