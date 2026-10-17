@@ -1,0 +1,16 @@
+{
+  "id": "F7-13",
+  "title": "Enable Vulkan smoke Gallery domains",
+  "status": "open",
+  "dependencies": ["F7-03"],
+  "locks": ["vulkan-gallery-smoke"],
+  "requires": ["Linux or Android Vulkan device"],
+  "scope": "Compile, bind and qualify existing shared Slang smoke-grid, geometry-smoke and fluid-smoke schedules for the Vulkan driver.",
+  "acceptance": [
+    "Smoke and smoke-water scenes pass bounded lifecycle and visible-output checks on Vulkan.",
+    "Vulkan advertises only the exact smoke and fluid-coupling capabilities supported by passing public-API contracts."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

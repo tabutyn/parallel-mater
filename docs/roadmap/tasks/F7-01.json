@@ -1,0 +1,16 @@
+{
+  "id": "F7-01",
+  "title": "Specify one common Gallery runtime",
+  "status": "open",
+  "dependencies": [],
+  "locks": ["gallery-runtime-contract"],
+  "requires": ["Any development host"],
+  "scope": "Inventory desktop and mobile Gallery behavior and define one platform-neutral runtime contract for scene lifecycle, controls, stepping, rendering handoff and diagnostics.",
+  "acceptance": [
+    "A tracked ownership matrix names every desktop/mobile responsibility and assigns it to the common runtime, a renderer adapter or a platform shell.",
+    "Characterization tests pin scene selection, reset, pause, foreground recovery and controller behavior that later extraction must preserve."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

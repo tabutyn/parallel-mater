@@ -1,0 +1,16 @@
+{
+  "id": "F7-15",
+  "title": "Expose capability-driven Android catalog",
+  "status": "open",
+  "dependencies": ["F7-02", "F7-07"],
+  "locks": ["android-gallery-catalog"],
+  "requires": ["Android build toolchain"],
+  "scope": "Replace Android's rigid_liquid scene subset and parallel description array with the common catalog and runtime capability results.",
+  "acceptance": [
+    "Every common Gallery scene appears in stable order; supported scenes launch and unsupported scenes show a precise reason.",
+    "Adding a newly advertised Vulkan capability requires no Android scene-index or description change."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
