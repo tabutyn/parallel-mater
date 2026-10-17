@@ -58,6 +58,7 @@ set(PARALLEL_MATER_SLANG_geometry_ENTRIES
     pm_generate_rigid_leaf_pairs
     pm_evaluate_rigid_leaf_pairs
     pm_reduce_rigid_leaf_manifolds
+    pm_prepare_rigid_face_manifolds
     pm_finalize_rigid_contact_manifolds
     pm_clear_rigid_inputs
     pm_capture_rigid_inputs

@@ -99,7 +99,9 @@ PmResult finalize_rigid_contact_manifolds(
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
     std::uint32_t *leaf_pair_counts, float timestep, void *manifolds,
     bool prepare_faces) noexcept {
-    return metal::launch(stream, "pm_finalize_rigid_contact_manifolds", grid,
+    const char *entry = prepare_faces ? "pm_prepare_rigid_face_manifolds"
+                                      : "pm_finalize_rigid_contact_manifolds";
+    return metal::launch(stream, entry, grid,
         parameters, previous_states,
         states, count, meshes,
         ids, constraints,

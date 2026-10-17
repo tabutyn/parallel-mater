@@ -138,6 +138,17 @@ PmResult finalize_rigid_contact_manifolds(
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
     std::uint32_t *leaf_pair_counts, float timestep, void *manifolds,
     bool prepare_faces) noexcept {
+    if (prepare_faces) {
+        EntryPointParams_15 args{as<BodyParameters_0>(parameters),
+            as<RigidBodyState_0>(previous_states), as<RigidBodyState_0>(states),
+            count, as<TriangleMeshResource_0>(meshes), as<RigidBodyId_0>(ids),
+            as<RigidConstraintResource_0>(constraints), constraint_capacity,
+            active_pairs, active_pair_count, leaf_pair_counts, timestep,
+            as<ContactManifold_0>(manifolds), prepare_faces};
+        device::dispatch_cpu(
+            grid, block, pm_prepare_rigid_face_manifolds_Thread, &args);
+        return PM_SUCCESS;
+    }
     EntryPointParams_6 args{as<BodyParameters_0>(parameters),
         as<RigidBodyState_0>(previous_states), as<RigidBodyState_0>(states),
         count, as<TriangleMeshResource_0>(meshes), as<RigidBodyId_0>(ids),

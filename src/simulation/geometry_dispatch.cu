@@ -132,12 +132,21 @@ PmResult finalize_rigid_contact_manifolds(
     std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
     std::uint32_t *leaf_pair_counts, float timestep, void *manifolds,
     bool prepare_faces) noexcept {
-    pm_finalize_rigid_contact_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
-        as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
-        as<RigidBodyId_0>(ids), as<RigidConstraintResource_0>(constraints),
-        constraint_capacity, active_pairs, active_pair_count, leaf_pair_counts,
-        timestep, as<ContactManifold_0>(manifolds), prepare_faces);
+    if (prepare_faces) {
+        pm_prepare_rigid_face_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+            as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
+            as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
+            as<RigidBodyId_0>(ids), as<RigidConstraintResource_0>(constraints),
+            constraint_capacity, active_pairs, active_pair_count, leaf_pair_counts,
+            timestep, as<ContactManifold_0>(manifolds), prepare_faces);
+    } else {
+        pm_finalize_rigid_contact_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+            as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
+            as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
+            as<RigidBodyId_0>(ids), as<RigidConstraintResource_0>(constraints),
+            constraint_capacity, active_pairs, active_pair_count, leaf_pair_counts,
+            timestep, as<ContactManifold_0>(manifolds), prepare_faces);
+    }
     return device::from_driver_error(cudaPeekAtLastError());
 }
 
