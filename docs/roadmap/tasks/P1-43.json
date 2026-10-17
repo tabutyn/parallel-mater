@@ -1,0 +1,22 @@
+{
+  "id": "P1-43",
+  "title": "Solve particle-smoke thermal exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-40"
+  ],
+  "locks": [
+    "smoke-particle-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement conservative shared Slang heat exchange between particle smoke systems without mass or phase transfer.",
+  "acceptance": [
+    "Unequal mass and heat-capacity cases conserve sensible energy and remain within input temperature extrema.",
+    "Zero conductivity, endpoint order, disjoint and empty cases satisfy the smoke-system contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

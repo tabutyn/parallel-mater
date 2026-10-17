@@ -1,0 +1,23 @@
+{
+  "id": "P1-39",
+  "title": "Expose smoke pair profiles and edges",
+  "status": "deferred",
+  "dependencies": [
+    "P1-02"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add canonical smoke-smoke graph edges and distinct particle-particle, grid-grid and particle-grid profile identities; advertise nothing.",
+  "acceptance": [
+    "Registry, generated API and specification distinguish all three representation pairs and reject reversed, duplicate or unsupported bundles atomically.",
+    "Current API 0.2 self records remain unchanged and no driver exposes a separate-system record."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

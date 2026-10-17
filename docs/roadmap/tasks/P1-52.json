@@ -1,0 +1,23 @@
+{
+  "id": "P1-52",
+  "title": "Solve mixed smoke reciprocal drag",
+  "status": "deferred",
+  "dependencies": [
+    "P1-40"
+  ],
+  "locks": [
+    "runtime-memory",
+    "smoke-coupling-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement shared Slang particle-grid velocity sampling and reciprocal conservative momentum deposition.",
+  "acceptance": [
+    "Inside-grid drag conserves momentum and dissipates relative kinetic energy; outside particles are unchanged.",
+    "Normalized face deposition, unequal masses, endpoint order and capacity behavior meet the mixed-profile contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

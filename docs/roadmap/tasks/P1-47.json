@@ -1,0 +1,22 @@
+{
+  "id": "P1-47",
+  "title": "Solve coupled smoke-grid pressure",
+  "status": "deferred",
+  "dependencies": [
+    "P1-46"
+  ],
+  "locks": [
+    "smoke-grid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement one conservative overlap pressure-flux or composite projection operator for two smoke grids.",
+  "acceptance": [
+    "Coupled overlap divergence decreases to the stricter endpoint tolerance without double pressure work.",
+    "Aligned/misaligned and unequal-resolution fixtures meet momentum, fixed-point and endpoint-order limits."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

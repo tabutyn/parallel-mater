@@ -133,7 +133,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | done | F2-01 | — |
 | [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | done | F2-01 | — |
 | [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | done | F2-01 | — |
-| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | leased | F2-01 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:28:32Z |
+| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | done | F2-01 | — |
 | [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation
@@ -239,6 +239,23 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-36](roadmap/tasks/P1-36.json) | Solve rope endpoint attachments | deferred | P1-32 | — |
 | [P1-37](roadmap/tasks/P1-37.json) | Schedule rope pair modes | deferred | P1-34, P1-35, P1-36 | — |
 | [P1-38](roadmap/tasks/P1-38.json) | Qualify and advertise rope pair modes | deferred | P1-37, F5-02, F5-03 | — |
+| [P1-39](roadmap/tasks/P1-39.json) | Expose smoke pair profiles and edges | deferred | P1-02 | — |
+| [P1-40](roadmap/tasks/P1-40.json) | Expose conserved smoke material state | deferred | P1-39 | — |
+| [P1-41](roadmap/tasks/P1-41.json) | Build bounded particle-smoke cross neighbors | deferred | P1-40 | — |
+| [P1-42](roadmap/tasks/P1-42.json) | Solve particle-smoke mechanical exchange | deferred | P1-41 | — |
+| [P1-43](roadmap/tasks/P1-43.json) | Solve particle-smoke thermal exchange | deferred | P1-40 | — |
+| [P1-44](roadmap/tasks/P1-44.json) | Schedule particle-smoke pair modes | deferred | P1-42, P1-43 | — |
+| [P1-45](roadmap/tasks/P1-45.json) | Qualify particle-smoke pair modes | deferred | P1-44, F5-02, F5-03 | — |
+| [P1-46](roadmap/tasks/P1-46.json) | Build conservative smoke-grid overlap maps | deferred | P1-40 | — |
+| [P1-47](roadmap/tasks/P1-47.json) | Solve coupled smoke-grid pressure | deferred | P1-46 | — |
+| [P1-48](roadmap/tasks/P1-48.json) | Solve smoke-grid viscous exchange | deferred | P1-46 | — |
+| [P1-49](roadmap/tasks/P1-49.json) | Solve smoke-grid thermal exchange | deferred | P1-46 | — |
+| [P1-50](roadmap/tasks/P1-50.json) | Schedule smoke-grid pair modes | deferred | P1-47, P1-48, P1-49 | — |
+| [P1-51](roadmap/tasks/P1-51.json) | Qualify smoke-grid pair modes | deferred | P1-50, F5-02, F5-03 | — |
+| [P1-52](roadmap/tasks/P1-52.json) | Solve mixed smoke reciprocal drag | deferred | P1-40 | — |
+| [P1-53](roadmap/tasks/P1-53.json) | Solve mixed smoke thermal exchange | deferred | P1-40 | — |
+| [P1-54](roadmap/tasks/P1-54.json) | Schedule mixed smoke pair modes | deferred | P1-52, P1-53 | — |
+| [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
 
 ### P2. Deferred engine integration
 

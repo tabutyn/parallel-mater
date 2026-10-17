@@ -1,0 +1,26 @@
+{
+  "id": "P1-50",
+  "title": "Schedule smoke-grid pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-47",
+    "P1-48",
+    "P1-49"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate grid pressure, viscosity and thermal overlap operators into bounded portable scheduling and lifecycle.",
+  "acceptance": [
+    "Graph add/remove/rebind/reset/overflow/recovery pass without reading retired grids or allocating during a step.",
+    "Reference adapters compile the shared overlap schedule or explicitly reject each mode."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

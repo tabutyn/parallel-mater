@@ -1,0 +1,25 @@
+{
+  "id": "P1-54",
+  "title": "Schedule mixed smoke pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-52",
+    "P1-53"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate mixed particle-grid drag and thermal edges into bounded portable scheduling and lifecycle.",
+  "acceptance": [
+    "Graph add/remove/rebind/reset/overflow/recovery pass with canonical endpoint representation and generations.",
+    "Pressure, viscosity, conversion and reseeding remain rejected; adapters compile or explicitly reject drag and thermal."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

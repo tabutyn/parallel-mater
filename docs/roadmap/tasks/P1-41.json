@@ -1,0 +1,23 @@
+{
+  "id": "P1-41",
+  "title": "Build bounded particle-smoke cross neighbors",
+  "status": "deferred",
+  "dependencies": [
+    "P1-40"
+  ],
+  "locks": [
+    "runtime-memory",
+    "smoke-particle-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Generate one complete symmetric cross-system neighborhood for two particle smoke endpoints with declared storage.",
+  "acceptance": [
+    "Fixtures cover overlapping, disjoint, empty, unequal-count and identical-local-index populations without missed or duplicate unordered pairs.",
+    "Cross neighbors count against endpoint capacity; overflow is explicit, invalidates affected output and permits retry."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

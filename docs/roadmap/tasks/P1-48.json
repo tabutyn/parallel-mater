@@ -1,0 +1,22 @@
+{
+  "id": "P1-48",
+  "title": "Solve smoke-grid viscous exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-46"
+  ],
+  "locks": [
+    "smoke-grid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement conservative dissipative momentum exchange across grid overlaps using harmonic dynamic viscosity.",
+  "acceptance": [
+    "Interface momentum is equal and opposite and kinetic energy does not increase beyond tolerance.",
+    "Uniform velocity, zero viscosity, partial/no overlap and endpoint-order fixtures pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

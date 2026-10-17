@@ -1,0 +1,25 @@
+{
+  "id": "P1-55",
+  "title": "Qualify mixed smoke pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-54",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Run public-API mixed smoke reciprocity, stability, capacity and lifecycle gates before advertising.",
+  "acceptance": [
+    "Per-driver evidence covers inside/outside sampling, unequal state, drag, thermal, timestep and long-run cases.",
+    "Only passing drag and thermal records are exposed under smoke-particle-grid; other modes remain unsupported."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

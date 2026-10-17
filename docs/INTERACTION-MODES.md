@@ -424,6 +424,168 @@ portable scheduling. Qualification first audits the legacy node-only record,
 then advertises capsule contact and attachment per driver only after crossing,
 friction, conservation, stretch, break, capacity and lifecycle cases pass.
 
+## Smoke self and overlapping-system scopes
+
+Smoke has two independently advertised representations. `smoke-particle` is
+the particle pressure/viscosity model. `smoke-grid` is the projected Eulerian
+MAC grid; its particles are tracers and scalar-deposition sources, not a second
+particle pressure solve. The API 0.2 `self` records describe the internal solve
+of one live smoke slot only. They do not allow one smoke slot to read another
+slot's particles, grid cells, velocity faces, density or temperature.
+
+Separate-system smoke is a future graph edge between two different live smoke
+slots. It has three representation identities: particle-particle uses
+`smoke-particle`, grid-grid uses `smoke-grid`, and particle-grid uses the future
+`smoke-particle-grid` profile. These identities remain unsupported until their
+individual implementation and qualification leaves finish. A driver cannot
+infer one from another or from a distinct-family smoke capability.
+
+The edge never merges ownership. Each endpoint retains its emitter, particle
+count and capacity, stable-ID namespace, grid origin and spacing, output range,
+material and generation. Numeric particle IDs and grid coordinates are local
+to their endpoint. There is no smoke mass, particle, species or material
+transfer in these profiles. Empty endpoints are no-ops. Edge removal isolates
+the systems on the next step; endpoint replacement follows normal generation
+and rollback rules.
+
+### Required material state and shared invariants
+
+`PmSmokeMaterialState` currently contains number-density and numerical solver
+parameters but no mass density, particle mass, heat capacity or thermal
+conductivity. Its grid temperature is an internal buoyancy scalar, and the
+particle public state exposes no temperature. Those values cannot support a
+portable conservation claim. Before any separate-system record is advertised,
+a typed versioned extension must expose:
+
+- positive mass density in kg/m^3 and, for the particle representation, a
+  positive particle rest volume in m^3;
+- positive specific heat capacity in J/(kg*K) for a `thermal` record and
+  nonnegative thermal conductivity in W/(m*K); and
+- explicit particle/grid representation selection and a canonical smoke-pair
+  edge with `first < second`.
+
+The particle mass is `massDensity * particleRestVolume`. Grid cell mass is
+`massDensity * cellVolume`; scalar smoke density is a dimensionless transported
+concentration and must not be mistaken for material mass density. The future
+absolute endpoint temperature is in degrees Celsius, while temperature
+differences used by the operator are also valid in kelvins.
+
+All profiles use bidirectional exchange. In a closed fixture without buoyancy,
+wind, emitters, obstacles, decay or speed caps, pressure and viscous exchange
+must conserve total linear momentum. Let `delta_p_i` be the momentum change of
+each owned particle or control volume, `I = sum(||delta_p_i||2)`, and
+`R = ||sum(delta_p_i)||2`. A case with `I >= 1e-4 kg*m/s` must satisfy
+
+```text
+R <= max(1e-7 kg*m/s, 5e-5 * I).
+```
+
+The analogous angular-momentum residual about the fixture centre uses
+`r_i cross delta_p_i` and the same absolute/relative limit in kg*m^2/s.
+Viscosity and drag cannot increase kinetic energy beyond a relative `5e-5`
+integration tolerance. Pressure produces no net impulse. With thermal exchange
+and no external source, total sensible energy
+
+```text
+E = sum_i mass_i * specificHeat_i * (temperature_i - T_reference)
+```
+
+is conserved to `max(1e-6 J, 5e-5 * sum_i |delta_E_i|)`, independently of the
+reference temperature. A stable conductive step keeps temperatures within the
+pre-step endpoint extrema. Endpoint order cannot change the result beyond the
+same tolerances.
+
+### Particle-particle profile
+
+A separate-system `smoke-particle` edge may advertise `pressure`, `viscosity`
+and `thermal` independently. Pressure and viscosity use one complete symmetric
+neighborhood over both populations. Every unordered cross pair contributes
+once and applies equal and opposite force; solving A against B and B against A
+as independent full-strength passes is forbidden. Cross neighbors count
+against each endpoint's declared neighbor capacity, and overflow is an explicit
+failed step rather than a partial interaction.
+
+When endpoint material states are equal, a split run with the edge must match a
+combined-population run on the same driver. Both runs contain the same particle
+records and use the same step, substeps, external inputs and representable
+capacities. Mapping by input record, the maximum position and velocity errors
+after one step are at most `5e-4 * particleRadius` and
+`5e-4 * particleRadius / dt`; particle counts remain exact. Unequal materials
+use their own pressure law, particle mass and kinematic viscosity. Cross-pair
+dynamic viscosity uses the harmonic combination of
+`massDensity * kinematicViscosity`, as for miscible fluids.
+
+Thermal exchange transfers equal energy in opposite directions using the
+harmonic conductivity. It does not imply buoyancy, reaction, radiation, phase
+change or material transfer. Pressure alone does not enable thermal exchange,
+and thermal alone does not enable mechanical exchange.
+
+### Grid-grid overlap profile
+
+The active overlap is the world-space intersection of two grid volumes. Grid
+origins, cell sizes and resolutions may differ. Conservative overlap weights
+are nonnegative, proportional to intersected cell/face measure and sum to one
+within `1e-6` for every covered destination sample. A uniform scalar or
+velocity field is a fixed point of remapping; equal overlapping fields cannot
+double density, temperature, pressure or momentum merely because two owners
+cover the same location.
+
+Each endpoint transports its own scalar concentration outside the overlap. In
+the overlap, a `pressure` edge builds one composite flux/projection problem, or
+an equivalent conservative interface operator, across both grids. Two
+independent projections followed by velocity blending are insufficient because
+they double pressure work and need not balance interface flux. After projection,
+the volume-weighted divergence norm over the coupled overlap is no greater than
+the pre-projection norm and meets the stricter advertised endpoint tolerance.
+The pressure exchange has zero net impulse within the shared invariant above.
+
+`viscosity` exchanges tangential momentum on the overlap using harmonic dynamic
+viscosity. `thermal` exchanges sensible energy using harmonic conductivity.
+Both use one conservative interface flux per geometric overlap and its equal
+opposite contribution; neither overwrites endpoint-owned state with the other
+grid's sample. A translating uniform field and a uniform temperature field are
+fixed points. Nonoverlapping grid pairs produce bitwise-identical endpoint
+outputs to the isolated control.
+
+Overlap-cell, overlap-face, reduction and diagnostic storage is declared by the
+simulation memory plan. Capacity overflow returns
+`PM_ERROR_CAPACITY_EXCEEDED`, invalidates affected output and allows retry. It
+cannot truncate the overlap or choose only one endpoint's resolution.
+
+### Particle-grid profile
+
+`smoke-particle-grid` initially defines only bidirectional `drag` and `thermal`
+exchange. Particles sample the grid velocity and temperature at their world
+position; their momentum and energy changes are deposited back to the same
+covered grid faces/cells with normalized conservative weights. Drag is
+reciprocal and dissipative. Thermal exchange is reciprocal and satisfies the
+shared sensible-energy invariant. Particles outside the grid volume are
+unchanged by the edge.
+
+This profile does not claim a shared pressure solve, viscosity equivalence,
+particle-to-grid conversion, grid-to-particle reseeding or phase change.
+Pressure and viscosity remain unsupported for mixed representation until a
+later contract defines a single conservative discretization rather than
+blending two unrelated solvers.
+
+### Scheduling and qualification boundary
+
+Each edge consumes one declared coupling slot. Cross-neighbor, overlap-map,
+exchange and diagnostic resources are bounded by the queried memory plan.
+Portable scheduling must place exchange between the endpoint transport and
+final integration/projection stages, use canonical endpoints, and avoid
+reading a retired generation. Failure leaves the previously usable graph and
+configuration intact.
+
+Qualification is per driver, representation pair and mode. Particle cases
+cover split-versus-combined equivalence, unequal masses, pressure, viscosity,
+thermal exchange, capacity and lifecycle. Grid cases cover aligned and
+misaligned origins, unequal resolution, partial/no overlap, uniform fixed
+points, projection, conservation, capacity and lifecycle. Mixed cases cover
+inside/outside sampling, reciprocal drag, thermal exchange and lifecycle.
+Timestep sweeps and long-run energy/divergence cases are required before any
+record is exposed. Passing one profile never advertises another.
+
 ## Materials and combination profiles
 
 Every endpoint keeps its pipeline material. An edge selects a pair mode and a
@@ -442,6 +604,7 @@ The initial profiles are:
 | `endpoint-native` | Use both endpoint materials plus the pair's parameters. No unspecified averaging is permitted. | Reference profile for implemented distinct-family modes. |
 | `smoke-particle` | Smoke is the particle tracer model. | Reference profile for implemented smoke pairs. |
 | `smoke-grid` | Smoke is the projected Eulerian grid model. | Reference profile for implemented smoke pairs; support is independent from `smoke-particle`. |
+| `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Future profile specified by F2-15; only reciprocal drag and thermal exchange are defined. |
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | Proposed by F2-05 through F2-10. |
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Specified by F2-11; reserved and unsupported in API 0.2. |
 | `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Specified by F2-11; reserved and unsupported in API 0.2. |

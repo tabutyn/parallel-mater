@@ -1,0 +1,22 @@
+{
+  "id": "P1-42",
+  "title": "Solve particle-smoke mechanical exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-41"
+  ],
+  "locks": [
+    "smoke-particle-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement shared Slang pressure and viscosity exchange over cross-system smoke-particle neighbors.",
+  "acceptance": [
+    "Equal-material split populations match a combined population within the specified one-step tolerances.",
+    "Unequal mass pressure and viscosity cases meet linear/angular momentum and dissipative-energy limits."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
