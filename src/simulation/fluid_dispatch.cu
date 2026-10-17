@@ -44,6 +44,52 @@ void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize block, devi
         reinterpret_cast<unsigned long long *>(keys), sorted_indices);
 }
 
+void fluid_pair_cell_keys(device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *first_positions,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, float inverse_radius,
+    std::uint64_t *keys, std::uint32_t *identities) noexcept {
+    fluid_emit_pair_cells<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        inverse_radius, reinterpret_cast<unsigned long long *>(keys), identities);
+}
+
+void fluid_pair_neighbor_counts(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue stream,
+    const void *first_positions, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, std::uint32_t first_maximum_neighbors,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t *first_total_neighbors,
+    std::uint32_t *first_cross_neighbors,
+    std::uint32_t *second_total_neighbors,
+    std::uint32_t *second_cross_neighbors,
+    std::uint32_t *first_neighbor_overflow,
+    std::uint32_t *second_neighbor_overflow,
+    std::uint32_t *first_maximum_neighbor_count,
+    std::uint32_t *second_maximum_neighbor_count) noexcept {
+    fluid_count_pair_neighbors<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        first_maximum_neighbors,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        second_maximum_neighbors,
+        reinterpret_cast<unsigned long long *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        support_radius, first_total_neighbors, first_cross_neighbors,
+        second_total_neighbors, second_cross_neighbors,
+        first_neighbor_overflow, second_neighbor_overflow,
+        first_maximum_neighbor_count, second_maximum_neighbor_count);
+}
+
 void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,

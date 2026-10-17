@@ -37,7 +37,8 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_emit_cells fluid_compute_forces fluid_integrate
     fluid_reserve_contact_events fluid_gather_contact_events
     fluid_source_vacancies fluid_source_emit fluid_destroy_flags
-    fluid_gather fluid_copy_initial)
+    fluid_gather fluid_copy_initial fluid_emit_pair_cells
+    fluid_count_pair_neighbors)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)

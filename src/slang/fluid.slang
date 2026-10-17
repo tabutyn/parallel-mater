@@ -377,3 +377,134 @@ void fluid_copy_initial(
     foam[index] = 0.0f;
     temperatures[index] = particle.temperature;
 }
+
+static const uint kFluidSecondPopulation = 0x80000000u;
+static const uint kFluidLocalIndexMask = 0x7fffffffu;
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_emit_pair_cells(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform float inverse_radius, uniform PMBuffer<uint64_t> keys,
+    uniform PMBuffer<uint> identities PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    uint totalCapacity = first_capacity + second_capacity;
+    if (item >= totalCapacity) return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    identities[item] = local | (second ? kFluidSecondPopulation : 0u);
+    uint count = second ? *second_count : *first_count;
+    if (local >= count)
+    {
+        keys[item] = kFluidEmptyCell;
+        return;
+    }
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    keys[item] = fluid_cell_key(
+        int(floor(position.x * inverse_radius)),
+        int(floor(position.y * inverse_radius)),
+        int(floor(position.z * inverse_radius)));
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_count_pair_neighbors(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform uint first_maximum_neighbors,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform uint second_maximum_neighbors,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity, uniform float support_radius,
+    uniform PMBuffer<uint> first_total_neighbors,
+    uniform PMBuffer<uint> first_cross_neighbors,
+    uniform PMBuffer<uint> second_total_neighbors,
+    uniform PMBuffer<uint> second_cross_neighbors,
+    uniform PMBuffer<uint> first_neighbor_overflow,
+    uniform PMBuffer<uint> second_neighbor_overflow,
+    uniform PMBuffer<uint> first_maximum_neighbor_count,
+    uniform PMBuffer<uint> second_maximum_neighbor_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (second)
+    {
+        second_total_neighbors[local] = 0u;
+        second_cross_neighbors[local] = 0u;
+    }
+    else
+    {
+        first_total_neighbors[local] = 0u;
+        first_cross_neighbors[local] = 0u;
+    }
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
+    float inverseRadius = 1.0f / support_radius;
+    int cx = int(floor(position.x * inverseRadius));
+    int cy = int(floor(position.y * inverseRadius));
+    int cz = int(floor(position.z * inverseRadius));
+    float supportSquared = support_radius * support_radius;
+    uint neighbors = 0u;
+    uint crossNeighbors = 0u;
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    if (otherIdentity == selfIdentity) continue;
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    Vec3 otherPosition = otherSecond
+                        ? second_positions[other] : first_positions[other];
+                    if (length_squared(subtract(position, otherPosition)) >=
+                        supportSquared)
+                        continue;
+                    ++neighbors;
+                    if (otherSecond != second) ++crossNeighbors;
+                }
+            }
+        }
+    }
+
+    if (second)
+    {
+        second_total_neighbors[local] = neighbors;
+        second_cross_neighbors[local] = crossNeighbors;
+        pmAtomicMax(second_maximum_neighbor_count, neighbors);
+        if (neighbors > second_maximum_neighbors)
+            pmAtomicAdd(second_neighbor_overflow, 1u);
+    }
+    else
+    {
+        first_total_neighbors[local] = neighbors;
+        first_cross_neighbors[local] = crossNeighbors;
+        pmAtomicMax(first_maximum_neighbor_count, neighbors);
+        if (neighbors > first_maximum_neighbors)
+            pmAtomicAdd(first_neighbor_overflow, 1u);
+    }
+}
