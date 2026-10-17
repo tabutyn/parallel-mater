@@ -156,6 +156,17 @@ direction or material combination returns `PM_ERROR_FEATURE_NOT_PRESENT`.
 Applications must not infer support from a related record or a broad feature
 bit.
 
+Graph edges name their complete interaction bundle with
+`PmCouplingState::modeFlags` and select its material representation with
+`materialProfile`. Each mode bit maps to the corresponding
+`PmInteractionMode` record used by the capability query. API 0.2 implements a
+fixed bundle for each `PmCouplingType`; missing and additional known modes are
+unsupported rather than silently enabled or ignored. Endpoint-native pairs
+require `PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE`; smoke pairs select the
+advertised particle or grid profile. The implementation validates every record,
+duplicate endpoint pair, endpoint slot and graph limit before replacing the
+live graph. A rejected replacement leaves the previous graph usable.
+
 ## Units and parameter ownership
 
 Parallel Mater uses metres, seconds, kilograms and radians. API 0.2 particle
@@ -190,7 +201,8 @@ says so; it never selects another interaction mode.
 types that read it. The reference implementation accepts `PM_TRUE` and rejects
 `PM_FALSE` for those types. It must not silently turn a requested one-way mode
 into two-way contact. Rope attachments and smoke/thermal modes have the fixed
-directions shown above because API 0.2 has no direction selector for them.
+directions shown above; graph validation checks those directions through their
+capability records.
 
 These exact pair/mode/profile queries replace broad discovery. F2-03 validates
 every graph edge against them before changing the live graph. Later

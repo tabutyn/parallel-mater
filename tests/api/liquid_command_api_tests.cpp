@@ -109,6 +109,9 @@ int main() {
     pipeline_info.pFluidMaterials = &material;
     PmCouplingState coupling{};
     coupling.type = PM_COUPLING_LIQUID_RIGID;
+    coupling.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+        PM_INTERACTION_MODE_CONTAINMENT_BIT;
+    coupling.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
     coupling.parameters.mechanical.twoWay = PM_TRUE;
     pipeline_info.couplingCount = 1;
     pipeline_info.pCouplings = &coupling;

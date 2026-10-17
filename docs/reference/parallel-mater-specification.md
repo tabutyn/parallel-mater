@@ -1040,6 +1040,59 @@ Materials configure a particle-liquid domain. Smoke, gas grids and non-Newtonian
 ### 9.3 Coupling state
 
 ```c
+typedef enum PmInteractionFamily {
+    PM_INTERACTION_FAMILY_FLUID = 0,
+    PM_INTERACTION_FAMILY_CLOTH = 1,
+    PM_INTERACTION_FAMILY_SOFT_BODY = 2,
+    PM_INTERACTION_FAMILY_ROPE = 3,
+    PM_INTERACTION_FAMILY_SMOKE = 4,
+    PM_INTERACTION_FAMILY_RIGID_BODY = 5
+} PmInteractionFamily;
+typedef enum PmInteractionScope {
+    PM_INTERACTION_SCOPE_SELF = 0,
+    PM_INTERACTION_SCOPE_SAME_DOMAIN = 1,
+    PM_INTERACTION_SCOPE_SEPARATE_SYSTEM = 2,
+    PM_INTERACTION_SCOPE_DISTINCT_FAMILY = 3
+} PmInteractionScope;
+typedef enum PmInteractionMode {
+    PM_INTERACTION_MODE_CONTACT = 0,
+    PM_INTERACTION_MODE_ATTACHMENT = 1,
+    PM_INTERACTION_MODE_DRAG = 2,
+    PM_INTERACTION_MODE_CONTAINMENT = 3,
+    PM_INTERACTION_MODE_PRESSURE = 4,
+    PM_INTERACTION_MODE_VISCOSITY = 5,
+    PM_INTERACTION_MODE_THERMAL = 6,
+    PM_INTERACTION_MODE_PHASE = 7
+} PmInteractionMode;
+typedef PmFlags PmInteractionModeFlags;
+enum {
+    PM_INTERACTION_MODE_CONTACT_BIT = 0x01,
+    PM_INTERACTION_MODE_ATTACHMENT_BIT = 0x02,
+    PM_INTERACTION_MODE_DRAG_BIT = 0x04,
+    PM_INTERACTION_MODE_CONTAINMENT_BIT = 0x08,
+    PM_INTERACTION_MODE_PRESSURE_BIT = 0x10,
+    PM_INTERACTION_MODE_VISCOSITY_BIT = 0x20,
+    PM_INTERACTION_MODE_THERMAL_BIT = 0x40,
+    PM_INTERACTION_MODE_PHASE_BIT = 0x80
+};
+typedef enum PmInteractionDirection {
+    PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND = 1,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST = 2,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER = 3,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST_TRANSFER = 4,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST = 5,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND = 6
+} PmInteractionDirection;
+typedef enum PmInteractionMaterialProfile {
+    PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE = 0,
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE = 1,
+    PM_INTERACTION_MATERIAL_SMOKE_GRID = 2,
+    PM_INTERACTION_MATERIAL_EQUAL = 3,
+    PM_INTERACTION_MATERIAL_MISCIBLE = 4,
+    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
+    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6
+} PmInteractionMaterialProfile;
 typedef enum PmCouplingType {
     PM_COUPLING_LIQUID_RIGID = 0,
     PM_COUPLING_LIQUID_LIQUID = 1,
@@ -1103,6 +1156,8 @@ typedef struct PmCouplingState {
     PmCouplingType type;
     uint32_t first;
     uint32_t second;
+    PmInteractionModeFlags modeFlags;
+    PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
 } PmCouplingState;
 ```
@@ -1113,11 +1168,13 @@ PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     const PmCouplingState *pCouplings);
 ```
 
-first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. Partial graph creation is rolled back to an empty active graph on failure. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
+first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.
+
+Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
 
 Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.
 
-The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. Other API 0.2 directions are fixed by coupling type and must not be inferred from a zero parameter. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit.
+The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit.
 
 <a id="spec-domain_materials"></a>
 
@@ -2341,48 +2398,6 @@ Capability decisions are made before allocation and pipeline creation
 ### 16.1 Interaction capabilities
 
 ```c
-typedef enum PmInteractionFamily {
-    PM_INTERACTION_FAMILY_FLUID = 0,
-    PM_INTERACTION_FAMILY_CLOTH = 1,
-    PM_INTERACTION_FAMILY_SOFT_BODY = 2,
-    PM_INTERACTION_FAMILY_ROPE = 3,
-    PM_INTERACTION_FAMILY_SMOKE = 4,
-    PM_INTERACTION_FAMILY_RIGID_BODY = 5
-} PmInteractionFamily;
-typedef enum PmInteractionScope {
-    PM_INTERACTION_SCOPE_SELF = 0,
-    PM_INTERACTION_SCOPE_SAME_DOMAIN = 1,
-    PM_INTERACTION_SCOPE_SEPARATE_SYSTEM = 2,
-    PM_INTERACTION_SCOPE_DISTINCT_FAMILY = 3
-} PmInteractionScope;
-typedef enum PmInteractionMode {
-    PM_INTERACTION_MODE_CONTACT = 0,
-    PM_INTERACTION_MODE_ATTACHMENT = 1,
-    PM_INTERACTION_MODE_DRAG = 2,
-    PM_INTERACTION_MODE_CONTAINMENT = 3,
-    PM_INTERACTION_MODE_PRESSURE = 4,
-    PM_INTERACTION_MODE_VISCOSITY = 5,
-    PM_INTERACTION_MODE_THERMAL = 6,
-    PM_INTERACTION_MODE_PHASE = 7
-} PmInteractionMode;
-typedef enum PmInteractionDirection {
-    PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
-    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND = 1,
-    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST = 2,
-    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER = 3,
-    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST_TRANSFER = 4,
-    PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST = 5,
-    PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND = 6
-} PmInteractionDirection;
-typedef enum PmInteractionMaterialProfile {
-    PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE = 0,
-    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE = 1,
-    PM_INTERACTION_MATERIAL_SMOKE_GRID = 2,
-    PM_INTERACTION_MATERIAL_EQUAL = 3,
-    PM_INTERACTION_MATERIAL_MISCIBLE = 4,
-    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
-    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6
-} PmInteractionMaterialProfile;
 #define PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE 0u
 #define PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY PM_INVALID_INDEX
 typedef struct PmInteractionCapabilityKey {
@@ -2886,11 +2901,12 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmInstanceCreateInfo | [3.2](#spec-instance) |
 | PmInteractionCapability | [16.1](#spec-interaction_capabilities) |
 | PmInteractionCapabilityKey | [16.1](#spec-interaction_capabilities) |
-| PmInteractionDirection | [16.1](#spec-interaction_capabilities) |
-| PmInteractionFamily | [16.1](#spec-interaction_capabilities) |
-| PmInteractionMaterialProfile | [16.1](#spec-interaction_capabilities) |
-| PmInteractionMode | [16.1](#spec-interaction_capabilities) |
-| PmInteractionScope | [16.1](#spec-interaction_capabilities) |
+| PmInteractionDirection | [9.3](#spec-coupling) |
+| PmInteractionFamily | [9.3](#spec-coupling) |
+| PmInteractionMaterialProfile | [9.3](#spec-coupling) |
+| PmInteractionMode | [9.3](#spec-coupling) |
+| PmInteractionModeFlags | [9.3](#spec-coupling) |
+| PmInteractionScope | [9.3](#spec-coupling) |
 | pmInvalidateMappedMemoryRanges | [5.4](#spec-mapping) |
 | PmLayerProperties | [3.2](#spec-instance) |
 | PmLiquidMaterialState | [9.2](#spec-liquid_material) |

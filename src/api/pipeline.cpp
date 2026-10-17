@@ -4,12 +4,118 @@
 #include <cmath>
 
 namespace parallel_mater::api {
+namespace {
+
+struct RequiredInteraction {
+    PmInteractionMode mode;
+    PmInteractionDirection direction;
+};
+
+struct CouplingContract {
+    PmInteractionFamily first;
+    PmInteractionFamily second;
+    PmInteractionModeFlags mode_flags;
+    bool smoke_profile;
+    RequiredInteraction interactions[3];
+    std::uint32_t interaction_count;
+};
+
+constexpr CouplingContract coupling_contracts[] = {
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_RIGID_BODY,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT,
+     false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_CONTAINMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
+    {}, // Liquid/liquid graph behavior is specified by F2-05 and later tasks.
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_CLOTH,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT,
+     false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_CONTAINMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_ROPE,
+     PM_INTERACTION_MODE_CONTACT_BIT, false,
+     {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SOFT_BODY,
+     PM_INTERACTION_MODE_CONTACT_BIT, false,
+     {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SMOKE,
+     PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_THERMAL_BIT |
+         PM_INTERACTION_MODE_PHASE_BIT,
+     true, {{PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_SECOND_TO_FIRST},
+            {PM_INTERACTION_MODE_THERMAL, PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST},
+            {PM_INTERACTION_MODE_PHASE, PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER}}, 3U},
+    {PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_SOFT_BODY,
+     PM_INTERACTION_MODE_CONTACT_BIT, false,
+     {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_SOFT_BODY, PM_INTERACTION_FAMILY_ROPE,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_ATTACHMENT_BIT,
+     false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_ATTACHMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
+    {PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_ROPE,
+     PM_INTERACTION_MODE_ATTACHMENT_BIT, false,
+     {{PM_INTERACTION_MODE_ATTACHMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_SMOKE, PM_INTERACTION_FAMILY_RIGID_BODY,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_DRAG_BIT,
+     true, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+            {PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
+    {PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_SMOKE,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_DRAG_BIT,
+     true, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_FIRST_TO_SECOND},
+            {PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_SECOND_TO_FIRST}}, 2U},
+    {PM_INTERACTION_FAMILY_ROPE, PM_INTERACTION_FAMILY_SMOKE,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_DRAG_BIT,
+     true, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_FIRST_TO_SECOND},
+            {PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_SECOND_TO_FIRST}}, 2U},
+    {PM_INTERACTION_FAMILY_SOFT_BODY, PM_INTERACTION_FAMILY_SMOKE,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_DRAG_BIT,
+     true, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_FIRST_TO_SECOND},
+            {PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_SECOND_TO_FIRST}}, 2U},
+};
+
+constexpr PmInteractionModeFlags all_mode_flags =
+    PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_ATTACHMENT_BIT |
+    PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT |
+    PM_INTERACTION_MODE_PRESSURE_BIT | PM_INTERACTION_MODE_VISCOSITY_BIT |
+    PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
+
+static_assert(sizeof(coupling_contracts) / sizeof(coupling_contracts[0]) ==
+              PM_COUPLING_SMOKE_SOFT_BODY + 1U);
+
+} // namespace
+
 PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept {
+    if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.type < PM_COUPLING_LIQUID_RIGID || coupling.type > PM_COUPLING_SMOKE_SOFT_BODY)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.type == PM_COUPLING_LIQUID_LIQUID) return PM_ERROR_FEATURE_NOT_PRESENT;
-    if (coupling.type != PM_COUPLING_LIQUID_RIGID && !device->enabled.domainCouplings)
+    if (coupling.modeFlags == 0U || (coupling.modeFlags & ~all_mode_flags) != 0U)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (coupling.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
+        coupling.materialProfile > PM_INTERACTION_MATERIAL_THERMAL_PHASE)
+        return PM_ERROR_INVALID_ARGUMENT;
+
+    const auto &contract = coupling_contracts[static_cast<std::size_t>(coupling.type)];
+    if (coupling.modeFlags != contract.mode_flags)
         return PM_ERROR_FEATURE_NOT_PRESENT;
+    const bool valid_profile = contract.smoke_profile
+        ? coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_PARTICLE ||
+              coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_GRID
+        : coupling.materialProfile == PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    if (!valid_profile) return PM_ERROR_FEATURE_NOT_PRESENT;
+
+    for (std::uint32_t index = 0U; index < contract.interaction_count; ++index) {
+        const PmInteractionCapabilityKey key{
+            contract.first, contract.second,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            contract.interactions[index].mode,
+            contract.interactions[index].direction,
+            coupling.materialProfile};
+        PmInteractionCapability capability{};
+        const PmResult result = find_interaction_capability(
+            device->enabled, key, capability);
+        if (result != PM_SUCCESS) return result;
+        if (capability.maxGraphEdgesPerSimulation ==
+            PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE)
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+    }
     switch (coupling.type) {
     case PM_COUPLING_LIQUID_RIGID:
     case PM_COUPLING_LIQUID_CLOTH:

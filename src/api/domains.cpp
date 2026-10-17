@@ -1462,23 +1462,124 @@ PmResult clear_couplings(PmSimulation simulation) noexcept {
         if (!status) return from_status(status);
         simulation->active_couplings.pop_back();
     }
+    simulation->active_coupling_states.clear();
     return PM_SUCCESS;
 }
 
-PmResult initialize_couplings(PmSimulation simulation,
-                              PmPhysicsPipeline pipeline) noexcept {
-    if (simulation == nullptr || pipeline == nullptr)
-        return PM_ERROR_INVALID_ARGUMENT;
-    if (simulation->couplings_initialized &&
-        (simulation->explicit_couplings || simulation->coupling_pipeline_serial == pipeline->serial))
+namespace {
+
+PmResult validate_coupling_endpoints(
+    PmSimulation simulation, const PmCouplingState &source) noexcept {
+    PmResult result = PM_SUCCESS;
+    switch (source.type) {
+    case PM_COUPLING_LIQUID_RIGID:
+        return PM_SUCCESS; // One intrinsic edge covers all live rigid bodies.
+    case PM_COUPLING_LIQUID_LIQUID:
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    case PM_COUPLING_LIQUID_CLOTH: {
+        FluidId fluid{}; ClothId cloth{};
+        if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
+            (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
+            return result;
         return PM_SUCCESS;
-    const auto &requested = simulation->explicit_couplings ? simulation->requested_couplings : pipeline->couplings;
+    }
+    case PM_COUPLING_LIQUID_ROPE: {
+        FluidId fluid{}; RopeId rope{};
+        if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
+            (result = require_slot(simulation->ropes, source.second, rope)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_LIQUID_SOFT_BODY: {
+        FluidId fluid{}; SoftBodyId body{};
+        if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
+            (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_LIQUID_SMOKE: {
+        FluidId fluid{}; SmokeId smoke{};
+        if ((result = require_slot(simulation->fluid_ids, source.first, fluid)) != PM_SUCCESS ||
+            (result = require_slot(simulation->smokes, source.second, smoke)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_SOFT_BODY_CLOTH: {
+        SoftBodyId body{}; ClothId cloth{};
+        if ((result = require_slot(simulation->soft_bodies, source.first, body)) != PM_SUCCESS ||
+            (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_ROPE_SOFT_BODY: {
+        RopeId rope{}; SoftBodyId body{};
+        if ((result = require_slot(simulation->ropes, source.first, rope)) != PM_SUCCESS ||
+            (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_ROPE_CLOTH: {
+        RopeId rope{}; ClothId cloth{};
+        if ((result = require_slot(simulation->ropes, source.first, rope)) != PM_SUCCESS ||
+            (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_SMOKE_RIGID: {
+        SmokeId smoke{}; RigidBodyId body{};
+        if ((result = require_slot(simulation->smokes, source.first, smoke)) != PM_SUCCESS ||
+            (result = require_slot(simulation->rigid_bodies, source.second, body)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_SMOKE_CLOTH: {
+        SmokeId smoke{}; ClothId cloth{};
+        if ((result = require_slot(simulation->smokes, source.first, smoke)) != PM_SUCCESS ||
+            (result = require_slot(simulation->cloths, source.second, cloth)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_SMOKE_ROPE: {
+        SmokeId smoke{}; RopeId rope{};
+        if ((result = require_slot(simulation->smokes, source.first, smoke)) != PM_SUCCESS ||
+            (result = require_slot(simulation->ropes, source.second, rope)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    case PM_COUPLING_SMOKE_SOFT_BODY: {
+        SmokeId smoke{}; SoftBodyId body{};
+        if ((result = require_slot(simulation->smokes, source.first, smoke)) != PM_SUCCESS ||
+            (result = require_slot(simulation->soft_bodies, source.second, body)) != PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
+    }
+    return PM_ERROR_INVALID_ARGUMENT;
+}
+
+PmResult validate_coupling_graph(
+    PmSimulation simulation,
+    const std::vector<PmCouplingState> &requested) noexcept {
     if (requested.size() > simulation->info.couplingCapacity)
         return PM_ERROR_CAPACITY_EXCEEDED;
-    try { simulation->active_couplings.reserve(requested.size()); }
-    catch (...) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
-    const auto cleared = clear_couplings(simulation);
-    if (cleared != PM_SUCCESS) return cleared;
+    for (std::size_t index = 0U; index < requested.size(); ++index) {
+        const auto result = validate_coupling(simulation->device, requested[index]);
+        if (result != PM_SUCCESS) return result;
+        const auto endpoints = validate_coupling_endpoints(simulation, requested[index]);
+        if (endpoints != PM_SUCCESS) return endpoints;
+        for (std::size_t prior = 0U; prior < index; ++prior) {
+            if (requested[prior].type == requested[index].type &&
+                requested[prior].first == requested[index].first &&
+                requested[prior].second == requested[index].second)
+                return PM_ERROR_INVALID_ARGUMENT;
+        }
+    }
+    return PM_SUCCESS;
+}
+
+PmResult install_couplings(
+    PmSimulation simulation,
+    const std::vector<PmCouplingState> &requested) noexcept {
     const auto rollback = [&](PmResult result) {
         const auto cleanup = clear_couplings(simulation);
         return cleanup == PM_SUCCESS ? result : cleanup;
@@ -1681,6 +1782,50 @@ PmResult initialize_couplings(PmSimulation simulation,
         }
         if (result != PM_SUCCESS) return rollback(result);
     }
+    return PM_SUCCESS;
+}
+
+} // namespace
+
+PmResult initialize_couplings(PmSimulation simulation,
+                              PmPhysicsPipeline pipeline) noexcept {
+    if (simulation == nullptr || pipeline == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (simulation->couplings_initialized &&
+        (simulation->explicit_couplings ||
+         simulation->coupling_pipeline_serial == pipeline->serial))
+        return PM_SUCCESS;
+    const auto &requested = simulation->explicit_couplings
+        ? simulation->requested_couplings : pipeline->couplings;
+    const auto validation = validate_coupling_graph(simulation, requested);
+    if (validation != PM_SUCCESS) return validation;
+
+    std::vector<PmCouplingState> previous_states;
+    std::vector<PmCouplingState> next_states;
+    try {
+        previous_states = simulation->active_coupling_states;
+        next_states = requested;
+        simulation->active_couplings.reserve(std::max(
+            previous_states.size(), next_states.size()));
+    } catch (const std::bad_alloc &) {
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    const std::uint64_t previous_serial = simulation->coupling_pipeline_serial;
+    const auto cleared = clear_couplings(simulation);
+    if (cleared != PM_SUCCESS) return cleared;
+
+    const auto installed = install_couplings(simulation, requested);
+    if (installed != PM_SUCCESS) {
+        const auto restored = install_couplings(simulation, previous_states);
+        if (restored != PM_SUCCESS) return restored;
+        simulation->active_coupling_states.swap(previous_states);
+        simulation->coupling_pipeline_serial = previous_serial;
+        // The old graph remains usable, but it does not satisfy the pending
+        // descriptor. A later step must retry or replace that descriptor.
+        simulation->couplings_initialized = false;
+        return installed;
+    }
+    simulation->active_coupling_states.swap(next_states);
     simulation->coupling_pipeline_serial = pipeline->serial;
     simulation->couplings_initialized = true;
     return PM_SUCCESS;
@@ -1699,6 +1844,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(
     for (std::uint32_t i = 0; i < count; ++i) {
         const auto result = parallel_mater::api::validate_coupling(simulation->device, couplings[i]);
         if (result != PM_SUCCESS) return result;
+        for (std::uint32_t prior = 0U; prior < i; ++prior)
+            if (couplings[prior].type == couplings[i].type &&
+                couplings[prior].first == couplings[i].first &&
+                couplings[prior].second == couplings[i].second)
+                return PM_ERROR_INVALID_ARGUMENT;
     }
     try {
         std::vector<PmCouplingState> copied;
@@ -1709,10 +1859,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(
                 std::vector<PmCouplingState> next;
                 try { next = copied; } // Preserve recorded data for command-buffer resubmission.
                 catch (...) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
-                const auto result = parallel_mater::api::clear_couplings(simulation);
-                if (result != PM_SUCCESS) return result;
                 simulation->requested_couplings.swap(next);
                 simulation->explicit_couplings = true;
+                simulation->couplings_initialized = false;
                 return PM_SUCCESS;
             });
     } catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }

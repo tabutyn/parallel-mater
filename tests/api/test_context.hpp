@@ -47,6 +47,8 @@ public:
             // The fixture deliberately checks the capabilities its tests use.
             if ((needed.rigidBodies && !features.rigidBodies) ||
                 (needed.particleLiquids && !features.particleLiquids) ||
+                (needed.liquidRigidCoupling && !features.liquidRigidCoupling) ||
+                (needed.liquidLiquidCoupling && !features.liquidLiquidCoupling) ||
                 (needed.cloth && !features.cloth) ||
                 (needed.rope && !features.rope) ||
                 (needed.softBodies && !features.softBodies) ||

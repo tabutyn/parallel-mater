@@ -1205,6 +1205,36 @@
       "card": "coupling"
     },
     {
+      "name": "PmInteractionDirection",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmInteractionFamily",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmInteractionMaterialProfile",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmInteractionMode",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmInteractionModeFlags",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmInteractionScope",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
       "name": "PmMechanicalCouplingState",
       "section": "9.3",
       "card": "coupling"
@@ -1511,31 +1541,6 @@
     },
     {
       "name": "PmInteractionCapabilityKey",
-      "section": "16.1",
-      "card": "interaction_capabilities"
-    },
-    {
-      "name": "PmInteractionDirection",
-      "section": "16.1",
-      "card": "interaction_capabilities"
-    },
-    {
-      "name": "PmInteractionFamily",
-      "section": "16.1",
-      "card": "interaction_capabilities"
-    },
-    {
-      "name": "PmInteractionMaterialProfile",
-      "section": "16.1",
-      "card": "interaction_capabilities"
-    },
-    {
-      "name": "PmInteractionMode",
-      "section": "16.1",
-      "card": "interaction_capabilities"
-    },
-    {
-      "name": "PmInteractionScope",
       "section": "16.1",
       "card": "interaction_capabilities"
     },

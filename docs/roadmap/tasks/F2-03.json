@@ -1,7 +1,7 @@
 {
   "id": "F2-03",
   "title": "Validate graph modes against capabilities",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-02"
   ],
@@ -16,15 +16,31 @@
     "Invalid mode/material, duplicate and over-capacity graph requests are tested.",
     "Public feature reporting agrees with accepted graph descriptors."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1e12bf74-b5ec-4d0c-a8cd-8725821bfc43",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-03/thomas-laptop",
-    "claimed_at": "2026-10-17T02:46:13Z",
-    "heartbeat_at": "2026-10-17T02:46:13Z",
-    "expires_at": "2026-10-18T02:46:13Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-foundations -j2 && ctest --test-dir build-foundations -j2 --output-on-failure; 47 configured tests passed, including CPU graph validation; 3 unsupported CPU domain suites skipped; implementation c0e6fda.",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f2-03-sdk-final-20261017; installed consumer, conformance, version-rejection, unsupported-case and missing-driver checks passed; implementation c0e6fda.",
+    "PASS: cmake --build build-desktop-switch -j2; CUDA and Vulkan drivers and Gallery compiled. Device runtime suites skipped because GPU devices were unavailable to the test process; implementation c0e6fda."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "1e12bf74-b5ec-4d0c-a8cd-8725821bfc43",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-03/thomas-laptop",
+        "claimed_at": "2026-10-17T02:46:13Z",
+        "heartbeat_at": "2026-10-17T02:46:13Z",
+        "expires_at": "2026-10-18T02:46:13Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T02:59:20Z",
+      "reason": "Graph descriptors now name exact mode bundles and material profiles, validate against discovery records before mutation, and restore the prior active graph if installation fails.",
+      "evidence": [
+        "PASS: cmake --build build-foundations -j2 && ctest --test-dir build-foundations -j2 --output-on-failure; 47 configured tests passed, including CPU graph validation; 3 unsupported CPU domain suites skipped; implementation c0e6fda.",
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f2-03-sdk-final-20261017; installed consumer, conformance, version-rejection, unsupported-case and missing-driver checks passed; implementation c0e6fda.",
+        "PASS: cmake --build build-desktop-switch -j2; CUDA and Vulkan drivers and Gallery compiled. Device runtime suites skipped because GPU devices were unavailable to the test process; implementation c0e6fda."
+      ]
+    }
+  ]
 }

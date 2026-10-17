@@ -236,6 +236,11 @@ bool CommandScene::create(const SceneDefinition &scene,
     }
 
     std::vector<PmCouplingState> couplings;
+    const PmInteractionMaterialProfile smoke_profile =
+        scene.has_smoke && scene.smoke_options.grid_resolution != 0U &&
+            scene.smoke_options.grid_vertical_resolution != 0U
+        ? PM_INTERACTION_MATERIAL_SMOKE_GRID
+        : PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
     const auto add_mechanical = [&](PmCouplingType type, std::uint32_t first,
                                     std::uint32_t second,
                                     PmMechanicalCouplingState parameters = {}) {
@@ -243,6 +248,21 @@ bool CommandScene::create(const SceneDefinition &scene,
         state.type = type;
         state.first = first;
         state.second = second;
+        state.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        switch (type) {
+        case PM_COUPLING_LIQUID_RIGID:
+        case PM_COUPLING_LIQUID_CLOTH:
+            state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                PM_INTERACTION_MODE_CONTAINMENT_BIT;
+            break;
+        case PM_COUPLING_ROPE_SOFT_BODY:
+            state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                PM_INTERACTION_MODE_ATTACHMENT_BIT;
+            break;
+        default:
+            state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+            break;
+        }
         state.parameters.mechanical = parameters;
         if (type == PM_COUPLING_LIQUID_RIGID) state.parameters.mechanical.twoWay = PM_TRUE;
         couplings.push_back(state);
@@ -288,6 +308,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_ROPE_SOFT_BODY;
                 state.first = rope;
                 state.second = soft;
+                state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                    PM_INTERACTION_MODE_ATTACHMENT_BIT;
+                state.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
                 state.parameters.mechanical.contactDistance =
                     0.0F;
                 state.parameters.mechanical.friction = 0.4F;
@@ -314,6 +337,8 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_ROPE_CLOTH;
                 state.first = rope;
                 state.second = cloth;
+                state.modeFlags = PM_INTERACTION_MODE_ATTACHMENT_BIT;
+                state.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
                 state.parameters.attachment = {
                     first ? definition.first_cloth_vertex : PM_INVALID_INDEX,
                     last ? definition.last_cloth_vertex : PM_INVALID_INDEX,
@@ -327,6 +352,9 @@ bool CommandScene::create(const SceneDefinition &scene,
             state.type = PM_COUPLING_LIQUID_SMOKE;
             state.first = 0U;
             state.second = 0U;
+            state.modeFlags = PM_INTERACTION_MODE_DRAG_BIT |
+                PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
+            state.materialProfile = smoke_profile;
             copy(state.parameters.thermal.heaterCenter, surface.plane.center);
             copy(state.parameters.thermal.heaterOrientation,
                  surface.plane.orientation);
@@ -348,6 +376,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_SMOKE_CLOTH;
                 state.first = 0U;
                 state.second = cloth;
+                state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                    PM_INTERACTION_MODE_DRAG_BIT;
+                state.materialProfile = smoke_profile;
                 state.parameters.smoke = {2.0F,
                     20.0F, 0.0F, 0.0F,
                     0.0F, PM_FALSE};
@@ -358,6 +389,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_SMOKE_ROPE;
                 state.first = 0U;
                 state.second = rope;
+                state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                    PM_INTERACTION_MODE_DRAG_BIT;
+                state.materialProfile = smoke_profile;
                 state.parameters.smoke = {2.0F,
                     20.0F, 0.0F, 0.0F,
                     0.0F, PM_FALSE};
@@ -369,6 +403,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_SMOKE_SOFT_BODY;
                 state.first = 0U;
                 state.second = soft;
+                state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                    PM_INTERACTION_MODE_DRAG_BIT;
+                state.materialProfile = smoke_profile;
                 state.parameters.smoke = {0.5F,
                     2.0F, 0.0F, 0.0F,
                     0.0F, PM_FALSE};
@@ -387,6 +424,9 @@ bool CommandScene::create(const SceneDefinition &scene,
                 state.type = PM_COUPLING_SMOKE_RIGID;
                 state.first = 0U;
                 state.second = body;
+                state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+                    PM_INTERACTION_MODE_DRAG_BIT;
+                state.materialProfile = smoke_profile;
                 state.parameters.smoke = {0.0F, 0.0F, 1.5F,
                     4.0F, 0.0F,
                     PM_TRUE};
