@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import plistlib
 import tempfile
 import types
 import unittest
@@ -133,6 +134,23 @@ class DeploymentTests(unittest.TestCase):
             info["backend"] = "metal"
             (app / "Assets.car").unlink()
             with self.assertRaisesRegex(RuntimeError, "icon asset catalog"): check()
+
+    def test_macos_runtime_requires_every_rpath_dependency(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app = pathlib.Path(tmp) / "Gallery.app"
+            executable = app / "Contents/MacOS/ParallelMater Gallery"
+            frameworks = app / "Contents/Frameworks"
+            executable.parent.mkdir(parents=True)
+            frameworks.mkdir(parents=True)
+            executable.touch()
+            with (app / "Contents/Info.plist").open("wb") as stream:
+                plistlib.dump({"CFBundleExecutable": "ParallelMater Gallery"}, stream)
+            output = "Gallery:\n\t@rpath/libparallel-mater.0.2.dylib (compatibility version 0.2.0)\n"
+            with patch.object(deploy, "run", return_value=types.SimpleNamespace(stdout=output)):
+                with self.assertRaisesRegex(RuntimeError, "libparallel-mater.0.2.dylib"):
+                    deploy.verify_macos_runtime(app)
+                (frameworks / "libparallel-mater.0.2.dylib").touch()
+                deploy.verify_macos_runtime(app)
 
 
 if __name__ == "__main__": unittest.main()
