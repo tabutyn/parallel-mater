@@ -102,6 +102,12 @@ The check re-evaluates raw results against the pinned obligations and verifies
 the per-driver block in `docs/QUALIFICATION.md`. Supplemental historical
 reports remain visible but contribute no qualified capability records.
 
+Any published performance score must also pass the installed headless
+`benchmarks/qualification.py` gate. The resulting throughput, median/p95 timing
+and memory metrics retain the exact physical-quality profile hash and
+source/binary/device/toolchain tuple; an unqualified diagnostic measurement is
+not release performance evidence.
+
 No release may label a backend or the whole library "conformant" from compiler
 success, a demo, or agreement with a single historical capture. See
 [qualification scope](QUALIFICATION.md) and [contribution rules](../CONTRIBUTING.md).

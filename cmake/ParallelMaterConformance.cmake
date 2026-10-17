@@ -33,6 +33,8 @@ install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/qualification.py
     conformance/v1/README.md conformance/v1/SCHEMA.md
     DESTINATION "${corpus_install_root}/conformance/v1")
+install(FILES benchmarks/qualification.py
+    DESTINATION "${corpus_install_root}/benchmarks")
 # Install only the immutable assets named by this corpus manifest.
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/manifest.json" corpus_manifest)
 string(JSON corpus_asset_count LENGTH "${corpus_manifest}" glb_sha256)

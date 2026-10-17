@@ -1301,6 +1301,12 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
                 -p test_*.py)
+    add_test(NAME parallel-mater-benchmark-qualification-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/tests
+                -p test_*.py)
+    set_tests_properties(parallel-mater-benchmark-qualification-tests PROPERTIES
+        LABELS "benchmark;conformance")
 
     add_executable(parallel-mater-types-contract-tests
                    tests/types_contract.cpp)
