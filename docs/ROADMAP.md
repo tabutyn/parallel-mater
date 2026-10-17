@@ -176,7 +176,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | ready | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | ready | — | — |
-| [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | ready | F5-01, F5-02 | — |
+| [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | leased | F5-01, F5-02 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T06:15:55Z |
 | [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | done | F5-01 | — |
 | [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
