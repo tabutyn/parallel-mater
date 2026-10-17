@@ -3,8 +3,6 @@ struct DesktopGalleryState {
     GalleryRuntime runtime{};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
-    parallel_mater::Vec3 peg_gravity{};
-    parallel_mater::Vec3 cloth_gravity{};
     std::uint64_t revision{};
 
     [[nodiscard]] bool rebuild(const Options &options, GalleryContext context,
@@ -17,8 +15,6 @@ struct DesktopGalleryState {
         }
         dump_spheres = requested_dump_spheres;
         fluid_particles = requested_fluid_particles;
-        peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);
-        cloth_gravity = peg_gravity;
         ++revision;
         std::cout << "Gallery scene ready index=" << gallery_context_index(context)
                   << " revision=" << revision << '\n' << std::flush;

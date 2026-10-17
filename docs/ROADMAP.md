@@ -210,7 +210,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-01](roadmap/tasks/F7-01.json) | Specify one common Gallery runtime | done | — | — |
 | [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | done | F7-01 | — |
 | [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | done | F7-01 | — |
-| [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | leased | F7-03 | codex-linux-gallery / thomas-laptop / 2026-10-18T23:11:30Z |
+| [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | done | F7-03 | — |
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | leased | F7-03 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-18T23:52:03Z |
 | [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |

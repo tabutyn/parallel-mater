@@ -77,12 +77,20 @@ enum class GallerySceneSource : std::uint8_t {
 
 enum class GalleryControlPolicy : std::uint8_t {
     rigid_gravity,
-    constraint_toggle_gravity,
     collector_gravity,
     motor_drive,
+    authored_force,
     none,
     peg_gravity,
     cloth_gravity,
+};
+
+// Platform shells translate keys, touch controls, gamepads, or engine input
+// into these semantic actions. No platform input code belongs in the catalog.
+enum class GalleryPrimaryAction : std::uint8_t {
+    none,
+    release_restore_constraints,
+    toggle_dump_bed,
 };
 
 struct AxleSteeringAngles {
@@ -98,13 +106,7 @@ struct AxleSteeringAngles {
 [[nodiscard]] constexpr bool uses_rigid_gravity(
     GalleryControlPolicy policy) noexcept {
     return policy == GalleryControlPolicy::rigid_gravity ||
-           policy == GalleryControlPolicy::constraint_toggle_gravity ||
            policy == GalleryControlPolicy::collector_gravity;
-}
-
-[[nodiscard]] constexpr bool toggles_constraint(
-    GalleryControlPolicy policy) noexcept {
-    return policy == GalleryControlPolicy::constraint_toggle_gravity;
 }
 
 [[nodiscard]] inline CameraPreset brick_camera_preset(
@@ -163,6 +165,8 @@ struct GalleryEntry {
     std::uint32_t maximum_count{};
     bool has_soft_body{};
     bool has_rope{};
+    bool moves_kinematic{};
+    GalleryPrimaryAction primary_action{};
 };
 
 inline constexpr std::array gallery_entries{
@@ -171,7 +175,8 @@ inline constexpr std::array gallery_entries{
         "RIGID BODY", "ARROWS ROLL BALL  P WALL SETTINGS  R RESET", {48, 55, 63, 235},
         {170, 176, 184},
         {.target = {0.0F, 1.0F, 5.5F}, .distance_scale = 1.7F},
-        false, false, brick_minimum_count, brick_maximum_count},
+        false, false, brick_minimum_count, brick_maximum_count,
+        false, false, true},
     GalleryEntry{GalleryContext::constraint_fixed,
         GallerySceneSource::constraint_fixed,
         GalleryControlPolicy::collector_gravity, GalleryCountKind::none,
@@ -182,12 +187,13 @@ inline constexpr std::array gallery_entries{
         false, false, 0U, 0U},
     GalleryEntry{GalleryContext::constraint_point,
         GallerySceneSource::constraint_point,
-        GalleryControlPolicy::constraint_toggle_gravity, GalleryCountKind::none,
+        GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
         "--constraint-point", "CONSTRAINT: POINT",
         "ARROWS GRAVITY  SPACE RELEASE / RESTORE  R RESET", {25, 32, 54, 235},
         {235, 190, 101},
         {.target = {0.0F, 3.1F, 0.0F}, .distance_scale = 1.65F,
-         .pitch = 0.40F}, false, false, 0U, 0U},
+         .pitch = 0.40F}, false, false, 0U, 0U, false, false, false,
+        GalleryPrimaryAction::release_restore_constraints},
     GalleryEntry{GalleryContext::constraint_hinge,
         GallerySceneSource::constraint_hinge,
         GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
@@ -205,7 +211,7 @@ inline constexpr std::array gallery_entries{
         false, false, 0U, 0U},
     GalleryEntry{GalleryContext::constraint_generic,
         GallerySceneSource::constraint_generic,
-        GalleryControlPolicy::rigid_gravity, GalleryCountKind::none,
+        GalleryControlPolicy::authored_force, GalleryCountKind::none,
         "--constraint-generic", "CONSTRAINT: GENERIC",
         "ARROWS FORCE  LINEAR + ANGULAR LIMITS", {42, 38, 57, 235},
         {151, 113, 235},
@@ -223,7 +229,8 @@ inline constexpr std::array gallery_entries{
         "DUMP", "ARROWS DRIVE/STEER  SPACE TIP  P LOAD", {62, 38, 22, 235},
         {245, 130, 45}, {.target = {0.0F, 1.8F, 0.0F}, .distance_scale = 1.3F,
                        .pitch = 0.85F}, false, false,
-        10U, 1'000U},
+        10U, 1'000U, false, false, false,
+        GalleryPrimaryAction::toggle_dump_bed},
     GalleryEntry{GalleryContext::fluid, GallerySceneSource::fluid,
         GalleryControlPolicy::none, GalleryCountKind::fluid_particles, "--fluid",
         "FLUID", "P CAP  V PARTICLES  R RESET", {12, 42, 65, 235},

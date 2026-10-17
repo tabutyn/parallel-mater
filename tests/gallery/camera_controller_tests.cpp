@@ -86,19 +86,21 @@ int main() {
     using parallel_mater::gallery::GalleryControlPolicy;
     using parallel_mater::gallery::axle_steering_angles;
     using parallel_mater::gallery::gallery_entry;
-    using parallel_mater::gallery::toggles_constraint;
     using parallel_mater::gallery::uses_rigid_gravity;
     for (const GalleryContext context : {GalleryContext::constraint_fixed,
             GalleryContext::constraint_point,
             GalleryContext::constraint_hinge,
-            GalleryContext::constraint_piston,
-            GalleryContext::constraint_generic})
+            GalleryContext::constraint_piston})
         check(uses_rigid_gravity(gallery_entry(context).controls),
               "every non-motor constraint scene has arrow gravity controls");
+    check(gallery_entry(GalleryContext::constraint_generic).controls ==
+              GalleryControlPolicy::authored_force,
+          "Generic declares its authored force action in the shared catalog");
     const GalleryControlPolicy motor_spring_controls =
         gallery_entry(GalleryContext::constraint_motor_spring).controls;
     check(gallery_entry(GalleryContext::dump).controls == motor_spring_controls &&
-              !toggles_constraint(gallery_entry(GalleryContext::dump).controls),
+              gallery_entry(GalleryContext::dump).primary_action ==
+                  parallel_mater::gallery::GalleryPrimaryAction::toggle_dump_bed,
           "DUMP shares motor drive controls; Space must not release its suspension");
     check(gallery_entry(GalleryContext::constraint_hinge).name ==
               "CONSTRAINT: HINGE + SLIDER",
@@ -126,11 +128,17 @@ int main() {
     check(near(left_steering.front, -0.4F) &&
               near(left_steering.rear, 0.4F),
           "Left Arrow reverses front and rear steering yaw");
-    check(!toggles_constraint(
-              gallery_entry(GalleryContext::constraint_fixed).controls) &&
-              toggles_constraint(
-                  gallery_entry(GalleryContext::constraint_point).controls),
+    check(gallery_entry(GalleryContext::constraint_fixed).primary_action ==
+              parallel_mater::gallery::GalleryPrimaryAction::none &&
+              gallery_entry(GalleryContext::constraint_point).primary_action ==
+                  parallel_mater::gallery::GalleryPrimaryAction::release_restore_constraints,
           "Point uses the explicit Space constraint toggle");
+    check(gallery_entry(GalleryContext::constraint_point).primary_action ==
+              parallel_mater::gallery::GalleryPrimaryAction::release_restore_constraints &&
+              gallery_entry(GalleryContext::dump).primary_action ==
+              parallel_mater::gallery::GalleryPrimaryAction::toggle_dump_bed &&
+              gallery_entry(GalleryContext::rigid_body).moves_kinematic,
+          "Catalog declares point, dump-bed, and kinematic semantic actions");
     check(parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_point) ==
               parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_fixed) + 1U &&
               parallel_mater::gallery::gallery_context_index(GalleryContext::constraint_hinge) ==
