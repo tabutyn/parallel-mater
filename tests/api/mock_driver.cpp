@@ -58,6 +58,73 @@ void mock_get_properties(PmPhysicalDevice physical,
                  sizeof properties->deviceName - 1U);
 }
 
+constexpr PmInteractionCapability mock_interaction{{
+    PM_INTERACTION_FAMILY_FLUID,
+    PM_INTERACTION_FAMILY_RIGID_BODY,
+    PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+    PM_INTERACTION_MODE_CONTACT,
+    PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+    PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE}, 64U};
+
+bool same_key(const PmInteractionCapabilityKey &left,
+              const PmInteractionCapabilityKey &right) {
+    return left.firstFamily == right.firstFamily &&
+           left.secondFamily == right.secondFamily &&
+           left.scope == right.scope && left.mode == right.mode &&
+           left.direction == right.direction &&
+           left.materialProfile == right.materialProfile;
+}
+
+bool valid_key(const PmInteractionCapabilityKey &key) {
+    const auto first = static_cast<int>(key.firstFamily);
+    const auto second = static_cast<int>(key.secondFamily);
+    if (first < PM_INTERACTION_FAMILY_FLUID ||
+        first > PM_INTERACTION_FAMILY_RIGID_BODY ||
+        second < PM_INTERACTION_FAMILY_FLUID ||
+        second > PM_INTERACTION_FAMILY_RIGID_BODY ||
+        key.scope < PM_INTERACTION_SCOPE_SELF ||
+        key.scope > PM_INTERACTION_SCOPE_DISTINCT_FAMILY ||
+        key.mode < PM_INTERACTION_MODE_CONTACT ||
+        key.mode > PM_INTERACTION_MODE_PHASE ||
+        key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
+        key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
+        key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
+        key.materialProfile > PM_INTERACTION_MATERIAL_THERMAL_PHASE)
+        return false;
+    return key.scope == PM_INTERACTION_SCOPE_DISTINCT_FAMILY
+        ? first < second : first == second;
+}
+
+PmResult mock_enumerate_interactions(PmPhysicalDevice physical,
+                                     std::uint32_t *count,
+                                     PmInteractionCapability *capabilities) {
+    if (physical == nullptr || count == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (capabilities == nullptr) {
+        *count = 1U;
+        return PM_SUCCESS;
+    }
+    if (*count == 0U) return PM_INCOMPLETE;
+    capabilities[0] = mock_interaction;
+    *count = 1U;
+    return PM_SUCCESS;
+}
+
+PmResult mock_get_interaction(PmPhysicalDevice physical,
+                              const PmInteractionCapabilityKey *key,
+                              PmInteractionCapability *capability) {
+    if (key == nullptr || capability == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const PmInteractionCapabilityKey requested = *key;
+    *capability = {};
+    if (physical == nullptr || !valid_key(requested))
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (!same_key(requested, mock_interaction.key))
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    *capability = mock_interaction;
+    return PM_SUCCESS;
+}
+
 // Deliberately permissive device functions: the validation tests must prove
 // rejection by the layer, rather than accidentally relying on the driver.
 PmResult mock_create_device(PmPhysicalDevice, const PmDeviceCreateInfo *, PmDevice *out) {
@@ -145,8 +212,14 @@ PM_MOCK_EXPORT PFN_pmVoidFunction PMAPI_CALL
 pm_driverGetPhysicalDeviceProcAddr(PmInstance, const char *name) {
     if (name && std::strcmp(name, "pmCreateDevice") == 0)
         return reinterpret_cast<PFN_pmVoidFunction>(&mock_create_device);
-    return name != nullptr &&
-           std::strcmp(name, "pmGetPhysicalDeviceProperties") == 0
-        ? reinterpret_cast<PFN_pmVoidFunction>(&mock_get_properties)
-        : nullptr;
+    if (name && std::strcmp(
+            name, "pmGetPhysicalDeviceProperties") == 0)
+        return reinterpret_cast<PFN_pmVoidFunction>(&mock_get_properties);
+    if (name && std::strcmp(
+            name, "pmEnumeratePhysicalDeviceInteractionCapabilities") == 0)
+        return reinterpret_cast<PFN_pmVoidFunction>(&mock_enumerate_interactions);
+    if (name && std::strcmp(
+            name, "pmGetPhysicalDeviceInteractionCapability") == 0)
+        return reinterpret_cast<PFN_pmVoidFunction>(&mock_get_interaction);
+    return nullptr;
 }

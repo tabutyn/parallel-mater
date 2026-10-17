@@ -281,6 +281,21 @@ if(BUILD_TESTING)
         TIMEOUT 30
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json")
 
+    add_executable(parallel-mater-interaction-capability-tests
+        tests/api/interaction_capability_tests.cpp)
+    target_compile_features(parallel-mater-interaction-capability-tests
+        PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-interaction-capability-tests
+        PRIVATE parallel-mater)
+    add_dependencies(parallel-mater-interaction-capability-tests
+        parallel-mater-driver-slang-cpu)
+    add_test(NAME parallel-mater-interaction-capability-tests
+        COMMAND parallel-mater-interaction-capability-tests)
+    set_tests_properties(parallel-mater-interaction-capability-tests PROPERTIES
+        LABELS "api;capabilities;slang;cpu"
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json")
+
     add_executable(parallel-mater-slang-cpu-driver-abi-tests
         tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-slang-cpu-driver-abi-tests

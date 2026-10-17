@@ -2,7 +2,7 @@
 
 This specification defines the Parallel Mater 0.2 command API: object ownership, device discovery, explicit storage, physics pipelines, command execution, and synchronization. It is the behavioral contract for implementations and applications. The companion reference guide lists declarations and points here by section number.
 
-Requirements stated as must, must not, required, or an imperative define valid usage and required implementation behavior. Examples illustrate those requirements and do not override them. The core domains and optional extension boundaries are specified in section 16.6; the API-family overview is not a claim that every device supports every physics domain.
+Requirements stated as must, must not, required, or an imperative define valid usage and required implementation behavior. Examples illustrate those requirements and do not override them. The core domains and optional extension boundaries are specified in section 16.7; the API-family overview is not a claim that every device supports every physics domain.
 
 ## Contents
 
@@ -472,7 +472,7 @@ PmResult pmInvalidateMappedMemoryRanges(
 
 Map HOST_VISIBLE memory once per allocation; the returned pointer addresses offset. PM_WHOLE_SIZE extends to allocation end. Flush host writes before GPU consumption. Wait for GPU writes before invalidating and reading. Noncoherent ranges start on atomSize boundaries and end on a boundary or allocation end; they must lie in the mapped range. Unmap does not flush. COHERENT removes cache-maintenance calls, not race-prevention duties.
 
-Related sections: [16.1](#spec-limits), [13.2](#spec-barriers).
+Related sections: [16.2](#spec-limits), [13.2](#spec-barriers).
 
 <a id="spec-resources"></a>
 
@@ -561,7 +561,7 @@ typedef struct PmBufferView {
 
 A format defines byte interpretation, not a collider or solver type. stride is in bytes, at least the element size and a multiple of its alignment. count is nonzero; the final element must fit in range.size. Query usage support before choosing a format.
 
-Related sections: [16.2](#spec-formats).
+Related sections: [16.3](#spec-formats).
 
 <a id="spec-geometry"></a>
 
@@ -751,7 +751,7 @@ typedef enum PmMotionType {
 
 Quaternion identity is (0,0,0,1). Angular velocity is radians/second in world space. Static bodies do not integrate; kinematic states are application-driven and do not respond to forces.
 
-Related sections: [16.2](#spec-formats).
+Related sections: [16.3](#spec-formats).
 
 <a id="spec-bodies"></a>
 
@@ -1763,7 +1763,7 @@ Destination requires SIMULATION_OUTPUT and TRANSFER_DST usage. Rigid records are
 
 These commands execute in TRANSFER and read simulation state after a PHYSICS_WRITE → TRANSFER_READ dependency. A subsequent renderer needs a TRANSFER_WRITE dependency. Output copies make the portable contract independent of private SoA solver storage.
 
-Related sections: [16.2](#spec-formats), [13.2](#spec-barriers), [14.9](#spec-handoff).
+Related sections: [16.3](#spec-formats), [13.2](#spec-barriers), [14.9](#spec-handoff).
 
 <a id="spec-frame_recipe"></a>
 
@@ -2336,9 +2336,90 @@ Related sections: [5.1](#spec-memory_types).
 
 Capability decisions are made before allocation and pipeline creation
 
+<a id="spec-interaction_capabilities"></a>
+
+### 16.1 Interaction capabilities
+
+```c
+typedef enum PmInteractionFamily {
+    PM_INTERACTION_FAMILY_FLUID = 0,
+    PM_INTERACTION_FAMILY_CLOTH = 1,
+    PM_INTERACTION_FAMILY_SOFT_BODY = 2,
+    PM_INTERACTION_FAMILY_ROPE = 3,
+    PM_INTERACTION_FAMILY_SMOKE = 4,
+    PM_INTERACTION_FAMILY_RIGID_BODY = 5
+} PmInteractionFamily;
+typedef enum PmInteractionScope {
+    PM_INTERACTION_SCOPE_SELF = 0,
+    PM_INTERACTION_SCOPE_SAME_DOMAIN = 1,
+    PM_INTERACTION_SCOPE_SEPARATE_SYSTEM = 2,
+    PM_INTERACTION_SCOPE_DISTINCT_FAMILY = 3
+} PmInteractionScope;
+typedef enum PmInteractionMode {
+    PM_INTERACTION_MODE_CONTACT = 0,
+    PM_INTERACTION_MODE_ATTACHMENT = 1,
+    PM_INTERACTION_MODE_DRAG = 2,
+    PM_INTERACTION_MODE_CONTAINMENT = 3,
+    PM_INTERACTION_MODE_PRESSURE = 4,
+    PM_INTERACTION_MODE_VISCOSITY = 5,
+    PM_INTERACTION_MODE_THERMAL = 6,
+    PM_INTERACTION_MODE_PHASE = 7
+} PmInteractionMode;
+typedef enum PmInteractionDirection {
+    PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND = 1,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST = 2,
+    PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER = 3,
+    PM_INTERACTION_DIRECTION_SECOND_TO_FIRST_TRANSFER = 4,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST = 5,
+    PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND = 6
+} PmInteractionDirection;
+typedef enum PmInteractionMaterialProfile {
+    PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE = 0,
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE = 1,
+    PM_INTERACTION_MATERIAL_SMOKE_GRID = 2,
+    PM_INTERACTION_MATERIAL_EQUAL = 3,
+    PM_INTERACTION_MATERIAL_MISCIBLE = 4,
+    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
+    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6
+} PmInteractionMaterialProfile;
+#define PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE 0u
+#define PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY PM_INVALID_INDEX
+typedef struct PmInteractionCapabilityKey {
+    PmInteractionFamily firstFamily;
+    PmInteractionFamily secondFamily;
+    PmInteractionScope scope;
+    PmInteractionMode mode;
+    PmInteractionDirection direction;
+    PmInteractionMaterialProfile materialProfile;
+} PmInteractionCapabilityKey;
+typedef struct PmInteractionCapability {
+    PmInteractionCapabilityKey key;
+    uint32_t maxGraphEdgesPerSimulation;
+} PmInteractionCapability;
+```
+
+```c
+PmResult pmEnumeratePhysicalDeviceInteractionCapabilities(
+    PmPhysicalDevice physicalDevice, uint32_t* pCount,
+    PmInteractionCapability* pCapabilities);
+PmResult pmGetPhysicalDeviceInteractionCapability(
+    PmPhysicalDevice physicalDevice,
+    const PmInteractionCapabilityKey* pKey,
+    PmInteractionCapability* pCapability);
+```
+
+Enumerate records to discover exact supported family, scope, mode, direction and material-profile combinations. Family order is canonical: equal families for SELF, SAME_DOMAIN and SEPARATE_SYSTEM; increasing family values for DISTINCT_FAMILY. A key that violates this shape or contains an unknown enum returns INVALID_ARGUMENT. A well-formed but unsupported combination returns FEATURE_NOT_PRESENT.
+
+maxGraphEdgesPerSimulation is a driver limit for that exact record. NOT_APPLICABLE means the mode is intrinsic and has no graph edge. SIMULATION_CAPACITY means no narrower device limit is imposed beyond PmSimulationCreateInfo::couplingCapacity. A finite value is an additional per-simulation ceiling. Enumerators return only supported records; broad feature bits never imply a missing record.
+
+Smoke particle and grid profiles are independent records. Thermal and phase modes identify the fixed API 0.2 transfer law; their smoke profile still identifies the representation. EXTERNAL_TO_FIRST/SECOND identifies an external source such as the current fluid-smoke heater. TRANSFER directions consume membership from one family and create it in the other.
+
+Related sections: [4.4](#spec-features), [9.3](#spec-coupling), [16.2](#spec-limits).
+
 <a id="spec-limits"></a>
 
-### 16.1 Physical-device limits
+### 16.2 Physical-device limits
 
 ```c
 typedef struct PmPhysicalDeviceLimits {
@@ -2370,7 +2451,7 @@ Limits are maxima for one resource or field, not performance targets. Memory pre
 
 <a id="spec-formats"></a>
 
-### 16.2 Format support query
+### 16.3 Format support query
 
 ```c
 enum {
@@ -2397,7 +2478,7 @@ UNDEFINED or an unsupported format returns zero properties. Supported formats ha
 
 <a id="spec-format_layouts"></a>
 
-### 16.3 Portable buffer layouts
+### 16.4 Portable buffer layouts
 
 | Item | Definition |
 | --- | --- |
@@ -2413,7 +2494,7 @@ Record arrays are little-endian. These buffer layouts have fixed offsets, regard
 
 <a id="spec-feature_matrix"></a>
 
-### 16.4 Dependency checklist
+### 16.5 Dependency checklist
 
 | Item | Definition |
 | --- | --- |
@@ -2433,7 +2514,7 @@ Related sections: [4.4](#spec-features), [14.1](#spec-native_support).
 
 <a id="spec-threading"></a>
 
-### 16.5 Threading & data races
+### 16.6 Threading & data races
 
 Physical-device queries are safe to call concurrently. Distinct command pools can record independently. Host access to the same queue, pool, fence, mapped range or mutable resource must be externally synchronized. Destroying an object must also be synchronized against queries that use it.
 
@@ -2441,7 +2522,7 @@ GPU races are a separate concern. Serialize writes to a simulation, coordinate s
 
 <a id="spec-not_capabilities"></a>
 
-### 16.6 Core scope
+### 16.7 Core scope
 
 Core 0.2 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.
 
@@ -2750,6 +2831,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmEnumerateInstanceExtensionProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceLayerProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceVersion | [3.2](#spec-instance) |
+| pmEnumeratePhysicalDeviceInteractionCapabilities | [16.1](#spec-interaction_capabilities) |
 | pmEnumeratePhysicalDevices | [4.1](#spec-physical_devices) |
 | PmExtensionProperties | [3.2](#spec-instance) |
 | PmFence | [18.1](#spec-base_types) |
@@ -2760,7 +2842,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmFluidParticleOutput | [11.4](#spec-simulation_init) |
 | pmFlushMappedMemoryRanges | [5.4](#spec-mapping) |
 | PmFormat | [6.3](#spec-format_enum) |
-| PmFormatProperties | [16.2](#spec-formats) |
+| PmFormatProperties | [16.3](#spec-formats) |
 | pmFreeCommandBuffers | [11.2](#spec-command_buffers) |
 | PmFreeFn | [3.3](#spec-allocator) |
 | pmFreeMemory | [5.3](#spec-allocation) |
@@ -2777,9 +2859,10 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmGetNativeDevice | [14.2](#spec-native_device) |
 | pmGetNativeSemaphore | [14.4](#spec-native_timeline) |
 | pmGetPhysicalDeviceFeatures | [4.4](#spec-features) |
-| pmGetPhysicalDeviceFormatProperties | [16.2](#spec-formats) |
+| pmGetPhysicalDeviceFormatProperties | [16.3](#spec-formats) |
+| pmGetPhysicalDeviceInteractionCapability | [16.1](#spec-interaction_capabilities) |
 | pmGetPhysicalDeviceInteropProperties | [14.1](#spec-native_support) |
-| pmGetPhysicalDeviceLimits | [16.1](#spec-limits) |
+| pmGetPhysicalDeviceLimits | [16.2](#spec-limits) |
 | pmGetPhysicalDeviceMemoryProperties | [5.1](#spec-memory_types) |
 | pmGetPhysicalDeviceProperties | [4.2](#spec-properties) |
 | pmGetPhysicalDeviceQueueFamilies | [4.3](#spec-queues) |
@@ -2801,6 +2884,13 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmImportVulkanSemaphoreEXT | [14.8](#spec-vulkan_semaphore) |
 | PmInstance | [18.1](#spec-base_types) |
 | PmInstanceCreateInfo | [3.2](#spec-instance) |
+| PmInteractionCapability | [16.1](#spec-interaction_capabilities) |
+| PmInteractionCapabilityKey | [16.1](#spec-interaction_capabilities) |
+| PmInteractionDirection | [16.1](#spec-interaction_capabilities) |
+| PmInteractionFamily | [16.1](#spec-interaction_capabilities) |
+| PmInteractionMaterialProfile | [16.1](#spec-interaction_capabilities) |
+| PmInteractionMode | [16.1](#spec-interaction_capabilities) |
+| PmInteractionScope | [16.1](#spec-interaction_capabilities) |
 | pmInvalidateMappedMemoryRanges | [5.4](#spec-mapping) |
 | PmLayerProperties | [3.2](#spec-instance) |
 | PmLiquidMaterialState | [9.2](#spec-liquid_material) |
@@ -2832,7 +2922,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmParticleState | [11.4](#spec-simulation_init) |
 | PmPhysicalDevice | [18.1](#spec-base_types) |
 | PmPhysicalDeviceFeatures | [4.4](#spec-features) |
-| PmPhysicalDeviceLimits | [16.1](#spec-limits) |
+| PmPhysicalDeviceLimits | [16.2](#spec-limits) |
 | PmPhysicalDeviceProperties | [4.2](#spec-properties) |
 | PmPhysicsPipeline | [18.1](#spec-base_types) |
 | PmPhysicsPipelineCreateInfo | [9.5](#spec-pipeline_create) |
