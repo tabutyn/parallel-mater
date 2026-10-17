@@ -1,0 +1,22 @@
+{
+  "id": "P1-11",
+  "title": "Apply immiscible pressure and capillarity",
+  "status": "deferred",
+  "dependencies": [
+    "P1-10"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement non-mixing contact, normal pressure transfer and surface-tension force in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Pair forces conserve linear/angular momentum and planar zero-curvature cases add no capillary pressure.",
+    "Static droplet pressure follows the specified Young-Laplace relation across tension and radius sweeps."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

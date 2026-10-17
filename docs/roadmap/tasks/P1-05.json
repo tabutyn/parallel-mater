@@ -1,0 +1,23 @@
+{
+  "id": "P1-05",
+  "title": "Build heterogeneous fluid pair sampling",
+  "status": "deferred",
+  "dependencies": [
+    "P1-04"
+  ],
+  "locks": [
+    "fluid-kernels",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Extend shared pair indexing and density samples to unequal radii, supports, masses and rest densities without advertising a mode.",
+  "acceptance": [
+    "Symmetric support and per-endpoint capacity tests cover swapped endpoints, empty populations and unequal resolutions.",
+    "Storage planning bounds all heterogeneous pair scratch and overflow diagnostics."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

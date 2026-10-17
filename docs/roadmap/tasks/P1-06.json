@@ -1,0 +1,22 @@
+{
+  "id": "P1-06",
+  "title": "Exchange miscible pressure and contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-05"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement balanced cross-material density, pressure and short-range exclusion in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Unequal-mass pair fixtures conserve linear/angular momentum and are invariant to endpoint order.",
+    "Pressure/contact fixtures cover density, radius and particle-volume ratios without an ownership seam."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

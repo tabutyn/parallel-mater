@@ -1,0 +1,22 @@
+{
+  "id": "P1-07",
+  "title": "Exchange miscible viscosity",
+  "status": "deferred",
+  "dependencies": [
+    "P1-06"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement harmonic dynamic-viscosity exchange for different fluid materials; advertise nothing.",
+  "acceptance": [
+    "Analytic pair and population-ratio sweeps conserve momentum and do not increase kinetic energy.",
+    "Zero and unequal viscosity limits plus endpoint reversal pass shared Slang tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

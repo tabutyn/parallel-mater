@@ -1,0 +1,22 @@
+{
+  "id": "P1-12",
+  "title": "Apply immiscible interfacial viscosity",
+  "status": "deferred",
+  "dependencies": [
+    "P1-11"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add optional harmonic tangential traction across the retained fluid interface; advertise nothing.",
+  "acceptance": [
+    "Shear fixtures conserve momentum, dissipate kinetic energy and preserve the normal no-mixing condition.",
+    "Zero-viscosity and endpoint-order limits pass across unequal density and mass ratios."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
