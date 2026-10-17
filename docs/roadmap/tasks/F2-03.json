@@ -1,7 +1,7 @@
 {
   "id": "F2-03",
   "title": "Validate graph modes against capabilities",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-02"
   ],
@@ -17,6 +17,14 @@
     "Public feature reporting agrees with accepted graph descriptors."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "1e12bf74-b5ec-4d0c-a8cd-8725821bfc43",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-03/thomas-laptop",
+    "claimed_at": "2026-10-17T02:46:13Z",
+    "heartbeat_at": "2026-10-17T02:46:13Z",
+    "expires_at": "2026-10-18T02:46:13Z"
+  },
   "history": []
 }
