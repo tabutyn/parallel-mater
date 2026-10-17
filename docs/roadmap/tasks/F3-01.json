@@ -1,7 +1,7 @@
 {
   "id": "F3-01",
   "title": "Finish manual command interception",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "loader-dispatch",
@@ -16,6 +16,14 @@
     "Permissive external-driver tests prove interception and version-1 layer compatibility."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5fd3b15f-4800-402c-aaaf-c62150c2758f",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-01/windows-gtx1080",
+    "claimed_at": "2026-10-17T22:38:55Z",
+    "heartbeat_at": "2026-10-17T22:38:55Z",
+    "expires_at": "2026-10-18T22:38:55Z"
+  },
   "history": []
 }
