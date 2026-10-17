@@ -109,6 +109,110 @@ The proposed marks reserve semantic work, not support. Until their leaf tasks
 finish, the corresponding query result is unsupported and edge creation must
 fail without mutating the usable graph.
 
+## Cloth contact scopes
+
+Cloth contact has two distinct future capability identities. Self-contact uses
+`(cloth, cloth, self, contact, bidirectional, endpoint-native)` and is intrinsic
+to one live cloth slot; it consumes no graph edge. Contact between two live
+cloth slots uses `(cloth, cloth, separate-system, contact, bidirectional,
+endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
+advertises neither identity and has no cloth-cloth edge type. Current drivers
+must omit both records and reject any extension request with
+`PM_ERROR_FEATURE_NOT_PRESENT` without mutating the live graph. The
+`same-domain` scope remains unsupported because the API has no aggregate cloth
+domain distinct from its separately owned slots.
+
+Both scopes treat cloth triangles as double-sided swept surfaces. Let `t_a` and
+`t_b` be the finite positive collision thicknesses owned by the two endpoint
+materials. A valid primitive pair has target separation
+
+```text
+d_ab = t_a + t_b
+```
+
+and self-contact uses `d_aa = 2 * t_a`. A conforming implementation detects
+vertex-triangle and edge-edge contact over the complete substep from previous
+to predicted positions; a discrete end-position overlap test alone is
+insufficient. Contact may use any bounded broad phase, but it must not miss a
+candidate because the surfaces reside in different storage allocations.
+
+Self-contact excludes topological neighbors that would fight the sheet's own
+stretch and bending constraints. A vertex-triangle candidate is excluded when
+the vertex belongs to the triangle or has an active structural bond to one of
+its vertices. An edge-edge candidate is excluded when the edges share a vertex
+or their triangles share an active edge. The exclusion uses the current active
+topology after tearing; retired triangles and inactive bonds cannot create
+ghost exclusions or contacts. Distinct cloth systems have no topology-based
+exclusion, even when their numeric vertex indices match.
+
+### Normal response and ownership
+
+At the end of a successful substep, every nonexcluded detected pair must have
+separation at least `d_ab - epsilon`, where
+
+```text
+epsilon = max(1e-5 m, 0.05 * d_ab).
+```
+
+A high-speed qualification case moves at least `4 * d_ab` in one substep and
+must not tunnel through the other sheet. Corrections and impulses are
+distributed to triangle vertices by contact barycentrics and inverse mass.
+Zero-inverse-mass vertices remain fixed but still form collision geometry; the
+reaction must be included in contact diagnostics so a kinematic sink is not
+reported as conserved dynamic momentum.
+
+With no fixed vertices or external impulse, contact applies equal and opposite
+impulse. Let `delta_v_i` be each vertex velocity change, `m_i` be
+`1 / inverseMass_i` for each dynamic input vertex,
+`I = sum(m_i * ||delta_v_i||2)`, and
+`R = ||sum(m_i * delta_v_i)||2`. A fixture with `I >= 1e-4 kg*m/s` must satisfy
+
+```text
+R <= max(1e-7 kg*m/s, 5e-5 * I).
+```
+
+The analogous angular-momentum residual about the fixture centre uses each
+vertex's `r_i cross (m_i * delta_v_i)` and the same absolute/relative limit in
+kg*m^2/s. Endpoint order and triangle winding cannot change the double-sided
+contact result beyond these tolerances.
+
+### Friction and unsupported behavior
+
+Friction is a parameter of `contact`, not a separate capability. For distinct
+materials the Coulomb coefficient is
+
+```text
+mu_ab = sqrt(contactFriction_a * contactFriction_b).
+```
+
+For self-contact it is the material's `contactFriction`. Coefficients are
+finite and nonnegative. Tangential impulse obeys `||J_t|| <= mu_ab * J_n` and,
+without external work, cannot increase relative tangential kinetic energy.
+Zero friction preserves tangential velocity within numerical tolerance. Static
+and dynamic friction are not separate claims in this initial profile.
+
+Contact does not imply attachment, sewing, adhesion, welding, cutting,
+one-sided collision, pressure containment, aerodynamic drag, thermal exchange
+or material transfer. It does not make one cloth inherit the other's rigid,
+fluid, smoke, paint or attachment edges. A torn cloth retains the same system
+identity and self-contact setting; newly separated active primitives become
+eligible according to the topology rule above.
+
+Candidate, contact and diagnostic storage must be part of the queried memory
+plan. Overflow returns `PM_ERROR_CAPACITY_EXCEEDED`, invalidates the affected
+step output and preserves graph/configuration usability for a later retry; it
+must not drop a subset of contacts. Empty live cloths are no-ops. Removing an
+inter-system edge isolates the sheets on the next step, and endpoint
+replacement observes the normal generation and rollback rules.
+
+Before either capability is enabled, a versioned typed API extension must
+separately opt a cloth into intrinsic self-contact and represent a cloth-cloth
+graph edge. Implementation leaves add broad-phase/narrow-phase data, the
+shared Slang contact/friction operators and portable scheduling. A final
+public-API qualification leaf advertises each exact scope only on drivers that
+pass folded-self, two-sheet, high-speed, friction, momentum, topology-change,
+capacity and lifecycle cases.
+
 ## Materials and combination profiles
 
 Every endpoint keeps its pipeline material. An edge selects a pair mode and a

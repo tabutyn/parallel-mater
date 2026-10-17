@@ -1,0 +1,23 @@
+{
+  "id": "P1-19",
+  "title": "Expose cloth contact scopes and controls",
+  "status": "deferred",
+  "dependencies": [
+    "P1-02"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add versioned self-contact control, cloth-cloth edge state and exact scoped capability identities; advertise nothing.",
+  "acceptance": [
+    "Registry, generated API and specification distinguish intrinsic self contact from separate-system graph contact.",
+    "Validation rejects invalid, duplicate, reversed and unsupported requests atomically."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

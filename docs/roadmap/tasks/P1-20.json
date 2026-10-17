@@ -1,0 +1,23 @@
+{
+  "id": "P1-20",
+  "title": "Build bounded cloth contact generation",
+  "status": "deferred",
+  "dependencies": [
+    "P1-19"
+  ],
+  "locks": [
+    "cloth-kernels",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Generate swept vertex-triangle and edge-edge candidates for self and distinct cloth systems with current-topology exclusions.",
+  "acceptance": [
+    "Broad/narrow-phase fixtures cover folds, crossing edges, high-speed sweeps, identical local indices, tears and empty cloths.",
+    "Queried memory bounds candidates, contacts and diagnostics; overflow is explicit and retryable."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

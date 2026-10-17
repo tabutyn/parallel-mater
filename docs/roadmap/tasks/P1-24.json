@@ -1,0 +1,25 @@
+{
+  "id": "P1-24",
+  "title": "Qualify and advertise cloth contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-23",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that will advertise either cloth scope"
+  ],
+  "scope": "Run public-API physical, topology, capacity and lifecycle gates before exposing self or separate-system cloth contact.",
+  "acceptance": [
+    "Folded-self, two-sheet, high-speed, friction, conservation, tearing and long-run cases pass per advertising driver.",
+    "Capability evidence reports self and separate-system limits independently and does not imply attachment or containment."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "P1-21",
+  "title": "Solve cloth self-contact and friction",
+  "status": "deferred",
+  "dependencies": [
+    "P1-20"
+  ],
+  "locks": [
+    "cloth-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement intrinsic double-sided self-contact and Coulomb friction in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Folded-sheet and swept-crossing fixtures meet separation, no-tunnelling, momentum and angular-momentum limits.",
+    "Friction is dissipative, zero friction preserves tangential motion and tearing refreshes exclusions."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -130,10 +130,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | done | F2-03, F2-08 | — |
 | [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on dependencies | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | done | F2-05 | — |
-| [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | leased | F2-01 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:12:11Z |
-| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | waiting on lock | F2-01 | — |
-| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | waiting on lock | F2-01 | — |
-| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | waiting on lock | F2-01 | — |
+| [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | done | F2-01 | — |
+| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | ready | F2-01 | — |
+| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | ready | F2-01 | — |
+| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | ready | F2-01 | — |
 | [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation
@@ -219,6 +219,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-16](roadmap/tasks/P1-16.json) | Exchange conservative fluid heat | deferred | P1-05, P1-15 | — |
 | [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16 | — |
 | [P1-18](roadmap/tasks/P1-18.json) | Qualify and advertise fluid heat exchange | deferred | P1-17, F5-02, F5-03 | — |
+| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | deferred | P1-02 | — |
+| [P1-20](roadmap/tasks/P1-20.json) | Build bounded cloth contact generation | deferred | P1-19 | — |
+| [P1-21](roadmap/tasks/P1-21.json) | Solve cloth self-contact and friction | deferred | P1-20 | — |
+| [P1-22](roadmap/tasks/P1-22.json) | Solve contact between cloth systems | deferred | P1-20 | — |
+| [P1-23](roadmap/tasks/P1-23.json) | Schedule cloth contact scopes | deferred | P1-21, P1-22 | — |
+| [P1-24](roadmap/tasks/P1-24.json) | Qualify and advertise cloth contact | deferred | P1-23, F5-02, F5-03 | — |
 
 ### P2. Deferred engine integration
 
