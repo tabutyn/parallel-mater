@@ -1,7 +1,7 @@
 {
   "id": "F2-15",
   "title": "Specify smoke–smoke system modes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-01"
   ],
@@ -17,6 +17,14 @@
     "Split missing operators and their public-API qualification into new leaf tasks."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c83d374e-990a-4798-8348-ed408c77c24f",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-15/thomas-laptop",
+    "claimed_at": "2026-10-17T05:28:32Z",
+    "heartbeat_at": "2026-10-17T05:28:32Z",
+    "expires_at": "2026-10-18T05:28:32Z"
+  },
   "history": []
 }
