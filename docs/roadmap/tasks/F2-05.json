@@ -1,7 +1,7 @@
 {
   "id": "F2-05",
   "title": "Specify equal-material fluid–fluid behavior",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-01"
   ],
@@ -17,6 +17,14 @@
     "Capacity, stable IDs, boundaries and per-system ownership are specified."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ac342bb3-175a-49fc-be4a-3dca9f7e45de",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-05/thomas-laptop",
+    "claimed_at": "2026-10-17T03:29:33Z",
+    "heartbeat_at": "2026-10-17T03:29:33Z",
+    "expires_at": "2026-10-18T03:29:33Z"
+  },
   "history": []
 }
