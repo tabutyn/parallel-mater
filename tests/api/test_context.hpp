@@ -5,11 +5,20 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
+#ifdef PM_CONFORMANCE_EMBEDDED
+#include <stdexcept>
+#define PM_CHECK(value) do { if (!(value)) { \
+    throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + \
+                             ": " + #value); \
+} } while (false)
+#else
 #define PM_CHECK(value) do { if (!(value)) { \
     std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #value); std::abort(); \
 } } while (false)
+#endif
 
 namespace parallel_mater::test {
 struct Buffer {

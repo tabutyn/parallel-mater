@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: MIT
+#pragma once
+
+#include <filesystem>
+#include <string>
+#include <vector>
+
+namespace parallel_mater::conformance {
+
+enum class ExecutionStatus { completed, unsupported, failed };
+
+struct CaseExecution {
+    std::string case_id{};
+    std::string json{};
+    ExecutionStatus status{ExecutionStatus::failed};
+};
+
+[[nodiscard]] std::vector<std::string> conformance_case_ids();
+[[nodiscard]] CaseExecution execute_conformance_case(
+    const std::string &case_id, const std::filesystem::path &root,
+    bool every_frame = false);
+[[nodiscard]] std::string conformance_device_provenance(
+    const std::filesystem::path &root);
+[[nodiscard]] std::string conformance_advertised_capabilities(
+    const std::filesystem::path &root);
+[[nodiscard]] std::string conformance_rigid_brick_quality(
+    const std::filesystem::path &root);
+[[nodiscard]] std::string conformance_fluid_pair_quality(
+    const std::filesystem::path &temporary_output);
+[[nodiscard]] std::string conformance_adverse_lifecycle(
+    const std::filesystem::path &root);
+
+int conformance_command_main(int argc, char **argv);
+
+} // namespace parallel_mater::conformance

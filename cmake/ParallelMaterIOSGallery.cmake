@@ -34,6 +34,15 @@ target_include_directories(parallel-mater-ipad-gallery PRIVATE examples/gallery 
 target_link_libraries(parallel-mater-ipad-gallery PRIVATE
     parallel-mater-gallery-session
     "-framework UIKit" "-framework QuartzCore" "-framework Foundation" "-framework CoreGraphics")
+if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
+    target_link_libraries(parallel-mater-ipad-gallery PRIVATE
+        parallel-mater-conformance-runner)
+    target_compile_definitions(parallel-mater-ipad-gallery PRIVATE
+        PM_IOS_QUALIFICATION_RUNNER=1
+        PM_IPAD_TOOLCHAIN_COMPILER="${CMAKE_CXX_COMPILER_ID}"
+        PM_IPAD_TOOLCHAIN_VERSION="${CMAKE_CXX_COMPILER_VERSION}"
+        PM_IPAD_SLANG_VERSION="${PARALLEL_MATER_SLANG_VERSION}")
+endif()
 set_target_properties(parallel-mater-ipad-gallery PROPERTIES
     OUTPUT_NAME "ParallelMater Gallery"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/ios/Info.plist.in"
@@ -80,3 +89,17 @@ foreach(manifest slang-metal validation)
     target_sources(parallel-mater-ipad-gallery PRIVATE "${path}")
     set_source_files_properties("${path}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/manifests")
 endforeach()
+
+if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
+    foreach(relative
+        conformance/v1/manifest.json
+        conformance/v1/quality/core-conservation-v1.json
+        conformance/v1/quality/rigid-brick-penetration-v1.json
+        conformance/v1/lifecycle/adverse-capacity-three-family-v1.json
+        conformance/v1/qualification/capability-obligations-v1.json)
+        get_filename_component(directory "${relative}" DIRECTORY)
+        target_sources(parallel-mater-ipad-gallery PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${relative}")
+        set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/${relative}"
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${directory}")
+    endforeach()
+endif()

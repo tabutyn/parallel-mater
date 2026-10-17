@@ -341,7 +341,11 @@ template <typename Particle, typename Position, typename Velocity>
 
 } // namespace
 
+#ifdef PM_CONFORMANCE_EMBEDDED
+int parallel_mater_fluid_pair_quality_fixture(int argc, char **argv) {
+#else
 int main(int argc, char **argv) {
+#endif
     std::filesystem::path output;
     std::string driver_name = "selected-loadable-driver";
     for (int index = 1; index < argc; ++index) {

@@ -156,7 +156,11 @@ std::array<PmCouplingState, 12> coupling_graph(bool updated) {
 
 } // namespace
 
+#ifdef PM_CONFORMANCE_EMBEDDED
+int parallel_mater_interaction_graph_lifecycle_fixture() {
+#else
 int main() {
+#endif
     Context context;
     PmPhysicalDeviceFeatures needed{};
     needed.rigidBodies = PM_TRUE;
@@ -488,4 +492,5 @@ int main() {
         pmDestroyPhysicsPipeline(context.device, pipeline);
     pmDestroyGeometry(context.device, geometry);
     std::puts("PASS: all 12 interaction pairs rebind; three-family rollback recovers");
+    return 0;
 }

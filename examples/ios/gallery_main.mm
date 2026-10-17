@@ -3,6 +3,10 @@
 #import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
 #include <parallel_mater_gallery/session.hpp>
+#if PM_IOS_QUALIFICATION_RUNNER
+#include <parallel_mater_conformance/runner.hpp>
+#include <parallel_mater_conformance/sha256.hpp>
+#endif
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <mach/mach.h>
@@ -10,6 +14,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <memory>
+#include <string>
 
 using parallel_mater::gallery::GallerySession;
 namespace {
@@ -32,6 +37,26 @@ void write_report(NSString *name, id object) {
     if (!data || ![data writeToURL:[directory URLByAppendingPathComponent:name] options:NSDataWritingAtomic error:&error])
         throw std::runtime_error(std::string("Writing device report: ") + error.localizedDescription.UTF8String);
 }
+#if PM_IOS_QUALIFICATION_RUNNER
+void write_text_report(NSString *name, const std::string &contents) {
+    NSError *error = nil;
+    NSURL *directory = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory
+                                                             inDomains:NSUserDomainMask].firstObject;
+    NSURL *path = [directory URLByAppendingPathComponent:name];
+    if (![NSFileManager.defaultManager createDirectoryAtURL:path.URLByDeletingLastPathComponent
+                                withIntermediateDirectories:YES attributes:nil error:&error])
+        throw std::runtime_error(std::string("Creating report directory: ") +
+                                 error.localizedDescription.UTF8String);
+    NSData *data = [NSData dataWithBytes:contents.data() length:contents.size()];
+    if (![data writeToURL:path options:NSDataWritingAtomic error:&error])
+        throw std::runtime_error(std::string("Writing device report: ") +
+                                 error.localizedDescription.UTF8String);
+}
+NSString *file_sha256(NSString *path) {
+    return text(parallel_mater::conformance::sha256_file(
+        std::filesystem::path(path.fileSystemRepresentation)));
+}
+#endif
 UIImage *frame_image(const GallerySession &session) {
     // Shared renderer pixels are bottom-up RGBA. UIKit images are top-down.
     NSMutableData *data = [NSMutableData dataWithLength:session.pixels.size() * 4];
@@ -200,6 +225,10 @@ UIImage *frame_image(const GallerySession &session) {
                 if ([NSProcessInfo.processInfo.arguments containsObject:@"--smoke-test"] ||
                     [NSProcessInfo.processInfo.arguments containsObject:@"--qualify"])
                     [self runSmokeTests];
+#if PM_IOS_QUALIFICATION_RUNNER
+                if ([NSProcessInfo.processInfo.arguments containsObject:@"--physics-qualification"])
+                    [self runPhysicsQualification];
+#endif
                 dispatch_async(dispatch_get_main_queue(), ^{ self->_ready = YES; });
             } catch (const std::exception &error) {
                 NSString *message = text(error.what());
@@ -349,6 +378,111 @@ UIImage *frame_image(const GallerySession &session) {
     _session->select(0);
     [self writeRuntimeInfo];
 }
+#if PM_IOS_QUALIFICATION_RUNNER
+- (void)runPhysicsQualification {
+    NSString *nonce = argument(@"--deployment-nonce");
+    if (!nonce.length)
+        throw std::runtime_error("--physics-qualification requires --deployment-nonce");
+    const auto root = std::filesystem::path(NSBundle.mainBundle.resourcePath.fileSystemRepresentation);
+    NSMutableArray<NSDictionary *> *artifacts = [NSMutableArray array];
+    NSMutableDictionary *summary = [@{
+        @"schema":@"parallel-mater-ipados-qualification-run/v1",
+        @"report_kind":@"public-api-conformance",
+        @"gallery_scene_sweep":@NO,
+        @"nonce":nonce,
+        @"revision":text(GallerySession::build_revision()),
+        @"backend":@"slang-metal",
+        @"completed":@NO,
+        @"artifacts":artifacts
+    } mutableCopy];
+    write_report(@"physics-qualification.json", summary);
+
+    const auto save = [&](NSString *relative, const std::string &contents,
+                          NSString *kind, NSString *status) {
+        write_text_report(relative, contents);
+        [artifacts addObject:@{@"path":relative, @"kind":kind, @"status":status,
+            @"sha256":text(parallel_mater::conformance::sha256(contents))}];
+        write_report(@"physics-qualification.json", summary);
+    };
+
+    save(@"physics-qualification/provenance.json",
+         parallel_mater::conformance::conformance_device_provenance(root),
+         @"device-provenance", @"completed");
+    save(@"physics-qualification/capabilities.json",
+         parallel_mater::conformance::conformance_advertised_capabilities(root),
+         @"advertised-capabilities", @"completed");
+
+    save(@"physics-qualification/quality/rigid-brick-penetration-v1.json",
+         parallel_mater::conformance::conformance_rigid_brick_quality(root),
+         @"physical-quality", @"completed");
+    const auto fluidTemporary = std::filesystem::path(
+        [NSTemporaryDirectory() stringByAppendingPathComponent:
+            @"fluid-pair-quality.json"].fileSystemRepresentation);
+    save(@"physics-qualification/quality/core-conservation-stability-v1.json",
+         parallel_mater::conformance::conformance_fluid_pair_quality(fluidTemporary),
+         @"physical-quality", @"unsupported");
+    save(@"physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
+         parallel_mater::conformance::conformance_adverse_lifecycle(root),
+         @"adverse-lifecycle", @"missing-checkpoints");
+
+    NSUInteger completed = 0, unsupported = 0, failed = 0;
+    for (const std::string &caseId :
+         parallel_mater::conformance::conformance_case_ids()) {
+        @autoreleasepool {
+            const auto execution =
+                parallel_mater::conformance::execute_conformance_case(caseId, root);
+            NSString *status = @"failed";
+            if (execution.status == parallel_mater::conformance::ExecutionStatus::completed) {
+                status = @"completed"; ++completed;
+            } else if (execution.status == parallel_mater::conformance::ExecutionStatus::unsupported) {
+                status = @"unsupported"; ++unsupported;
+            } else {
+                ++failed;
+            }
+            NSString *path = [NSString stringWithFormat:@"physics-qualification/cases/%@.json",
+                              text(caseId)];
+            save(path, execution.json, @"trajectory", status);
+            NSLog(@"ParallelMater physics qualification %@: %@", status, text(caseId));
+        }
+    }
+
+    NSString *executable = NSBundle.mainBundle.executablePath;
+    NSString *driver = [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:
+        @"Frameworks/ParallelMaterMetal.framework/ParallelMaterMetal"];
+    id<MTLDevice> metal = MTLCreateSystemDefaultDevice();
+    struct utsname machine{}; uname(&machine);
+    NSOperatingSystemVersion version = NSProcessInfo.processInfo.operatingSystemVersion;
+    summary[@"binary_identity"] = @{
+        @"app_executable_sha256":file_sha256(executable),
+        @"driver_sha256":file_sha256(driver)};
+    summary[@"device"] = @{
+        @"model":text(machine.machine),
+        @"gpu":metal.name ?: @"unknown",
+        @"operating_system":@"iPadOS",
+        @"operating_system_version":[NSString stringWithFormat:@"%ld.%ld.%ld",
+            (long)version.majorVersion, (long)version.minorVersion,
+            (long)version.patchVersion],
+        @"metal_api":@"Metal"};
+    summary[@"toolchain"] = @{
+        @"compiler":@PM_IPAD_TOOLCHAIN_COMPILER,
+        @"compiler_version":@PM_IPAD_TOOLCHAIN_VERSION,
+        @"slang_version":@PM_IPAD_SLANG_VERSION};
+    summary[@"trajectory"] = @{
+        @"case_count":@(completed + unsupported + failed),
+        @"completed":@(completed), @"unsupported":@(unsupported),
+        @"failed":@(failed)};
+    summary[@"physical_quality"] = @{
+        @"rigid_brick":@"completed",
+        @"equal_fluid":@"unsupported-not-advertised"};
+    summary[@"adverse_lifecycle"] = @{
+        @"status":@"executed-missing-checkpoints",
+        @"reason":@"Public-API adverse fixtures execute, but do not yet emit F5-03 checkpoint fingerprints."};
+    summary[@"completed"] = @YES;
+    write_report(@"physics-qualification.json", summary);
+    NSLog(@"ParallelMater public-API qualification complete: %lu completed, %lu unsupported, %lu failed",
+          (unsigned long)completed, (unsigned long)unsupported, (unsigned long)failed);
+}
+#endif
 - (void)dealloc { [_display invalidate]; [NSNotificationCenter.defaultCenter removeObserver:self]; }
 @end
 
