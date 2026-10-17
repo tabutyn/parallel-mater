@@ -6,6 +6,7 @@
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/gallery_input.hpp>
+#include <parallel_mater_gallery/gallery_runtime.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/physics_frame_budget.hpp>
@@ -65,6 +66,10 @@ using parallel_mater::gallery::GalleryControlPolicy;
 using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::GalleryEntry;
+using parallel_mater::gallery::GalleryReplacementPolicy;
+using parallel_mater::gallery::GalleryRuntime;
+using parallel_mater::gallery::GalleryRuntimeCreateInfo;
+using parallel_mater::gallery::GalleryStepOptions;
 using parallel_mater::gallery::GalleryDebugState;
 using parallel_mater::gallery::GalleryInputState;
 using parallel_mater::gallery::GalleryKey;
@@ -98,15 +103,8 @@ using parallel_mater::gallery::brick_render_width;
 using parallel_mater::gallery::brick_render_height;
 using parallel_mater::gallery::validate_brick_config;
 
-// UI frame input; translated by step_runtime into public command descriptors.
-struct StepOptions {
-    float timestep{1.0F / 60.0F};
-    std::uint32_t substeps{4U};
-    Vec3 gravity{0.0F, -9.81F, 0.0F};
-    bool collect_rigid_contacts{};
-    bool collect_fluid_contacts{};
-    std::uint32_t rigid_contact_pass_limit{};
-};
+// UI frame input; translated by the common runtime into public commands.
+using StepOptions = GalleryStepOptions;
 
 constexpr float k_timestep = 1.0F / 60.0F;
 constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
@@ -191,11 +189,7 @@ struct DirectionalInput {
     float z{};
 };
 
-struct SuspensionSteeringJoint {
-    std::size_t constraint_index{};
-    Quaternion authored_local_orientation_a{};
-    bool front{};
-};
+using parallel_mater::gallery::SuspensionSteeringJoint;
 
 enum class KeyAction : std::size_t {
     escape,
@@ -527,7 +521,7 @@ static int run_gallery_application(
         std::cerr << error << '\n';
         return 1;
     }
-    GallerySession session;
+    DesktopGalleryState session;
     if (!session.rebuild(options, options.initial_context, options.dump_spheres,
                          options.fluid_particles, error)) {
         std::cerr << error << '\n';
@@ -1281,8 +1275,8 @@ static int run_gallery_application(
                 bool native_render = runtime.renderer.native_image().handle != 0U;
                 bool read_host = true;
 #ifdef PM_GALLERY_METAL_RENDERER
-                native_render = native_render || bool(runtime.gpu_renderer);
-                read_host = !runtime.gpu_renderer || runtime.fixed_collector.active() || host_diagnostics;
+                native_render = native_render || bool(runtime.native_renderer);
+                read_host = !runtime.native_renderer || runtime.fixed_collector.active() || host_diagnostics;
 #endif
                 if (!step_runtime(runtime, interactive_step, error, !native_render || host_diagnostics, read_host)) {
                     std::cerr << "step gallery failed: " << error << '\n';
@@ -1359,7 +1353,7 @@ static int run_gallery_application(
         frame_timings.begin_phase(FramePhase::render);
         bool gpu_frame = false;
 #ifdef PM_GALLERY_METAL_RENDERER
-        gpu_frame = runtime.gpu_renderer && runtime.gpu_ready;
+        gpu_frame = runtime.native_renderer && runtime.gpu_ready;
 #endif
         if (gpu_frame) pixels.assign(std::size_t(options.width)*options.height, 0U);
         else if (!runtime.renderer.render(runtime.render_frame,
@@ -1483,7 +1477,9 @@ static int run_gallery_application(
             if (pmGetNativeDevice(runtime.simulation.device(), &native_device) != PM_SUCCESS) {
                 std::cerr << "GPU output export failed: " << error << '\n'; return 1;
             }
-            runtime.gpu_renderer->render(runtime.instance.render_buffers, current_camera, options.width, options.height,
+            static_cast<parallel_mater::gallery::GpuGalleryRenderer *>(
+                runtime.native_renderer.get())->render(
+                runtime.instance.render_buffers, current_camera, options.width, options.height,
                 presentation.metal_layer(reinterpret_cast<void *>(native_device.device)),
                 !options.interactive_smoke_output.empty() && displayed_frames + 1 == static_cast<unsigned>(options.frames) ? &pixels : nullptr,
                 &frame_timings, pixels);

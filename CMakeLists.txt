@@ -764,7 +764,9 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     endif()
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
 
-    add_library(parallel-mater-gallery-session STATIC examples/support/session.cpp)
+    add_library(parallel-mater-gallery-session STATIC
+                examples/support/gallery_runtime.cpp
+                examples/support/session.cpp)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_link_libraries(parallel-mater-gallery-session PUBLIC
         parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
@@ -839,11 +841,11 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         parallel-mater-gallery-application
         PUBLIC parallel-mater-gallery-renderer
         PRIVATE glfw parallel-mater-gallery-window
-                parallel-mater-gallery-frame-timing)
+                parallel-mater-gallery-frame-timing
+                parallel-mater-gallery-session)
 
     if(APPLE)
         if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
-            target_link_libraries(parallel-mater-gallery-application PRIVATE parallel-mater-gallery-session)
             target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_METAL_RENDERER=1)
         endif()
         include(cmake/ParallelMaterMacOSGallery.cmake)

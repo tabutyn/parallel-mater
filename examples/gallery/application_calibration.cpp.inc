@@ -1,5 +1,5 @@
 // Device-profile measurement and explicit human verification.
-struct GallerySession {
+struct DesktopGalleryState {
     GalleryRuntime runtime{};
     std::uint32_t dump_spheres{k_default_dump_spheres};
     std::uint32_t fluid_particles{k_default_fluid_particles};
@@ -11,12 +11,10 @@ struct GallerySession {
                                std::uint32_t requested_dump_spheres,
                                std::uint32_t requested_fluid_particles,
                                std::string &error) {
-        GalleryRuntime replacement;
         if (!build_runtime(options, context, requested_dump_spheres,
-                           requested_fluid_particles, replacement, error)) {
+                           requested_fluid_particles, runtime, error)) {
             return false;
         }
-        runtime = std::move(replacement);
         dump_spheres = requested_dump_spheres;
         fluid_particles = requested_fluid_particles;
         peg_gravity = initial_scene_gravity(context, runtime.scene.gravity_scale);

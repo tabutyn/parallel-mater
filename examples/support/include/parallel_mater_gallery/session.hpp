@@ -3,6 +3,7 @@
 #include <parallel_mater_gallery/device_profiles.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/gallery_runtime.hpp>
 #include <parallel_mater/parallel_mater.h>
 #include <filesystem>
 #include <functional>
@@ -54,7 +55,7 @@ public:
     std::uint64_t allocated_bytes() const;
     std::size_t moving_bodies() const;
     std::size_t particle_count() const;
-    bool ready() const { return bool(scene_); }
+    bool ready() const { return runtime_.ready(); }
     bool active() const { return active_; }
     bool is_paused() const { return paused_; }
     unsigned selection() const { return selected_; }
@@ -66,8 +67,7 @@ public:
     std::vector<std::uint32_t> pixels;
     FrameTimingCollector timing;
 private:
-    struct Scene;
-    std::unique_ptr<Scene> scene_;
+    GalleryRuntime runtime_;
     GallerySessionConfig config_;
     unsigned selected_{};
     unsigned bricks_{};
