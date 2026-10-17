@@ -1,0 +1,283 @@
+{
+  "advertised_capabilities": [
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "ATTACHMENT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "windows_driver_evidence_bundle",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2"
+    }
+  ],
+  "device": {
+    "device_id": 7040,
+    "driver_version": "NVIDIA 582.66",
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318
+  },
+  "driver": {
+    "binary_sha256": "a61a49cc018a46b6b822c5fd89c958a484162c8e9440d18f009901a2847c4a18",
+    "name": "slang-d3d12",
+    "version": "0.2.0+2b04e55"
+  },
+  "evidence": [
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "a61a49cc018a46b6b822c5fd89c958a484162c8e9440d18f009901a2847c4a18",
+      "contract": "registry:interaction-capabilities",
+      "contract_sha256": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
+      "scope": "compilation",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "execution",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "lifecycle_invariants",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "lifecycle_invariants",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "missing"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json",
+      "artifact_sha256": "b47b3512848da7639bc2746004e487d3569594c70a78e8103569d1011262a6a2",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "reference_regression",
+      "source_commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+      "status": "failed"
+    }
+  ],
+  "execution_status": "completed",
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "hostname": "windows-gtx1080",
+    "operating_system": "Microsoft Windows 11 Pro 10.0.26200"
+  },
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
+  "reproduction": [
+    "parallel-mater-conformance --check-inputs",
+    "parallel-mater-conformance --case all --output <d3d12-results>",
+    "compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <results> --case all",
+    "parallel-mater-command-gallery-tests --backend d3d12 --scene RigidBody.glb --frames 300",
+    "ctest -R parallel-mater-d3d12-(resource-lifecycle|interaction-graph-lifecycle|fluid-pair-graph-lifecycle|fluid-pair-quality)-tests$ -V"
+  ],
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "source": {
+    "commit": "2b04e55ef580c305e960c98134b3c5d4b651a179",
+    "dirty": false
+  },
+  "toolchain": {
+    "compiler": "MSVC, Slang DXIL",
+    "version": "MSVC 19.44.35228; Slang 2026.18"
+  }
+}

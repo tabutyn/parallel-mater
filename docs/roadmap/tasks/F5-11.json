@@ -1,7 +1,7 @@
 {
   "id": "F5-11",
   "title": "Publish current Windows driver evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -23,15 +23,33 @@
     "Applicable trajectory, analytic-quality and adverse-lifecycle contracts are executed on both drivers; failures, missing contracts and unsupported cases remain explicit and cannot certify a capability.",
     "Register the results in the generated per-driver evidence index and verify the index from a Windows checkout without weakening byte-stable contract identity."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e0b17502-c6ee-466c-b98c-1a4c0ad190ad",
-    "owner": "codex-windows-physics",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-11/windows-gtx1080",
-    "claimed_at": "2026-10-17T12:37:36Z",
-    "heartbeat_at": "2026-10-17T12:37:36Z",
-    "expires_at": "2026-10-18T12:37:36Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: native parallel-mater-conformance --check-inputs plus 67 Python conformance tests; JSON/XML CRLF normalization is portable while binary hashing remains exact.",
+    "PASS: GTX 1080 CUDA at 2b04e55 advertises 49 records; reference 11 passed/19 failed with five repeat 0xc0000006 crashes; equal-fluid quality 18/18 and brick penetration 0.205278 mm at frame 196 pass; exact F5-03 lifecycle checkpoints remain missing.",
+    "PASS: GTX 1080 D3D12 at 2b04e55 advertises 10 records; reference 5 passed/12 failed/13 unsupported; brick penetration 0.205278 mm at frame 196 and resource lifecycle pass; graph and equal-fluid tests remain unsupported and exact F5-03 lifecycle checkpoints remain missing.",
+    "PASS: conformance/v1/evidence/index-v1.json validates 3/62 capabilities across 5 reports with zero registry failures; Windows records qualify 0/49 CUDA and 0/10 D3D12 without weakening F5-05/F5-06 contracts."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e0b17502-c6ee-466c-b98c-1a4c0ad190ad",
+        "owner": "codex-windows-physics",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-11/windows-gtx1080",
+        "claimed_at": "2026-10-17T12:37:36Z",
+        "heartbeat_at": "2026-10-17T12:37:36Z",
+        "expires_at": "2026-10-18T12:37:36Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T13:23:32Z",
+      "reason": "Published current clean Windows CUDA/D3D12 evidence with failed, missing, and unsupported outcomes preserved.",
+      "evidence": [
+        "PASS: native parallel-mater-conformance --check-inputs plus 67 Python conformance tests; JSON/XML CRLF normalization is portable while binary hashing remains exact.",
+        "PASS: GTX 1080 CUDA at 2b04e55 advertises 49 records; reference 11 passed/19 failed with five repeat 0xc0000006 crashes; equal-fluid quality 18/18 and brick penetration 0.205278 mm at frame 196 pass; exact F5-03 lifecycle checkpoints remain missing.",
+        "PASS: GTX 1080 D3D12 at 2b04e55 advertises 10 records; reference 5 passed/12 failed/13 unsupported; brick penetration 0.205278 mm at frame 196 and resource lifecycle pass; graph and equal-fluid tests remain unsupported and exact F5-03 lifecycle checkpoints remain missing.",
+        "PASS: conformance/v1/evidence/index-v1.json validates 3/62 capabilities across 5 reports with zero registry failures; Windows records qualify 0/49 CUDA and 0/10 D3D12 without weakening F5-05/F5-06 contracts."
+      ]
+    }
+  ]
 }

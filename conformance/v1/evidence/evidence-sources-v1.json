@@ -32,6 +32,16 @@
       "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
       "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-2b04e55",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json",
+      "sha256": "67a8bf76f08e1344649e91c8afeefab1325e91ee2db2fd6c2f5d0dcd5c4a7d84"
+    },
+    {
+      "id": "windows-gtx1080-slang-d3d12-2b04e55",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json",
+      "sha256": "d4ee8f363d01b67ecb7e8f99869b48d95b9f05a79c2bf7c0e8fd688c410e8ec4"
     }
   ],
   "supplemental_reports": [
