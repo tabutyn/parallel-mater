@@ -121,7 +121,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-00](roadmap/tasks/F2-00.json) | Simulation-owned graph baseline | done | — | — |
 | [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | done | — | — |
 | [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | done | F2-01 | — |
-| [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | ready | F2-02 | — |
+| [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | leased | F2-02 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T02:46:13Z |
 | [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | waiting on dependencies | F1-05, F2-03 | — |
 | [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | ready | F2-01 | — |
 | [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | waiting on dependencies | F2-05, F1-00 | — |
