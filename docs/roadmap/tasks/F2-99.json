@@ -1,7 +1,7 @@
 {
   "id": "F2-99",
   "title": "Review F2 exit evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-01",
     "F2-02",
@@ -31,6 +31,14 @@
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "f958423c-f52d-453c-b26d-d08c8c1a9db7",
+    "owner": "codex-windows-review",
+    "machine": "windows-gtx1080",
+    "branch": "work/F2-99/windows-gtx1080",
+    "claimed_at": "2026-10-17T16:26:06Z",
+    "heartbeat_at": "2026-10-17T16:26:06Z",
+    "expires_at": "2026-10-18T16:26:06Z"
+  },
   "history": []
 }
