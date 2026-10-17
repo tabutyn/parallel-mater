@@ -132,6 +132,36 @@ UIImage *frame_image(const GallerySession &session) {
     if (action) [button addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
     return button;
 }
+- (void)installCatalog:(NSArray<NSDictionary *> *)catalog {
+    NSMutableArray<UIMenuElement *> *scenes = [NSMutableArray array];
+    __weak PMGalleryController *weakSelf = self;
+    for (NSUInteger index = 0; index < catalog.count; ++index) {
+        NSDictionary *item = catalog[index];
+        const BOOL available = [item[@"available"] boolValue];
+        NSString *name = item[@"name"];
+        NSString *title = available ? name :
+            [NSString stringWithFormat:@"%@ — %@", name, item[@"reason"]];
+        UIAction *action = [UIAction actionWithTitle:title image:nil identifier:nil
+            handler:^(UIAction *) {
+                PMGalleryController *owner = weakSelf;
+                if (!owner) return;
+                owner->_selection = static_cast<NSInteger>(index);
+                owner->_failed = NO;
+                owner->_releaseButton.enabled = index == 2U;
+                [owner->_sceneButton setTitle:[name stringByAppendingString:@" ▾"]
+                                      forState:UIControlStateNormal];
+            }];
+        action.attributes = available ? 0 : UIMenuElementAttributesDisabled;
+        [scenes addObject:action];
+    }
+    _sceneButton.menu = [UIMenu menuWithTitle:@"Apple GPU Preview" children:scenes];
+    _sceneButton.showsMenuAsPrimaryAction = YES;
+    if (catalog.count != 0U) {
+        NSString *name = catalog[0][@"name"];
+        [_sceneButton setTitle:[name stringByAppendingString:@" ▾"]
+                      forState:UIControlStateNormal];
+    }
+}
 - (void)viewDidLoad {
     [super viewDidLoad];
     UIApplication.sharedApplication.idleTimerDisabled = YES;
@@ -153,22 +183,7 @@ UIImage *frame_image(const GallerySession &session) {
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(zoom:)];
     pinch.delegate = self; [_image addGestureRecognizer:pinch];
 
-    _sceneButton = [self button:@"RIGID BODY ▾" action:nil];
-    NSMutableArray<UIMenuElement *> *scenes = [NSMutableArray array];
-    const auto names = GallerySession::scene_names();
-    __weak PMGalleryController *weakSelf = self;
-    for (unsigned i = 0; i < names.size(); ++i) {
-        NSString *name = text(names[i]);
-        [scenes addObject:[UIAction actionWithTitle:name image:nil identifier:nil handler:^(UIAction *) {
-            PMGalleryController *owner = weakSelf;
-            if (!owner) return;
-            owner->_selection = i; owner->_failed = NO;
-            owner->_releaseButton.enabled = i == 2;
-            [owner->_sceneButton setTitle:[name stringByAppendingString:@" ▾"] forState:UIControlStateNormal];
-        }]];
-    }
-    _sceneButton.menu = [UIMenu menuWithTitle:@"Apple GPU Preview" children:scenes];
-    _sceneButton.showsMenuAsPrimaryAction = YES;
+    _sceneButton = [self button:@"Loading scenes…" action:nil];
     _pauseButton = [self button:@"Pause" action:@selector(pause)];
     UIStackView *toolbar = [[UIStackView alloc] initWithArrangedSubviews:@[_sceneButton,
         _pauseButton, [self button:@"Reset" action:@selector(reset)],
@@ -227,6 +242,20 @@ UIImage *frame_image(const GallerySession &session) {
                     .assets = resources / "assets", .profiles = resources / "config/device-profiles.json",
                     .platform = "iPadOS", .model = machine.machine, .backend = "metal",
                     .native_backend = PM_NATIVE_BACKEND_METAL, .gpu_rendering = true});
+                NSMutableArray<NSDictionary *> *catalog = [NSMutableArray array];
+                for (const auto &item : self->_session->catalog()) {
+                    [catalog addObject:@{
+                        @"id":text(std::string(item.id)),
+                        @"name":text(std::string(item.scene.name)),
+                        @"description":text(std::string(item.scene.help)),
+                        @"requirements":text(item.required_feature_names),
+                        @"available":@(item.available),
+                        @"reason":text(item.unavailable_reason)}];
+                }
+                NSArray<NSDictionary *> *catalogSnapshot = [catalog copy];
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    [self installCatalog:catalogSnapshot];
+                });
                 self->_session->set_presentation_layer((__bridge void *)self->_image.layer);
                 NSLog(@"ParallelMater: %@", text(self->_session->details()));
                 id<MTLDevice> gpu = (__bridge id<MTLDevice>)self->_session->native_render_device();
@@ -367,29 +396,55 @@ UIImage *frame_image(const GallerySession &session) {
         throw std::runtime_error("--qualification-frames must be 1..100000");
     const unsigned steps = extended ? static_cast<unsigned>(requested) : 3;
     NSArray<NSURL *> *directories = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
-    const auto names = GallerySession::scene_names();
-    for (unsigned i = 0; i < names.size(); ++i) {
+    const auto &catalog = _session->catalog();
+    for (unsigned i = 0; i < catalog.size(); ++i) {
         @autoreleasepool {
+            const auto &item = catalog[i];
+            if (!item.available) {
+                [results addObject:@{
+                    @"id":text(std::string(item.id)),
+                    @"scene":text(std::string(item.scene.name)),
+                    @"requirements":text(item.required_feature_names),
+                    @"available":@NO, @"skipped":@YES,
+                    @"reason":text(item.unavailable_reason)}];
+                write_report(@"smoke-report.json", @{
+                    @"revision":text(GallerySession::build_revision()),
+                    @"backend":text(_session->backend_name()),
+                    @"device":text(_session->device_name()),
+                    @"nonce":argument(@"--deployment-nonce") ?: @"",
+                    @"completed":@(results.count == catalog.size()),
+                    @"frames_per_scene":@(steps),
+                    @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
+                    @"scenes":results});
+                continue;
+            }
             try {
-                NSLog(@"ParallelMater smoke START: %@, footprint=%llu MiB", text(names[i]), memory_footprint() / (1024ULL*1024));
+                NSLog(@"ParallelMater smoke START: %@, footprint=%llu MiB",
+                      text(std::string(item.scene.name)), memory_footprint() / (1024ULL*1024));
                 _session->select(i);
                 const auto statistics = _session->qualify(steps);
-                [results addObject:@{@"scene":text(names[i]), @"steps":@(steps),
+                [results addObject:@{@"id":text(std::string(item.id)),
+                    @"scene":text(std::string(item.scene.name)),
+                    @"requirements":text(item.required_feature_names),
+                    @"available":@YES, @"steps":@(steps),
                     @"mean_ms":@(statistics.mean_ms), @"p95_ms":@(statistics.p95_ms),
                     @"timing_window_frames":@(statistics.count), @"session_controls":@YES,
                     @"memory_footprint_bytes":@(memory_footprint()),
                     @"passed":@YES, @"details":text(_session->details())}];
-                NSLog(@"ParallelMater smoke PASS: %@", text(names[i]));
+                NSLog(@"ParallelMater smoke PASS: %@", text(std::string(item.scene.name)));
                 [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:
                     [directories.firstObject URLByAppendingPathComponent:@"last-smoke-frame.png"] atomically:YES];
             } catch (const std::exception &error) {
-                [results addObject:@{@"scene":text(names[i]), @"passed":@NO, @"error":text(error.what())}];
-                NSLog(@"ParallelMater smoke FAIL: %@: %@", text(names[i]), text(error.what()));
+                [results addObject:@{@"id":text(std::string(item.id)),
+                    @"scene":text(std::string(item.scene.name)), @"available":@YES,
+                    @"passed":@NO, @"error":text(error.what())}];
+                NSLog(@"ParallelMater smoke FAIL: %@: %@",
+                      text(std::string(item.scene.name)), text(error.what()));
             }
             write_report(@"smoke-report.json", @{
                 @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
                 @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
-                @"completed":@(results.count == names.size()), @"frames_per_scene":@(steps),
+                @"completed":@(results.count == catalog.size()), @"frames_per_scene":@(steps),
                 @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
                 @"scenes":results});
         }

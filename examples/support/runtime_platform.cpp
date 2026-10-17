@@ -138,6 +138,13 @@ std::vector<GalleryBackendOption> platform_gallery_backends() {
     return result;
 }
 
+std::optional<PmPhysicalDeviceFeatures> platform_gallery_features(
+    std::optional<PmNativeBackend> backend) {
+    SelectedDevice selected;
+    if (!open_selected_device(selected, backend)) return std::nullopt;
+    return selected.features;
+}
+
 HardwareIdentity platform_hardware_identity(
     std::optional<PmNativeBackend> backend) {
     SelectedDevice selected;
