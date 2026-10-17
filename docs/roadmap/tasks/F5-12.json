@@ -1,7 +1,7 @@
 {
   "id": "F5-12",
   "title": "Publish current macOS Metal driver evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -26,6 +26,14 @@
     "Register and regenerate the per-driver evidence index from a fresh checkout; Metal API/shader-validation and Gallery results may be retained as supplemental execution evidence only."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bd7262f5-c4c0-4026-b13b-dd1a2c4c5fbd",
+    "owner": "codex-macos-physics",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-12/thomass-macbook-air",
+    "claimed_at": "2026-10-17T16:28:43Z",
+    "heartbeat_at": "2026-10-17T16:28:43Z",
+    "expires_at": "2026-10-18T16:28:43Z"
+  },
   "history": []
 }
