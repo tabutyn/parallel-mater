@@ -1,7 +1,7 @@
 {
   "id": "F2-11",
   "title": "Specify different-material and interface modes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-05"
   ],
@@ -17,6 +17,14 @@
     "Create separate implementation/qualification leaf tasks before enabling any new mode."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "6618f030-8628-4eef-94de-44e8cf8ff45d",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-11/thomas-laptop",
+    "claimed_at": "2026-10-17T04:57:20Z",
+    "heartbeat_at": "2026-10-17T04:57:20Z",
+    "expires_at": "2026-10-18T04:57:20Z"
+  },
   "history": []
 }
