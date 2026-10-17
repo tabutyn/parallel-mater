@@ -1,7 +1,7 @@
 {
   "id": "F1-07",
   "title": "Bound host auxiliary metadata",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "runtime-memory"
@@ -15,6 +15,14 @@
     "Old handles remain invalid after slot reuse; exhaustion is explicit."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "729137a2-29d5-44a1-b4f1-465d87240498",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-07/thomas-laptop",
+    "claimed_at": "2026-10-17T01:40:36Z",
+    "heartbeat_at": "2026-10-17T01:40:36Z",
+    "expires_at": "2026-10-18T01:40:36Z"
+  },
   "history": []
 }
