@@ -1,0 +1,22 @@
+{
+  "id": "P1-34",
+  "title": "Solve rope capsule self-contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-33"
+  ],
+  "locks": [
+    "rope-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement continuous segment-complete self-contact and friction in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Crossing and wound-rope fixtures meet separation, no-tunnelling, momentum, angular-momentum and stretch limits.",
+    "Friction is dissipative and zero friction preserves tangential motion."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

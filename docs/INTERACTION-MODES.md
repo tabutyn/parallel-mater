@@ -101,7 +101,7 @@ separately owned systems. Capability discovery must identify the scope.
 | Fluid | `R` contact, pressure and viscosity within one population. | `P fluid A ↔ fluid B` contact, pressure and viscosity for equal material; later miscible/immiscible, thermal and phase profiles. API 0.2 `LIQUID_LIQUID` is explicitly unsupported. |
 | Cloth | No advertised self or cloth–cloth contact mode. | `P cloth A ↔ cloth B` contact/friction; self-contact and distinct sheets are specified by F2-12. |
 | Soft body | No advertised self or soft-body/soft-body surface-contact mode. | `P soft A ↔ soft B` surface contact; self and distinct volumes are specified by F2-13. |
-| Rope | `R` segment self-contact/friction within one rope when `selfCollision` is true. | `P rope A ↔ rope B` segment contact and attachment; specified by F2-14. |
+| Rope | `R` sampled-node self-exclusion within one rope when `selfCollision` is true; no segment-continuity or self-friction claim. `P` continuous capsule-segment self-contact/friction. | `P rope A ↔ rope B` capsule-segment contact and endpoint attachment; specified by F2-14. |
 | Smoke | `R` pressure, viscosity and transport within one particle population or projected grid. | `P smoke A ↔ smoke B` overlapping-field exchange; pressure, viscosity and thermal semantics are specified by F2-15. |
 | Rigid body | `R` body–body contact/friction and persistent constraints between bodies in one simulation. | There is no separate rigid-system resource in API 0.2; a future one must not inherit the intra-simulation claim implicitly. |
 
@@ -321,6 +321,109 @@ operators, portable scheduling and public-API qualification. Advertisement is
 per scope and driver after closed-surface, folded-self, two-volume, high-speed,
 friction, conservation, binding-resolution, capacity and lifecycle cases pass.
 
+## Rope self, segment-contact and attachment scopes
+
+API 0.2 has one narrow intrinsic rope capability. When `selfCollision` is
+true, nonadjacent sampled nodes in one rope are separated as spheres of the
+material `radius`; node pairs whose indices differ by at most two are excluded.
+This is `(rope, rope, self, contact, bidirectional, endpoint-native)`. It does
+not claim continuous segment collision, protection from two segments crossing
+between nodes, high-speed continuous detection or self-friction. The current
+capability record must be qualified against this exact sampled-node behavior or
+withdrawn; it cannot be cited as evidence for the stronger profile below.
+
+Complete rope contact uses the future `rope-capsule` material profile. Each
+centreline edge from node `i` to `i + 1` is a swept capsule with the endpoint
+material radius. Intrinsic self-contact has identity
+`(rope, rope, self, contact, bidirectional, rope-capsule)` and consumes no graph
+edge. Contact between different live rope slots uses
+`(rope, rope, separate-system, contact, bidirectional, rope-capsule)` and a
+canonical edge with `first < second`. API 0.2 advertises neither capsule
+identity and has no rope-rope edge; requests must fail with
+`PM_ERROR_FEATURE_NOT_PRESENT` without mutating the graph. `same-domain`
+remains unsupported because each rope slot is independently owned.
+
+For segments with radii `r_a` and `r_b`, the target centreline separation is
+
+```text
+d_ab = r_a + r_b.
+```
+
+Self-contact excludes the same segment, segments sharing a node and segment
+pairs separated by only one intervening centreline edge. Every other pair is
+eligible, including geometrically close portions with distant node indices.
+Distinct ropes have no index-based exclusion. Candidate generation finds the
+closest points on both swept segments over the full substep, including an
+interior-interior crossing where all four endpoint spheres remain separated.
+A high-speed case moving at least `4 * d_ab` per substep must not tunnel.
+
+Contact distributes correction and impulse with the closest-point barycentric
+weights to the four segment nodes. A free rope's node mass is its material
+`mass` divided by the runtime sampled-node count. A rigid- or soft-bound rope
+endpoint uses its resolved effective inverse mass; a fixed endpoint does not
+move and its reaction is an external/kinematic impulse. Stretch projection and
+contact must be interleaved or followed by cleanup so the reported final
+separation is at least
+
+```text
+d_ab - max(1e-5 m, 0.05 * d_ab).
+```
+
+With no fixed endpoints or external impulse, normal contact conserves total
+linear and angular momentum. Using all participating node masses,
+`I = sum(m_i * ||delta_v_i||2)` and
+`R = ||sum(m_i * delta_v_i)||2`, a fixture with
+`I >= 1e-4 kg*m/s` satisfies
+
+```text
+R <= max(1e-7 kg*m/s, 5e-5 * I).
+```
+
+Angular impulse about the fixture centre uses the same relative tolerance and
+an absolute `1e-7 kg*m^2/s` floor. Reversing graph endpoints cannot change the
+result beyond these limits. Contact friction uses the endpoint material value
+for self-contact and `sqrt(friction_a * friction_b)` between ropes. It obeys
+`||J_t|| <= mu * J_n`, does not increase relative tangential kinetic energy,
+and becomes tangentially neutral when `mu = 0`.
+
+### Rope-rope endpoint attachment
+
+Attachment is independent from contact. The initial rope-rope attachment joins
+one selected endpoint (`first` or `last`) of each rope as a point constraint;
+arbitrary interior knots, sliding rings, splices and orientation constraints
+are unsupported. The future typed edge state contains the two endpoint
+selectors, nonnegative compliance in m/N, nonnegative damping in N*s/m, a
+nonnegative capture distance in m and a nonnegative breaking impulse threshold
+in N*s. Zero compliance is rigid, and a zero breaking threshold is
+unbreakable. The attachment target is coincident at creation; creation fails
+rather than teleporting endpoints whose initial gap exceeds the capture
+distance.
+
+An unbroken attachment keeps endpoint separation below
+`max(1e-5 m, 0.02 * min(nodeSpacing_a, nodeSpacing_b))` after each completed
+step. Constraint impulse is equal and opposite after resolving any rigid or
+soft endpoint owners. When accumulated impulse first exceeds a positive break
+threshold during one completed step, the attachment becomes inactive exactly
+once, reports that event and applies no attachment impulse on later steps.
+Explicit edge removal is effective on the next step. Attachment alone does not
+enable collision, friction, knotting, shared stable IDs or transfer of another
+coupling.
+
+Contact and attachment may coexist in one canonical rope-pair edge but remain
+separately queryable mode records and separately capacity-accounted operators.
+Candidate, contact, constraint and diagnostic storage is declared in the
+simulation memory plan. Overflow returns `PM_ERROR_CAPACITY_EXCEEDED`,
+invalidates the affected output and permits retry; silently dropping contacts
+or attachments is forbidden. Empty ropes, endpoint replacement, removal and
+reset follow normal generation and rollback rules.
+
+A future API leaf adds the capsule profile, rope-pair edge and typed endpoint
+attachment state. Separate implementation leaves cover bounded segment
+generation, capsule self-contact, inter-system contact, attachments and
+portable scheduling. Qualification first audits the legacy node-only record,
+then advertises capsule contact and attachment per driver only after crossing,
+friction, conservation, stretch, break, capacity and lifecycle cases pass.
+
 ## Materials and combination profiles
 
 Every endpoint keeps its pipeline material. An edge selects a pair mode and a
@@ -343,6 +446,7 @@ The initial profiles are:
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Specified by F2-11; reserved and unsupported in API 0.2. |
 | `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Specified by F2-11; reserved and unsupported in API 0.2. |
 | `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
+| `rope-capsule` | Rope centreline segments are swept capsules; contact covers their full length rather than sampled nodes only. | Future profile specified by F2-14; unsupported in API 0.2. |
 
 A driver must expose the supported smoke representation and fluid material
 profile. Reporting only `domainCouplings`, or only a pair, is insufficient.

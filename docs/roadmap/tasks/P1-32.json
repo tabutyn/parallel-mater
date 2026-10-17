@@ -1,0 +1,23 @@
+{
+  "id": "P1-32",
+  "title": "Expose rope capsule pairs and attachments",
+  "status": "deferred",
+  "dependencies": [
+    "P1-02"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add the rope-capsule profile, rope-rope edge and typed endpoint attachment parameters; advertise nothing.",
+  "acceptance": [
+    "Registry, generated API and specification separate node-only self contact, capsule self/pair contact and attachment.",
+    "Validation rejects invalid selectors, parameters, duplicate/reversed edges and unsupported bundles atomically."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
