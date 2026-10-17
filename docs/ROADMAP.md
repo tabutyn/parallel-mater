@@ -131,9 +131,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on dependencies | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | done | F2-05 | — |
 | [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | done | F2-01 | — |
-| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | ready | F2-01 | — |
-| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | ready | F2-01 | — |
-| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | ready | F2-01 | — |
+| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | leased | F2-01 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:17:09Z |
+| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | waiting on lock | F2-01 | — |
+| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | waiting on lock | F2-01 | — |
 | [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation
