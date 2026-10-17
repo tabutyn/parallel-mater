@@ -1,7 +1,7 @@
 {
   "id": "F5-07",
   "title": "Gate performance on physical quality",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02"
@@ -17,15 +17,35 @@
     "Throughput, memory and median/p95 timings carry a fixed quality-profile hash.",
     "Failed, missing and unsupported quality results block qualified performance output."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "8eebae47-b6b7-4a77-bc59-2afbce03c1c8",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-07/thomas-laptop",
-    "claimed_at": "2026-10-17T06:15:55Z",
-    "heartbeat_at": "2026-10-17T06:15:55Z",
-    "expires_at": "2026-10-18T06:15:55Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: benchmark gate tests cover qualified output and block failed, missing, unsupported, stale-profile, stale-result and mismatched source/driver/device/toolchain evidence.",
+    "PASS: raw 20-sample input produces profile-hashed operations/second, nearest-rank median/p95 timing and public memory peaks; missing quality exits unqualified.",
+    "PASS: installed/relocated SDK gate emits byte-identical qualified report to the source-tree tool; SDK install/consumer/conformance checks pass.",
+    "PASS: compiled conformance and benchmark gates pass 4/4; 59 conformance tests and 19 roadmap lease tests pass.",
+    "LIMITATION: this task defines score admission and publishes no production performance measurement."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "8eebae47-b6b7-4a77-bc59-2afbce03c1c8",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-07/thomas-laptop",
+        "claimed_at": "2026-10-17T06:15:55Z",
+        "heartbeat_at": "2026-10-17T06:15:55Z",
+        "expires_at": "2026-10-18T06:15:55Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T06:21:35Z",
+      "reason": "Added an installed headless benchmark gate that admits scores only with matching passing physical-quality evidence.",
+      "evidence": [
+        "PASS: benchmark gate tests cover qualified output and block failed, missing, unsupported, stale-profile, stale-result and mismatched source/driver/device/toolchain evidence.",
+        "PASS: raw 20-sample input produces profile-hashed operations/second, nearest-rank median/p95 timing and public memory peaks; missing quality exits unqualified.",
+        "PASS: installed/relocated SDK gate emits byte-identical qualified report to the source-tree tool; SDK install/consumer/conformance checks pass.",
+        "PASS: compiled conformance and benchmark gates pass 4/4; 59 conformance tests and 19 roadmap lease tests pass.",
+        "LIMITATION: this task defines score admission and publishes no production performance measurement."
+      ]
+    }
+  ]
 }
