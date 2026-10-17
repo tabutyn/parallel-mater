@@ -2969,9 +2969,2199 @@
           "status": "optional"
         }
       }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "cloth-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-cloth",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-cloth",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-fluid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-fluid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "fluid-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "RIGID_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "SAME_DOMAIN",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rigid-attachment",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "RIGID_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SAME_DOMAIN",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rigid-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rigid-direct"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rigid-direct"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rigid-direct"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "ROPE"
+      },
+      "key_text": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "smoke-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-aac6d59",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
     }
   ],
-  "capability_count": 62,
+  "capability_count": 108,
   "driver_count": 5,
   "drivers": [
     {
@@ -3025,11 +5215,15 @@
     {
       "id": "slang-metal",
       "label": "Metal",
-      "qualification_result_ids": [],
+      "qualification_result_ids": [
+        "macos-m4-slang-metal-aac6d59"
+      ],
       "qualified_capability_count": 0,
-      "report_ids": [],
-      "status": "missing",
-      "unqualified_capability_count": 0
+      "report_ids": [
+        "macos-m4-slang-metal-aac6d59"
+      ],
+      "status": "unqualified",
+      "unqualified_capability_count": 46
     }
   ],
   "known_failures": [
@@ -4535,10 +6729,886 @@
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
+      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
       "driver": "slang-metal",
-      "kind": "missing_qualification_result",
-      "message": "No current capability-qualification result is registered.",
-      "report": null
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[0].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[0].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-cloth quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[10].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-cloth adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[10].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-cloth quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[11].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-cloth adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[11].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[12].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[12].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[13].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[13].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[13].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[14].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[14].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[15].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[15].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[16].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[16].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[17].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[17].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[18].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[18].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[19].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[19].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[1].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[1].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[20].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[20].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[20].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[21].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[21].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[21].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[22].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[22].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[23].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[23].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[24].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[24].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[25].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[25].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[26].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[26].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[27].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[27].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[28].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[28].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[28].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rope quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[29].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[29].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[29].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[2].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[2].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rope quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[30].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "missing",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[30].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[30].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[31].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[31].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[32].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[32].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[33].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[33].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[34].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[34].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[35].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact soft-body-rigid adverse lifecycle case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[35].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[35].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[36].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[36].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[37].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[37].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[38].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[38].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[39].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[39].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[3].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[3].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[40].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[40].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[41].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[41].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[42].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[42].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[43].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[43].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[44].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[44].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[45].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[45].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[4].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[4].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[5].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[5].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[6].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[6].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[7].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[7].lifecycle_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[8].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-metal",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[8].reference_regression",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[9].analytic_invariants",
+      "report": "macos-m4-slang-metal-aac6d59"
     },
     {
       "driver": "slang-vulkan",
@@ -4551,7 +7621,7 @@
   "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
   "qualification_complete": false,
   "qualified_capability_count": 3,
-  "report_count": 5,
+  "report_count": 6,
   "reports": [
     {
       "capability_count": 3,
@@ -4581,6 +7651,35 @@
         "version": "GCC 12.2.0; CUDA 13.1; Slang 2026.18"
       },
       "validated": true
+    },
+    {
+      "capability_count": 46,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "92502937e7c4ebd36d75905a1586e161b15d437ea01c68725d8743d2f0cb69a0",
+        "name": "slang-metal",
+        "version": "0.2.0+aac6d59"
+      },
+      "failure_count": 98,
+      "id": "macos-m4-slang-metal-aac6d59",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
+      "qualified_count": 0,
+      "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef",
+      "source": {
+        "commit": "aac6d595e4821bace3ed77cbbf47f1cad794e548",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple Clang 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": false
     },
     {
       "capability_count": 0,
@@ -4711,7 +7810,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "1c3073c925d04184a7f9c7f1af95e2ceaf97c3a1b48ab2cefd3cb8c1978c1974",
+  "sources_sha256": "b1a9779fe1ef35b99194d5093ec97a5230a43f905389639c36aa3ce273630e37",
   "valid": true,
   "validation_failures": []
 }

@@ -316,6 +316,7 @@ int main() {
     submit.pCommandBuffers = &commands[3];
     wait.value = 2U;
     submit.waitCount = 1U;
+    submit.pWaits = &wait;
     CHECK(pmQueueSubmit(queue, &submit, fences[3]) == PM_SUCCESS);
     // Both query writes are accepted before either executes. Failure in slot
     // zero must not poison the successful frame recorded into slot one.

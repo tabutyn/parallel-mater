@@ -1108,6 +1108,111 @@ void copy_particle_state(const std::vector<State> &states,
     return result;
 }
 
+[[nodiscard]] const char *interaction_family_name(PmInteractionFamily value) {
+    switch (value) {
+    case PM_INTERACTION_FAMILY_FLUID: return "FLUID";
+    case PM_INTERACTION_FAMILY_CLOTH: return "CLOTH";
+    case PM_INTERACTION_FAMILY_SOFT_BODY: return "SOFT_BODY";
+    case PM_INTERACTION_FAMILY_ROPE: return "ROPE";
+    case PM_INTERACTION_FAMILY_SMOKE: return "SMOKE";
+    case PM_INTERACTION_FAMILY_RIGID_BODY: return "RIGID_BODY";
+    }
+    throw std::runtime_error("driver returned an unknown interaction family");
+}
+
+[[nodiscard]] const char *interaction_scope_name(PmInteractionScope value) {
+    switch (value) {
+    case PM_INTERACTION_SCOPE_SELF: return "SELF";
+    case PM_INTERACTION_SCOPE_SAME_DOMAIN: return "SAME_DOMAIN";
+    case PM_INTERACTION_SCOPE_SEPARATE_SYSTEM: return "SEPARATE_SYSTEM";
+    case PM_INTERACTION_SCOPE_DISTINCT_FAMILY: return "DISTINCT_FAMILY";
+    }
+    throw std::runtime_error("driver returned an unknown interaction scope");
+}
+
+[[nodiscard]] const char *interaction_mode_name(PmInteractionMode value) {
+    switch (value) {
+    case PM_INTERACTION_MODE_CONTACT: return "CONTACT";
+    case PM_INTERACTION_MODE_ATTACHMENT: return "ATTACHMENT";
+    case PM_INTERACTION_MODE_DRAG: return "DRAG";
+    case PM_INTERACTION_MODE_CONTAINMENT: return "CONTAINMENT";
+    case PM_INTERACTION_MODE_PRESSURE: return "PRESSURE";
+    case PM_INTERACTION_MODE_VISCOSITY: return "VISCOSITY";
+    case PM_INTERACTION_MODE_THERMAL: return "THERMAL";
+    case PM_INTERACTION_MODE_PHASE: return "PHASE";
+    }
+    throw std::runtime_error("driver returned an unknown interaction mode");
+}
+
+[[nodiscard]] const char *interaction_direction_name(PmInteractionDirection value) {
+    switch (value) {
+    case PM_INTERACTION_DIRECTION_BIDIRECTIONAL: return "BIDIRECTIONAL";
+    case PM_INTERACTION_DIRECTION_FIRST_TO_SECOND: return "FIRST_TO_SECOND";
+    case PM_INTERACTION_DIRECTION_SECOND_TO_FIRST: return "SECOND_TO_FIRST";
+    case PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER:
+        return "FIRST_TO_SECOND_TRANSFER";
+    case PM_INTERACTION_DIRECTION_SECOND_TO_FIRST_TRANSFER:
+        return "SECOND_TO_FIRST_TRANSFER";
+    case PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST: return "EXTERNAL_TO_FIRST";
+    case PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND: return "EXTERNAL_TO_SECOND";
+    }
+    throw std::runtime_error("driver returned an unknown interaction direction");
+}
+
+[[nodiscard]] const char *interaction_material_name(
+    PmInteractionMaterialProfile value) {
+    switch (value) {
+    case PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE: return "ENDPOINT_NATIVE";
+    case PM_INTERACTION_MATERIAL_SMOKE_PARTICLE: return "SMOKE_PARTICLE";
+    case PM_INTERACTION_MATERIAL_SMOKE_GRID: return "SMOKE_GRID";
+    case PM_INTERACTION_MATERIAL_EQUAL: return "EQUAL";
+    case PM_INTERACTION_MATERIAL_MISCIBLE: return "MISCIBLE";
+    case PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE:
+        return "IMMISCIBLE_INTERFACE";
+    case PM_INTERACTION_MATERIAL_THERMAL_PHASE: return "THERMAL_PHASE";
+    }
+    throw std::runtime_error("driver returned an unknown interaction material profile");
+}
+
+[[nodiscard]] Json advertised_capabilities(const std::filesystem::path &root) {
+    const CaseDefinition *definition = find_case("rigid-direct");
+    if (definition == nullptr) throw std::runtime_error("missing rigid-direct case");
+    Runtime runtime = make_runtime(*definition, root);
+    const PmPhysicalDevice physical = runtime.command_scene.physical_device();
+    std::uint32_t count{};
+    require(pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &count, nullptr) == PM_SUCCESS,
+            "query interaction capability count", {});
+    std::vector<PmInteractionCapability> records(count);
+    require(pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &count, records.data()) == PM_SUCCESS,
+            "query interaction capabilities", {});
+    records.resize(count);
+    Json result = Json::array();
+    for (const auto &record : records) {
+        Json item = Json::object();
+        item["direction"] = interaction_direction_name(record.key.direction);
+        item["first_family"] = interaction_family_name(record.key.firstFamily);
+        item["material_profile"] =
+            interaction_material_name(record.key.materialProfile);
+        if (record.maxGraphEdgesPerSimulation ==
+            PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE) {
+            item["max_graph_edges_per_simulation"] = "not-applicable";
+        } else if (record.maxGraphEdgesPerSimulation ==
+                   PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY) {
+            item["max_graph_edges_per_simulation"] = "simulation-capacity";
+        } else {
+            item["max_graph_edges_per_simulation"] =
+                static_cast<std::uint64_t>(record.maxGraphEdgesPerSimulation);
+        }
+        item["mode"] = interaction_mode_name(record.key.mode);
+        item["scope"] = interaction_scope_name(record.key.scope);
+        item["second_family"] = interaction_family_name(record.key.secondFamily);
+        result.push_back(std::move(item));
+    }
+    return result;
+}
+
 void write_file(const std::filesystem::path &path, const std::string &contents) {
     std::filesystem::create_directories(path.parent_path());
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
@@ -1119,6 +1224,7 @@ struct Arguments {
     bool list{};
     bool check{};
     bool provenance{};
+    bool capabilities{};
     bool every_frame{};
     std::string case_id{};
     std::filesystem::path output{};
@@ -1132,6 +1238,7 @@ struct Arguments {
         if (argument == "--list") result.list = true;
         else if (argument == "--check-inputs") result.check = true;
         else if (argument == "--provenance") result.provenance = true;
+        else if (argument == "--capabilities") result.capabilities = true;
         else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
@@ -1144,10 +1251,11 @@ struct Arguments {
     const unsigned modes = static_cast<unsigned>(result.list) +
         static_cast<unsigned>(result.check) +
         static_cast<unsigned>(result.provenance) +
+        static_cast<unsigned>(result.capabilities) +
         static_cast<unsigned>(!result.case_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
-                                 "--provenance, or --case");
+                                 "--provenance, --capabilities, or --case");
     if (!result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
     if (result.every_frame &&
@@ -1170,6 +1278,10 @@ int main(int argc, char **argv) {
         if (arguments.check) return check_inputs(root) ? 0 : 1;
         if (arguments.provenance) {
             std::cout << device_provenance(root).serialize();
+            return 0;
+        }
+        if (arguments.capabilities) {
+            std::cout << advertised_capabilities(root).serialize();
             return 0;
         }
         std::vector<const CaseDefinition *> definitions;

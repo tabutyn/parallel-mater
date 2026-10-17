@@ -34,6 +34,11 @@
       "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
     },
     {
+      "id": "macos-m4-slang-metal-aac6d59",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
+      "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
+    },
+    {
       "id": "windows-gtx1080-slang-cuda-2b04e55",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json",
       "sha256": "67a8bf76f08e1344649e91c8afeefab1325e91ee2db2fd6c2f5d0dcd5c4a7d84"
