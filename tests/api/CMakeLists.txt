@@ -5,7 +5,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(CTest)
     find_package(ParallelMater CONFIG REQUIRED)
 endif()
-foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle geometry-lifecycle paint-lifecycle)
+foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle geometry-lifecycle paint-lifecycle endpoint-lifecycle)
     string(REPLACE "-" "_" source_name "${suite}")
     add_executable(parallel-mater-${suite}-tests ${source_name}_tests.cpp)
     target_compile_features(parallel-mater-${suite}-tests PRIVATE cxx_std_20)
@@ -27,16 +27,17 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle geometry-li
             endif()
         endif()
     endforeach()
-    if(suite STREQUAL "paint-lifecycle" AND
-       TARGET parallel-mater-test-driver-slang-cpu-paint-resources)
+    if((suite STREQUAL "paint-lifecycle" OR
+        suite STREQUAL "endpoint-lifecycle") AND
+       TARGET parallel-mater-test-driver-slang-cpu-resources)
         add_dependencies(parallel-mater-${suite}-tests
-            parallel-mater-test-driver-slang-cpu-paint-resources)
-        add_test(NAME parallel-mater-host-paint-resource-lifecycle-tests
+            parallel-mater-test-driver-slang-cpu-resources)
+        add_test(NAME parallel-mater-host-${suite}-tests
             COMMAND parallel-mater-${suite}-tests)
         set_tests_properties(
-            parallel-mater-host-paint-resource-lifecycle-tests PROPERTIES
+            parallel-mater-host-${suite}-tests PROPERTIES
             LABELS "api;lifecycle;host-fixture" TIMEOUT 120
-            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-paint-resources.json")
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json")
     endif()
     if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         add_test(NAME parallel-mater-external-${suite}-tests COMMAND parallel-mater-${suite}-tests)

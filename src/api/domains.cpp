@@ -589,13 +589,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleEmitters(
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
-                auto &slot = simulation->emitters[first + offset];
+                const std::uint32_t endpoint = first + offset;
+                auto &slot = simulation->emitters[endpoint];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
                         simulation->runtime->remove_particle_source(*slot));
                     if (result != PM_SUCCESS) return result;
                     slot.reset();
                 }
+                simulation->emitter_fluid_indices[endpoint] = PM_INVALID_INDEX;
                 const RecordedEmitter &source = copied[offset];
                 if (source.info.active == PM_FALSE) continue;
                 parallel_mater::FluidId fluid{};
@@ -617,6 +619,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleEmitters(
                     simulation->runtime->add_particle_source(mesh, options, created));
                 if (result != PM_SUCCESS) return result;
                 slot = created;
+                simulation->emitter_fluid_indices[endpoint] =
+                    source.info.fluidIndex;
             }
             return PM_SUCCESS;
         });
@@ -640,13 +644,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleDestroyers(
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
-                auto &slot = simulation->destroyers[first + offset];
+                const std::uint32_t endpoint = first + offset;
+                auto &slot = simulation->destroyers[endpoint];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
                         simulation->runtime->remove_particle_destroy_plane(*slot));
                     if (result != PM_SUCCESS) return result;
                     slot.reset();
                 }
+                simulation->destroyer_fluid_indices[endpoint] = PM_INVALID_INDEX;
                 const auto &source = copied[offset];
                 if (source.active == PM_FALSE) continue;
                 parallel_mater::FluidId fluid{};
@@ -677,6 +683,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteParticleDestroyers(
                     simulation->runtime->add_particle_destroy_plane(options, created));
                 if (result != PM_SUCCESS) return result;
                 slot = created;
+                simulation->destroyer_fluid_indices[endpoint] =
+                    source.fluidIndex;
             }
             return PM_SUCCESS;
         });

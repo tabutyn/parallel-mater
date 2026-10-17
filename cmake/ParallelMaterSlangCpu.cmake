@@ -254,18 +254,22 @@ file(GENERATE
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
-    # This non-installed fixture runs host-side paint resource lifecycle tests
-    # through the real loader/API/runtime path. It does not implement or claim
-    # production paint simulation support.
+    # This non-installed fixture runs host-side resource lifecycle tests through
+    # the real loader/API/runtime path. It does not implement or claim
+    # production simulation support for the advertised test-only domains.
     parallel_mater_add_slang_cpu_driver(
-        parallel-mater-test-driver-slang-cpu-paint-resources
-        parallel_mater_test_driver_slang_cpu_paint_resources)
+        parallel-mater-test-driver-slang-cpu-resources
+        parallel_mater_test_driver_slang_cpu_resources)
     target_compile_definitions(
-        parallel-mater-test-driver-slang-cpu-paint-resources PRIVATE
-        PARALLEL_MATER_TEST_PAINT_RESOURCE_DRIVER=1)
+        parallel-mater-test-driver-slang-cpu-resources PRIVATE
+        PARALLEL_MATER_TEST_RESOURCE_DRIVER=1)
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    # Preserve the F1-04 evidence command while new tests use the generic name.
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-paint-resources.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-paint-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
     add_executable(parallel-mater-async-submission-tests tests/api/async_submission_tests.cpp)
     target_compile_features(parallel-mater-async-submission-tests PRIVATE cxx_std_20)

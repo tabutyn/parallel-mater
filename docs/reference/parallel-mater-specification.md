@@ -1454,6 +1454,10 @@ PmResult pmCmdWriteParticleDestroyers(PmCommandBuffer commandBuffer,
     uint32_t count, const PmParticleDestroyerInfo* pDestroyers);
 ```
 
+Emitter and destroy-plane slots borrow the current generation of fluidIndex. Replacing a fluid retires the endpoints aimed at that fluid slot; record their active definitions again to bind the replacement generation. Replacing or removing one endpoint first retires its old generation. If construction of its replacement fails during execution, that endpoint remains inactive and other fluid populations and endpoints remain live.
+
+Smoke emission is part of PmSmokeInfo rather than a separate endpoint resource. Replacing a smoke slot therefore replaces its inline emitter with the smoke generation.
+
 <a id="spec-paint_resources"></a>
 
 ### 10.7 Paint fields & rules
