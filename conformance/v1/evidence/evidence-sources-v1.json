@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e"
+    "sha256": "5c14a5cda49c65fe8190306e79101e53561e131918cd9e94b88801c6c6f9bf3b"
   },
   "expected_drivers": [
     {"id": "slang-cpu", "label": "Slang CPU"},

@@ -110,6 +110,8 @@ def valid_equal_fluid_result(profile: dict) -> dict:
 
 
 def rigid_result(profile: dict) -> dict:
+    quality_contract = (
+        "quality:rigid-brick-penetration-v1#maximum-pairwise-penetration")
     result = valid_equal_fluid_result(profile)
     result["advertised_capabilities"] = [
         capability("RIGID_BODY", "RIGID_BODY", "SAME_DOMAIN", "CONTACT",
@@ -120,6 +122,7 @@ def rigid_result(profile: dict) -> dict:
         evidence(profile, "execution", "case:rigid-direct"),
         evidence(profile, "reference_regression", "case:rigid-direct"),
         evidence(profile, "lifecycle_invariants", "case:rigid-direct"),
+        evidence(profile, "analytic_invariants", quality_contract),
     ]
     return result
 
@@ -222,13 +225,21 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(report["evidence_summary"]["timing"]["passed"], 1)
         self.assertEqual(report["qualified_count"], 0)
 
-    def test_unversioned_physical_gap_is_explicit(self):
-        report = self.assert_rejected(
-            rigid_result(self.profile), "qualification contract is missing")
+    def test_versioned_rigid_quality_can_qualify(self):
+        report = self.evaluate(rigid_result(self.profile))
+        self.assertTrue(report["passed"], report)
         capability_report = report["capabilities"][0]
         self.assertEqual(capability_report["rule_id"], "rigid-contact")
+        self.assertTrue(capability_report["qualified"])
         self.assertEqual(capability_report["scopes"]["analytic_invariants"]["status"],
-                         "missing_contract")
+                         "passed")
+
+    def test_rigid_quality_failure_cannot_qualify(self):
+        result = rigid_result(self.profile)
+        result["evidence"][-1]["status"] = "failed"
+        report = self.assert_rejected(result, "required evidence did not pass")
+        self.assertEqual(report["capabilities"][0]["scopes"]
+                         ["analytic_invariants"]["status"], "failed")
 
     def test_stale_contract_source_and_artifact_metadata_fail(self):
         result = valid_equal_fluid_result(self.profile)
