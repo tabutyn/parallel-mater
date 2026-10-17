@@ -42,6 +42,9 @@
     "examples/assets/SoftbodyFluid.glb": "d2e3738810af12d7075e8ae45040bd981dad49abd8daf5ff39e23f8be7b1f2ee",
     "examples/assets/SoftbodyRigidBody.glb": "5d40b70591f6ef771a78d238571571b8d1c09ab8af953d447d80361e90d2c5b9"
   },
+  "lifecycle_profile_sha256": {
+    "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+  },
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
   },

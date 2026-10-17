@@ -1060,6 +1060,22 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
+    const std::filesystem::path lifecycle_relative =
+        "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json";
+    const auto lifecycle_path = root / lifecycle_relative;
+    if (!std::filesystem::is_regular_file(lifecycle_path)) {
+        std::cerr << "missing lifecycle profile: " << lifecycle_path << '\n';
+        valid = false;
+    } else {
+        const std::string lifecycle_hash = sha256_file(lifecycle_path);
+        const std::string entry = "\"" + lifecycle_relative.generic_string() +
+                                  "\":\"" + lifecycle_hash + "\"";
+        if (manifest.find(entry) == std::string::npos) {
+            std::cerr << "manifest lifecycle-profile checksum mismatch: "
+                      << lifecycle_path << '\n';
+            valid = false;
+        }
+    }
     return valid;
 }
 

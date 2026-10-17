@@ -1,7 +1,7 @@
 {
   "id": "F5-03",
   "title": "Add capacity and three-family corpus cases",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F1-06",
     "F2-04"
@@ -17,15 +17,33 @@
     "Replacement, overflow and partial failure preserve unrelated systems.",
     "Execution/unsupported outcomes never become physical passes."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9b5b0ae3-c353-4409-9eca-d7f36fb5a860",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-03/thomas-laptop",
-    "claimed_at": "2026-10-17T05:47:53Z",
-    "heartbeat_at": "2026-10-17T05:47:53Z",
-    "expires_at": "2026-10-18T05:47:53Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py; 44 tests, including 11 lifecycle positive/negative tests; profile SHA-256 50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2.",
+    "PASS: ctest --test-dir build-foundations -R parallel-mater-conformance-(case-registry|comparator-tests|command-inputs) --output-on-failure; 3/3; manifest rejects missing or changed lifecycle profiles.",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f5-03-sdk; installed and relocated SDK carries lifecycle.py/profile and passes input checks; installed evaluator accepted 2 cases/9 checkpoints.",
+    "NEGATIVE: corrupted partial-failure graph exits 1 with one lifecycle failure; failed/unsupported suite or case results are rejected. LIMITATION: this defines the cross-driver gate and does not qualify any driver until it emits a public-API result."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9b5b0ae3-c353-4409-9eca-d7f36fb5a860",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-03/thomas-laptop",
+        "claimed_at": "2026-10-17T05:47:53Z",
+        "heartbeat_at": "2026-10-17T05:47:53Z",
+        "expires_at": "2026-10-18T05:47:53Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:54:18Z",
+      "reason": "Added an immutable two-case lifecycle profile and vendor-neutral evaluator for destructive capacity recovery, mixed three-family graph rollback, endpoint replacement and unrelated-resource preservation.",
+      "evidence": [
+        "PASS: python3 -m unittest discover -s conformance/v1/tests -p test_*.py; 44 tests, including 11 lifecycle positive/negative tests; profile SHA-256 50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2.",
+        "PASS: ctest --test-dir build-foundations -R parallel-mater-conformance-(case-registry|comparator-tests|command-inputs) --output-on-failure; 3/3; manifest rejects missing or changed lifecycle profiles.",
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f5-03-sdk; installed and relocated SDK carries lifecycle.py/profile and passes input checks; installed evaluator accepted 2 cases/9 checkpoints.",
+        "NEGATIVE: corrupted partial-failure graph exits 1 with one lifecycle failure; failed/unsupported suite or case results are rejected. LIMITATION: this defines the cross-driver gate and does not qualify any driver until it emits a public-API result."
+      ]
+    }
+  ]
 }

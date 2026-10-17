@@ -21,15 +21,23 @@ conformance remains required; passing the portable row tests is not sufficient.
 - `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy
   and split-population invariants without a reference backend. The immutable
   profile is in `quality/core-conservation-v1.json`.
+- `lifecycle.py` evaluates adverse capacity recovery and mixed-family graph
+  rollback without a reference backend. The immutable profile is in
+  `lifecycle/adverse-capacity-three-family-v1.json`.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
 
-The 30-case registry covers direct rigid integration and lifecycle changes, compound
+The 30-case trajectory registry covers direct rigid integration and lifecycle changes, compound
 weld release/rebuild, breaking, all eight constraint types, fluids, cloth,
 soft bodies, ropes, smoke, and every implemented pairwise coupling. The
 required integrated scenes (`PassiveActive`, `ConstraintFixed`, `FluidRigid`,
 `ClothWater`, `SoftbodyRigidBody`, `SmokeWater`, and `SmokeRope`) are included
 alongside the remaining coupling and subsystem scenes.
+
+The separate two-case lifecycle profile covers destructive replacement at exact
+capacity and a three-family liquid/rope/soft-body graph beside an unrelated
+smoke/cloth edge. These operation-sequence cases compare state within one run;
+they do not use CUDA trajectory goldens.
 
 ## Validation tools
 
@@ -111,6 +119,26 @@ fixed sweep is the reviewed F2-08 matrix. The quality report embeds the exact
 profile SHA-256. Missing, duplicate, unsupported, malformed or nonfinite
 samples fail. This gate never reads CUDA goldens and never treats better
 reference agreement as proof of conservation or stability.
+
+Run the capacity and graph-lifecycle gate with:
+
+```text
+python3 conformance/v1/lifecycle.py \
+  --actual /path/to/adverse-capacity-three-family-v1.json \
+  --report /path/to/lifecycle-report.json
+```
+
+The result records canonical public resource-state SHA-256 fingerprints and
+harness write ordinals at every required checkpoint; ordinals are never private
+driver handles. Each command completes and state is read before any physics
+step. Replacement must advance the target ordinal and change its observable
+state. A capacity failure may retire its target, but
+must preserve an unrelated fluid before recovery. The mixed graph contains a
+liquid/rope/soft-body component plus an unrelated smoke/cloth edge; a rejected
+partial update must restore the prior complete graph and preserve every
+endpoint. Expected command errors are observations inside a completed case.
+Suite or case `failed` and `unsupported` outcomes fail this lifecycle gate and
+never count as physical passes.
 
 Completed trajectory results explicitly say `quality_status: not_evaluated`.
 The comparator reports reference-regression `passed`, `failed`, and
