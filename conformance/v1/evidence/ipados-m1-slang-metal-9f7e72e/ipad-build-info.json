@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "revision": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+  "dirty": false,
+  "backend": "metal",
+  "release_channel": "development-preview",
+  "build_number": 553,
+  "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3"
+}

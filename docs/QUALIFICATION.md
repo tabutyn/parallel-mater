@@ -15,9 +15,9 @@ new build.
 | CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json) | 3 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 123 qualification failure |
 | D3D12 | [`windows-gtx1080-slang-d3d12-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 22 qualification failure, 2 unsupported |
 | Vulkan | None | 0 | 1 missing qualification result |
-| Metal | [`macos-m4-slang-metal-aac6d59`](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json) | 0 | 98 qualification failure |
+| Metal | [`ipados-m1-slang-metal-9f7e72e`](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json), [`macos-m4-slang-metal-aac6d59`](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json) | 0 | 195 qualification failure |
 
-Index status: **3 qualified capability records from 6 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
+Index status: **3 qualified capability records from 7 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
 <!-- END GENERATED DRIVER EVIDENCE -->
 
 Only the generated block states current per-driver capability qualification.
@@ -216,6 +216,30 @@ five launch tests cannot find the bundled `libparallel-mater.0.2.dylib` soname
 link. Native Metal API, kernel, async-submission and lifecycle tests pass. That
 bundle failure is retained in the evidence but is not treated as physics proof
 or a physics failure.
+
+### F5-14 current iPadOS Metal driver evidence
+
+Clean source `9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148` ran on physical
+iPad model `iPad13,8` with Apple M1 GPU, iPadOS 26.6.2, Metal 4 and Apple7.
+The [qualification record](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json)
+pins AppleClang 21.0.0.21000101, Xcode 26.6, iPhoneOS SDK 26.5 and Slang
+2026.18, along with exact application and embedded-driver SHA-256 identities.
+The [capture index](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/capture-index.json)
+preserves and hashes all 42 raw device and evaluator files without private
+device identifiers.
+
+All 30 public-API trajectory executions completed. The shared reference check
+passes 15 and fails 15, preserving every structured difference. The independent
+rigid profile passes at 0.146627 mm against the unchanged 2 mm limit. The
+separate-system equal-fluid fixture remains unsupported because Metal does not
+advertise those capabilities. Both adverse lifecycle cases retain 11 missing
+checkpoint failures even though their public-API operations completed. The
+obligation profile therefore reports 0/46 qualified iPad Metal records; no
+failure or missing contract is promoted to support.
+
+This is public-API physics evidence only. Gallery controls, rendering, thermal
+behavior and timing remain separate claims and are explicitly excluded from
+the capture index.
 
 ### F5-05 brick penetration classification
 

@@ -99,7 +99,8 @@ def validate_physics_qualification(report, nonce, revision, binary_identity):
     device = report.get("device")
     toolchain = report.get("toolchain")
     if not isinstance(device, dict) or any(not device.get(key) for key in
-            ("model", "gpu", "operating_system", "operating_system_version", "metal_api")):
+            ("model", "gpu", "operating_system", "operating_system_version",
+             "metal_api", "metal_version", "metal_gpu_family")):
         raise RuntimeError("Public iPadOS/Metal device metadata is incomplete")
     if not isinstance(toolchain, dict) or any(not toolchain.get(key) for key in
             ("compiler", "compiler_version", "slang_version")):

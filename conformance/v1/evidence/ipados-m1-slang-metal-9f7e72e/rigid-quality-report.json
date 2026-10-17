@@ -1,0 +1,15 @@
+{
+  "driver": {
+    "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+    "name": "slang-metal"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "passed": true,
+  "profile_id": "rigid-brick-penetration-v1",
+  "profile_sha256": "59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

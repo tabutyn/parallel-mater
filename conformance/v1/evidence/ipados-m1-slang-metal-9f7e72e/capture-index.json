@@ -1,0 +1,209 @@
+{
+  "application": {
+    "bundle_identifier": "com.ballrollergames.parallelmater.gallery",
+    "executable_sha256": "d1746afd122d92d33e52d95440a4d9b5a22a6b40afee02bf9c3c471055d649f7",
+    "release_channel": "development-preview"
+  },
+  "claims": {
+    "gallery_scene_sweep": false,
+    "public_api_physics": true,
+    "rendering": false,
+    "thermal": false,
+    "timing": false
+  },
+  "device": {
+    "gpu": "Apple M1 GPU",
+    "metal_api": "Metal",
+    "metal_gpu_family": "Apple7",
+    "metal_version": "Metal 4",
+    "model": "iPad13,8",
+    "operating_system": "iPadOS",
+    "operating_system_version": "26.6.2"
+  },
+  "driver": {
+    "binary_sha256": "d4eea65a082b84d140bf2de8c6c5bf2df06f19b6285087c68a7f1edd9092162b",
+    "name": "slang-metal"
+  },
+  "file_count": 42,
+  "files": [
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/ipad-runtime.json",
+      "sha256": "fa84041bfb2d4cf27100cef03f42da8fb5a87f99e4fa22a4d726f044cd30f229"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/ipad-build-info.json",
+      "sha256": "1330fa9d0411f68c80d8aa33f6efd91495e068706bf7e5cc068f32c27b901ca9"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/ipad-physics-qualification.json",
+      "sha256": "f671b669e2a362a5480cc69816a3f0e66958d1c1fa29d34b71dc515cff517c3f"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/rigid-quality-report.json",
+      "sha256": "ae0740b866a42c0b286b5949415f2df8fb6bbe643af5cd01a7a7d2f21ab8c4ee"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/fluid-quality-report.json",
+      "sha256": "3145b4865dfe64dc37647c4f38cd538de4cf1d43b6112341eb80b94677d688a7"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/lifecycle-report.json",
+      "sha256": "6d3ef41c97b990cbe0088c05554bd31cdf4fa4cf1f611388580c097fdf6a94ec"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/capabilities.json",
+      "sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/cloth-core.json",
+      "sha256": "2a6a855b129730f42343aeae1d08167b0fa4b4f1549b6b56b2e1e74507d378f2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/cloth-tear.json",
+      "sha256": "e605945dc6d9c9915e41cbd3d4c2455e267386c82d3390bf9a761598a5148081"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/cloth-water.json",
+      "sha256": "2935473b8d677d845a26bc0308b0215ad4ae828e1301caf191d2936a622011d2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/compound-weld-lifecycle.json",
+      "sha256": "580d149936197c6f3f44b4a8800dfa0ec3d23ce86cbf75feeb275b7da250f0fe"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-breaking.json",
+      "sha256": "725d8743a02a1c911e009941457031356d86c42da7fe98013ebb16e03fdd6302"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-fixed.json",
+      "sha256": "7bc5ad2a2e326b68b626cec77562d17699cbdb1ef36919112b6b08f3d8cd7ccd"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-generic-spring.json",
+      "sha256": "390166e5b96ac8c877f10b613b9add5358e912357c964d3325f2881d3b8f320d"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-generic.json",
+      "sha256": "e2fc17de127642e21e180bab7dc5a4b1b4807b3fcf1610f015ad400f83d09ef0"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-hinge.json",
+      "sha256": "83ce783961c4d24c1ed3c3e524d6efecbf25ec665ec3bbdfe1fff9c7b2e9b8da"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-motor.json",
+      "sha256": "73692decafefd6a679325b3581d16f004cd41ba22d4d25f59904f5a133eaf25f"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-piston.json",
+      "sha256": "6862e56420f4fb69816e12f757a77a4e4f380dcd2ded05935a2df9c24fdc9c69"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-point.json",
+      "sha256": "7689adb63fb9f199e297e615324f6fd9c55565d1e4e69a76380325c078d7c55b"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/constraint-slider.json",
+      "sha256": "28e80b856fb4082ea635082f99fd6929cd1678686132c1b418802f052c8e83b2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/fluid-lifecycle.json",
+      "sha256": "73085e74d37e08266d1fd7340154fdb51f87195aa52c3b4b306cadea8c195015"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/fluid-rigid.json",
+      "sha256": "dd60d86a0b15e99c3ef0fd28e0fd01a6a6291787b87c0dbf5c5b0007c6a492b2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/passive-active.json",
+      "sha256": "42cc2b63abb1226f833ae16518bd1f978886a4e3306ce6f7e04401ad39cb5bb1"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rigid-direct.json",
+      "sha256": "26a1f0f1946af14aee3a6e25b4195b1b200de60a03a707bc22f0b662da127d38"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-cloth.json",
+      "sha256": "fc8e1a5ee9f18369b5ee07508e3f36a05d0e181e705fe4d37736fdb0e7332ca6"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-core.json",
+      "sha256": "2588a60f882e62f9a2043f8c4b5ab361126b2e45f44851f3aa36b03288c8bb53"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-fluid.json",
+      "sha256": "bf3398ec48a5b5888f92636a3ba22b87eb82fea46cbf721f9f08403fca922621"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-soft-body.json",
+      "sha256": "df25ce34033eb5a2d1906b4f284bc802f7f2338cd5fb1bc5f0803c0fc7b70a38"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-cloth.json",
+      "sha256": "5bc2277f097461ae1ce2c45840a3359a3d40be3febc548e46839568ed1d9bd51"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-grid.json",
+      "sha256": "b6f21b370314f4c683cd702e7c901eee170fd61227d0f97422a381b65d93a416"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-rope.json",
+      "sha256": "2a4177ed9ae60e6eaa55696f4bdf3a78840165e99a6cfb058bd5ee49de93d98d"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-soft-body.json",
+      "sha256": "1e77f3a0d29e3e162d235659d90c2a06896c3f8b915522452a62ebbd09246c3a"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-water.json",
+      "sha256": "8c427b548ccc32aab0b29771f4a122a4f0fdd21aa62bdda1aeb11c1e16b88a1d"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-cloth.json",
+      "sha256": "eae9f587c80833e72d044800a9794e8743a5f58af76d96be64a714dd2dc7dd07"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-core.json",
+      "sha256": "b0dd587675f9be7b3e6c75c3da7290c8e7a88ab52704a03225c71e816a2eeba3"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-fluid.json",
+      "sha256": "008a591ae7621ca693523f051a0a744a547993e7f07befd30554fcad02b89bad"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-rigid.json",
+      "sha256": "2d68603f2e40f4cc4a490415ad4126d4d5051a2ffc7c1ef732c34b72480883be"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
+      "sha256": "02ffd76c3ea7dc85ef9b9771b38c91deaf3a5c93416e3a25832de20416b540d2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/provenance.json",
+      "sha256": "42f6588651c53fd4896a6b6d659821f4c1c806a6b66cf75232a0abeb7b676ec0"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/quality/core-conservation-stability-v1.json",
+      "sha256": "ffe6ae22945cb18000d0731f7362bda382539edcf92fdb1d2e3bee0136b0c4e2"
+    },
+    {
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/quality/rigid-brick-penetration-v1.json",
+      "sha256": "5fe396d32b5312fd5dd96352919e954c14f870a8e7c3ba4f2f640678e1f3b834"
+    }
+  ],
+  "id": "ipados-m1-slang-metal-9f7e72e",
+  "schema": "parallel-mater-ipados-device-capture/v1",
+  "source": {
+    "commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+    "dirty": false
+  },
+  "toolchain": {
+    "compiler": "AppleClang",
+    "compiler_version": "21.0.0.21000101",
+    "slang_version": "2026.18"
+  }
+}

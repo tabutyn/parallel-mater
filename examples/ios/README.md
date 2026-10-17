@@ -146,6 +146,8 @@ It rejects stale, partial, mismatched-revision, binary-mismatched and
 Gallery-only reports and rejects private device-identifier fields. Collected
 files remain ignored under `out/gallery-deployment/` until a roadmap evidence
 task explicitly reviews and registers them.
+The device manifest records the runtime Metal generation and highest supported
+Apple GPU family separately from the GPU name; host collection requires both.
 
 2026-10-16 evidence: the original `43dcfac` iPad preview launched after unlocking
 and passed all 27 scenes × three frames on the connected Apple M1 iPad Pro

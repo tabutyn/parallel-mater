@@ -1,0 +1,37 @@
+{
+  "driver": null,
+  "failure_count": 4,
+  "failures": [
+    {
+      "actual": "unsupported",
+      "limit": "completed",
+      "message": "quality execution must be completed",
+      "path": "$.execution_status"
+    },
+    {
+      "actual": null,
+      "limit": null,
+      "message": "driver name and device are required",
+      "path": "$.driver"
+    },
+    {
+      "actual": "equal-material-pressure-contact",
+      "limit": null,
+      "message": "missing required fixture",
+      "path": "$.fixtures"
+    },
+    {
+      "actual": "equal-material-viscosity",
+      "limit": null,
+      "message": "missing required fixture",
+      "path": "$.fixtures"
+    }
+  ],
+  "fixture_count": 0,
+  "passed": false,
+  "profile_id": "core-conservation-stability-v1",
+  "profile_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+  "sample_count": 0,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}
