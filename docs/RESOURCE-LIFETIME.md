@@ -64,6 +64,13 @@ handles are retired before endpoint writes. Graph descriptors retain slot indice
 and are resolved against current generations on the next step. A failed graph
 creation removes its partial edges; recovery can install a valid graph.
 
+Heap-owned fluid, smoke, cloth, rope, soft-body and coupling resources use
+fixed-size owner-slot tables created from the simulation's declared capacities.
+Retirement destroys the complete owner, including host topology vectors, and
+keeps only the slot generation needed to reject stale handles. Reuse publishes
+the retained generation into the new owner. Table size and capacity therefore do
+not grow with resource history, and a full table reports capacity exhaustion.
+
 Emitter and destroy-plane slots borrow a public fluid slot and its current
 private generation. Fluid replacement retires only the endpoints aimed at that
 slot and clears their public bindings. Later commands can bind fresh endpoint
@@ -138,9 +145,14 @@ producer signal.
 isolation, exact-capacity allocation, alignment, rejected oversized allocations,
 and rejection of interior/double frees.
 
+`tests/solver/owner_slot_tests.cpp` performs 4,096 create/retire cycles against a
+fixed two-slot table. It verifies immediate owner/payload destruction, unchanged
+table address/size/capacity, explicit exhaustion, generation advancement and
+stale-handle rejection after slot reuse.
+
 `tests/api/coupling_lifecycle_tests.cpp` qualifies graph lifetime using a liquid
 and rope without contact forces: repeated endpoint replacement, pipeline changes,
 explicit simulation graph changes, descriptor snapshots, capacity rejection and
 partial-creation rollback pass on CUDA. This is lifecycle evidence, not a claim
-of physical accuracy for every coupling pair. Retiring fluid/smoke owners and
-smoke coupling edges no longer allocates a replacement host tombstone.
+of physical accuracy for every coupling pair. Retiring heap-owned domains and
+coupling edges reclaims their owners without allocating replacement tombstones.

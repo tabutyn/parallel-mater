@@ -37,7 +37,7 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
     std::unique_ptr<FluidStorage> fluid;
     try { fluid = std::make_unique<FluidStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "fluid owner allocation failed"); }
-    fluid->generation = impl_->fluids[slot] ? impl_->fluids[slot]->generation : 1U;
+    fluid->generation = impl_->fluids[slot].generation();
     fluid->options = options;
     StorageAllocator allocator;
     status = simulation::visit_fluid_storage(*fluid, options.capacity, allocator);
@@ -143,7 +143,7 @@ Status SimulationRuntime::remove_fluid(
     if (!status) return status;
     impl_->destroyed_particle_count +=
         fluid->initial_count + fluid->emitted_count - *fluid->count;
-    retire_owner(*fluid);
+    impl_->fluids[id.index].retire();
     for (ParticleSourceSlot &plane : impl_->particle_sources)
         if (plane.alive && plane.options.fluid == id) {
             plane.alive = false; ++plane.generation; plane.data.reset();
@@ -226,7 +226,7 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
     std::unique_ptr<SmokeStorage> smoke;
     try { smoke = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke owner allocation failed"); }
-    smoke->generation = impl_->smokes[slot] ? impl_->smokes[slot]->generation : 1U;
+    smoke->generation = impl_->smokes[slot].generation();
     smoke->options = options;
     if (options.grid_resolution != 0U) {
         auto &grid = smoke->grid;
@@ -352,7 +352,7 @@ Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
         if (coupling && coupling->alive && coupling->options.smoke == id)
             return failure(StatusCode::invalid_argument,
                            "smoke is still referenced by a rigid coupling");
-    retire_owner(*impl_->smokes[id.index]);
+    impl_->smokes[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -441,8 +441,7 @@ Status SimulationRuntime::add_fluid_smoke_coupling(
     std::unique_ptr<FluidSmokeCouplingStorage> coupling;
     try { coupling = std::make_unique<FluidSmokeCouplingStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling allocation failed"); }
-    coupling->generation = impl_->fluid_smoke_couplings[slot] ?
-        impl_->fluid_smoke_couplings[slot]->generation : 1U;
+    coupling->generation = impl_->fluid_smoke_couplings[slot].generation();
     coupling->options = options;
     if (!(status = allocate_managed(coupling->converted, 1U))) return status;
     *coupling->converted = 0U;
@@ -462,7 +461,7 @@ Status SimulationRuntime::remove_fluid_smoke_coupling(FluidSmokeCouplingId id) n
         !impl_->fluid_smoke_couplings[id.index]->alive ||
         impl_->fluid_smoke_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid smoke coupling handle is stale");
-    retire_owner(*impl_->fluid_smoke_couplings[id.index]);
+    impl_->fluid_smoke_couplings[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -507,8 +506,8 @@ Status SimulationRuntime::add_smoke_soft_body_coupling(
     try { coupling = std::make_unique<SmokeSoftBodyCouplingSlot>(); }
     catch (...) { return failure(StatusCode::out_of_memory,
                                 "smoke soft-body coupling allocation failed"); }
-    coupling->generation = impl_->smoke_soft_body_couplings[slot] ?
-        impl_->smoke_soft_body_couplings[slot]->generation : 1U;
+    coupling->generation =
+        impl_->smoke_soft_body_couplings[slot].generation();
     coupling->options = options;
     if (!(status = allocate_managed(coupling->minimum, 1U)) ||
         !(status = allocate_managed(coupling->maximum, 1U))) return status;
@@ -532,7 +531,7 @@ Status SimulationRuntime::remove_smoke_soft_body_coupling(
         return failure(StatusCode::invalid_handle,
                        "smoke soft-body coupling handle is stale");
     const auto smoke_id = impl_->smoke_soft_body_couplings[id.index]->options.smoke;
-    retire_owner(*impl_->smoke_soft_body_couplings[id.index]);
+    impl_->smoke_soft_body_couplings[id.index].retire();
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -577,8 +576,7 @@ Status SimulationRuntime::add_smoke_cloth_coupling(
     try { coupling = std::make_unique<SmokeClothCouplingSlot>(); }
     catch (...) { return failure(StatusCode::out_of_memory,
                                 "smoke cloth coupling allocation failed"); }
-    coupling->generation = impl_->smoke_cloth_couplings[slot] ?
-        impl_->smoke_cloth_couplings[slot]->generation : 1U;
+    coupling->generation = impl_->smoke_cloth_couplings[slot].generation();
     coupling->options = options;
     if (!(status = allocate_managed(coupling->minimum, 1U)) ||
         !(status = allocate_managed(coupling->maximum, 1U))) return status;
@@ -601,7 +599,7 @@ Status SimulationRuntime::remove_smoke_cloth_coupling(SmokeClothCouplingId id) n
         return failure(StatusCode::invalid_handle,
                        "smoke cloth coupling handle is stale");
     const auto smoke_id = impl_->smoke_cloth_couplings[id.index]->options.smoke;
-    retire_owner(*impl_->smoke_cloth_couplings[id.index]);
+    impl_->smoke_cloth_couplings[id.index].retire();
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();
@@ -646,8 +644,7 @@ Status SimulationRuntime::add_smoke_rope_coupling(
     try { coupling = std::make_unique<SmokeRopeCouplingSlot>(); }
     catch (...) { return failure(StatusCode::out_of_memory,
                                 "smoke rope coupling allocation failed"); }
-    coupling->generation = impl_->smoke_rope_couplings[slot]
-        ? impl_->smoke_rope_couplings[slot]->generation : 1U;
+    coupling->generation = impl_->smoke_rope_couplings[slot].generation();
     coupling->options = options;
     if (!(status = allocate_managed(coupling->minimum, 1U)) ||
         !(status = allocate_managed(coupling->maximum, 1U))) return status;
@@ -668,7 +665,7 @@ Status SimulationRuntime::remove_smoke_rope_coupling(SmokeRopeCouplingId id) noe
         impl_->smoke_rope_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle,
                        "smoke rope coupling handle is stale");
-    retire_owner(*impl_->smoke_rope_couplings[id.index]);
+    impl_->smoke_rope_couplings[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -708,8 +705,7 @@ Status SimulationRuntime::add_smoke_rigid_coupling(
     try { coupling = std::make_unique<SmokeRigidCouplingSlot>(); }
     catch (...) { return failure(StatusCode::out_of_memory,
                                 "smoke rigid coupling allocation failed"); }
-    coupling->generation = impl_->smoke_rigid_couplings[slot]
-        ? impl_->smoke_rigid_couplings[slot]->generation : 1U;
+    coupling->generation = impl_->smoke_rigid_couplings[slot].generation();
     coupling->options = options;
     coupling->alive = true;
     output = {slot, coupling->generation};
@@ -730,7 +726,7 @@ Status SimulationRuntime::remove_smoke_rigid_coupling(SmokeRigidCouplingId id) n
         return failure(StatusCode::invalid_handle,
                        "smoke rigid coupling handle is stale");
     const auto smoke_id = impl_->smoke_rigid_couplings[id.index]->options.smoke;
-    retire_owner(*impl_->smoke_rigid_couplings[id.index]);
+    impl_->smoke_rigid_couplings[id.index].retire();
     impl_->smokes[smoke_id.index]->grid.static_metadata_valid = false;
     ++impl_->revision;
     return success();

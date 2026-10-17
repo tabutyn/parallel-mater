@@ -23,6 +23,7 @@
 #include "simulation/rope_dispatch.hpp"
 #include "simulation/exports.hpp"
 #include "simulation/memory_arena.hpp"
+#include "simulation/owner_slot.hpp"
 #include "simulation/resource_plan.hpp"
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
@@ -43,7 +44,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <type_traits>
 #include <vector>
 
 namespace parallel_mater {
@@ -464,17 +464,6 @@ template <typename T> void release_managed(T *&pointer) noexcept {
         (void)simulation::release_bound(pointer);
         pointer = nullptr;
     }
-}
-
-// Keep the host slot allocation when retiring an owner. Cleanup must not
-// require fresh host memory while recovering from an allocation failure.
-template<class T> void retire_owner(T &owner) noexcept {
-    static_assert(std::is_nothrow_default_constructible_v<T>);
-    auto generation = owner.generation + 1U;
-    if (!generation) generation = 1U;
-    std::destroy_at(&owner);
-    std::construct_at(&owner);
-    owner.generation = generation;
 }
 
 template <typename T>
@@ -1176,23 +1165,23 @@ struct SimulationRuntime::Impl {
     std::uint32_t rigid_solve_kernels_per_substep{1U};
     std::uint32_t soft_cloth_kernels_per_substep{};
     std::vector<Slot> slots{};
-    std::vector<std::unique_ptr<FluidStorage>> fluids{};
-    std::vector<std::unique_ptr<SmokeStorage>> smokes{};
-    std::vector<std::unique_ptr<FluidSmokeCouplingStorage>> fluid_smoke_couplings{};
-    std::vector<std::unique_ptr<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
-    std::vector<std::unique_ptr<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
-    std::vector<std::unique_ptr<SmokeRopeCouplingSlot>> smoke_rope_couplings{};
-    std::vector<std::unique_ptr<SmokeRigidCouplingSlot>> smoke_rigid_couplings{};
+    std::vector<simulation::OwnerSlot<FluidStorage>> fluids{};
+    std::vector<simulation::OwnerSlot<SmokeStorage>> smokes{};
+    std::vector<simulation::OwnerSlot<FluidSmokeCouplingStorage>> fluid_smoke_couplings{};
+    std::vector<simulation::OwnerSlot<SmokeSoftBodyCouplingSlot>> smoke_soft_body_couplings{};
+    std::vector<simulation::OwnerSlot<SmokeClothCouplingSlot>> smoke_cloth_couplings{};
+    std::vector<simulation::OwnerSlot<SmokeRopeCouplingSlot>> smoke_rope_couplings{};
+    std::vector<simulation::OwnerSlot<SmokeRigidCouplingSlot>> smoke_rigid_couplings{};
     std::uint64_t boiled_particle_count{};
-    std::vector<std::unique_ptr<ClothStorage>> cloths{};
-    std::vector<std::unique_ptr<SoftBodyStorage>> soft_bodies{};
-    std::vector<std::unique_ptr<RopeStorage>> ropes{};
-    std::vector<std::unique_ptr<FluidRopeCouplingStorage>> fluid_rope_couplings{};
-    std::vector<std::unique_ptr<RopeSoftBodyCouplingStorage>> rope_soft_body_couplings{};
+    std::vector<simulation::OwnerSlot<ClothStorage>> cloths{};
+    std::vector<simulation::OwnerSlot<SoftBodyStorage>> soft_bodies{};
+    std::vector<simulation::OwnerSlot<RopeStorage>> ropes{};
+    std::vector<simulation::OwnerSlot<FluidRopeCouplingStorage>> fluid_rope_couplings{};
+    std::vector<simulation::OwnerSlot<RopeSoftBodyCouplingStorage>> rope_soft_body_couplings{};
     std::vector<RopeClothCouplingStorage> rope_cloth_couplings{};
     std::vector<FluidClothCouplingResource> fluid_cloth_couplings{};
-    std::vector<std::unique_ptr<FluidSoftCouplingStorage>> fluid_soft_couplings{};
-    std::vector<std::unique_ptr<SoftClothCouplingStorage>> soft_cloth_couplings{};
+    std::vector<simulation::OwnerSlot<FluidSoftCouplingStorage>> fluid_soft_couplings{};
+    std::vector<simulation::OwnerSlot<SoftClothCouplingStorage>> soft_cloth_couplings{};
     std::vector<ParticleSourceSlot> particle_sources{};
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
