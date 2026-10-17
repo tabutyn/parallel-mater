@@ -10,8 +10,8 @@ This is cooperative Git coordination, not an identity/authentication service.
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   F1 has priority, but independent ready F2–F6 tasks may run concurrently.
-4. Reserve one leaf ID per claim PR. Do not claim an F1–F6 area wholesale. If a
+   F1 has priority, but independent ready F2–F7 tasks may run concurrently.
+4. Reserve one leaf ID per claim PR. Do not claim an F1–F7 area wholesale. If a
    leaf is too large for one focused implementation/review, split it in a
    planning PR before claiming. Keep old IDs and history; never renumber/reuse.
 

@@ -1,0 +1,16 @@
+{
+  "id": "F7-08",
+  "title": "Define common Gallery GPU renderer contract",
+  "status": "open",
+  "dependencies": ["F7-01"],
+  "locks": ["gallery-graphics-contract"],
+  "requires": ["Any development host"],
+  "scope": "Replace the Metal-shaped GPU renderer boundary with backend-neutral device, buffer, synchronization, target and optional diagnostic-readback contracts.",
+  "acceptance": [
+    "A mock renderer consumes public native-interoperability records and rejects foreign devices, stale buffers and unsafe ownership transitions.",
+    "Shared graphics shader inputs and draw semantics cover every current Gallery domain without embedding physics equations."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
