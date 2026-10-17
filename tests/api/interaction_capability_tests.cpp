@@ -98,7 +98,52 @@ int main() {
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               physical, &unsupported, &queried) == PM_ERROR_INVALID_ARGUMENT);
 
+    PmPhysicalDeviceFeatures features{};
+    pmGetPhysicalDeviceFeatures(physical, &features);
+    if (features.rigidBodies && features.particleLiquids &&
+        features.liquidRigidCoupling) {
+        const float priority = 1.0F;
+        const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
+        PmDeviceCreateInfo device_info{};
+        device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        device_info.queueCreateInfoCount = 1U;
+        device_info.pQueueInfos = &queue_info;
+        device_info.enabledFeatures.rigidBodies = PM_TRUE;
+        device_info.enabledFeatures.particleLiquids = PM_TRUE;
+        device_info.enabledFeatures.liquidRigidCoupling = PM_TRUE;
+        PmDevice device{};
+        CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
+
+        PmCouplingState edge{};
+        edge.type = PM_COUPLING_LIQUID_RIGID;
+        edge.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        edge.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        edge.parameters.mechanical.twoWay = PM_TRUE;
+        PmPhysicsPipelineCreateInfo pipeline_info{};
+        pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
+        pipeline_info.couplingCount = 1U;
+        pipeline_info.pCouplings = &edge;
+        PmPhysicsPipeline pipeline{};
+        CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
+              PM_SUCCESS);
+        pmDestroyPhysicsPipeline(device, pipeline);
+
+        edge.modeFlags = 0U;
+        CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
+              PM_ERROR_INVALID_ARGUMENT);
+        edge.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+        CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
+              PM_ERROR_FEATURE_NOT_PRESENT);
+        edge.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        edge.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+        CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
+              PM_ERROR_FEATURE_NOT_PRESENT);
+        pmDestroyDevice(device);
+    }
+
     pmDestroyInstance(instance);
-    std::puts("PASS: reference driver exposes exact interaction capabilities");
+    std::puts("PASS: discovery and graph descriptors share exact capabilities");
     return 0;
 }

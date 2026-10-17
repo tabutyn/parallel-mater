@@ -34,10 +34,22 @@ int main() {
     rope_material.solverIterations = 8;
     PmCouplingState edge{};
     edge.type = PM_COUPLING_LIQUID_ROPE;
+    edge.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    edge.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
     edge.parameters.mechanical.contactDistance = 0.01F;
     edge.parameters.mechanical.friction = 0.5F;
     edge.parameters.mechanical.maximumAcceleration = 10;
     edge.parameters.mechanical.twoWay = PM_TRUE;
+    const PmInteractionCapabilityKey edge_key{
+        PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_ROPE,
+        PM_INTERACTION_SCOPE_DISTINCT_FAMILY, PM_INTERACTION_MODE_CONTACT,
+        PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+        PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE};
+    PmInteractionCapability edge_capability{};
+    PM_CHECK(pmGetPhysicalDeviceInteractionCapability(
+        context.physical, &edge_key, &edge_capability) == PM_SUCCESS);
+    PM_CHECK(edge_capability.maxGraphEdgesPerSimulation ==
+        PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
     PmPhysicsPipelineCreateInfo policy{};
     policy.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     policy.fluidMaterialCount = policy.ropeMaterialCount = 1;
@@ -50,6 +62,26 @@ int main() {
     PM_CHECK(!coupled);
     edge.parameters.mechanical.twoWay = PM_TRUE;
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &coupled) == PM_SUCCESS);
+    PmCouplingState invalid = edge;
+    invalid.modeFlags = 0U;
+    PmPhysicsPipeline rejected{};
+    policy.pCouplings = &invalid;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &rejected) ==
+        PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(!rejected);
+    invalid = edge;
+    invalid.modeFlags |= PM_INTERACTION_MODE_DRAG_BIT;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &rejected) ==
+        PM_ERROR_FEATURE_NOT_PRESENT);
+    invalid = edge;
+    invalid.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &rejected) ==
+        PM_ERROR_FEATURE_NOT_PRESENT);
+    invalid = edge;
+    invalid.materialProfile = static_cast<PmInteractionMaterialProfile>(99);
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &rejected) ==
+        PM_ERROR_INVALID_ARGUMENT);
+    policy.pCouplings = &edge;
     const PmCouplingState duplicates[3]{edge, edge, edge};
     policy.couplingCount = 2; policy.pCouplings = duplicates;
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &duplicate) == PM_SUCCESS);
@@ -113,10 +145,26 @@ int main() {
     PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 3, duplicates) == PM_ERROR_CAPACITY_EXCEEDED);
     PM_CHECK(context.submit() == PM_SUCCESS);
     context.begin();
-    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 2, duplicates) == PM_SUCCESS);
+    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 2, duplicates) == PM_ERROR_INVALID_ARGUMENT);
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) == PM_SUCCESS);
-    PM_CHECK(context.submit() == PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    invalid = edge;
+    invalid.modeFlags |= PM_INTERACTION_MODE_DRAG_BIT;
+    context.begin();
+    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 1, &invalid) ==
+        PM_ERROR_FEATURE_NOT_PRESENT);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+    PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+    invalid = edge;
+    invalid.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+    context.begin();
+    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 1, &invalid) ==
+        PM_ERROR_FEATURE_NOT_PRESENT);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+    PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
     context.begin();
     PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 0, nullptr) == PM_SUCCESS);
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, coupled) == PM_SUCCESS);

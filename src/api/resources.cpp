@@ -1007,6 +1007,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             simulation->requested_couplings.clear();
             simulation->explicit_couplings = false;
             simulation->active_couplings.clear();
+            simulation->active_coupling_states.clear();
             simulation->coupling_pipeline_serial = 0;
             simulation->couplings_initialized = false;
             simulation->submitted_steps = 0U;

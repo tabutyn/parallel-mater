@@ -409,6 +409,8 @@ int main() {
     pipeline_info.pClothMaterials = &cloth_material;
     PmCouplingState unsupported_coupling{};
     unsupported_coupling.type = PM_COUPLING_LIQUID_LIQUID;
+    unsupported_coupling.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    unsupported_coupling.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
     PmPhysicsPipelineCreateInfo unsupported_pipeline_info = pipeline_info;
     unsupported_pipeline_info.couplingCount = 1U;
     unsupported_pipeline_info.pCouplings = &unsupported_coupling;

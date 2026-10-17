@@ -160,6 +160,7 @@ struct PmSimulation_T {
     std::vector<PmCouplingState> requested_couplings;
     bool explicit_couplings{};
     std::vector<PmRuntimeCoupling> active_couplings;
+    std::vector<PmCouplingState> active_coupling_states;
     std::uint64_t coupling_pipeline_serial{};
     bool couplings_initialized{};
     std::uint64_t submitted_steps{};
@@ -371,6 +372,10 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
 }
 
 [[nodiscard]] PmPhysicalDeviceFeatures supported_features() noexcept;
+[[nodiscard]] PmResult find_interaction_capability(
+    const PmPhysicalDeviceFeatures &features,
+    const PmInteractionCapabilityKey &key,
+    PmInteractionCapability &capability) noexcept;
 [[nodiscard]] PFN_pmVoidFunction lookup_proc(const char *name) noexcept;
 [[nodiscard]] PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept;
 [[nodiscard]] PmResult clear_couplings(PmSimulation simulation) noexcept;

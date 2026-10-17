@@ -82,6 +82,22 @@ bool same_interaction_key(const PmInteractionCapabilityKey &left,
 
 } // namespace
 
+PmResult find_interaction_capability(
+    const PmPhysicalDeviceFeatures &features,
+    const PmInteractionCapabilityKey &key,
+    PmInteractionCapability &capability) noexcept {
+    capability = {};
+    if (!valid_interaction_key(key)) return PM_ERROR_INVALID_ARGUMENT;
+    for (const auto &candidate : interaction_candidates) {
+        if (!same_interaction_key(key, candidate.capability.key)) continue;
+        if (!requirements_supported(candidate.requirements, features))
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        capability = candidate.capability;
+        return PM_SUCCESS;
+    }
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
 PmPhysicalDeviceFeatures supported_features() noexcept {
     PmPhysicalDeviceFeatures features{};
     features.rigidBodies = PM_TRUE;
@@ -474,19 +490,8 @@ pmGetPhysicalDeviceInteractionCapability(
         return PM_ERROR_INVALID_ARGUMENT;
     const PmInteractionCapabilityKey requested = *key;
     *capability = {};
-    if (physical == nullptr ||
-        !parallel_mater::api::valid_interaction_key(requested))
+    if (physical == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    const auto features = parallel_mater::api::supported_features();
-    for (const auto &candidate : parallel_mater::api::interaction_candidates) {
-        if (!parallel_mater::api::same_interaction_key(
-                requested, candidate.capability.key))
-            continue;
-        if (!parallel_mater::api::requirements_supported(
-                candidate.requirements, features))
-            return PM_ERROR_FEATURE_NOT_PRESENT;
-        *capability = candidate.capability;
-        return PM_SUCCESS;
-    }
-    return PM_ERROR_FEATURE_NOT_PRESENT;
+    return parallel_mater::api::find_interaction_capability(
+        parallel_mater::api::supported_features(), requested, *capability);
 }
