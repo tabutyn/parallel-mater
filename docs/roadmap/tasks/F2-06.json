@@ -1,7 +1,7 @@
 {
   "id": "F2-06",
   "title": "Build cross-population neighbor indexing",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-05",
     "F1-00"
@@ -19,15 +19,31 @@
     "Cross-system neighbors are complete, bounded and do not alias system-local IDs.",
     "Capacity/neighbor-overflow and zero-population tests cover both endpoints."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "cd128328-883b-4cd6-9ba3-c6b13da33721",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-06/thomas-laptop",
-    "claimed_at": "2026-10-17T03:45:01Z",
-    "heartbeat_at": "2026-10-17T03:45:01Z",
-    "expires_at": "2026-10-18T03:45:01Z"
-  },
-  "history": []
+  "evidence": [
+    "CPU Slang neighbor-index fixture passes duplicate-local-ID, boundary, per-endpoint overflow, and empty-population cases.",
+    "Slang CPU, CUDA, and Vulkan driver targets compile the shared fluid_emit_pair_cells and fluid_count_pair_neighbors kernels.",
+    "Typed pair storage planning bounds combined keys, identities, endpoint counts, diagnostics, and radix scratch."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "cd128328-883b-4cd6-9ba3-c6b13da33721",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-06/thomas-laptop",
+        "claimed_at": "2026-10-17T03:45:01Z",
+        "heartbeat_at": "2026-10-17T03:45:01Z",
+        "expires_at": "2026-10-18T03:45:01Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T03:55:47Z",
+      "reason": "Shared two-fluid spatial traversal is implemented without advertising the public coupling.",
+      "evidence": [
+        "CPU Slang neighbor-index fixture passes duplicate-local-ID, boundary, per-endpoint overflow, and empty-population cases.",
+        "Slang CPU, CUDA, and Vulkan driver targets compile the shared fluid_emit_pair_cells and fluid_count_pair_neighbors kernels.",
+        "Typed pair storage planning bounds combined keys, identities, endpoint counts, diagnostics, and radix scratch."
+      ]
+    }
+  ]
 }
