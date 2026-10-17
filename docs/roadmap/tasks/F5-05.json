@@ -1,7 +1,7 @@
 {
   "id": "F5-05",
   "title": "Isolate shared brick penetration failure",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "quality-bricks"
@@ -15,6 +15,14 @@
     "Retain the failing gate and propose separate bounded corrective work; no tolerance relaxation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "fc00a7be-6395-4fa1-b5c3-d4d7fec4434a",
+    "owner": "codex-windows-physics",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-05/windows-gtx1080",
+    "claimed_at": "2026-10-17T12:19:00Z",
+    "heartbeat_at": "2026-10-17T12:19:00Z",
+    "expires_at": "2026-10-18T12:19:00Z"
+  },
   "history": []
 }
