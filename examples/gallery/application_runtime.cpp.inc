@@ -1,26 +1,3 @@
-// Shared simulation frame assembly and scene-controller operations.
-struct GalleryRuntime {
-    GalleryContext context{GalleryContext::rigid_body};
-    SceneDefinition scene{};
-    CommandScene simulation{};
-    CommandSceneInstance instance{};
-    CommandSceneFrame frame{};
-    RenderSceneFrame render_frame{};
-    RendererHandle renderer{};
-#ifdef PM_GALLERY_METAL_RENDERER
-    std::unique_ptr<parallel_mater::gallery::GpuGalleryRenderer> gpu_renderer;
-    bool gpu_ready{};
-#endif
-    FixedContactCollector fixed_collector{};
-    parallel_mater::gallery::ArrowForces arrow_forces{};
-    parallel_mater::gallery::DumpTruckBed dump_bed{};
-    std::vector<SuspensionSteeringJoint> suspension_steering_joints{};
-    float steering_angle{};
-    std::vector<std::uint32_t> gravity_tilt_bodies{};
-    std::size_t kinematic_index{std::numeric_limits<std::size_t>::max()};
-    RigidBodyState kinematic_target{};
-};
-
 [[nodiscard]] RigidBodyState rigid_state(const PmRigidState &source) noexcept {
     return {{source.position[0], source.position[1], source.position[2]},
             {source.orientation[0], source.orientation[1],
@@ -61,17 +38,10 @@ struct GalleryRuntime {
 [[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
                                 const StepOptions &options,
                                 std::string &error, bool read_deformables = true, bool read_host = true) {
-    if (!runtime.simulation.step(options.timestep, options.substeps,
-                                 options.gravity, runtime.frame, error,
-                                 options.collect_rigid_contacts ||
-                                     options.collect_fluid_contacts, read_deformables, read_host))
-        return false;
-#ifdef PM_GALLERY_METAL_RENDERER
-    runtime.gpu_ready = true;
-#endif
-    if (!read_host) return true;
-    return parallel_mater::gallery::make_render_scene_frame(
-        runtime.scene, runtime.frame, runtime.render_frame, error);
+    StepOptions request = options;
+    request.read_deformables = read_deformables;
+    request.read_host = read_host;
+    return runtime.step(request, error);
 }
 
 [[nodiscard]] const GalleryEntry *entry_for_option(

@@ -40,20 +40,6 @@ void require(bool ok, const std::string &error) {
     if (!ok) throw std::runtime_error(error.empty() ? "Gallery operation failed" : error);
 }
 }
-struct GallerySession::Scene {
-    SceneDefinition definition;
-    CommandScene simulation;
-    CommandSceneInstance instance;
-    CommandSceneFrame output;
-    RenderSceneFrame render_frame;
-    RendererHandle renderer;
-#ifdef PM_GALLERY_METAL_RENDERER
-    std::unique_ptr<GpuGalleryRenderer> gpu_renderer;
-#endif
-    CameraController camera;
-    ArrowForces arrows;
-    FixedContactCollector collector;
-};
 std::vector<std::string> GallerySession::scene_names(GallerySceneSet scenes) {
     std::vector<std::string> names;
     const unsigned count = scenes == GallerySceneSet::rigid_liquid ? 8 : gallery_entries.size() - 1;
@@ -79,62 +65,120 @@ GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(
 }
 GallerySession::~GallerySession() = default;
 void GallerySession::require_scene() const {
-    if (!scene_) throw std::runtime_error("Choose a scene or Reset to continue");
+    if (!runtime_.ready())
+        throw std::runtime_error("Choose a scene or Reset to continue");
 }
 void GallerySession::select(unsigned index) {
     const auto &selected = entry(index);
-    auto next = std::make_unique<Scene>();
     std::string error;
-    require(load_glb_scene(config_.assets / files[static_cast<unsigned>(selected.source)],
-                           next->definition, error), error);
-    if (selected.context == GalleryContext::rigid_body) {
-        SceneDefinition generated;
-        require(make_brick_scene(next->definition, {bricks_, 1.0F, 1U}, generated, error), error);
-        next->definition = std::move(generated);
-    }
-    if (selected.has_fluid) next->definition.fluid_options.capacity = limits.fluid_particles;
-    if (selected.context == GalleryContext::fluid || selected.context == GalleryContext::fluid_rigid)
-        require(apply_liquid_workload_limits(next->definition, limits, error), error);
-    next->definition.smoke_options.capacity = std::min(
-        next->definition.smoke_options.capacity, limits.smoke_particles);
-    // Release the old device before allocating the new one. Mobile drivers can
-    // retain substantial private shader scratch; two live scenes exceed budgets.
-    // Invalid selections/assets above leave the old scene intact. GPU creation
-    // failure below leaves a recoverable empty session, never stale output.
-    scene_.reset();
-    selected_ = index;
-    frames = 0; pixels.clear(); timing.clear_history();
-    require(CommandScene::create(next->definition, 0U, next->simulation, next->instance,
-                                 error, config_.native_backend), error);
-    PmPhysicalDeviceProperties device{};
-    pmGetPhysicalDeviceProperties(next->simulation.physical_device(), &device);
-    device_ = device.deviceName;
-    if (config_.native_backend) {
-        PmNativeDeviceInfo native{};
-        if (pmGetNativeDevice(next->simulation.device(), &native) != PM_SUCCESS ||
-            native.backend != *config_.native_backend)
-            throw std::runtime_error("Requested GPU backend required; CPU fallback is not permitted");
-    }
-    require(next->arrows.initialize(next->definition, next->instance, error), error);
-    if (selected.context == GalleryContext::constraint_fixed)
-        require(next->collector.initialize(next->definition, next->instance, error), error);
-    if (!config_.gpu_rendering)
-        require(create_renderer(next->definition, next->instance, width, height, next->renderer, error), error);
+    GalleryRuntimeCreateInfo request;
+    request.context = selected.context;
+    request.asset =
+        config_.assets / files[static_cast<unsigned>(selected.source)];
+    request.backend = config_.native_backend;
+    request.width = width;
+    request.height = height;
+    request.create_host_renderer = !config_.gpu_rendering;
+    request.replacement =
+        GalleryReplacementPolicy::release_before_device_create;
+    const unsigned brick_count = bricks_;
+    const GalleryWorkloadLimits selected_limits = limits;
+    request.configure_scene =
+        [context = selected.context, has_fluid = selected.has_fluid,
+         brick_count, selected_limits](SceneDefinition &scene,
+                                       std::string &failure) {
+        if (context == GalleryContext::rigid_body) {
+            SceneDefinition generated;
+            if (!make_brick_scene(scene, {brick_count, 1.0F, 1U},
+                                  generated, failure)) return false;
+            scene = std::move(generated);
+        }
+        if (has_fluid)
+            scene.fluid_options.capacity = selected_limits.fluid_particles;
+        if ((context == GalleryContext::fluid ||
+             context == GalleryContext::fluid_rigid) &&
+            !apply_liquid_workload_limits(scene, selected_limits, failure))
+            return false;
+        scene.smoke_options.capacity = std::min(
+            scene.smoke_options.capacity, selected_limits.smoke_particles);
+        return true;
+    };
+    const bool gpu_rendering = config_.gpu_rendering;
+    const auto native_backend = config_.native_backend;
+    request.prepare_runtime =
+        [this, context = selected.context, gpu_rendering, native_backend]
+        (GalleryRuntime &next, std::string &failure) {
+        PmPhysicalDeviceProperties device{};
+        pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
+        if (native_backend) {
+            PmNativeDeviceInfo native{};
+            if (pmGetNativeDevice(next.simulation.device(), &native) != PM_SUCCESS ||
+                native.backend != *native_backend) {
+                failure =
+                    "Requested GPU backend required; CPU fallback is not permitted";
+                return false;
+            }
+        }
+        if (!next.arrow_forces.initialize(next.scene, next.instance, failure))
+            return false;
+        if (context == GalleryContext::constraint_fixed &&
+            !next.fixed_collector.initialize(
+                next.scene, next.instance, failure)) return false;
 #ifdef PM_GALLERY_METAL_RENDERER
-    else next->gpu_renderer = std::make_unique<GpuGalleryRenderer>(next->simulation.device(), next->definition, next->instance);
+        if (gpu_rendering)
+            next.native_renderer = std::make_shared<GpuGalleryRenderer>(
+                next.simulation.device(), next.scene, next.instance);
+#else
+        (void)gpu_rendering;
 #endif
-    require(next->simulation.step(1.0F / 60.0F, 4U,
-        {0, -9.81F * next->definition.gravity_scale, 0}, next->output, error), error);
-    require(make_render_scene_frame(next->definition, next->output, next->render_frame, error), error);
-    scene_ = std::move(next);
+        if (!next.step({.gravity = {0.0F,
+                -9.81F * next.scene.gravity_scale, 0.0F}}, failure)) {
+            return false;
+        }
+        device_ = device.deviceName;
+        return true;
+    };
+    const unsigned previous_selection = selected_;
+    if (!runtime_.replace(std::move(request), error)) {
+        // Preflight failure preserves the old scene; a later failure under the
+        // mobile release-first policy leaves the requested scene retryable.
+        selected_ = runtime_.ready() ? previous_selection : index;
+        if (!runtime_.ready()) {
+            frames = 0;
+            pixels.clear();
+            timing.clear_history();
+            right_ = up_ = 0;
+            released_ = false;
+        }
+        require(false, error);
+    }
     selected_ = index;
     frames = 0;
+    pixels.clear();
+    timing.clear_history();
     right_ = up_ = 0;
     released_ = false;
-    timing.clear_history();
     focus();
 }
-void GallerySession::reset() { select(selected_); }
+void GallerySession::reset() {
+    std::string error;
+    if (!runtime_.reset(error)) {
+        if (!runtime_.ready()) {
+            frames = 0;
+            pixels.clear();
+            timing.clear_history();
+            right_ = up_ = 0;
+            released_ = false;
+        }
+        require(false, error);
+    }
+    frames = 0;
+    pixels.clear();
+    timing.clear_history();
+    right_ = up_ = 0;
+    released_ = false;
+    focus();
+}
 void GallerySession::resize(unsigned w, unsigned h) {
     const float scale = std::min({1.0F, float(limits.render_width) / std::max(w, 1U),
         float(limits.render_height) / std::max(h, 1U)});
@@ -142,22 +186,26 @@ void GallerySession::resize(unsigned w, unsigned h) {
     if (w == width && h == height) return;
     std::string error;
     RendererHandle renderer;
-    if (scene_ && !config_.gpu_rendering) {
-        require(create_renderer(scene_->definition, scene_->instance, w, h, renderer, error), error);
-        scene_->renderer = std::move(renderer);
+    if (runtime_.ready() && !config_.gpu_rendering) {
+        require(create_renderer(runtime_.scene, runtime_.instance, w, h,
+                                renderer, error), error);
+        runtime_.renderer = std::move(renderer);
     }
     width = w; height = h;
     timing.clear_history();
 }
 void GallerySession::orbit(float x, float y) {
     require_scene();
-    scene_->camera.begin_drag(CameraDragMode::orbit, 0, 0);
-    scene_->camera.move_cursor(x, y, height); scene_->camera.end_drag();
+    runtime_.camera.begin_drag(CameraDragMode::orbit, 0, 0);
+    runtime_.camera.move_cursor(x, y, height); runtime_.camera.end_drag();
 }
-void GallerySession::zoom(float amount) { require_scene(); scene_->camera.zoom(amount); }
+void GallerySession::zoom(float amount) {
+    require_scene();
+    runtime_.camera.zoom(amount);
+}
 void GallerySession::focus() {
     require_scene();
-    scene_->camera = CameraController{};
+    runtime_.camera = CameraController{};
     auto preset = entry(selected_).context == GalleryContext::rigid_body
         ? brick_camera_preset({bricks_, 1.0F, 1U}) : entry(selected_).camera;
     if (entry(selected_).context == GalleryContext::constraint_hinge) preset.distance_scale *= 1.6F;
@@ -168,10 +216,12 @@ void GallerySession::focus() {
             low = {std::min(low.x, x), std::min(low.y, y), std::min(low.z, z)};
             high = {std::max(high.x, x), std::max(high.y, y), std::max(high.z, z)};
         };
-        for (const auto &p : scene_->output.fluid_particles) include(p.position[0], p.position[1], p.position[2]);
-        for (std::size_t i = 0; i < scene_->output.rigid_states.size(); ++i) {
-            if (scene_->definition.rigid_bodies[i].options.motion != MotionType::dynamic) continue;
-            const auto &p = scene_->output.rigid_states[i].position;
+        for (const auto &p : runtime_.frame.fluid_particles)
+            include(p.position[0], p.position[1], p.position[2]);
+        for (std::size_t i = 0; i < runtime_.frame.rigid_states.size(); ++i) {
+            if (runtime_.scene.rigid_bodies[i].options.motion != MotionType::dynamic)
+                continue;
+            const auto &p = runtime_.frame.rigid_states[i].position;
             include(p[0] - .35F, p[1] - .35F, p[2] - .35F);
             include(p[0] + .35F, p[1] + .35F, p[2] + .35F);
         }
@@ -182,15 +232,15 @@ void GallerySession::focus() {
                 .distance_scale = std::max(.28F, (radius+.25F)*2.8F/11), .pitch = .8F};
         }
     }
-    scene_->camera.set_preset(preset);
+    runtime_.camera.set_preset(preset);
 }
 void GallerySession::release() {
     require_scene();
     if (entry(selected_).context != GalleryContext::constraint_point) return;
     if (released_) { reset(); return; }
     std::string error;
-    for (auto slot : scene_->instance.rigid_constraints)
-        require(scene_->simulation.set_constraint_active(slot, false, error), error);
+    for (auto slot : runtime_.instance.rigid_constraints)
+        require(runtime_.simulation.set_constraint_active(slot, false, error), error);
     released_ = true;
 }
 void GallerySession::set_paused(bool value) {
@@ -205,7 +255,7 @@ void GallerySession::steer(float right, float up) {
 }
 void GallerySession::set_bricks(unsigned count) {
     bricks_ = std::clamp(count, 1U, limits.brick_count);
-    if (entry(selected_).context == GalleryContext::rigid_body) reset();
+    if (entry(selected_).context == GalleryContext::rigid_body) select(selected_);
 }
 void GallerySession::frame(const std::function<void(const GallerySession &)> &present) {
     if (!active_) return;
@@ -215,36 +265,45 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
         std::string error;
         if (!paused_) {
             timing.begin_phase(FramePhase::physics);
-            const float magnitude = 9.81F * scene_->definition.gravity_scale;
-            const Vec3 gravity = screen_space_gravity(scene_->camera.camera(),
-                scene_->arrows.active() ? 0 : right_, scene_->arrows.active() ? 0 : up_,
+            const float magnitude = 9.81F * runtime_.scene.gravity_scale;
+            const Vec3 gravity = screen_space_gravity(runtime_.camera.camera(),
+                runtime_.arrow_forces.active() ? 0 : right_,
+                runtime_.arrow_forces.active() ? 0 : up_,
                 magnitude, 30.0F);
-            if (scene_->collector.active())
-                require(scene_->collector.apply_loose_gravity(scene_->simulation,
-                    scene_->definition, scene_->instance, {0, -magnitude, 0}, gravity, error), error);
-            require(scene_->arrows.apply(scene_->simulation, scene_->camera.camera(), right_, up_, error), error);
-            require(scene_->simulation.step(1.0F / limits.target_fps,
-                (240U + limits.target_fps - 1) / limits.target_fps, gravity,
-                scene_->output, error, scene_->collector.active(),
-                !config_.gpu_rendering || diagnostics_ || scene_->collector.active(),
-                !config_.gpu_rendering || diagnostics_ || scene_->collector.active()), error);
-            if (scene_->collector.active())
-                require(scene_->collector.collect(scene_->simulation, scene_->definition,
-                    scene_->instance, scene_->output, error), error);
+            if (runtime_.fixed_collector.active())
+                require(runtime_.fixed_collector.apply_loose_gravity(
+                    runtime_.simulation, runtime_.scene, runtime_.instance,
+                    {0, -magnitude, 0}, gravity, error), error);
+            require(runtime_.arrow_forces.apply(
+                runtime_.simulation, runtime_.camera.camera(), right_, up_, error), error);
+            const bool read_host = !config_.gpu_rendering || diagnostics_ ||
+                runtime_.fixed_collector.active();
+            require(runtime_.step({
+                .timestep = 1.0F / limits.target_fps,
+                .substeps = (240U + limits.target_fps - 1) / limits.target_fps,
+                .gravity = gravity,
+                .collect_rigid_contacts = runtime_.fixed_collector.active(),
+                .read_deformables = read_host,
+                .read_host = read_host,
+            }, error), error);
+            if (runtime_.fixed_collector.active())
+                require(runtime_.fixed_collector.collect(
+                    runtime_.simulation, runtime_.scene, runtime_.instance,
+                    runtime_.frame, error), error);
             ++frames;
-            if (!config_.gpu_rendering)
-                require(make_render_scene_frame(scene_->definition, scene_->output, scene_->render_frame, error), error);
             timing.end_phase();
         }
         timing.begin_phase(FramePhase::render);
 #ifdef PM_GALLERY_METAL_RENDERER
-        if (scene_->gpu_renderer) {
+        if (runtime_.native_renderer) {
             pixels.clear();
-            scene_->gpu_renderer->render(scene_->instance.render_buffers, scene_->camera.camera(), width, height,
+            static_cast<GpuGalleryRenderer *>(runtime_.native_renderer.get())->render(
+                runtime_.instance.render_buffers, runtime_.camera.camera(), width, height,
                 diagnostics_ ? nullptr : presentation_layer_, diagnostics_ ? &pixels : nullptr, &timing);
         } else
 #endif
-            require(scene_->renderer.render(scene_->render_frame, scene_->camera.camera(), pixels,
+            require(runtime_.renderer.render(runtime_.render_frame,
+                runtime_.camera.camera(), pixels,
                 error, nullptr, FluidRenderMode::particles), error);
         timing.end_phase();
         if (present) {
@@ -281,19 +340,23 @@ std::string GallerySession::build_revision() { return PM_GALLERY_BUILD_REVISION;
 void *GallerySession::native_render_device() const {
     require_scene();
     PmNativeDeviceInfo native{};
-    if (pmGetNativeDevice(scene_->simulation.device(), &native) != PM_SUCCESS)
+    if (pmGetNativeDevice(runtime_.simulation.device(), &native) != PM_SUCCESS)
         throw std::runtime_error("No native rendering device");
     return reinterpret_cast<void *>(native.device);
 }
-std::size_t GallerySession::particle_count() const { return scene_ ? scene_->output.fluid_particles.size() : 0; }
+std::size_t GallerySession::particle_count() const {
+    return runtime_.ready() ? runtime_.frame.fluid_particles.size() : 0;
+}
 std::size_t GallerySession::moving_bodies() const {
-    if (!scene_) return 0;
-    return std::count_if(scene_->definition.rigid_bodies.begin(), scene_->definition.rigid_bodies.end(),
+    if (!runtime_.ready()) return 0;
+    return std::count_if(runtime_.scene.rigid_bodies.begin(),
+        runtime_.scene.rigid_bodies.end(),
         [](const auto &body) { return body.options.motion == MotionType::dynamic; });
 }
 std::uint64_t GallerySession::allocated_bytes() const {
     PmMemoryBudget budget{};
-    return scene_ && pmGetDeviceMemoryBudget(scene_->simulation.device(), &budget) == PM_SUCCESS
+    return runtime_.ready() &&
+        pmGetDeviceMemoryBudget(runtime_.simulation.device(), &budget) == PM_SUCCESS
         ? budget.applicationAllocationBytes : 0;
 }
 std::string GallerySession::status() const {
@@ -301,8 +364,10 @@ std::string GallerySession::status() const {
     std::ostringstream text;
     text << (paused_ ? "Paused · " : "") << config_.backend << " · " << frames << " steps";
     if (config_.gpu_rendering) text << " · GPU graphics";
-    else if (!scene_->output.fluid_particles.empty()) text << " · " << scene_->output.fluid_particles.size() << " particles";
-    text << "\n" << (scene_->arrows.active() ? "Push objects" : "Tilt gravity");
+    else if (!runtime_.frame.fluid_particles.empty())
+        text << " · " << runtime_.frame.fluid_particles.size() << " particles";
+    text << "\n" << (runtime_.arrow_forces.active()
+        ? "Push objects" : "Tilt gravity");
     return text.str();
 }
 void GallerySession::validate_snapshot() const {
@@ -317,7 +382,7 @@ void GallerySession::validate_snapshot() const {
             for (const auto &node : domain) { vector(node.position); vector(node.velocity); }
         }
     };
-    const auto &output = scene_->output;
+    const auto &output = runtime_.frame;
     for (const auto &body : output.rigid_states) {
         for (float x : body.position) finite(x);
         for (float x : body.orientation) finite(x);
@@ -336,11 +401,11 @@ void GallerySession::validate_snapshot() const {
         finite(particle.age); finite(particle.numberDensity); finite(particle.pressure);
     }
     if ((entry(selected_).has_fluid && output.fluid_particles.empty()) ||
-        (scene_->definition.has_smoke && output.smoke_particles.empty()) ||
-        output.rigid_states.size() != scene_->definition.rigid_bodies.size() ||
-        output.cloth_vertices.size() != scene_->definition.cloths.size() ||
-        output.soft_body_nodes.size() != scene_->definition.soft_bodies.size() ||
-        output.rope_nodes.size() != scene_->definition.ropes.size())
+        (runtime_.scene.has_smoke && output.smoke_particles.empty()) ||
+        output.rigid_states.size() != runtime_.scene.rigid_bodies.size() ||
+        output.cloth_vertices.size() != runtime_.scene.cloths.size() ||
+        output.soft_body_nodes.size() != runtime_.scene.soft_bodies.size() ||
+        output.rope_nodes.size() != runtime_.scene.ropes.size())
         throw std::runtime_error("Missing domain output");
     if (pixels.size() != std::size_t(width) * height || pixels.empty())
         throw std::runtime_error("Invalid rendered image size");
