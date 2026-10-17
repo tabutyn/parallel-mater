@@ -1,0 +1,16 @@
+{
+  "id": "F7-16",
+  "title": "Use native Vulkan rendering on Android",
+  "status": "open",
+  "dependencies": ["F7-07", "F7-09"],
+  "locks": ["android-gallery-presentation"],
+  "requires": ["Physical Android Vulkan device and Android build toolchain"],
+  "scope": "Connect the common Vulkan Gallery renderer to Android surfaces and remove ordinary-frame software image copies.",
+  "acceptance": [
+    "Android renders directly from public GPU outputs with explicit physics/graphics ordering and no ordinary-frame CPU readback.",
+    "Rotation, resize, background, surface recreation and teardown pass on a physical device without stale or foreign resources."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -70,7 +70,7 @@ balance, and energy behavior with external forces and dissipation accounted for.
 ## Leasing work across machines
 
 This is the current work queue. Stable leaf IDs below are the only leaseable
-units; F1–F6 are foundation areas, not whole-area reservations. Choose the
+units; F1–F7 are foundation areas, not whole-area reservations. Choose the
 smallest ready task matching the machine's capabilities. Each task links to a
 canonical JSON card with scope, acceptance checks, dependencies, shared-area
 locks, evidence and lease history. Completed `*-00` cards record existing work
@@ -87,9 +87,9 @@ reserved until an explicit reclaim/release PR merges. A unique lease token
 prevents a previous owner from completing a reclaimed task. Shared-area locks
 prevent different task IDs from reserving the same common implementation area.
 
-F1 has the highest priority. Independent ready tasks in F2–F6 may proceed in
+F1 has the highest priority. Independent ready tasks in F2–F7 may proceed in
 parallel when dependencies and locks permit. Platform expansion, engine plugins
-and shader performance work remain deferred until the six `*-99` foundation
+and shader performance work remain deferred until the seven `*-99` foundation
 review gates close and a planning PR activates the selected follow-up task.
 
 The lease check must be required with up-to-date branches for race-safe
@@ -203,13 +203,37 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08 | — |
 
+### F7. Shared Gallery application
+
+| Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
+|---|---|---|---|---|
+| [F7-01](roadmap/tasks/F7-01.json) | Specify one common Gallery runtime | done | — | — |
+| [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | ready | F7-01 | — |
+| [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | leased | F7-01 | codex-linux-gallery / thomas-laptop / 2026-10-18T22:40:15Z |
+| [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | waiting on dependencies | F7-03 | — |
+| [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | waiting on dependencies | F7-03 | — |
+| [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |
+| [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |
+| [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | ready | F7-01 | — |
+| [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | waiting on dependencies | F7-08 | — |
+| [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | waiting on dependencies | F7-03 | — |
+| [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | waiting on dependencies | F7-03 | — |
+| [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | waiting on dependencies | F7-03 | — |
+| [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | waiting on dependencies | F7-03 | — |
+| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
+| [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | waiting on dependencies | F7-02, F7-07 | — |
+| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | waiting on dependencies | F7-07, F7-09 | — |
+| [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | waiting on dependencies | F7-04, F7-07, F7-15 | — |
+| [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17 | — |
+| [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18 | — |
+
 ### P1. Deferred domain and interaction coverage
 
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
-| [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
-| [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
-| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 | [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | deferred | P1-03 | — |
 | [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | deferred | P1-04 | — |
 | [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | deferred | P1-05 | — |
@@ -267,23 +291,23 @@ merging. The workflow does not change GitHub branch-protection settings.
 
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
-| [P2-01](roadmap/tasks/P2-01.json) | Qualify one native engine-handoff slice | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
-| [P2-02](roadmap/tasks/P2-02.json) | Build Unity minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
-| [P2-03](roadmap/tasks/P2-03.json) | Build Unreal minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
-| [P2-04](roadmap/tasks/P2-04.json) | Build Godot minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P2-01 | — |
+| [P2-01](roadmap/tasks/P2-01.json) | Qualify one native engine-handoff slice | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P2-02](roadmap/tasks/P2-02.json) | Build Unity minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99, P2-01 | — |
+| [P2-03](roadmap/tasks/P2-03.json) | Build Unreal minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99, P2-01 | — |
+| [P2-04](roadmap/tasks/P2-04.json) | Build Godot minimal SDK integration | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99, P2-01 | — |
 
 ### P3. Deferred measured optimization
 
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
-| [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
+| [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 
 ### P4. Deferred vendor and standards adoption
 
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
-| [P4-01](roadmap/tasks/P4-01.json) | Prepare independent vendor-driver handoff | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99 | — |
-| [P4-02](roadmap/tasks/P4-02.json) | Prepare standards proposal prerequisites | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, P4-01 | — |
+| [P4-01](roadmap/tasks/P4-01.json) | Prepare independent vendor-driver handoff | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P4-02](roadmap/tasks/P4-02.json) | Prepare standards proposal prerequisites | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99, P4-01 | — |
 <!-- END TASK INDEX -->
 
 ## Scope and evidence
@@ -292,7 +316,8 @@ Foundation exit reviews preserve the original requirements: bounded resource
 lifetime (F1), simulation-owned interaction graphs and qualified fluid–fluid
 behavior (F2), agreeing specification/runtime/validation (F3), common resource
 and engine-ownership contracts (F4), independent physical qualification (F5),
-and relocatable reproducible SDK releases (F6). A completed task closes only its
+relocatable reproducible SDK releases (F6), and one cross-platform Gallery
+runtime with qualified platform adapters (F7). A completed task closes only its
 listed acceptance checks, not its entire area or a driver's physical compliance.
 
 The [qualification index](QUALIFICATION.md) keeps known failures visible.

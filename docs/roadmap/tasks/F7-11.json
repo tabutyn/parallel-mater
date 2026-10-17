@@ -1,0 +1,16 @@
+{
+  "id": "F7-11",
+  "title": "Enable Vulkan soft-body Gallery domains",
+  "status": "open",
+  "dependencies": ["F7-03"],
+  "locks": ["vulkan-gallery-soft-body"],
+  "requires": ["Linux or Android Vulkan device"],
+  "scope": "Compile, bind and qualify existing shared Slang soft-body, geometry-soft-body and fluid-soft-body schedules for the Vulkan driver.",
+  "acceptance": [
+    "Soft body, rigid coupling and fluid coupling scenes pass bounded lifecycle and visible-output checks on Vulkan.",
+    "Vulkan advertises only the exact soft-body and coupling capabilities supported by passing public-API contracts."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

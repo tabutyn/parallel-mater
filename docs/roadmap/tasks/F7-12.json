@@ -1,0 +1,16 @@
+{
+  "id": "F7-12",
+  "title": "Enable Vulkan rope Gallery domains",
+  "status": "open",
+  "dependencies": ["F7-03"],
+  "locks": ["vulkan-gallery-rope"],
+  "requires": ["Linux or Android Vulkan device"],
+  "scope": "Compile, bind and qualify existing shared Slang rope and fluid-rope schedules for the Vulkan driver.",
+  "acceptance": [
+    "Rope and rope-water scenes pass bounded lifecycle and visible-output checks on Vulkan.",
+    "Vulkan advertises only the exact rope and fluid-coupling capabilities supported by passing public-API contracts."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

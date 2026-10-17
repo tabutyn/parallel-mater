@@ -21,6 +21,13 @@ apps/gallery_game (not installed)
   scene selection, progression, save data, menus
 ```
 
+The current refactor has one shared mobile session, while desktop still owns a
+second session/runtime path. The target ownership, state transitions, and
+characterization gates are tracked in the
+[common Gallery runtime contract](GALLERY-RUNTIME.md). F7 in the roadmap moves
+desktop and mobile onto that contract before Android scene coverage is called
+complete.
+
 Renderers consume the backend-neutral `RenderSceneFrame` copied through the
 public command API. The default software adapter rasterizes that frame without
 CUDA or OptiX; native window adapters only present its CPU RGBA image. The
@@ -70,9 +77,10 @@ GPU physics is not GPU rendering: the image renderer remains CPU-based.
 
 ## First gallery sequence
 
-The same ordered catalog, scene construction, controls, and simulation path are
-used by interactive, headless, benchmark, and replay runs. Platform adapters
-only draw the resulting public resource views and overlays.
+The ordered catalog metadata and scene construction are shared today. The F7
+work makes controls and simulation lifecycle common across interactive,
+headless, desktop, and mobile runs; the contract above records the current
+ownership split until that migration finishes.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.

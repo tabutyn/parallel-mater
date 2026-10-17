@@ -1,0 +1,16 @@
+{
+  "id": "F7-04",
+  "title": "Move Gallery controllers into common runtime",
+  "status": "open",
+  "dependencies": ["F7-03"],
+  "locks": ["gallery-controllers"],
+  "requires": ["Any development host"],
+  "scope": "Move gravity, force, constraint release, motor, steering, dump-bed, kinematic and paint/cloth scene controls behind shared semantic actions.",
+  "acceptance": [
+    "Every catalog scene declares actions without platform key, touch or widget codes in the runtime.",
+    "Desktop and mobile adapter tests drive the same controller transitions and reset results."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

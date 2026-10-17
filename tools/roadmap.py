@@ -22,6 +22,7 @@ LEASE_FIELDS = {'token', 'owner', 'machine', 'branch', 'claimed_at', 'heartbeat_
 GROUPS = {'F1': 'Resource lifetime and capacity', 'F2': 'Interaction graph and system coupling',
           'F3': 'Specification, ABI and validation', 'F4': 'Common resources and engine ownership',
           'F5': 'Independent conformance and quality', 'F6': 'SDK releases and repository ownership',
+          'F7': 'Shared Gallery application',
           'P1': 'Deferred domain and interaction coverage', 'P2': 'Deferred engine integration',
           'P3': 'Deferred measured optimization', 'P4': 'Deferred vendor and standards adoption'}
 
@@ -65,7 +66,7 @@ def validate(tasks):
     tokens, held = set(), {}
     for id, task in tasks.items():
         require(set(task) == FIELDS, f'{id}: unexpected or missing task fields')
-        require(task['id'] == id and re.fullmatch(r'(?:F[1-6]|P[1-4])-\d\d', id), f'invalid ID: {id}')
+        require(task['id'] == id and re.fullmatch(r'(?:F[1-7]|P[1-4])-\d\d', id), f'invalid ID: {id}')
         require(task['status'] in ('open', 'leased', 'done', 'deferred'), f'{id}: invalid status')
         for key in ('title', 'scope'):
             require(isinstance(task[key], str) and task[key].strip(), f'{id}: missing {key}')

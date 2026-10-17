@@ -1,0 +1,16 @@
+{
+  "id": "F7-05",
+  "title": "Unify Gallery clock and workload policy",
+  "status": "open",
+  "dependencies": ["F7-03"],
+  "locks": ["gallery-frame-policy"],
+  "requires": ["Any development host"],
+  "scope": "Use one fixed-step, catch-up, pause, background and device-profile admission policy across desktop and mobile shells.",
+  "acceptance": [
+    "Equal action/time traces produce equal physics submissions across platform adapters within explicit catch-up limits.",
+    "Slow frames, pause, backgrounding and changing workload limits have deterministic tested behavior."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

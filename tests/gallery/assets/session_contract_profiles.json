@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "startup_limits": [
+    {
+      "name": "gallery-session-contract",
+      "platform": "ContractTest",
+      "machine_model": "*",
+      "backend": "*",
+      "brick_count": 2,
+      "fluid_particles": 32,
+      "coupled_bodies": 2,
+      "smoke_particles": 32,
+      "dump_spheres": 10,
+      "render_width": 96,
+      "render_height": 72,
+      "target_fps": 60
+    }
+  ]
+}
