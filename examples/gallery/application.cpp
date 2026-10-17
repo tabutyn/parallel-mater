@@ -65,6 +65,7 @@ using parallel_mater::gallery::peg_paint_gravity_tilt_degrees;
 using parallel_mater::gallery::GalleryControlPolicy;
 using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
+using parallel_mater::gallery::GalleryCatalog;
 using parallel_mater::gallery::GalleryEntry;
 using parallel_mater::gallery::GalleryReplacementPolicy;
 using parallel_mater::gallery::GalleryRuntime;
@@ -78,6 +79,8 @@ using parallel_mater::gallery::GalleryWindow;
 using parallel_mater::gallery::gallery_entries;
 using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_context_index;
+using parallel_mater::gallery::gallery_scene_asset;
+using parallel_mater::gallery::make_gallery_catalog;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
@@ -449,13 +452,12 @@ static int run_gallery_application(
         options.backend = selected;
     }
     if (options.backend) window_title += " - " + backend_title(*options.backend);
-    const PmPhysicalDeviceFeatures *selected_features = nullptr;
-    for (const auto &backend : backends) {
-        if (options.backend && backend.backend == *options.backend) {
-            selected_features = &backend.features;
-            break;
-        }
+    const auto selected_features = platform_gallery_features(options.backend);
+    if (!selected_features) {
+        std::cerr << "Could not query Gallery backend capabilities\n";
+        return 1;
     }
+    const GalleryCatalog scene_catalog = make_gallery_catalog(&*selected_features);
     if (options.headless_output.empty()) {
         const HardwareIdentity hardware =
             platform_hardware_identity(options.backend);
@@ -1062,12 +1064,12 @@ static int run_gallery_application(
                 }
                 input_state.shared.selected = selected;
                 if (keys.pressed(KeyAction::enter)) {
+                    const auto &catalog_selection = scene_catalog[selected];
                     const GalleryContext context_selection =
-                        gallery_entries[selected].context;
+                        catalog_selection.scene.context;
                     const bool context_changed =
                         context_selection != runtime.context;
-                    if (selected_features &&
-                        !gallery_backend_supports(context_selection, *selected_features)) {
+                    if (!catalog_selection.available) {
                         // The catalog explains why this row is disabled.
                     } else if (!context_changed ||
                                session.rebuild(options, context_selection, dump_spheres,
@@ -1450,7 +1452,8 @@ static int run_gallery_application(
         if (input_state.shared.catalog_visible) {
             draw_context_overlay(pixels, runtime.renderer.width(),
                                  runtime.renderer.height(),
-                                 gallery_entries[input_state.shared.selected].context, selected_features);
+                                 scene_catalog[input_state.shared.selected].scene.context,
+                                 scene_catalog);
         }
         if (input_state.shared.parameters_visible) {
             if (input_state.brick_dialog)

@@ -14,11 +14,13 @@ assembly, and teardown. Android and iPad reach it through the reusable
 `GallerySession`; desktop keeps `DesktopGalleryState` for its current UI and
 calibration data. Controllers, timing policy, catalog presentation, and native
 renderers remain partly shell-specific and move behind common contracts in the
-remaining F7 tasks.
+remaining F7 tasks. Scene metadata and backend availability now come from one
+ordered `GalleryCatalog`; platform shells only choose how to display its
+records.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
-| Ordered scene identity, name, help, source, control policy, and feature requirements | `gallery_context.hpp`, plus desktop selection code | `gallery_context.hpp`, plus `GallerySceneSet` remapping in `session.cpp` | Common runtime catalog |
+| Ordered scene identity, name, help, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `GallerySession::catalog()` | Common runtime catalog (done) |
 | Driver discovery, explicit backend choice, and capability query | Desktop startup and backend picker | Platform startup configuration; Android fixes Vulkan | Platform shell requests a backend; common runtime reports devices and scene availability |
 | Asset and device-profile paths | Desktop options and compile-time resource paths | Android/iPad shell configuration | Platform shell supplies paths once |
 | Workload limits and user-adjustable counts | Desktop options, calibration, and local profile logic | `GallerySession` device-profile selection | Common runtime policy; shell edits declared parameters |
@@ -31,7 +33,7 @@ remaining F7 tasks.
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path; optional Metal path | Software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
-| Catalog, parameter, timing, status, and error view models | Desktop overlays | Java/UIKit widgets and session strings | Common runtime data; platform shell chooses widgets and layout |
+| Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | Shared catalog plus Java/UIKit widgets and session strings | Common runtime data; platform shell chooses widgets and layout |
 | Physics capture, validation snapshots, and qualification sequencing | Desktop application and shared debug helpers | `GallerySession` qualification helpers | Common runtime diagnostics; shell chooses destination and presentation |
 | Filesystem writes, share sheets, logs, and platform telemetry | Desktop platform helpers | Java/UIKit | Platform shell |
 
@@ -90,6 +92,11 @@ Status and qualification output identify source revision, driver/backend,
 physical device, selected stable scene identity, availability reason, workload
 profile, dimensions, physics generation, and whether host readback was used.
 Physics validity, visual execution, and performance are reported separately.
+Every catalog consumer preserves the shared order and stable identity. A
+backend capability query annotates each record with its required feature names,
+availability, and an exact missing-feature reason. Unsupported records remain
+visible and selection is rejected before the live scene is replaced; a shell
+must not remap indexes, hide the record, or retry it on another backend.
 
 ## Characterization gates
 
@@ -98,6 +105,7 @@ These tests protect behavior while later F7 tasks move ownership:
 | Behavior | Test |
 |---|---|
 | Common-session selection, rejected selection, reset, pause, inactive frame, foreground recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
+| Shared catalog ordering, stable unique identities, required features, and precise backend rejection reasons | `parallel-mater-gallery-registry-tests` |
 | Catalog selection, modal reset/action gating, and held-input clearing | `parallel-mater-gallery-input-tests` |
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
 | Full mobile session scene loop, presentation failure, and qualification lifecycle on Metal | `parallel-mater-ipad-session-tests` |
